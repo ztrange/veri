@@ -2705,3 +2705,35 @@ def test_main_2807_prints_revise_when_a_wrong_test_names_a_go_helper_defined_onl
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2845_prints_revise_and_exits_3_for_a_reject_whose_missing_test_line_is_lower_case_none_with_trailing_text(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh treats none as no missing test")
+    report = tmp_path / "verify-green-report.txt"
+    report.write_text(
+        "VERDICT: REJECT\n"
+        "REASON: the extra handling should be removed\n"
+        "MISSING_TEST: none; the extra handling should be removed, not tested.\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2845_prints_missing_for_a_reject_whose_missing_test_line_begins_with_a_longer_word_than_none(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh treats none as no missing test")
+    report = tmp_path / "verify-green-report.txt"
+    report.write_text(
+        "VERDICT: REJECT\n"
+        "REASON: an edge case is not tested\n"
+        "MISSING_TEST: nonexistent edge case\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing nonexistent edge case\n")
