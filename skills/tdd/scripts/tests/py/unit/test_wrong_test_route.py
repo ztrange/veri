@@ -2737,3 +2737,18 @@ def test_main_2845_prints_missing_for_a_reject_whose_missing_test_line_begins_wi
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing nonexistent edge case\n")
+
+
+def test_main_2845_prints_revise_and_exits_3_for_a_reject_whose_missing_test_line_is_capitalised_none_none_with_a_full_stop_or_none_with_a_dash_and_text(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "wrong-test-route.sh treats none as no missing test")
+    answers = []
+    for i, line in enumerate(["None", "NONE.", "none - the extra handling should be removed"]):
+        report = tmp_path / ("verify-green-report-%d.txt" % i)
+        report.write_text("VERDICT: REJECT\nREASON: remove the extra handling\nMISSING_TEST: %s\n" % line)
+        code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+        answers.append((code, stdout))
+
+    assert answers == [(3, "revise\n")] * 3
