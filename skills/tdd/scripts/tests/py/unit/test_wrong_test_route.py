@@ -2651,3 +2651,28 @@ def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red TestOther\n")
+
+
+def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_name_from_go_test_files(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "foo_test.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func TestAdded(t *testing.T) {\n}\n\n"
+        "func TestFirst(t *testing.T) {\n}\n")
+    (tmp_path / "pkg" / "bar_test.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func TestSecond(t *testing.T) {\n}\n")
+    (tmp_path / ".tdd").mkdir()
+    step = "go cases are superseded together"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: TestAdded\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: go test ./...\nSUPERSEDED: TestFirst\nSUPERSEDED: TestSecond\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "supersede TestFirst TestSecond\n")
