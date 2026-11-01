@@ -1696,6 +1696,39 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     assert answers["symlink"] == answers["in-place"]
 
 
+@pytest.mark.process("parallel-conductors.sh supervising a real conductor in place")
+@pytest.mark.tree_audit("every directory under skills/tdd/ but tests/")
+def test_an_in_place_launch_leaves_the_conductors_event_log_holding_done_for_the_issue_it_solved_2814(tmp_path):
+    copy = tmp_path / "copy" / "skills"
+    shutil.copytree(SCRIPTS.parent, copy / "tdd", symlinks=True, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    gh, _ = _gh_and_work(tmp_path)
+    (gh / "issues.json").write_text(json.dumps([{
+        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "body": "## Blocked by\n\nNone.\n"}]))
+    claude = tmp_path / "claude"
+    claude.write_text("""#!/bin/sh
+n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
+mkdir -p ".tdd/wt/$n/.tdd"
+echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+""".replace("GH", str(gh)))
+    claude.chmod(0o755)
+    (gh / "prs.lines").write_text("")
+    repo = tmp_path / "in-place"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                    "--allow-empty", "-m", "init"], check=True)
+    env = {name: value for name, value in os.environ.items() if not name.startswith(("VERI_", "CLAUDE_"))}
+    ran = subprocess.run([str(copy / "tdd" / "scripts" / "parallel-conductors.sh")], cwd=repo,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                         env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05"})
+    log = repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    assert (log.exists(), ran.returncode) == (True, 0), ran.stdout + ran.stderr
+    assert [json.loads(line).get("event") for line in log.read_text().splitlines()] == ["done"]
+
+
 def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_context_watch_reads_only_the_new_session(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     monkeypatch.chdir(tmp_path)
