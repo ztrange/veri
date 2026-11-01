@@ -7,6 +7,7 @@ import pytest
 ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.orchestrate", [], {}),
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
+    "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
 }
 CANDIDATES = ("abc", "-1", "0", "1.5.5", "1e3", "1e12", "nan", "inf", " 7")
@@ -22,8 +23,6 @@ def test_1313_every_tunable_in_the_readers_table_refuses_a_malformed_or_out_of_b
     refusals = {}
     assert tunables.TABLE["REVISE_BUDGET"].default == "2"
     for name, parse in tunables.TABLE.items():
-        if name == "REVISE_BUDGET":
-            continue
         module, argv, env = ENTRY_POINTS[name]
         rejected = []
         for value in CANDIDATES:
