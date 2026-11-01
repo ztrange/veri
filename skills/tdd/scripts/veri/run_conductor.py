@@ -174,6 +174,9 @@ def prompt(base, issue, commit):
     text += ("\n\nBase directory for this skill: %s\n" % base).encode()
     if commit is not None:
         text += ("\nPinned skill commit (name it in the plan comment): %s\n" % commit).encode()
+    budget = tunables.read("REVISE_BUDGET")
+    if budget:
+        text += ("\nREVISE_BUDGET=%s\n" % budget).encode()
     return text + ("\nSolve issue #%s by the procedure above.\n" % issue).encode()
 
 
