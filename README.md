@@ -192,14 +192,6 @@ the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4).
 
 ## Documentation
 
-- [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
-  the conductor's scripts in full, source beside commentary, ordered by the data flow of one
-  cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
-  section covering every construct the suite uses. The page is **generated** from the real
-  scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
-  drift; `make docs-check` verifies the committed page still matches. Published at
-  <https://ztrange.github.io/veri/> by hand-running `.github/workflows/pages.yml`, so a
-  deploy is a decision rather than a side effect of a merge.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
 - [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0016, one per resolved
   design fork.
