@@ -105,3 +105,24 @@ def test_event_with_an_empty_issue_creates_nothing_under_veri_home_and_prints_no
 
     err = capfd.readouterr().err
     assert (code, list(home.iterdir()), err) == (0, [], "")
+
+
+def test_event_in_a_clone_with_no_origin_remote_creates_nothing_under_veri_home_and_prints_nothing_on_stderr(
+        tmp_path, capfd):
+    import importlib
+    event = importlib.import_module("veri.event")
+    home = tmp_path / "home"
+    home.mkdir()
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text("[core]\n\tbare = false\n")
+
+    with_home = os.environ.get("VERI_HOME")
+    os.environ["VERI_HOME"] = str(home)
+    try:
+        code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+    finally:
+        os.environ["VERI_HOME"] = with_home
+
+    err = capfd.readouterr().err
+    assert (code, list(home.iterdir()), err) == (0, [], "")
