@@ -3422,6 +3422,32 @@ def test_rerecord_refactored_leaves_the_record_and_check_earlier_exits_1_for_a_g
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_check_earlier_exits_0_for_a_format_2_go_record_cut_with_the_body_running_past_the_closing_brace_2863(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    import hashlib
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    text = ('func TestOne(t *testing.T) {\n\tx := 1\n\tcheck(t, x)\n}\n\n'
+            'func check(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n}\n')
+    suite.write_text(text)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    old_digest = hashlib.sha256(text.rstrip().encode()).hexdigest()
+    record.write_text("".join(
+        "body: suite_test.go\tTestOne\t%s\n" % old_digest if line.startswith("body: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_leaves_the_record_of_a_case_with_no_assertion_line_when_the_refactor_changed_its_body_2809(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]

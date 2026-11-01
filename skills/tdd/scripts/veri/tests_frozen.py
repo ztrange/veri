@@ -178,7 +178,7 @@ def _spans(text):
 def _old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
     return [(m.group(1) or m.group(2) or m.group(4), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
-            if m.group(4) or not call_form_only]
+            if m.group(4) or not call_form_only or text.startswith("func", start)]
 
 
 def _accepted_per_digest(digests, nows, olds):
