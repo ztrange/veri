@@ -283,3 +283,13 @@ def test_install_links_sh_leaves_a_lone_dangling_symlink_elsewhere_untouched_and
     entries = {p.name: os.readlink(p) for p in skills.iterdir()}
     assert (done.returncode, str(skills / LINKED[-1]) in done.stderr, entries) == (
         2, True, {LINKED[-1]: str(tmp_path / "nowhere")})
+
+
+@pytest.mark.process("git, asked by install-links.sh for the common directory of a plain directory outside any repository")
+def test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_nothing(tmp_path):
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    done = subprocess.run(["/bin/sh", str(SCRIPTS / "install-links.sh")], cwd=plain, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    assert (done.returncode, sorted(p.name for p in tmp_path.rglob("*")), "Traceback" in done.stderr) == (
+        2, ["plain"], False)
