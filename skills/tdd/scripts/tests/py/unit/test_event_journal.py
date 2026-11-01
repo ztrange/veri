@@ -194,3 +194,45 @@ def test_failed_journal_write_prints_one_stderr_line_naming_the_path_and_still_w
     err = capfd.readouterr().err
     per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
     assert (code, per_run.count(b"\n"), len(err.splitlines()), str(journal) in err) == (0, 1, 1, True)
+
+
+def test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_descriptor(tmp_path, monkeypatch):
+    import importlib
+    import subprocess
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+    journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
+    started, opened, written = [], {}, []
+    real_open, real_write = os.open, os.write
+
+    def spy_open(path, flags, *rest, **kw):
+        fd = real_open(path, flags, *rest, **kw)
+        opened[fd] = (os.fspath(path), flags)
+        return fd
+
+    def spy_write(fd, data):
+        written.append((fd, bytes(data), opened[fd]))
+        return real_write(fd, data)
+
+    def spy_process(*args, **kw):
+        started.append(args)
+        raise AssertionError("a process was started")
+
+    monkeypatch.setattr(os, "open", spy_open)
+    monkeypatch.setattr(os, "write", spy_write)
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, spy_process)
+    for name in ("fork", "forkpty", "posix_spawn", "posix_spawnp", "system", "execv", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, spy_process)
+
+    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+
+    to_journal = [(data, target[1]) for _, data, target in written if target[0] == str(journal)]
+    flags = [flag for _, flag in to_journal]
+    expected = (clone / ".tdd" / "events.jsonl").read_bytes()
+    assert (code, started, [data for data, _ in to_journal], [bool(f & os.O_APPEND) for f in flags]) == (
+        0, [], [expected], [True])

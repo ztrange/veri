@@ -72,3 +72,25 @@ os.path.expanduser("~/.veriX")
 command 300
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_with_veri_home_unset_the_journal_is_written_under_dot_veri_in_home
 
+file 32
+skills/tdd/scripts/veri/event.py
+old 82
+os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    try:
+        os.write(fd, data)
+new 68
+os.O_WRONLY | os.O_CREAT, 0o666)
+    try:
+        os.write(fd, data)
+command 315
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_descriptor
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 26
+        os.write(fd, data)
+new 54
+        os.write(fd, data[:1]); os.write(fd, data[1:])
+command 315
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_descriptor
+
