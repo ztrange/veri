@@ -1,4 +1,4 @@
-"""PRD 015: skills/veri-plan/SKILL.md is signed against VPL1-VPL15."""
+"""PRD 015: skills/vplan/SKILL.md is signed against VPL1-VPL15."""
 import importlib
 import re
 import shutil
@@ -17,8 +17,8 @@ def test_prose_owed_sh_prints_nothing_for_veri_plan_skill_and_requirements_list_
 
     code, out, err = run_cli(prose_owed, [str(root)])
 
-    ids = re.findall(r"^\| (VPL\d+) \|", (root / "skills/veri-plan/REQUIREMENTS.md").read_text(), re.M)
-    assert "skills/veri-plan/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
+    ids = re.findall(r"^\| (VPL\d+) \|", (root / "skills/vplan/REQUIREMENTS.md").read_text(), re.M)
+    assert "skills/vplan/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
     assert ids == ["VPL%d" % n for n in range(1, 16)], ids
 
 
@@ -30,8 +30,8 @@ def test_prose_owed_sh_prints_nothing_for_veri_file_skill_and_requirements_list_
 
     code, out, err = run_cli(prose_owed, [str(root)])
 
-    rows = {m[0]: m[1] for m in re.findall(r"^\| (F\d+) \| (.*)$", (root / "skills/veri-file/REQUIREMENTS.md").read_text(), re.M)}
-    assert "skills/veri-file/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
+    rows = {m[0]: m[1] for m in re.findall(r"^\| (F\d+) \| (.*)$", (root / "skills/vfile/REQUIREMENTS.md").read_text(), re.M)}
+    assert "skills/vfile/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
     assert "feature" in rows.get("F1", "") and "F13" in rows and "F14" in rows, sorted(rows)
 
 

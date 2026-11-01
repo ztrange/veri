@@ -1,7 +1,7 @@
 # veri-ops — the principles every operator skill obeys
 
-An *operator skill* is one that runs veri rather than being veri: `veri-coord`, `veri-dev`,
-`veri-status` and the ones that follow them. Each says near its top that it obeys this file,
+An *operator skill* is one that runs veri rather than being veri: `vcoord`, `vdev`,
+`vstatus` and the ones that follow them. Each says near its top that it obeys this file,
 and each reads it first. A rule stated here is not restated in a skill, and a skill that
 contradicts this file is wrong, not an exception.
 
@@ -107,5 +107,5 @@ operation a run needs in order to continue, in the project repo: opening or upda
 filing, commenting on or closing an issue, editing repo files, running tests, removing a run's
 own files, worktree or branch, and any `gh` command. It does the operation and reports it. That
 holds for the human and for the coordinator alike. Asking is kept for the decisions its own
-skill lists (veri-dev's D8); P11's other-repo boundary and the rulings that hold a merge still
+skill lists (vdev's D8); P11's other-repo boundary and the rulings that hold a merge still
 apply.

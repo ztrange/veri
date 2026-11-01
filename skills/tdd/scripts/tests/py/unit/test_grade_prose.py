@@ -1120,13 +1120,13 @@ def test_with_three_retries_a_well_formed_grades_block_grading_one_requirement_f
         code, launched, out, err)
 
 
-@pytest.mark.tree_audit("the skills directory, for every skills/veri-*/GRADED file")
+@pytest.mark.tree_audit("the skills directory, for every skills/v*/GRADED file")
 def test_every_committed_graded_line_names_the_grader_template_it_was_signed_under_2474():
     import pathlib
     import re
 
     root = pathlib.Path(__file__).resolve().parents[6]
-    files = [root / "skills" / "tdd" / "GRADED", root / "operator" / "GRADED"] + sorted(root.glob("skills/veri-*/GRADED"))
+    files = [root / "skills" / "tdd" / "GRADED", root / "operator" / "GRADED"] + sorted(root.glob("skills/v*/GRADED"))
     lines = [l for f in files for l in f.read_text().splitlines() if l.strip()]
     unnamed = [l.split()[0] for l in lines
                if len(l.split()) < 5 or not re.fullmatch(r"[0-9a-f]{7,64}", l.split()[4])]
