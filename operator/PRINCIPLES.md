@@ -109,3 +109,9 @@ own files, worktree or branch, and any `gh` command. It does the operation and r
 holds for the human and for the coordinator alike. Asking is kept for the decisions its own
 skill lists (vdev's D8); P11's other-repo boundary and the rulings that hold a merge still
 apply.
+
+**Smaller slices outrank cheaper ones (P16).** When the size of a slice and what it costs pull
+apart, take the smaller slice: continuous delivery of value, shorter feedback loops, manageable
+bites of work. A plan, an issue or a group of issues is never made larger to save money, and
+saving money is never the reason for its size. This ranks only those two: it grants no
+real-money spend, which stays the human's.

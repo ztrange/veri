@@ -91,8 +91,9 @@ Then, in the project repo:
 
 1. Group the LIVE items by module.
 2. Show the human, in full, **one consolidated issue per module** listing every source item,
-   each with its location and the refactor owed. Filing an issue is not mechanical: file each
-   only on the human's yes.
+   each with its location and the refactor owed. A module whose items hold more than one
+   deliverable gets one issue per deliverable, whatever the extra runs cost (P16). Filing an
+   issue is not mechanical: file each only on the human's yes.
 3. Close every source — GONE and FOLDS-INTO-OTHER with their reason at once, LIVE with a
    pointer to the consolidated issue once that issue is filed.
 
