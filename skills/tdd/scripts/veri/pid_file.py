@@ -18,7 +18,7 @@ def _cwd(pid):
 def conductor_processes():
     import status
     root = status.main_working_tree()
-    return [issue for pid, issue in _conductors() if (_cwd(pid) or "").startswith(root + "/")]
+    return [issue for pid, issue in _conductors() if (_cwd(pid) or "").startswith(root + "/") or _cwd(pid) == root]
 
 
 def starting_runs(root):
