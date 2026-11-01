@@ -212,3 +212,19 @@ def test_install_links_sh_second_run_changes_no_link_and_not_the_exclude_file_an
     before = snapshot()
     second = run()
     assert (first.returncode, second.returncode, snapshot() == before, second.stderr) == (0, 0, True, "")
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding a dangling veri link")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_repairs_a_dangling_veri_link_so_it_resolves_again_under_the_veri_main_clone(tmp_path):
+    clone, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    os.symlink(clone / "skills" / "vdev-renamed-away", skills / "vdev")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    repaired = os.readlink(skills / "vdev") if (skills / "vdev").is_symlink() else None
+    assert (done.returncode, repaired, (skills / "vdev").exists()) == (0, str(clone / "skills" / "vdev"), True)
