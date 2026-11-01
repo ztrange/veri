@@ -228,3 +228,58 @@ def test_install_links_sh_repairs_a_dangling_veri_link_so_it_resolves_again_unde
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     repaired = os.readlink(skills / "vdev") if (skills / "vdev").is_symlink() else None
     assert (done.returncode, repaired, (skills / "vdev").exists()) == (0, str(clone / "skills" / "vdev"), True)
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding a plain file at the last link path")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_leaves_a_non_veri_path_untouched_and_exits_2_naming_it_with_no_link_created(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    (skills / LINKED[-1]).write_text("mine\n")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    entries = sorted(p.name for p in skills.iterdir())
+    kept = (skills / LINKED[-1]).read_text() if (skills / LINKED[-1]).is_file() else None
+    assert (done.returncode, str(skills / LINKED[-1]) in done.stderr, entries, kept) == (
+        2, True, [LINKED[-1]], "mine\n")
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding symlinks elsewhere")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_leaves_a_symlink_elsewhere_untouched_and_exits_2_naming_it_with_no_link_created(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    (skills / LINKED[0]).symlink_to(elsewhere)
+    (skills / LINKED[-1]).symlink_to(tmp_path / "nowhere")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    entries = {p.name: os.readlink(p) for p in skills.iterdir()}
+    assert (done.returncode, str(skills / LINKED[0]) in done.stderr, entries) == (
+        2, True, {LINKED[0]: str(elsewhere), LINKED[-1]: str(tmp_path / "nowhere")})
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding one dangling symlink elsewhere")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_leaves_a_lone_dangling_symlink_elsewhere_untouched_and_exits_2_naming_it(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    (skills / LINKED[-1]).symlink_to(tmp_path / "nowhere")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    entries = {p.name: os.readlink(p) for p in skills.iterdir()}
+    assert (done.returncode, str(skills / LINKED[-1]) in done.stderr, entries) == (
+        2, True, {LINKED[-1]: str(tmp_path / "nowhere")})

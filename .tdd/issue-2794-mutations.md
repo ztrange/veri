@@ -61,3 +61,23 @@ target = os.path.join(root, ".claude", "skills")
 command 355
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_run_against_a_linked_worktree_of_a_project_installs_into_its_main_tree_and_nothing_in_the_worktree
 
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 52
+                return 2
+        for name in LINKED:
+new 48
+                pass
+        for name in LINKED:
+command 336
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_leaves_a_symlink_elsewhere_untouched_and_exits_2_naming_it_with_no_link_created
+
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 38
+if os.path.lexists(link) and not held:
+new 22
+if False and not held:
+command 329
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_leaves_a_lone_dangling_symlink_elsewhere_untouched_and_exits_2_naming_it
+
