@@ -176,3 +176,10 @@ def test_output_with_no_verdict_line_names_the_missing_line_on_stderr(run_cli, p
     result = run_cli(parse_verdict, [], stdin=NO_VERDICT_TEXT)
 
     assert result == (2, "", "parse-verdict: no VERDICT: line found\n")
+
+
+def test_issue_2797_a_reason_line_before_the_reject_verdict_with_nothing_after_it_is_printed(run_cli, parse_verdict):
+    text = ("REASON: the test pins the wrong boundary.\n"
+            "VERDICT: REJECT")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (1, "the test pins the wrong boundary.\n", "")
