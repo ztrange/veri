@@ -187,3 +187,28 @@ def test_install_links_sh_does_not_list_again_a_link_path_the_exclude_file_alrea
     lines = [line.strip().strip("/") for line in exclude.read_text().splitlines()]
     listed = {n: lines.count(".claude/skills/" + n) for n in LINKED}
     assert (done.returncode, listed) == (0, {n: 1 for n in LINKED})
+
+
+@pytest.mark.process("git init and commit on a scratch project, then install-links.sh run twice against it")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_second_run_changes_no_link_and_not_the_exclude_file_and_exits_0(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    git = ["git", "-C", str(project), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    exclude = project / ".git" / "info" / "exclude"
+
+    def run():
+        return subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def snapshot():
+        links = {n: os.readlink(skills / n) for n in LINKED if (skills / n).is_symlink()}
+        return links, exclude.read_bytes() if exclude.exists() else b""
+
+    first = run()
+    before = snapshot()
+    second = run()
+    assert (first.returncode, second.returncode, snapshot() == before, second.stderr) == (0, 0, True, "")

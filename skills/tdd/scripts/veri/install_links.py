@@ -32,7 +32,9 @@ def main(argv):
         os.makedirs(target, exist_ok=True)
         veri_skills = _veri_skills()
         for name in LINKED:
-            os.symlink(os.path.join(veri_skills, name), os.path.join(target, name))
+            link = os.path.join(target, name)
+            if not os.path.islink(link):
+                os.symlink(os.path.join(veri_skills, name), link)
         exclude = os.path.join(common, "info", "exclude")
         with open(exclude) as held:
             listed = held.read().splitlines()
