@@ -225,6 +225,19 @@ def test_cli_a_revise_budget_that_is_not_a_whole_number_refuses_before_the_bash_
     assert (code, "REVISE_BUDGET" in stderr, calls) == (2, True, []), stderr
 
 
+def test_prompt_with_revise_budget_unset_holds_no_line_naming_a_revise_budget_value_2705(tmp_path, monkeypatch):
+    base = tmp_path / "s"
+    base.mkdir()
+    (base / "SKILL.md").write_text("# skill\n")
+    monkeypatch.delenv("REVISE_BUDGET", raising=False)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    text = run_conductor.prompt(str(base), "4242", None).decode()
+
+    named = [line for line in text.splitlines() if "revise" in line.lower() and not line.startswith("Base directory")]
+    assert named == [], text
+
+
 def fake_locked_fetch(monkeypatch, sleep_code,
                       lock="error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"):
     """git faked as a process whose every fetch fails on a ref lock; sleep a process exiting as given."""
