@@ -1,0 +1,4 @@
+# Plan for #2808 — rerecord-refactored finds the record of a step still marked refactor pending
+
+- [ ] `rerecord-refactored` rewrites the record of a step whose ledger line ends in `⟂ refactor pending`: a case in `skills/tdd/scripts/tests/py/test_tests_frozen_record_check_process.py` records a step, marks it pending, refactors its case with its assertions unchanged, writes a passing `.tdd/verdict-refactor.exit`, runs `rerecord-refactored`, and finds the new body digest in the record; it fails on the current code ⟦criterion 1⟧
+- [ ] After that re-record, `check-earlier` on the next step answers exit 0 for the refactored case: a case in `skills/tdd/scripts/tests/py/test_tests_frozen_record_check_process.py` drives the same path and then runs `check-earlier --step <next step>`; it fails on the code before the previous step's fix, so on this step's tree it is a pin whose mutation is reverting that fix ⟦criterion 2⟧
