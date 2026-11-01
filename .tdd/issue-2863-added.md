@@ -1,0 +1,1 @@
+- [ ] Go, a verified refactor that moves assertions into a helper the case calls, defined after the case, and drops one of them before the re-record: `rerecord-refactored` leaves the record and `check-earlier` exits 1 (an assertion deleted from a helper after the re-record is out of scope, as for a helper defined before the case) ⟦added⟧ ⟦criterion 4⟧
