@@ -2676,3 +2676,18 @@ def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_na
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "supersede TestFirst TestSecond\n")
+
+
+def test_main_2807_prints_revise_when_a_wrong_test_names_only_the_step_own_go_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "foo_test.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func TestOwn(t *testing.T) {\n}\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: go test ./...\nWRONG_TEST: TestOwn asserts the opposite of the criterion\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
