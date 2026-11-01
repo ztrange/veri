@@ -606,11 +606,12 @@ def rerecord_refactored(ledger, green):
         if head is None:
             return record
         head_lines = _assertion_lines(head)
-        if head_lines != _assertion_lines(verified) and \
+        verified_lines = _assertion_lines(verified)
+        if head_lines != verified_lines and \
                 sorted(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
-                != sorted(_assertion_lines(verified)):
+                != sorted(verified_lines):
             return record
-        if not _assertion_lines(verified) and _squeezed(head) != _squeezed(verified):
+        if not verified_lines and _squeezed(head) != _squeezed(verified):
             return record
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
