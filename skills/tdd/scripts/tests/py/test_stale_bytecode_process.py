@@ -217,6 +217,38 @@ def test_shim_run_with_a_stale_pyc_planted_under_a_caller_exported_prefix_reads_
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
 
 
+@pytest.mark.tree_audit("copies the scripts tree to tmp_path")
+@pytest.mark.process("a shim over a probe module, run from a copy of the scripts tree, with a stale probe helper .pyc planted beside its source")
+def test_shim_run_loads_the_standard_library_from_its_own_bytecode_and_veri_modules_from_source(tmp_path):
+    root = tmp_path.resolve()
+    scripts = root / "scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    helper = scripts / "veri" / "probe_helper.py"
+    helper.write_text("ANSWER = 'current'\n")
+    stat = helper.stat()
+    header = (importlib.util.MAGIC_NUMBER + (0).to_bytes(4, "little")
+              + (int(stat.st_mtime) & 0xFFFFFFFF).to_bytes(4, "little")
+              + (stat.st_size & 0xFFFFFFFF).to_bytes(4, "little"))
+    planted = helper.parent / "__pycache__" / ("probe_helper.%s.pyc" % sys.implementation.cache_tag)
+    planted.parent.mkdir()
+    planted.write_bytes(header + marshal.dumps(compile("ANSWER = 'stale'\n", str(helper), "exec")))
+    (scripts / "veri" / "probe.py").write_text(
+        'if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")\n'
+        "import json\nimport os\nimport probe_helper\n"
+        "print(probe_helper.ANSWER)\n"
+        "print(os.path.dirname(json.__spec__.cached) == os.path.join(os.path.dirname(json.__file__), '__pycache__'))\n")
+    shim = scripts / "probe.sh"
+    shim.write_text('#!/bin/sh\n. "$(dirname "$0")/lib/shim-python.sh"\nexec "$py" "$(dirname "$0")/veri/probe.py"\n')
+    shim.chmod(0o755)
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
+    env["VERI_PYCACHE"] = str(root / "pycache")
+
+    ran = subprocess.run([str(shim)], stdin=subprocess.DEVNULL, env=env, cwd=root, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "current\nTrue\n"), ran.stderr
+
+
 RUN_PYTEST_LEG_AS_MAIN = (
     "import runpy, sys\n"
     "sys.argv = [sys.argv[1], '--help']\n"
