@@ -15,34 +15,12 @@ veri: all tests: `make test`
 |---|---|
 | `make test` | The full suite, and the baseline veri detects in its own repo: it must stay green, since a red baseline makes the conductor refuse to start. |
 | `make install-dev` | Once per machine: creates the shared venv at `$VERI_VENV` (default `~/.veri-tools/venv`) and installs the pinned `requirements-dev.txt`. Idempotent, never activated; it prints the `export PATH=…` line for scripts that run `python3` from PATH. |
-| `make docs` | Regenerates `docs/walkthrough.html`. Publishing it is by hand only (`gh workflow run pages.yml`); a merge never deploys. |
-| `make install-hooks` | Once per clone: installs the `reference-transaction` hook that flags a tag the page does not list. Refuses to clobber a hook it does not recognise. |
-| `make merge-gates` | Run before merging any PR, in its worktree on the rebased tip. Runs only the docs gates the diff against `origin/main` warrants: nothing for a README change, nothing for a change under `skills/` (#125), nothing for `docs/adr/` (#146), nothing for a `Makefile` change (#164); `docs-fresh` for a hand-edited page; `make docs-test` plus `docs-fresh` for anything else under `docs/` except `walkthrough.html` itself (#137). `VERI_GATES=all` forces both. |
-| `make docs-fresh` | Rebuilds once and compares to the committed page. |
-| `make docs-check` | The docs build guards still fire, and the committed page matches a fresh build. |
 
-`docs-check` is not part of `make test` nor in CI, so docs lag never blocks a run. CI runs
-`make test` only, on Linux only, with `timeout-minutes` on every job; never on a draft PR,
+CI runs `make test` only, on Linux only, with `timeout-minutes` on every job; never on a draft PR,
 and a newer push cancels a PR's in-progress run (never on `main`).
 
 **veri needs bash 5+** (`brew install bash` on a Mac): `make test`, `run-conductor.sh` and
 `leaf-launchable.sh` refuse an older one (exit 2).
-
-## The one trap
-
-**`docs/walkthrough.html` is generated. Never edit it by hand** — edit its inputs, then `make docs`:
-
-- prose, per-script commentary → `docs/wt/commentary.py` (chunks keyed by line range)
-- source colouring → `docs/wt/bashlex.py` (four token classes, no more)
-- bash reference entries → `docs/wt/primer.py`
-- styling / tooltips → `docs/wt/style.css`, `docs/wt/app.js`
-
-The build fails on a `{{p-id|…}}` naming a missing entry or a commentary chunk claiming lines
-a script lacks; a line no chunk claims only prints `owed: <script> L<a>–<b>` and exits 0 (#125).
-
-**All of this is the documentation lane's work, never a development run's** (#143): a `/tdd`
-leaf or conductor whose test command is not a `make docs-*` target never edits the page or its
-inputs, and `make docs` refuses it with exit 2 (it reads `VERI_TEST_CMD`).
 
 ## Exit codes are the API
 
@@ -66,9 +44,6 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
 
 - **`git tag --sort=-v:refname`, never plain `sort`** — lexically `v0.9` outranks `v0.10`.
 - **Backfilling needs `GIT_COMMITTER_DATE`**, or retro-cut tags claim today's date.
-- **A regen commit at the tag isn't the fixpoint** (`unreleased` is `HEAD != latest tag`, #52,
-  #53): `make docs && git commit`, then `make docs && git commit --amend --no-edit`, or
-  `docs-check` goes red.
 
 ## Invariants worth not breaking
 
@@ -108,11 +83,6 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   each band ascending by number. The bands only reorder the solvable set, never enlarge it:
   open, opted in (`VERI_LABEL`), unblocked and unclaimed filter first, so `priority` alone
   never makes an issue takeable.
-- **A walkthrough build asks git once per script, once per tag, and eight times besides**;
-  `docs/tests/build-guards.test.sh` pins that budget. Ask `gitmeta._shipped()`'s table, never
-  git per commit or per line.
-- **A tag changes the page without a commit**, leaving `make docs-check` red until `make docs`.
-  Deliberate: the hook only notices, and never rebuilds or commits.
 
 ## Testing idiom
 
@@ -169,13 +139,11 @@ source (no heredoc, no `python3 -c`). Its tests live in `tests/py/unit/test_<mod
 when the guard names it), faking only process boundaries; its entry-point contract cases sit in
 `tests/py/test_<module>_process.py`.
 
-**A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
-existing (`make docs-test` globs it; #137). Per step, the red and refactor leaves run the
+Per step, the red and refactor leaves run the
 affected suites; `develop-green`, verify-green and verify-refactor run the fast tier plus the
 affected suites; a revise leaf runs the tiers of the phase it redoes. `make test`, the
 **full suite**, runs once per PR before the PR is readied, again per repair step a red result
-appends (#539), and on the rebased tip if the Draft PR step rebased (#1026), so a docs suite
-under its glob would tax every PR (ADR 0016). `docs/tests/suite-lanes.test.sh` pins the split.
+appends (#539), and on the rebased tip if the Draft PR step rebased (#1026).
 
 Tests inject rather than wait on a real model or clock: `CLAUDE_BIN` swaps in a stub,
 `VERI_HEARTBEAT` / `VERI_TOOL_IDLE` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
