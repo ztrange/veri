@@ -199,6 +199,19 @@ def test_cli_a_failed_fetch_of_origin_exits_2_before_any_conductor_is_launched_a
     assert (code, launched, "fetch of origin failed" in stderr) == (2, [], True), stderr
 
 
+def test_cli_a_revise_budget_that_is_not_a_whole_number_exits_2_with_one_stderr_line_naming_it_before_any_process_starts_2705(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    past_the_guards(monkeypatch)
+    monkeypatch.setenv("REVISE_BUDGET", "three")
+    calls = fake_processes()
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    lines = stderr.splitlines()
+    assert (code, len(lines), "REVISE_BUDGET" in stderr, calls) == (2, 1, True, []), stderr
+
+
 def fake_locked_fetch(monkeypatch, sleep_code,
                       lock="error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"):
     """git faked as a process whose every fetch fails on a ref lock; sleep a process exiting as given."""

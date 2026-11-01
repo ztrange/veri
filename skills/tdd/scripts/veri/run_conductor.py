@@ -42,6 +42,10 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
+    _, bad = tunables.resolve("REVISE_BUDGET")
+    if bad:
+        sys.stderr.write("run-conductor: REVISE_BUDGET must be %s, got '%s'\n" % (bad[1], bad[0]))
+        return 2
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
     if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
