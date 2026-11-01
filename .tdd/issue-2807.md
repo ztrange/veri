@@ -1,7 +1,7 @@
 # Plan for #2807 — wrong-test-route resolves Go test cases
 
 - [x] A SUPERSEDED report naming a case defined by `func TestOther(t *testing.T)` in a `*_test.go` file answers `red TestOther`, exit 0, instead of `revise` (a small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 1⟧
-- [ ] A SUPERSEDED report naming `TestOther` defined as `func TestOther(t *testing.T)` only in a Go file not named `*_test.go` answers `revise`, exit 3 (a small in-process case in tests/py/unit/test_wrong_test_route.py, no production change expected) ⟦criterion 1⟧
+- [x] A SUPERSEDED report naming `TestOther` defined as `func TestOther(t *testing.T)` only in a Go file not named `*_test.go` answers `revise`, exit 3 (a small in-process case in tests/py/unit/test_wrong_test_route.py, no production change expected) ⟦criterion 1⟧
 - [ ] A WRONG_TEST report naming, as a bare unquoted word, a case defined by `func TestOther(t *testing.T)` in a `*_test.go` file answers `red TestOther`, exit 0, instead of `revise` (a small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 1⟧
 - [ ] A report with two SUPERSEDED lines naming two cases defined by `func Test<Name>(t *testing.T)` in `*_test.go` files answers `supersede` naming both, exit 0, as the same report does on Python (a small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 1⟧
 - [ ] A WRONG_TEST report naming only the step's own red case, defined by `func TestOwn(t *testing.T)` in a `*_test.go` file, answers `revise`, exit 3, never `fixture` (a small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 2⟧

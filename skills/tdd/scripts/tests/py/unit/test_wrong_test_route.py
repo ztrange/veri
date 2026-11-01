@@ -2620,3 +2620,18 @@ def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red TestOther\n")
+
+
+def test_main_2807_prints_revise_for_a_superseded_line_naming_a_go_func_defined_only_in_a_file_not_named_test_go(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "foo.go").write_text(
+        "package pkg\n\nimport \"testing\"\n\n"
+        "func TestOther(t *testing.T) {\n}\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: go test ./...\nSUPERSEDED: TestOther\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
