@@ -257,3 +257,13 @@ def test_issue_2846_a_flags_line_between_a_multiline_reason_and_the_reject_verdi
         "the step adds code no test requires:\n- remove the cache helper\n- remove the retry flag\n",
         "",
     )
+
+
+def test_issue_2846_a_multiline_reason_before_the_reject_verdict_with_reason_text_after_it_prints_only_the_text_after(run_cli, parse_verdict):
+    text = ("REASON: the step adds code no test requires:\n"
+            "- remove the cache helper\n"
+            "- remove the retry flag\n"
+            "VERDICT: REJECT\n"
+            "remove the cache helper only")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (1, "remove the cache helper only\n", "")
