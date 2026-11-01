@@ -56,6 +56,12 @@ def kill_poll(raw):
     return float(raw)
 
 
+def rebased_tip_suite(raw):
+    if raw not in ("local", "ci"):
+        raise ValueError
+    return raw
+
+
 class Tunable:
     def __init__(self, parse, default, must_be):
         self.parse, self.default, self.must_be = parse, default, must_be
@@ -69,6 +75,7 @@ TABLE = {
     "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
+    "VERI_REBASED_TIP_SUITE": Tunable(rebased_tip_suite, "local", "local or ci"),
 }
 
 
