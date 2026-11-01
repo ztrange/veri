@@ -189,3 +189,85 @@ def test_issue_2858_pr_ready_falls_through_to_the_poll_and_exits_2_when_the_bran
 
     assert ran.returncode == 2, (ran.stdout, ran.stderr)
     assert "PR 42 head is %s after 30 reads, expected %s" % (old, new) in ran.stderr
+
+
+@pytest.mark.process("real git repository with a bare origin at another sha, a fake gh, and pr-ready.sh as a subprocess")
+def test_issue_2858_pr_ready_exits_2_without_sleeping_when_the_remote_branch_holds_another_sha(tmp_path):
+    git_env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:" + os.path.dirname(shutil.which("git"))}
+
+    def git(*args, cwd=tmp_path):
+        return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True,
+                              env=git_env).stdout.strip()
+
+    bare, repo = tmp_path / "bare.git", tmp_path / "repo"
+    repo.mkdir()
+    git("init", "-q", "--bare", str(bare))
+    git("init", "-q", "-b", "feature", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "old", cwd=repo)
+    old = git("rev-parse", "HEAD", cwd=repo)
+    git("commit", "-q", "--allow-empty", "-m", "new", cwd=repo)
+    new = git("rev-parse", "HEAD", cwd=repo)
+    git("remote", "add", "origin", str(bare), cwd=repo)
+    git("push", "-q", "origin", "%s:refs/heads/feature" % old, cwd=repo)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "calls"
+    calls.write_text("")
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\necho "gh $*" >> "$CALLS"\n'
+                  'case "$*" in\n  *head.ref*) echo feature ;;\n  *--jq*) echo %s ;;\nesac\nexit 0\n' % old)
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "CALLS": str(calls), "VERI_GH_DRIVER": "auto", "VERI_POLL": "1000"}
+
+    try:
+        ran = subprocess.run([str(SCRIPTS / "pr-ready.sh"), "42", new], cwd=repo, capture_output=True, text=True,
+                             env=env, timeout=10)
+    except subprocess.TimeoutExpired:
+        pytest.fail("pr-ready.sh slept in the poll instead of returning, with the remote at %s and not %s" % (old, new))
+
+    reads = [c for c in calls.read_text().splitlines() if "head.sha" in c]
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert len(reads) <= 2
+    assert old in ran.stderr and new in ran.stderr and "feature" in ran.stderr
+
+
+@pytest.mark.process("real git repository with a bare origin, a fake gh that moves it mid-poll, and pr-ready.sh as a subprocess")
+def test_issue_2858_pr_ready_asks_the_remote_only_on_the_first_mismatched_read_not_on_later_polls(tmp_path):
+    git = shutil.which("git")
+    git_env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:" + os.path.dirname(git)}
+
+    def run_git(*args, cwd):
+        return subprocess.run([git, *args], cwd=cwd, check=True, capture_output=True, text=True,
+                              env=git_env).stdout.strip()
+
+    bare, repo = tmp_path / "bare.git", tmp_path / "repo"
+    repo.mkdir()
+    run_git("init", "-q", "--bare", str(bare), cwd=tmp_path)
+    run_git("init", "-q", "-b", "feature", cwd=repo)
+    run_git("commit", "-q", "--allow-empty", "-m", "old", cwd=repo)
+    old = run_git("rev-parse", "HEAD", cwd=repo)
+    run_git("commit", "-q", "--allow-empty", "-m", "new", cwd=repo)
+    new = run_git("rev-parse", "HEAD", cwd=repo)
+    run_git("remote", "add", "origin", str(bare), cwd=repo)
+    run_git("push", "-q", "origin", "feature", cwd=repo)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    reads = tmp_path / "reads"
+    reads.write_text("")
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  *head.ref*) echo feature ;;\n'
+                  '  *--jq*) echo x >> "$READS"\n'
+                  '    if [ "$(wc -l < "$READS")" -eq 2 ]; then %s --git-dir "$BARE" update-ref refs/heads/feature %s; fi\n'
+                  '    echo %s ;;\nesac\nexit 0\n' % (git, old, old))
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "READS": str(reads), "BARE": str(bare), "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+
+    ran = subprocess.run([str(SCRIPTS / "pr-ready.sh"), "42", new], cwd=repo, capture_output=True, text=True,
+                         env=env, timeout=20)
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "PR 42 head is %s after 30 reads, expected %s" % (old, new) in ran.stderr

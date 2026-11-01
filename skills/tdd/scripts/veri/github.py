@@ -332,6 +332,18 @@ def _retry_refused(call, stream):
         time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
 
 
+def _refuse_unpushed(number, head_sha):
+    ref = _gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
+    branch = ref.stdout.rstrip("\n")
+    listed =subprocess.run(["git", "ls-remote", "origin", "refs/heads/" + branch],
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    fields = listed.stdout.split()
+    if not fields or fields[0] == head_sha:
+        return
+    print("gh_pr_ready: remote branch %s holds %s, not %s" % (branch, fields[0], head_sha), file=sys.stderr)
+    raise NoAnswer("")
+
+
 def gh_pr_ready(number, head_sha=""):
     """Mark draft PR <number> ready for review; given <head_sha>, only once pulls/<number> reports it
     as the head, reading it again every VERI_POLL seconds (default 10), at most 30 times. NoAnswer
@@ -348,6 +360,8 @@ def gh_pr_ready(number, head_sha=""):
         head = read.stdout.rstrip("\n")
         if head == head_sha:
             break
+        if tries == 0:
+            _refuse_unpushed(number, head_sha)
         tries += 1
         if tries >= 30:
             print("gh_pr_ready: PR %s head is %s after %d reads, expected %s" % (number, head, tries, head_sha),
