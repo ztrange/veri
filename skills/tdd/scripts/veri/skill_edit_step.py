@@ -30,9 +30,13 @@ def _requirements_lines(issue):
     return requirements.requirements_lines(requirements.read_lines(issue))
 
 
+def _names_unit(heading, unit):
+    return heading in (unit, unit + " (new)")
+
+
 def _issue_rows(issue, unit):
     rows = [line for heading, line in _requirements_lines(issue)
-            if heading in (unit, unit + " (new)") and line.startswith("|")]
+            if _names_unit(heading, unit) and line.startswith("|")]
     return rows[2:]
 
 
@@ -250,7 +254,7 @@ def main(argv):
         print("a ## Requirements row is under no ### unit heading", file=sys.stderr)
         return 2
     if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
-            and not any(h in (unit, unit + " (new)") for h, _ in _requirements_lines(issue))):
+            and not any(_names_unit(h, unit) for h, _ in _requirements_lines(issue))):
         print("## Requirements has no ### heading for unit: " + unit, file=sys.stderr)
         return 2
     issue_rows = _issue_rows(issue, unit)
