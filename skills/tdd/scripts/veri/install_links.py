@@ -33,6 +33,8 @@ def main(argv):
         veri_skills = _veri_skills()
         for name in LINKED:
             link = os.path.join(target, name)
+            if os.path.islink(link) and not os.path.exists(link):
+                os.unlink(link)
             if not os.path.islink(link):
                 os.symlink(os.path.join(veri_skills, name), link)
         exclude = os.path.join(common, "info", "exclude")
