@@ -161,7 +161,7 @@ def test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_ru
     (repo / ".tdd").mkdir()
     (repo / ".tdd" / "issue-2627-skill-commit").write_text(pin + "\n")
     stub = tmp_path / "stub-claude"
-    stub.write_text("#!/bin/sh\ncat > /dev/null\nrm -f .tdd/wt/2627/.tdd/conductor.pid\n"
+    stub.write_text("#!/bin/sh\ncat > /dev/null\nrm -f .tdd/wt/2627/.tdd/conductor.pid .tdd/wt/2627/.tdd/events.jsonl\n"
                     "rmdir .tdd/wt/2627/.tdd .tdd/wt/2627\n"
                     "git worktree add -q -b tdd/2627-pin .tdd/wt/2627 || exit 9\nexit 3\n")
     stub.chmod(0o755)
