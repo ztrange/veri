@@ -58,19 +58,23 @@ def test_pr_ready_reads_the_head_again_every_veri_poll_seconds_until_it_is_the_s
     heads = iter([OLD_SHA, OLD_SHA, NEW_SHA])
 
     def answer(args):
+        if args[0] == "git":
+            return 1, "", ""
         return (0, next(heads) + "\n", "") if args == HEAD_READ else (0, "", "")
     calls, sleeps = fake_gh(monkeypatch, answer)
 
     result = run_cli(pr_ready, ["42", NEW_SHA], env={"VERI_POLL": "3"})
 
     assert result == (0, "", "")
+    calls = [c for c in calls if c[0] != "git"]
     assert (calls, sleeps) == ([HEAD_READ] * 3 + [CCR], [3.0, 3.0])
 
 
 def test_pr_ready_exits_2_unready_naming_both_shas_when_the_head_never_becomes_the_sha(pr_ready, run_cli, monkeypatch):
-    calls, sleeps = fake_gh(monkeypatch, lambda args: (0, OLD_SHA + "\n", ""))
+    calls, sleeps = fake_gh(monkeypatch, lambda args: (1, "", "") if args[0] == "git" else (0, OLD_SHA + "\n", ""))
 
     code, out, err = run_cli(pr_ready, ["42", NEW_SHA], env={"VERI_POLL": "0"})
+    calls = [c for c in calls if c[0] != "git"]
 
     assert (code, out) == (2, "")
     assert err == "gh_pr_ready: PR 42 head is %s after 30 reads, expected %s\n" % (OLD_SHA, NEW_SHA)
