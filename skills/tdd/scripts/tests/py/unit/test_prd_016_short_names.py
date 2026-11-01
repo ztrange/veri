@@ -20,3 +20,10 @@ def test_each_of_the_12_skills_lives_in_skills_v_name_with_frontmatter_name_v_na
     leftover = sorted(d.name for d in skills.iterdir() if d.is_dir() and d.name.startswith("veri-"))
 
     assert wrong == [] and leftover == [], (wrong, leftover)
+
+
+def test_skills_tdd_exists_and_its_skill_md_frontmatter_name_is_still_tdd():
+    md = ROOT / "skills" / "tdd" / "SKILL.md"
+    found = re.search(r"^name:\s*(\S+)\s*$", md.read_text(), re.M) if md.is_file() else None
+
+    assert found is not None and found.group(1) == "tdd", found and found.group(1)
