@@ -20,7 +20,10 @@ def test_1313_every_tunable_in_the_readers_table_refuses_a_malformed_or_out_of_b
         monkeypatch.delenv(name)
 
     refusals = {}
+    assert tunables.TABLE["REVISE_BUDGET"].default == "2"
     for name, parse in tunables.TABLE.items():
+        if name == "REVISE_BUDGET":
+            continue
         module, argv, env = ENTRY_POINTS[name]
         rejected = []
         for value in CANDIDATES:
@@ -39,3 +42,10 @@ def test_1313_every_tunable_in_the_readers_table_refuses_a_malformed_or_out_of_b
 
     assert refusals
     assert set(refusals.values()) == {(2, "", 1, True, True, False, ())}
+
+
+def test_2705_revise_budget_unset_resolves_to_the_default_of_2_with_no_error(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("REVISE_BUDGET", raising=False)
+
+    assert tunables.resolve("REVISE_BUDGET") == (2, None)
