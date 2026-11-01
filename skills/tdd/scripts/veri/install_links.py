@@ -43,9 +43,10 @@ def main(argv):
         if not os.path.islink(link):
             os.symlink(os.path.join(veri_skills, name), link)
     exclude = os.path.join(common, "info", "exclude")
-    with open(exclude) as held:
-        listed = held.read().splitlines()
-    with open(exclude, "a") as out:
+    os.makedirs(os.path.dirname(exclude), exist_ok=True)
+    with open(exclude, "a+") as out:
+        out.seek(0)
+        listed = out.read().splitlines()
         for name in LINKED:
             entry_line = "/.claude/skills/" + name
             if entry_line not in listed:

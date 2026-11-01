@@ -293,3 +293,21 @@ def test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     assert (done.returncode, sorted(p.name for p in tmp_path.rglob("*")), "Traceback" in done.stderr) == (
         2, ["plain"], False)
+
+
+@pytest.mark.process("git init --template= on a scratch project, then install-links.sh run against it")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_lists_the_eight_links_2830(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main", "--template="], check=True)
+    assert not (project / ".git" / "info").exists()
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    exclude = project / ".git" / "info" / "exclude"
+    lines = exclude.read_text().splitlines() if exclude.exists() else []
+    skills = project / ".claude" / "skills"
+    links = sorted(p.name for p in skills.iterdir() if p.is_symlink()) if skills.is_dir() else []
+    assert (done.returncode, sorted(lines), links) == (
+        0, sorted("/.claude/skills/" + n for n in LINKED), sorted(LINKED))
