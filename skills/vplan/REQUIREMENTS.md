@@ -17,3 +17,6 @@
 | VPL13 | A PRD issue that is not itself the work carries no opt-in label. | An epic was once taken as an ordinary issue. |
 | VPL14 | It files only the children the human names, each through `/vfile`, and titles them `PRD <nnn>.<k>: …`. It never starts a run. | The operator chose to file only 014.1. Starting runs belongs to `/vdev` and `/vcoord`. |
 | VPL15 | Every subagent brief it writes asks for a return of at most 10 lines (P6), and says that all writes stay in the project repo and that a fix belonging elsewhere is reported, not made (P11, in its words). | Earlier skills' prose omitted both. |
+| VPL16 | A sub-PRD holds at most one capability the human can use. | The README promises sub-PRDs sized for a single `/tdd` run, and clarion2's 001.1 held five deliveries. Row count did not predict run cost, so the cap is capabilities. |
+| VPL17 | A sub-PRD holding more than one capability is split, or states in the sub-PRD why it cannot be. | A limit with no consequence changes nothing, and a real exception should be visible to whoever files it. |
+| VPL18 | An outline sub-PRD expected to hold more than one capability is split while it is still an outline. | Splitting after filing costs a redefinition, and `/tdd` notices only when a run parks on budget. |
