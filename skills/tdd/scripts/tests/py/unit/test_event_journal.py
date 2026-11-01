@@ -177,3 +177,20 @@ def test_with_veri_home_unset_the_journal_is_written_under_dot_veri_in_home(tmp_
     per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
     journal = tmp_path / ".veri" / "runs" / "acme-widgets" / "42.jsonl"
     assert (code, journal.read_bytes() if journal.exists() else None) == (0, per_run)
+
+
+def test_failed_journal_write_prints_one_stderr_line_naming_the_path_and_still_writes_events_jsonl(tmp_path, capfd):
+    import importlib
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+    journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
+    journal.mkdir(parents=True)
+
+    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+
+    err = capfd.readouterr().err
+    per_run = (clone / ".tdd" / "events.jsonl").read_bytes()
+    assert (code, per_run.count(b"\n"), len(err.splitlines()), str(journal) in err) == (0, 1, 1, True)

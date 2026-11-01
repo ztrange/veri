@@ -180,8 +180,11 @@ def append(directory, context, event, fields=(), ts=None):
     append_once(tdd + "/events.jsonl", text)
     journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
     if journal:
-        os.makedirs(os.path.dirname(journal), exist_ok=True)
-        append_once(journal, text)
+        try:
+            os.makedirs(os.path.dirname(journal), exist_ok=True)
+            append_once(journal, text)
+        except OSError:
+            sys.stderr.write("event: cannot write journal " + journal + "\n")
     return 0
 
 
