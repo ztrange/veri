@@ -601,22 +601,26 @@ def rerecord_refactored(ledger, green):
     except FileNotFoundError:
         return 3
 
+    def skip(name, case, record):
+        write(sys.stderr, "skipped: %s %s" % (name, case))
+        return record
+
     def rewrite(_, record, name, case, digest):
         verified = _cases_at(green, name).get(case)
         if verified is None or digest not in {_body_digest(verified), *map(
                 _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
-            return record
+            return skip(name, case, record)
         head = _cases_at("HEAD", name).get(case)
         if head is None:
-            return record
+            return skip(name, case, record)
         head_lines = _assertion_lines(head)
         verified_lines = _assertion_lines(verified)
         if head_lines != verified_lines and \
                 sorted(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
                 != sorted(verified_lines):
-            return record
+            return skip(name, case, record)
         if not verified_lines and _squeezed(head) != _squeezed(verified):
-            return record
+            return skip(name, case, record)
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
