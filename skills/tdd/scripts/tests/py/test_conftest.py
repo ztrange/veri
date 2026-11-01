@@ -293,6 +293,23 @@ def test_2832_an_unmarked_case_that_reaches_pid_files_real_process_listing_fails
     assert "1 failed, 2 passed" in output, output
 
 
+@pytest.mark.process("a child pytest session whose unmarked case reaches the process listing through watch_runs's own pid_file import")
+def test_2832_an_unmarked_case_that_reaches_the_process_listing_through_the_pid_file_module_watch_runs_imports_fails_naming_it(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    probe.write_text(
+        "import importlib\n"
+        "def test_unmarked():\n"
+        "    watch_runs = importlib.import_module('veri.watch_runs')\n"
+        "    watch_runs.pid_file.starting_runs(%r)\n" % str(tmp_path))
+
+    ran = child_pytest(tmp_path, probe, os.environ)
+
+    output = ran.stdout + ran.stderr
+    assert ran.returncode != 0, output
+    assert "FAILED test_probe.py::test_unmarked" in output, output
+    assert "process listing" in output, output
+
+
 @pytest.mark.process("a child pytest session run with the unit recipe's own -m selection over an unmarked, a process and a tree_audit case")
 def test_the_unit_recipes_selection_runs_only_the_unmarked_case_and_deselects_the_process_and_tree_audit_cases(tmp_path):
     makefile = pathlib.Path(__file__).resolve().parents[5] / "Makefile"
