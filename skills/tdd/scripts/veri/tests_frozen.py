@@ -566,8 +566,12 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def _squeezed(text):
+    return re.sub(r"\s+", "", text)
+
+
 def _assertion_lines(body):
-    return [re.sub(r"\s+", "", line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
+    return [_squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
 
 
 def rerecord_refactored(ledger, green):
@@ -588,7 +592,7 @@ def rerecord_refactored(ledger, green):
         head = _cases_at("HEAD", name).get(case)
         if head is None or _assertion_lines(head) != _assertion_lines(verified):
             return record
-        if not _assertion_lines(verified) and re.sub(r"\s+", "", head) != re.sub(r"\s+", "", verified):
+        if not _assertion_lines(verified) and _squeezed(head) != _squeezed(verified):
             return record
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
