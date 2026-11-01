@@ -1,4 +1,4 @@
-"""Cases for the veri-bail skill's save and restore of a leaf's uncommitted edit that start a real process."""
+"""Cases for the vbail skill's save and restore of a leaf's uncommitted edit that start a real process."""
 import hashlib
 import subprocess
 

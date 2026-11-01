@@ -26,7 +26,7 @@ def test_every_directory_directly_under_skills_contains_a_skill_md():
     assert without == [], "directories under skills/ with no SKILL.md: " + ", ".join(without)
 
 
-@pytest.mark.parametrize("skill", ["veri-coord", "veri-dev", "veri-status", "veri-report"])
+@pytest.mark.parametrize("skill", ["vcoord", "vdev", "vstatus", "vreport"])
 def test_operator_skill_names_principles_by_a_path_found_in_the_repo(skill):
     root = SKILLS.parent
     line = next(

@@ -1,9 +1,9 @@
-"""Script-path cases for skills/veri-merge/SKILL.md."""
+"""Script-path cases for skills/vmerge/SKILL.md."""
 import re
 
 from conftest import ROOT
 
-SKILL_DIR = ROOT / "skills" / "veri-merge"
+SKILL_DIR = ROOT / "skills" / "vmerge"
 
 
 def test_1836_every_script_path_in_veri_merge_skill_resolves_to_an_existing_file():

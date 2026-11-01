@@ -1,9 +1,9 @@
-"""Script-path cases for skills/veri-bail/SKILL.md."""
+"""Script-path cases for skills/vbail/SKILL.md."""
 import re
 
 from conftest import ROOT
 
-SKILL_DIR = ROOT / "skills" / "veri-bail"
+SKILL_DIR = ROOT / "skills" / "vbail"
 
 
 def test_1838_every_script_path_in_veri_bail_skill_resolves_to_an_existing_file():
