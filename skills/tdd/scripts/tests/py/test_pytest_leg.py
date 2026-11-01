@@ -696,6 +696,28 @@ def test_a_child_process_given_a_hand_built_env_whose_path_holds_a_gh_outside_th
     assert ran.returncode != 0
 
 
+@pytest.mark.process("a real sh child started with a hand-built env whose PATH holds a stand-in curl outside the run's basetemp")
+def test_a_child_process_given_a_hand_built_env_whose_path_holds_a_curl_outside_the_basetemp_gets_the_refusal_not_that_curl_issue_2819(tmp_path):
+    import pathlib
+    import shutil
+    import subprocess
+    import tempfile
+
+    outside = tempfile.mkdtemp(prefix="exp-curl-", dir="/tmp")
+    try:
+        stand_in = pathlib.Path(outside) / "curl"
+        stand_in.write_text("#!/bin/sh\ntouch %s\n" % (tmp_path / "ran-curl"))
+        stand_in.chmod(0o755)
+
+        ran = subprocess.run(["/bin/sh", "-c", "curl http://example.invalid/"], cwd=tmp_path, capture_output=True, text=True,
+                             env={"PATH": outside + ":/usr/bin:/bin"})
+    finally:
+        shutil.rmtree(outside)
+
+    assert not (tmp_path / "ran-curl").exists(), "the child ran the stand-in curl: %r" % ran.stderr
+    assert ran.returncode != 0
+
+
 def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parallel_pass_keeping_the_m_selection_and_exiting_0_only_when_both_pass_2092(pytest_leg, run_cli, monkeypatch):
     from _pytest.mark.expression import Expression
 
