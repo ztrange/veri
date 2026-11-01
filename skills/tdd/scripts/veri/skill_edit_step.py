@@ -57,6 +57,20 @@ def _rows_outside_requirements(issue, unit):
     return False
 
 
+def _refusal(issue, unit):
+    unknown = _unknown_heading(issue)
+    if unknown:
+        return "Requirements heading names no existing unit: " + unknown
+    if _rows_outside_requirements(issue, unit):
+        return "rows for %s are not under ## Requirements" % unit
+    if any(heading is None and line.startswith("|") for heading, line in _requirements_lines(issue)):
+        return "a ## Requirements row is under no ### unit heading"
+    if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
+            and not any(_names_unit(h, unit) for h, _ in _requirements_lines(issue))):
+        return "## Requirements has no ### heading for unit: " + unit
+    return None
+
+
 def _write(path, lines):
     with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("\n".join(lines))
@@ -243,19 +257,9 @@ def main(argv):
     if not (budget.isdecimal() and int(budget) >= 1):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
         return 2
-    unknown = _unknown_heading(issue)
-    if unknown:
-        print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
-        return 2
-    if _rows_outside_requirements(issue, unit):
-        print("rows for %s are not under ## Requirements" % unit, file=sys.stderr)
-        return 2
-    if any(heading is None and line.startswith("|") for heading, line in _requirements_lines(issue)):
-        print("a ## Requirements row is under no ### unit heading", file=sys.stderr)
-        return 2
-    if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
-            and not any(_names_unit(h, unit) for h, _ in _requirements_lines(issue))):
-        print("## Requirements has no ### heading for unit: " + unit, file=sys.stderr)
+    refusal = _refusal(issue, unit)
+    if refusal:
+        print(refusal, file=sys.stderr)
         return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
