@@ -107,7 +107,7 @@ def main(argv):
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
-                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\n")
+                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\nconductor-*.log\nwt/\n")
         if resuming:
             try:
                 with open(record) as recorded_file:

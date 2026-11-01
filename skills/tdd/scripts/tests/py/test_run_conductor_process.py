@@ -285,3 +285,44 @@ def test_git_add_all_in_the_run_worktree_stages_nothing_from_the_pinned_scripts_
     staged = [name for name in git(worktree, "diff", "--cached", "--name-only").splitlines() if "pinned-probe.sh" in name]
 
     assert (ran.returncode, staged) == (0, []), (tmp_path / "out").read_text()
+
+
+@pytest.mark.tree_audit("copies the veri and lib directories into a scratch clone")
+@pytest.mark.process("a real run_conductor.main over a real skill clone and a clean caller repository, with a stub claude reporting git status")
+def test_a_first_run_with_only_the_launch_redirects_log_present_leaves_the_tree_clean_for_the_conductor_issue_2798(
+        tmp_path):
+    clone = tmp_path / "clone"
+    for part in ("veri", "lib"):
+        shutil.copytree(SCRIPTS / part, clone / "skills" / "tdd" / "scripts" / part,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+    (clone / "skills" / "tdd" / "SKILL.md").write_text("procedure\n")
+    git_env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+                   GIT_COMMITTER_EMAIL="t@t")
+
+    def commit_all(directory):
+        for argv in (["init", "-q"], ["add", "-A"], ["commit", "-q", "--allow-empty", "-m", "seed"]):
+            subprocess.run(["git", "-C", str(directory)] + argv, check=True, env=git_env)
+
+    commit_all(clone)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "README").write_text("hello\n")
+    commit_all(repo)
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "conductor-2798.log").write_text("launch line output\n")
+    stub = tmp_path / "stub-claude"
+    stub.write_text('#!/bin/sh\ngit -C "%s" status --porcelain > "%s/dirt"\n' % (repo, tmp_path))
+    stub.chmod(0o755)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    veri = clone / "skills" / "tdd" / "scripts" / "veri"
+
+    subprocess.run(
+        [sys.executable, "-c",
+         "import sys; sys.path.insert(0, %r); import run_conductor; sys.exit(run_conductor.main(['2798']))" % str(veri)],
+        cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, timeout=20,
+        env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_BASH_MAJOR": "5",
+             "VERI_MIN_FREE_GB": "0", "VERI_TOOL_WAIT": "0", "PYTHONDONTWRITEBYTECODE": "1",
+             "CLAUDE_BIN": str(stub), "TMPDIR": str(scratch)})
+
+    assert (tmp_path / "dirt").read_text() == ""
