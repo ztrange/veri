@@ -28,6 +28,11 @@ def network_refusal(monkeypatch, tmp_path_factory):
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
     real_connect = socket.socket.connect
     real_popen = subprocess.Popen.__init__
+    refusals = {}
+    for name in ("gh", "curl"):
+        refusals[name] = tmp_path_factory.mktemp("refuse-" + name)
+        (refusals[name] / name).write_text("#!/bin/sh\necho \"a case started %s; fake the call\" >&2\nexit 1\n" % name)
+        (refusals[name] / name).chmod(0o755)
 
     def check_address(sock, address):
         if sock.family in (socket.AF_INET, socket.AF_INET6) and not loopback(address[0]):
@@ -42,6 +47,13 @@ def network_refusal(monkeypatch, tmp_path_factory):
         command = command_basename(words)
         if command in ("gh", "curl") and not faked(os.fsdecode(words[0]), kwargs, basetemp):
             raise AssertionError("a case started %s; fake the call" % command)
+        env = kwargs.get("env")
+        if env is not None:
+            path = os.pathsep.join(os.get_exec_path(env))
+            for name in ("gh", "curl"):
+                if not faked(name, kwargs, basetemp):
+                    path = str(refusals[name]) + os.pathsep + path
+            kwargs["env"] = dict(env, PATH=path)
         return real_popen(self, args, *rest, **kwargs)
 
     monkeypatch.setattr(socket.socket, "connect", connect)

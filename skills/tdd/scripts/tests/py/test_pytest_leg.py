@@ -674,6 +674,28 @@ def test_a_gh_or_curl_stub_a_case_plants_under_the_run_s_basetemp_starts_and_pas
     assert (tmp_path / "ran-gh").exists() and (tmp_path / "ran-curl").exists()
 
 
+@pytest.mark.process("a real sh child started with a hand-built env whose PATH holds a stand-in gh outside the run's basetemp")
+def test_a_child_process_given_a_hand_built_env_whose_path_holds_a_gh_outside_the_basetemp_gets_the_refusal_not_that_gh_issue_2819(tmp_path):
+    import pathlib
+    import shutil
+    import subprocess
+    import tempfile
+
+    outside = tempfile.mkdtemp(prefix="exp-gh-", dir="/tmp")
+    try:
+        stand_in = pathlib.Path(outside) / "gh"
+        stand_in.write_text("#!/bin/sh\ntouch %s\n" % (tmp_path / "ran-gh"))
+        stand_in.chmod(0o755)
+
+        ran = subprocess.run(["/bin/sh", "-c", "gh issue view 1"], cwd=tmp_path, capture_output=True, text=True,
+                             env={"PATH": outside + ":/usr/bin:/bin"})
+    finally:
+        shutil.rmtree(outside)
+
+    assert not (tmp_path / "ran-gh").exists(), "the child ran the stand-in gh: %r" % ran.stderr
+    assert ran.returncode != 0
+
+
 def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parallel_pass_keeping_the_m_selection_and_exiting_0_only_when_both_pass_2092(pytest_leg, run_cli, monkeypatch):
     from _pytest.mark.expression import Expression
 
