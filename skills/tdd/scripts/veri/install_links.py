@@ -27,33 +27,29 @@ def main(argv):
         return 2
     common = done.stdout.strip()
     target = os.path.join(os.path.dirname(common), ".claude", "skills")
-    try:
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        os.makedirs(target, exist_ok=True)
-        veri_skills = _veri_skills()
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    os.makedirs(target, exist_ok=True)
+    veri_skills = _veri_skills()
+    for name in LINKED:
+        link = os.path.join(target, name)
+        held = os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
+        if os.path.lexists(link) and not held:
+            print("install-links.sh: not a veri link, left untouched: " + link, file=sys.stderr)
+            return 2
+    for name in LINKED:
+        link = os.path.join(target, name)
+        if os.path.islink(link) and not os.path.exists(link):
+            os.unlink(link)
+        if not os.path.islink(link):
+            os.symlink(os.path.join(veri_skills, name), link)
+    exclude = os.path.join(common, "info", "exclude")
+    with open(exclude) as held:
+        listed = held.read().splitlines()
+    with open(exclude, "a") as out:
         for name in LINKED:
-            link = os.path.join(target, name)
-            held = os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
-            if os.path.lexists(link) and not held:
-                print("install-links.sh: not a veri link, left untouched: " + link, file=sys.stderr)
-                return 2
-        for name in LINKED:
-            link = os.path.join(target, name)
-            if os.path.islink(link) and not os.path.exists(link):
-                os.unlink(link)
-            if not os.path.islink(link):
-                os.symlink(os.path.join(veri_skills, name), link)
-        exclude = os.path.join(common, "info", "exclude")
-        with open(exclude) as held:
-            listed = held.read().splitlines()
-        with open(exclude, "a") as out:
-            for name in LINKED:
-                entry_line = "/.claude/skills/" + name
-                if entry_line not in listed:
-                    out.write(entry_line + "\n")
-    except OSError as err:
-        print("install-links.sh: " + type(err).__name__ + ": " + str(err), file=sys.stderr)
-        return 2
+            entry_line = "/.claude/skills/" + name
+            if entry_line not in listed:
+                out.write(entry_line + "\n")
     return 0
 
 
