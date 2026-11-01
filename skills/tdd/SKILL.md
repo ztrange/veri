@@ -1657,9 +1657,12 @@ leaf runs the same suite. Detect it once, with `--issue`, and pass that one stri
 a second detection spelled without the flag would hand the leaves a different command from
 the one the baseline proved green.
 
-A `Test command: <cmd>` line in the issue body wins over everything else, for that issue's
-run only: an issue that named its suite in words has already answered the question, and
-that is what `--issue` puts in front of the rest. That is the per-issue escape hatch. One
+A `Test command: <cmd>` line in the issue body governs the full tier (`--tier all`) and
+never the fast tier, for that issue's run only: an issue that named its suite in words has
+already answered the question for the full suite, and that is what `--issue` puts in front
+of the rest of the full tier's detection. It never changes `<test-cmd>`, the fast tier's
+command every leaf receives as `VERI_TEST_CMD` and as the `<test-cmd>` argument. That is the
+per-issue escape hatch. One
 exception (#1225): for `--tier all`, a line equal to the command the fast tier resolves to
 is dropped, and the full tier falls through to CLAUDE.md's `veri: all tests:` line and then
 the usual detection, so an issue naming the fast tier never stops the full suite running.
