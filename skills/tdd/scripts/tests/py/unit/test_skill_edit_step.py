@@ -864,6 +864,36 @@ def test_an_issue_with_a_requirements_section_but_no_heading_for_the_stepped_uni
         2, True, original, "The widget is painted a deep blue.\n", False), (code, err)
 
 
+def test_a_well_formed_unit_heading_under_requirements_keeps_the_step_exiting_0_with_its_rows_applied_and_an_author_attempt_passed_2856(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A2 | The widget is round. | because |\n")
+    launched = []
+    grades = [(1, "A2: FAIL - no\n"), (0, "")]
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, len(launched), "A2" in (tmp_path / "REQUIREMENTS.md").read_text()) == (0, 1, True), (code, err, launched)
+
+
 def test_apply_numbers_a_prefix_next_row_past_the_max_over_the_lists_ids_and_the_issues_own_explicit_ids_2262(tmp_path, monkeypatch):
     skill_edit_step = _next_case_2262(
         tmp_path, monkeypatch,
