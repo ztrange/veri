@@ -33,9 +33,12 @@ def main(argv):
         for name in LINKED:
             os.symlink(os.path.join(_veri_skills(), name), os.path.join(target, name))
         exclude = os.path.join(common, "info", "exclude")
+        with open(exclude) as held:
+            listed = held.read().splitlines()
         with open(exclude, "a") as out:
             for name in LINKED:
-                out.write("/.claude/skills/" + name + "\n")
+                if "/.claude/skills/" + name not in listed:
+                    out.write("/.claude/skills/" + name + "\n")
     except OSError as err:
         print("install-links.sh: " + type(err).__name__ + ": " + str(err), file=sys.stderr)
         return 2
