@@ -578,7 +578,7 @@ def _called_helpers(rev, name, body):
     text = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
     helpers = []
-    for definition in re.finditer(r"^func\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
+    for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
             helpers.append(definition.group())
     return "\n".join(helpers)
