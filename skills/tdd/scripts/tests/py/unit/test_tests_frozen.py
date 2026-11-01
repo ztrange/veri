@@ -988,3 +988,27 @@ def test_cases_leaves_a_go_function_not_named_test_out_of_the_cases_2799(tests_f
     text = 'package x\n\nfunc helper(t *testing.T) {\n}\n\nfunc TestX(t *testing.T) {\n}\n'
 
     assert [name for name, _ in tests_frozen._cases(text)] == ["TestX"]
+
+
+def test_check_earlier_flags_an_edit_inside_a_recorded_go_test_function_naming_it_2799(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "sum_test.go"
+    original = 'package x\n\nfunc TestX(t *testing.T) {\n\tif 1+1 != 2 {\n\t\tt.Fatal("no")\n\t}\n}\n'
+    suite.write_text(original)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, current = "step A", "step B"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "sum_test.go"], cwd=tmp_path)[0]
+    suite.write_text(original.replace("1+1 != 2", "1+1 != 3"))
+
+    answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)[:2]
+
+    assert (recorded, answer) == (0, (1, "TestX (%s)\n" % earlier))
