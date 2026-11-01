@@ -961,9 +961,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      **On a bug run that subject is `fix:`, not `feat:`** — `fix: <STEP summary> (#<n>)`.
      The run is a bug run when the issue carries the `bug` label, the same fact step 1 read
      to give the spec its `## Bug` section. A bug step's green repairs a reported failure
-     rather than adding a capability, and the walkthrough's capability index is computed
-     from the `feat:`/`fix:` subjects in each tag's range, so a bug step committed as
-     `feat:` files a regression repair there as a new capability.
+     rather than adding a capability, so a `feat:` subject would record a regression repair
+     as a new capability in the history.
      The push is what stops the run living on one disk until it is review-ready: the first
      call creates the remote branch, later ones fast-forward, and no PR is opened, so
      nothing asks for review before the run is ready. An unreachable remote is **not** a
