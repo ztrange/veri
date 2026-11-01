@@ -33,6 +33,10 @@ def run_captured(command):
     return subprocess.run(command, shell=True, capture_output=True, text=True)
 
 
+def output_lines(run):
+    return set(run.stdout.splitlines()) | set(run.stderr.splitlines())
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -59,9 +63,8 @@ def main(argv):
         mutated = run_captured(pin["command"])
         path.write_bytes(original)
         green = mutated.returncode == 0
-        base_lines = set(base.stdout.splitlines()) | set(base.stderr.splitlines())
-        if (not green and base_lines
-                and not base_lines & (set(mutated.stdout.splitlines()) | set(mutated.stderr.splitlines()))):
+        base_lines = output_lines(base)
+        if not green and base_lines and not base_lines & output_lines(mutated):
             sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
             status = 1
             continue
