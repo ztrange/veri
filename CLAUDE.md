@@ -132,12 +132,11 @@ suites, or script run as a subprocess.
 `python3`). Admission rule: no process but the interpreter. Each case times out at 30 s
 (`VERI_PYTEST_TIMEOUT`, `@pytest.mark.timeout(n)`), a `process` case with no `timeout` mark of its own at 90 s
 (`PROCESS_CASE_TIMEOUT` in `tests/py/conftest.py`), since load stretches a real process; an explicit mark wins; a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` (30 s by default), or its failure path is unreachable because pytest-timeout fires first; the bytecode cache
-(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile and `shim-python.sh` both set when unset) persists between runs, and a manifest of source hashes keeps a changed module,
+(`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile sets when unset) persists between runs, and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
 every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
-(#1127, #2054). A shim run outside `make` has no manifest, so `shim-python.sh` also sets `PYTHONDONTWRITEBYTECODE=1`
-whenever it supplies the prefix itself: it reads what is there but never writes into it, so it cannot poison the cache (#2406).
-A veri module run directly as `python3 <module>` takes the same prefix from `veri/pycache_prefix.py`, which its first line runs before any veri import. Cases run across pytest-xdist
+(#1127, #2054). A shim run has no manifest, so `shim-python.sh` clears the prefix and sets `PYTHONDONTWRITEBYTECODE=1`, and `veri/pycache_prefix.py`, which a module's first line runs before any veri import, compiles veri's modules from source: the run neither reads nor poisons a cache (#2406, #2439), while the standard library keeps its own `.pyc` files, since a prefix would recompile them on every start.
+A veri module run directly as `python3 <module>` with bytecode writing on takes the shared prefix from the same file. Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
 legs leave free (physical cores on macOS, the CPU-affinity count elsewhere), at least 1 (#2100): each leg registers its pid and count under
 `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and a dead pid holds no share.
@@ -200,7 +199,7 @@ A guard or failure path never watched to fail is not tested: break it, see it go
 - The pytest leg pins `TMPDIR` to `/tmp` before it starts, so a local run's scratch matches CI's
   rather than the Mac's `/var/folders/…` (#2354): the leg's `veri-pytest-*` run dir, `--basetemp`
   and so every case's `tmp_path` live under `/tmp`, whatever `TMPDIR` the caller set. The pycache
-  prefix is unaffected (the Makefile and `shim-python.sh` compute it from the host `TMPDIR` before
+  prefix is unaffected (the Makefile computes it from the host `TMPDIR` before
   the leg starts), as are the full-run lock and `~/.veri-pytest-legs`.
 - macOS checks each new executable on its first run (~330 ms). Fix:
   `sudo spctl developer-mode enable-terminal`, enable the terminal under Privacy & Security →
