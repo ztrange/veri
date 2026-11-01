@@ -84,3 +84,24 @@ def test_journal_path_is_named_from_origins_url_when_another_remotes_url_comes_f
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
     assert (code, written) == (0, ["runs/acme-widgets/42.jsonl"])
+
+
+def test_event_with_an_empty_issue_creates_nothing_under_veri_home_and_prints_nothing_on_stderr(tmp_path, capfd):
+    import importlib
+    event = importlib.import_module("veri.event")
+    home = tmp_path / "home"
+    home.mkdir()
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+
+    with_home = os.environ.get("VERI_HOME")
+    os.environ["VERI_HOME"] = str(home)
+    try:
+        code = event.append(str(clone), {"issue": ""}, "done", [], ts=1700000000)
+    finally:
+        os.environ["VERI_HOME"] = with_home
+
+    err = capfd.readouterr().err
+    assert (code, list(home.iterdir()), err) == (0, [], "")
