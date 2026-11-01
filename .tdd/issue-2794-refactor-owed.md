@@ -6,3 +6,4 @@
 ### A second run of install-links.sh changes nothing, links and exclude file byte for byte, and exits 0, pinned by a case in test_install_links_process.py carrying a process mark for git ⟦criterion 6⟧
 - drop the redundant first `os.makedirs(os.path.dirname(target))` in `install_links.py`, since `os.makedirs(target)` already creates the parent
 not-done | transform-rejected | drop the redundant `os.makedirs(os.path.dirname(target))` in `install_links.py`, since `os.makedirs(target)` already creates the parent directories
+applied | 94ce3debed13dcaf7b66de598d2436483174bbed | drop the `try/except OSError` in `install_links.py`, since `entry.run` already turns an unexpected `OSError` into a refusal; this would change the stderr text, so it is not behavior-preserving	refactor: drop install_links' try/except OSError, entry.run already refuses (#2794)
