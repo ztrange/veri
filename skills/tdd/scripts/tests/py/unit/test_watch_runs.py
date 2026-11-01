@@ -681,7 +681,10 @@ def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_sev
     ticks = itertools.count(0, 1)
 
     def ps(argv, **kwargs):
-        return subprocess.CompletedProcess(argv, 0, stdout="/usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
+        if argv[0] == "lsof":
+            return subprocess.CompletedProcess(argv, 0, stdout=f"p4242\nn{tmp_path}/.tdd/wt/5\n", stderr="")
+        return subprocess.CompletedProcess(
+            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
 
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
