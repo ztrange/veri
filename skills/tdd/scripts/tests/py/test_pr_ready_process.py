@@ -92,3 +92,33 @@ def test_issue_2858_pr_ready_keeps_polling_while_the_remote_holds_the_sha_and_re
     assert (ran.returncode, ran.stderr) == (0, "")
     assert len(reads) == 3
     assert "gh pr ready 42" in calls.read_text().splitlines()
+
+
+@pytest.mark.process("real git repository whose origin is unreachable, a fake gh, and pr-ready.sh as a subprocess")
+def test_issue_2858_pr_ready_falls_through_to_the_poll_and_exits_2_when_the_origin_cannot_be_asked(tmp_path):
+    git_env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:" + os.path.dirname(shutil.which("git"))}
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True, text=True,
+                              env=git_env).stdout.strip()
+
+    git("init", "-q", "-b", "feature")
+    git("commit", "-q", "--allow-empty", "-m", "old")
+    old = git("rev-parse", "HEAD")
+    git("commit", "-q", "--allow-empty", "-m", "new")
+    new = git("rev-parse", "HEAD")
+    git("remote", "add", "origin", str(tmp_path / "no-such-remote.git"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  *head.ref*) echo feature ;;\n  *--jq*) echo %s ;;\nesac\nexit 0\n' % old)
+    gh.chmod(0o755)
+    env = {"PATH": os.pathsep.join([str(bin_dir), os.path.dirname(shutil.which("bash")), "/usr/bin", "/bin"]),
+           "VERI_GH_DRIVER": "auto", "VERI_POLL": "0"}
+
+    ran = subprocess.run([str(SCRIPTS / "pr-ready.sh"), "42", new], cwd=tmp_path, capture_output=True, text=True,
+                         env=env, timeout=20)
+
+    assert ran.returncode == 2, (ran.stdout, ran.stderr)
+    assert "PR 42 head is %s after 30 reads, expected %s" % (old, new) in ran.stderr
