@@ -50,7 +50,7 @@ def test_2506_a_record_whose_command_passes_unmutated_and_fails_mutated_exits_0_
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command="grep -q 'if guard' guard.txt")
+           command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
@@ -175,7 +175,7 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_is_replayed_and_no
     (tmp_path / ".tdd").mkdir()
     gone = tmp_path / "gone-scratch" / "scripts" / "timed-test-run.sh"
     record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command=f"{gone} unit guard grep -q 'if guard' guard.txt")
+           command=f"{gone} unit guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
@@ -201,7 +201,7 @@ def test_2814_a_record_through_a_timed_test_run_path_that_still_exists_is_replay
     kept.write_text(f'#!/bin/sh\necho used >> {tmp_path}/marker\nshift 2\nexec "$@"\n')
     kept.chmod(0o755)
     record(tmp_path / ".tdd" / "issue-2814-mutations.md", file="guard.txt", old="if guard", new="if (true)",
-           command=f"{kept} unit guard grep -q 'if guard' guard.txt")
+           command=f"{kept} unit guard sh -c \"echo result; grep -q 'if guard' guard.txt\"")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
