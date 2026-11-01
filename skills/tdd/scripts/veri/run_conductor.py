@@ -37,10 +37,11 @@ HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
 def main(argv):
-    _, bad = tunables.resolve("REVISE_BUDGET")
-    if bad:
-        sys.stderr.write("run-conductor: REVISE_BUDGET must be %s, got '%s'\n" % (bad[1], bad[0]))
-        return 2
+    for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE"):
+        _, bad = tunables.resolve(name)
+        if bad:
+            sys.stderr.write("run-conductor: %s must be %s, got '%s'\n" % (name, bad[1], bad[0]))
+            return 2
     if launch_floor.bash_refusal("run-conductor") or launch_floor.python_refusal("run-conductor"):
         return 2
     if not argv or not argv[0]:

@@ -8,6 +8,7 @@ ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.orchestrate", [], {}),
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
+    "VERI_REBASED_TIP_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
 }
 CANDIDATES = ("abc", "-1", "0", "1.5.5", "1e3", "1e12", "nan", "inf", " 7")
@@ -48,3 +49,20 @@ def test_2705_revise_budget_unset_resolves_to_the_default_of_2_with_no_error(mon
     monkeypatch.delenv("REVISE_BUDGET", raising=False)
 
     assert tunables.resolve("REVISE_BUDGET") == (2, None)
+
+
+def test_2841_rebased_tip_suite_set_to_a_value_but_local_or_ci_makes_run_conductor_exit_2_naming_it_and_the_value(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.chdir(tmp_path)
+    for name in [n for n in os.environ if n.startswith("VERI_") and n != "VERI_VENV"]:
+        monkeypatch.delenv(name)
+    module, argv, env = ENTRY_POINTS["VERI_REBASED_TIP_SUITE"]
+    calls = fake_processes()
+
+    code, out, err = run_cli(importlib.import_module(module), argv,
+                             env=dict(env, VERI_REBASED_TIP_SUITE="bogus"), cwd=tmp_path)
+
+    assert "VERI_REBASED_TIP_SUITE" in tunables.TABLE
+    assert (code, out, len(err.splitlines()), "VERI_REBASED_TIP_SUITE" in err, "bogus" in err, tuple(calls)) == (
+        2, "", 1, True, True, ())
