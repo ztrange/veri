@@ -21,5 +21,5 @@
 - [x] Edit skills/vdev/SKILL.md against rows D5, D20 and D21 of the issue: delete the sentences saying vmerge and vbail do not exist yet, and their fallback text ⟦skill-edit⟧
 - [x] Edit skills/vcoord/SKILL.md against rows C17 and C18 of the issue ⟦skill-edit⟧
 - [x] Edit README.md against row RD1 of the issue, the one-line install of vinstall under ## Install ⟦skill-edit⟧
-- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_identity.py — FAILED test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directory: README.md ## Install wants an ln -s of skills/tdd, which RD1 replaced with skills/vinstall ⟦suite-repair⟧
+- [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_identity.py — FAILED test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directory: README.md ## Install wants an ln -s of skills/tdd, which RD1 replaced with skills/vinstall ⟦suite-repair⟧
 - [ ] The first run after this lands reports each subagent load's tokens against the skill body's size, in its PR or issue; the PR body says who owes that report ⟦human-owed⟧ ⟦criterion 11⟧

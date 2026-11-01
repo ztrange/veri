@@ -111,3 +111,12 @@ exec "$py"
 command 313
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_install_links.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_install_links.py::test_install_links_sh_is_a_bin_sh_shim_over_a_veri_module_and_holds_no_python_source
 
+file 9
+README.md
+old 26
+skills/vinstall" ~/.claude
+new 21
+skills/tdd" ~/.claude
+command 299
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp2dq4a_ju/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_skill_identity.py make test TESTS=skills/tdd/scripts/tests/py/test_skill_identity.py::test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directory
+

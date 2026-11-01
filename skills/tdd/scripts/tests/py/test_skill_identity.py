@@ -221,8 +221,8 @@ def test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directo
         elif inside and line.startswith("ln -s "):
             links.append(line)
     joined = "\n".join(links)
-    if f'/{SKILL_DIR}" ~/.claude/skills/{WANT_NAME}' not in joined:
-        problems.append(f"README.md ## Install: want an ln -s of {SKILL_DIR} to ~/.claude/skills/{WANT_NAME}, got: {joined or 'no ln -s line'}")
+    if '/skills/vinstall" ~/.claude/skills/vinstall' not in joined:
+        problems.append(f"README.md ## Install: want an ln -s of skills/vinstall to ~/.claude/skills/vinstall, got: {joined or 'no ln -s line'}")
     for old_dir in OLD_DIRS:
         if f'/{old_dir}"' in joined:
             problems.append(f"README.md ## Install still links {old_dir}/: {joined}")
