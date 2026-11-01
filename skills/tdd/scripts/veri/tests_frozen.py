@@ -588,6 +588,8 @@ def rerecord_refactored(ledger, green):
         head = _cases_at("HEAD", name).get(case)
         if head is None or _assertion_lines(head) != _assertion_lines(verified):
             return record
+        if not _assertion_lines(verified) and re.sub(r"\s+", "", head) != re.sub(r"\s+", "", verified):
+            return record
         return _body_line(name, case, head)
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
