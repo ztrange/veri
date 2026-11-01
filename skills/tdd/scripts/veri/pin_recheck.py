@@ -58,6 +58,7 @@ def main(argv):
         base = run_captured(pin["command"])
         if base.returncode != 0:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
+            sys.stderr.write("".join(line + "\n" for line in (base.stdout.splitlines() + base.stderr.splitlines())[-40:]))
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
         mutated = run_captured(pin["command"])
