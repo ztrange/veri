@@ -49,3 +49,19 @@ def test_each_of_the_11_renamed_units_with_a_requirements_list_has_a_graded_line
             stale.append((unit, found, want[:12]))
 
     assert stale == [], stale
+
+
+@pytest.mark.tree_audit("the repository's graded prose units, copied without .git or .tdd")
+def test_prose_owed_sh_on_a_copy_of_the_tip_with_no_ledger_reports_no_unit_owed_and_no_orphan_graded_line(
+        tmp_path, run_cli):
+    import importlib
+    import shutil
+
+    prose_owed = importlib.import_module("veri.prose_owed")
+    root = tmp_path / "repo"
+    shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".tdd", "node_modules", "__pycache__"), symlinks=True)
+
+    code, out, err = run_cli(prose_owed, [str(root)])
+
+    assert not (root / ".tdd").exists()
+    assert (code, out, err) == (0, "", ""), (code, out.splitlines(), err)
