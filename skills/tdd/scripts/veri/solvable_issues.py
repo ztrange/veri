@@ -55,6 +55,13 @@ def priority_label():
     return tunables.read("VERI_PRIORITY_LABEL", "priority")
 
 
+def band(issue, priority):
+    """An issue's selection band: priority, then bugs the groom did not call low-risk, then the rest."""
+    if carries(issue, priority):
+        return 0
+    return 1 if carries(issue, "bug") and not carries(issue, "low-risk") else 2
+
+
 def is_open(entry):
     return entry.get("state", "").upper() == "OPEN"
 
@@ -112,7 +119,7 @@ def select(label, priority="priority", repo=None):
     if not survivors:
         return 3, []
     return 0, [issue["number"] for issue in sorted(
-        survivors, key=lambda issue: (0 if carries(issue, priority) else 1 if carries(issue, "bug") else 2, issue["number"]))]
+        survivors, key=lambda issue: (band(issue, priority), issue["number"]))]
 
 
 def running_numbers():

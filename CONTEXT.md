@@ -166,7 +166,8 @@ rung of the scope ladder. Everything below it — conductor, leaves, supervisor,
 verification, ledger — is identical at every rung. At rung 2 it is `solvable-issues.sh`,
 which prints the solvable numbers of one scope in three bands — the issues labelled
 `priority` first, then the `bug`s, then the rest, each band ascending by number (exit 3 when
-there are none). `VERI_PRIORITY_LABEL` names the first band's label.
+there are none). A bug labelled `low-risk` counts as the rest, and `priority` outranks
+`low-risk`. `VERI_PRIORITY_LABEL` names the first band's label.
 _Avoid_: scheduler, picker, queue
 
 **In flight**:

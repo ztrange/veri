@@ -539,6 +539,16 @@ def test_cli_prints_a_priority_labelled_issue_ahead_of_a_lower_numbered_bug_and_
     assert answer == (0, "150\n160\n120\n", "")
 
 
+def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        opted_in(210), labelled(215, "ready-for-agent", "bug", "low-risk"), opted_in(220), labelled(225, "ready-for-agent", "bug"),
+        labelled(230, "ready-for-agent", "bug", "low-risk", "priority"), labelled(205, "ready-for-agent", "low-risk")])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "230\n225\n205\n210\n215\n220\n", "")
+
+
 def test_cli_never_opts_in_an_issue_by_the_priority_label_alone(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(170, "priority"), opted_in(180)])
 
