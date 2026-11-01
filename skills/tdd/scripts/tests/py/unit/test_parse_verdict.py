@@ -243,3 +243,17 @@ def test_issue_2846_a_missing_test_line_before_a_multiline_reason_and_reject_ver
         "the step adds code no test requires:\n- remove the cache helper\n- remove the retry flag\n",
         "",
     )
+
+
+def test_issue_2846_a_flags_line_between_a_multiline_reason_and_the_reject_verdict_is_not_printed_but_the_other_block_lines_are(run_cli, parse_verdict):
+    text = ("REASON: the step adds code no test requires:\n"
+            "- remove the cache helper\n"
+            "FLAGS: slow\n"
+            "- remove the retry flag\n"
+            "VERDICT: REJECT")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (
+        1,
+        "the step adds code no test requires:\n- remove the cache helper\n- remove the retry flag\n",
+        "",
+    )

@@ -14,6 +14,7 @@ def labelled(label):
 VERDICT_RE = labelled("verdict")
 REASON_RE = labelled("reason")
 MISSING_TEST_RE = labelled("missing_test")
+FLAGS_RE = labelled("flags")
 FENCE_RE = re.compile(f"^[{SPACE}]*(```|~~~)[{SPACE}]*$")
 UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
 CODES = {"PASS": 0, "REJECT": 1}
@@ -64,7 +65,7 @@ def preceding_reason(before):
             in_block = True
         elif MISSING_TEST_RE.match(line):
             kept.append(line)
-        elif in_block:
+        elif in_block and not FLAGS_RE.match(line):
             kept.append(line)
     return "\n".join(kept)
 
