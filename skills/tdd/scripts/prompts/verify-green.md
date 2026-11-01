@@ -30,6 +30,10 @@ A developer agent has written the implementation intended to make the target tes
 
    {{INCLUDE:_verify-coverage-probe.md}}
 
+   Run only the commands this prompt names, and never set `VERI_TEST_LOCK`. When a command
+   gives no answer (it times out, is killed or cannot run), end without a verdict rather
+   than rerunning it another way.
+
 3. **The pass is genuine.** The behavior the spec asks for is actually present — the test
    was not made to pass by weakening the assertion, deleting cases, skipping/xfailing the
    test, or hard-coding the exact expected value in a way that doesn't implement the

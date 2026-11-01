@@ -670,6 +670,7 @@
 | VG16 | After the checks, a paragraph says that when a REJECT's cause is a behaviour no test pins (a line the step needs that every test leaves unchecked), the verifier puts one `MISSING_TEST: <behaviour>` line, naming that behaviour, before the `VERDICT:` line, and that a rejection for a product defect carries no such line. (The `MISSING_TEST:` paragraph.) | The conductor routes a missing test to a new Red instead of a revise of correct code. |
 | VG17 | The closing paragraph says PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects the behavior the spec requires. (Closing paragraph.) | The verdict needs both the green runs and a genuine pass. |
 | VG18 | The "Only code a test requires" check: production code outside the step's criterion is rejected by asking for its removal, never by offering a test for it, and the `MISSING_TEST:` paragraph says such code is not named on that line. | verify-pin and verify-red reject a test outside the criterion, so an offered test spends the step's revise budget on a contradiction (clarion2 issue #3, step R5, `revise-exhausted`). |
+| VG19 | The run-the-tests check: the verifier runs only the commands the prompt names, never sets `VERI_TEST_LOCK`, and when a command gives no answer it ends without a verdict rather than rerunning it another way. | A #2794 verifier widened to `make test`, timed out at 30 minutes and rerun with the lock off, so a verdict rested on a run the machine's lock never admitted. |
 
 ## skills/tdd/scripts/prompts/verify-refactor.md
 
