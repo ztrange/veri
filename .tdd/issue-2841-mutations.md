@@ -43,3 +43,12 @@ on the rebased tip, and the push
 command 247
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdteuonur/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_skill_rebased_tip_suite.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_rebased_tip_suite.py
 
+file 9
+CLAUDE.md
+old 34
+`VERI_REBASED_TIP_SUITE=ci` leaves
+new 9
+CI leaves
+command 318
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdteuonur/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_skill_rebased_tip_suite.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_rebased_tip_suite.py::test_claude_md_sentence_on_when_the_full_suite_runs_names_the_ci_mode
+
