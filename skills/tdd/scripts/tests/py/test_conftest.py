@@ -114,7 +114,7 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
     ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
-    assert json.loads(seen.read_text()) == ["VERI_MIN_FREE_GB", "VERI_PYTEST_LEGS", "VERI_VENV"]
+    assert json.loads(seen.read_text()) == ["VERI_HOME", "VERI_MIN_FREE_GB", "VERI_PYTEST_LEGS", "VERI_VENV"]
 
 
 @pytest.mark.process("a child pytest session started with GIT_TEMPLATE_DIR and GIT_EXEC_PATH set beside other GIT_ variables")
