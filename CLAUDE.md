@@ -143,7 +143,8 @@ Per step, the red and refactor leaves run the
 affected suites; `develop-green`, verify-green and verify-refactor run the fast tier plus the
 affected suites; a revise leaf runs the tiers of the phase it redoes. `make test`, the
 **full suite**, runs once per PR before the PR is readied, again per repair step a red result
-appends (#539), and on the rebased tip if the Draft PR step rebased (#1026).
+appends (#539), and on the rebased tip if the Draft PR step rebased (#1026) — unless
+`VERI_REBASED_TIP_SUITE=ci` leaves that tip's run to CI.
 
 Tests inject rather than wait on a real model or clock: `CLAUDE_BIN` swaps in a stub,
 `VERI_HEARTBEAT` / `VERI_TOOL_IDLE` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
