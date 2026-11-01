@@ -92,3 +92,22 @@ new 17
 command 318
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_nothing
 
+file 35
+skills/tdd/scripts/install-links.sh
+old 9
+#!/bin/sh
+new 11
+#!/bin/bash
+command 313
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_install_links.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_install_links.py::test_install_links_sh_is_a_bin_sh_shim_over_a_veri_module_and_holds_no_python_source
+
+file 35
+skills/tdd/scripts/install-links.sh
+old 10
+exec "$py"
+new 32
+python3 -c 'print(1)'
+exec "$py"
+command 313
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_install_links.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_install_links.py::test_install_links_sh_is_a_bin_sh_shim_over_a_veri_module_and_holds_no_python_source
+
