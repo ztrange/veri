@@ -15,7 +15,7 @@
 - [x] A dangling veri link at a link path is repaired by install-links.sh, resolving again under the veri main clone, pinned by a case in test_install_links_process.py carrying a process mark for git ⟦criterion 6⟧
 - [x] A link path that exists and is not a symlink into veri (a plain file, a directory, or a symlink elsewhere, dangling or not) is left untouched, and install-links.sh exits 2 naming it on stderr with no link created, even when it is the last of the eight, pinned by a case in test_install_links_process.py carrying a process mark for git ⟦criterion 7⟧
 - [x] Outside a git repository install-links.sh exits 2, creating nothing, pinned by a case in test_install_links_process.py carrying a process mark for git ⟦criterion 8⟧
-- [ ] install-links.sh starts with #!/bin/sh, execs python3 on a skills/tdd/scripts/veri/ module and holds no Python source (no heredoc, no python3 -c), pinned by a case in skills/tdd/scripts/tests/py/unit/test_install_links.py ⟦criterion 9⟧
+- [x] install-links.sh starts with #!/bin/sh, execs python3 on a skills/tdd/scripts/veri/ module and holds no Python source (no heredoc, no python3 -c), pinned by a case in skills/tdd/scripts/tests/py/unit/test_install_links.py ⟦criterion 9⟧
 - [ ] Write skills/vinstall/SKILL.md and its REQUIREMENTS.md against rows VI1, VI2 and VI3 of the issue, reaching the shim as ../tdd/scripts/install-links.sh ⟦skill-edit⟧
 - [ ] skills/vinstall/ carries no .on-demand marker, pinned by a case in test_prd_016_install_markers.py, a pin with no production change expected ⟦criterion 1⟧
 - [ ] Edit skills/vdev/SKILL.md against rows D5, D20 and D21 of the issue: delete the sentences saying vmerge and vbail do not exist yet, and their fallback text ⟦skill-edit⟧
