@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/test_run_conductor_process.py — FAILED test_a_first_run_with_only_the_launch_redirects_log_present_leaves_the_tree_clean_for_the_conductor_issue_2798 - AssertionError: assert '?? .local/\n' == '' ⟦ci-repair⟧ ⟦criterion 2⟧
