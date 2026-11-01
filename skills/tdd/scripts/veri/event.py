@@ -117,9 +117,19 @@ def awake_reading():
     return awake
 
 
+def common_dir(clone):
+    git = os.path.join(clone, ".git")
+    if os.path.isdir(git):
+        return git
+    with open(git, "rb") as handle:
+        admin = handle.read().decode().partition("gitdir:")[2].strip()
+    with open(os.path.join(admin, "commondir"), "rb") as handle:
+        return os.path.join(admin, handle.read().decode().strip())
+
+
 def journal_path(clone, issue):
     try:
-        with open(os.path.join(clone, ".git", "config"), "rb") as handle:
+        with open(os.path.join(common_dir(clone), "config"), "rb") as handle:
             config = handle.read().decode()
     except OSError:
         return None
