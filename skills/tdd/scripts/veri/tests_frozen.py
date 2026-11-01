@@ -574,6 +574,16 @@ def _assertion_lines(body):
     return [_squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
 
 
+def _called_helpers(rev, name, body):
+    text = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+    helpers = []
+    for definition in re.finditer(r"^func\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
+        if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
+            helpers.append(definition.group())
+    return "\n".join(helpers)
+
+
 def rerecord_refactored(ledger, green):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
@@ -590,7 +600,10 @@ def rerecord_refactored(ledger, green):
         if verified is None or _body_digest(verified) != digest:
             return record
         head = _cases_at("HEAD", name).get(case)
-        if head is None or _assertion_lines(head) != _assertion_lines(verified):
+        if head is None:
+            return record
+        if _assertion_lines(head) != _assertion_lines(verified) and \
+                _assertion_lines(head) + _assertion_lines(_called_helpers("HEAD", name, head)) != _assertion_lines(verified):
             return record
         if not _assertion_lines(verified) and _squeezed(head) != _squeezed(verified):
             return record
