@@ -84,9 +84,9 @@ def test_main_answers_the_issue_bodys_marker_bare_or_backticked_and_falls_throug
     silent = tmp_path / "silent.md"
     silent.write_text("## Notes\n\nNo line here names the run command; `make docs-test` appears in prose only.\n")
     midline = tmp_path / "midline.md"
-    midline.write_text("## Notes\n\n`docs/wt/app.js`, `docs/wt/style.css`. Test command: `make docs-test`. More prose.\n")
+    midline.write_text("## Notes\n\n`web/app.js`, `web/style.css`. Test command: `make docs-test`. More prose.\n")
     linestart = tmp_path / "linestart.md"
-    linestart.write_text("## Notes\n\nTest command: `make docs-test`. `docs/walkthrough.html` is GENERATED — never hand-edit it.\n")
+    linestart.write_text("## Notes\n\nTest command: `make docs-test`. `docs/page.html` is GENERATED — never hand-edit it.\n")
     bare = tmp_path / "bare.md"
     bare.write_text("## Notes\n\nTest command: bin/run --all\n")
     fixtures = SCRIPTS / "tests" / "fixtures" / "detect-test-command"
