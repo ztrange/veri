@@ -20,6 +20,7 @@ def real_conductor_processes(monkeypatch, watch_runs):
     the real parser over a stubbed ps takes the function back from this fixture."""
     real = watch_runs.pid_file.conductor_processes
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", lambda: [])
+    monkeypatch.setattr(watch_runs, "_starting", lambda: [])
     return real
 
 
