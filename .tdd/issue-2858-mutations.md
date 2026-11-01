@@ -34,3 +34,14 @@ if tries >= 1:
 command 323
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwk_43byd/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pr_ready_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pr_ready_process.py::test_issue_2858_pr_ready_falls_through_to_the_poll_and_exits_2_when_the_branch_name_cannot_be_read
 
+file 33
+skills/tdd/scripts/veri/github.py
+old 51
+        if tries == 0:
+            _refuse_unpushed
+new 45
+        if True:
+            _refuse_unpushed
+command 318
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpfvpjfdjt/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pr_ready_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pr_ready_process.py::test_issue_2858_pr_ready_asks_the_remote_only_on_the_first_mismatched_read_not_on_later_polls
+
