@@ -15,10 +15,14 @@ def _cwd(pid):
     return next((line[1:] for line in lsof.stdout.splitlines() if line.startswith("n")), None)
 
 
+def _inside(cwd, root):
+    return cwd == root or (cwd or "").startswith(root + "/")
+
+
 def conductor_processes():
     import status
     root = status.main_working_tree()
-    return [issue for pid, issue in _conductors() if (_cwd(pid) or "").startswith(root + "/") or _cwd(pid) == root]
+    return [issue for pid, issue in _conductors() if _inside(_cwd(pid), root)]
 
 
 def starting_runs(root):
