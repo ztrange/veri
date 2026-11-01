@@ -61,7 +61,7 @@ def _exists(case):
             continue
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
             text = handle.read()
-        match = (go.search(text) if go_file else
+        match = (go.search(text) if go_file and case.startswith("Test") else
                  py.search(text) if is_test_file(name) and case.startswith("test_") else None)
         if match:
             return match.group(1)
@@ -76,19 +76,21 @@ def _exists(case):
 
 def _fixture(report):
     for name in _named_cases(report):
-        if name.startswith("test_"):
+        if name.startswith(("test_", "Test")):
             continue
         escaped = re.escape(name)
         helper = re.compile(r"^def %s\(" % escaped, re.M)
         js_helper = re.compile(
             r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped), re.M)
+        go_helper = re.compile(r"^func %s\(" % escaped, re.M)
         for root, file in _files():
             py_file = is_test_file(file)
-            if not py_file and not is_js_test_file(file, root):
+            go_file = file.endswith("_test.go")
+            if not py_file and not go_file and not is_js_test_file(file, root):
                 continue
             path = os.path.join(root, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if (helper if py_file else js_helper).search(handle.read()):
+                if (helper if py_file else go_helper if go_file else js_helper).search(handle.read()):
                     return os.path.normpath(path), name
     return None
 
