@@ -1,0 +1,6 @@
+# Plan for #2705 — REVISE_BUDGET is documented as a tunable in six places and read by no code, so an operator's budget raise silently does nothing
+
+- [ ] `REVISE_BUDGET` is registered in `skills/tdd/scripts/veri/tunables.py` with default 2: with it unset, `tunables.resolve("REVISE_BUDGET")` answers the default of 2 and no error; a unit-tier case in `tests/py/unit/test_tunables.py` that deletes `REVISE_BUDGET` from its own environment, since the hermetic fixture only clears `VERI_*` ⟦criterion 1⟧
+- [ ] A `REVISE_BUDGET` that is not a whole number refuses at `run-conductor.sh`: exit 2, exactly one stderr line naming `REVISE_BUDGET`, before any process starts (no `claude` launched and no `gh` asked); a case driving `run_conductor` in-process with `run_cli` and a bad value such as `three` ⟦criterion 2⟧
+- [ ] With `REVISE_BUDGET` unset, the conductor's prompt holds no line naming a revise budget value: a pin case on `run_conductor.prompt`, deleting `REVISE_BUDGET` from its own environment ⟦criterion 3⟧
+- [ ] A set whole-number `REVISE_BUDGET` appears in the conductor's prompt, as one line carrying the name and the value, for example `REVISE_BUDGET=3` gives a line holding both `REVISE_BUDGET` and `3`; a case on `run_conductor.prompt`, with no change to any graded prose ⟦criterion 3⟧
