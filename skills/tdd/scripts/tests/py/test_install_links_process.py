@@ -95,3 +95,22 @@ def test_install_links_sh_with_no_argument_installs_into_the_repository_holding_
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     entries = sorted(p.name for p in (repo / ".claude" / "skills").iterdir()) if (repo / ".claude").is_dir() else []
     assert (done.returncode, entries, (deep / ".claude").exists()) == (0, LINKED, False)
+
+
+@pytest.mark.process("git init, commit and worktree add on a scratch clone, then install-links.sh run from the worktree")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_run_from_a_linked_worktree_of_veri_links_each_skill_under_the_main_clone(tmp_path):
+    clone, _ = _clone(tmp_path)
+    for name in LINKED:
+        (clone / "skills" / name / "SKILL.md").write_text(name + "\n")
+    git = ["git", "-C", str(clone), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["add", "-A"], check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "scripts"], check=True)
+    wt = (tmp_path / "wt").resolve()
+    subprocess.run(git + ["worktree", "add", "-q", "--detach", str(wt)], check=True)
+    shim = wt / "skills" / "tdd" / "scripts" / "install-links.sh"
+    done = subprocess.run(["/bin/sh", str(shim)], cwd=wt, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    skills = clone / ".claude" / "skills"
+    targets = {n: os.readlink(skills / n) for n in LINKED if (skills / n).is_symlink()}
+    assert (done.returncode, targets) == (0, {n: str(clone / "skills" / n) for n in LINKED})

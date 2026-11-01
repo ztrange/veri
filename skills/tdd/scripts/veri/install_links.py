@@ -8,6 +8,12 @@ LINKED = ("vdev", "vcoord", "vplan", "vgroom", "vstatus", "vreport", "vfile", "v
 SKILLS = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 
 
+def _veri_skills():
+    done = subprocess.run(["git", "-C", SKILLS, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                          capture_output=True, text=True, check=True)
+    return os.path.join(os.path.dirname(done.stdout.strip()), "skills")
+
+
 def main(argv):
     root = argv[0] if argv else os.getcwd()
     done = subprocess.run(["git", "-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
@@ -20,7 +26,7 @@ def main(argv):
         os.makedirs(os.path.dirname(target), exist_ok=True)
         os.makedirs(target, exist_ok=True)
         for name in LINKED:
-            os.symlink(os.path.join(SKILLS, name), os.path.join(target, name))
+            os.symlink(os.path.join(_veri_skills(), name), os.path.join(target, name))
     except OSError as err:
         print("install-links.sh: " + type(err).__name__ + ": " + str(err), file=sys.stderr)
         return 2
