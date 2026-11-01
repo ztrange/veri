@@ -228,3 +228,18 @@ def test_issue_2846_a_multiline_reason_before_the_reject_verdict_is_printed_whol
         "the step adds code no test requires:\n- remove the cache helper\n- remove the retry flag\n",
         "",
     )
+
+
+def test_issue_2846_a_missing_test_line_before_a_multiline_reason_and_reject_verdict_is_printed_intact_then_the_whole_block(run_cli, parse_verdict):
+    text = ("MISSING_TEST: slugify rejects an empty string\n"
+            "REASON: the step adds code no test requires:\n"
+            "- remove the cache helper\n"
+            "- remove the retry flag\n"
+            "VERDICT: REJECT")
+
+    assert run_cli(parse_verdict, [], stdin=text) == (
+        1,
+        "MISSING_TEST: slugify rejects an empty string\n"
+        "the step adds code no test requires:\n- remove the cache helper\n- remove the retry flag\n",
+        "",
+    )
