@@ -58,9 +58,10 @@ reads the plan out of these headings.
   the literal `None.`. veri reads every `#N` there as a blocker, so a related issue goes
   elsewhere in the body, never here.
 - **`## Requirements`.** An issue that changes graded prose (a skill's `SKILL.md`, say) carries
-  a `## Requirements` section, placed after `## Blocked by`. Each unit's heading is the **bare
-  path**, or `<path> (new)` only for a file that does not exist yet; each ID cell is the **bare
-  ID**; an amended row carries its **full new text**.
+  a `## Requirements` section, placed after `## Blocked by`. Each unit sits under a
+  **`### <path>` heading** (the bare path), or `### <path> (new)` only for a file that does not
+  exist yet; a `##` heading is not read as a unit. For example: `### skills/vfile/SKILL.md`.
+  Each ID cell is the **bare ID**; an amended row carries its **full new text**.
 - **`Test command:`** appears **once, on the last line** of the body, naming the command that
   runs the repo's tests; nothing follows it.
 
