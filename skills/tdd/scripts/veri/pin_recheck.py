@@ -66,6 +66,7 @@ def main(argv):
         base_lines = output_lines(base)
         if not green and not base_lines & output_lines(mutated):
             sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
+            sys.stderr.write("".join(line + "\n" for line in (mutated.stdout.splitlines() + mutated.stderr.splitlines())[-40:]))
             status = 1
             continue
         if green:
