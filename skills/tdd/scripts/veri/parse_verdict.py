@@ -56,11 +56,15 @@ def following_reason(rest):
 
 def preceding_reason(before):
     kept = []
+    in_block = False
     for line in before:
         match = REASON_RE.match(line)
         if match:
             kept.append(match.group(1))
+            in_block = True
         elif MISSING_TEST_RE.match(line):
+            kept.append(line)
+        elif in_block:
             kept.append(line)
     return "\n".join(kept)
 
