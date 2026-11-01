@@ -43,6 +43,16 @@ def _unknown_heading(issue):
     return None
 
 
+def _rows_outside_requirements(issue, unit):
+    inside = False
+    for line in requirements.read_lines(issue):
+        if line.startswith("## "):
+            inside = line[3:].strip() == unit
+        elif inside and line.startswith("|"):
+            return True
+    return False
+
+
 def _write(path, lines):
     with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
         f.write("\n".join(lines))
@@ -232,6 +242,9 @@ def main(argv):
     unknown = _unknown_heading(issue)
     if unknown:
         print("Requirements heading names no existing unit: " + unknown, file=sys.stderr)
+        return 2
+    if _rows_outside_requirements(issue, unit):
+        print("rows for %s are not under ## Requirements" % unit, file=sys.stderr)
         return 2
     issue_rows = _issue_rows(issue, unit)
     for row in issue_rows:
