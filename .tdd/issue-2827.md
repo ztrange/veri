@@ -2,5 +2,5 @@
 
 - [x] A record whose mutated run exits non-zero and still prints a line the unmutated run printed (a real test failure) still counts as red: pin-recheck.sh prints nothing needing a look and exits 0, as today. A case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py with a real process and no production change ⟦criterion 2⟧
 - [x] A record whose mutated run exits non-zero and prints none of the output lines the unmutated run printed, where the unmutated run printed at least one line, prints `needs a look: <file> (mutation did not build)` on stdout and pin-recheck.sh exits 1, the recorded file restored byte for byte. A case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py with a real process; a record whose unmutated run prints nothing keeps counting as red, as the existing cases pin ⟦criterion 1⟧
-- [ ] skills/tdd/SCRIPTS.md's pin-recheck.sh entry states that exit 1 also covers a mutated run that did not build, printed as `needs a look: <file> (mutation did not build)` ⟦skill-edit⟧
+- [x] skills/tdd/SCRIPTS.md's pin-recheck.sh entry states that exit 1 also covers a mutated run that did not build, printed as `needs a look: <file> (mutation did not build)` ⟦skill-edit⟧
 - [ ] Go-red control: with the build-failure check removed, the first criterion's case goes red; restore it ⟦human-owed⟧ ⟦criterion 3⟧
