@@ -142,6 +142,7 @@ def journal_path(clone, issue):
         elif section == '[remote "origin"]' and text.startswith("url") and "=" in text:
             url = text.partition("=")[2].strip()
             break
+    url = url.replace(":", "/")
     owner, repo = url.removesuffix(".git").split("/")[-2:] if url.count("/") >= 2 else ("", "")
     if not (owner and repo and issue):
         return None
