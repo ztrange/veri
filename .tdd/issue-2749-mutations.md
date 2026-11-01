@@ -54,3 +54,12 @@ if not (owner and repo):
 command 320
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_event_with_an_empty_issue_creates_nothing_under_veri_home_and_prints_nothing_on_stderr
 
+file 32
+skills/tdd/scripts/veri/event.py
+old 34
+if not (owner and repo and issue):
+new 13
+if not issue:
+command 333
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_event_in_a_clone_with_no_origin_remote_creates_nothing_under_veri_home_and_prints_nothing_on_stderr
+
