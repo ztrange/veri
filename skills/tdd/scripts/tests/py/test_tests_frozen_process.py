@@ -3448,6 +3448,42 @@ def test_check_earlier_exits_0_for_a_format_2_go_record_cut_with_the_body_runnin
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_heals_a_format_2_go_record_cut_with_the_body_running_past_the_closing_brace_so_check_earlier_exits_0_2863(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    import hashlib
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    other = '\nfunc other(t *testing.T) {\n\tt.Fatal("z")\n}\n'
+    inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + '}\n' + other
+    extracted = ('func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '\tcheck(t, x)\n}\n\n'
+                 'func check(t *testing.T, x int) {\n' + chk("a") + '}\n' + other)
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    old_digest = hashlib.sha256(inline.rstrip().encode()).hexdigest()
+    record.write_text("".join(
+        "body: suite_test.go\tTestOne\t%s\n" % old_digest if line.startswith("body: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(extracted)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    code = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[0]
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, checked) == (0, (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_leaves_the_record_of_a_case_with_no_assertion_line_when_the_refactor_changed_its_body_2809(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]

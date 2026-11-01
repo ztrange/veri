@@ -603,7 +603,8 @@ def rerecord_refactored(ledger, green):
 
     def rewrite(_, record, name, case, digest):
         verified = _cases_at(green, name).get(case)
-        if verified is None or _body_digest(verified) != digest:
+        if verified is None or digest not in {_body_digest(verified), *map(
+                _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
             return record
         head = _cases_at("HEAD", name).get(case)
         if head is None:
