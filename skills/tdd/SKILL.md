@@ -1349,7 +1349,8 @@ verifier judges the fix against the full command, not the fast one.
 ```
 $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'; rc=$?
 [ "$rc" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"
-[ "$rc" != 0 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red full suite (#<n>)"; }
+[ "$rc" = 1 ] || [ "$rc" = 2 ] || { step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1; }
+[ "$rc" = 1 ] || [ "$rc" = 2 ] || { git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: repair the red full suite (#<n>)"; }
 ```
 That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
 The block captures `add-ledger-step.sh`'s exit code: the `step-added` event, the `git add` and the `git commit` run only on exit 0, after the insertion has happened.
