@@ -4,7 +4,9 @@ import os
 import re
 import sys
 
+import event
 import ledger
+import tunables
 
 USAGE = "usage: scope-check.sh <ledger> <repo-root>"
 PY_ROOT = "skills/tdd/scripts/tests/py"
@@ -25,6 +27,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     path, root = argv
+    ledger_path = path
     existing = existing_by_basename(root)
     with open(path, encoding="utf-8") as lines:
         text = lines.read()
@@ -39,6 +42,12 @@ def main(argv):
         if taken and not os.path.exists(os.path.join(root, path)):
             clashes.append(f"{path} is new but its basename exists at {taken}")
     if not clashes:
+        issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(ledger_path))
+        if issue:
+            tdd = os.path.dirname(os.path.abspath(ledger_path))
+            steps = len(ledger.ledger_steps(text))
+            event.mark(os.path.dirname(tdd), event.context(tunables.with_values(VERI_ISSUE=issue.group(1))),
+                       "plan", ["steps=%d" % steps])
         return 0
     print("\n".join(clashes), file=sys.stderr)
     return 1
