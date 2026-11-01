@@ -131,3 +131,22 @@ def test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinke
     assert (done.returncode, (skills / "tdd").exists(), (skills / "vmerge").exists(),
             os.path.samestat(scripts, os.stat(clone / "skills" / "tdd" / "scripts")),
             os.path.samestat(merge, os.stat(clone / "skills" / "vmerge" / "SKILL.md"))) == (0, False, False, True, True)
+
+
+@pytest.mark.process("git init, commit and worktree add on a scratch project, then install-links.sh run against the worktree")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_run_against_a_linked_worktree_of_a_project_installs_into_its_main_tree_and_nothing_in_the_worktree(
+        tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    git = ["git", "-C", str(project), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], check=True)
+    subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", "init"], check=True)
+    wt = (tmp_path / "project-wt").resolve()
+    subprocess.run(git + ["worktree", "add", "-q", "--detach", str(wt)], check=True)
+    done = subprocess.run(["/bin/sh", str(shim), str(wt)], cwd=wt, stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    skills = project / ".claude" / "skills"
+    entries = sorted(p.name for p in skills.iterdir()) if skills.is_dir() else []
+    assert (done.returncode, entries, (wt / ".claude").exists()) == (0, LINKED, False)

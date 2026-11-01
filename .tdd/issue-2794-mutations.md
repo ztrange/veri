@@ -52,3 +52,12 @@ os.path.join(_veri_skills(), name), os.path.join(target, name)) if name != "vcoo
 command 334
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinked_tdd_and_vmerge_skills
 
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 80
+target = os.path.join(os.path.dirname(done.stdout.strip()), ".claude", "skills")
+new 48
+target = os.path.join(root, ".claude", "skills")
+command 355
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_run_against_a_linked_worktree_of_a_project_installs_into_its_main_tree_and_nothing_in_the_worktree
+
