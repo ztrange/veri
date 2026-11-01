@@ -114,3 +114,20 @@ def test_install_links_sh_run_from_a_linked_worktree_of_veri_links_each_skill_un
     skills = clone / ".claude" / "skills"
     targets = {n: os.readlink(skills / n) for n in LINKED if (skills / n).is_symlink()}
     assert (done.returncode, targets) == (0, {n: str(clone / "skills" / n) for n in LINKED})
+
+
+@pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinked_tdd_and_vmerge_skills(tmp_path):
+    clone, shim = _clone(tmp_path)
+    (clone / "skills" / "vmerge").mkdir()
+    (clone / "skills" / "vmerge" / "SKILL.md").write_text("vmerge\n")
+    done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    skills = clone / ".claude" / "skills"
+    base = str(skills / "vcoord")
+    scripts = os.stat(base + "/../tdd/scripts/")
+    merge = os.stat(base + "/../vmerge/SKILL.md")
+    assert (done.returncode, (skills / "tdd").exists(), (skills / "vmerge").exists(),
+            os.path.samestat(scripts, os.stat(clone / "skills" / "tdd" / "scripts")),
+            os.path.samestat(merge, os.stat(clone / "skills" / "vmerge" / "SKILL.md"))) == (0, False, False, True, True)

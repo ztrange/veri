@@ -34,3 +34,21 @@ else "/nonexistent"
 command 332
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmppgvqsrm3/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_with_no_argument_installs_into_the_repository_holding_the_current_directory
 
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 74
+os.symlink(os.path.join(_veri_skills(), name), os.path.join(target, name))
+new 241
+os.symlink(os.path.join(_veri_skills(), name), os.path.join(target, name)) if name != "vcoord" else os.symlink(os.path.join(_veri_skills(), "vdev", "..", "vdev"), os.path.join(target, name)) or os.symlink("/tmp", os.path.join(target, "tdd"))
+command 334
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinked_tdd_and_vmerge_skills
+
+file 40
+skills/tdd/scripts/veri/install_links.py
+old 63
+os.path.join(_veri_skills(), name), os.path.join(target, name))
+new 186
+os.path.join(_veri_skills(), name), os.path.join(target, name)) if name != "vcoord" else (os.makedirs(target + "/x/vcoord"), os.symlink(target + "/x/vcoord", os.path.join(target, name)))
+command 334
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp80y1pz_6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_install_links_process.py make test TESTS=skills/tdd/scripts/tests/py/test_install_links_process.py::test_install_links_sh_link_lets_the_filesystem_resolve_dotdot_to_the_unlinked_tdd_and_vmerge_skills
+
