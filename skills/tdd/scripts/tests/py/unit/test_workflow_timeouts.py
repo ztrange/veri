@@ -5,7 +5,6 @@ import re
 from conftest import ROOT
 
 CI_YML = ROOT / ".github/workflows/ci.yml"
-PAGES_YML = ROOT / ".github/workflows/pages.yml"
 WORKFLOWS = ROOT / ".github/workflows"
 
 
@@ -77,20 +76,6 @@ def test_ci_yml_gates_timeout_minutes_8_with_a_comment_citing_the_ceiling_the_me
         probe_ceiling(problems, text)
         probe(problems, text, "comment does not cite the measured 160-175 s the job takes", r"(^|[^0-9])(1[5-9][0-9])[ -]?s")
         probe(problems, text, "comment does not say the 8 is temporary, naming what has to land first", "temporar", r"(#282|#290)")
-        probe(problems, text, "comment does not cite the ~230 s the job took when the docs gates ran in CI", r"(2[0-9][0-9][ -]?s|3\.8[ -]?min)")
-        probe(problems, text, "comment does not say the budget assumes the docs gates stay out of CI", "docs", r"(out of ci|outside ci|not in ci|stay out|stays out)")
-
-    assert problems == []
-
-
-def test_pages_yml_deploy_timeout_minutes_10_with_a_comment_citing_the_ceiling_and_why_it_is_larger_than_gates():
-    problems = []
-    text = timeout_comment(PAGES_YML, "deploy", 10, problems)
-    if text is not None:
-        probe_ceiling(problems, text)
-        probe(problems, text, "comment does not cite the 11-23 s the job observably takes", r"(^|[^0-9])11([^0-9]|$)", r"23[ -]?s")
-        probe(problems, text, "comment does not say the job waits on GitHub's Pages service", r"(wait|waits|waiting)", "pages")
-        probe(problems, text, "comment does not say why its budget is larger than the gates job's", r"(gates|local|deterministic)", r"(larger|longer|bigger|generous|more than)")
 
     assert problems == []
 

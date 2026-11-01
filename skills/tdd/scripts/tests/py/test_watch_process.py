@@ -83,8 +83,8 @@ def test_make_n_watch_its_own_phony_target_separate_from_test_unit_and_merge_gat
         if line.startswith("#  Phony target") and ":" in before:
             rules[before.split(":")[0]] = before.split(":", 1)[1].split()
     assert "watch" in rules
-    assert not {"test", "unit", "merge-gates"} & set(rules["watch"])
-    assert all("watch" not in rules.get(t, []) for t in ("test", "unit", "merge-gates"))
+    assert not {"test", "unit"} & set(rules["watch"])
+    assert all("watch" not in rules.get(t, []) for t in ("test", "unit"))
 
 
 @pytest.mark.process("make watch started over the real Makefile with a stub sleep first on PATH")

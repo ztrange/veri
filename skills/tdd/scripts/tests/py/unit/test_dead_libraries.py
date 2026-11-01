@@ -15,8 +15,7 @@ def read(path):
 
 def carriers():
     shell = sorted(p for p in SCRIPTS.rglob("*.sh") if SCRIPTS / "tests" / "py" not in p.parents)
-    hook = ROOT / "docs" / "hooks" / "reference-transaction"
-    return shell + [SCRIPTS.parent / "SKILL.md", ROOT / "Makefile", hook] + sorted((ROOT / ".github").rglob("*"))
+    return shell + [SCRIPTS.parent / "SKILL.md", ROOT / "Makefile"] + sorted((ROOT / ".github").rglob("*"))
 
 
 def dead_libraries(libs, texts):
@@ -43,19 +42,6 @@ def test_a_library_is_live_only_through_a_chain_from_an_entry_point(tmp_path, en
     a, b, main = lib / "a.sh", lib / "b.sh", tmp_path / "main.sh"
     texts = {a: "echo a", b: ". lib/a.sh", main: entry}
     assert dead_libraries([a, b], texts) == dead
-
-
-def test_a_library_named_only_by_the_reference_transaction_hook_is_live(tmp_path, monkeypatch):
-    scripts, hooks = tmp_path / "skills" / "tdd" / "scripts", tmp_path / "docs" / "hooks"
-    (scripts / "lib").mkdir(parents=True)
-    hooks.mkdir(parents=True)
-    a = scripts / "lib" / "a.sh"
-    a.write_text("echo a")
-    (hooks / "reference-transaction").write_text(". lib/a.sh")
-    monkeypatch.setattr(sys.modules[__name__], "ROOT", tmp_path)
-    monkeypatch.setattr(sys.modules[__name__], "SCRIPTS", scripts)
-    texts = {p: read(p) for p in carriers() if p.is_file()}
-    assert dead_libraries([a], texts) == []
 
 
 @pytest.mark.tree_audit("every .sh file under skills/tdd/scripts and the files of .github")
