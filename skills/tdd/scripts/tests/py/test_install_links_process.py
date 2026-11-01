@@ -150,3 +150,21 @@ def test_install_links_sh_run_against_a_linked_worktree_of_a_project_installs_in
     skills = project / ".claude" / "skills"
     entries = sorted(p.name for p in skills.iterdir()) if skills.is_dir() else []
     assert (done.returncode, entries, (wt / ".claude").exists()) == (0, LINKED, False)
+
+
+@pytest.mark.process("git init, commit and status on a scratch project, then install-links.sh run against it")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_lists_each_link_once_in_the_common_dir_exclude_file_and_leaves_git_status_clean(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    git = ["git", "-C", str(project), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], check=True)
+    subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", "init"], check=True)
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    exclude = project / ".git" / "info" / "exclude"
+    lines = exclude.read_text().splitlines() if exclude.exists() else []
+    listed = {n: sum(1 for line in lines if line.strip().strip("/") == ".claude/skills/" + n) for n in LINKED}
+    status = subprocess.run(git + ["status", "--porcelain"], stdout=subprocess.PIPE, text=True, check=True)
+    assert (done.returncode, listed, status.stdout) == (0, {n: 1 for n in LINKED}, "")
