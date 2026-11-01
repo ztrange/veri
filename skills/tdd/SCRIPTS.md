@@ -94,7 +94,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/pin-recheck.sh <base-sha>` — re-run each recorded mutation whose file the range touches:
   **exit 0** every such pin still goes red, printing any that need a look; **exit 1** a pin
   stayed green under its mutation, or a mutated run did not build, which prints
-  `needs a look: <file> (mutation did not build)` on stdout; **exit 2** no answer; **exit 3** no record touches the range.
+  `needs a look: <file> (mutation did not build)` on stdout; exit 1 also covers a mutated run
+  that exits non-zero when the unmutated run printed nothing, printed as `needs a look`; a
+  `needs a look` record from a failed run writes that run's stdout and stderr to stderr,
+  limited to its last 40 lines; **exit 2** no answer; **exit 3** no record touches the range.
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
