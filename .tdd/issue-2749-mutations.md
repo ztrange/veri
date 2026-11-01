@@ -103,3 +103,12 @@ monkeypatch.delenv("VERI_HOME", raising=False)
 command 317
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_event.py make test TESTS=skills/tdd/scripts/tests/py/test_event.py::test_event_sh_under_hermetic_environment_writes_its_journal_under_tmp_path_and_leaves_the_real_veri_home_untouched
 
+file 57
+skills/tdd/scripts/tests/py/test_run_conductor_process.py
+old 31
+ .tdd/wt/2627/.tdd/events.jsonl
+new 0
+
+command 188
+make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor_process.py::test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_run_when_the_conductor_bails_issue_2627
+
