@@ -1,0 +1,2 @@
+### After a refactor moves a frozen Go case's `t.Fatal` lines into a helper that the case calls, `rerecord-refactored` rewrites the case's record and `check-earlier` for a later step exits 0 (in skills/tdd/scripts/tests/py/test_tests_frozen_process.py: a git repo in tmp_path, a medium case marked process) ⟦criterion 1⟧
+- `_called_helpers` repeats the `git show <rev>:<name>` decode that `_cases_at` and line 416 already do. A shared "file text at rev" helper would remove it, but it would also rewrite pre-existing call sites whose stderr handling differs, so I did not apply it.
