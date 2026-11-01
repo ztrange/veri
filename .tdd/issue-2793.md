@@ -13,7 +13,7 @@
 - [x] Regrade `skills/vstatus/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [x] Regrade `skills/vstop/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [x] Regrade `README.md`, not renamed but changed by the substitution in its text or rows, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 7⟧
-- [ ] Regrade `operator/PRINCIPLES.md`, not renamed but changed by the substitution in its text or rows, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] Regrade `operator/PRINCIPLES.md`, not renamed but changed by the substitution in its text or rows, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 7⟧
 - [ ] Regrade `skills/tdd/SCRIPTS.md`, not renamed but changed by the substitution in its text or rows, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 7⟧
 - [ ] A case in skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py: each of the 12 skills lives in skills/v<name>/ with frontmatter name: v<name>, and no skills/veri-<name>/ directory remains (a pin, no production change) ⟦criterion 1⟧
 - [ ] A case in test_prd_016_short_names.py: skills/tdd/ exists and its SKILL.md frontmatter name is still tdd (a pin, no production change) ⟦criterion 2⟧
