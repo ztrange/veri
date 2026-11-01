@@ -237,6 +237,11 @@ def _cases_at(rev, name):
     return dict(_cases(shown.stdout.decode("utf-8", "replace")))
 
 
+def _text_at(rev, name, stderr=None):
+    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=stderr)
+    return shown.stdout.decode("utf-8", "replace")
+
+
 def _head_cases_all(name):
     shown = subprocess.run(["git", "show", "HEAD:%s" % name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return _cases(shown.stdout.decode("utf-8", "replace"))
@@ -413,8 +418,7 @@ def _renamed_to(name, case, digest, text, consumed):
     for rev in _revisions(name):
         held = _cases_at(rev, name)
         if case in held and _body_digest(held[case]) == digest:
-            shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE)
-            other = renamed_case.renamed_to(case, shown.stdout.decode("utf-8", "replace"), text, set(held) | consumed)
+            other = renamed_case.renamed_to(case, _text_at(rev, name), text, set(held) | consumed)
             if other:
                 consumed.add(other)
             return other
@@ -575,8 +579,7 @@ def _assertion_lines(body):
 
 
 def _called_helpers(rev, name, body):
-    text = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL).stdout.decode("utf-8", "replace")
+    text = _text_at(rev, name, subprocess.DEVNULL)
     helpers = []
     for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
