@@ -8,3 +8,4 @@
 not-done | transform-rejected | drop the redundant `os.makedirs(os.path.dirname(target))` in `install_links.py`, since `os.makedirs(target)` already creates the parent directories
 applied | 94ce3debed13dcaf7b66de598d2436483174bbed | drop the `try/except OSError` in `install_links.py`, since `entry.run` already turns an unexpected `OSError` into a refusal; this would change the stderr text, so it is not behavior-preserving	refactor: drop install_links' try/except OSError, entry.run already refuses (#2794)
 applied | a4e6aa3f2c0e46b5e454f6597ae8d3385c471233 | hoist the `_veri_skills()` call out of the `for name in LINKED` loop, since it runs git once per link	chore: record the structural pass's applied candidate (#2794)
+not-done | transform-rejected | drop the redundant first `os.makedirs(os.path.dirname(target))` in `install_links.py`, since `os.makedirs(target)` already creates the parent
