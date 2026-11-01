@@ -370,3 +370,25 @@ def test_2843_an_unmutated_run_that_exits_non_zero_writes_the_last_40_lines_of_i
     lines = ran.stderr.splitlines()
     assert (ran.stdout.startswith("needs a look: guard.txt"), len(lines), "err 30" in lines, "out 1" in lines) == (
         True, 40, True, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose unmutated run is silent and whose mutated run fails to build")
+def test_2843_a_silent_unmutated_run_and_a_mutated_build_failure_writes_the_mutated_output_to_stderr(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then :; else echo 'error: build failed'; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), ran.stderr) == (
+        1, True, "error: build failed\n"), ran.stdout
