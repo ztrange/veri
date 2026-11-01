@@ -6,7 +6,7 @@
 | D2 | It keeps exactly N conductors running while the solvable list is non-empty. | Idle slots were the recurring waste. |
 | D3 | Each conductor is a detached `run-conductor.sh <n>`, never a conductor run inline. | An inline conductor costs ~60k tokens per issue in the session. |
 | D4 | It launches the next issue only after the previous launch's ledger exists. | A claim appears only ~10 minutes into a run. |
-| D5 | On each exit it routes by fact: ✅ Done → review, then `vmerge` on OK; a bail → `vbail`; no closing comment → P10. | |
+| D5 | On each exit it routes by fact: ✅ Done → review, then `vmerge` on OK; a bail → `vbail`; no closing comment → P10. The text never says either skill does not exist. | Stale prose sends the role down the fallback path. |
 | D6 | After every merge, park or exit it recounts and refills to N. | |
 | D7 | It applies the coordinator's changes to N or to the order at the next slot decision. | |
 | D8 | It stops and asks only for: red CI it cannot fix, a ⟦human-owed⟧ step, an unresolvable conflict, a decision a ledger step asks for. | |
@@ -21,3 +21,5 @@
 | D17 | *Starting* has a bullet saying that when the user's instructions in this session forbid writing in a repository other than the session's, the dev session asks the human once whether veri may fast-forward its own clone before each new run and records the answer with `update-veri.sh --consent yes\|no`; it asks only when no record exists and never edits the user's instructions. | The self-update needs no approval by default, and a user whose rules forbid it is asked once, not on every run. |
 | D18 | In the *Caveats before any merge* bullet (skills/vdev/SKILL.md, the review brief), a review may not report "no coverage" or "coverage lost" from the diff alone: before the claim it searches the whole test tree, including directories the diff never touches, for the behaviour's name, and the claim carries the `file:line` where coverage was found (then it is not a finding) or the search term it used and found nothing for. | A move-shaped change deletes assertions in one file and adds them in another; a diff-only review reports coverage lost that exists (2026-10-29). |
 | D19 | The *Caveats before any merge* bullet says a GitHub call refused with `rate limit exceeded` while `gh api rate_limit` still reports quota hit GitHub's secondary limit, and to use REST rather than wait for the reset. | The obvious diagnostic misleads, and the reset belongs to a limit never reached. |
+| D20 | It runs `vmerge`, `vbail` and `vjudge` through a subagent on the cheapest model that can do the job, briefed to return at most 10 lines, reading the skill at `<base dir>/../<skill>/SKILL.md`. | The body stays out of a long-lived context. |
+| D21 | It loads `vhandoff` itself, by reading `<base dir>/../vhandoff/SKILL.md`. | It needs the role's own state. |
