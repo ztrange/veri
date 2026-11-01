@@ -1,72 +1,105 @@
 ### 📊 Metrics — issue 2721
 
-Wall time for the issue: 8331 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 5929 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 10 planned.
-Outcome: the run bailed — suite-red, a process failure.
+Steps done: 10 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2824.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.34 over 53 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $5.90 over 87 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 87686 tokens, largest 213362 tokens
+Conductor context: first turn 87686 tokens, largest 216203 tokens
+Conductor context: first turn 87691 tokens, largest 130524 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.56 | 87686 |
-| 2 | $0.07 | 94688 |
-| 3 | $0.03 | 96524 |
-| 4 | $0.04 | 98638 |
-| 5 | $0.03 | 99445 |
-| 6 | $0.04 | 101852 |
-| 7 | $0.03 | 103623 |
-| 8 | $0.20 | 125997 |
-| 9 | $0.13 | 139676 |
-| 10 | $0.07 | 144779 |
-| 11 | $0.06 | 149281 |
-| 12 | $0.07 | 153681 |
-| 13 | $0.08 | 160099 |
-| 14 | $0.04 | 160670 |
-| 15 | $0.04 | 161036 |
-| 16 | $0.05 | 163814 |
-| 17 | $0.04 | 164835 |
-| 18 | $0.05 | 166559 |
-| 19 | $0.04 | 167439 |
-| 20 | $0.04 | 167851 |
-| 21 | $0.04 | 169268 |
-| 22 | $0.04 | 170099 |
-| 23 | $0.05 | 171855 |
-| 24 | $0.05 | 173546 |
-| 25 | $0.05 | 175715 |
-| 26 | $0.05 | 176954 |
-| 27 | $0.06 | 180189 |
-| 28 | $0.05 | 182275 |
-| 29 | $0.04 | 182614 |
-| 30 | $0.04 | 183159 |
-| 31 | $0.04 | 183729 |
-| 32 | $0.07 | 187577 |
-| 33 | $0.05 | 189098 |
-| 34 | $0.04 | 189784 |
-| 35 | $0.04 | 190615 |
-| 36 | $0.04 | 191017 |
-| 37 | $0.04 | 191299 |
-| 38 | $0.04 | 192035 |
-| 39 | $0.05 | 193787 |
-| 40 | $0.05 | 194777 |
-| 41 | $0.04 | 195159 |
-| 42 | $0.05 | 195961 |
-| 43 | $0.05 | 197465 |
-| 44 | $0.05 | 198217 |
-| 45 | $0.04 | 198616 |
-| 46 | $0.05 | 199821 |
-| 47 | $0.05 | 200957 |
-| 48 | $0.05 | 201681 |
-| 49 | $0.09 | 207998 |
-| 50 | $0.06 | 210620 |
-| 51 | $0.05 | 211667 |
-| 52 | $0.05 | 213118 |
-| 53 | $0.04 | 213362 |
+| 1 | $0.58 | 87686 |
+| 2 | $0.09 | 94688 |
+| 3 | $0.05 | 96524 |
+| 4 | $0.05 | 98638 |
+| 5 | $0.04 | 99445 |
+| 6 | $0.06 | 101852 |
+| 7 | $0.05 | 103623 |
+| 8 | $0.22 | 125997 |
+| 9 | $0.15 | 139676 |
+| 10 | $0.08 | 144779 |
+| 11 | $0.09 | 149281 |
+| 12 | $0.08 | 153681 |
+| 13 | $0.10 | 160099 |
+| 14 | $0.05 | 160670 |
+| 15 | $0.05 | 161036 |
+| 16 | $0.07 | 163814 |
+| 17 | $0.06 | 164835 |
+| 18 | $0.06 | 166559 |
+| 19 | $0.06 | 167439 |
+| 20 | $0.06 | 167851 |
+| 21 | $0.06 | 169268 |
+| 22 | $0.05 | 170099 |
+| 23 | $0.07 | 171855 |
+| 24 | $0.06 | 173546 |
+| 25 | $0.07 | 175715 |
+| 26 | $0.07 | 176954 |
+| 27 | $0.07 | 180189 |
+| 28 | $0.07 | 182275 |
+| 29 | $0.06 | 182614 |
+| 30 | $0.06 | 183159 |
+| 31 | $0.05 | 183729 |
+| 32 | $0.09 | 187577 |
+| 33 | $0.07 | 189098 |
+| 34 | $0.06 | 189784 |
+| 35 | $0.06 | 190615 |
+| 36 | $0.06 | 191017 |
+| 37 | $0.05 | 191299 |
+| 38 | $0.06 | 192035 |
+| 39 | $0.07 | 193787 |
+| 40 | $0.07 | 194777 |
+| 41 | $0.05 | 195159 |
+| 42 | $0.07 | 195961 |
+| 43 | $0.07 | 197465 |
+| 44 | $0.06 | 198217 |
+| 45 | $0.06 | 198616 |
+| 46 | $0.06 | 199821 |
+| 47 | $0.07 | 200957 |
+| 48 | $0.06 | 201681 |
+| 49 | $0.11 | 207998 |
+| 50 | $0.08 | 210620 |
+| 51 | $0.07 | 211667 |
+| 52 | $0.07 | 213118 |
+| 53 | $0.06 | 213362 |
+| 54 | $0.08 | 216203 |
+| 55 | $0.56 | 87691 |
+| 56 | $0.07 | 94694 |
+| 57 | $0.04 | 96869 |
+| 58 | $0.07 | 102627 |
+| 59 | $0.10 | 112156 |
+| 60 | $0.03 | 112851 |
+| 61 | $0.03 | 113448 |
+| 62 | $0.03 | 113745 |
+| 63 | $0.03 | 115147 |
+| 64 | $0.03 | 116503 |
+| 65 | $0.03 | 117580 |
+| 66 | $0.04 | 119082 |
+| 67 | $0.03 | 120207 |
+| 68 | $0.03 | 120424 |
+| 69 | $0.03 | 120768 |
+| 70 | $0.03 | 121648 |
+| 71 | $0.03 | 121863 |
+| 72 | $0.03 | 122116 |
+| 73 | $0.03 | 122441 |
+| 74 | $0.03 | 123053 |
+| 75 | $0.03 | 123809 |
+| 76 | $0.04 | 125891 |
+| 77 | $0.03 | 126882 |
+| 78 | $0.03 | 127665 |
+| 79 | $0.03 | 127992 |
+| 80 | $0.03 | 128444 |
+| 81 | $0.03 | 128710 |
+| 82 | $0.03 | 129038 |
+| 83 | $0.03 | 129792 |
+| 84 | $0.03 | 130524 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -75,19 +108,20 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 16 | 12 | 2 | 4 | 1517 | 33376 | 34768 | 0.11 |
 | diff | 4 | 2 | 0 | 0 | 1837 | 113 | 26 | 52 | 10188 | 726498 | 239585 | 0.77 |
-| prose | 10 | 0 | 0 | 0 | 594 | 538 | 10 | 20 | 83648 | 191480 | 469516 | 2.03 |
+| prose | 15 | 0 | 0 | 0 | 797 | 720 | 15 | 30 | 113775 | 198193 | 668307 | 2.83 |
 | skill-edit | 6 | 0 | 0 | 0 | 132 | 94 | 21 | 42 | 5910 | 1167984 | 405742 | 1.19 |
 | red | 7 | 1 | 0 | 0 | 314 | 152 | 35 | 66 | 14094 | 905053 | 170118 | 0.79 |
 | pin | 5 | 4 | 1 | 0 | 158 | 105 | 21 | 40 | 5850 | 535034 | 70341 | 0.29 |
 | green | 2 | 1 | 0 | 0 | 1233 | 20 | 8 | 16 | 1872 | 188090 | 62348 | 0.19 |
 | refactor | 1 | 0 | 0 | 0 | 8 | 4 | 2 | 4 | 252 | 30418 | 33631 | 0.09 |
+| rebase | 2 | 1 | 0 | 0 | 807 | 53 | 15 | 30 | 4115 | 379793 | 101053 | 0.33 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 10 | 9 | 1 | 0 | 1504 | 173 | 39 | 76 | 12355 | 922889 | 252151 | 0.85 |
-| developer | claude-sonnet-5-5 | 8 | 0 | 0 | 0 | 1985 | 176 | 42 | 84 | 15554 | 1180046 | 302694 | 1.03 |
+| verifier | claude-sonnet-5-5 | 11 | 10 | 1 | 0 | 2202 | 206 | 46 | 90 | 14771 | 1087279 | 320018 | 1.06 |
+| developer | claude-sonnet-5-5 | 9 | 0 | 0 | 0 | 2094 | 196 | 50 | 100 | 17253 | 1395449 | 335880 | 1.15 |
 | developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 77 | 57 | 13 | 22 | 5864 | 315534 | 55946 | 0.37 |
 
 #### Rework and waste, by phase
@@ -102,6 +136,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | pin | 61 | 0.12 | 0 | 0.00 |
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 807 | 0.33 |
 
 #### By step
 
@@ -117,6 +152,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | A case in tests/py/test_docs_lane_removed.py runs the issue's case-insensitive git grep over tracked files outside docs/adr/, .tdd/ and skills/tdd/scripts/tests/fixtures/ and pins that it finds nothing, its pattern built by concatenation so the case does not match itself; the case stays a process case with a tree_audit mark ⟦criterion 2⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 98 | 22 | 40 | 8115 | 561212 | 84739 | 0.49 | unknown | 1/2 | unknown | unknown |  |  | pin |
 | A case in tests/py/test_docs_lane_removed.py pins that docs/adr/ keeps every record it had, a list of the record filenames at the branch point embedded in the case, every one still present, later additions allowed ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 56 | 9 | 18 | 2921 | 252520 | 30372 | 0.13 | unknown | unknown | unknown | unknown |  |  | pin |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAIL - test_no_tracked_file_outside_the_record_names_the_removed_scripts: assert (0 == 1), its git grep finds the word dashboard in the sample strings of skills/tdd/scripts/tests/py/test_invisible_work.py ⟦suite-repair⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 48 | 18 | 36 | 4906 | 404010 | 162137 | 0.49 | 1481 | unknown | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_watch_runs.py — FAILED test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_pid_that_answers_kill_0: Timeout (>30.0s) from pytest-timeout ⟦suite-repair⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 53 | 15 | 30 | 4115 | 379793 | 101053 | 0.33 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -126,6 +162,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_014_1_removals.py — FAIL - test_no_tracked_file_outside_the_record_names_the_removed_scripts: assert (0 == 1), its git grep finds the word dashboard in the sample strings of skills/tdd/scripts/tests/py/test_invisible_work.py ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.09 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s |
@@ -133,9 +173,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | fast | 31 | 36 | 35 | 30 | 30 | 32 | 74 | 55 |  |  |  |  |  |  |  |  |
 | affected | 728 | 742 | 7 | 6 | 5 | 7 | 6 | 4 | 3 | 3 | 4 | 4 | 5 | 12 | 13 | 14 |
 | target | 3 | 3 | 3 | 3 | 3 | 4 | 3 | 3 | 4 | 7 |  |  |  |  |  |  |
+| all | 36 | 36 | 656 |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 125 | 244 | 123331 | 3777933 | 1486049 | 8.80 (estimate) |
+| total | 145 | 284 | 157573 | 4164439 | 1785893 | 12.50 (estimate) |
