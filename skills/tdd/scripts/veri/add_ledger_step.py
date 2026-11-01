@@ -250,6 +250,11 @@ def main(argv):
         return 2
     write_ledger(path, "".join(line + "\n" for line in out))
     record_insertions(path, inserted_lines, awake)
+    issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
+    if issue:
+        tdd = os.path.dirname(os.path.abspath(path))
+        event.mark(os.path.dirname(tdd), event.context(tunables.with_values(VERI_ISSUE=issue.group(1))),
+                   "plan", ["steps=%d" % len(ledger_steps("".join(line + "\n" for line in out)))])
     return 0
 
 

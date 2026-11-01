@@ -112,3 +112,12 @@ new 0
 command 188
 make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor_process.py::test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_run_when_the_conductor_bails_issue_2627
 
+file 42
+skills/tdd/scripts/veri/add_ledger_step.py
+old 38
+os.path.dirname(os.path.abspath(path))
+new 21
+os.path.dirname(path)
+command 339
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_2749_a_growing_call_given_a_relative_ledger_path_writes_the_plan_event_to_the_ledgers_own_events_file
+

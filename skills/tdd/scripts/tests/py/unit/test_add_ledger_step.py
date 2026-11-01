@@ -1500,3 +1500,30 @@ def test_main_refuses_a_criterion_tagged_text_at_the_growth_budget_owing_nothing
     )
 
     assert (code, out, "⟦criterion 2⟧" in err, ledger.read_bytes()) == (2, "", True, steps)
+
+
+def test_2749_a_growing_call_emits_a_plan_event_with_the_new_step_total_and_the_issue_from_the_file_name(tmp_path, run_cli, add_ledger_step):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-2749.md"
+    ledger.write_bytes(LEDGER)
+
+    code, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", "t"])
+
+    events = [json.loads(row) for row in (tdd / "events.jsonl").read_text().splitlines()]
+    plans = [(e["event"], e["issue"], e["steps"]) for e in events if e["event"] == "plan"]
+    assert (code, plans) == (0, [("plan", "2749", "4")])
+
+
+def test_2749_a_growing_call_given_a_relative_ledger_path_writes_the_plan_event_to_the_ledgers_own_events_file(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "issue-2749.md").write_bytes(LEDGER)
+    monkeypatch.chdir(tdd)
+
+    code, _, _ = run_cli(add_ledger_step, ["issue-2749.md", "after", "b two", "t"])
+
+    path = tdd / "events.jsonl"
+    events = [json.loads(row) for row in path.read_text().splitlines()] if path.exists() else []
+    plans = [(e["event"], e["steps"]) for e in events if e["event"] == "plan"]
+    assert (code, plans, (tdd / ".tdd").exists()) == (0, [("plan", "4")], False)
