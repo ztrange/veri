@@ -25,13 +25,14 @@ def main(argv):
     if done.returncode != 0:
         print("install-links: not a git repository: " + root, file=sys.stderr)
         return 2
-    target = os.path.join(os.path.dirname(done.stdout.strip()), ".claude", "skills")
+    common = done.stdout.strip()
+    target = os.path.join(os.path.dirname(common), ".claude", "skills")
     try:
         os.makedirs(os.path.dirname(target), exist_ok=True)
         os.makedirs(target, exist_ok=True)
         for name in LINKED:
             os.symlink(os.path.join(_veri_skills(), name), os.path.join(target, name))
-        exclude = os.path.join(done.stdout.strip(), "info", "exclude")
+        exclude = os.path.join(common, "info", "exclude")
         with open(exclude, "a") as out:
             for name in LINKED:
                 out.write("/.claude/skills/" + name + "\n")
