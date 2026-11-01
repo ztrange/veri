@@ -53,3 +53,21 @@ fea182ee1c730d00
 command 374
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py::test_each_of_the_11_renamed_units_with_a_requirements_list_has_a_graded_line_under_its_new_path_signed_from_its_current_text_and_rows
 
+file 37
+skills/tdd/scripts/veri/prose_owed.py
+old 53
+if graded_signature(u) != grade_prose.signature(p, u)
+new 53
+if graded_signature(u) == grade_prose.signature(p, u)
+command 342
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py::test_prose_owed_sh_on_a_copy_of_the_tip_with_no_ledger_reports_no_unit_owed_and_no_orphan_graded_line
+
+file 37
+skills/tdd/scripts/veri/prose_owed.py
+old 26
+if fields[0] not in units:
+new 22
+if fields[0] in units:
+command 342
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py::test_prose_owed_sh_on_a_copy_of_the_tip_with_no_ledger_reports_no_unit_owed_and_no_orphan_graded_line
+
