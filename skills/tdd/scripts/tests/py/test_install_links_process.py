@@ -1,5 +1,6 @@
 """install-links.sh through the real /bin/sh shim."""
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -10,22 +11,37 @@ ROOT = SCRIPTS.parents[2]
 LINKED = ["vcoord", "vdev", "vfile", "vgroom", "vplan", "vreport", "vstatus", "vstop"]
 
 
+def _clone(tmp_path):
+    """A scratch git repository holding a copy of the scripts and the eight skill directories."""
+    clone = (tmp_path / "clone").resolve()
+    scripts = clone / "skills" / "tdd" / "scripts"
+    scripts.mkdir(parents=True)
+    ignore = shutil.ignore_patterns("__pycache__", "tests")
+    for part in ("lib", "veri"):
+        shutil.copytree(SCRIPTS / part, scripts / part, ignore=ignore)
+    shutil.copy(SCRIPTS / "install-links.sh", scripts)
+    for name in LINKED:
+        (clone / "skills" / name).mkdir()
+    subprocess.run(["git", "-C", str(clone), "init", "-q", "-b", "main"], check=True)
+    return clone, scripts / "install-links.sh"
+
+
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
 def test_install_links_sh_links_exactly_the_eight_skills_into_the_main_tree_and_is_a_documented_shim_over_its_module(
         tmp_path):
-    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
-    shim = SCRIPTS / "install-links.sh"
-    done = subprocess.run(["/bin/sh", str(shim), str(tmp_path)], stdin=subprocess.DEVNULL,
+    clone, shim = _clone(tmp_path)
+    done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    skills = tmp_path / ".claude" / "skills"
+    skills = clone / ".claude" / "skills"
     entries = sorted(p.name for p in skills.iterdir()) if skills.is_dir() else []
-    resolved = [(skills / n).resolve() == (ROOT / "skills" / n).resolve() for n in entries]
+    resolved = [(skills / n).resolve() == (clone / "skills" / n).resolve() for n in entries]
     text = shim.read_text() if shim.exists() else ""
     usage = [line for line in text.splitlines() if "Usage:" in line]
     tdd = ROOT / "skills" / "tdd"
     docs = (tdd / "SKILL.md").read_text() + (tdd / "SCRIPTS.md").read_text()
     assert (done.returncode, entries, all(resolved), text.startswith("#!/bin/sh"),
-            (SCRIPTS / "veri" / "install_links.py").exists(),
+            (shim.parent / "veri" / "install_links.py").exists(),
             any("[repo-root]" in line for line in usage), "install-links" in docs) == (
         0, LINKED, True, True, True, True, False)
 
@@ -59,13 +75,14 @@ def test_install_links_sh_refuses_a_directory_outside_git_naming_it_and_with_no_
 
 
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
 def test_install_links_sh_points_each_link_at_the_normalised_absolute_path_of_its_skill_in_the_clone(tmp_path):
-    subprocess.run(["git", "-C", str(tmp_path), "init", "-q", "-b", "main"], check=True)
-    done = subprocess.run(["/bin/sh", str(SCRIPTS / "install-links.sh"), str(tmp_path)], stdin=subprocess.DEVNULL,
+    clone, shim = _clone(tmp_path)
+    done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    skills = tmp_path / ".claude" / "skills"
+    skills = clone / ".claude" / "skills"
     targets = {n: os.readlink(skills / n) for n in LINKED if (skills / n).is_symlink()}
-    assert (done.returncode, targets) == (0, {n: str(ROOT / "skills" / n) for n in LINKED})
+    assert (done.returncode, targets) == (0, {n: str(clone / "skills" / n) for n in LINKED})
 
 
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
