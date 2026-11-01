@@ -463,3 +463,16 @@ def test_cli_tier_all_with_an_issue_command_differing_from_the_fast_tiers_prints
     allt = cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo))
 
     assert (fast, allt) == ((0, "make unit\n", ""), (0, "make integration\n", ""))
+
+
+def test_cli_issue_2766_test_command_line_governs_the_full_tier_and_never_the_fast_tier(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make everything`\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make test\n")
+
+    fast = cli(run_cli, detect, "--tier", "fast", "--issue", str(body), str(repo))
+    allt = cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo))
+
+    assert (fast, allt) == ((0, "make unit\n", ""), (0, "make test\n", ""))
