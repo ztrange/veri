@@ -4,7 +4,7 @@ Nobody types this skill day to day, so carrying its trigger phrases in the alway
 list costs prompt surface in every session of every project. When it is wanted, link it by hand
 and remove the link afterwards:
 
-  ln -s <main-clone>/skills/vfile ~/.claude/skills/vfile
-  rm ~/.claude/skills/vfile
+  ln -s <main-clone>/skills/tdd ~/.claude/skills/tdd
+  rm ~/.claude/skills/tdd
 
 Any skill directory carrying this marker is treated the same way.
