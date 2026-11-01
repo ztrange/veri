@@ -1,0 +1,1 @@
+- [ ] A fake process listing in which the conductor of issue 5 has a working directory exactly equal to this repo's main working tree, the directory run-conductor.sh is launched from, keeps a started run 5 of this repo watched by watch_runs.main rather than reporting it vanished ⟦added⟧ ⟦criterion 1⟧

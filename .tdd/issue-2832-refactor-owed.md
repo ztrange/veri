@@ -1,0 +1,2 @@
+### A fake process listing in which issue 5's only conductor runs with a working directory outside this repo's main working tree, at a sibling path that merely starts with the main working tree's path as a string, leaves a vanished run 5 of this repo reported by watch_runs.main as `vanished 5` with exit 2, the listing answered from a fake and never the real ps ⟦criterion 1⟧
+- test-only | extract the shared fake-ps and monkeypatch setup repeated in the test_2768 keeps-watching case and the two test_2832 cases into one helper or fixture
