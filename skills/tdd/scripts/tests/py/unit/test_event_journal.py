@@ -69,3 +69,18 @@ def test_clone_without_readable_git_config_writes_no_journal_and_a_url_word_with
 
     written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
     assert (codes, written) == ((0, 0), ["runs/acme-widgets/8.jsonl"])
+
+
+def test_journal_path_is_named_from_origins_url_when_another_remotes_url_comes_first(tmp_path):
+    import importlib
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "upstream"]\n\turl = https://github.com/other/forked.git\n'
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+
+    code = event.append(str(clone), {"issue": "42"}, "done", [], ts=1700000000)
+
+    written = sorted(str(p.relative_to(tmp_path)) for p in (tmp_path / "runs").rglob("*") if p.is_file())
+    assert (code, written) == (0, ["runs/acme-widgets/42.jsonl"])
