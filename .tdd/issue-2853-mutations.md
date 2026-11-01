@@ -27,3 +27,14 @@ head_lines + _assertion_lines(_called_helpers("HEAD", name, head)) \
 command 342
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpt3bgq8yk/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_a_go_case_whose_helper_lines_sort_before_its_own_remaining_assertion_2853
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 118
+sorted(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
+                != sorted(verified_lines)
+new 106
+(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
+                != (verified_lines)
+command 352
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpt3bgq8yk/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_run_again_with_the_same_green_sha_heals_an_order_changing_helper_extractions_stale_record_2853
+
