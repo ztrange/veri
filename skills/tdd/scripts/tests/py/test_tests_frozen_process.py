@@ -3472,3 +3472,27 @@ def test_check_earlier_names_a_case_deleted_from_the_tree_after_a_refactor_commi
     code, out, _ = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)
 
     assert (code, out) == (1, "test_one (%s)\n" % step)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_a_case_with_no_assertion_line_when_the_refactor_only_changed_whitespace_2809(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "test_suite.py"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), "def test_one():\n    x = 1\n    check(x)\n"]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("check(x)\n", "check( x )\n"))
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (0, "")
