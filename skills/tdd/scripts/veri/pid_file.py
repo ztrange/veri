@@ -5,13 +5,24 @@ import re
 import subprocess
 
 
+def _conductors():
+    listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE, text=True).stdout
+    return re.findall(r"^\s*(\d+)\s+(?:.*\s)?\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+
+
+def _cwd(pid):
+    lsof = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return next((line[1:] for line in lsof.stdout.splitlines() if line.startswith("n")), None)
+
+
 def conductor_processes():
-    listing = subprocess.run(["ps", "-axo", "command="], stdout=subprocess.PIPE, text=True).stdout
-    return re.findall(r"(?:^|\s)\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+    import status
+    root = status.main_working_tree()
+    return [issue for pid, issue in _conductors() if (_cwd(pid) or "").startswith(root + "/")]
 
 
 def starting_runs(root):
-    return [issue for issue in conductor_processes() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+    return [issue for _, issue in _conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
 
 
 def number_in(file):
