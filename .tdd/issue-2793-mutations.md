@@ -44,3 +44,12 @@ new 130
 command 164
 make test TESTS=skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py::test_the_sweep_reports_a_tracked_file_holding_a_long_name_and_not_one_under_specs
 
+file 21
+skills/vstatus/GRADED
+old 16
+fea182ee1c730d0f
+new 16
+fea182ee1c730d00
+command 374
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp7p3jmoc0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py::test_each_of_the_11_renamed_units_with_a_requirements_list_has_a_graded_line_under_its_new_path_signed_from_its_current_text_and_rows
+
