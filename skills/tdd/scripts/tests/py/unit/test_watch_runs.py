@@ -696,3 +696,49 @@ def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_sev
     code = watch_runs.main(["--max-wait", "6"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_process_works_in_a_sibling_path_that_merely_starts_with_the_main_working_tree_path(
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+    listings = iter([[("5", "running")]])
+    ticks = itertools.count(0, 1)
+
+    def ps(argv, **kwargs):
+        if argv[0] == "lsof":
+            return subprocess.CompletedProcess(argv, 0, stdout=f"p4242\nn{tmp_path}-other/.tdd/wt/5\n", stderr="")
+        return subprocess.CompletedProcess(
+            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
+
+    monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
+    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "6"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
+
+
+def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_process_has_a_working_directory_lsof_cannot_read(
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+    listings = iter([[("5", "running")]])
+    ticks = itertools.count(0, 1)
+
+    def ps(argv, **kwargs):
+        if argv[0] == "lsof":
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="")
+        return subprocess.CompletedProcess(
+            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
+
+    monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
+    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "6"])
+
+    assert (code, capsys.readouterr().out) == (2, "vanished 5\n")
