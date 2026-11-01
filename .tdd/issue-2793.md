@@ -9,7 +9,7 @@
 - [x] Regrade `skills/vhandoff/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [x] Regrade `skills/vmerge/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [x] Regrade `skills/vplan/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
-- [ ] Regrade `skills/vreport/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
+- [x] Regrade `skills/vreport/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [ ] Regrade `skills/vstatus/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [ ] Regrade `skills/vstop/SKILL.md` under its new path, its GRADED line signed by a fresh grade, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 5⟧
 - [ ] Regrade `README.md`, not renamed but changed by the substitution in its text or rows, with no author unless the substitution really fails a row ⟦skill-edit⟧ ⟦criterion 7⟧
