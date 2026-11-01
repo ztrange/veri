@@ -94,3 +94,12 @@ new 54
 command 315
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_descriptor
 
+file 39
+skills/tdd/scripts/tests/py/conftest.py
+old 46
+monkeypatch.setenv("VERI_HOME", str(tmp_path))
+new 46
+monkeypatch.delenv("VERI_HOME", raising=False)
+command 317
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_event.py make test TESTS=skills/tdd/scripts/tests/py/test_event.py::test_event_sh_under_hermetic_environment_writes_its_journal_under_tmp_path_and_leaves_the_real_veri_home_untouched
+
