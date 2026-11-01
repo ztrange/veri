@@ -459,15 +459,18 @@ def unmarked_case_lists_no_repository_directory(request, monkeypatch, tmp_path):
 def unmarked_case_reads_no_real_process_listing(request, monkeypatch):
     if request.node.get_closest_marker("process") is not None:
         return
-    from veri import pid_file
-    real, run = pid_file._conductors, pid_file.subprocess.run
+    import importlib
 
-    def checked():
-        if pid_file.subprocess.run is run:
-            raise AssertionError("%s reads the real process listing: fake pid_file._conductors or mark it process" % request.node.nodeid)
-        return real()
+    for name in ("pid_file", "veri.pid_file"):
+        module = importlib.import_module(name)
+        real, run = module._conductors, module.subprocess.run
 
-    monkeypatch.setattr(pid_file, "_conductors", checked)
+        def checked(module=module, real=real, run=run):
+            if module.subprocess.run is run:
+                raise AssertionError("%s reads the real process listing: fake pid_file._conductors or mark it process" % request.node.nodeid)
+            return real()
+
+        monkeypatch.setattr(module, "_conductors", checked)
 
 
 STARTS_PYTEST_EXEMPT = {
