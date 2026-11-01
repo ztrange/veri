@@ -18,3 +18,12 @@ def test_vplan_skill_splits_a_multi_capability_sub_prd_or_states_why_it_cannot_b
         "One that would hold more is split; if it cannot be, it states in its own text why not."
         in prose
     )
+
+
+def test_vplan_skill_splits_a_multi_capability_outline_sub_prd_at_the_outline_stage():
+    prose = re.sub(r"\s+", " ", (ROOT / "skills/vplan/SKILL.md").read_text())
+
+    assert (
+        "An outline expected to hold more than one capability is split while it is still an outline, not left for later."
+        in prose
+    )
