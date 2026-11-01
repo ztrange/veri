@@ -8,16 +8,20 @@ LINKED = ("vdev", "vcoord", "vplan", "vgroom", "vstatus", "vreport", "vfile", "v
 SKILLS = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 
 
+def _common_dir(path):
+    return subprocess.run(["git", "-C", path, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                          capture_output=True, text=True)
+
+
 def _veri_skills():
-    done = subprocess.run(["git", "-C", SKILLS, "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                          capture_output=True, text=True, check=True)
+    done = _common_dir(SKILLS)
+    done.check_returncode()
     return os.path.join(os.path.dirname(done.stdout.strip()), "skills")
 
 
 def main(argv):
     root = argv[0] if argv else os.getcwd()
-    done = subprocess.run(["git", "-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                          capture_output=True, text=True)
+    done = _common_dir(root)
     if done.returncode != 0:
         print("install-links: not a git repository: " + root, file=sys.stderr)
         return 2
