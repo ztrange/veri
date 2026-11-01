@@ -602,8 +602,9 @@ def rerecord_refactored(ledger, green):
         head = _cases_at("HEAD", name).get(case)
         if head is None:
             return record
-        if _assertion_lines(head) != _assertion_lines(verified) and \
-                _assertion_lines(head) + _assertion_lines(_called_helpers("HEAD", name, head)) != _assertion_lines(verified):
+        head_lines = _assertion_lines(head)
+        if head_lines != _assertion_lines(verified) and \
+                head_lines + _assertion_lines(_called_helpers("HEAD", name, head)) != _assertion_lines(verified):
             return record
         if not _assertion_lines(verified) and _squeezed(head) != _squeezed(verified):
             return record
