@@ -324,3 +324,26 @@ def test_2843_a_mutated_run_that_exits_non_zero_after_a_silent_unmutated_run_nee
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), (tmp_path / "guard.txt").read_bytes()) == (
         1, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run prints more than 40 lines")
+def test_2843_a_mutation_that_did_not_build_writes_the_last_40_lines_of_the_mutated_output_to_stderr(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2843-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then echo 'ok TestGuard'; "
+                   "else for i in $(seq 1 30); do echo \"out $i\"; echo \"err $i\" >&2; done; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    lines = ran.stderr.splitlines()
+    assert (ran.returncode, len(lines), "err 30" in lines, "out 1" in lines) == (1, 40, True, False), ran.stdout + ran.stderr
