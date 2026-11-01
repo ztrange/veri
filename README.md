@@ -64,11 +64,12 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 ## Install
 
-veri is a Claude Code skill, not an application. Install it once, user-level, as a symlink
-to this clone — then `/tdd <n>` works from any repo on the machine:
+veri is a Claude Code skill, not an application. One skill, `vinstall`, is installed once,
+user-level, as a symlink to this clone — then `/vinstall` links the skills you type into each
+project, as ignored symlinks:
 
 ```sh
-ln -s "$(pwd)/skills/tdd" ~/.claude/skills/tdd
+ln -s "$(pwd)/skills/vinstall" ~/.claude/skills/vinstall
 ```
 
 The skill locates its own scripts from the base directory Claude Code reports when it
