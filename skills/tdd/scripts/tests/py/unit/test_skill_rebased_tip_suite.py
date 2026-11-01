@@ -7,6 +7,7 @@ SKILL_MD = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PLACES = {
     "after an exit 0 from the rebase script": (r"first\s+line\s+it\s+printed", 900),
     "after a verify-rebase PASS": (r"Only\s+on\s+a\s+verify-rebase\s+.PASS.", 600),
+    "in the CI-conflict graded-only rebase": (r"conflict\s+is\s+first\s+offered\s+to", 700),
     "in the CI-conflict rebase": (r"through\s+the\s+existing\s+rebase\s+path", 700),
 }
 
