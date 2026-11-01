@@ -126,3 +126,23 @@ def test_event_in_a_clone_with_no_origin_remote_creates_nothing_under_veri_home_
 
     err = capfd.readouterr().err
     assert (code, list(home.iterdir()), err) == (0, [], "")
+
+
+def test_linked_worktree_names_the_journal_from_the_common_dirs_config(tmp_path):
+    import importlib
+    event = importlib.import_module("veri.event")
+    common = tmp_path / "main" / ".git"
+    admin = common / "worktrees" / "wt"
+    admin.mkdir(parents=True)
+    (admin / "commondir").write_text("../..\n")
+    (common / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+    linked = tmp_path / "linked"
+    linked.mkdir()
+    (linked / ".git").write_text("gitdir: " + str(admin) + "\n")
+
+    code = event.append(str(linked), {"issue": "42"}, "done", [], ts=1700000000)
+
+    per_run = (linked / ".tdd" / "events.jsonl").read_bytes()
+    journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
+    assert (code, journal.read_bytes() if journal.exists() else None) == (0, per_run)
