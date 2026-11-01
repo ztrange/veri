@@ -87,8 +87,9 @@ issue, not only in the conductor's log.
    After that event, and before the baseline, run
    `$S/tests-frozen.sh rerecord-rebased .tdd/issue-<n>.md <pre-rebase-sha>`. Exit 0 or 3 goes on.
    **Exit 1** bails `needs-user`, a process failure: the bail comment quotes each
-   `<case> (<owning step>)` line and says the branch changed a frozen earlier case that the
-   default branch also changed. **Exit 2** bails `no-verdict`, a system failure
+   `<case> (<owning step>)` line and says the branch changed a frozen earlier case for one of two
+   reasons, naming both: the default branch also changed it, or the branch's own work (a refactor,
+   say) changed it with the default branch untouched; the comment also tells the two apart. **Exit 2** bails `no-verdict`, a system failure
    (see `<base directory>/BAIL.md`).
    Only a run on a freshly cut worktree skips both the discard and the rebase here.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
