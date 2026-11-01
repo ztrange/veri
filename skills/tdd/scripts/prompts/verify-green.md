@@ -40,7 +40,9 @@ A developer agent has written the implementation intended to make the target tes
    revise leaf the search you have already done. Probe every branch, option, flag,
    parameter and guard the step's diff added before you answer, and do not stop at the
    first one whose removal leaves every test green: name each such item in REASON:, one
-   per line, since the revise leaf fixes only what you name. Establish each the way verify-pin
+   per line, since the revise leaf fixes only what you name. Production code outside the
+   step's criterion is rejected by asking for its removal, never by offering a test for it,
+   and is not named on a `MISSING_TEST:` line. Establish each the way verify-pin
    establishes a mutation: remove the code through
    `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the suites>`, which edits, runs the
    command and restores the file; if it exits 1 (the suites stay green) nothing
@@ -51,7 +53,9 @@ A developer agent has written the implementation intended to make the target tes
 
 When a REJECT's cause is a behaviour no test pins — a line the step needs that every test
 leaves unchecked — put one `MISSING_TEST: <behaviour>` line, naming that behaviour, before
-the `VERDICT:` line. A rejection for a product defect carries no such line.
+the `VERDICT:` line. A rejection for a product defect carries no such line. Nor does a rejection for production
+code outside the step's criterion: that code is not named on a `MISSING_TEST:` line, since
+it is rejected by asking for its removal, not by a test.
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
