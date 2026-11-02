@@ -482,3 +482,14 @@ def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_leaves_head_uncha
     full_runs = [c for c in calls if "detect-test-command" in c or "make test" in c]
     merges = [c for c in calls if "pulls/7/merge" in c]
     assert (code, full_runs, len(merges)) == (0, [], 1)
+
+
+def test_2886_queued_merge_on_a_pr_with_checks_whose_rebase_moved_its_tip_merges_on_the_ci_verdict_without_running_the_full_test_command(
+        fake_processes, run_cli):
+    calls = scenario(fake_processes, ci=(0,))
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_CI_ON_PR": "1"})
+
+    full_runs = [c for c in calls if "detect-test-command" in c or "make test" in c]
+    merges = [c for c in calls if "pulls/7/merge" in c]
+    assert (code, full_runs, len(merges)) == (0, [], 1)
