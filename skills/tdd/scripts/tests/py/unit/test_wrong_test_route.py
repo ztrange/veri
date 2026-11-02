@@ -201,6 +201,24 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quo
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
 
+def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_bare_test_form_to_a_red_over_that_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "spec"
+    suite.mkdir()
+    contradicted = "test_ledger_counts_a_repair_text_as_a_repair"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % contradicted)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % contradicted)
+
+
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
 def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_suite_that_is_no_declared_case_name(
         run_cli, tmp_path, monkeypatch):
