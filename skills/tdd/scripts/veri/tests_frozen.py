@@ -667,6 +667,13 @@ def rerecord_rebased(ledger, pre):
             return record
         stale = True
         return _body_line(name, case, head)
+    for _, path, records in earlier:
+        for record in records:
+            parsed = _body_record(record)
+            if parsed and parsed[1] not in _cases_at("HEAD", parsed[0]):
+                write(sys.stderr, "tests-frozen.sh: the record %s names the case %s, which is missing at HEAD"
+                      % (path, parsed[1]))
+                return 2
     if not _rewrite_records(earlier, rewrite):
         return 2
     for line in refused:

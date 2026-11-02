@@ -950,6 +950,31 @@ def test_rerecord_on_head_exits_2_naming_the_step_and_file_and_keeps_the_record_
         2, True, kept)
 
 
+def test_rerecord_rebased_with_a_recorded_title_missing_at_head_exits_2_naming_the_record_and_the_title_and_rewrites_no_record_2825(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = _rerecord_fixture(tmp_path, tests_frozen, monkeypatch)
+    step = "the step that owns the cases"
+    suite.write_text("def test_old_name():\n    assert 1\n")
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    record = tmp_path / tests_frozen._record_path(step)
+    kept = record.read_bytes()
+    ledger = tmp_path / ".tdd" / "issue-1.md"
+    ledger.write_text("- [x] %s\n- [ ] the step being built\n" % step)
+    head = {"test_new_name": "def test_new_name():\n    assert 1\n"}
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head)
+
+    def symbolic_ref(command, **kwargs):
+        assert command[:2] == ["git", "symbolic-ref"]
+        return types.SimpleNamespace(returncode=0, stdout=b"origin/main\n", stderr=b"")
+
+    monkeypatch.setattr(tests_frozen.subprocess, "run", symbolic_ref)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), "abc1234"], cwd=tmp_path)
+
+    assert (code, tests_frozen._record_path(step) in err, "test_old_name" in err, "KeyError" not in err,
+            record.read_bytes() == kept) == (2, True, True, True, True)
+
+
 @pytest.mark.parametrize("quote", ['"', "'"])
 def test_cases_records_a_js_title_holding_an_escaped_quote_of_its_own_kind_whole_and_unescaped_2765(
         tests_frozen, quote):
