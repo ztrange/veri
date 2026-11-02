@@ -1,4 +1,5 @@
 """Cases for pin-recheck.sh against a real git repository."""
+import os
 import subprocess
 
 import pytest
@@ -569,3 +570,30 @@ def test_2876_a_command_that_is_not_bash_c_and_runs_no_test_needs_a_look_and_exi
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh recording a pin and pin-recheck.sh replaying it, over a title with an apostrophe and spaces")
+def test_2877_a_recorded_pin_whose_title_has_an_apostrophe_and_spaces_is_replayed_with_the_title_as_one_argument(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    title = "that shell's own job spec"
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "runner.sh").write_text('echo result\nprintf "%s:%s" "$#" "$1" > seen.txt\ngrep -q "if guard" guard.txt\n')
+    (tmp_path / ".tdd").mkdir()
+    record_path = tmp_path / ".tdd" / "issue-2877-mutations.md"
+    probed = subprocess.run(
+        ["sh", str(SCRIPTS / "mutation-probe.sh"), "guard.txt", "if guard", "if (true)", "--", "sh", "runner.sh", title],
+        cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_MUTATION_RECORD": str(record_path)})
+    assert probed.returncode == 0, probed.stderr
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    (tmp_path / "seen.txt").unlink()
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "seen.txt").read_text()) == (0, "", f"1:{title}"), ran.stderr
