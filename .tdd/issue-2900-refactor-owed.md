@@ -3,3 +3,4 @@
 - test-only | build the base-and-feature scratch repo in a shared fixture for the two `--before` cases, which repeat the same init, commit and rev-parse sequence
 ### `mutation-probe.sh --before <sha>` exits 2 without running the command when `<sha>` is not 7-40 lowercase hex (`^[0-9a-f]{7,40}$`) ⟦criterion 1⟧
 - `before_state` and `main` share nothing yet except the process-run/restore shape; no duplication to remove until the before-state record is written
+applied | 2a5a5b3b19bfb9996bf586d6de80441c2243daff | `before_state` and `main` share nothing yet except the process-run/restore shape; no duplication to remove until the before-state record is written	refactor: share the run-with-contents-then-restore shape between mutation and before-state probes (#2900)
