@@ -19,7 +19,7 @@ def before_state(argv):
     for name in names.decode().split("\0") + untracked.decode().split("\0"):
         if name and name != keep and not name.startswith(".tdd/"):
             path = Path(name)
-            saved[path] = path.read_bytes()
+            saved[path] = path.read_bytes() if path.exists() else None
     try:
         for path in saved:
             old = subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True)
@@ -30,7 +30,10 @@ def before_state(argv):
         returncode = subprocess.run(command).returncode
     finally:
         for path, content in saved.items():
-            path.write_bytes(content)
+            if content is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(content)
     return 1 if returncode == 0 else 0
 
 

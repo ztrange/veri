@@ -25,3 +25,12 @@ name and
 command 205
 make test TESTS=skills/tdd/scripts/tests/py/test_mutation_probe_process.py::test_issue_2900_before_state_probe_keeps_a_test_path_that_is_new_since_the_sha_with_its_working_tree_bytes_while_the_command_runs
 
+file 41
+skills/tdd/scripts/veri/mutation_probe.py
+old 28
+path.unlink(missing_ok=True)
+new 22
+path.write_bytes(b"x")
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/test_mutation_probe_process.py::test_issue_2900_before_state_probe_restores_the_working_tree_when_the_command_deletes_a_file_it_brought_back
+
