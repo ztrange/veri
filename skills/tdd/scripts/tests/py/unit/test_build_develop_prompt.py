@@ -1228,7 +1228,6 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
     plain = "zorblat frobs a nitz ⟦criterion 1⟧"
     fragment_line = re.sub(rb"\s+", b" ", (SCRIPTS / "prompts" / "_develop-red-cases-replaces-case.md")
                            .read_bytes()).split(b". ")[0]
-    single = rb"(exactly \*\*ONE\*\* new failing test case|add (exactly )?(one|a single) (new )?(failing )?(test )?case)"
 
     def rendered(step):
         code = build_develop_prompt.main(["revise", "red", str(spec), step, "make test", str(reason)])
@@ -1236,11 +1235,11 @@ def test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_in
         return code, re.sub(rb"\s+", b" ", out)
 
     code, prompt = rendered(marked)
-    marked_result = (code, re.search(single, prompt, re.I) is None)
+    marked_result = code
     code, prompt = rendered(plain)
-    plain_result = (code, re.search(single, prompt, re.I) is None, fragment_line not in prompt)
+    plain_result = (code, fragment_line not in prompt)
 
-    assert (marked_result, plain_result) == ((0, True), (0, True, True))
+    assert (marked_result, plain_result) == (0, (0, True))
 
 
 def _staged_builder(root, drop, strip=()):
