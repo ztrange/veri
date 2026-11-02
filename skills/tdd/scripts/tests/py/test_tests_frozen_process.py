@@ -3963,6 +3963,36 @@ def test_rerecord_refactored_leaves_check_earlier_at_exit_1_when_an_assertion_is
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_check_earlier_exits_1_when_the_case_body_is_edited_after_a_successful_re_record_into_assert_refused_with_no_second_re_record_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    chk = lambda m: '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    inline = 'func TestOne(t *testing.T) {\n\tv := "x"\n' + chk("a") + chk("b") + '}\n'
+    helper = 'func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(helper + 'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n')
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+    first = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    suite.write_text(helper + 'func TestOne(t *testing.T) {\n\tv := "y"\n\tassertRefused(t, "x")\n}\n')
+    _commit(tmp_path, "A later edit to the case body")
+
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (first[0], first[2].splitlines().count("skipped: suite_test.go TestOne"), checked) == (0, 0, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_re_records_a_python_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assert_into_assert_refused_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]
