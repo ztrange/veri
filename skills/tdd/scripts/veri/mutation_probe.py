@@ -11,7 +11,27 @@ import tunables
 USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 
 
+def before_state(argv):
+    sha, keep, command = argv[1], argv[3], argv[5:]
+    names = subprocess.run(["git", "diff", "--name-only", "-z", sha], capture_output=True).stdout
+    saved = {}
+    for name in names.decode().split("\0"):
+        if name and name != keep:
+            path = Path(name)
+            saved[path] = path.read_bytes()
+    try:
+        for path in saved:
+            path.write_bytes(subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True).stdout)
+        returncode = subprocess.run(command).returncode
+    finally:
+        for path, content in saved.items():
+            path.write_bytes(content)
+    return 1 if returncode == 0 else 0
+
+
 def main(argv):
+    if argv and argv[0] == "--before":
+        return before_state(argv)
     if len(argv) < 5 or argv[3] != "--":
         sys.stderr.write(USAGE + "\n")
         return 2
