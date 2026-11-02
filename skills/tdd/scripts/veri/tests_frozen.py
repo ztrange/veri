@@ -636,7 +636,7 @@ def _assertion_lines(body):
 
 
 def _helper_digest(text, body):
-    return _body_digest("\n".join(_assertion_lines(_helpers_in(text, body))))
+    return _body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body)))))
 
 
 def _called_helpers(rev, name, body):
