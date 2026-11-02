@@ -1,60 +1,82 @@
 ### 📊 Metrics — issue 2913
 
-Wall time for the issue: 642 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 213 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 2 of 3 planned.
-Outcome: the run bailed — ci-timeout, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2953.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $1.82 over 41 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $3.43 over 61 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 88079 tokens, largest 131615 tokens
+Conductor context: first turn 88079 tokens, largest 137210 tokens
+Conductor context: first turn 88091 tokens, largest 111710 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.56 | 88079 |
-| 2 | $0.07 | 94776 |
-| 3 | $0.03 | 96076 |
-| 4 | $0.03 | 97730 |
-| 5 | $0.03 | 99072 |
+| 1 | $0.57 | 88079 |
+| 2 | $0.08 | 94776 |
+| 3 | $0.04 | 96076 |
+| 4 | $0.05 | 97730 |
+| 5 | $0.04 | 99072 |
 | 6 | $0.03 | 99883 |
-| 7 | $0.02 | 100230 |
-| 8 | $0.02 | 100577 |
+| 7 | $0.03 | 100230 |
+| 8 | $0.04 | 100577 |
 | 9 | $0.03 | 101230 |
-| 10 | $0.03 | 102947 |
-| 11 | $0.03 | 104103 |
-| 12 | $0.03 | 105218 |
-| 13 | $0.03 | 106599 |
+| 10 | $0.04 | 102947 |
+| 11 | $0.04 | 104103 |
+| 12 | $0.04 | 105218 |
+| 13 | $0.05 | 106599 |
 | 14 | $0.03 | 107368 |
-| 15 | $0.03 | 107968 |
-| 16 | $0.03 | 108708 |
+| 15 | $0.04 | 107968 |
+| 16 | $0.04 | 108708 |
 | 17 | $0.03 | 109148 |
-| 18 | $0.03 | 110530 |
-| 19 | $0.03 | 111485 |
-| 20 | $0.03 | 113033 |
+| 18 | $0.04 | 110530 |
+| 19 | $0.04 | 111485 |
+| 20 | $0.05 | 113033 |
 | 21 | $0.03 | 113799 |
-| 22 | $0.03 | 114543 |
-| 23 | $0.03 | 115089 |
-| 24 | $0.03 | 115781 |
-| 25 | $0.03 | 116391 |
-| 26 | $0.03 | 117436 |
-| 27 | $0.03 | 118257 |
+| 22 | $0.04 | 114543 |
+| 23 | $0.04 | 115089 |
+| 24 | $0.04 | 115781 |
+| 25 | $0.04 | 116391 |
+| 26 | $0.04 | 117436 |
+| 27 | $0.04 | 118257 |
 | 28 | $0.03 | 118853 |
-| 29 | $0.03 | 119541 |
-| 30 | $0.03 | 120269 |
-| 31 | $0.03 | 120694 |
-| 32 | $0.03 | 121833 |
-| 33 | $0.03 | 122508 |
-| 34 | $0.03 | 123309 |
-| 35 | $0.03 | 123772 |
-| 36 | $0.03 | 124024 |
-| 37 | $0.03 | 124627 |
+| 29 | $0.04 | 119541 |
+| 30 | $0.04 | 120269 |
+| 31 | $0.04 | 120694 |
+| 32 | $0.04 | 121833 |
+| 33 | $0.04 | 122508 |
+| 34 | $0.04 | 123309 |
+| 35 | $0.04 | 123772 |
+| 36 | $0.04 | 124024 |
+| 37 | $0.04 | 124627 |
 | 38 | $0.03 | 125197 |
-| 39 | $0.03 | 126090 |
-| 40 | $0.03 | 127016 |
-| 41 | $0.06 | 131615 |
+| 39 | $0.05 | 126090 |
+| 40 | $0.04 | 127016 |
+| 41 | $0.07 | 131615 |
+| 42 | $0.07 | 136447 |
+| 43 | $0.05 | 137210 |
+| 44 | $0.56 | 88091 |
+| 45 | $0.07 | 94787 |
+| 46 | $0.03 | 96066 |
+| 47 | $0.02 | 96541 |
+| 48 | $0.04 | 98645 |
+| 49 | $0.06 | 103497 |
+| 50 | $0.02 | 103708 |
+| 51 | $0.02 | 104072 |
+| 52 | $0.02 | 104454 |
+| 53 | $0.02 | 104645 |
+| 54 | $0.02 | 104905 |
+| 55 | $0.03 | 105500 |
+| 56 | $0.05 | 109355 |
+| 57 | $0.02 | 109686 |
+| 58 | $0.03 | 110493 |
+| 59 | $0.02 | 110845 |
+| 60 | $0.03 | 111292 |
+| 61 | $0.03 | 111710 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -113,4 +135,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 23 | 42 | 7046 | 569276 | 114151 | 2.23 (estimate) |
+| total | 23 | 42 | 7046 | 569276 | 114151 | 3.84 (estimate) |
