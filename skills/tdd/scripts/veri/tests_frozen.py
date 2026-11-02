@@ -649,7 +649,7 @@ def rerecord_rebased(ledger, pre):
     os.chdir(_toplevel())
     upstream = os.fsdecode(subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
                                           stdout=subprocess.PIPE, check=True).stdout).strip()
-    refused, stale = [], False
+    refused, missing, stale = [], [], False
     try:
         earlier = list(_earlier_records(lines, "", strict=True))
     except OSError as error:
@@ -658,7 +658,12 @@ def rerecord_rebased(ledger, pre):
 
     def rewrite(owner, record, name, case, digest):
         nonlocal stale
-        head = _cases_at("HEAD", name)[case]
+        head = _cases_at("HEAD", name).get(case)
+        if head is None:
+            paths = [path for who, path, _ in earlier if who == owner]
+            missing.append("tests-frozen.sh: record %s names case %s, which %s does not hold at HEAD"
+                           % (paths[0], case, name))
+            return record
         if _body_digest(head) == digest:
             return record
         if (_body_digest(_cases_at(pre, name).get(case, "")) != digest
@@ -668,6 +673,9 @@ def rerecord_rebased(ledger, pre):
         stale = True
         return _body_line(name, case, head)
     if not _rewrite_records(earlier, rewrite):
+        return 2
+    if missing:
+        write(sys.stderr, "\n".join(missing))
         return 2
     for line in refused:
         write(sys.stdout, line)

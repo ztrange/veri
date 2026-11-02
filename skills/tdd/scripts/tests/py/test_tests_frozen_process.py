@@ -4268,3 +4268,34 @@ def test_check_earlier_exits_1_for_a_go_case_after_a_later_rerecord_refactored_o
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (1, "TestX (%s)\n" % step)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_exits_2_naming_the_record_and_the_title_when_an_earlier_steps_recorded_case_is_missing_at_head_2825(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    suite.write_text("def test_other_2825():\n    assert f() == 0\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+    earlier, current = "step one pins the config", "step two adds another"
+    suite.write_text("def test_other_2825():\n    assert f() == 0\n\n\ndef test_config_before_rename_2825():\n    assert f() == 1\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    suite.write_text("def test_other_2825():\n    assert f() == 0\n\n\ndef test_config_after_rename_2825():\n    assert f() == 1\n")
+    git(repo, "commit", "-q", "-a", "-m", "step one")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                          text=True).stdout.strip()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), head], cwd=repo)
+
+    assert (code, record.name in err, "test_config_before_rename_2825" in err, "KeyError" in err) == (
+        2, True, True, False)
