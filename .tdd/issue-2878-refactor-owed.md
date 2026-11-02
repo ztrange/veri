@@ -4,3 +4,4 @@
 - test-only | in test_wrong_test_route.py, the backtick, double-quote and curly-quote `2878` cases differ only in the quote characters and could share one parametrised body
 - test-only | in test_wrong_test_route.py, the `2878` bare-prose and reroute cases repeat the same `tests/py/unit` fixture setup
 applied | 3c33701a9f9ea4660db33a734c395a4a441628fb | `_exists` and `_fixture` in wrong_test_route.py repeat the same file walk and Python/Go/JS test-file classification (pre-existing code, not this cycle's)	refactor: share the test-file walk and classification of _exists and _fixture (#2878)
+not-done | transform-rejected | `main` in wrong_test_route.py calls `_superseded` three times and re-reads the report each time (pre-existing code)
