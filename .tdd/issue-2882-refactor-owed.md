@@ -1,0 +1,2 @@
+### pin-fast-tier.sh writes a .tdd/verify-pin.reason bounded in size for a fast command whose failing output far exceeds that bound, and the file still contains every FAIL block: one process case in test_pin_fast_tier_process.py drives the script with a stub fast command that emits a large passing-noise prefix and one failure ⟦criterion 1⟧
+- test-only | the two 2882 cases in test_pin_fast_tier_process.py each hand-write the same 20000-line passing-noise shell loop, which could become one shared helper
