@@ -281,13 +281,17 @@ def queue_counts():
     return text
 
 
+def status_last_time():
+    try:
+        with open(os.path.join(main_working_tree(), ".tdd", "status-last")) as f:
+            return calendar.timegm(time.strptime(json.load(f)["time"], "%Y-%m-%dT%H:%M:%SZ"))
+    except OSError:
+        return None
+
+
 def landed_lines():
     root = main_working_tree()
-    try:
-        with open(os.path.join(root, ".tdd", "status-last")) as f:
-            since = calendar.timegm(time.strptime(json.load(f)["time"], "%Y-%m-%dT%H:%M:%SZ"))
-    except OSError:
-        since = None
+    since = status_last_time()
 
     def tags(fmt):
         return subprocess.run(["git", "-C", root, "tag", "--list", "--format=" + fmt],
@@ -303,6 +307,7 @@ def running_lines():
     import event
     sample = event.journal_path(main_working_tree(), "0")
     blocks = []
+    since = status_last_time()
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         with open(path) as f:
             events = [json.loads(l) for l in f if l.strip()]
@@ -320,6 +325,8 @@ def running_lines():
             plans = of("plan")
             if plans:
                 name += " %d/%s" % (len(of("step-done")), plans[-1]["steps"])
+                if since is not None:
+                    name += " +%d" % sum(1 for e in of("step-done") if e["ts"] > since)
             launches = of("launch")
             if launches:
                 phase = launches[-1]["phase"]
