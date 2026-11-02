@@ -5,6 +5,7 @@
 - [x] `mutation-probe.sh --before` leaves `<test-path>` exactly as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before` leaves every file under `.tdd/` as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before` removes a file added since `<sha>` (tracked or untracked) while the command runs ⟦criterion 1⟧ ⟂ refactor pending
+- [ ] `mutation-probe.sh --before` keeps a `<test-path>` that is itself new since `<sha>` present with its working-tree bytes while the command runs, so a command that reads the kept file passes where one that finds it removed or blanked fails ⟦added⟧ ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` brings back a file deleted since `<sha>`, with its `<sha>` content, while the command runs ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` restores a file renamed since `<sha>` as a deletion of the new name and a return of the old name (the diff runs with `--no-renames`), so the old name comes back with its `<sha>` content ⟦criterion 1⟧
 - [ ] after the command, `mutation-probe.sh --before` puts every tracked file it restored back to its working-tree bytes ⟦criterion 1⟧
