@@ -3,3 +3,4 @@
 - test-only | The two cases that set `VERI_HOME` by hand with try/finally could take `monkeypatch.setenv`, as the defaults case already does.
 ### a failed journal write prints exactly one stderr line naming the journal path, leaves event.sh's exit code 0 and still writes the line to .tdd/events.jsonl, by a small case ⟦criterion 2⟧
 - extract the journal write in `append()` (`makedirs` plus `append_once` plus the stderr line) into a `write_journal(top, context, text)` helper
+applied | 4f32bdfd442f4bdf49eda5ea36c1ce1a590a9b93 | extract the journal write in `append()` (`makedirs` plus `append_once` plus the stderr line) into a `write_journal(top, context, text)` helper	refactor: extract write_journal from append (#2749)
