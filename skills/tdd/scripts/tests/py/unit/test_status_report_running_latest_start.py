@@ -42,9 +42,9 @@ def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_
     runs = home / "runs" / "acme-widgets"
     runs.mkdir(parents=True)
     started = "Mon Nov  2 10:00:00 2026"
-    events = [{"event": "conductor-start", "ts": "2026-11-02T10:00:00Z", "awake": 0,
+    events = [{"event": "conductor-start", "ts": "2026-11-02T10:00:00Z", "awake": 60,
                "pid": os.getpid(), "started": started},
-              {"event": "step-start", "ts": "2026-11-02T10:05:00Z", "awake": 300}]
+              {"event": "step-start", "ts": "2026-11-02T10:05:00Z", "awake": 360}]
     text = json.dumps(events[0]) + "\n\n" + json.dumps(events[1]) + "\n\n"
     (runs / "2750.jsonl").write_text(text)
     tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
@@ -55,5 +55,6 @@ def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_
     code, out, _ = run_cli(status, ["--report"])
 
     lines = [line.strip() for line in out.splitlines()]
-    listed = [x for x in lines[lines.index("Running") + 1:lines.index("Queue")] if x.startswith("#")]
+    running = lines[lines.index("Running") + 1:lines.index("Queue")]
+    listed = [x.split()[0] for x in running if x.startswith("#") and "5m" in x.split()]
     assert (code, listed) == (0, ["#2750"]), listed

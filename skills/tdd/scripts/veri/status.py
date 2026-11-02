@@ -316,6 +316,7 @@ def running_lines():
             continue
         if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
             name = "#" + os.path.basename(path)[:-len(".jsonl")]
+            name += " %dm" % ((int(events[-1]["awake"]) - int(events[0]["awake"])) // 60)
             plans = of("plan")
             if plans:
                 name += " %d/%s" % (len(of("step-done")), plans[-1]["steps"])
