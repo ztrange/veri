@@ -157,3 +157,28 @@ def test_main_records_a_bash_c_probe_with_its_script_as_one_quoted_word_2877(
     lines = record.read_text().split("\n")
     command = lines[lines.index("command %d" % len(shlex.join(argv))) + 1]
     assert shlex.split(command) == argv
+
+
+def test_main_records_only_the_test_command_when_the_probe_runs_through_timed_test_run_2877(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    import shlex
+    from pathlib import Path
+
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    wrapper = str(Path(mutation_probe.__file__).resolve().parent.parent / "timed-test-run.sh")
+    test_command = ["make", "test", "TESTS=tests/py/unit/test_a.py tests/py/unit/test_b.py"]
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "alpha", "beta", "--", wrapper, "affected", "a suite", *test_command],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    lines = record.read_text().split("\n")
+    expected = shlex.join(test_command)
+    assert lines[lines.index("command %d" % len(expected)) + 1] == expected

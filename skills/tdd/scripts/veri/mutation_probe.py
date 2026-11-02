@@ -32,7 +32,8 @@ def main(argv):
         return 1
     record = tunables.read("VERI_MUTATION_RECORD")
     if record:
-        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(argv[4:])))
+        recorded = argv[7:] if argv[4] == str(Path(__file__).resolve().parent.parent / "timed-test-run.sh") else argv[4:]
+        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(recorded)))
         with open(record, "a") as f:
             for name, value in fields:
                 f.write(f"{name} {len(value)}\n{value}\n")
