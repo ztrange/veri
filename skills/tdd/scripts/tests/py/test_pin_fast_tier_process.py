@@ -105,6 +105,24 @@ def test_a_noisy_reason_keeps_a_fail_block_that_lies_before_the_tail_and_a_small
     assert small_reason == (b" FAIL  src/s.test.ts > small-failure-marker\n  small-detail-line\n1 failed\n")
 
 
+@pytest.mark.process("pin-fast-tier.sh run on a failing fast command whose output is exactly the bound")
+def test_a_failing_fast_command_with_output_exactly_at_the_bound_leaves_it_unchanged_in_the_reason_file_2909(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    fast = stub(tmp_path / "fast-at-bound",
+                "i=0\nwhile [ $i -lt 127 ]; do\n"
+                "printf 'ok %01020d\\n' 0\n"
+                "i=$((i+1))\ndone\n"
+                "printf 'ok %01021d' 0\nexit 1\n")
+    output = (b"ok " + b"0" * 1020 + b"\n") * 127 + b"ok " + b"0" * 1021
+
+    ran = subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True, text=True)
+
+    reason = (tmp_path / ".tdd" / "verify-pin.reason").read_bytes()
+    assert ran.returncode == 1
+    assert len(output) == 128 * 1024
+    assert reason == output + b"\n"
+
+
 @pytest.mark.process("pin-fast-tier.sh, build-develop-prompt.sh and run-leaf.sh chained, with a stub claude")
 def test_a_reason_file_at_the_bound_builds_a_revise_prompt_run_leaf_launches_under_arg_max_2882(tmp_path):
     (tmp_path / ".tdd").mkdir()
