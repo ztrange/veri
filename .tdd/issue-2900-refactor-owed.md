@@ -1,3 +1,5 @@
 ### `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` runs the command with every tracked file that differs between `<sha>` and the working tree restored to its `<sha>` content, and exits 0 when the command fails. Minimal: its green adds only what this step's own case decides — no argument-shape check, no unknown-commit check, no signal handler; each lands in the later step that pins it ⟦criterion 1⟧
 - test-only | hoist the `git(*words)` helper, which is now copy-pasted into three process cases in `test_mutation_probe_process.py`, into one module-level `git(repo, *words)`
 - test-only | build the base-and-feature scratch repo in a shared fixture for the two `--before` cases, which repeat the same init, commit and rev-parse sequence
+### `mutation-probe.sh --before <sha>` exits 2 without running the command when `<sha>` is not 7-40 lowercase hex (`^[0-9a-f]{7,40}$`) ⟦criterion 1⟧
+- `before_state` and `main` share nothing yet except the process-run/restore shape; no duplication to remove until the before-state record is written

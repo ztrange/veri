@@ -13,7 +13,7 @@
 - [x] after the command, `mutation-probe.sh --before` puts back every untracked file it removed, byte for byte ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before <sha>` exits 2 without running the command when `<sha>` does not resolve to a commit ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before` exits 2 with the usage message without running the command when `--keep <test-path> --` is missing or out of place (fewer than 6 arguments, `argv[2]` not `--keep`, or `argv[4]` not `--`), one case per condition, each asserting the stderr usage line (exit code alone cannot tell a short argv from an IndexError mapped to 2) ⟦criterion 1⟧
-- [x] `mutation-probe.sh --before <sha>` exits 2 without running the command when `<sha>` is not 7-40 lowercase hex (`^[0-9a-f]{7,40}$`) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `mutation-probe.sh --before <sha>` exits 2 without running the command when `<sha>` is not 7-40 lowercase hex (`^[0-9a-f]{7,40}$`) ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before <sha>` exits 2 without running the command when no file other than `<test-path>` and `.tdd/` differs between `<sha>` and the working tree ⟦criterion 1⟧
 - [ ] when the before-state probe exits 0, it appends a record to `VERI_MUTATION_RECORD` carrying `before <sha>`, `keep <test-path>` and `command` ⟦criterion 1⟧
 - [ ] a process case (`@pytest.mark.process`, in `test_mutation_probe_process.py`) on a scratch git repo in the shape of the issue's Steps to reproduce (`view.py`, `quote.py` changed on the branch, a test stubbing `{"deps": 10}`) shows `mutation-probe.sh --before <base> --keep <test>` exits 1 and the working tree is unchanged afterwards ⟦criterion 1⟧
