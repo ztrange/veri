@@ -284,20 +284,21 @@ def queue_counts():
     return text
 
 
-def status_last_queue():
+def status_last():
     try:
         with open(os.path.join(main_working_tree(), ".tdd", "status-last")) as f:
-            return json.load(f).get("queue", {})
+            return json.load(f)
     except OSError:
-        return {}
+        return None
+
+
+def status_last_queue():
+    return (status_last() or {}).get("queue", {})
 
 
 def status_last_time():
-    try:
-        with open(os.path.join(main_working_tree(), ".tdd", "status-last")) as f:
-            return calendar.timegm(time.strptime(json.load(f)["time"], "%Y-%m-%dT%H:%M:%SZ"))
-    except OSError:
-        return None
+    last = status_last()
+    return None if last is None else calendar.timegm(time.strptime(last["time"], "%Y-%m-%dT%H:%M:%SZ"))
 
 
 def landed_lines():
