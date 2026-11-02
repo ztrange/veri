@@ -1871,3 +1871,17 @@ def test_issue_2743_a_leaf_is_reported_at_the_dollars_its_usage_event_records_fo
     out = render(metrics, capsys)
 
     assert cells(out, "#### By phase", ["$"]) == {"red": ["110.25"], "green": ["32.20"]}
+
+
+def test_issue_2883_the_report_names_each_file_a_suite_flake_event_recorded_and_none_when_the_log_holds_no_such_event(tmp_path, monkeypatch, capsys, metrics):
+    flake = {"ts": 150, "issue": "108", "actor": "", "phase": "", "step": "", "attempt": "",
+             "event": "suite-flake", "files": "tests/py/test_alpha_flaky.py,tests/py/test_beta_flaky.py"}
+    monkeypatch.chdir(tmp_path)
+
+    write_log(tmp_path, ONE_STEP + [flake])
+    with_event = render(metrics, capsys)
+    write_log(tmp_path, ONE_STEP)
+    without = render(metrics, capsys)
+
+    names = ["test_alpha_flaky.py", "test_beta_flaky.py"]
+    assert ([name in with_event for name in names], [name in without for name in names]) == ([True, True], [False, False])
