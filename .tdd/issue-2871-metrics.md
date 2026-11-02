@@ -1,64 +1,97 @@
 ### 📊 Metrics — issue 2871
 
-Wall time for the issue: 6448 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4814 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 3 of 3 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2872.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.42 over 45 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $4.87 over 82 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 87096 tokens, largest 172070 tokens
+Conductor context: first turn 87096 tokens, largest 175256 tokens
+Conductor context: first turn 87091 tokens, largest 122303 tokens
+Conductor context: first turn 122761 tokens, largest 132356 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.56 | 87096 |
-| 2 | $0.08 | 95501 |
-| 3 | $0.04 | 97616 |
-| 4 | $0.03 | 98359 |
-| 5 | $0.02 | 98703 |
-| 6 | $0.02 | 99021 |
-| 7 | $0.02 | 99288 |
-| 8 | $0.06 | 104689 |
-| 9 | $0.06 | 109053 |
-| 10 | $0.04 | 111483 |
-| 11 | $0.03 | 112386 |
-| 12 | $0.04 | 114527 |
-| 13 | $0.03 | 116011 |
-| 14 | $0.03 | 117075 |
-| 15 | $0.04 | 119188 |
-| 16 | $0.03 | 119467 |
-| 17 | $0.04 | 121964 |
-| 18 | $0.03 | 122734 |
-| 19 | $0.09 | 131156 |
-| 20 | $0.04 | 132321 |
-| 21 | $0.04 | 133396 |
-| 22 | $0.04 | 134536 |
-| 23 | $0.04 | 135950 |
-| 24 | $0.03 | 136524 |
-| 25 | $0.05 | 139090 |
-| 26 | $0.05 | 141730 |
-| 27 | $0.03 | 142493 |
-| 28 | $0.05 | 145154 |
-| 29 | $0.04 | 146857 |
-| 30 | $0.04 | 147679 |
-| 31 | $0.04 | 148512 |
-| 32 | $0.05 | 150679 |
-| 33 | $0.04 | 151743 |
-| 34 | $0.05 | 153702 |
-| 35 | $0.07 | 158609 |
-| 36 | $0.04 | 159412 |
-| 37 | $0.04 | 159942 |
-| 38 | $0.04 | 160342 |
-| 39 | $0.04 | 160938 |
-| 40 | $0.03 | 161166 |
-| 41 | $0.03 | 161387 |
-| 42 | $0.04 | 162641 |
-| 43 | $0.04 | 163782 |
-| 44 | $0.04 | 164811 |
-| 45 | $0.09 | 172070 |
+| 1 | $0.57 | 87096 |
+| 2 | $0.10 | 95501 |
+| 3 | $0.05 | 97616 |
+| 4 | $0.05 | 98359 |
+| 5 | $0.03 | 98703 |
+| 6 | $0.04 | 99021 |
+| 7 | $0.04 | 99288 |
+| 8 | $0.08 | 104689 |
+| 9 | $0.07 | 109053 |
+| 10 | $0.06 | 111483 |
+| 11 | $0.04 | 112386 |
+| 12 | $0.06 | 114527 |
+| 13 | $0.05 | 116011 |
+| 14 | $0.05 | 117075 |
+| 15 | $0.06 | 119188 |
+| 16 | $0.04 | 119467 |
+| 17 | $0.06 | 121964 |
+| 18 | $0.04 | 122734 |
+| 19 | $0.11 | 131156 |
+| 20 | $0.05 | 132321 |
+| 21 | $0.05 | 133396 |
+| 22 | $0.06 | 134536 |
+| 23 | $0.05 | 135950 |
+| 24 | $0.05 | 136524 |
+| 25 | $0.06 | 139090 |
+| 26 | $0.07 | 141730 |
+| 27 | $0.05 | 142493 |
+| 28 | $0.06 | 145154 |
+| 29 | $0.06 | 146857 |
+| 30 | $0.06 | 147679 |
+| 31 | $0.05 | 148512 |
+| 32 | $0.06 | 150679 |
+| 33 | $0.06 | 151743 |
+| 34 | $0.06 | 153702 |
+| 35 | $0.08 | 158609 |
+| 36 | $0.06 | 159412 |
+| 37 | $0.05 | 159942 |
+| 38 | $0.05 | 160342 |
+| 39 | $0.05 | 160938 |
+| 40 | $0.05 | 161166 |
+| 41 | $0.05 | 161387 |
+| 42 | $0.06 | 162641 |
+| 43 | $0.06 | 163782 |
+| 44 | $0.06 | 164811 |
+| 45 | $0.10 | 172070 |
+| 46 | $0.08 | 175256 |
+| 47 | $0.56 | 87091 |
+| 48 | $0.08 | 94148 |
+| 49 | $0.04 | 95582 |
+| 50 | $0.04 | 97618 |
+| 51 | $0.06 | 101079 |
+| 52 | $0.14 | 115795 |
+| 53 | $0.04 | 116650 |
+| 54 | $0.07 | 121133 |
+| 55 | $0.04 | 121957 |
+| 56 | $0.03 | 122303 |
+| 57 | $0.03 | 122761 |
+| 58 | $0.03 | 123818 |
+| 59 | $0.03 | 124259 |
+| 60 | $0.03 | 124589 |
+| 61 | $0.03 | 125054 |
+| 62 | $0.03 | 125410 |
+| 63 | $0.03 | 126043 |
+| 64 | $0.03 | 126841 |
+| 65 | $0.03 | 127573 |
+| 66 | $0.03 | 128545 |
+| 67 | $0.03 | 128874 |
+| 68 | $0.03 | 129149 |
+| 69 | $0.03 | 129515 |
+| 70 | $0.03 | 130011 |
+| 71 | $0.03 | 130713 |
+| 72 | $0.03 | 131019 |
+| 73 | $0.03 | 131285 |
+| 74 | $0.03 | 131671 |
+| 75 | $0.03 | 132356 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -110,6 +143,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | When queued-merge.sh runs from a copy of the scripts inside the linked worktree it merges and removes, with that worktree as its working directory too, the merge lock in the primary clone is free afterwards (a process case with a real linked worktree, gh and remote git faked on PATH) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.09 |
 | When the merge lock cannot be released during cleanup because merge-lock.sh cannot be started, queued-merge.sh prints its "merged, but cleanup failed: release" line and exits 2 rather than dying on a traceback | 1 | 0/5 | structural-owed | skipped | 0 | 11 | 0.04 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s |
@@ -122,4 +159,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 113 | 214 | 42009 | 3494698 | 500778 | 4.74 (estimate) |
+| total | 113 | 214 | 42009 | 3494698 | 500778 | 7.20 (estimate) |
