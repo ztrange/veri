@@ -66,7 +66,10 @@ def test_an_unmarked_case_after_a_process_case_still_sees_hup_ignored_in_a_run_s
     (tmp_path / "test_order.py").write_text(CASES_AFTER_A_PROCESS_CASE)
     command = "trap '' HUP; exec \"$0\" -m pytest -p conftest -p no:cacheprovider -q --timeout=10 test_order.py"
     env = dict(os.environ, PYTHONPATH=str(HERE))
-    done = subprocess.run(["sh", "-c", command, sys.executable], cwd=tmp_path, env=env,
-                          capture_output=True, text=True, timeout=CHILD_SESSION_WAIT)
+    try:
+        done = subprocess.run(["sh", "-c", command, sys.executable], cwd=tmp_path, env=env,
+                              capture_output=True, text=True, timeout=CHILD_SESSION_WAIT)
+    except subprocess.TimeoutExpired as exc:
+        pytest.fail("the HUP-order case did not finish in %d s: %r" % (CHILD_SESSION_WAIT, exc.stdout))
 
     assert done.returncode == 0, done.stdout[-1500:]
