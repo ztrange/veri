@@ -267,3 +267,17 @@ def test_flake_with_a_file_still_red_alone_exits_1_names_it_on_stderr_and_writes
     flakes = [e for e in events.records(tmp_path) if e["event"] == "suite-flake"]
     assert code == 1 and flakes == []
     assert "scripts/b.test.mjs" in err and "backend/a.test.ts" not in err
+
+
+def test_flake_with_a_red_file_naming_no_test_file_exits_1_and_writes_no_event_2906(run_cli, events, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    (tmp_path / ".git").mkdir()
+    red = tmp_path / "red"
+    red.write_text("")
+    alone = tmp_path / "alone-red"
+    alone.write_text("none\n")
+
+    code, _, _ = run_cli(module, ["flake", "resume", str(red), str(alone)], cwd=tmp_path)
+
+    flakes = [e for e in events.records(tmp_path) if e["event"] == "suite-flake"]
+    assert code == 1 and flakes == []
