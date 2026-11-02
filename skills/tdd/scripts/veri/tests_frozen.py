@@ -1,6 +1,7 @@
 """tests-frozen.sh's record and check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
+import collections
 import hashlib
 import os
 import re
@@ -673,8 +674,7 @@ def rerecord_refactored(ledger, green):
         head_lines = [l for l in _assertion_lines(head) if l.split("(")[0] not in called]
         verified_lines = _assertion_lines(verified)
         if head_lines != verified_lines and \
-                sorted(head_lines + _assertion_lines(helpers)) \
-                != sorted(verified_lines):
+                collections.Counter(verified_lines) - collections.Counter(head_lines + _assertion_lines(helpers)):
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
         if head_lines == verified_lines and len(_assertion_lines(helpers)) \
                 != len(_assertion_lines(_called_helpers(green, name, verified))):
