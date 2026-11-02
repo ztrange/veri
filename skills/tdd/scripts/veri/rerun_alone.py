@@ -11,7 +11,7 @@ def main(argv):
     if not argv:
         sys.stderr.write("usage: rerun-alone.sh <alone-cmd> <red-output-file>\n")
         return 2
-    with open(argv[1]) as red:
+    with open(argv[1], errors="replace") as red:
         files = re.findall(r"[\w./-]+\.test\.\w+", red.read())
     if not files:
         return 1
