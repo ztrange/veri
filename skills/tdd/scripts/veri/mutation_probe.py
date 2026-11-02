@@ -48,7 +48,15 @@ def before_state(argv):
                 path.unlink(missing_ok=True)
             else:
                 path.write_bytes(content)
-    return 1 if returncode == 0 else 0
+    if returncode == 0:
+        return 1
+    record = tunables.read("VERI_MUTATION_RECORD")
+    if record:
+        with open(record, "a") as f:
+            for name, value in (("before", sha), ("keep", keep), ("command", shlex.join(command))):
+                f.write(f"{name} {len(value)}\n{value}\n")
+            f.write("\n")
+    return 0
 
 
 def main(argv):
