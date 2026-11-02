@@ -1,5 +1,6 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import re
 import shlex
 import signal
 import subprocess
@@ -17,6 +18,9 @@ def before_state(argv):
         sys.stderr.write(BEFORE_USAGE + "\n")
         return 2
     sha, keep, command = argv[1], argv[3], argv[5:]
+    if not re.fullmatch(r"[0-9a-f]{7,40}", sha):
+        sys.stderr.write(f"mutation-probe.sh: {sha} is not 7-40 lowercase hex\n")
+        return 2
     if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"], capture_output=True).returncode:
         sys.stderr.write(f"mutation-probe.sh: {sha} does not resolve to a commit\n")
         return 2
