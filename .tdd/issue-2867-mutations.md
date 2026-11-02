@@ -43,3 +43,12 @@ not nows
 command 360
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpbywfrn84/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_passes_a_record_written_without_helper_data_when_nothing_changed_and_exits_1_when_the_case_body_changes_2867
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 68
+not nows or any(d not in held for d, held in zip(digests, accepted))
+new 8
+not nows
+command 337
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpbywfrn84/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_the_case_when_its_body_changes_after_a_record_without_helper_data_2867
+

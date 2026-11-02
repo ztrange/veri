@@ -4192,3 +4192,25 @@ def test_check_earlier_passes_a_record_written_without_helper_data_when_nothing_
     assert unchanged == (0, "")
     assert changed[0] == 1
     assert "TestX" in changed[1]
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the red commit to HEAD")
+def test_check_earlier_exits_1_naming_the_case_when_its_body_changes_after_a_record_without_helper_data_2867(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    source = "func TestX(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
+    suite.write_text(source)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+
+    suite.write_text(source.replace("1 != 1", "1 != 2"))
+    _commit(tmp_path, "later commit changes the case body")
+    checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)
+
+    assert checked[0] == 1
+    assert "TestX" in checked[1]
