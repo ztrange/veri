@@ -1,6 +1,7 @@
 """event.sh's mark, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import json
 import os
 import shutil
 import subprocess
@@ -158,6 +159,36 @@ def append_once(path, data):
         os.close(fd)
 
 
+def done_fields(path, ts, awake):
+    marks = []
+    try:
+        with open(path, "rb") as handle:
+            for text in handle.read().decode(errors="replace").splitlines():
+                try:
+                    mark = json.loads(text)
+                except ValueError:
+                    continue
+                if isinstance(mark, dict):
+                    marks.append(mark)
+    except OSError:
+        pass
+    ending = {"ts": ts, "awake": int(awake) if awake.isdigit() else None}
+    opening = next((m for m in reversed(marks) if m.get("event") == "resume"), marks[0] if marks else ending)
+    clocked = all("awake" in m for m in marks if "ts" in m) and ending["awake"] is not None
+    wall = ts - opening["ts"] if "ts" in opening else None
+    span = ending["awake"] - opening["awake"] if clocked and opening.get("awake") is not None else None
+    if wall is None:
+        wall = span
+    elif span is not None and span < wall:
+        wall = span
+    fields = []
+    if wall is not None:
+        fields.append(b"wall_seconds=%d" % wall)
+    if span is not None:
+        fields.append(b"awake_seconds=%d" % span)
+    return fields
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -176,6 +207,8 @@ def append(directory, context, event, fields=(), ts=None):
     awake = awake_reading()
     if isinstance(awake, int):
         return awake
+    if args[0] == b"done":
+        args += done_fields(tdd + "/events.jsonl", ts, awake.decode())
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
     journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
