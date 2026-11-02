@@ -169,6 +169,9 @@ def main(argv):
         if b"{{TEST_REWRITE}}" in text:
             values["TEST_REWRITE"] = fragment({"red": b"test-rewrite-grant", "contract-a": b"test-move-contract-a"}
                                               .get(revised_phase, b"test-rewrite-none"))
+        if phase == "revise" and revised_phase != "red":
+            text = re.sub(rb"^(?:FAIL_OUTPUT|PREDICTION_NOTE):.*\n", b"", text, flags=re.MULTILINE)
+            text = text.replace(b" PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: |", b" PREDICTION: |")
         if revised_phase == "green":
             if b"{{WRONG_TEST_REPORT}}" in text:
                 values["WRONG_TEST_REPORT"] = fragment(b"wrong-test-report")
