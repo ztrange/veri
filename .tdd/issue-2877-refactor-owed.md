@@ -1,0 +1,2 @@
+### mutation-probe.sh records the command it ran as `shlex.join` of its argv (not `" ".join`), so a probe run as `bash -c '<script>'` reads back from the record with its script as one quoted word (small case in skills/tdd/scripts/tests/py/unit/test_mutation_probe.py) ⟦criterion 1⟧
+- test-only | hoist the inline `import shlex` in test_main_records_a_bash_c_probe_with_its_script_as_one_quoted_word_2877 to the module's import block
