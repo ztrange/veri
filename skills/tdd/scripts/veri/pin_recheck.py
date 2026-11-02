@@ -80,6 +80,12 @@ def main(argv):
             status = 1
             continue
         if green:
+            path.write_bytes(b"\x00 control run: no runner can load this\n")
+            control = run_captured(pin["command"])
+            path.write_bytes(original)
+            if control.returncode == 0:
+                sys.stdout.write(f"needs a look: {pin['file']}\n")
+                continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
     return status
