@@ -538,10 +538,15 @@ def _write_record(path, out):
 def _rewrite_records(earlier, rewrite):
     for owner, path, records in earlier:
         out = []
+        replaced = False
         for record in records:
             parsed = _body_record(record)
             if parsed:
                 record = rewrite(owner, record, *parsed)
+                replaced = "\nhelpers: " in record
+            elif replaced and record.startswith("helpers: "):
+                replaced = False
+                continue
             out.append(record + "\n")
         if not _write_record(path, out):
             return False
@@ -653,6 +658,13 @@ def rerecord_refactored(ledger, green):
     except FileNotFoundError:
         return 3
 
+    recorded_helpers = {}
+    for _, __, records in _earlier_records(lines, ""):
+        for record in records:
+            if record.startswith("helpers: "):
+                name, case, digest = record[9:].split("\t")
+                recorded_helpers[(name, case)] = digest
+
     def skip(name, case, record):
         write(sys.stderr, "skipped: %s %s" % (name, case))
         return record
@@ -664,6 +676,9 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record)
         head = _cases_at("HEAD", name).get(case)
         if head is None:
+            return skip(name, case, record)
+        if (name, case) in recorded_helpers and recorded_helpers[(name, case)] != _helper_digest(
+                _text_at(green, name, subprocess.DEVNULL), verified):
             return skip(name, case, record)
         helpers = _called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))

@@ -4529,3 +4529,43 @@ def test_rerecord_rebased_exits_2_naming_the_record_and_the_title_when_an_earlie
 
     assert (code, record.name in err, "test_config_before_rename_2825" in err, "KeyError" in err) == (
         2, True, True, False)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from each green commit to HEAD")
+def test_check_earlier_exits_0_for_a_go_case_after_two_rerecord_refactored_each_following_a_verified_refactor_that_changes_its_helpers_assertion_lines_2888(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    ledger = ".tdd/issue-9.md"
+    verdict = tmp_path / ".tdd/verdict-refactor.exit"
+
+    def head():
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                              text=True).stdout.strip()
+    green = head()
+    suite.write_text("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n}\n")
+    _commit(tmp_path, "A first refactor moves the check into a helper")
+    verdict.write_text("0")
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    green = head()
+    suite.write_text(suite.read_text().replace('t.Fatal("bad")', 't.Fatal("bad value")'))
+    _commit(tmp_path, "A second refactor rewords the helper's assertion")
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    green = head()
+    suite.write_text(suite.read_text().replace('t.Fatal("bad value")', 't.Fatal("bad x")'))
+    _commit(tmp_path, "A third refactor rewords the helper's assertion again")
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    held = [l for l in record.read_text().splitlines() if l.startswith("helpers:")]
+
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (len(held), checked) == (1, (0, ""))
