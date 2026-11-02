@@ -1681,7 +1681,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
         (gh / "prs.json").write_text("[]\n")
         record = tmp_path / ("record-" + shape)
         ran = subprocess.run([str(launcher)], cwd=repo, stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                             env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05",
+                             env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05", "VERI_MIN_FREE_GB": "0",
                                   "VERI_STUB_RECORD": str(record)})
         output = ran.stdout + ran.stderr
         report = [line for line in output.splitlines() if line.startswith(("#", "stopped: "))]
@@ -1723,7 +1723,46 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     env = {name: value for name, value in os.environ.items() if not name.startswith(("VERI_", "CLAUDE_"))}
     ran = subprocess.run([str(copy / "tdd" / "scripts" / "parallel-conductors.sh")], cwd=repo,
                          stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                         env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05"})
+                         env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05", "VERI_MIN_FREE_GB": "0"})
+    log = repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    assert (log.exists(), ran.returncode) == (True, 0), ran.stdout + ran.stderr
+    assert [json.loads(line).get("event") for line in log.read_text().splitlines()] == ["conductor-start", "done"]
+
+
+@pytest.mark.process("parallel-conductors.sh supervising a real conductor in place on a filesystem short of free space")
+@pytest.mark.tree_audit("every directory under skills/tdd/ but tests/")
+def test_an_in_place_launch_on_a_short_filesystem_with_the_environment_stripped_of_veri_variables_still_leaves_done_in_the_event_log_2900(tmp_path):
+    copy = tmp_path / "copy" / "skills"
+    shutil.copytree(SCRIPTS.parent, copy / "tdd", symlinks=True, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    gh, _ = _gh_and_work(tmp_path)
+    (gh / "issues.json").write_text(json.dumps([{
+        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "body": "## Blocked by\n\nNone.\n"}]))
+    claude = tmp_path / "claude"
+    claude.write_text("""#!/bin/sh
+n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
+mkdir -p ".tdd/wt/$n/.tdd"
+echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+""".replace("GH", str(gh)))
+    claude.chmod(0o755)
+    (gh / "prs.lines").write_text("")
+    short = tmp_path / "short"
+    short.mkdir()
+    (short / "sitecustomize.py").write_text(
+        "import collections, shutil\n"
+        "shutil.disk_usage = lambda path: collections.namedtuple('usage', 'total used free')(2 ** 40, 2 ** 40 - 2 ** 30, 2 ** 30)\n")
+    repo = tmp_path / "in-place"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                    "--allow-empty", "-m", "init"], check=True)
+    env = {name: value for name, value in os.environ.items() if not name.startswith(("VERI_", "CLAUDE_"))}
+    ran = subprocess.run([str(copy / "tdd" / "scripts" / "parallel-conductors.sh")], cwd=repo,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                         env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05", "VERI_MIN_FREE_GB": "0",
+                              "PYTHONPATH": str(short)})
     log = repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
     assert (log.exists(), ran.returncode) == (True, 0), ran.stdout + ran.stderr
     assert [json.loads(line).get("event") for line in log.read_text().splitlines()] == ["conductor-start", "done"]
