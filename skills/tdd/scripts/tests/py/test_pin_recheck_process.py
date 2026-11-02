@@ -700,3 +700,27 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_current_keep_pa
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert ran.returncode == 1, ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is green on the restored files")
+def test_2959_a_before_keep_record_whose_command_is_green_on_the_restored_files_names_the_record_on_stderr_and_exits_1(
+        tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "fix and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="grep -q old src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin.txt" in ran.stderr, "KeyError" in ran.stderr) == (1, True, False), ran.stderr
