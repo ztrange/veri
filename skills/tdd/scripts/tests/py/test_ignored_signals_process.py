@@ -73,3 +73,15 @@ def test_an_unmarked_case_after_a_process_case_still_sees_hup_ignored_in_a_run_s
         pytest.fail("the HUP-order case did not finish in %d s: %r" % (CHILD_SESSION_WAIT, exc.stdout))
 
     assert done.returncode == 0, done.stdout[-1500:]
+
+
+@pytest.mark.process("a child pytest session that sleeps past a shrunk child-session bound")
+def test_the_hup_order_case_fails_naming_the_wait_when_its_child_outlives_the_bound_2910(tmp_path, monkeypatch):
+    this = sys.modules[__name__]
+    monkeypatch.setattr(this, "CHILD_SESSION_WAIT", 2)
+    monkeypatch.setattr(this, "CASES_AFTER_A_PROCESS_CASE", "import time\n\n\ndef test_sleeper():\n    time.sleep(8)\n")
+
+    with pytest.raises(pytest.fail.Exception) as raised:
+        this.test_an_unmarked_case_after_a_process_case_still_sees_hup_ignored_in_a_run_started_with_it_ignored_2294(tmp_path)
+
+    assert "the HUP-order case did not finish in 2 s" in str(raised.value)
