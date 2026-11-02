@@ -481,7 +481,7 @@ def _check_earlier(ledger, step, exempt=()):
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
-            nows = [body for c, body in _cases(text) if c == case]
+            nows = _bodies_of(text, case)
             olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
             digest = digests[-1]
             if not nows:
@@ -639,6 +639,10 @@ def _helper_digest(text, body):
     return _body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body)))))
 
 
+def _bodies_of(text, case):
+    return [b for c, b in _cases(text) if c == case]
+
+
 def _called_helpers(rev, name, body):
     return _helpers_in(_text_at(rev, name, subprocess.DEVNULL), body)
 
@@ -673,7 +677,7 @@ def rerecord_refactored(ledger, green):
     seen = {}
 
     def nth(rev, name, case, k):
-        found = [b for c, b in _cases(_text_at(rev, name, subprocess.DEVNULL)) if c == case]
+        found = _bodies_of(_text_at(rev, name, subprocess.DEVNULL), case)
         return found[k] if k < len(found) else None
 
     def rewrite(_, record, name, case, digest):
@@ -700,7 +704,7 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record)
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
         return _body_line(name, case, head) + "\nhelpers: %s\t%s\t%s" % (
-            name, case, _helper_digest(head_text, "\n".join(b for c, b in _cases(head_text) if c == case)))
+            name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
