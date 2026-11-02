@@ -308,7 +308,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         run(["--step", "⟦replaces-case⟧ ⟦suite-repair⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
         run(["--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
         run(["plan", str(refactor_spec), str(ledger)]),
-        run(["pin", str(spec), "t"]),
+        run(["--branch-base", "3f9a1c0", "pin", str(spec), "t"]),
         run(["rebase", str(spec), "0123abc", "0123abd"]),
         run(["transform", str(spec), "rec", "0123abc"]),
     ] == [
@@ -323,6 +323,8 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         (2, b"", b"partial includes itself: " + p + b"/_loop1.md\n"),
         (0, b"xy\n", b"cat: " + p + b"/: Is a directory\n"),
     ]
+    no_base = run(["pin", str(spec), "t"])
+    assert (no_base[0], no_base[1], b"--branch-base" in no_base[2]) == (2, b"", True)
 
     (prompts / "_verify-green-replaces-case.md").write_bytes(b"rc {{INCLUDE:_gone.md}}\n")
     (prompts / "_verify-green-suite-repair.md").write_bytes(b"sr {{INCLUDE:_verify-green-suite-repair.md}}\n")
@@ -437,7 +439,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "red": ["red", s, testpath, "test_slugify_lowercases"],
         "green": ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"],
         "refactor": ["--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"],
-        "pin": ["pin", s, testpath, "test_slugify_lowercases"],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, testpath, "test_slugify_lowercases"],
     }
 
     def run(argv):
@@ -452,6 +454,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
     ambient = {phase: run(argv) for phase, argv in calls.items()}
     fifth = {phase: run(argv + [prediction]) for phase, argv in calls.items()}
     bogus = run(["bogus", s, testpath])
+    no_base = run(["pin", s, testpath, "test_slugify_lowercases"])
     prompts = {phase: out.decode("utf-8", "surrogateescape") for phase, (_, out, _) in plain.items()}
     folded = {phase: " ".join(text.split("\n")) for phase, text in prompts.items()}
 
@@ -469,6 +472,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
                              for p in every),
         "fifth positional": {phase: (code, out) for phase, (code, out, _) in fifth.items()},
         "unknown phase": bogus[0] != 0,
+        "pin without a branch base": (no_base[0], no_base[1], b"--branch-base" in no_base[2]),
     } == {
         "exits": {p: (0, b"") for p in every},
         "ambient reaches nothing": True,
@@ -478,6 +482,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "no prediction": True,
         "fifth positional": {p: (2, b"") for p in every},
         "unknown phase": True,
+        "pin without a branch base": (2, b"", True),
     }
 
 
@@ -498,7 +503,8 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
     def call(phase, step_args=()):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
         slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
-        return [*step_args, *fast, phase, s, testpath, slot4]
+        base = ["--branch-base", "3f9a1c0"] if phase == "pin" else []
+        return [*step_args, *fast, *base, phase, s, testpath, slot4]
 
     def has(out, pattern, flags=re.I):
         return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
@@ -732,7 +738,7 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
         "red": ["red", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "green": [*fast, "green", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "refactor": [*fast, "refactor", s, "tests/zorblat.test.sh", sha],
-        "pin": ["pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
         "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
@@ -1077,6 +1083,7 @@ def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_pha
         problems.append("the plan prompt carries the fourth positional")
     for phase in ("red", "green", "refactor", "pin"):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        fast += ["--branch-base", "3f9a1c0"] if phase == "pin" else []
         slot = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
         _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, spec, str(ledger), slot])
         if str(ledger) not in cycle:
@@ -1358,3 +1365,15 @@ def test_main_fills_the_pin_prompts_branch_base_slot_from_branch_base_with_only_
         "no slot left": True,
         "non-hex refusals": {value: (2, True) for value in refused},
     }
+
+
+def test_main_refuses_a_pin_call_whose_branch_base_is_absent_with_exit_2_and_its_message_and_no_prompt_2900(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"slugify must lowercase.\n")
+
+    code = build_verify_prompt.main(["pin", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
+    out, err = capsysbinary.readouterr()
+
+    assert {"exit": code, "names --branch-base": b"--branch-base" in err, "prompt": out} == {
+        "exit": 2, "names --branch-base": True, "prompt": b""}
