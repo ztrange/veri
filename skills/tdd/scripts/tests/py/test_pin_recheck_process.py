@@ -774,3 +774,57 @@ def test_2959_a_record_with_neither_file_nor_before_exits_2_naming_the_record_an
 
     assert (ran.returncode, ran.stdout, "issue-2959-mutations.md" in ran.stderr, "KeyError" in ran.stderr,
             (tmp_path / "ran.witness").exists()) == (2, "", True, False, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is red and a file is absent at the before sha")
+def test_2959_a_red_before_keep_replay_leaves_every_restored_file_a_file_absent_at_before_and_the_keep_path_byte_identical(
+        tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "z_new.txt").write_bytes(b"added \x00 later\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix, pin and add")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="grep -q fixed src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
+            (tmp_path / "z_new.txt").read_bytes() if (tmp_path / "z_new.txt").exists() else None) == (
+        0, b"fixed behaviour\n", b"pin v1\n", b"added \x00 later\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command fails only while a file absent at the before sha exists")
+def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while_the_command_runs(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "z_new.txt").write_text("added later\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix, pin and add")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="test ! -e z_new.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin.txt" in ran.stderr, (tmp_path / "z_new.txt").read_bytes()) == (
+        1, True, b"added later\n"), ran.stderr
