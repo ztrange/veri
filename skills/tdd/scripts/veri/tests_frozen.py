@@ -606,7 +606,11 @@ def rerecord_committed(step):
                 held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
             at_head, fresh = held[name]
             if case not in at_head and fresh:
-                new = next((c for c in fresh if _body_digest(at_head[c].replace(c, case)) == parsed[2]), fresh[0])
+                new = next((c for c in fresh if _body_digest(at_head[c].replace(c, case)) == parsed[2]), None)
+                if new is None and len(fresh) > 1:
+                    write(sys.stderr, "tests-frozen.sh: %s: cannot pair %s with one of %d new cases" % (path, case, len(fresh)))
+                    return 2
+                new = new or fresh[0]
                 fresh.remove(new)
                 record = _body_line(name, new, at_head[new])
                 changed = True
