@@ -133,3 +133,27 @@ def test_main_appends_nothing_to_the_record_when_the_file_was_not_mutated_and_ex
     )
     assert code == 2
     assert not record.exists() or record.read_text() == ""
+
+
+def test_main_records_a_bash_c_probe_with_its_script_as_one_quoted_word_2877(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    import shlex
+
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    script = "pytest -k 'that shell's own job'"
+    argv = ["bash", "-c", script]
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "alpha", "beta", "--", *argv],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    lines = record.read_text().split("\n")
+    command = lines[lines.index("command %d" % len(shlex.join(argv))) + 1]
+    assert shlex.split(command) == argv
