@@ -17,9 +17,10 @@ def test_2750_report_running_lists_a_block_for_each_journal_whose_conductor_star
     started = "Mon Nov  2 10:00:00 2026"
 
     def journal(number, pid):
-        (runs / ("%d.jsonl" % number)).write_text(json.dumps(
-            {"event": "conductor-start", "ts": "2026-11-02T10:00:00Z", "awake": 0,
-             "pid": pid, "started": started}) + "\n")
+        events = [{"event": "conductor-start", "ts": "2026-11-02T10:00:00Z", "awake": 60,
+                   "pid": pid, "started": started},
+                  {"event": "step-start", "ts": "2026-11-02T10:04:00Z", "awake": 240}]
+        (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
     journal(2750, os.getpid())
     journal(2751, 2 ** 22 + 12345)
     tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
@@ -31,7 +32,8 @@ def test_2750_report_running_lists_a_block_for_each_journal_whose_conductor_star
 
     lines = [line.strip() for line in out.splitlines()]
     running = lines[lines.index("Running") + 1:lines.index("Queue")]
-    assert (code, [x for x in running if x.startswith("#")]) == (0, ["#2750"]), running
+    listed = [x for x in running if x.startswith("#")]
+    assert (code, [x.split()[0] for x in listed], ["3m" in x.split() for x in listed]) == (0, ["#2750"], [True]), running
 
 
 def test_2750_report_running_omits_a_journal_whose_conductor_start_pid_is_alive_but_started_at_another_time(tmp_path, monkeypatch, run_cli):
