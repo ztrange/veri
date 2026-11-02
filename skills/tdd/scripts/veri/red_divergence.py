@@ -57,7 +57,9 @@ def main(argv):
         return 3
     if prediction != "DIVERGED":
         return 2
-    reason = REASON % tuple(fields.get(key, "") for key in REASON_KEYS)
+    if not fields.get("FAIL_OUTPUT"):
+        fields["FAIL_OUTPUT"] = "(the failing output was not reported)"
+    reason = REASON %tuple(fields.get(key, "") for key in REASON_KEYS)
     sys.stdout.buffer.write(reason.encode(errors="surrogateescape"))
     return 0
 
