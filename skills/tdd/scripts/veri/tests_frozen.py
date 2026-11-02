@@ -683,11 +683,9 @@ def rerecord_refactored(ledger, green):
     def rewrite(_, record, name, case, digest):
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
-        if verified is None or digest not in {_body_digest(verified), *map(
-                _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
-            return skip(name, case, record)
         head = nth("HEAD", name, case, k)
-        if head is None:
+        if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
+                _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
             return skip(name, case, record)
         if (name, case) in recorded_helpers and recorded_helpers[(name, case)] != _helper_digest(
                 _text_at(green, name, subprocess.DEVNULL), verified):

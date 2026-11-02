@@ -4751,3 +4751,40 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a
     assert (tests_frozen._body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
             b"\nhelpers: " in before, code, err.splitlines().count("skipped: suite_test.go TestX"),
             record.read_bytes() == before) == (True, True, 0, 1, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_refreshes_the_helpers_line_of_a_go_case_already_recorded_at_heads_body_so_check_earlier_exits_0_2973(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n\tif x > 1 {\n\t\tt.Fatal(\"big\")\n\t}\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    with record.open("a") as handle:
+        handle.write("helpers: suite_test.go\tTestX\t%s\n" % tests_frozen._helper_digest(
+            suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "TestX")[0]))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    green_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    suite.write_text(suite.read_text().replace("x := 1", "x := 1 // one").replace('"bad"', '"bad value"'))
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    record.write_text(record.read_text().replace(
+        tests_frozen._body_line("suite_test.go", "TestX", green_body),
+        tests_frozen._body_line("suite_test.go", "TestX", head_body)))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
+            "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
+        0, False, True, (0, ""))
