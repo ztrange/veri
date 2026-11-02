@@ -52,6 +52,22 @@ def test_main_reads_its_report_through_report_read_and_returns_each_exit_code_in
     assert all(code in range(4) for code, _, _ in results.values())
 
 
+def test_main_2949_writes_a_reason_holding_both_the_fail_output_and_the_prediction_note_of_a_red_revise_report_that_says_diverged(monkeypatch, capsys, red_divergence):
+    revise_report = (
+        "OUTCOME: revised\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "PREDICTED_FAILURE: assert slug == 'a-b' fires\n"
+        "FAIL_OUTPUT: FAIL - slug is 'A B', want 'a-b'\n"
+        "PREDICTION: DIVERGED\n"
+        "PREDICTION_NOTE: the run died on a missing fixture before the assertion"
+    )
+    code, out, err = run(monkeypatch, capsys, red_divergence, revise_report, [])
+
+    assert code == 0
+    assert "FAIL - slug is 'A B', want 'a-b'" in out
+    assert "the run died on a missing fixture before the assertion" in out
+
+
 def test_main_prints_an_absent_key_as_its_label_and_a_space_prints_dollar_backtick_and_backslash_verbatim_and_lets_the_last_occurrence_of_a_key_win(monkeypatch, capsys, red_divergence):
     report = (
         "PREDICTION: MATCHED\n"
