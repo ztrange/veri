@@ -18,8 +18,23 @@ def main(argv):
     if run.returncode == 0:
         return 0
     with open(os.path.join(run_state, "verify-pin.reason"), "wb") as reason:
-        reason.write(run.stdout.rstrip(b"\n") + b"\n")
+        reason.write(bounded(run.stdout.rstrip(b"\n")) + b"\n")
     return 1
+
+
+BOUND_BYTES = 128 * 1024
+FAIL_BLOCK_LINES = 13
+
+
+def bounded(output):
+    if len(output) <= BOUND_BYTES:
+        return output
+    lines = output.split(b"\n")
+    keep = set()
+    for i, line in enumerate(lines):
+        if b" FAIL " in line:
+            keep.update(range(i, min(i + FAIL_BLOCK_LINES, len(lines))))
+    return b"\n".join(lines[i] for i in sorted(keep))
 
 
 if __name__ == "__main__":
