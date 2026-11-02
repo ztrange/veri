@@ -103,6 +103,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
         return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
+    if phase == "pin" and not branch_base:
+        return _refused("build-verify-prompt: pin needs --branch-base '<sha>'")
     fourth = test_id
     if phase == "diff":
         if not step_arg:
