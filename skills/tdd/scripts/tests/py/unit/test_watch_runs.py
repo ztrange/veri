@@ -809,3 +809,60 @@ def test_2958_main_with_target_reads_no_queue_before_the_gh_rate_limit_reset_kee
                        t != queue_reads[0]]
     assert (code, capsys.readouterr().out, reads_before_reset, gh_before_reset, len(waits) >= seconds_to_reset // 2) == (
         0, "slot-free 1/2 next 12\n", [], [], True)
+
+
+def test_2958_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_when_gh_gives_no_reset_time(
+        monkeypatch, capsys, watch_runs):
+    refusal = "gh: API rate limit exceeded for user ID 1 (HTTP 403)\n"
+
+    def run(argv, **kwargs):
+        if argv[0].endswith("solvable-issues.sh"):
+            return subprocess.CompletedProcess(argv, 2, stdout="", stderr=refusal)
+        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="gh: no route to host\n")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs.subprocess, "run", run)
+
+    try:
+        code = watch_runs.main(["--target", "2"])
+    except Exception as failure:
+        code = repr(failure)
+
+    out, err = capsys.readouterr()
+    lines = err.splitlines()
+    assert (code, out, len(lines), "rate limit" in err and "reset" in err, refusal in err) == (
+        2, "", 1, True, False)
+
+
+def test_2958_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_when_gh_rate_limit_call_exits_0_without_a_number_or_fails_with_one(
+        monkeypatch, capsys, watch_runs):
+    refusal = "gh: API rate limit exceeded for user ID 1 (HTTP 403)\n"
+    answers = {"exit 0, no number": (0, "\n"), "exit 1, a number": (1, "1000300\n")}
+    outcomes = {}
+
+    for name, (status_code, reset_out) in answers.items():
+        waits = []
+
+        def wait():
+            waits.append(1)
+            if len(waits) > 5:
+                raise RuntimeError("kept waiting")
+
+        def run(argv, **kwargs):
+            if argv[0].endswith("solvable-issues.sh"):
+                return subprocess.CompletedProcess(argv, 2, stdout="", stderr=refusal)
+            return subprocess.CompletedProcess(argv, status_code, stdout=reset_out, stderr="")
+
+        monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+        monkeypatch.setattr(watch_runs, "wait", wait)
+        monkeypatch.setattr(watch_runs.time, "time", lambda: 1_000_000.0)
+        monkeypatch.setattr(watch_runs.subprocess, "run", run)
+        try:
+            code = watch_runs.main(["--target", "2"])
+        except Exception as failure:
+            code = repr(failure)
+        out, err = capsys.readouterr()
+        outcomes[name] = (code, out, len(err.splitlines()), "rate limit" in err and "reset" in err, refusal in err)
+
+    assert outcomes == {name: (2, "", 1, True, False) for name in answers}
