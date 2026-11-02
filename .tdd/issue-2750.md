@@ -1,6 +1,8 @@
 # Plan for #2750 — PRD 014.3: status.sh --report renders /vstatus from local files, with no gh
 
-- [ ] With no `.tdd/report-cache.json` snapshot, `status.sh --report` exits 0 and prints the headings Landed, Running, Queue and Waiting in that order, Queue saying there is no snapshot and each other empty section saying "none" (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 3⟧
+- [ ] `status.sh --report` exits 0 and prints the section headings Landed, Running, Queue and Waiting, in that order (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 1⟧
+- [ ] With no `.tdd/report-cache.json` snapshot, Queue says there is no snapshot while Landed, Running and Waiting still print ⟦criterion 3⟧
+- [ ] An empty Landed, Running or Waiting section keeps its heading and says "none" ⟦criterion 1⟧
 - [ ] With a snapshot present, Queue's first line states the snapshot's age, computed from its `fetched_at` ⟦criterion 3⟧
 - [ ] Queue counts the snapshot's open opted-in (`VERI_LABEL`) issues by label ⟦criterion 1⟧
 - [ ] Queue lists each open opted-in issue the snapshot shows blocked, with the open issue blocking it, taken from that issue's `blockedBy` ⟦criterion 1⟧
@@ -9,7 +11,8 @@
 - [ ] Running lists one block headed `#<n>` for each run whose journal (`$VERI_HOME/runs/<owner>-<repo>/<n>.jsonl`) holds a `conductor-start` event whose `pid` answers `kill -0` with a start time matching its `started` ⟦criterion 1⟧
 - [ ] Running leaves out a run whose journal's `conductor-start` pid is dead or whose start time does not match `started` ⟦criterion 1⟧
 - [ ] A Running block shows the run's steps ticked of planned: its journal's `step-done` events of the latest `plan` event's `steps` ⟦criterion 1⟧
-- [ ] A Running block shows the run's phase now and the attempts in that phase, from its journal's `launch` events ⟦criterion 1⟧
+- [ ] A Running block shows the run's phase now, from its journal's latest `launch` event ⟦criterion 1⟧
+- [ ] A Running block shows the attempts in the run's current phase, from its journal's `launch` events ⟦criterion 1⟧
 - [ ] A Running block shows the run's PASS and REJECT verdict counts, from its journal's `verdict` events ⟦criterion 1⟧
 - [ ] A Running block shows the run's cost as the `| total |` row of its metrics, computed in-process from its journal ⟦criterion 1⟧
 - [ ] A Running block shows the model each role (developer, revise, verifier, conductor) ran on, computed in-process from its journal ⟦criterion 1⟧
