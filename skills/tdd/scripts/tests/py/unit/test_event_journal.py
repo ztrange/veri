@@ -388,3 +388,12 @@ def test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_
         offenders += [f"{path.relative_to(ROOT)}:{n}" for n, line in enumerate(text.splitlines(), 1)
                       if (SH_DELETES_OR_COPIES if path.suffix == ".sh" else PY_DELETES_OR_COPIES).search(line)]
     assert offenders == []
+
+
+@pytest.mark.tree_audit("every non-test .py and .sh file under skills/ that names $VERI_HOME")
+def test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_there():
+    namers = sorted(
+        str(path.relative_to(ROOT)) for path in (ROOT / "skills").rglob("*")
+        if path.suffix in (".py", ".sh") and "tests" not in path.relative_to(ROOT).parts
+        and ("VERI_HOME" in path.read_text(errors="replace") or "/.veri/" in path.read_text(errors="replace")))
+    assert namers == ["skills/tdd/scripts/veri/event.py"]

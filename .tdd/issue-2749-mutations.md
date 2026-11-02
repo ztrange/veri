@@ -203,3 +203,13 @@ new 90
 command 321
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_transcript_there
 
+file 33
+skills/tdd/scripts/veri/status.py
+old 6
+import
+new 18
+# VERI_HOME
+import
+command 310
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_there
+
