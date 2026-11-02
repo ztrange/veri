@@ -1,0 +1,12 @@
+# Plan for #2867 — check-earlier misses an assertion deleted from a helper a frozen case calls, so a verified refactor's re-recorded case is silently weakened
+
+- [ ] Go: after a verified refactor moves a frozen case's assertion lines into a helper defined before the case and `rerecord-refactored` re-records it, a later commit that deletes one `t.Fatal` line from that helper makes `check-earlier` exit 1 naming the case (a git repo in tmp_path: a medium case marked process) ⟦criterion 1⟧
+- [ ] Python: after a verified refactor moves a frozen pytest case's `assert` lines into a `def` helper defined above the case and `rerecord-refactored` re-records it, a later commit that deletes one `assert` line from that helper makes `check-earlier` exit 1 naming the case (a git repo in tmp_path: a medium case marked process) ⟦criterion 1⟧
+- [ ] A helper the re-recorded frozen case does not call, added after the record, leaves `check-earlier` at 0 (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧
+- [ ] A helper the re-recorded frozen case does not call, changed after the record including a deleted assertion line, leaves `check-earlier` at 0 (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧
+- [ ] A change to a helper the re-recorded frozen case calls that keeps every one of its assertion lines leaves `check-earlier` at 0 (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧
+- [ ] A record written without helper data, as today's records are, passes `check-earlier` at 0 when nothing changed (a git repo in tmp_path: a medium case marked process) ⟦criterion 3⟧
+- [ ] A record written without helper data, as today's records are, makes `check-earlier` exit 1 naming the case when the case body changes (a git repo in tmp_path: a medium case marked process) ⟦criterion 3⟧
+- [ ] A step record that holds helper data still reads as well-formed: `tests-frozen.sh check <record-file>` exits 0 on it when no test file changed, never 2 for a malformed record (a git repo in tmp_path: a medium case marked process)
+- [ ] A helper assertion line deleted after the re-record stays flagged across a later `rerecord-refactored`: that later re-record does not absorb the deletion into the record, and `check-earlier` still exits 1 naming the case (a git repo in tmp_path: a medium case marked process)
+- [ ] Go-red control: with `check-earlier` inspecting only the case body, the helper-deletion case goes red, watched and restored ⟦human-owed⟧ ⟦criterion 4⟧
