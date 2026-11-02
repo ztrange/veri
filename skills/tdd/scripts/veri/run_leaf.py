@@ -18,7 +18,7 @@ GUARD = os.path.join(paths.scripts_of(__file__), "leaf-guard")
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
-def leaf_argv(binary, model, prompt, extra):
+def leaf_argv(binary, model, extra):
     argv = [binary or "claude", "-p",
             "--output-format", "stream-json", "--verbose"] + context_limits()
     if model and "--model" not in extra:
@@ -102,7 +102,7 @@ def main(argv):
         if tunables.read("VERI_SHIM_SET_COERCE") == "1":
             env.pop("VERI_SHIM_SET_COERCE", None)
             env.pop("PYTHONCOERCECLOCALE", None)
-        command = leaf_argv(binary, model, prompt, argv[1:])
+        command = leaf_argv(binary, model, argv[1:])
         try:
             leaf = subprocess.Popen(command, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, env=env,
