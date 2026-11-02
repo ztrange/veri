@@ -1,0 +1,2 @@
+### After `pin-recheck.sh` replays a before/keep record whose `command` is red on the restored files, the working tree is byte-identical to before the call: every restored file holds its prior bytes, a file absent at the `before` sha exists again, and the `keep` file is unchanged ⟦criterion 5⟧
+- replay_before's restore loop could use try/finally so an exception during the run still restores files; this changes behavior, not a pure refactor
