@@ -21,3 +21,4 @@
 - [x] a merge through queued-merge.sh given the tag message - emits merged with pr and with tag and message empty ⟦criterion 7⟧
 - [x] nothing in skills/ outside the tests deletes from $VERI_HOME, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
 - [x] no leaf transcript is copied into $VERI_HOME: the only thing written there is an event line, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_skill_leaf_env.py — FAILED test_every_leaf_skill_md_launches_through_supervise_sh_sees_the_runs_test_command_as_veri_test_cmd: SKILL.md:624 develop-over-budget saw VERI_TEST_CMD=<no leaf ran> ⟦suite-repair⟧ ⟦criterion 8⟧
