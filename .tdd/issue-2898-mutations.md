@@ -43,3 +43,12 @@ if True]
 command 389
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwqraow7o/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_a_python_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assert_into_assert_refused_2898
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 53
+                helper_digests[(name, case)] = digest
+new 20
+                pass
+command 371
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwqraow7o/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_leaves_check_earlier_at_exit_1_when_an_assertion_is_deleted_from_assert_refused_after_a_successful_re_record_2898
+
