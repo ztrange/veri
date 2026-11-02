@@ -317,6 +317,9 @@ def running_lines():
             plans = [e for e in events if e.get("event") == "plan"]
             if plans:
                 name += " %d/%s" % (sum(1 for e in events if e.get("event") == "step-done"), plans[-1]["steps"])
+            launches = [e for e in events if e.get("event") == "launch"]
+            if launches:
+                name += " " + launches[-1]["phase"]
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
