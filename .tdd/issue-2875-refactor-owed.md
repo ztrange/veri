@@ -1,0 +1,3 @@
+### A record whose unmutated run printed only `ok  \t<pkg>\t<time>` and whose mutated run exits non-zero printing a Go test failure (`--- FAIL:` and `FAIL\t<pkg>\t<time>`) counts as red: pin-recheck.sh exits 0, prints no `needs a look`, and the recorded file is restored byte for byte ⟦criterion 1⟧
+- extract the inline `git(*words)` helper that the three `test_2875_*` cases and the older cases each re-define into one module-level helper in `test_pin_recheck_process.py`
+- extract the inline `git(*words)` helper that the three `test_2875_*` cases and the older cases each re-define into one module-level helper in `test_pin_recheck_process.py`

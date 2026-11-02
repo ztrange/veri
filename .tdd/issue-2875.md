@@ -1,6 +1,6 @@
 # Plan for #2875 — pin-recheck counts a Go pin that fails its assertion as a kill, and still reports a mutation that does not compile
 
-- [x] A record whose unmutated run printed only `ok  \t<pkg>\t<time>` and whose mutated run exits non-zero printing a Go test failure (`--- FAIL:` and `FAIL\t<pkg>\t<time>`) counts as red: pin-recheck.sh exits 0, prints no `needs a look`, and the recorded file is restored byte for byte ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A record whose unmutated run printed only `ok  \t<pkg>\t<time>` and whose mutated run exits non-zero printing a Go test failure (`--- FAIL:` and `FAIL\t<pkg>\t<time>`) counts as red: pin-recheck.sh exits 0, prints no `needs a look`, and the recorded file is restored byte for byte ⟦criterion 1⟧
 - [ ] A record whose unmutated run printed only `ok  \t<pkg>\t<time>` and whose mutated run exits non-zero printing Go's `FAIL\t<pkg> [build failed]` still prints `needs a look: <file> (mutation did not build)` on stdout and exits 1 ⟦criterion 2⟧
 - [ ] The non-Go behaviours of #2827 still hold: the branch leaves unchanged the existing test_2827 cases of skills/tdd/scripts/tests/py/test_pin_recheck_process.py, under which a mutated run printing only `error: build failed` against an unmutated run's result line is unbuilt (exit 1) and one still printing the unmutated run's result lines is red (exit 0) ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] Go-red control: with the Go test-failure recognition removed, the first criterion's case goes red; restore it ⟦human-owed⟧ ⟦criterion 4⟧
