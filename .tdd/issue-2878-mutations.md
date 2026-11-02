@@ -65,3 +65,12 @@ r"\bZZZ[A-Z]\w*"
 command 347
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_bare_test_form_to_a_red_over_that_case
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 60
+        yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
+new 12
+        pass
+command 355
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py bash -c make test TESTS="skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite_case_form_to_a_red_over_that_case"
+
