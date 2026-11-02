@@ -17,10 +17,6 @@ MARKERS = (
 )
 
 ALLOWED = {
-    "unit/test_skill_refactor_kind.py::test_skill_md_puts_mutation_parity_sh_s_report_into_the_pr_body_as_the_pairs_table_and_each_row_it_reports_owed_under_owed_by_a_human":
-        "windows around every mutation-parity.sh in the document",
-    "unit/test_skill_refactor_kind.py::test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report_into_the_pr_body_template_…":
-        "windows around every mutation-parity.sh in the document",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "document-wide site list",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
