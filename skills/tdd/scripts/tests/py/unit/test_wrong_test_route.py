@@ -843,9 +843,8 @@ def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for
 
 
 def test_main_1862_prints_supersede_naming_every_older_case_a_green_report_lists_as_superseded_when_a_step_changes_a_usage_string_two_of_them_compare_against(
-        run_cli, tmp_path, monkeypatch):
+        run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
-    tests_frozen = importlib.import_module("veri.tests_frozen")
     suite = tmp_path / "tests" / "py"
     suite.mkdir(parents=True)
     added = "test_main_prints_the_usage_with_not_running"
@@ -855,11 +854,6 @@ def test_main_1862_prints_supersede_naming_every_older_case_a_green_report_lists
         "def %s():\n    assert USAGE\n\n"
         "def %s():\n    assert USAGE\n\n"
         "def %s():\n    pass\n" % (first, second, added))
-    (tmp_path / ".tdd").mkdir()
-    step = "solvable-issues.sh usage mentions --not-running"
-    monkeypatch.setenv("VERI_STEP", step)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
 
@@ -2800,9 +2794,8 @@ def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare
 
 
 def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_name_from_go_test_files(
-        run_cli, tmp_path, monkeypatch):
+        run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
-    tests_frozen = importlib.import_module("veri.tests_frozen")
     (tmp_path / "pkg").mkdir()
     (tmp_path / "pkg" / "foo_test.go").write_text(
         "package pkg\n\nimport \"testing\"\n\n"
@@ -2811,11 +2804,6 @@ def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_na
     (tmp_path / "pkg" / "bar_test.go").write_text(
         "package pkg\n\nimport \"testing\"\n\n"
         "func TestSecond(t *testing.T) {\n}\n")
-    (tmp_path / ".tdd").mkdir()
-    step = "go cases are superseded together"
-    monkeypatch.setenv("VERI_STEP", step)
-    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
-    (tmp_path / record_path.rstrip("\n")).write_text("case: TestAdded\n")
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nSUPERSEDED: TestFirst\nSUPERSEDED: TestSecond\n")
 
