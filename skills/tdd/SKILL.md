@@ -486,7 +486,10 @@ three times over branches its ledger pinned on later lines.
    plan commit holds it (`git show <plan-sha>:.tdd/issue-<n>.md` into a temp file). `<plan-sha>` is the
    newest plan commit, as `git log --format='%H %s' | $S/ledger-growth.sh plan-sha` prints it: after a
    verify-plan REJECT, the `plan: rewrite` commit is that baseline, so a rewritten plan's own lines
-   are never checked as added. Each step line the plan commit did not hold must have a matching
+   are never checked as added. A plan step the conductor rewords after the plan commit and before
+   verify-plan is committed the same way, as `plan: rewrite #<n> …` (the form step 2c gives), never under
+   another subject: `plan-sha` takes only `plan: scope` and `plan: rewrite` as a baseline, so the
+   reworded plan becomes the baseline. Each step line the plan commit did not hold must have a matching
    record written by `add-ledger-step.sh` itself, never one the conductor wrote by hand with
    `event.sh`. The records the check reads are the ones `ledger-growth.sh` reads: the tracked
    `.tdd/issue-<n>-added.md` that `add-ledger-step.sh` writes, and the run's `step-added` events
@@ -501,6 +504,12 @@ three times over branches its ledger pinned on later lines.
    ledger, plan file or record, a bad `VERI_STEP_GROWTH`, no plan commit for `plan-sha`) — is **a bail
    with cause `no-verdict`** (a system failure), never `step-added-off-route`, and no commit is
    made over it (see `<base directory>/BAIL.md`).
+   The growth check and the ledger commit are never one chained command. Run the check and keep its
+   exit status, then commit only when that status is 0:
+   ```
+   $S/ledger-growth.sh <plan-ledger-file> .tdd/issue-<n>.md; rc=$?
+   [ "$rc" != 0 ] || { git add … && git commit …; }
+   ```
 3. **Push the branch and open the draft PR** — the run's claim, made as the first act after
    the plan commit, from inside the worktree:
    ```
