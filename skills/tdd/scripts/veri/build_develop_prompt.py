@@ -21,6 +21,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
+ACCEPTED_WANT = {**WANT, "dual-stub": 4}
 WANT_PHASES = "|".join(PHASES)
 REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("rebase",)
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
@@ -54,10 +55,10 @@ def main(argv):
     if not argv:
         return _refuse()
     phase = argv[0]
-    if phase not in PHASES:
+    if phase not in ACCEPTED_WANT:
         return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
-    if len(argv) < WANT[phase]:
-        return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
+    if len(argv) < ACCEPTED_WANT[phase]:
+        return _refuse(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}")
     args = argv[1:]
     revised_phase = ""
     if phase == "revise":

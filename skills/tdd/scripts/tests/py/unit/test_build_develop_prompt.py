@@ -1977,3 +1977,44 @@ def test_main_renders_a_beside_prompt_that_adds_the_new_interface_beside_the_old
             b"Move no caller" in prompt,
             b"Never modify a test file: a beside commit that touches one is rejected" in prompt) == (
         True, True, True, True, True, True), out
+
+
+def test_main_renders_a_dual_stub_prompt_that_changes_only_tests_each_edited_case_stubs_both_transports_and_weakens_no_assertion_2826(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    code = build_develop_prompt.main(["dual-stub", str(spec), "QWIXTLE: zorblat quuxes", "make test"])
+    out, err = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, err) == (0, b""), err
+    assert (b"develop-dual-stub" in out, b"QWIXTLE: zorblat quuxes" in out,
+            b"stubs the new one" in prompt or b"stub the new one" in prompt,
+            b"unmoved production code" in prompt,
+            b"remove or weaken no assertion" in prompt or b"no assertion removed or weakened" in prompt,
+            b"Never modify a production file: a dual-stub commit that touches one is rejected" in prompt) == (
+        True, True, True, True, True, True), out
+
+
+def test_main_renders_a_dual_stub_prompt_that_runs_the_affected_suites_and_reports_transform_and_suite_2826(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    code = build_develop_prompt.main(["dual-stub", str(spec), "QWIXTLE: zorblat quuxes", "make test"])
+    out, err = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, err) == (0, b""), err
+    assert (b"affected '<the suites you ran>'" in prompt,
+            b"They must stay green" in prompt,
+            b"TRANSFORM: <the refactoring applied" in prompt,
+            b"SUITE: GREEN | RED" in prompt) == (True, True, True, True), out
+
+
+def test_cli_dual_stub_with_too_few_arguments_exits_2_naming_the_four_it_needs_and_prints_no_prompt_2826(
+        tmp_path, run_cli, build_develop_prompt):
+    code, out, err = run_cli(build_develop_prompt, ["dual-stub", _spec(tmp_path), "QWIXTLE: zorblat quuxes"])
+
+    assert (code, out, "dual-stub needs 4 arguments, got 3" in err) == (2, "", True), err
