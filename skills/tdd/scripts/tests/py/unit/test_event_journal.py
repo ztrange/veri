@@ -333,3 +333,33 @@ def test_done_still_records_wall_and_awake_seconds_when_the_log_holds_a_line_of_
 
     done = json.loads((clone / ".tdd" / "events.jsonl").read_bytes().splitlines()[-1])
     assert (code, done.get("wall_seconds"), done.get("awake_seconds")) == (0, "440", "440")
+
+
+def test_done_records_lane_equal_to_the_veri_label_metrics_prints_on_its_lane_line(tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+    monkeypatch.setenv("VERI_LABEL", "needs-agent")
+
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100)
+
+    done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+    assert (code, done.get("lane")) == (0, "needs-agent")
+
+
+def test_done_records_lane_ready_for_agent_when_veri_label_is_set_to_an_empty_string(tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+    monkeypatch.setenv("VERI_LABEL", "")
+
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100)
+
+    done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+    assert (code, done.get("lane")) == (0, "ready-for-agent")
