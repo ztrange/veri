@@ -1,0 +1,2 @@
+### `rerun-alone.sh '<alone-cmd>' <red-output-file>` runs each test file the red output names alone once, through `sh -c '<alone-cmd>' sh <file>` (the file as `$1`), and exits 1, writing no `suite-flake` event, when any of them is still red when run alone; pinned by a process case in `skills/tdd/scripts/tests/py/test_rerun_alone_process.py` with a stub alone command that fails for one named file ⟦criterion 2⟧
+- test-only | extract the shared stub-script and red-file setup in the two process cases into a helper
