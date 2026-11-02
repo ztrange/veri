@@ -275,7 +275,7 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
 
     code = unlabel_issue.main(["7"])
 
-    assert (code, issue_labels["7"], capsys.readouterr().err) == (0, {"taken:mu", "bug"}, "")
+    assert (code, issue_labels["7"], "taken:mu" in capsys.readouterr().err) == (2, {"taken:mu", "bug"}, True)
 
 
 def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_creating_it_or_to_adding_it(monkeypatch, capsys):
@@ -283,8 +283,14 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
 
     def silent_on(step):
+        calls = []
+
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
+            read = _labels_read(args, {"7": {"ready-for-agent"}})
+            calls.append("read" if read else "change")
+            if read:
+                return read
             if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
                 if step == "create":
                     return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
@@ -299,9 +305,9 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
         monkeypatch.setattr(subprocess, "run", fake_run)
         code = unlabel_issue.main(["7"])
         err = capsys.readouterr().err
-        return code, "unlabel-issue.sh" in err, "taken:main" in err, "#7" in err
+        return code, "unlabel-issue.sh" in err, "taken:main" in err, "#7" in err, calls[:1] == ["read"]
 
-    assert [silent_on("create"), silent_on("add")] == [(2, True, True, True)] * 2
+    assert [silent_on("create"), silent_on("add")] == [(2, True, True, True, True)] * 2
 
 
 
@@ -393,3 +399,24 @@ def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_an
     code = unlabel_issue.main(["7"])
 
     assert (code, issue_labels["7"], "taken:main" in capsys.readouterr().err) == (2, set(), True)
+
+
+def test_main_2966_exits_2_and_changes_no_label_when_the_issue_already_carries_a_taken_label(monkeypatch):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    labels = {"7": {"ready-for-agent", "taken:mu"}}
+    changes = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        read = _labels_read(args, labels)
+        if read:
+            return read
+        changes.append(" ".join(args))
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, changes) == (2, [])

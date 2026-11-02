@@ -1,5 +1,6 @@
 """unlabel-issue.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import subprocess
 import sys
 import urllib.parse
@@ -25,6 +26,12 @@ def main(argv):
         return _refuse("issue number must be numeric, got '%s'" % argv[0])
     opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
     label = urllib.parse.quote(opt_in, safe="")
+    read = github.gh_api("repos/{owner}/{repo}/issues/%s/labels" % argv[0], stderr=subprocess.PIPE)
+    if read.returncode != 0:
+        return _refuse("no answer to reading the labels of issue #%s: %s" % (argv[0], read.stderr.strip()))
+    held = [item["name"] for item in json.loads(read.stdout) if item["name"].startswith("taken:")]
+    if held:
+        return _refuse("issue #%s already carries %s" % (argv[0], ", ".join(held)))
     run = github.gh_api_delete("repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label))
     if run.returncode != 0 and "404" not in run.stderr:
         if "HTTP" in run.stderr:
