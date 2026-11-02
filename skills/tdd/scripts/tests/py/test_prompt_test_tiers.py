@@ -236,7 +236,7 @@ def test_verify_red_green_refactor_and_pin_run_their_test_commands_through_timed
     verify_red = build(problems, VERIFY, "red", spec, "tests/zorblat.test.sh", "zorblat case")
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
     verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
-    verify_pin = build(problems, VERIFY, "pin", spec, "tests/zorblat.test.sh", "zorblat case")
+    verify_pin = build(problems, VERIFY, "--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")
     timed_through(problems, "verify-red", verify_red, "affected")
     timed_through(problems, "verify-green", verify_green, "fast", "affected")
     timed_through(problems, "verify-refactor", verify_refactor, "fast", "affected")
@@ -332,7 +332,7 @@ def test_1702_no_prompt_asking_for_an_affected_run_leaves_the_command_a_placehol
         ("verify-red", verify(problems, "red", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-green", verify(problems, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-refactor", verify(problems, "--fast-cmd", "make unit", "refactor", spec, "tests/zorblat.test.sh", sha)),
-        ("verify-pin", verify(problems, "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-pin", verify(problems, "--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-transform", verify(problems, "transform", spec, "tests/zorblat.test.sh", sha)),
         ("verify-diff", verify(problems, "--step", step, "--fast-cmd", "make unit", "diff", spec, sha, "4567def")),
     ]
