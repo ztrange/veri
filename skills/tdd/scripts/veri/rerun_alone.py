@@ -13,7 +13,7 @@ def main(argv):
         return 2
     with open(argv[1], errors="replace") as red:
         text = red.read()
-    files = re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^FAILED (\S+?\.py)::", text, re.M)
+    files = re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^(?:FAILED|ERROR) (\S+?\.py)::", text, re.M)
     if not files:
         return 1
     cmd = argv[0] if '"$1"' in argv[0] else argv[0] + ' "$1"'
