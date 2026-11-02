@@ -626,7 +626,7 @@ def _called_helpers(rev, name, body):
 
 def _helpers_in(text, body):
     helpers = []
-    for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!(?:func|def)\b).*\n?)*", text, re.M):
+    for definition in re.finditer(r"^(?:function|func|def)\s+(\w+)[^\n]*\n(?:(?!(?:function|func|def)\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
             helpers.append(definition.group())
     return "\n".join(helpers)
