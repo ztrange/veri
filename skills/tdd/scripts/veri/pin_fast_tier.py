@@ -32,7 +32,7 @@ LINE_CAP_BYTES = 1024
 def bounded(output):
     if len(output) <= BOUND_BYTES:
         return output
-    lines = [line[:LINE_CAP_BYTES] for line in output.split(b"\n")]
+    lines = [line[-LINE_CAP_BYTES:] for line in output.split(b"\n")]
     keep = set()
     kept_bytes = 0
     for i, line in enumerate(lines):
