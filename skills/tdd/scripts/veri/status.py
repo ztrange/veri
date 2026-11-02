@@ -250,10 +250,14 @@ def watch_loop(seconds, as_json, scope):
         time.sleep(seconds)
 
 
+def read_snapshot():
+    with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
+        return json.load(f)
+
+
 def snapshot_line():
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
-            fetched = json.load(f)["fetched_at"]
+        fetched = read_snapshot()["fetched_at"]
         then = calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
     except OSError:
         return "no snapshot"
@@ -264,8 +268,7 @@ def snapshot_line():
 def queue_counts():
     label = tunables.read("VERI_LABEL", "ready-for-agent")
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
-            issues = json.load(f)["issues"]
+        issues = read_snapshot()["issues"]
     except OSError:
         return ""
     open_count = sum(1 for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]])
