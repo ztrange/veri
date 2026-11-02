@@ -497,6 +497,8 @@
 | CY112 | The exhausted contract phase is marked owed with `tick-ledger.sh --phase-owed <phase> .tdd/issue-<n>.md "<STEP>"` before the ledger is committed, so `next-phase` never hands it back; the conductor then commits the ledger and goes back to `next-unchecked.sh`. | The owed contract is never offered again, and the run continues with the next step. |
 | CY113 | A cover-new phase adds cases that call the new interface directly, and its PASS is accepted only once those cases pass against the expand commit and go red under a mutation of the new interface's behaviour. | The new interface's own tests are shown to catch a broken interface before callers move onto it. |
 | CY114 | A migrate phase does not start until the step's cover-new phase has passed. | Callers move only onto an interface that already has tests of its own. |
+| CY124 | The freeze check runs `transform-touches-tests.sh <base-sha>` on a `beside` commit and `production-frozen.sh <base-sha>` on a `dual-stub` commit, each rejection revised as a REJECT is. | `beside` is production only and `dual-stub` tests only; each is judged by its own freeze. |
+| CY125 | A `beside` phase adds the new interface and leaves the old one's behaviour unchanged, with no proxy. A `dual-stub` phase makes the cases that pin the old transport stub the new one too, and they stay green against unmoved production code. A migrate phase does not start until a listed `dual-stub` phase has passed. | With both stubs in place, moving callers turns no frozen case red, which is what made the earlier plans bail. |
 
 ## skills/tdd/REFACTOR-KIND.md
 
