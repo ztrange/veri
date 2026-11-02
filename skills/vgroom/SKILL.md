@@ -48,6 +48,18 @@ Before labelling an issue ready, run `$S/stale-rows.sh <issue>` against it:
 
 The groom never rewrites a requirement row.
 
+## Labelling bugs
+
+For a bug, propose the label by what it costs each time it occurs. The priority and low-risk
+labels are those the target repo's CLAUDE.md names.
+
+- **A repeat cost** — the bug charges money, time or tokens every time it occurs (a wasted
+  leaf, a retry, a slow suite, a re-run): propose the **priority** label.
+- **No repeat cost, and the harm is small**: propose the **low-risk** label.
+- **Any other bug**: propose **neither**.
+
+A bug that charges a repeat cost is never low-risk, however small each occurrence looks.
+
 Every subagent brief this skill writes says, in these words:
 
 - return **at most 10 lines** (P6), more only as a pointer to a file it wrote;
