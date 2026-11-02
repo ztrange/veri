@@ -52,3 +52,13 @@ not nows
 command 337
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpbywfrn84/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_the_case_when_its_body_changes_after_a_record_without_helper_data_2867
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 147
+                or ((name, case) in helper_digests
+                    and _helper_digest(text, "\n".join(nows)) != helper_digests[(name, case)])):
+new 18
+                ):
+command 356
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpbywfrn84/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_for_a_go_case_after_a_later_rerecord_refactored_over_a_t_fatal_line_deleted_from_its_helper_2867
+
