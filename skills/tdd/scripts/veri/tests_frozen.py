@@ -700,6 +700,9 @@ def rerecord_refactored(ledger, green):
                 sorted(head_lines + _assertion_lines(helpers)) \
                 != sorted(verified_lines):
             return skip(name, case, record)
+        if head_lines == verified_lines and len(_assertion_lines(helpers)) \
+                != len(_assertion_lines(_called_helpers(green, name, verified))):
+            return skip(name, case, record)
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record)
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
