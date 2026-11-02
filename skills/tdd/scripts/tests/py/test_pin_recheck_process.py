@@ -879,3 +879,29 @@ def test_2974_a_before_keep_replay_restores_a_file_the_branch_deleted_and_exits_
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "gone.txt").exists()) == (1, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record in a repo whose branch deleted a tracked file")
+def test_2974_a_before_keep_record_on_a_branch_that_deleted_a_tracked_file_replays_and_leaves_the_tree_as_found(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "gone.txt").write_text("doomed\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "gone.txt").unlink()
+    git("commit", "-q", "-am", "fix, pin and delete")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt",
+           command="test -f gone.txt && ! grep -q fixed src.txt && false || ! { test -f gone.txt && grep -q old src.txt; }")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "gone.txt").exists(), (tmp_path / "src.txt").read_bytes(),
+            (tmp_path / "pin.txt").read_bytes()) == (0, False, b"fixed behaviour\n", b"pin v1\n"), ran.stderr
