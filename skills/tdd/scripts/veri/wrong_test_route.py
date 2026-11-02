@@ -110,6 +110,16 @@ def _named_cases(report):
         yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
 
 
+def _unparseable_claim(report):
+    if any(True for _ in _named_cases(report)):
+        return False
+    for line in _lines_with(report, "WRONG_TEST:"):
+        body = line.partition(":")[2].strip()
+        if not re.match(r"none\b", body, re.IGNORECASE):
+            return True
+    return False
+
+
 def _case_name(test_id):
     return test_id.rpartition("::")[2]
 
@@ -255,6 +265,9 @@ def main(argv):
     fixture = None if case is not None or rerouted else _fixture(argv[0])
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
+        return 0
+    if case is None and not rerouted and _unparseable_claim(argv[0]):
+        write(sys.stdout, "repair " + _case_name(argv[1]))
         return 0
     if case is None:
         write(sys.stdout, "revise")

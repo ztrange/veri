@@ -106,7 +106,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
         code, stdout, stderr = run_cli(wrong_test_route, argv, cwd=ROOT)
         results.append((code, stdout, stderr))
 
-    assert results == [(3, "revise\n")] * 3 + [(2, "", usage)] * 5
+    assert results == [(0, "repair %s\n" % own_id), (3, "revise\n"), (3, "revise\n")] + [(2, "", usage)] * 5
 
 
 def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_a_red_over_the_contradicted_case(
@@ -422,6 +422,23 @@ def test_main_1736_prints_revise_when_a_real_case_is_named_only_on_lines_other_t
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_2878_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_its_case_in_bare_prose_on_a_step_not_yet_rerouted(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the red case omits the required environment stub and asserts a payload field the upstream never sends\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
 
 
 def test_main_2878_prints_revise_and_exits_3_for_a_green_report_whose_wrong_test_line_is_none(
