@@ -14,13 +14,19 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
 
 1. **It passes now.** Run the target test yourself against the current, unmodified code.
    It must **pass** — not error, not skip.
-2. **It fails under mutation.** Identify the behavior the spec criterion describes, break
-   the production code yourself with a minimal edit (remove the guard, invert the condition,
-   drop the branch) through `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the target test>`,
+2. **It fails without the behavior.** First run
+   `{{MUTATION_PROBE}} --before {{BRANCH_BASE}} --keep '{{TEST_PATH}}' -- <command that runs the target test>`.
+   It restores the production files the branch changed to the branch point, runs the target
+   test and restores the tree: the target test must **FAIL**. Only when that probe exits 2
+   because no file differs from the branch point, break the production code yourself with a
+   minimal edit (remove the guard, invert the condition, drop the branch) through
+   `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the target test>`,
    which edits, runs the command against the mutation and restores the file: the target test must **FAIL**.
    A probe exiting 2 gives no verdict, and one exiting 1 (the command still passed) is never a PASS.
-   Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes with the behavior removed
-   pins nothing: that is a REJECT.
+   Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes on the real
+   before-state, or with the behavior removed by hand when no before-state exists, pins
+   nothing: that is a REJECT naming which run stayed green ("the real before-state stays
+   green", or "the hand mutation stays green").
    Make both of those runs — the one in check 1 and the one after the mutation — through
    the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it
    belongs to:
