@@ -161,3 +161,27 @@ def test_pytest_red_output_naming_no_file_on_a_summary_line_exits_1_runs_no_alon
     assert ran.returncode == 1
     assert not ran_log.exists()
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+@pytest.mark.process("rerun-alone.sh run on pytest red output naming two files, one still red alone")
+def test_pytest_red_output_naming_two_files_one_still_red_alone_exits_1_and_writes_no_suite_flake_event_2883(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\ncase \"$1\" in *test_bar.py) exit 1;; esac\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text(
+        "FAILED skills/tdd/scripts/tests/py/test_foo.py::test_a - Failed: Timeout >30.0s\n"
+        "FAILED skills/tdd/scripts/tests/py/test_bar.py::test_b - AssertionError\n"
+        "2 failed\n"
+    )
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 1
+    assert ran_log.read_text().splitlines() == [
+        "skills/tdd/scripts/tests/py/test_foo.py",
+        "skills/tdd/scripts/tests/py/test_bar.py",
+    ]
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
