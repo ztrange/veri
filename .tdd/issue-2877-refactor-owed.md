@@ -1,2 +1,4 @@
 ### mutation-probe.sh records the command it ran as `shlex.join` of its argv (not `" ".join`), so a probe run as `bash -c '<script>'` reads back from the record with its script as one quoted word (small case in skills/tdd/scripts/tests/py/unit/test_mutation_probe.py) ⟦criterion 1⟧
 - test-only | hoist the inline `import shlex` in test_main_records_a_bash_c_probe_with_its_script_as_one_quoted_word_2877 to the module's import block
+### when mutation-probe.sh runs its command through its sibling timed-test-run.sh (argv[4] is that wrapper), the recorded command is the test command alone, `shlex.join(argv[7:])`, carrying neither the wrapper nor its per-run temp-dir path (small case in skills/tdd/scripts/tests/py/unit/test_mutation_probe.py) ⟦criterion 5⟧
+- test-only | the two new 2877 cases in test_mutation_probe.py repeat the `import shlex`, the target/record setup, the `subprocess.run` stub and the record-line lookup, so they could share a helper or fixture
