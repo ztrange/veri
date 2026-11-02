@@ -310,7 +310,10 @@ def main(argv):
     base = ""
     if words[0] == "pin":
         base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip() or "0" * 40
-    code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base)
+    issue = tunables.read("VERI_ISSUE")
+    ledger = ".tdd/issue-%s.md" % issue if issue else ""
+    code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
+                                            ledger=ledger)
     if code:
         return to_contract(code)
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:

@@ -3338,3 +3338,21 @@ def test_2900_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_the_me
 
     prompt = launched[0][1] if launched else ""
     assert (code, f"--before {base} --keep" in prompt, "{{BRANCH_BASE}}" in prompt) == (0, True, False)
+
+
+def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_so_the_prompt_lists_its_later_unchecked_steps(
+        run_cli, tmp_path, monkeypatch):
+    (tmp_path / "spec.md").write_text(SPEC)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-2916.md").write_text(
+        "- [ ] first criterion\n- [ ] second criterion\n- [ ] third criterion\n")
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine")
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--step", "first criterion", "--fast-cmd", "make unit", "green", "spec.md",
+                                  "tests/test_slugify.py"],
+                         env={"HOME": str(tmp_path), "VERI_ISSUE": "2916"}, cwd=tmp_path)
+
+    prompt = launched[0][1] if launched else ""
+    assert (code, "- second criterion" in prompt, "- third criterion" in prompt,
+            "- first criterion" in prompt) == (0, True, True, False), prompt
