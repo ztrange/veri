@@ -582,3 +582,11 @@ def test_a_mode_other_than_start_or_wait_exits_2_with_exactly_the_usage_line_on_
     (tmp_path / ".tdd").mkdir()
 
     assert run_cli(detach_command, ["bogus", "x"], cwd=tmp_path) == (2, "", USAGE)
+
+
+def test_wait_alone_on_a_red_command_whose_output_names_no_test_file_exits_1_with_the_code_2912(
+        tmp_path, run):
+    (tmp_path / ".tdd" / "red.exit").write_text("2\n")
+    (tmp_path / ".tdd" / "red.out").write_text("FAILED: something broke\n")
+
+    assert run("wait", "red", "--alone", "make test TESTS={}") == (1, "2\n", "")
