@@ -1279,3 +1279,36 @@ def test_main_renders_a_red_prompt_without_fast_cmd_byte_identical_to_the_templa
     with_env, _ = capsysbinary.readouterr()
 
     assert (plain, with_env) == (expected, expected)
+
+
+def test_main_renders_a_verify_beside_prompt_telling_the_blind_verifier_to_reject_a_diff_that_changes_the_old_interfaces_behaviour_or_makes_it_a_proxy_2826(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) is added beside frob(nitz, quux).\n")
+    step = "Interface change: add zorblat(nitz) beside frob ⟦phases: beside, cover-new, migrate⟧ ⟦criterion 2⟧"
+
+    code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "beside", str(spec),
+                                     "tests/py/test_zorblat.py", "0123abc"])
+    out, err = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, err) == (0, b""), err
+    assert (b"## Phase: verify-beside" in prompt, b"REJECT" in prompt, b"proxy" in prompt,
+            b"git diff 0123abc..HEAD" in prompt,
+            b"changes the old interface's behaviour" in prompt) == (True,) * 5, out
+
+
+def test_main_refuses_a_beside_call_without_fast_cmd_or_without_a_base_sha_with_exit_2_as_the_other_interface_phases_do_2826(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    s = str(spec)
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    assert run(["beside", s, "t", "0123abc"]) == (
+        2, b"", b"build-verify-prompt: beside needs --fast-cmd '<fast-tier test command>'\n" + USAGE)
+    assert run(["--fast-cmd", "m", "beside", s, "t"]) == (
+        2, b"", b"build-verify-prompt: beside needs <base-sha> as 7-40 lowercase hex characters, got ''\n" + USAGE)

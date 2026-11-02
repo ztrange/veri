@@ -11,9 +11,10 @@ from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")
+VERIFY_ONLY_PHASES = ("beside",)
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
-         "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
+         "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
@@ -96,7 +97,7 @@ def _refused(message=None):
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
-    if phase not in PHASES + INTERFACE_PHASES:
+    if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
         return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
