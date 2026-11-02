@@ -70,6 +70,8 @@ def flake(at, red_file, alone_file):
         for name in still_red:
             complain(f"{name} is still red alone")
         return 1
+    if not text:
+        return 1
     return event.append("", {}, "suite-flake", ["at=" + at, "files=" + ",".join(text)])
 
 
