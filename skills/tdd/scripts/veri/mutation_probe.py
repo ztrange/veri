@@ -13,7 +13,7 @@ USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 
 def before_state(argv):
     sha, keep, command = argv[1], argv[3], argv[5:]
-    names = subprocess.run(["git", "diff", "--name-only", "-z", sha], capture_output=True).stdout
+    names = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z", sha], capture_output=True).stdout
     saved = {}
     untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True).stdout
     for name in names.decode().split("\0") + untracked.decode().split("\0"):
