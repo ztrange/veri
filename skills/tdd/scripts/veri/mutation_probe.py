@@ -16,7 +16,7 @@ def before_state(argv):
     names = subprocess.run(["git", "diff", "--name-only", "-z", sha], capture_output=True).stdout
     saved = {}
     for name in names.decode().split("\0"):
-        if name and name != keep:
+        if name and name != keep and not name.startswith(".tdd/"):
             path = Path(name)
             saved[path] = path.read_bytes()
     try:
