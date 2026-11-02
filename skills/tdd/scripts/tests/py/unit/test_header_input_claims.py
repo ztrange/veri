@@ -1,7 +1,7 @@
 """In-process case: script headers state no stale input claims."""
 import re
 
-from skill_sections import ROOT
+from conftest import ROOT
 
 SCRIPTS = ROOT / "skills" / "tdd" / "scripts"
 
