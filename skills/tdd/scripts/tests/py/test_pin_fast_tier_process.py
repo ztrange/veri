@@ -1,4 +1,5 @@
 """Cases for pin-fast-tier.sh that start the real entry point."""
+import os
 import subprocess
 
 import pytest
@@ -102,3 +103,29 @@ def test_a_noisy_reason_keeps_a_fail_block_that_lies_before_the_tail_and_a_small
     assert b"early-failure-marker" in noisy_reason
     assert b"early-detail-line: expected 1 to be 2" in noisy_reason
     assert small_reason == (b" FAIL  src/s.test.ts > small-failure-marker\n  small-detail-line\n1 failed\n")
+
+
+@pytest.mark.process("pin-fast-tier.sh, build-develop-prompt.sh and run-leaf.sh chained, with a stub claude")
+def test_a_reason_file_at_the_bound_builds_a_revise_prompt_run_leaf_launches_under_arg_max_2882(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    arg_max = os.sysconf("SC_ARG_MAX")
+    fast = stub(tmp_path / "fast-noisy",
+                f"yes '    at passing-noise-frame (src/component.tsx:1:10) padding padding' | head -c {2 * arg_max}\n"
+                "echo\necho ' FAIL  src/widget.test.ts > widget > renders'\nexit 1\n")
+    claude = stub(tmp_path / "claude", "echo '{\"type\":\"result\",\"result\":\"ok\"}'\n: > \"$STUB_RAN\"\n")
+    spec = tmp_path / "spec.md"
+    spec.write_text("## Problem\nA bug.\n")
+    prompt_file = tmp_path / "revise.prompt"
+    env = {**os.environ, "CLAUDE_BIN": claude, "STUB_RAN": str(tmp_path / "ran")}
+
+    subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True)
+    built = subprocess.run([str(SCRIPTS / "build-develop-prompt.sh"), "revise", "red", str(spec), "step", "make unit",
+                            str(tmp_path / ".tdd" / "verify-pin.reason")],
+                           cwd=tmp_path, capture_output=True, env=env)
+    prompt_file.write_bytes(built.stdout)
+    launched = subprocess.run([str(SCRIPTS / "run-leaf.sh"), str(prompt_file)], cwd=tmp_path,
+                              capture_output=True, env=env)
+
+    assert built.returncode == 0, built.stderr
+    assert prompt_file.stat().st_size < arg_max
+    assert (launched.returncode, (tmp_path / "ran").exists()) == (0, True), launched.stderr
