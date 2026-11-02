@@ -766,3 +766,46 @@ def test_2832_main_keeps_watching_a_started_run_whose_run_conductor_process_work
     code = watch_runs.main(["--max-wait", "6"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_2958_main_with_target_reads_no_queue_before_the_gh_rate_limit_reset_keeps_its_process_checks_then_prints_slot_free(
+        monkeypatch, capsys, watch_runs):
+    start, seconds_to_reset = 1_000_000.0, 300
+    reset = start + seconds_to_reset
+    now = [start]
+    queue_reads, other_gh_calls, waits = [], [], []
+
+    def wait():
+        waits.append(now[0])
+        now[0] += 2
+        if len(waits) > 500:
+            raise RuntimeError("never printed slot-free")
+
+    def run(argv, **kwargs):
+        if argv[0].endswith("solvable-issues.sh"):
+            queue_reads.append(now[0])
+            if now[0] < reset:
+                return subprocess.CompletedProcess(
+                    argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+            return subprocess.CompletedProcess(argv, 0, stdout="12 ready\n", stderr="")
+        other_gh_calls.append((now[0], argv))
+        out = "%d\n" % reset if ".resources.core.reset" in argv else json.dumps(
+            {"resources": {"core": {"remaining": 0, "reset": int(reset)}}})
+        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0])
+    monkeypatch.setattr(watch_runs.time, "time", lambda: now[0])
+    monkeypatch.setattr(watch_runs.subprocess, "run", run)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    try:
+        code = watch_runs.main(["--target", "2"])
+    except RuntimeError:
+        code = "never printed slot-free"
+
+    reads_before_reset = [t for t in queue_reads[1:] if t < reset]
+    gh_before_reset = [t for t, _ in other_gh_calls if t >= queue_reads[0] and t < reset and
+                       t != queue_reads[0]]
+    assert (code, capsys.readouterr().out, reads_before_reset, gh_before_reset, len(waits) >= seconds_to_reset // 2) == (
+        0, "slot-free 1/2 next 12\n", [], [], True)

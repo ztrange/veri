@@ -44,6 +44,12 @@ def solvable_issues():
     return [line.split()[0] for line in done.stdout.splitlines() if line.strip()]
 
 
+def seconds_to_rate_limit_reset():
+    done = subprocess.run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"],
+                          capture_output=True, text=True)
+    return int(done.stdout) - time.time()
+
+
 _pause = 2
 
 
@@ -78,15 +84,19 @@ def main(argv):
     _pause = 2 if max_wait is None else min(2, max_wait)
     deadline = clock() + max_wait if max_wait is not None else None
     missed = set()
+    no_read_before = 0
     while True:
         wait()
         live = live_conductors()
-        if target is not None and len(live) < target:
+        if target is not None and len(live) < target and clock() >= no_read_before:
             try:
                 solvable = solvable_issues()
             except QueueUnreadable as failure:
                 sys.stderr.write(str(failure))
-                return 2
+                if "rate limit" not in str(failure):
+                    return 2
+                no_read_before = clock() + seconds_to_rate_limit_reset()
+                solvable = []
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0
