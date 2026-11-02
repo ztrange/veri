@@ -338,6 +338,8 @@ def running_lines():
             dollars = sum(e["total_cost_usd"] for e in of("usage"))
             if dollars:
                 name += " | total | $%.2f" % dollars
+                if since is not None:
+                    name += " +$%.2f" % sum(e["total_cost_usd"] for e in of("usage") if e["ts"] > since)
             models = {}
             for e in launches:
                 if "model" in e:
