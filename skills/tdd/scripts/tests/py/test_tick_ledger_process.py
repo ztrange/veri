@@ -240,6 +240,33 @@ def test_ticking_a_step_whose_recorded_case_was_renamed_before_its_commit_record
     assert (recorded, ticked, names) == (0, 0, ["test_renamed_2825"])
 
 
+@pytest.mark.process("a real git repository under tmp_path, its step recorded then its pinned case renamed before the commit, the tick run from a subdirectory")
+def test_ticking_from_a_subdirectory_a_step_whose_recorded_case_was_renamed_before_its_commit_records_the_renamed_title_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "nested").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a pinned case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_pinned_2825():\n    assert 1 == 2\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_renamed_2825():\n    assert 1 == 2\n")
+
+    ticked = run_cli(tick_ledger, [str(ledger), step], cwd=tmp_path / "nested")[0]
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    names = sorted(line[6:] for line in record.splitlines() if line.startswith("case: "))
+
+    assert (recorded, ticked, names) == (0, 0, ["test_renamed_2825"])
+
+
 @pytest.mark.process("a real git repository under tmp_path, its step recorded with a same-bodied sibling and a pinned case, then the pinned case deleted before the tick")
 def test_ticking_a_step_whose_pinned_case_has_a_same_bodied_sibling_or_is_gone_leaves_its_record_untouched_2825(
         tmp_path, run_cli):

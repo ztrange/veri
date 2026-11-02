@@ -580,12 +580,23 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def _checkout_root():
+    path = os.path.abspath(os.curdir)
+    while not os.path.exists(os.path.join(path, ".git")):
+        parent = os.path.dirname(path)
+        if parent == path:
+            return None
+        path = parent
+    return path
+
+
 def follow_renames(step):
-    record = _record_path(_unphased(step))
-    if not os.path.exists(record):
+    root = _checkout_root()
+    if root is None:
         return
-    root = _toplevel()
-    path = os.path.join(root, record)
+    path = os.path.join(root, _record_path(_unphased(step)))
+    if not os.path.exists(path):
+        return
     with open(path) as handle:
         lines = handle.read().splitlines()
     out = []
