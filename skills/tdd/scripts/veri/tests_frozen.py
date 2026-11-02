@@ -469,10 +469,7 @@ def _check_earlier(ledger, step, exempt=()):
     latest = {}
     helper_digests = {}
     for owner, _, records in _earlier_records(lines, step):
-        for record in records:
-            if record.startswith("helpers: "):
-                name, case, digest = record[9:].split("\t")
-                helper_digests[(name, case)] = digest
+        helper_digests.update(_helper_records(records))
         bodies = [r for r in map(_body_record, records) if r]
         marked = "format: 2" in records
         for name, case, digest in bodies:
@@ -533,6 +530,13 @@ def _write_record(path, out):
         write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
         return False
     return True
+
+
+def _helper_records(records):
+    for record in records:
+        if record.startswith("helpers: "):
+            name, case, digest = record[9:].split("\t")
+            yield (name, case), digest
 
 
 def _rewrite_records(earlier, rewrite):
@@ -660,10 +664,7 @@ def rerecord_refactored(ledger, green):
 
     recorded_helpers = {}
     for _, __, records in _earlier_records(lines, ""):
-        for record in records:
-            if record.startswith("helpers: "):
-                name, case, digest = record[9:].split("\t")
-                recorded_helpers[(name, case)] = digest
+        recorded_helpers.update(_helper_records(records))
 
     def skip(name, case, record):
         write(sys.stderr, "skipped: %s %s" % (name, case))
