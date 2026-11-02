@@ -21,3 +21,19 @@ def test_red_output_naming_no_test_file_exits_1_and_runs_no_alone_command_2905(t
 
     assert ran.returncode == 1
     assert not ran_log.exists()
+
+
+@pytest.mark.process("rerun-alone.sh run on red output naming two files, one still red alone")
+def test_a_file_still_red_alone_exits_1_and_writes_no_suite_flake_event_2905(tmp_path):
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\ncase \"$1\" in *b.test.ts) exit 1;; esac\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text("FAIL src/a.test.ts\nFAIL src/b.test.ts\n2 failed\n")
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 1
+    assert sorted(ran_log.read_text().split()) == ["src/a.test.ts", "src/b.test.ts"]
+    assert not list(tmp_path.rglob("*events*"))
