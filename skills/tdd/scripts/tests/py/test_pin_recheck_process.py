@@ -526,3 +526,24 @@ def test_2876_after_the_control_run_of_a_command_that_runs_no_test_the_pinned_fi
     subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (tmp_path / "guard.txt").read_bytes() == original
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run fails, so no control run happens")
+def test_2876_a_mutated_run_that_fails_makes_no_control_run_so_the_command_never_sees_the_control_content(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="echo result; head -c 7 guard.txt >> ../runs.log; echo >> ../runs.log; grep -q 'if guard' guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path.parent / "runs.log").read_bytes()) == (0, b"if guar\nif (tru\n")

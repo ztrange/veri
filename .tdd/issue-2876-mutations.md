@@ -27,3 +27,14 @@ control = run_captured(pin["command"])
 command 334
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpyvaw57ez/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_2876_after_the_control_run_of_a_command_that_runs_no_test_the_pinned_file_holds_its_original_bytes
 
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old 48
+        if green:
+            path.write_bytes(b
+new 47
+        if True:
+            path.write_bytes(b
+command 332
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpyvaw57ez/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_2876_a_mutated_run_that_fails_makes_no_control_run_so_the_command_never_sees_the_control_content
+
