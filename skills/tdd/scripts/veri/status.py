@@ -313,7 +313,11 @@ def running_lines():
         except OSError:
             continue
         if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
-            blocks.append("#" + os.path.basename(path)[:-len(".jsonl")])
+            name = "#" + os.path.basename(path)[:-len(".jsonl")]
+            plans = [e for e in events if e.get("event") == "plan"]
+            if plans:
+                name += " %d/%s" % (sum(1 for e in events if e.get("event") == "step-done"), plans[-1]["steps"])
+            blocks.append(name)
     return "\n".join(blocks) or "none"
 
 
