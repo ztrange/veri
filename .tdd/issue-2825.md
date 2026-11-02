@@ -1,4 +1,5 @@
 # Plan for #2825 — tests-frozen rerecord-rebased crashes (KeyError) on a recorded case title renamed before its step's commit
 
 - [x] `tests-frozen.sh rerecord-rebased`, given a ticked earlier step's frozen record naming a case title that the recorded test file at HEAD does not hold, exits 2 with a stderr line naming that record file and the missing title, and no `KeyError` traceback ⟦criterion 1⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_watch_runs_process.py — FAILED test_target_slot_is_taken_by_a_live_conductor_that_has_not_written_a_launch_event_2388 - AssertionError: watch-runs.sh: RuntimeError: stale tunables (at tunables.py:2) ⟦suite-repair⟧ ⟦criterion 2⟧
 - [ ] When a step is ticked green with `tick-ledger.sh --refactor-pending`, its frozen record names each case by the title its test file holds at the tick (the title the step's green commit carries), so a case renamed after the step's `tests-frozen.sh record --step` and before its green commit is recorded under its renamed title, not the pre-rename one ⟦criterion 2⟧
