@@ -1,5 +1,6 @@
 """build-verify-prompt.sh's argument checks and rendering, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import itertools
 import os
 import paths
 import re
@@ -76,8 +77,13 @@ def _expand(text, prompts, chain=()):
     return out + text
 
 
+def _later_steps(ledger, step_arg):
+    unchecked = [line[6:] for line in _read(ledger).decode().split("\n") if line.startswith("- [ ] ")]
+    return list(itertools.dropwhile(lambda text: text != step_arg, unchecked))[1:]
+
+
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--branch-base": ""}
+    options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": ""}
     while argv[:1] and argv[0] in options:
         if len(argv) < 2 or not argv[1]:
             return _refuse(f"build-verify-prompt: {argv[0]} needs a value")
@@ -87,7 +93,8 @@ def main(argv):
         return _refuse()
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
-    code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"])
+    code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
+                      ledger=options["--ledger"])
     sys.stdout.buffer.write(out)
     return code
 
@@ -99,7 +106,7 @@ def _refused(message=None):
     return _refuse(message), b""
 
 
-def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base=""):
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger=""):
     if branch_base and not _HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
@@ -169,6 +176,10 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         step_block = (b"### The step under judgement\n\n" + step + b"\n\n"
                       b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
                       b"criteria belong to other steps of the plan.\n\n")
+        later = _later_steps(ledger, step_arg) if phase == "green" and ledger else []
+        if later:
+            step_block += (b"### The ledger's later unchecked steps\n\n"
+                           + b"\n".join(b"- " + os.fsencode(text) for text in later) + b"\n\n")
     out = template
     written = b"**one new failing test**"
     if phase == "red" and is_replaces_case_step(step_arg):
