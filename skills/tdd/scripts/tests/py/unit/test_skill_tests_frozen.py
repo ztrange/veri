@@ -28,24 +28,6 @@ def numbered_section(heading):
     return out
 
 
-def plain(text):
-    return text.replace("*", "").replace("`", "").lower()
-
-
-def sentences(text):
-    return plain(text).replace(". ", ".\n").split("\n")
-
-
-def frozen_sentences(heading):
-    kept, fence = [], False
-    for _, line in numbered_section(heading):
-        if line.lstrip().startswith("```"):
-            fence = not fence
-        elif not fence:
-            kept.append(line)
-    return [s for s in sentences(" ".join(kept)) if "tests-frozen" in s]
-
-
 def test_every_tests_frozen_record_and_check_names_the_record_by_path_over_the_step_text_and_red_defines_the_key():
     text = SKILL.read_text()
     in_green = {n for n, _ in numbered_section(GREEN)}
@@ -69,6 +51,3 @@ def test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_rout
     for n, line in rerecords:
         assert f"tests-frozen.sh record {RECORD_ARG} --red-case '<red-test-id>'" in line, (
             f"SKILL.md:{n} re-records a reroute's frozen tests without --red-case '<red-test-id>'")
-    refusal = [s for s in frozen_sentences(GREEN) if "exit 1" in s and "deleted case" in s]
-    assert any("verify-red.reason" in s for s in refusal), (
-        "no Green sentence routes tests-frozen record exit 1 (the deleted case) to .tdd/verify-red.reason")

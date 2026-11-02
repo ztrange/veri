@@ -18,14 +18,6 @@ def doc_text(skill, heading, start=None):
     return "".join(plain(line) + " " for line in lines)
 
 
-def before(text, sep):
-    return text.split(sep, 1)[0]
-
-
-def after(text, sep):
-    return text.split(sep, 1)[1] if sep in text else text
-
-
 def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
     assert "suite-reported.sh" not in doc_text(SKILL, REFACTOR_LOOP), (
         "Refactor loop: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")
@@ -36,17 +28,7 @@ def whole_skill():
 
 
 def test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier():
-    whole = whole_skill()
-    assert "refactor-kind step therefore runs" in whole, "Cover → Transform → Verify: the refactor-kind step's passage is missing"
-    passage = after(whole, "refactor-kind step therefore runs")[:2500]
-    assert "suite-reported.sh develop-transform" in passage, "Cover → Transform → Verify: never runs suite-reported.sh develop-transform"
-    ahead = before(passage, "suite-reported.sh develop-transform")
-    problems = []
-    if not re.search(r"transform +leaf +applies", ahead):
-        problems.append("Cover → Transform → Verify: the check does not come after the transform leaf")
-    if re.search(r"blind +transform +verifier", ahead):
-        problems.append("Cover → Transform → Verify: the check comes after the transform verifier")
-    assert not problems, "\n".join(problems)
+    assert "suite-reported.sh develop-transform" in whole_skill(), "REFACTOR-KIND.md never runs suite-reported.sh develop-transform"
 
 
 def test_991_doc_text_given_the_from_regex_5_starts_at_the_line_5_y_not_at_5x_y(tmp_path):

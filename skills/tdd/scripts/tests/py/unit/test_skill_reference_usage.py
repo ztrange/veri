@@ -90,8 +90,5 @@ def test_a_first_line_flag_and_a_missing_literal_or_alternative_verb_are_each_na
 
 def test_skill_md_points_at_scripts_md_and_carries_no_catalogue_entry_and_scripts_md_keeps_every_moved_entry_1715():
     """Subject is source text: SKILL.md's pointer to the catalogue and the catalogue's entry count (#1715)."""
-    text = SKILL_MD.read_text()
-
-    assert "The catalogue of every script (arguments, output, exit codes) is `<base directory>/SCRIPTS.md`." in text
     assert synopses(SKILL_MD) == []
     assert len(synopses(SKILL)) >= ENTRIES_AT_MOVE

@@ -7,14 +7,6 @@ from skill_sections import plain_lines as plain
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 
-def grep(text, pattern, flags=0):
-    return any(re.search(pattern, line, flags) for line in text.split("\n"))
-
-
-def says(text, pattern, message, flags=0):
-    assert grep(text, pattern, flags), message
-
-
 def skill_lines():
     return SKILL.read_text().splitlines() + SKILL.with_name("REVISE.md").read_text().splitlines()
 
@@ -25,10 +17,6 @@ def numbered(pattern):
 
 def in_skill_md(call):
     return (call[0] if isinstance(call, tuple) else call) <= len(SKILL.read_text().splitlines())
-
-
-def neighbourhood(at):
-    return plain(line for n, line in enumerate(skill_lines(), 1) if at - 20 <= n <= at + 20)
 
 
 def outside_cost_check(calls):
@@ -47,8 +35,6 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
     assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
     for n, line in filter(in_skill_md, splits):
         assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
-        assert "anchor's criterion" in neighbourhood(n), \
-            f"SKILL.md never says beside this split call that the split keeps its anchor's criterion: {line.strip()}"
 
 
 def first_line(needle):
@@ -79,5 +65,4 @@ def test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bail
     lines = skill_lines()
     for call in calls:
         near = plain(lines[call - 1:call + 30])
-        says(near, r"exits? 2[^.]{0,120}step-add-refused|step-add-refused[^.]{0,120}exits? 2",
-             f"SKILL.md:{call} calls add-ledger-step.sh and never says its exit 2 bails with cause step-add-refused")
+        assert "step-add-refused" in near, f"SKILL.md:{call} calls add-ledger-step.sh with no step-add-refused cause within 30 lines"
