@@ -1498,6 +1498,25 @@ def test_cli_reads_the_prompt_from_stdin_on_dash(tmp_path, monkeypatch, run_cli)
     assert (code, [_with_prompt(argv)[2] for argv in launches]) == (0, ["piped prompt body"])
 
 
+@pytest.mark.process("run-leaf.sh exec'd with a prompt file larger than ARG_MAX, a real stub claude recording its stdin")
+def test_cli_launches_a_prompt_larger_than_arg_max_and_the_child_receives_it_whole_on_stdin_2882(
+        tmp_path, monkeypatch, run_cli):
+    prompt = ("line of a very large revise prompt, padding padding padding\n" * (2 * os.sysconf("SC_ARG_MAX") // 60)).rstrip("\n")
+    work = _prompt_workspace(tmp_path, monkeypatch, prompt)
+    stub = _leaf_stub(tmp_path, 'cat > "$STDIN_OUT"\n')
+
+    class _EntryPoint:
+        @staticmethod
+        def main(argv):
+            return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL).returncode
+
+    code, _, _ = run_cli(_EntryPoint, ["prompt.txt"], cwd=work,
+                         env={"CLAUDE_BIN": str(stub), "STDIN_OUT": str(tmp_path / "stdin")})
+
+    received = (tmp_path / "stdin").read_bytes() if (tmp_path / "stdin").exists() else b""
+    assert (code, len(received), received.rstrip(b"\n") == prompt.encode()) == (0, len(prompt), True)
+
+
 def _run_with_operator_gitconfig(tmp_path, monkeypatch, run_cli, gitconfig, stub_body):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)
