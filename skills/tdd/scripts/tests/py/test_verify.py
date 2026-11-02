@@ -3297,3 +3297,28 @@ def test_verify_sh_still_accepts_a_pass_from_a_pin_verifier_leaf_that_created_a_
                                     "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (0, True)
+
+
+def test_2900_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_the_merge_base_of_head_and_the_default_branch(
+        run_cli, tmp_path, monkeypatch):
+    base = "3f9a1c0d5e7b"
+    (tmp_path / "spec.md").write_text(SPEC)
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine")
+    fallback = subprocess.run
+
+    def fake(args, *rest, **kwargs):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "git" and "merge-base" in words and "HEAD" in words:
+            return subprocess.CompletedProcess(args, 0, (base + "\n").encode(), b"")
+        return fallback(args, *rest, **kwargs)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"],
+                         env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    prompt = launched[0][1] if launched else ""
+    assert (code, f"--before {base} --keep" in prompt, "{{BRANCH_BASE}}" in prompt) == (0, True, False)
