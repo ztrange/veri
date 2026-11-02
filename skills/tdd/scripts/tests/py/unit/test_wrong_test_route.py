@@ -316,6 +316,22 @@ def test_main_1736_prints_revise_when_a_real_case_is_named_only_on_lines_other_t
     assert (code, stdout) == (3, "revise\n")
 
 
+def test_main_2878_prints_revise_and_exits_3_for_a_green_report_whose_wrong_test_line_is_none(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: none\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
 def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_holds_a_reroute_event(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
