@@ -10,4 +10,3 @@
 - [ ] A `WRONG_TEST:` report naming another existing case in the `suite › case` form routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
 - [ ] A report carrying no `WRONG_TEST:` line at all prints `revise` and exits 3, pinned by a small `run_cli` case ⟦criterion 5⟧
 - [ ] A `WRONG_TEST:` report that names its case in bare prose (no backticks, no quotes, no `test_`/`Test` prefix, no `suite › case` form) on a step not yet rerouted does not print `revise`: it prints `repair <the step's own case>` and exits 0, so the existing `red-repair` route repairs the step's own Red, asserted by a small `run_cli` case ⟦criterion 1⟧
-- [ ] SCRIPTS.md's `wrong-test-route.sh` entry says a `WRONG_TEST:` report with no parseable case name, on a step not yet rerouted, answers `repair` with the step's own case ⟦diff-checked⟧
