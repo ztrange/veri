@@ -1,0 +1,2 @@
+### `build-develop-prompt.sh dual-stub` renders a develop-dual-stub prompt telling the leaf to change only tests (a dual-stub commit touching production is rejected): every case it edits that pins the old transport also stubs the new one and passes against the unmoved production code, with no assertion removed or weakened ⟦criterion 3⟧
+- fold "dual-stub" into PHASES/DEVELOP_INTERFACE_PHASES so WANT holds it and ACCEPTED_WANT goes away; it changes USAGE and the revisable-phase set, so it needs a test that demands that behaviour first
