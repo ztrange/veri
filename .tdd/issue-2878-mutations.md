@@ -74,3 +74,16 @@ new 12
 command 355
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py bash -c make test TESTS="skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite_case_form_to_a_red_over_that_case"
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 89
+        write(sys.stdout, "revise")
+        return 3
+    write(sys.stdout, "red " + case)
+new 88
+        write(sys.stdout, "red x")
+        return 0
+    write(sys.stdout, "red " + case)
+command 320
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_1621_prints_revise_and_exits_3_when_the_green_report_has_no_wrong_test_line
+
