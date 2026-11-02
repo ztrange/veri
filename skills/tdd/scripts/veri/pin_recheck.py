@@ -73,8 +73,12 @@ def main(argv):
         return 2
     touched = set(subprocess.run(["git", "diff", "--name-only", f"{argv[0]}..HEAD"], capture_output=True, text=True,
                                  check=True).stdout.split())
-    pins = [r for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())
-            if "before" in r or r["file"] in touched]
+    found = [(f, r) for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())]
+    for f, r in found:
+        if "before" not in r and "file" not in r:
+            sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
+            return 2
+    pins = [r for _, r in found if "before" in r or r["file"] in touched]
     if not pins:
         return 3
     status = 0
