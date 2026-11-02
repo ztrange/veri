@@ -324,6 +324,9 @@ def running_lines():
                 phase = launches[-1]["phase"]
                 tries = sum(1 for e in launches if e["phase"] == phase)
                 name += " %s attempt %d" % (phase, tries)
+            verdicts = [e["verdict"] for e in of("verdict")]
+            if verdicts:
+                name += " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
