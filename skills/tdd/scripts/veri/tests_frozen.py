@@ -684,11 +684,12 @@ def rerecord_refactored(ledger, green):
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
         head = nth("HEAD", name, case, k)
+        green_text = _text_at(green, name, subprocess.DEVNULL)
         if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
-                _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
+                _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case))}:
             return skip(name, case, record)
         if (name, case) in recorded_helpers and recorded_helpers[(name, case)] != _helper_digest(
-                _text_at(green, name, subprocess.DEVNULL), verified):
+                green_text, verified):
             return skip(name, case, record)
         helpers = _called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
