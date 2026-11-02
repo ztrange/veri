@@ -1075,7 +1075,17 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
 3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry
    their class. A line whose class is **overfit** names code that passes this step's test
    without implementing the criterion the step states, and names the case that would force
-   the general implementation. Stop the refactor loop there and run, for that case, one
+   the general implementation. Stop the refactor loop there. **When the loop has landed
+   commits since `<green-sha>`, first run 2's checks and verify-refactor (5) over them**,
+   before the triangulating red, and launch the red only after that PASS. On that PASS run
+   `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed
+   commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
+   left for the step's final verify-refactor PASS, so the triangulating red's
+   `check-earlier` needs no `--except` for those cases. A REJECT of that early
+   verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read`
+   `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
+   until it passes. When no commit landed, no early verify-refactor runs. Then run, for
+   that case, one
    triangulating **red → verify-red → green → verify-green** inside this same step, exactly
    as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
    step**, makes **no plan amendment** and posts **no second step-done comment**: a step is
@@ -1086,7 +1096,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    above still reads exactly what the step's refactor produced. Then **resume this step's
    refactor loop** at 1 with the **budget it had left**, asking
    `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an
-   overfit flag costs the step a triangulation and never a second budget.
+   overfit flag costs the step a triangulation and never a second budget. The step's final
+   verify-refactor then judges only what the resumed loop landed.
    **A step's triangulation runs at most once.** The loop resumed there is another refactor
    leaf reading the files the triangulation just generalized, so it can raise an `overfit`
    flag about that same code a second time — and a conductor that answers the second flag
