@@ -305,7 +305,8 @@ def running_lines():
     blocks = []
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         with open(path) as f:
-            first = json.loads(f.readline())
+            events = [json.loads(l) for l in f if l.strip()]
+        first = [e for e in events if e.get("event") == "conductor-start"][-1]
         pid = first["pid"]
         try:
             os.kill(pid, 0)

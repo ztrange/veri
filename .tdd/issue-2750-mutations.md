@@ -29,3 +29,12 @@ new 23
 command 348
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running.py::test_2750_report_running_omits_a_journal_whose_conductor_start_pid_is_alive_but_started_at_another_time
 
+file 33
+skills/tdd/scripts/veri/status.py
+old 24
+for l in f if l.strip()]
+new 11
+for l in f]
+command 379
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running_latest_start.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running_latest_start.py::test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_by_other_events_and_a_blank_line
+
