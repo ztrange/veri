@@ -115,15 +115,16 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+    name = ""
     if message != "-":
         name = _tag(worktree, message, pull, pr)
         if not name:
             failed.append("tag")
-        else:
-            issue = re.match(r"tdd/(\d+)-", branch)
-            if issue:
-                event.mark(worktree, {"issue": issue.group(1)}, "merged",
-                           ["pr=" + pr, "tag=" + name, "message=" + message])
+    if message == "-" or name:
+        issue = re.match(r"tdd/(\d+)-", branch)
+        if issue:
+            event.mark(worktree, {"issue": issue.group(1)}, "merged",
+                       ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
