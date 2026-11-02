@@ -581,10 +581,11 @@ def rerecord_earlier(ledger, step):
 
 
 def follow_renames(step):
-    if not os.path.exists(_record_path(_unphased(step))):
+    record = _record_path(_unphased(step))
+    if not os.path.exists(record):
         return
     root = _toplevel()
-    path = os.path.join(root, _record_path(_unphased(step)))
+    path = os.path.join(root, record)
     with open(path) as handle:
         lines = handle.read().splitlines()
     out = []
