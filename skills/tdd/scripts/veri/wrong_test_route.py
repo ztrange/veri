@@ -48,21 +48,26 @@ def _files():
             yield root, name
 
 
+def _test_files():
+    for root, name in _files():
+        py = is_test_file(name)
+        go = name.endswith("_test.go")
+        js = is_js_test_file(name, root)
+        if py or go or js or name.endswith(".test.sh"):
+            yield root, name, py, go, js
+
+
 def _exists(case):
     cut = _cut_prefix(case)
     py = re.compile(r"def (%s\w*)\(" % re.escape(cut)) if cut else re.compile(r"def (%s)\(" % re.escape(case))
     go = re.compile(r"func (%s)\(" % re.escape(case))
     js = _js_title_pattern(case)
     titles = set()
-    for root, name in _files():
-        js_file = is_js_test_file(name, root)
-        go_file = name.endswith("_test.go")
-        if not name.endswith((".py", ".test.sh")) and not js_file and not go_file:
-            continue
+    for root, name, py_file, go_file, js_file in _test_files():
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
             text = handle.read()
         match = (go.search(text) if go_file and case.startswith("Test") else
-                 py.search(text) if is_test_file(name) and case.startswith("test_") else None)
+                 py.search(text) if py_file and case.startswith("test_") else None)
         if match:
             return match.group(1)
         found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
@@ -83,10 +88,8 @@ def _fixture(report):
         js_helper = re.compile(
             r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped), re.M)
         go_helper = re.compile(r"^func %s\(" % escaped, re.M)
-        for root, file in _files():
-            py_file = is_test_file(file)
-            go_file = file.endswith("_test.go")
-            if not py_file and not go_file and not is_js_test_file(file, root):
+        for root, file, py_file, go_file, js_file in _test_files():
+            if not py_file and not go_file and not js_file:
                 continue
             path = os.path.join(root, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
