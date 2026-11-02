@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_verify.py — FAILED test_verify.py::test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_a_copy_its_verdict_event_names_and_answers_the_verdicts_reason_and_code_alone[clean-failure-nothing] (assert (2, ...) == (0, ...)) ⟦suite-repair⟧ ⟦criterion 3⟧
