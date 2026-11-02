@@ -26,12 +26,13 @@ BOUND_BYTES = 128 * 1024
 FAIL_CAP_BYTES = 64 * 1024
 FAIL_BLOCK_LINES = 13
 TAIL_LINES = 40
+LINE_CAP_BYTES = 1024
 
 
 def bounded(output):
     if len(output) <= BOUND_BYTES:
         return output
-    lines = output.split(b"\n")
+    lines = [line[:LINE_CAP_BYTES] for line in output.split(b"\n")]
     keep = set()
     kept_bytes = 0
     for i, line in enumerate(lines):
