@@ -259,3 +259,20 @@ def test_issue_2900_before_state_probe_puts_a_restored_tracked_file_back_to_its_
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "prod.bin"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "prod.bin").read_bytes()) == (1, dirty), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_removes_again_a_file_it_brought_back_when_the_deletion_is_uncommitted(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "gone.txt").write_text("sha-content\n")
+    (tmp_path / "test.sh").write_text("exit 0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "gone.txt").unlink()
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "gone.txt"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "gone.txt").exists(), git("status", "--porcelain")) == (1, False, " D gone.txt\n"), result.stderr
