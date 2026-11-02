@@ -473,6 +473,10 @@ def render(issue, path, ledger):
         print("Outcome: the run bailed — %s, a %s failure."
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
     print("Lane: %s" % (tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
+    flaked = [name for mark in marks if mark.get("event") == "suite-flake"
+              for name in str(mark.get("files", "")).split(",")]
+    if flaked:
+        print("Suite flakes: %s." % ", ".join(flaked))
     sessions, turn_rows = [], []
     total_estimated = False
     if not conductor_counted:
