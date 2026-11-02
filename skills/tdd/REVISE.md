@@ -78,7 +78,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
      no readable `PREDICTION:` line at all (exit 2), which is handled the same way. The test
      is the suspect, and verify-red is blind by construction, so spend attempt `k` **without
      re-verifying**: skip the re-verification entirely, keep the reason the script wrote to
-     `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead), mark
+     `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead). When
+     the leaf reports `PREDICTION: DIVERGED`, that reason carries the leaf's `FAIL_OUTPUT:` and
+     `PREDICTION_NOTE:` values, so attempt `k+1` and the bail comment carry the observed failure. Mark
      it with `$S/event.sh prediction-diverged`, preserve the attempt beside that mark with
      `$S/preserve-attempt.sh <n> "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" revise-red <k> prediction-diverged` (best-effort:
      note it if it fails and carry on), and treat the attempt exactly as a `REJECT`
