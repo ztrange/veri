@@ -101,3 +101,19 @@ def test_wait_alone_on_a_red_command_whose_named_file_is_still_red_alone_exits_1
 
     events = tmp_path / ".tdd" / "events.jsonl"
     assert (result, "suite-flake" in (events.read_text() if events.is_file() else "")) == ((1, "3\n", ""), False)
+
+
+@pytest.mark.process("a real detached red command and a real alone command that passes for every named file")
+def test_wait_alone_on_a_red_command_whose_named_files_each_pass_alone_exits_0_silently_and_writes_one_suite_flake_event_naming_each_2912(
+        tmp_path, run):
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    run("start", "red", "sh", "-c", "echo 'FAIL scripts/a.test.mjs'; echo 'FAIL scripts/b.test.mjs'; exit 3")
+    result = run("wait", "red", "--alone", f'{alone} "$1"')
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    text = events.read_text() if events.is_file() else ""
+    assert (result, text.count("suite-flake"), "scripts/a.test.mjs" in text, "scripts/b.test.mjs" in text) == (
+        (0, "", ""), 1, True, True)

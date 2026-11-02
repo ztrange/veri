@@ -7,6 +7,7 @@ import sys
 import time
 
 import detach
+import rerun_alone
 import tunables
 
 WRAPPER = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
@@ -18,11 +19,13 @@ def _read(path):
         return handle.read().rstrip("\n")
 
 
-def _recorded(exit_file):
+def _recorded(exit_file, alone=None):
     if not os.path.isfile(exit_file):
         return None
     code = _read(exit_file)
     if code == "0":
+        return 0
+    if alone and rerun_alone.main([alone, exit_file[:-5] + ".out"]) == 0:
         return 0
     print(code)
     return 1
@@ -48,18 +51,18 @@ def _limit(text):
         return None
 
 
-def _wait(exit_file, pid_file, text):
+def _wait(exit_file, pid_file, text, alone=None):
     start = int(time.time())
     poll = tunables.read("VERI_POLL") or "1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
         print(f"detach-command.sh: VERI_POLL must be a non-negative number: {poll}", file=sys.stderr)
         return 2
     while True:
-        code = _recorded(exit_file)
+        code = _recorded(exit_file, alone)
         if code is not None:
             return code
         if not _alive(pid_file):
-            code = _recorded(exit_file)
+            code = _recorded(exit_file, alone)
             return 2 if code is None else code
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
@@ -76,15 +79,16 @@ def _refused(argv):
 
 
 def main(argv):
+    alone = None
     if len(argv) >= 4 and argv[-2] == "--alone":
-        argv = argv[:-2]
+        alone, argv = argv[-1], argv[:-2]
     if _refused(argv):
         print(USAGE, file=sys.stderr)
         return 2
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "590")
+        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "590", alone)
     try:
         os.unlink(exit_file)
     except FileNotFoundError:
