@@ -190,6 +190,16 @@ def done_fields(path, ts, awake):
     return fields
 
 
+def write_journal(top, context, text):
+    journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
+    if journal:
+        try:
+            os.makedirs(os.path.dirname(journal), exist_ok=True)
+            append_once(journal, text)
+        except OSError:
+            sys.stderr.write("event: cannot write journal " + journal + "\n")
+
+
 def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
@@ -212,13 +222,7 @@ def append(directory, context, event, fields=(), ts=None):
         args += done_fields(tdd + "/events.jsonl", ts, awake.decode())
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
-    journal = journal_path(top, os.fsdecode(context.get(b"issue", b"")))
-    if journal:
-        try:
-            os.makedirs(os.path.dirname(journal), exist_ok=True)
-            append_once(journal, text)
-        except OSError:
-            sys.stderr.write("event: cannot write journal " + journal + "\n")
+    write_journal(top, context, text)
     return 0
 
 
