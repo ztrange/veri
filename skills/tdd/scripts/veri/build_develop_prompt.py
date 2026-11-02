@@ -23,7 +23,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
 ACCEPTED_WANT = {**WANT, "dual-stub": 4}
 WANT_PHASES = "|".join(PHASES)
-REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("rebase",)
+REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("dual-stub", "rebase")
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
@@ -119,8 +119,8 @@ def main(argv):
             freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
         if not repair and "\u27e6guard-subject: " in markers:
             freeze.append(f"{prompts}/_develop-guard-subject-grant.md")
-    if revised_phase in INTERFACE_PHASES:
-        frozen = "production" if revised_phase in ("cover-new", "contract-a") else "test"
+    if revised_phase in INTERFACE_PHASES + ("dual-stub",):
+        frozen = "production" if revised_phase in ("cover-new", "contract-a", "dual-stub") else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
     if phase == "red-repair":
         paths.append(args[4])
