@@ -273,3 +273,88 @@ def test_ticking_refactor_pending_leaves_a_record_unwritten_when_a_recorded_case
     ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
 
     assert (ticked, [(record.read_text(), record.stat().st_mtime_ns) for record in records]) == (0, before)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_a_step_refactor_pending_records_a_case_renamed_only_in_the_work_tree_under_its_new_title_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step adds a case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_before_rename_2825():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_after_rename_2825():\n    assert 1 == 2\n")
+
+    ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
+
+    titles = sorted(line.split("\t")[1] for record in (tmp_path / ".tdd").glob("tests-frozen-*.record")
+                    for line in record.read_text().splitlines() if line.startswith("body: "))
+    assert (ticked, titles) == (0, ["test_after_rename_2825"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_pairs_each_work_tree_renamed_case_with_its_missing_title_by_body_not_by_position_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step adds two cases"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\n"
+                     "def test_first_before_2825():\n    assert 1 == 2\n\n\n"
+                     "def test_second_before_2825():\n    assert 3 == 4\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_older_case():\n    assert True\n\n\n"
+                     "def test_second_after_2825():\n    assert 3 == 4\n\n\n"
+                     "def test_first_after_2825():\n    assert 1 == 2\n")
+
+    ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
+
+    recorded = [line.split("\t") for record in (tmp_path / ".tdd").glob("tests-frozen-*.record")
+                for line in record.read_text().splitlines() if line.startswith("body: ")]
+    assert (ticked, [title for _, title, _ in recorded]) == (0, ["test_first_after_2825", "test_second_after_2825"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_does_not_pair_a_missing_title_with_a_case_already_committed_in_head_2825(tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_committed_2825():\n    assert 5 == 6\n")
+    git(tmp_path, "commit", "-q", "-a", "-m", "an earlier step's case")
+    step = "step adds a case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_committed_2825():\n    assert 5 == 6\n\n\n"
+                     "def test_before_rename_2825():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_committed_2825():\n    assert 5 == 6\n\n\n"
+                     "def test_after_rename_2825():\n    assert 1 == 3\n")
+
+    ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
+
+    titles = sorted(line.split("\t")[1] for record in (tmp_path / ".tdd").glob("tests-frozen-*.record")
+                    for line in record.read_text().splitlines() if line.startswith("body: "))
+    assert (ticked, titles) == (0, ["test_after_rename_2825"])
