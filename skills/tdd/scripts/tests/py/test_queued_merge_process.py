@@ -421,3 +421,34 @@ def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_fast_forwa
                               capture_output=True, text=True).stdout.strip()
 
     assert (run.returncode, main_tip) == (0, upstream), run.stderr
+
+
+FAKE_GIT_LOSING_RELEASE_SCRIPT = FAKE_GIT.replace(
+    "case \"$*\" in\n",
+    "case \"$*\" in\n"
+    "  *\"branch -D\"*) rm -f \"$TMPDIR\"/queued-merge-scripts-*/scripts/merge-lock.sh ;;\n", 1)
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim in a scratch repository, with gh and git planted on PATH")
+def test_queued_merge_whose_merge_lock_release_cannot_be_started_names_release_in_the_cleanup_failure_and_exits_2_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT_LOSING_RELEASE_SCRIPT)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "TMPDIR": str(scratch),
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+
+    run = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(tmp_path / "wt"), "feature", "-"],
+                         cwd=primary, timeout=30, env=env, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    assert (run.returncode, "FileNotFoundError" in run.stderr, "merged, but cleanup failed: release" in run.stderr) == (2, False, True), run.stderr
