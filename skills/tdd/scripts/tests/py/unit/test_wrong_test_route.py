@@ -238,6 +238,23 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_ba
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
 
+def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite_case_form_to_a_red_over_that_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "checkout.spec.ts").write_text(
+        "describe('checkout', () => {\n"
+        "  test('accepts a name', () => {});\n"
+        "  test('rejects an empty name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: checkout.spec.ts › rejects an empty name\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "checkout.spec.ts::checkout accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red rejects an empty name\n")
+
+
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
 def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_suite_that_is_no_declared_case_name(
         run_cli, tmp_path, monkeypatch):
