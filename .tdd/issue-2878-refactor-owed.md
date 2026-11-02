@@ -1,0 +1,5 @@
+### A `WRONG_TEST:` report that names its case in bare prose (no backticks, no quotes, no `test_`/`Test` prefix, no `suite › case` form) on a step not yet rerouted does not print `revise`: it prints `repair <the step's own case>` and exits 0, so the existing `red-repair` route repairs the step's own Red, asserted by a small `run_cli` case ⟦criterion 1⟧
+- `_exists` and `_fixture` in wrong_test_route.py repeat the same file walk and Python/Go/JS test-file classification (pre-existing code, not this cycle's)
+- `main` in wrong_test_route.py calls `_superseded` three times and re-reads the report each time (pre-existing code)
+- test-only | in test_wrong_test_route.py, the backtick, double-quote and curly-quote `2878` cases differ only in the quote characters and could share one parametrised body
+- test-only | in test_wrong_test_route.py, the `2878` bare-prose and reroute cases repeat the same `tests/py/unit` fixture setup
