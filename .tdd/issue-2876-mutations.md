@@ -38,3 +38,12 @@ new 47
 command 332
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpyvaw57ez/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_2876_a_mutated_run_that_fails_makes_no_control_run_so_the_command_never_sees_the_control_content
 
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old 27
+if control.returncode == 0:
+new 9
+if False:
+command 311
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpyvaw57ez/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_2876_a_command_that_is_not_bash_c_and_runs_no_test_needs_a_look_and_exits_0
+
