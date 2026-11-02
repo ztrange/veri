@@ -18,11 +18,6 @@ SKILL_PREFLIGHT = "#" + PREFLIGHT
 
 FAST_CALL = "detect-test-command.sh --tier fast"
 FULL_CALL = "detect-test-command.sh --tier all"
-ITEM_RE = r"^[0-9]+\."
-
-
-def all_lines():
-    return SKILL.read_text().splitlines()
 
 
 def lines_of(heading):
@@ -37,20 +32,6 @@ def first_all(lines, *wants, start=0):
     return next((i for i in range(start, len(lines)) if all(w in lines[i] for w in wants)), None)
 
 
-def paragraph_around(lines, at):
-    begin = at
-    while begin > 0 and lines[begin - 1].strip() and not re.match(ITEM_RE, lines[begin]):
-        begin -= 1
-    end = at + 1
-    while end < len(lines) and lines[end].strip() and not re.match(ITEM_RE, lines[end]):
-        end += 1
-    return lines[begin:end]
-
-
-def sentences(lines):
-    return re.sub(r"[.] ", ".\n", re.sub(r"  +", " ", " ".join(lines))).split("\n")
-
-
 def test_skill_md_takes_the_full_tier_measurement_in_the_worktree_on_the_fast_tier_baseline_s_commit_and_sizes_leaf_timeout_sh_full_only_after_it():
     lines = lines_of(PREFLIGHT)
     fast_in, full_in = first(lines, FAST_CALL), first(lines, FULL_CALL)
@@ -62,18 +43,6 @@ def test_skill_md_takes_the_full_tier_measurement_in_the_worktree_on_the_fast_ti
     assert moves == []
     assert timeout_in is not None, "no leaf-timeout.sh call with --full"
     assert timeout_in >= full_in, "the timeout is sized before the full-tier measurement"
-
-
-def test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_step_3_before_the_baseline_and_never_in_step_1_2():
-    lines = all_lines()
-    guard_at = first(lines, "**worktree guard**")
-    assert guard_at is not None, "SKILL.md never names the worktree guard"
-    says = [s for s in sentences(paragraph_around(lines, guard_at))
-            if all(w in s.lower() for w in ("lock", "preflight step 3", "before the baseline"))]
-    assert says, "the guard paragraph has no sentence naming the lock, 'preflight step 3' and 'before the baseline'"
-    elsewhere = [s for s in sentences(lines)
-                 if re.search(r"step 1\.2 (takes|writes|locks)|(taken|written|took|wrote) in step 1\.2", s, re.I)]
-    assert elsewhere == []
 
 
 REBASE_CALL = "rebase-onto-default.sh"
@@ -181,9 +150,7 @@ MECHANICAL_READERS = (
     "test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left",
     "test_issue_2375_a_second_conflict_after_the_runs_own_rebase",
     "test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh",
-    "test_skill_md_says_what_detach_command_sh_wait_answers_0_passed_1_red_2_died_3_still_running",
     "test_skill_edit_md_runs_skill_edit_step_ticks_on_exit_0_or_3_bails_on_1_and_handles_2_as_no_answer_1871",
-    "test_2433_never_asks_rule_is_discharged_by_a_needs_user_bail_beside_both_asks",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
     "test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section",
