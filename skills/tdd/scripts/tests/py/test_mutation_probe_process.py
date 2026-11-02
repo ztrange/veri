@@ -218,3 +218,23 @@ def test_issue_2900_before_state_probe_restores_the_working_tree_when_the_comman
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "a_gone.txt").exists(), (tmp_path / "b_changed.txt").read_text(),
             "Traceback" in result.stderr) == (1, False, "branch-content\n", False), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_restores_a_renamed_file_as_the_new_name_removed_and_the_old_name_back_while_the_command_runs(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "old_name.txt").write_text("sha-content line one\nsha-content line two\nsha-content line three\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    git("mv", "old_name.txt", "new_name.txt")
+    (tmp_path / "test.sh").write_text("exit 0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "-c",
+                             "test ! -e new_name.txt && grep -q 'line two' old_name.txt"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "new_name.txt").exists(), (tmp_path / "old_name.txt").exists()) == (1, True, False), result.stderr
