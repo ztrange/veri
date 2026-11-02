@@ -463,7 +463,12 @@ def _check_earlier(ledger, step, exempt=()):
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
     latest = {}
+    helper_digests = {}
     for owner, _, records in _earlier_records(lines, step):
+        for record in records:
+            if record.startswith("helpers: "):
+                name, case, digest = record[9:].split("\t")
+                helper_digests[(name, case)] = digest
         bodies = [r for r in map(_body_record, records) if r]
         marked = "format: 2" in records
         for name, case, digest in bodies:
@@ -490,7 +495,9 @@ def _check_earlier(ledger, step, exempt=()):
             nows = olds = []
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
-                not nows or any(d not in held for d, held in zip(digests, accepted))):
+                not nows or any(d not in held for d, held in zip(digests, accepted))
+                or ((name, case) in helper_digests
+                    and _helper_digest(text, "\n".join(nows)) != helper_digests[(name, case)])):
             entry = "%s (%s)" % (case, owner)
             if nows and _changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
@@ -581,8 +588,15 @@ def _assertion_lines(body):
     return [_squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
 
 
+def _helper_digest(text, body):
+    return _body_digest("\n".join(_assertion_lines(_helpers_in(text, body))))
+
+
 def _called_helpers(rev, name, body):
-    text = _text_at(rev, name, subprocess.DEVNULL)
+    return _helpers_in(_text_at(rev, name, subprocess.DEVNULL), body)
+
+
+def _helpers_in(text, body):
     helpers = []
     for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
@@ -621,7 +635,8 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record)
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record)
-        return _body_line(name, case, head)
+        return _body_line(name, case, head) + "\nhelpers: %s\t%s\t%s" % (
+            name, case, _helper_digest(_text_at("HEAD", name, subprocess.DEVNULL), head))
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
