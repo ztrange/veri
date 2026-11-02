@@ -91,3 +91,22 @@ def test_2916_criterion_2_a_missing_report_with_a_later_step_that_is_unchecked_i
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "later %s\n" % later), ran.stderr
+
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_2916_criterion_2_a_later_step_report_routes_later_even_when_the_missing_reroute_budget_is_spent(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    later = "a cog never moves alone ⟦criterion 3⟧"
+    (repo / ".tdd" / "issue-77.md").write_text(
+        "# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (STEP, later))
+    (repo / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "missing"}\n' % STEP)
+    (repo / ".tdd" / "verify-green.out").write_text(
+        "MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % later)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env.update(VERI_STEP=STEP, VERI_ISSUE="77", VERI_MISSING_REROUTE_BUDGET="1")
+
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+                         env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "later %s\n" % later), ran.stderr
