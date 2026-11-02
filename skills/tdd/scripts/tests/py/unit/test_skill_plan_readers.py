@@ -117,3 +117,42 @@ def test_every_remaining_case_reading_skill_md_s_read_the_issue_scope_and_plan_s
             if f"{rel}::{name}" not in ALLOWED and f"{path.name}::{name}" not in ALLOWED:
                 strays.append(f"{rel}::{name}")
     assert strays == [], "cases read steps 1, 2, 2b or 2c by content and are neither mechanical nor allow-listed:\n" + "\n".join(strays)
+
+
+ALLOW_LIST_HOLDERS = (
+    ("test_skill_phased_readers.py", "ALLOWED"),
+    ("test_skill_refactor_readers.py", "ALLOWED"),
+    ("unit/test_skill_plan_readers.py", "ALLOWED"),
+    ("unit/test_skill_draft_pr_readers.py", "ALLOWED"),
+    ("test_skill_preflight.py", "MECHANICAL_READERS"),
+)
+
+
+def _allow_list_keys(path, variable):
+    import ast
+
+    for node in ast.parse(path.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == variable for t in node.targets):
+            value = ast.literal_eval(node.value)
+            return list(value)
+    raise AssertionError(f"{path} assigns no {variable}")
+
+
+@pytest.mark.tree_audit("every test module under tests/py, searched for each allow-list entry's case")
+def test_every_entry_of_the_reader_allow_lists_names_a_case_that_exists(tests_py_index):
+    entries = {str(e.path.relative_to(TESTS_PY)): e.text for e in tests_py_index}
+    case_names = [d.name for e in tests_py_index for d in e.walk.definitions if d.segment.startswith("def test_")]
+    missing = []
+    for holder, variable in ALLOW_LIST_HOLDERS:
+        for key in _allow_list_keys(TESTS_PY / holder, variable):
+            file_part, sep, case = key.partition("::")
+            if sep:
+                texts = [t for rel, t in entries.items() if file_part in (rel, rel.rsplit("/", 1)[-1])]
+                found = any(f"def {case.rstrip('….')}" in t for t in texts)
+            elif file_part.endswith(".py"):
+                found = any(file_part in (rel, rel.rsplit("/", 1)[-1]) for rel in entries)
+            else:
+                found = any(file_part in name for name in case_names)
+            if not found:
+                missing.append(f"{holder}: {key}")
+    assert missing == [], "allow-list entries naming no existing case:\n" + "\n".join(missing)
