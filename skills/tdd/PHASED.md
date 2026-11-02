@@ -20,16 +20,19 @@ The whole step spends one refactor of the budget, not one per phase: wherever
 `refactor-budget.sh <count>` counts the transforms already landed, a phased step adds one to
 `<count>` once its last phase is marked, however many phases it listed.
 
-The freeze check runs on the developer leaf's commit, before the verifier. An expand, migrate
+The freeze check runs on the developer leaf's commit, before the verifier. An expand, beside, migrate
 or contract-b commit runs `$S/transform-touches-tests.sh <base-sha>`: exit 1 rejects it, tests
-being frozen there. A cover-new or contract-a commit runs `$S/production-frozen.sh <base-sha>`:
+being frozen there. A cover-new, dual-stub or contract-a commit runs `$S/production-frozen.sh <base-sha>`:
 exit 1 rejects it, production being frozen there. Either rejection is revised as a REJECT is;
 exit 2 **bails** as a system failure (see `<base directory>/BAIL.md`).
 
 A cover-new phase adds cases that call the new interface directly, and its PASS is accepted
 only once those cases pass against the expand commit and go red under a mutation of the new
-interface's behaviour. A migrate phase does not start until the step's cover-new phase has
-passed: `next-phase` never hands over migrate while a listed cover-new is unmarked.
+interface's behaviour. A beside phase adds the new interface and leaves the old one's behaviour unchanged, with no
+proxy. A dual-stub phase makes the cases that pin the old transport stub the new one too, and
+they stay green against unmoved production code. A migrate phase does not start until the
+step's cover-new phase has passed, nor until a listed dual-stub phase has passed: `next-phase`
+never hands over migrate while a listed cover-new or dual-stub is unmarked.
 
 A contract-a phase deletes the old interface's cases, each deletion proved by mutation parity
 against a kept case; its PASS is accepted only by the mutation-parity gate `SKILL.md`'s *Green*
