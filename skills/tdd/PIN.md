@@ -35,16 +35,16 @@ Every other step takes the verdict as follows:
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
   Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 first run
-  `$S/rerun-alone.sh '<runner>' .tdd/verify-pin.reason`, where `<runner>` is the repo's own
-  runner for one file (`make test TESTS="<file>"` on veri) and the file is each one the red
-  output in `.tdd/verify-pin.reason` names. On its exit 0 every named file passes alone: write
-  a `suite-flake` event naming the files (`$S/event.sh suite-flake`), then tick and commit
+  `$S/rerun-alone.sh '<alone-cmd>' .tdd/verify-pin.reason`, where `<alone-cmd>` is the repo's
+  own runner for one test file, taking the file as `$1` (`make test TESTS="$1"` on veri). On
+  its exit 0 every file the red output names passed alone, and the script itself has written
+  the one `suite-flake` event naming them: tick and commit
   `test: pin` as below. On its exit 1 (a file stays red, or the output names none) the pin
   tripped a fast-tier guard, so commit nothing and enter the revise loop for red with
   `.tdd/verify-pin.reason` (the fast tier's output) as the reason, spending a `REVISE_BUDGET`
   attempt as a verify-pin REJECT does (when a verifier answers `REJECT`, `Read`
   `<base directory>/REVISE.md`). On `pin-fast-tier.sh` exit 0
-  tick and commit `test: pin` as below; on exit 2 bail as a system failure.
+  tick and commit `test: pin` as below; on exit 2 from either script bail as a system failure.
   ```
   $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
