@@ -237,7 +237,10 @@ def _missing(report):
 
 def _later(report):
     for line in _lines_with(report, "LATER_STEP:"):
-        return line.partition(":")[2].strip()
+        named = line.partition(":")[2].strip()
+        with open(".tdd/issue-%s.md" % tunables.read("VERI_ISSUE"), encoding="utf-8") as ledger:
+            unchecked = [l[6:].strip() for l in ledger.read().splitlines() if l.startswith("- [ ] ")]
+        return named if named in unchecked else None
     return None
 
 
