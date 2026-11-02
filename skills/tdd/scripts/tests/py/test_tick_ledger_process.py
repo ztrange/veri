@@ -1,5 +1,6 @@
 """Cases for tick-ledger.sh that start the real entry point."""
 import importlib
+import os
 import shutil
 import subprocess
 
@@ -212,3 +213,63 @@ def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2
     status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True).stdout
 
     assert (ticked, status) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_a_step_refactor_pending_records_a_case_renamed_after_its_freeze_under_its_committed_title_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step adds a case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_before_rename_2825():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\ndef test_after_rename_2825():\n    assert 1 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "green")
+
+    ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
+
+    titles = sorted(line.split("\t")[1] for record in (tmp_path / ".tdd").glob("tests-frozen-*.record")
+                    for line in record.read_text().splitlines() if line.startswith("body: "))
+    assert (ticked, titles) == (0, ["test_after_rename_2825"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_refactor_pending_leaves_a_record_unwritten_when_a_recorded_case_is_missing_with_no_fresh_one_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step adds a case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_kept_2825():\n    assert 1 == 2\n"
+                     "\n\ndef test_gone_2825():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_kept_2825():\n    assert 1 == 2\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "green")
+    records = list((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+    for record in records:
+        os.utime(record, ns=(1_000_000_000, 1_000_000_000))
+    before = [(record.read_text(), record.stat().st_mtime_ns) for record in records]
+
+    ticked = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)[0]
+
+    assert (ticked, [(record.read_text(), record.stat().st_mtime_ns) for record in records]) == (0, before)

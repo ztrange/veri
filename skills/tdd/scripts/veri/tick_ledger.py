@@ -58,6 +58,9 @@ def main(argv):
         ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
         if tests_frozen.is_diff_checked(ticked_line):
             return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
+        if pending:
+            return tests_frozen.rerecord_committed(
+                ticked_line.split("] ", 1)[1].removesuffix(ledger.PENDING_MARK))
         return 0
     if left:
         complain(f"left {left} behind")

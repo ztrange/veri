@@ -580,6 +580,32 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def rerecord_committed(step):
+    path = _record_path(step)
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as handle:
+        records = handle.read().splitlines()
+    held, out, changed = {}, [], False
+    for record in records:
+        parsed = _body_record(record)
+        if parsed:
+            name, case = parsed[0], parsed[1]
+            if name not in held:
+                at_head = _cases_at("HEAD", name)
+                recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
+                before = _cases_at("HEAD~1", name) if subprocess.run(
+                    ["git", "rev-parse", "-q", "--verify", "HEAD~1"], stdout=subprocess.DEVNULL).returncode == 0 else {}
+                held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
+            at_head, fresh = held[name]
+            if case not in at_head and fresh:
+                new = fresh.pop(0)
+                record = _body_line(name, new, at_head[new])
+                changed = True
+        out.append(record + "\n")
+    return 0 if not changed or _write_record(path, out) else 2
+
+
 def _squeezed(text):
     return re.sub(r"\s+", "", text)
 
