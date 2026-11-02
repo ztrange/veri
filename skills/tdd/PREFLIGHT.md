@@ -101,8 +101,9 @@ issue, not only in the conductor's log.
    body="$(mktemp)" && gh api repos/{owner}/{repo}/issues/<n> -q .body > "$body"
    ```
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
-   and run it through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name>` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
-   `detach-command.sh wait` answers 0 the command passed, 1 it finished red with its code on stdout (a red suite: stop and report), 2 it died recording nothing, 3 still running (call again). If already red, stop and report a preflight
+   and run it through `$S/detach-command.sh start <name> <cmd>`, then `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
+   `<alone-cmd>` is the repo's own runner for one test file, with the file as `$1` (`make test TESTS="$1"` on veri, named here with `detach-command.sh`). With `--alone`, a command that finished red has each test file its output names re-run alone once through the shared `rerun_alone` helper: when every one passes alone, `detach-command.sh wait` answers 0 and has itself written the one `suite-flake` event naming the files, so preflight goes on as on a green baseline; when the output names no file, or a file is still red alone, it answers 1 with the code on stdout and the run stops as a red baseline does.
+   `detach-command.sh wait` answers 0 the command passed (or every red file passed alone), 1 it finished red with its code on stdout (a red suite: stop and report), 2 it died recording nothing, 3 still running (call again). If already red, stop and report a preflight
    failure, whatever the caller's checkout holds — a cycle must not start on a red baseline. The one exception is a
    resume, whatever its last bail's cause: when its baseline is red only in suites that are red on the branch head but
    green on the default branch, preflight does not refuse. On the exit 0 of the check
@@ -122,7 +123,7 @@ issue, not only in the conductor's log.
    before the run bails, so a bailed resume leaves the branch on the commit it resumed from, not on a rebased tip no suite proved green (`Read` `<base directory>/BAIL.md`).
 
    **Then time the full tier too.** Get its command from
-   `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline,
+   `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline, its wait too `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'`,
    and keep its elapsed
    wall time in whole seconds (round up) as `full`; step 7 sizes the run's hard timeout from
    that number, not from `baseline`. The full-tier run is the work a leaf actually does — a
