@@ -664,6 +664,18 @@ def test_next_phase_resumes_at_cover_new_once_expand_is_marked_and_at_migrate_on
     }
 
 
+def test_next_phase_never_hands_over_migrate_while_a_listed_dual_stub_is_unmarked_whatever_order_the_step_lists_them_2826(
+        monkeypatch, capsysbinary, ledger_steps):
+    step = "- [ ] move create to the backend ⟦phases: migrate, contract-a, contract-b, beside, cover-new, dual-stub⟧ ⟦criterion 1⟧"
+    seed = f"# Plan for #42\n\n{step} ⟂ beside done ⟂ cover-new done\n".encode()
+
+    fake_stdin(monkeypatch, seed)
+    code = ledger_steps.main(["next-phase"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out) == (0, b"dual-stub\n")
+
+
 def test_is_human_owed_tolerates_whitespace_around_and_inside_the_marker_run_yet_not_a_mark_quoted_mid_prose_2288():
     is_human_owed = importlib.import_module("veri.ledger").is_human_owed
 
