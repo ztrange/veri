@@ -16,3 +16,21 @@ argv[4:] if argv[4]
 command 323
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpmpa22b2r/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_it_replays_green
 
+file 28
+.tdd/issue-2827-mutations.md
+old 18
+bash -c 'make test
+new 17
+bash -c make test
+command 237
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpmpa22b2r/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_mutation_records_quoted.py make test TESTS=skills/tdd/scripts/tests/py/test_mutation_records_quoted.py
+
+file 28
+.tdd/issue-2827-mutations.md
+old 18
+bash -c 'make test
+new 17
+bash -c make test
+command 237
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpmpa22b2r/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_mutation_records_quoted.py make test TESTS=skills/tdd/scripts/tests/py/test_mutation_records_quoted.py
+
