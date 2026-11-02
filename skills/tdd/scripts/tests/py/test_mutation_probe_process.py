@@ -115,3 +115,25 @@ def test_issue_2900_before_state_probe_leaves_a_kept_file_that_differs_from_the_
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "test.sh").read_text()) == (0, "exit 1\n"), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_leaves_every_file_under_tdd_as_it_is_in_the_working_tree_while_the_command_runs(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "ledger.md").write_text("old\n")
+    (tmp_path / "quote.txt").write_text("0\n")
+    (tmp_path / "test.sh").write_text("grep -q new .tdd/ledger.md\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / ".tdd" / "ledger.md").write_text("new\n")
+    (tmp_path / "quote.txt").write_text("10\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / ".tdd" / "ledger.md").read_text()) == (1, "new\n"), result.stderr
