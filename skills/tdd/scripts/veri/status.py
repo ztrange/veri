@@ -272,7 +272,14 @@ def queue_counts():
     except OSError:
         return ""
     open_count = sum(1 for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]])
-    return "\n%d %s" % (open_count, label)
+    state = {i["number"]: i["state"] for i in issues}
+    text = "\n%d %s" % (open_count, label)
+    for i in issues:
+        if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]:
+            for b in i["blockedBy"]:
+                if state.get(b) == "OPEN":
+                    text += "\n#%d blocked by #%d" % (i["number"], b)
+    return text
 
 
 def main(argv):
