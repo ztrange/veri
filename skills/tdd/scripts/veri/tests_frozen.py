@@ -597,12 +597,18 @@ def rerecord_committed(step):
             name, case = parsed[0], parsed[1]
             if name not in held:
                 at_head = _cases_at("HEAD", name)
-                recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
                 before = _cases_at("HEAD~1", name) if _has_rev("HEAD~1") else {}
+                if os.path.exists(name):
+                    with open(name, encoding="utf-8", errors="replace") as handle:
+                        tree = dict(_cases(handle.read()))
+                    if tree != at_head:
+                        at_head, before = tree, _cases_at("HEAD", name)
+                recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
                 held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
             at_head, fresh = held[name]
             if case not in at_head and fresh:
-                new = fresh.pop(0)
+                new = next((c for c in fresh if _body_digest(at_head[c].replace(c, case)) == parsed[2]), fresh[0])
+                fresh.remove(new)
                 record = _body_line(name, new, at_head[new])
                 changed = True
         out.append(record + "\n")
