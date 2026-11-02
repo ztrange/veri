@@ -20,4 +20,4 @@
 - [x] a merge through queued-merge.sh that cuts a tag emits merged with pr, tag and the tag's message, before the worktree is removed, taking the issue number from the branch tdd/<n>-<slug> ⟦criterion 7⟧
 - [x] a merge through queued-merge.sh given the tag message - emits merged with pr and with tag and message empty ⟦criterion 7⟧
 - [x] nothing in skills/ outside the tests deletes from $VERI_HOME, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
-- [ ] no leaf transcript is copied into $VERI_HOME: the only thing written there is an event line, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
+- [x] no leaf transcript is copied into $VERI_HOME: the only thing written there is an event line, pinned by a case marked @pytest.mark.tree_audit, no production change expected ⟦criterion 8⟧
