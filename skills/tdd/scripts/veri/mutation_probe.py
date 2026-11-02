@@ -13,6 +13,15 @@ USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 BEFORE_USAGE = "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>"
 
 
+def append_record(fields):
+    record = tunables.read("VERI_MUTATION_RECORD")
+    if record:
+        with open(record, "a") as f:
+            for name, value in fields:
+                f.write(f"{name} {len(value)}\n{value}\n")
+            f.write("\n")
+
+
 def before_state(argv):
     if len(argv) < 6 or argv[2] != "--keep" or argv[4] != "--":
         sys.stderr.write(BEFORE_USAGE + "\n")
@@ -50,12 +59,7 @@ def before_state(argv):
                 path.write_bytes(content)
     if returncode == 0:
         return 1
-    record = tunables.read("VERI_MUTATION_RECORD")
-    if record:
-        with open(record, "a") as f:
-            for name, value in (("before", sha), ("keep", keep), ("command", shlex.join(command))):
-                f.write(f"{name} {len(value)}\n{value}\n")
-            f.write("\n")
+    append_record((("before", sha), ("keep", keep), ("command", shlex.join(command))))
     return 0
 
 
@@ -80,14 +84,8 @@ def main(argv):
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
-    record = tunables.read("VERI_MUTATION_RECORD")
-    if record:
-        recorded = argv[7:] if argv[4] == str(Path(__file__).resolve().parent.parent / "timed-test-run.sh") else argv[4:]
-        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(recorded)))
-        with open(record, "a") as f:
-            for name, value in fields:
-                f.write(f"{name} {len(value)}\n{value}\n")
-            f.write("\n")
+    recorded = argv[7:] if argv[4] == str(Path(__file__).resolve().parent.parent / "timed-test-run.sh") else argv[4:]
+    append_record((("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(recorded))))
     return 0
 
 
