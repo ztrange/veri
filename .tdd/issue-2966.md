@@ -4,5 +4,5 @@
 - [x] A case pins the order in the procedure: in skills/tdd/SKILL.md the claim (step 1.6, `unlabel-issue.sh`) is placed before preflight's baseline and its full-suite lock wait (a small, unmarked case reading the procedure text) ⟦criterion 1⟧
 - [x] Every existing case in skills/tdd/scripts/tests/py/unit/test_unlabel_issue.py whose fake gh refuses an unexpected call also answers a read of the issue's labels, `gh api repos/{owner}/{repo}/issues/<n>/labels`, with a JSON list of `{"name": …}` objects matching the labels that case's scenario gives the issue, so the cases stay green when `unlabel_issue.py` reads the labels first; no production change and no assertion changed ⟦diff-checked⟧
 - [x] `unlabel-issue.sh` reads the issue's labels before changing any, and exits 2, removing and adding no label, when the issue already carries any `taken:*` label (its own lane's included) ⟦criterion 2⟧
-- [ ] `unlabel-issue.sh` exits 2, removing and adding no label, when the issue lacks the opt-in label (`VERI_LABEL`) on a fresh claim ⟦criterion 3⟧
+- [x] `unlabel-issue.sh` exits 2, removing and adding no label, when the issue lacks the opt-in label (`VERI_LABEL`) on a fresh claim ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] The go-red control: with the refusal in `unlabel_issue.py` removed, the two refusal cases above go red, and restored they pass ⟦human-owed⟧ ⟦criterion 4⟧

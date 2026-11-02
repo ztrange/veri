@@ -30,6 +30,7 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     labels = {"7": {"ready-for-agent", "bug"}, "8": {"bug"}}
+    changes = []
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
@@ -37,6 +38,7 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
         read = _labels_read(args, labels)
         if read:
             return read
+        changes.append(joined)
         claim = _claim_call(args)
         if claim:
             return claim
@@ -55,9 +57,10 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
 
     carrying = unlabel_issue.main(["7"])
     carrying_left = set(labels["7"])
+    changes.clear()
     bare = unlabel_issue.main(["8"])
 
-    assert (carrying, carrying_left, bare, labels["8"], capsys.readouterr().err) == (0, {"bug"}, 0, {"bug"}, "")
+    assert (carrying, carrying_left, bare, labels["8"], changes) == (0, {"bug"}, 2, {"bug"}, [])
 
 
 def _deleting(monkeypatch, answer):
@@ -112,7 +115,7 @@ def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothi
 
 def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_without_the_label_exits_0(monkeypatch, capsys):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
-    labels = {"8": {"bug"}}
+    labels = {"8": {"ready-for-agent"}, "9": {"bug"}}
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
@@ -136,10 +139,12 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
 
     existing = unlabel_issue.main(["8"])
     existing_err = capsys.readouterr().err
+    bare = unlabel_issue.main(["9"])
+    capsys.readouterr()
     missing = unlabel_issue.main(["999"])
     missing_err = capsys.readouterr().err
 
-    assert (existing, existing_err, missing, "999" in missing_err) == (0, "", 2, True)
+    assert (existing, existing_err, bare, missing, "999" in missing_err) == (0, "", 2, 2, True)
 
 
 def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no_answer(monkeypatch, capsys):
@@ -187,6 +192,9 @@ def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         calls.append(args)
+        read = _labels_read(args, {"7": {os.environ.get("VERI_LABEL", "ready-for-agent")}})
+        if read:
+            return read
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -321,6 +329,9 @@ def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_a
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
             calls.append(args)
+            read = _labels_read(args, {"7": {"ready-for-agent"}})
+            if read:
+                return read
             if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
                 return lookup(args)
             return subprocess.CompletedProcess(args, 0, "[]", "")
@@ -405,6 +416,28 @@ def test_main_2966_exits_2_and_changes_no_label_when_the_issue_already_carries_a
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     labels = {"7": {"ready-for-agent", "taken:mu"}}
+    changes = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        read = _labels_read(args, labels)
+        if read:
+            return read
+        changes.append(" ".join(args))
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = unlabel_issue.main(["7"])
+
+    assert (code, changes) == (2, [])
+
+
+def test_main_2966_exits_2_and_changes_no_label_when_the_issue_lacks_the_opt_in_label_on_a_fresh_claim(monkeypatch):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    labels = {"7": {"ready-for-agent", "bug"}}
     changes = []
 
     def fake_run(args, **kwargs):
