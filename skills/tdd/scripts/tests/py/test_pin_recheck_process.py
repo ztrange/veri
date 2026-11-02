@@ -625,3 +625,78 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
     recorded = record_path.read_text()
     assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
         0, "", True, False), ran.stderr + recorded
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is red on the restored files")
+def test_2959_a_before_keep_record_whose_command_is_red_on_the_restored_files_exits_0_without_a_keyerror(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "fix and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="grep -q fixed src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "KeyError" in ran.stderr, (tmp_path / "src.txt").read_bytes()) == (
+        0, False, b"fixed behaviour\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command reads the keep path and a .tdd file")
+def test_2959_a_before_keep_record_leaves_the_keep_path_and_tdd_files_at_their_current_content_while_the_command_runs(
+        tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / ".tdd" / "notes.md").write_text("ledger v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / ".tdd" / "notes.md").write_text("ledger v1\n")
+    git("commit", "-q", "-am", "fix, pin and ledger")
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="! { grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md; }")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stderr) == (0, ""), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is red only if the keep path or a .tdd file was restored")
+def test_2959_a_before_keep_record_whose_command_is_green_on_the_current_keep_path_and_tdd_files_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / ".tdd" / "notes.md").write_text("ledger v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / ".tdd" / "notes.md").write_text("ledger v1\n")
+    git("commit", "-q", "-am", "fix, pin and ledger")
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert ran.returncode == 1, ran.stderr
