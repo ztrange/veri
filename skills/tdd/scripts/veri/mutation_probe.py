@@ -1,5 +1,6 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import shlex
 import signal
 import subprocess
 import sys
@@ -31,7 +32,7 @@ def main(argv):
         return 1
     record = tunables.read("VERI_MUTATION_RECORD")
     if record:
-        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", " ".join(argv[4:])))
+        fields = (("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(argv[4:])))
         with open(record, "a") as f:
             for name, value in fields:
                 f.write(f"{name} {len(value)}\n{value}\n")
