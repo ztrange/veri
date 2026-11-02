@@ -4,10 +4,11 @@ import errno
 import sys
 
 try:
-    from . import add_ledger_step
+    from . import add_ledger_step, event
     from .ledger import STEP_RE, read_ledger
 except ImportError:
     import add_ledger_step
+    import event
     from ledger import STEP_RE, read_ledger
 
 USAGE = (
@@ -57,7 +58,16 @@ def insert(ledger, branch_file):
     return add_ledger_step.main([ledger, where, anchor, step])
 
 
+def flake(at, red_file, alone_file):
+    text, failed = attempt(lambda: suites(read_text(red_file)))
+    if failed:
+        return failed
+    return event.append("", {}, "suite-flake", ["at=" + at, "files=" + ",".join(text)])
+
+
 def main(argv):
+    if len(argv) == 4 and argv[0] == "flake":
+        return flake(argv[1], argv[2], argv[3])
     if len(argv) == 3 and argv[0] == "insert":
         return insert(argv[1], argv[2])
     if len(argv) != 4 or argv[0] != "check":
