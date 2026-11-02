@@ -236,3 +236,19 @@ def test_flake_at_resume_writes_one_suite_flake_event_naming_each_red_file_and_e
     assert code == 0 and len(flakes) == 1
     assert "at=resume" in flakes[0].values() or flakes[0].get("at") == "resume"
     assert "backend/a.test.ts" in json.dumps(flakes[0]) and "scripts/b.test.mjs" in json.dumps(flakes[0])
+
+
+def test_flake_at_suite_repair_writes_one_suite_flake_event_carrying_that_call_site_and_naming_each_red_file_2906(run_cli, events, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    (tmp_path / ".git").mkdir()
+    red = tmp_path / "red"
+    red.write_text("src/c.test.tsx — FAIL c\nscripts/d.test.mjs\n")
+    alone = tmp_path / "alone-red"
+    alone.write_text("none\n")
+
+    code, _, _ = run_cli(module, ["flake", "suite-repair", str(red), str(alone)], cwd=tmp_path)
+
+    flakes = [e for e in events.records(tmp_path) if e["event"] == "suite-flake"]
+    assert code == 0 and len(flakes) == 1
+    assert "at=suite-repair" in flakes[0].values() or flakes[0].get("at") == "suite-repair"
+    assert "src/c.test.tsx" in json.dumps(flakes[0]) and "scripts/d.test.mjs" in json.dumps(flakes[0])
