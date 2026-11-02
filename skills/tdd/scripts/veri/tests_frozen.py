@@ -645,7 +645,7 @@ def _called_helpers(rev, name, body):
 
 def _helpers_in(text, body):
     helpers = []
-    for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!func\b).*\n?)*", text, re.M):
+    for definition in re.finditer(r"^(?:func|def)\s+(\w+)[^\n]*\n(?:(?!(?:func|def)\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
             helpers.append(definition.group())
     return "\n".join(helpers)
@@ -670,12 +670,19 @@ def rerecord_refactored(ledger, green):
         write(sys.stderr, "skipped: %s %s" % (name, case))
         return record
 
+    seen = {}
+
+    def nth(rev, name, case, k):
+        found = [b for c, b in _cases(_text_at(rev, name, subprocess.DEVNULL)) if c == case]
+        return found[k] if k < len(found) else None
+
     def rewrite(_, record, name, case, digest):
-        verified = _cases_at(green, name).get(case)
+        k = seen[(name, case)] = seen.get((name, case), -1) + 1
+        verified = nth(green, name, case, k)
         if verified is None or digest not in {_body_digest(verified), *map(
                 _body_digest, (b for c, b in _old_cut_cases_all(_text_at(green, name, subprocess.DEVNULL)) if c == case))}:
             return skip(name, case, record)
-        head = _cases_at("HEAD", name).get(case)
+        head = nth("HEAD", name, case, k)
         if head is None:
             return skip(name, case, record)
         if (name, case) in recorded_helpers and recorded_helpers[(name, case)] != _helper_digest(
@@ -691,8 +698,9 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record)
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record)
+        head_text = _text_at("HEAD", name, subprocess.DEVNULL)
         return _body_line(name, case, head) + "\nhelpers: %s\t%s\t%s" % (
-            name, case, _helper_digest(_text_at("HEAD", name, subprocess.DEVNULL), head))
+            name, case, _helper_digest(head_text, "\n".join(b for c, b in _cases(head_text) if c == case)))
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
 
