@@ -63,7 +63,8 @@ def before_state(argv):
     returncode = run_with(restored, command)
     if returncode == 0:
         return 1
-    append_record((("before", sha), ("keep", keep), ("command", shlex.join(command))))
+    green = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    append_record((("before", sha), ("keep", keep), ("command", shlex.join(command)), ("green", green)))
     return 0
 
 
