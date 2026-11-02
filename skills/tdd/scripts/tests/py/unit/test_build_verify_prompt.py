@@ -1377,3 +1377,47 @@ def test_main_refuses_a_pin_call_whose_branch_base_is_absent_with_exit_2_and_its
 
     assert {"exit": code, "names --branch-base": b"--branch-base" in err, "prompt": out} == {
         "exit": 2, "names --branch-base": True, "prompt": b""}
+
+
+def test_main_lists_the_ledgers_later_unchecked_steps_in_a_green_prompt_given_ledger_and_leaves_it_unchanged_without_2916(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat frobs.\n")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_bytes("- [ ] zorblat frobs ⟦criterion 1⟧\n- [ ] quuxlet nitzes ⟦criterion 2⟧\n"
+                       "- [ ] wibblet sorts ⟦criterion 3⟧\n".encode())
+
+    def rendered(*extra):
+        code = build_verify_prompt.main(["--step", "zorblat frobs ⟦criterion 1⟧", *extra, "--fast-cmd", "make unit",
+                                         "green", str(spec), "tests/py/test_zorblat.py", "test_zorblat_frobs"])
+        out, _ = capsysbinary.readouterr()
+        return code, out.decode()
+
+    code, with_ledger = rendered("--ledger", str(ledger))
+    plain_code, plain = rendered()
+
+    assert (code, plain_code) == (0, 0)
+    assert ("quuxlet nitzes" in with_ledger, "wibblet sorts" in with_ledger, "quuxlet nitzes" in plain) == (True, True, False)
+    assert with_ledger.count("zorblat frobs ⟦criterion 1⟧") == plain.count("zorblat frobs ⟦criterion 1⟧")
+
+
+def test_main_omits_a_checked_later_step_from_a_green_prompts_later_steps_and_renders_none_for_a_red_prompt_given_ledger_2916(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat frobs.\n")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_bytes("- [ ] zorblat frobs ⟦criterion 1⟧\n- [x] quuxlet nitzes ⟦criterion 2⟧\n"
+                       "- [ ] wibblet sorts ⟦criterion 3⟧\n".encode())
+
+    def rendered(phase):
+        code = build_verify_prompt.main(["--step", "zorblat frobs ⟦criterion 1⟧", "--ledger", str(ledger),
+                                         "--fast-cmd", "make unit", phase, str(spec), "tests/py/test_zorblat.py",
+                                         "test_zorblat_frobs"])
+        out, _ = capsysbinary.readouterr()
+        return code, out.decode()
+
+    green_code, green = rendered("green")
+    red_code, red = rendered("red")
+
+    assert (green_code, red_code) == (0, 0)
+    assert ("wibblet sorts" in green, "quuxlet nitzes" in green, "wibblet sorts" in red) == (True, False, False)
