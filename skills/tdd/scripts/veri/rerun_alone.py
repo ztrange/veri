@@ -4,6 +4,8 @@ import re
 import subprocess
 import sys
 
+import event
+
 
 def main(argv):
     if not argv:
@@ -14,7 +16,9 @@ def main(argv):
     if not files:
         return 1
     still_red = [f for f in files if subprocess.run(["sh", "-c", argv[0] + ' "$1"', "sh", f]).returncode]
-    return 1 if still_red else 0
+    if still_red:
+        return 1
+    return event.append("", {}, "suite-flake", ["files=" + ",".join(files)])
 
 
 if __name__ == "__main__":
