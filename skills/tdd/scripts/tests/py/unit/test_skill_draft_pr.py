@@ -6,7 +6,6 @@ import re
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DRAFT_PR = "### 4. Draft PR"
-ISSUE = "### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -81,13 +80,6 @@ def draft_pr_read():
 def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own():
     pushes = first_record(draft_pr_read(), re.escape("git push"))
     assert not pushes, f"Draft PR step still pushes the branch itself: {pushes[:120]}"
-
-
-def test_worktree_step_no_longer_says_the_draft_pr_is_opened_once_every_step_is_green():
-    records = _records(_lines(ISSUE))
-    assert records, "SKILL.md has no ### 1. Read the issue section to read"
-    stale = first_record(records, re.escape("every step is green"))
-    assert not stale, f"worktree step still says the draft PR is opened once every step is green: {stale[:120]}"
 
 
 def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr():

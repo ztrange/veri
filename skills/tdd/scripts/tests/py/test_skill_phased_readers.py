@@ -21,8 +21,6 @@ ALLOWED = {
         "windows around every mutation-parity.sh in the document",
     "unit/test_skill_refactor_kind.py::test_skill_md_s_draft_pr_step_puts_the_conductor_s_mutation_parity_sh_report_into_the_pr_body_template_…":
         "windows around every mutation-parity.sh in the document",
-    "unit/test_skill_stopping.py::test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck":
-        "its rows are verify-plan, Red, Green, Refactor loop and Revising",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "document-wide site list",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852":
