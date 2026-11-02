@@ -599,8 +599,7 @@ def rerecord_committed(step):
                 at_head = _cases_at("HEAD", name)
                 before = _cases_at("HEAD~1", name) if _has_rev("HEAD~1") else {}
                 if os.path.exists(name):
-                    with open(name, encoding="utf-8", errors="replace") as handle:
-                        tree = dict(_cases(handle.read()))
+                    tree = dict(_head_and_new_cases(name)[1])
                     if tree != at_head:
                         at_head, before = tree, _cases_at("HEAD", name)
                 recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
