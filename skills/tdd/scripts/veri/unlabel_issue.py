@@ -29,9 +29,12 @@ def main(argv):
     read = github.gh_api("repos/{owner}/{repo}/issues/%s/labels" % argv[0], stderr=subprocess.PIPE)
     if read.returncode != 0:
         return _refuse("no answer to reading the labels of issue #%s: %s" % (argv[0], read.stderr.strip()))
-    held = [item["name"] for item in json.loads(read.stdout) if item["name"].startswith("taken:")]
+    names = [item["name"] for item in json.loads(read.stdout)]
+    held = [name for name in names if name.startswith("taken:")]
     if held:
         return _refuse("issue #%s already carries %s" % (argv[0], ", ".join(held)))
+    if opt_in not in names:
+        return _refuse("issue #%s lacks the opt-in label %s" % (argv[0], opt_in))
     run = github.gh_api_delete("repos/{owner}/{repo}/issues/%s/labels/%s" % (argv[0], label))
     if run.returncode != 0 and "404" not in run.stderr:
         if "HTTP" in run.stderr:
