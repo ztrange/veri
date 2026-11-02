@@ -12,3 +12,12 @@ skills/tdd/scripts/tests/py/test_wrong_test_route_process.py
 command 443
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp8ulnzfml/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_wrong_test_route_process.py::test_2916_criterion_2_a_later_step_report_routes_later_even_when_the_missing_reroute_budget_is_spent make test TESTS=skills/tdd/scripts/tests/py/test_wrong_test_route_process.py::test_2916_criterion_2_a_later_step_report_routes_later_even_when_the_missing_reroute_budget_is_spent
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 44
+return named if named in unchecked else None
+new 12
+return named
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/test_wrong_test_route_process.py::test_2916_criterion_4_a_later_step_report_naming_no_step_of_the_ledger_falls_through_to_missing
+
