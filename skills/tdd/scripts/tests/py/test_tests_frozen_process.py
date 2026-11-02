@@ -4166,3 +4166,29 @@ def test_check_earlier_exits_0_for_a_go_case_after_a_helper_it_calls_changes_kee
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the red commit to HEAD")
+def test_check_earlier_passes_a_record_written_without_helper_data_when_nothing_changed_and_exits_1_when_the_case_body_changes_2867(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    source = ("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n\n"
+              "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n}\n")
+    suite.write_text(source)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    ledger = ".tdd/issue-9.md"
+    unchanged = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    suite.write_text(source.replace("x := 1\n\tcheckX", "x := 2\n\tcheckX"))
+    _commit(tmp_path, "later commit changes the case body")
+    changed = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)
+
+    assert unchanged == (0, "")
+    assert changed[0] == 1
+    assert "TestX" in changed[1]
