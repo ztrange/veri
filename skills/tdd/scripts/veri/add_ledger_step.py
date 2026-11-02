@@ -205,6 +205,8 @@ def main(argv):
             return 1
     for text in texts:
         unit = unit_of(text)
+        if carries_mark(text, "skill-edit") and unit is None:
+            return refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
         if carries_mark(text, "skill-edit") and restates_list(path, unit):
             return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]

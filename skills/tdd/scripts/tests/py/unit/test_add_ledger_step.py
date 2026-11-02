@@ -1527,3 +1527,21 @@ def test_2749_a_growing_call_given_a_relative_ledger_path_writes_the_plan_event_
     events = [json.loads(row) for row in path.read_text().splitlines()] if path.exists() else []
     plans = [(e["event"], e["steps"]) for e in events if e["event"] == "plan"]
     assert (code, plans, (tdd / ".tdd").exists()) == (0, [("plan", "4")], False)
+
+
+def test_2937_a_skill_edit_step_naming_no_backticked_unit_path_exits_2_with_one_stderr_line_naming_it_leaving_the_ledger(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### skills/vgroom/SKILL.md\n")
+
+    try:
+        code, out, err = run_cli(
+            add_ledger_step,
+            [str(ledger), "after", "b two", "⟦skill-edit⟧ regrade skills/vgroom/SKILL.md against A1"],
+            cwd=tmp_path,
+        )
+    except TypeError as crash:
+        pytest.fail(f"crashed with TypeError: {crash}")
+
+    lines = err.splitlines()
+    assert (code, out, len(lines), "backtick" in err, "TypeError" in err or "Traceback" in err, ledger.read_bytes()) == (2, "", 1, True, False, LEDGER), err
