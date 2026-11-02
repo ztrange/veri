@@ -1385,6 +1385,8 @@ green is not taken on trust here — sub-step 1 asks. Like every step since 1.2,
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
 
+**Before any red full-run result takes its repair step or its `rebased-tip-red` bail** — the branch's own run here, and the rebased tip's run in sub-step 1 and after `verify-rebase` — run each test file the red output names alone, once, with the repo's own runner (`make test TESTS="<file>"` on veri). A red output that names no file takes today's path, unchanged. When every file passes alone, the red was a flake: write a `suite-flake` event naming the files, treat the run as green, and name the files in the PR body. When any file stays red alone, the red result stands as it is and takes its repair step or its bail.
+
 A red result on that full run does not bail: append a repair step to the ledger, commit it,
 and return to step 3, *The cycle loop* — the failing suites are that step's red evidence. The
 repair step's text lists every suite the full run left red, each with its first `FAIL -` line;
