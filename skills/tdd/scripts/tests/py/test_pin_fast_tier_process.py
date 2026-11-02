@@ -59,3 +59,46 @@ def test_pin_fast_tier_run_from_a_subdirectory_writes_the_reason_under_the_repo_
 
     assert ran.returncode == 1, ran.stderr
     assert ((tmp_path / ".tdd" / "verify-pin.reason").exists(), (sub / ".tdd").exists()) == (True, False)
+
+
+@pytest.mark.process("pin-fast-tier.sh run on a fast command whose passing noise dwarfs its one failure")
+def test_a_noisy_failing_fast_command_leaves_a_bounded_reason_file_with_its_fail_block_2882(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    fast = stub(tmp_path / "fast-noisy",
+                "i=0\nwhile [ $i -lt 20000 ]; do\n"
+                "echo \"    at passing-noise-frame-$i (src/component.tsx:$i:10) padding padding padding padding padding padding\"\n"
+                "i=$((i+1))\ndone\n"
+                "echo ' FAIL  src/widget.test.ts > widget > renders the unique-failure-marker'\n"
+                "echo '  AssertionError: expected 1 to be 2'\nexit 1\n")
+
+    ran = subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True, text=True)
+
+    reason = (tmp_path / ".tdd" / "verify-pin.reason").read_bytes()
+    assert ran.returncode == 1
+    assert len(reason) < 512 * 1024
+    assert b"unique-failure-marker" in reason
+    assert b"AssertionError: expected 1 to be 2" in reason
+
+
+@pytest.mark.process("pin-fast-tier.sh run on a failure followed by far more passing noise than the bound, and on a small output")
+def test_a_noisy_reason_keeps_a_fail_block_that_lies_before_the_tail_and_a_small_one_is_unchanged_2882(tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    noisy = stub(tmp_path / "fast-noisy-suffix",
+                 "echo ' FAIL  src/early.test.ts > early > early-failure-marker'\n"
+                 "echo '  early-detail-line: expected 1 to be 2'\n"
+                 "i=0\nwhile [ $i -lt 20000 ]; do\n"
+                 "echo \"    at passing-noise-frame-$i (src/component.tsx:$i:10) padding padding padding padding padding\"\n"
+                 "i=$((i+1))\ndone\nexit 1\n")
+    small = stub(tmp_path / "fast-small",
+                 "echo ' FAIL  src/s.test.ts > small-failure-marker'\necho '  small-detail-line'\necho '1 failed'\nexit 1\n")
+    reason_file = tmp_path / ".tdd" / "verify-pin.reason"
+
+    subprocess.run([CHECK, noisy], cwd=tmp_path, capture_output=True, text=True)
+    noisy_reason = reason_file.read_bytes()
+    subprocess.run([CHECK, small], cwd=tmp_path, capture_output=True, text=True)
+    small_reason = reason_file.read_bytes()
+
+    assert len(noisy_reason) < 512 * 1024
+    assert b"early-failure-marker" in noisy_reason
+    assert b"early-detail-line: expected 1 to be 2" in noisy_reason
+    assert small_reason == (b" FAIL  src/s.test.ts > small-failure-marker\n  small-detail-line\n1 failed\n")
