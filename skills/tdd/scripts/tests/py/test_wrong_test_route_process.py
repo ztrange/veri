@@ -1,4 +1,5 @@
 """Conductor-level cases for wrong-test-route.sh: the real script, called as the Green step and REVISE.md call it."""
+import hashlib
 import os
 import subprocess
 
@@ -52,3 +53,21 @@ def test_2254_criterion_3_a_revise_green_report_naming_one_older_case_on_superse
 
     assert out != "revise\n" and code != 3, err
     assert (code, out) == (0, "red %s\n" % OLDER), err
+
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_2868_two_superseded_cases_with_the_own_red_case_recorded_and_unnamed_route_supersede_diff(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    (repo / "tests" / "test_gear.py").write_text("def test_a_gear_never_slips():\n    assert True\n")
+    key = hashlib.sha256(os.fsencode(STEP)).hexdigest()[:16]
+    (repo / ".tdd" / ("tests-frozen-%s.record" % key)).write_text("case: test_a_wheel_turns\n")
+    (repo / ".tdd" / "develop-green.out").write_text(
+        "The wheel now turns, so the cog and the gear move with it.\n"
+        "SUPERSEDED: tests/test_cog.py::%s asserts the cog never moves\n"
+        "SUPERSEDED: tests/test_gear.py::test_a_gear_never_slips asserts the gear never slips\n"
+        "WRONG_TEST: none\n" % OLDER)
+
+    code, out, err = route(repo, ".tdd/develop-green.out")
+
+    assert (code, out) == (0, "supersede-diff %s test_a_gear_never_slips\n" % OLDER), err
+
