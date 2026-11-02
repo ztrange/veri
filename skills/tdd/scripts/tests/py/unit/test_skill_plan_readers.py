@@ -29,10 +29,6 @@ ALLOWED = {
         "no PL row yet",
     "test_skill_suite_runs.py::test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier":
         "no PL row yet",
-    "test_skill_refactor_kind.py::test_skill_md_says_a_diff_checked_step_in_a_refactor_kind_run_runs_develop_diff_then_verify_diff_and_never_cover_or_transform_1915":
-        "carried by PL27; reads step 2's refactor-kind paragraph",
-    "test_skill_preflight.py::test_skill_md_s_worktree_guard_prose_says_the_lock_is_taken_in_preflight_step_3_before_the_baseline_and_never_in_step_1_2":
-        "carried by PF5; reads step 1's worktree guard paragraph for `preflight step 3`",
 }
 
 
