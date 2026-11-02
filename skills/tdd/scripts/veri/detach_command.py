@@ -76,6 +76,8 @@ def _refused(argv):
 
 
 def main(argv):
+    if len(argv) >= 4 and argv[-2] == "--alone":
+        argv = argv[:-2]
     if _refused(argv):
         print(USAGE, file=sys.stderr)
         return 2
