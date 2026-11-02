@@ -33,6 +33,13 @@ def run_captured(command):
     return subprocess.run(command, shell=True, capture_output=True, text=True)
 
 
+def control_run(path, original, command):
+    path.write_bytes(b"\x00 control run: no runner can load this\n")
+    control = run_captured(command)
+    path.write_bytes(original)
+    return control
+
+
 def output_lines(run):
     return set(run.stdout.splitlines()) | set(run.stderr.splitlines())
 
@@ -80,9 +87,7 @@ def main(argv):
             status = 1
             continue
         if green:
-            path.write_bytes(b"\x00 control run: no runner can load this\n")
-            control = run_captured(pin["command"])
-            path.write_bytes(original)
+            control = control_run(path, original, pin["command"])
             if control.returncode == 0:
                 sys.stdout.write(f"needs a look: {pin['file']}\n")
                 continue
