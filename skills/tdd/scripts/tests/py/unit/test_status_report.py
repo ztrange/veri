@@ -2,22 +2,36 @@
 import datetime
 import importlib
 import json
+import subprocess
+
+
+def fake_tags(monkeypatch, status, stdout="v0.2 Second capability\nv0.1 First capability\n"):
+    done = subprocess.CompletedProcess([], 0, stdout=stdout, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+
+
+def landed(out):
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    return lines[lines.index("Landed") + 1:lines.index("Running")]
 
 
 def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_order(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status)
 
     code, out, _ = run_cli(status, ["--report"])
 
     headings = [line.strip() for line in out.splitlines()
                 if line.strip() in ("Landed", "Running", "Queue", "Waiting")]
-    assert (code, headings) == (0, ["Landed", "Running", "Queue", "Waiting"])
+    assert (code, headings, landed(out)) == (
+        0, ["Landed", "Running", "Queue", "Waiting"], ["v0.2 Second capability", "v0.1 First capability"])
 
 
 def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status)
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -32,6 +46,7 @@ def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_o
 def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status, stdout="")
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -44,6 +59,7 @@ def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say
 def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status)
     fetched = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2, minutes=3)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
@@ -59,6 +75,7 @@ def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_fi
 def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
 

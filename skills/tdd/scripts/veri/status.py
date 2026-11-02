@@ -281,9 +281,16 @@ def queue_counts():
     return text
 
 
+def landed_lines():
+    listed = subprocess.run(["git", "-C", main_working_tree(), "tag", "--list",
+                             "--format=%(refname:short)  %(contents:subject)"],
+                            capture_output=True, text=True).stdout
+    return listed.strip() or "none"
+
+
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\nnone\n\nRunning\nnone\n\nQueue\n%s%s\n\nWaiting\nnone" % (snapshot_line(), queue_counts()))
+        print("Landed\n%s\n\nRunning\nnone\n\nQueue\n%s%s\n\nWaiting\nnone" % (landed_lines(), snapshot_line(), queue_counts()))
         return 0
     parsed = parse_args(argv)
     if parsed is None:
