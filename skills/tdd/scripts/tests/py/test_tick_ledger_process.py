@@ -358,3 +358,35 @@ def test_ticking_does_not_pair_a_missing_title_with_a_case_already_committed_in_
     titles = sorted(line.split("\t")[1] for record in (tmp_path / ".tdd").glob("tests-frozen-*.record")
                     for line in record.read_text().splitlines() if line.startswith("body: "))
     assert (ticked, titles) == (0, ["test_after_rename_2825"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_ticking_refactor_pending_refuses_to_pair_two_renamed_cases_by_file_position_2913(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step adds two cases"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_alpha_2913():\n    assert 1 == 2\n"
+                     "\n\ndef test_beta_2913():\n    assert 3 == 4\n")
+    run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_beta_renamed_2913():\n    assert 30 == 40\n"
+                     "\n\ndef test_alpha_renamed_2913():\n    assert 10 == 20\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "green")
+    records = list((tmp_path / ".tdd").glob("tests-frozen-*.record"))
+    before = [record.read_bytes() for record in records]
+
+    ticked, _, err = run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=tmp_path)
+
+    assert (ticked, [record.read_bytes() for record in records],
+            records[0].name in err, "test_alpha_2913" in err or "test_beta_2913" in err) \
+        == (2, before, True, True)
