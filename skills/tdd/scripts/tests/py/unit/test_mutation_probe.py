@@ -182,3 +182,24 @@ def test_main_records_only_the_test_command_when_the_probe_runs_through_timed_te
     lines = record.read_text().split("\n")
     expected = shlex.join(test_command)
     assert lines[lines.index("command %d" % len(expected)) + 1] == expected
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--before", "abc1234", "--keep", "t.py", "--"],
+        ["--before", "abc1234", "--nokeep", "t.py", "--", "true"],
+        ["--before", "abc1234", "--keep", "t.py", "x", "true"],
+    ],
+    ids=["fewer than 6 arguments", "argv[2] not --keep", "argv[4] not --"],
+)
+def test_main_before_refuses_a_malformed_call_with_the_usage_line_and_exit_2_without_running_the_command_2900(
+    run_cli, mutation_probe, monkeypatch, args
+):
+    calls = []
+    monkeypatch.setattr(mutation_probe.subprocess, "run", lambda *a, **k: calls.append(a))
+    code, out, err = run_cli(mutation_probe, args)
+    assert code == 2
+    assert out == ""
+    assert "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>" in err
+    assert calls == []

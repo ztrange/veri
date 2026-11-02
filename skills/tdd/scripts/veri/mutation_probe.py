@@ -9,9 +9,13 @@ from pathlib import Path
 import tunables
 
 USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
+BEFORE_USAGE = "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>"
 
 
 def before_state(argv):
+    if len(argv) < 6 or argv[2] != "--keep" or argv[4] != "--":
+        sys.stderr.write(BEFORE_USAGE + "\n")
+        return 2
     sha, keep, command = argv[1], argv[3], argv[5:]
     if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"], capture_output=True).returncode:
         sys.stderr.write(f"mutation-probe.sh: {sha} does not resolve to a commit\n")
