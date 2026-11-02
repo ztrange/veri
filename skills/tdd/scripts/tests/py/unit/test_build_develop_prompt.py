@@ -10,9 +10,9 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|cover-new|migrate|contract-a|contract-b"
+PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|migrate|contract-a|contract-b"
 USAGE = b"build-develop-prompt.sh: usage: " + PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
-NAMED_REVISABLE = {"expand", "migrate", "contract-a", "contract-b", "rebase"}
+NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
 
 
 def want_revise(module):
@@ -1960,3 +1960,20 @@ def test_main_builds_a_predicate_prompt_from_the_spec_the_candidate_the_test_com
     code, out, _ = run_cli(build_develop_prompt, ["predicate", str(spec), "QWIXTLE: hoist the quux", "make unit", bound])
 
     assert (code, bound in out, "QWIXTLE: hoist the quux" in out, "make unit" in out) == (0, True, True, True)
+
+
+def test_main_renders_a_beside_prompt_that_adds_the_new_interface_beside_the_old_with_no_proxy_moves_no_caller_and_freezes_tests_2826(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    code = build_develop_prompt.main(["beside", str(spec), "QWIXTLE: zorblat quuxes", "make test"])
+    out, err = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, err) == (0, b""), err
+    assert (b"develop-beside" in out, b"QWIXTLE: zorblat quuxes" in out, b"no proxy" in prompt,
+            b"behaviour unchanged" in prompt or b"behaviour does not change" in prompt,
+            b"Move no caller" in prompt,
+            b"Never modify a test file: a beside commit that touches one is rejected" in prompt) == (
+        True, True, True, True, True, True), out

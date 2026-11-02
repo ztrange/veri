@@ -12,16 +12,17 @@ from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text
 
+DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
-          "red-missing", "red-supersede") + INTERFACE_PHASES
+          "red-missing", "red-supersede") + DEVELOP_INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "transform", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
-        **dict.fromkeys(INTERFACE_PHASES, 4)}
+        **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
-REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES + ("rebase",)
+REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("rebase",)
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
