@@ -349,3 +349,106 @@ def test_queued_merge_finding_a_lock_left_by_a_dead_holder_reports_it_on_stderr_
         if queued.poll() is None:
             queued.kill()
         queued.communicate()
+
+
+@pytest.mark.tree_audit("copies the scripts directory into the linked worktree")
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims from a copy inside a real linked worktree, with gh and remote git planted on PATH")
+def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_leaves_the_merge_lock_free_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    worktree = tmp_path / "wt"
+    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n")
+    copied = worktree / "scripts-copy"
+    shutil.copytree(SCRIPTS, copied, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+    run = dict(env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    subprocess.run(["/bin/sh", str(copied / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "feature", "-"],
+                   cwd=worktree, timeout=30, **run)
+    try:
+        second = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                                cwd=primary, timeout=5, **run).returncode
+    except subprocess.TimeoutExpired:
+        second = "blocked"
+
+    assert second == 0
+
+
+FAKE_GIT_LOCAL_PULL = FAKE_GIT.replace('rebase|push|fetch|pull) exit 0 ;;', 'rebase|push|fetch) exit 0 ;;')
+
+
+@pytest.mark.tree_audit("copies the scripts directory into the linked worktree")
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims from a copy inside a real linked worktree, with gh and remote git planted on PATH")
+def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_fast_forwards_main_and_exits_0_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    ident = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    for args in (["init", "-q", "-b", "main"],
+                 [*ident, "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")],
+                 [*ident, "commit", "-q", "--allow-empty", "-m", "merged upstream"],
+                 ["update-ref", "refs/remotes/origin/main", "HEAD"],
+                 ["reset", "-q", "--hard", "HEAD~1"]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    upstream = subprocess.run([real_git, "-C", str(primary), "rev-parse", "refs/remotes/origin/main"],
+                              check=True, capture_output=True, text=True).stdout.strip()
+    worktree = tmp_path / "wt"
+    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n")
+    copied = worktree / "scripts-copy"
+    shutil.copytree(SCRIPTS, copied, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT_LOCAL_PULL)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+
+    run = subprocess.run(["/bin/sh", str(copied / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "feature", "-"],
+                         cwd=worktree, timeout=30, env=env, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    main_tip = subprocess.run([real_git, "-C", str(primary), "rev-parse", "main"],
+                              capture_output=True, text=True).stdout.strip()
+
+    assert (run.returncode, main_tip) == (0, upstream), run.stderr
+
+
+FAKE_GIT_LOSING_RELEASE_SCRIPT = FAKE_GIT.replace(
+    "case \"$*\" in\n",
+    "case \"$*\" in\n"
+    "  *\"branch -D\"*) rm -f \"$TMPDIR\"/queued-merge-scripts-*/scripts/merge-lock.sh ;;\n", 1)
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim in a scratch repository, with gh and git planted on PATH")
+def test_queued_merge_whose_merge_lock_release_cannot_be_started_names_release_in_the_cleanup_failure_and_exits_2_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT_LOSING_RELEASE_SCRIPT)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "TMPDIR": str(scratch),
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+
+    run = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(tmp_path / "wt"), "feature", "-"],
+                         cwd=primary, timeout=30, env=env, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    assert (run.returncode, "FileNotFoundError" in run.stderr, "merged, but cleanup failed: release" in run.stderr) == (2, False, True), run.stderr
