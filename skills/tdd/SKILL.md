@@ -335,6 +335,11 @@ Decompose the issue into a **plan**: a checklist of small steps, each one cycle'
 aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
 cycle) but do **not** gate on it.
 
+**An issue holding more than one deliverable is parked, not planned.** Before the plan is
+committed, when the issue asks for more than one deliverable, run
+`$S/park-issue.sh <n> '<cause naming the deliverables>' '<unblock asking for the split>'` and
+run no step. Step count alone never triggers this.
+
 **Plan from the whole issue, not only its criteria.** `## Acceptance criteria` is the
 primary alignment, but read `## What to build` (and any notes) as a second source and look
 for gaps: a behaviour the prose asks for that no criterion covers still gets a step. Phrase
@@ -1265,8 +1270,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      Post a `### ⏸️ Parked — run budget (needs the user)` comment carrying the projection
      rather than the fact: the spent, steps remaining, median and projection figures
      `run-affordable.sh` printed, the ceiling (`VERI_RUN_BUDGET`, the second line
-     `step-budget.sh` printed), and the two answers available — raise `VERI_RUN_BUDGET` and
-     resume, or split the issue, since a run projected far past its ceiling is usually one
+     `step-budget.sh` printed), and the two answers available, in this order — split the issue, or
+     raise `VERI_RUN_BUDGET` and resume — since a run projected far past its ceiling is usually one
      whose issue was too big, a decision no leaf has the authority to make.
      This park is **not a bail**: nothing failed, and the ledger is at a state a resume
      already handles — so `classify-bail.sh` is not called on it.
