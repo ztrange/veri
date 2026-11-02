@@ -349,3 +349,36 @@ def test_queued_merge_finding_a_lock_left_by_a_dead_holder_reports_it_on_stderr_
         if queued.poll() is None:
             queued.kill()
         queued.communicate()
+
+
+@pytest.mark.tree_audit("copies the scripts directory into the linked worktree")
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims from a copy inside a real linked worktree, with gh and remote git planted on PATH")
+def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_leaves_the_merge_lock_free_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    for args in (["init", "-q", "-b", "main"],
+                 ["-c", "user.name=veri", "-c", "user.email=veri@example.test", "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    worktree = tmp_path / "wt"
+    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n")
+    copied = worktree / "scripts-copy"
+    shutil.copytree(SCRIPTS, copied, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+    run = dict(env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    subprocess.run(["/bin/sh", str(copied / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "feature", "-"],
+                   cwd=worktree, timeout=30, **run)
+    try:
+        second = subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
+                                cwd=primary, timeout=5, **run).returncode
+    except subprocess.TimeoutExpired:
+        second = "blocked"
+
+    assert second == 0
