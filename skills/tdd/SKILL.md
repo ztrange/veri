@@ -247,7 +247,9 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 
 ### 0. Preflight — baseline checks (bail before any cycle)
 
-`Read` `<base directory>/PREFLIGHT.md` and run it.
+`Read` `<base directory>/PREFLIGHT.md` and run it. On a fresh run, the claim of step 1.6 is part
+of it: made right after preflight step 3 enters the worktree, before the baseline and the
+full-suite lock wait.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
@@ -318,10 +320,15 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
    Otherwise continue to step 2 to scope and plan. This check needs no special casing for a
    re-run: `issue-worktree.sh` is **idempotent**, so a second invocation puts you back in the
    same worktree the first run built, with its committed ledger already on disk.
-6. **Claim the issue on a fresh run.** Preflight has passed; before step 2's planning, run
-   `$S/unlabel-issue.sh <n>`, which removes the opt-in label (`VERI_LABEL`) so `solvable-issues.sh`
-   stops listing the issue, and adds the label `taken:<lane>`, `<lane>` being the text after
-   `VERI_LABEL`'s last `:`, or `main` when it has none. This is the run's **first claim**; the
+6. **Claim the issue on a fresh run.** The claim is made during preflight, not after it: right
+   after preflight step 3 has entered the issue's worktree and before that step's baseline and
+   its wait for the full-suite lock, run `$S/unlabel-issue.sh <n>`, which removes the opt-in
+   label (`VERI_LABEL`) so `solvable-issues.sh` stops listing the issue, and adds the label
+   `taken:<lane>`, `<lane>` being the text after `VERI_LABEL`'s last `:`, or `main` when it has
+   none. It refuses with **exit 2** an issue already carrying any `taken:*` label or lacking the
+   opt-in label, and that exit 2 stops the run before any baseline, plan or leaf: report its
+   diagnostic verbatim and do not start (a preflight-class stop, as in step 2 above).
+   This is the run's **first claim**; the
    draft PR is its **durable claim**. A bailed or parked issue keeps `taken:<lane>`, so it never
    looks like one nobody opted in, as parking already does. A human re-queues a claimed issue by
    restoring the opt-in label and removing `taken:<lane>`: `solvable-issues.sh` never lists an
