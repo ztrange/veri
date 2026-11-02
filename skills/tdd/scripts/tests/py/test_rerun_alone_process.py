@@ -74,3 +74,23 @@ def test_alone_command_placing_its_own_file_argument_receives_the_file_once_as_w
     assert ran.returncode == 0
     assert argv_log.read_text().splitlines() == ["TESTS=src/a.test.ts"]
     assert "<alone-cmd> <red-output-file>" in usage.stderr
+
+
+@pytest.mark.process("rerun-alone.sh run on pytest red output naming a test_<x>.py file, passing alone")
+def test_pytest_failed_summary_file_passing_alone_exits_0_and_writes_a_suite_flake_event_naming_it_2883(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text("FAILED skills/tdd/scripts/tests/py/test_foo.py::test_bar - Failed: Timeout >30.0s\n1 failed\n")
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py"]
+    events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    flakes = [e for e in events if "suite-flake" in e]
+    assert len(flakes) == 1
+    assert "skills/tdd/scripts/tests/py/test_foo.py" in flakes[0]
