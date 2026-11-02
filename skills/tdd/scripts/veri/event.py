@@ -186,6 +186,7 @@ def done_fields(path, ts, awake):
         fields.append(b"wall_seconds=%d" % wall)
     if span is not None:
         fields.append(b"awake_seconds=%d" % span)
+    fields.append(b"lane=" + os.fsencode(tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
     return fields
 
 
