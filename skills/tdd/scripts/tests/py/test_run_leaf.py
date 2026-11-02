@@ -52,9 +52,39 @@ def test_main_without_a_prompt_argument_refuses_with_the_usage_line_before_any_t
         [(2, "", usage), (2, "", usage)], [], [], [])
 
 
+class _StdinSink:
+    def __init__(self):
+        self.data = b""
+
+    def write(self, data):
+        self.data += data
+        return len(data)
+
+    def flush(self):
+        pass
+
+    def close(self):
+        pass
+
+
+class _Launch(list):
+    stdin = None
+
+
+def _with_prompt(argv):
+    """argv with the prompt at index 2 whether it arrived after -p or on the child's stdin."""
+    sink = getattr(argv, "stdin", None)
+    argv = list(argv)
+    if argv[1] == "-p" and argv[2].startswith("--") and sink is not None:
+        argv.insert(2, os.fsdecode(sink.data.rstrip(b"\n")))
+    return argv
+
+
 class _FakeLeaf:
     def __init__(self, launches, argv, stream=b"", **kwargs):
-        launches.append(list(argv))
+        launch = _Launch(argv)
+        launches.append(launch)
+        self.stdin = launch.stdin = _StdinSink() if kwargs.get("stdin") is not None else None
         read_end, write_end = os.pipe()
         os.write(write_end, stream)
         os.close(write_end)
@@ -100,7 +130,7 @@ def test_main_launches_one_leaf_with_the_prompt_the_model_only_when_non_empty_an
         run_leaf.main(["prompt.txt", *extra])
         capfd.readouterr()
         tail = want[len(head) + 1:]
-        launched.append(([[a[:len(head) + 1], a[len(a) - len(tail):]] for a in launches],
+        launched.append(([[_with_prompt(a)[:len(head) + 1], a[len(a) - len(tail):]] for a in launches],
                          [[want[:len(head) + 1], tail]]))
 
     assert [got for got, _ in launched] == [want for _, want in launched]
@@ -447,7 +477,7 @@ def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuse
             except Exception as error:
                 code = type(error).__name__
             out = capfd.readouterr().out
-            prompts = [os.fsencode(argv[2]) for argv in launches]
+            prompts = [os.fsencode(_with_prompt(argv)[2]) for argv in launches]
             answers.append((prompt_arg, code, prompts) if prompts
                            else (prompt_arg, code, out, sorted(tmp.iterdir())))
     finally:
@@ -1178,7 +1208,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_d
         spec.loader.exec_module(module)
         answers[how] = run_cli(module, ["prompt.txt"], cwd=work)
 
-    assert ([argv[2] for argv in launches], answers["linked"] == answers["inplace"],
+    assert ([_with_prompt(argv)[2] for argv in launches], answers["linked"] == answers["inplace"],
             answers["linked"][0]) == (["the prompt in the other working directory"] * 2, True, 3)
 
 
@@ -1440,7 +1470,7 @@ def _cli_argv(run_cli, monkeypatch, tmp_path, prompt_arg, extra=(), stdin=""):
 def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, monkeypatch, run_cli):
     code, out, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "prompt.txt")
 
-    assert (code, out.endswith("\nVERDICT: PASS\n"), [a[:6] for a in launches], len(launches)) == (
+    assert (code, out.endswith("\nVERDICT: PASS\n"), [_with_prompt(a)[:6] for a in launches], len(launches)) == (
         0, True, [["claude", "-p", "Verify the test for issue 3.",
                    "--output-format", "stream-json", "--verbose"]], 1)
 
@@ -1465,7 +1495,7 @@ def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run
 def test_cli_reads_the_prompt_from_stdin_on_dash(tmp_path, monkeypatch, run_cli):
     code, _, launches = _cli_argv(run_cli, monkeypatch, tmp_path, "-", stdin="piped prompt body")
 
-    assert (code, [argv[2] for argv in launches]) == (0, ["piped prompt body"])
+    assert (code, [_with_prompt(argv)[2] for argv in launches]) == (0, ["piped prompt body"])
 
 
 def _run_with_operator_gitconfig(tmp_path, monkeypatch, run_cli, gitconfig, stub_body):

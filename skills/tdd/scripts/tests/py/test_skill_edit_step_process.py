@@ -63,7 +63,7 @@ reply_rows() {
 """
 
 STUB_MODEL = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
+""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
@@ -120,7 +120,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
 
 
 STUB_UNCHANGED_FAILS = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
+""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
@@ -172,7 +172,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
 
 
 STUB_ALWAYS_REJECT = """#!/bin/sh
-prompt=$2
+case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: FAIL - prose still hums\\nVERDICT: REJECT\\nEND GRADES' ;;
@@ -218,7 +218,7 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
 
 
 STUB_AUTHOR_KILLED = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
+""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
@@ -267,7 +267,7 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
 
 
 STUB_AUTHOR_TOUCHES_GRADED = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
+""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$CAP/grades" 2>/dev/null || echo 0)
@@ -705,7 +705,7 @@ def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041
 
 
 STUB_ROLE_LOG = """#!/bin/sh
-""" + ROWS_SH + """prompt=$2
+""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
 case "$prompt" in
 *"You grade a piece of prose"*)
   echo grader >> "$CAP/roles"
