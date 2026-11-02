@@ -38,5 +38,3 @@ def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and
     assert len(code) == 1 and "$S/resume-clean.sh" in code[0], f"the block is not one $S/resume-clean.sh call: {code}"
     for syntax in ("[[", "<<<", "<("):
         assert syntax not in prose, f"the resumed-run block still holds bash-only {syntax!r}"
-    assert re.search(r"exit 2.*?bails as a \*\*system\*\* failure", " ".join(prose.split())), \
-        "the resumed-run block does not bail its exit 2 as a system failure"

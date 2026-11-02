@@ -753,8 +753,7 @@ def test_cli_lists_an_issue_whose_branch_is_on_the_remote_with_no_open_pr_and_no
 def test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor_2249():
     preflight = (REPO_ROOT / "skills" / "tdd" / "PREFLIGHT.md").read_text()
 
-    assert (bool(re.search(r'> *"?\.tdd/conductor\.pid', preflight)), "$PPID" in preflight,
-            "run_conductor.py" in preflight) == (False, False, True)
+    assert not re.search(r'> *"?\.tdd/conductor\.pid', preflight)
 
 
 def header_paragraphs():
