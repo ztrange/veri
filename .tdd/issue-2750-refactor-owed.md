@@ -11,3 +11,5 @@
 - extract the `since` parse in `landed_lines` and the pid/start-time liveness check in `running_lines` into named helpers
 ### Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
 - test-only | The Running test files (`test_status_report_running*.py`) each repeat the same fixture setup: a fake `.git` config, `VERI_HOME`, a journal write and `subprocess.run` stubs. A shared helper or fixture would remove that duplication.
+### Running's cost carries its delta since the time in `.tdd/status-last`: the cost of the run's journal events after that time ⟦criterion 1⟧
+- `running_lines` repeats the `sum(... if e["ts"] > since)` delta pattern for steps and cost; extract a small helper
