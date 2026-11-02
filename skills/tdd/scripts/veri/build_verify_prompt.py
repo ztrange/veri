@@ -92,12 +92,15 @@ def main(argv):
     return code
 
 
+_HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
+
+
 def _refused(message=None):
     return _refuse(message), b""
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base=""):
-    if branch_base and not re.fullmatch(r"[0-9a-f]{7,40}", branch_base):
+    if branch_base and not _HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
@@ -119,7 +122,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         shas = ()
     slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
     for label, slot, value in shas:
-        if not re.fullmatch(r"[0-9a-f]{7,40}", value):
+        if not _HEX_SHA.fullmatch(value):
             return _refused(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
         slots[slot] = value
     prompts = f"{HERE}/prompts"
