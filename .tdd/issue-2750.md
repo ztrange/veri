@@ -10,7 +10,7 @@
 - [x] Landed leaves out a tag cut before the time in `.tdd/status-last` ⟦criterion 1⟧
 - [x] Running lists one block headed `#<n>` for each run whose journal (`$VERI_HOME/runs/<owner>-<repo>/<n>.jsonl`) holds a `conductor-start` event whose `pid` answers `kill -0` with a start time matching its `started` ⟦criterion 1⟧
 - [x] Running leaves out a run whose journal's `conductor-start` pid is dead or whose start time does not match `started` ⟦criterion 1⟧
-- [ ] A Running block shows the run's steps ticked of planned: its journal's `step-done` events of the latest `plan` event's `steps` ⟦criterion 1⟧
+- [x] A Running block shows the run's steps ticked of planned: its journal's `step-done` events of the latest `plan` event's `steps` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A Running block shows the run's phase now, from its journal's latest `launch` event ⟦criterion 1⟧
 - [ ] A Running block shows the attempts in the run's current phase, from its journal's `launch` events ⟦criterion 1⟧
 - [ ] A Running block shows the run's PASS and REJECT verdict counts, from its journal's `verdict` events ⟦criterion 1⟧
