@@ -9,3 +9,5 @@
 ### Running leaves out a run whose journal's `conductor-start` pid is dead or whose start time does not match `started` ⟦criterion 1⟧
 - rename `first` in `running_lines` to `start`, since it holds the latest `conductor-start` and not the first
 - extract the `since` parse in `landed_lines` and the pid/start-time liveness check in `running_lines` into named helpers
+### Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
+- test-only | The Running test files (`test_status_report_running*.py`) each repeat the same fixture setup: a fake `.git` config, `VERI_HOME`, a journal write and `subprocess.run` stubs. A shared helper or fixture would remove that duplication.
