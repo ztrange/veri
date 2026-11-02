@@ -54,3 +54,26 @@ def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_fi
     lines = [line.strip() for line in out.splitlines()]
     first = ([x for x in lines[lines.index("Queue") + 1:] if x] or [""])[0]
     assert (code, "2h" in first, "no snapshot" in first.lower()) == (0, True, False), first
+
+
+def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setenv("VERI_LABEL", "agent-ok")
+    fetched = datetime.datetime.now(datetime.timezone.utc)
+
+    def issue(number, state, *labels):
+        return {"number": number, "title": "t%d" % number, "state": state,
+                "labels": [{"name": name} for name in labels], "closedAt": None,
+                "updatedAt": "2026-11-01T00:00:00Z", "links": [], "blockedBy": []}
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched.strftime("%Y-%m-%dT%H:%M:%SZ"),
+         "issues": [issue(1, "OPEN", "agent-ok"), issue(2, "OPEN", "agent-ok", "bug"),
+                    issue(3, "CLOSED", "agent-ok"), issue(4, "OPEN", "bug")]}))
+
+    code, out, _ = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    queue = lines[lines.index("Queue") + 1:lines.index("Waiting")]
+    assert (code, any("2 agent-ok" in line for line in queue)) == (0, True), queue

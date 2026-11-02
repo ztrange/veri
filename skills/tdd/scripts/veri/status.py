@@ -261,9 +261,20 @@ def snapshot_line():
     return "snapshot %dh %dm old" % divmod(minutes, 60)
 
 
+def queue_counts():
+    label = tunables.read("VERI_LABEL", "ready-for-agent")
+    try:
+        with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
+            issues = json.load(f)["issues"]
+    except OSError:
+        return ""
+    open_count = sum(1 for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]])
+    return "\n%d %s" % (open_count, label)
+
+
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\nnone\n\nRunning\nnone\n\nQueue\n%s\n\nWaiting\nnone" % snapshot_line())
+        print("Landed\nnone\n\nRunning\nnone\n\nQueue\n%s%s\n\nWaiting\nnone" % (snapshot_line(), queue_counts()))
         return 0
     parsed = parse_args(argv)
     if parsed is None:
