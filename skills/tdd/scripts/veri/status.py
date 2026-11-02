@@ -271,14 +271,13 @@ def queue_counts():
         issues = read_snapshot()["issues"]
     except OSError:
         return ""
-    open_count = sum(1 for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]])
+    opted_in = [i for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]]
     state = {i["number"]: i["state"] for i in issues}
-    text = "\n%d %s" % (open_count, label)
-    for i in issues:
-        if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]:
-            for b in i["blockedBy"]:
-                if state.get(b) == "OPEN":
-                    text += "\n#%d blocked by #%d" % (i["number"], b)
+    text = "\n%d %s" % (len(opted_in), label)
+    for i in opted_in:
+        for b in i["blockedBy"]:
+            if state.get(b) == "OPEN":
+                text += "\n#%d blocked by #%d" % (i["number"], b)
     return text
 
 
