@@ -1434,6 +1434,34 @@ def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_gr
     assert seen == {"red": (0, 0, False), "green": (0, 1, True), "refactor": (0, 0, False)}
 
 
+def test_main_asks_for_fail_output_and_prediction_note_in_a_revise_prompt_only_when_redoing_red_2949(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    seen = {}
+    for revised in ("red", "green", "refactor"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        out = capsysbinary.readouterr().out
+        lines = out.splitlines()
+        format_line = next(l for l in lines if l.startswith(b"REPORT-FORMAT revise |"))
+        seen[revised] = (
+            code,
+            any(l.startswith(b"FAIL_OUTPUT:") for l in lines),
+            any(l.startswith(b"PREDICTION_NOTE:") for l in lines),
+            b" FAIL_OUTPUT:" in format_line,
+            b" PREDICTION_NOTE:" in format_line,
+        )
+
+    assert seen == {
+        "red": (0, True, True, True, True),
+        "green": (0, False, False, False, False),
+        "refactor": (0, False, False, False, False),
+    }
+
+
 def _spec(tmp_path, extra=""):
     spec = tmp_path / "spec.md"
     spec.write_text('zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\\n done.\n' + extra)
