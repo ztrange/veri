@@ -17,7 +17,7 @@
 - [x] A Running block shows the run's cost as the `| total |` row of its metrics, computed in-process from its journal ⟦criterion 1⟧
 - [x] A Running block shows the model each role (developer, revise, verifier, conductor) ran on, computed in-process from its journal ⟦criterion 1⟧
 - [x] Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
-- [x] Running's steps carry their delta since the time in `.tdd/status-last`: the run's `step-done` events after that time ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Running's steps carry their delta since the time in `.tdd/status-last`: the run's `step-done` events after that time ⟦criterion 1⟧
 - [ ] Running's cost carries its delta since the time in `.tdd/status-last`: the cost of the run's journal events after that time ⟦criterion 1⟧
 - [ ] Queue's counts each carry their delta against the queue counts recorded in `.tdd/status-last` ⟦criterion 1⟧
 - [ ] Waiting lists each bail since the time in `.tdd/status-last`, from the journals' `bail` events, with its cause ⟦criterion 1⟧
