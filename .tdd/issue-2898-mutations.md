@@ -34,3 +34,12 @@ if False:
 command 385
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwqraow7o/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_exits_3_and_check_earlier_exits_1_when_a_refactor_moved_a_go_cases_assertions_into_assert_refused_and_the_verdict_is_not_0_2898
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 33
+if l.split("(")[0] not in called]
+new 8
+if True]
+command 389
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwqraow7o/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_re_records_a_python_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assert_into_assert_refused_2898
+
