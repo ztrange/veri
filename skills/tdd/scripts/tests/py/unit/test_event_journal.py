@@ -236,3 +236,100 @@ def test_one_journal_write_starts_no_process_and_is_one_os_write_on_an_o_append_
     expected = (clone / ".tdd" / "events.jsonl").read_bytes()
     assert (code, started, [data for data, _ in to_journal], [bool(f & os.O_APPEND) for f in flags]) == (
         0, [], [expected], [True])
+
+
+def test_done_records_pr_and_wall_seconds_capped_by_the_awake_span_counted_from_the_last_resume(
+        tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".tdd").mkdir()
+    (clone / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1000, "awake": 100, "event": "conductor-start"}\n'
+        '{"ts": 2000, "awake": 500, "event": "resume"}\n')
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100)
+
+    done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+    assert (code, done.get("pr"), done.get("wall_seconds"), done.get("awake_seconds")) == (
+        0, "https://x/pull/1", "40", "40")
+
+
+def test_done_without_a_resume_skips_unparseable_lines_and_leaves_out_awake_seconds_when_a_mark_lacks_an_awake_reading(
+        tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".tdd").mkdir()
+    (clone / ".tdd" / "events.jsonl").write_text(
+        'not json\n'
+        '[1, 2]\n'
+        '{"ts": 1000, "awake": 100, "event": "conductor-start"}\n'
+        '{"ts": 1500, "event": "step"}\n')
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100)
+
+    done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+    assert (code, done.get("wall_seconds"), "awake_seconds" in done) == (0, "1100", False)
+
+
+def test_done_figures_for_a_ts_less_mark_an_opening_without_ts_or_awake_an_unreadable_ending_and_a_missing_or_empty_log(
+        tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    reading = {}
+    monkeypatch.setattr(event, "awake_reading", lambda: reading["value"])
+
+    def done(name, log, now):
+        clone = tmp_path / name
+        (clone / ".git").mkdir(parents=True)
+        (clone / ".tdd").mkdir()
+        if log is not None:
+            (clone / ".tdd" / "events.jsonl").write_text(log)
+        reading["value"] = now
+        assert event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100) == 0
+        last = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
+        return last.get("wall_seconds"), last.get("awake_seconds")
+
+    first = '{"ts": 1000, "awake": 100, "event": "conductor-start"}\n'
+    assert {
+        "ts_less_mark": done("a", first + '{"event": "note"}\n', b"540"),
+        "opening_without_ts": done("b", '{"awake": 100, "event": "conductor-start"}\n', b"540"),
+        "opening_without_ts_or_awake": done("c", '{"event": "resume"}\n' + first, b"540"),
+        "ending_unreadable": done("d", first, b"-5"),
+        "missing_log": done("e", None, b"540"),
+        "empty_log": done("f", "", b"540"),
+    } == {
+        "ts_less_mark": ("440", "440"),
+        "opening_without_ts": ("440", "440"),
+        "opening_without_ts_or_awake": (None, None),
+        "ending_unreadable": ("1100", None),
+        "missing_log": ("0", "0"),
+        "empty_log": ("0", "0"),
+    }
+
+
+def test_done_still_records_wall_and_awake_seconds_when_the_log_holds_a_line_of_non_utf8_bytes(
+        tmp_path, monkeypatch):
+    import importlib
+    import json
+    event = importlib.import_module("veri.event")
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".tdd").mkdir()
+    (clone / ".tdd" / "events.jsonl").write_bytes(
+        b'\xff\xfe not utf-8\n'
+        b'{"ts": 1000, "awake": 100, "event": "conductor-start"}\n')
+    monkeypatch.setattr(event, "awake_reading", lambda: b"540")
+
+    code = event.append(str(clone), {"issue": "42"}, "done", ["pr=https://x/pull/1"], ts=2100)
+
+    done = json.loads((clone / ".tdd" / "events.jsonl").read_bytes().splitlines()[-1])
+    assert (code, done.get("wall_seconds"), done.get("awake_seconds")) == (0, "440", "440")
