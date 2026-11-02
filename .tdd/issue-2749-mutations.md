@@ -121,3 +121,12 @@ os.path.dirname(path)
 command 339
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpqnjolu2e/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_2749_a_growing_call_given_a_relative_ledger_path_writes_the_plan_event_to_the_ledgers_own_events_file
 
+file 40
+skills/tdd/scripts/veri/run_conductor.py
+old 24
+"conductor-start", ["pid
+new 25
+"conductor-startx", ["pid
+command 328
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_parallel_conductors.py make test TESTS=skills/tdd/scripts/tests/py/test_parallel_conductors.py::test_an_in_place_launch_leaves_the_conductors_event_log_holding_done_for_the_issue_it_solved_2814
+
