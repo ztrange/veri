@@ -321,7 +321,9 @@ def running_lines():
                 name += " %d/%s" % (len(of("step-done")), plans[-1]["steps"])
             launches = of("launch")
             if launches:
-                name += " " + launches[-1]["phase"]
+                phase = launches[-1]["phase"]
+                tries = sum(1 for e in launches if e["phase"] == phase)
+                name += " %s attempt %d" % (phase, tries)
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
