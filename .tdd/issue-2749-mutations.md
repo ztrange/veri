@@ -193,3 +193,13 @@ tunables.read("VERI_LABEL", "ready-for-agent")
 command 309
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_records_lane_ready_for_agent_when_veri_label_is_set_to_an_empty_string
 
+file 32
+skills/tdd/scripts/veri/event.py
+old 70
+    home = tunables.read("VERI_HOME") or os.path.expanduser("~/.veri")
+new 90
+    home = tunables.read("VERI_HOME") or os.path.expanduser("~/.veri")
+    os.remove(home)
+command 321
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_transcript_there
+
