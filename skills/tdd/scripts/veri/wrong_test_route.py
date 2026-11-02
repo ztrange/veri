@@ -235,6 +235,12 @@ def _missing(report):
     return None
 
 
+def _later(report):
+    for line in _lines_with(report, "LATER_STEP:"):
+        return line.partition(":")[2].strip()
+    return None
+
+
 def main(argv):
     if len(argv) != 2 or not argv[0] or not argv[1]:
         write(sys.stderr, USAGE)
@@ -243,6 +249,10 @@ def main(argv):
     rerouted = _rerouted(step)
     missing = _missing(argv[0])
     if missing:
+        later = _later(argv[0])
+        if later:
+            write(sys.stdout, "later " + later)
+            return 0
         budget = tunables.read("VERI_MISSING_REROUTE_BUDGET", unless_empty="3")
         if _missing_reroutes(step) >= int(budget):
             write(sys.stdout, "missing-exhausted " + missing)
