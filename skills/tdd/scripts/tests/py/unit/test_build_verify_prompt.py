@@ -1312,3 +1312,22 @@ def test_main_refuses_a_beside_call_without_fast_cmd_or_without_a_base_sha_with_
         2, b"", b"build-verify-prompt: beside needs --fast-cmd '<fast-tier test command>'\n" + USAGE)
     assert run(["--fast-cmd", "m", "beside", s, "t"]) == (
         2, b"", b"build-verify-prompt: beside needs <base-sha> as 7-40 lowercase hex characters, got ''\n" + USAGE)
+
+
+def test_main_renders_a_verify_dual_stub_prompt_telling_the_blind_verifier_to_reject_a_diff_in_which_an_edited_case_does_not_stub_both_transports_or_fails_against_unmoved_production_or_weakens_an_assertion_2826(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) is added beside frob(nitz, quux).\n")
+    step = "Interface change: add zorblat(nitz) beside frob ⟦phases: beside, cover-new, dual-stub, migrate⟧ ⟦criterion 3⟧"
+
+    code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "dual-stub", str(spec),
+                                     "tests/py/test_zorblat.py", "0123abc"])
+    out, err = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, err) == (0, b""), err
+    assert (b"## Phase: verify-dual-stub" in prompt, b"REJECT" in prompt,
+            b"git diff 0123abc..HEAD" in prompt,
+            b"does not stub both transports" in prompt,
+            b"unmoved production code" in prompt,
+            b"removed or weakened" in prompt) == (True,) * 6, out

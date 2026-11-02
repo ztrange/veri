@@ -11,7 +11,7 @@ from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")
-VERIFY_ONLY_PHASES = ("beside",)
+VERIFY_ONLY_PHASES = ("beside", "dual-stub")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
