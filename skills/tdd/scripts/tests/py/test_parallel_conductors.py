@@ -1692,7 +1692,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
                            for line in (repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl").read_text().splitlines()])
 
     assert answers["in-place"] == (0, ["#7 \u2014 done https://example.test/pull/7", "stopped: nothing solvable"],
-                                   "0", "start 7\n", [], ["done"])
+                                   "0", "start 7\n", [], ["conductor-start", "done"])
     assert answers["symlink"] == answers["in-place"]
 
 
@@ -1726,7 +1726,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
                          env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05"})
     log = repo / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
     assert (log.exists(), ran.returncode) == (True, 0), ran.stdout + ran.stderr
-    assert [json.loads(line).get("event") for line in log.read_text().splitlines()] == ["done"]
+    assert [json.loads(line).get("event") for line in log.read_text().splitlines()] == ["conductor-start", "done"]
 
 
 def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_context_watch_reads_only_the_new_session(
