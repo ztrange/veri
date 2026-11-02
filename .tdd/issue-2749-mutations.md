@@ -130,3 +130,57 @@ new 25
 command 328
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_parallel_conductors.py make test TESTS=skills/tdd/scripts/tests/py/test_parallel_conductors.py::test_an_in_place_launch_leaves_the_conductors_event_log_holding_done_for_the_issue_it_solved_2814
 
+file 32
+skills/tdd/scripts/veri/event.py
+old 59
+clocked = all("awake" in m for m in marks if "ts" in m) and
+new 18
+clocked = True and
+command 343
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_without_a_resume_skips_unparseable_lines_and_leaves_out_awake_seconds_when_a_mark_lacks_an_awake_reading
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 26
+if isinstance(mark, dict):
+new 8
+if True:
+command 343
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_without_a_resume_skips_unparseable_lines_and_leaves_out_awake_seconds_when_a_mark_lacks_an_awake_reading
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 28
+if "ts" in opening else None
+new 17
+if True else None
+command 344
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_figures_for_a_ts_less_mark_an_opening_without_ts_or_awake_an_unreadable_ending_and_a_missing_or_empty_log
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 47
+if clocked and opening.get("awake") is not None
+new 10
+if clocked
+command 344
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_figures_for_a_ts_less_mark_an_opening_without_ts_or_awake_an_unreadable_ending_and_a_missing_or_empty_log
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 29
+marks[0] if marks else ending
+new 6
+ending
+command 344
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_figures_for_a_ts_less_mark_an_opening_without_ts_or_awake_an_unreadable_ending_and_a_missing_or_empty_log
+
+file 32
+skills/tdd/scripts/veri/event.py
+old 24
+decode(errors="replace")
+new 8
+decode()
+command 319
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_still_records_wall_and_awake_seconds_when_the_log_holds_a_line_of_non_utf8_bytes
+
