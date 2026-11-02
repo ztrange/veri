@@ -184,3 +184,12 @@ decode()
 command 319
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_still_records_wall_and_awake_seconds_when_the_log_holds_a_line_of_non_utf8_bytes
 
+file 32
+skills/tdd/scripts/veri/event.py
+old 78
+tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")
+new 46
+tunables.read("VERI_LABEL", "ready-for-agent")
+command 309
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpiobhr7i9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_event_journal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_journal.py::test_done_records_lane_ready_for_agent_when_veri_label_is_set_to_an_empty_string
+
