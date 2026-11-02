@@ -8,9 +8,11 @@ import sys
 import time
 
 try:
+    import event
     import tunables
     from github import gh_api
 except ImportError:
+    from . import event
     from . import tunables
     from .github import gh_api
 
@@ -99,7 +101,7 @@ def _tag(worktree, message, pull, pr):
         if _git(worktree, *args).returncode:
             _say("git %s failed; tag %s not published" % (args[0], name))
             return False
-    return True
+    return name
 
 
 def _step(failed, what, cwd, *args, label=None):
@@ -113,8 +115,15 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
-    if message != "-" and not _tag(worktree, message, pull, pr):
-        failed.append("tag")
+    if message != "-":
+        name = _tag(worktree, message, pull, pr)
+        if not name:
+            failed.append("tag")
+        else:
+            issue = re.match(r"tdd/(\d+)-", branch)
+            if issue:
+                event.mark(worktree, {"issue": issue.group(1)}, "merged",
+                           ["pr=" + pr, "tag=" + name, "message=" + message])
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
