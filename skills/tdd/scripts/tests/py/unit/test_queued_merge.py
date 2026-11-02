@@ -440,3 +440,27 @@ def test_2749_queued_merge_that_cuts_a_tag_emits_merged_with_pr_tag_and_message_
     rows = [json.loads(r) for r in seen.get("before_remove", "").splitlines()]
     merged = [(r["issue"], r["pr"], r["tag"], r["message"]) for r in rows if r.get("event") == "merged"]
     assert (code, merged) == (0, [("2749", PR, "v0.11", "the capability")])
+
+
+def test_2749_queued_merge_given_a_dash_for_the_message_emits_merged_with_the_pr_and_an_empty_tag_and_message(
+        fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/2749-prd-014-2"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    events = worktree / ".tdd" / "events.jsonl"
+    seen = {}
+
+    def spied(answer):
+        def wrapped(line, **kwargs):
+            if "worktree remove" in line:
+                seen["before_remove"] = events.read_text() if events.exists() else ""
+            return answer(line.replace(BRANCH, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(spied)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "-"])
+
+    rows = [json.loads(r) for r in seen.get("before_remove", "").splitlines()]
+    merged = [(r["issue"], r["pr"], r["tag"], r["message"]) for r in rows if r.get("event") == "merged"]
+    assert (code, merged) == (0, [("2749", PR, "", "")])

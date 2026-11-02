@@ -128,15 +128,16 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     for name in RELEASE_FILES:
         os.makedirs(os.path.dirname(os.path.join(scripts, name)), exist_ok=True)
         shutil.copy2(os.path.join(SCRIPTS, name), os.path.join(scripts, name))
+    name = ""
     if message != "-":
         name = _tag(worktree, message, pull, pr)
         if not name:
             failed.append("tag")
-        else:
-            issue = re.match(r"tdd/(\d+)-", branch)
-            if issue:
-                event.mark(worktree, {"issue": issue.group(1)}, "merged",
-                           ["pr=" + pr, "tag=" + name, "message=" + message])
+    if message == "-" or name:
+        issue = re.match(r"tdd/(\d+)-", branch)
+        if issue:
+            event.mark(worktree, {"issue": issue.group(1)}, "merged",
+                       ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
