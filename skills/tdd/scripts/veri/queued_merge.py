@@ -25,7 +25,10 @@ RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "v
 
 
 def _script(name, *args, scripts=SCRIPTS, cwd=None):
-    return subprocess.run([os.path.join(scripts, name), *args], cwd=cwd).returncode
+    try:
+        return subprocess.run([os.path.join(scripts, name), *args], cwd=cwd).returncode
+    except OSError:
+        return 2
 
 
 def _gate(pid, *cmd, keep=False):
