@@ -299,9 +299,26 @@ def landed_lines():
     return "\n".join(lines) or "none"
 
 
+def running_lines():
+    import event
+    sample = event.journal_path(main_working_tree(), "0")
+    blocks = []
+    for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
+        with open(path) as f:
+            first = json.loads(f.readline())
+        pid = first["pid"]
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            continue
+        if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
+            blocks.append("#" + os.path.basename(path)[:-len(".jsonl")])
+    return "\n".join(blocks) or "none"
+
+
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\n%s\n\nRunning\nnone\n\nQueue\n%s%s\n\nWaiting\nnone" % (landed_lines(), snapshot_line(), queue_counts()))
+        print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\nnone" % (landed_lines(), running_lines(), snapshot_line(), queue_counts()))
         return 0
     parsed = parse_args(argv)
     if parsed is None:
