@@ -2871,7 +2871,7 @@ def test_cli_2748_the_develop_red_leaf_launched_alone_receives_the_affected_tier
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"done"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -2906,7 +2906,7 @@ def test_cli_2748_the_develop_green_leaf_launched_alone_receives_the_fast_and_af
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"done"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -2941,7 +2941,7 @@ def test_cli_2748_the_develop_refactor_leaf_launched_alone_receives_the_affected
     (tiers / "spec.md").write_text("spec\n")
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"done"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -2977,7 +2977,7 @@ def test_cli_2748_the_verify_red_leaf_given_fast_cmd_launched_alone_receives_the
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -3011,7 +3011,7 @@ def test_cli_2748_the_verify_green_leaf_given_fast_cmd_launched_alone_receives_t
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -3045,7 +3045,7 @@ def test_cli_2748_the_verify_refactor_leaf_given_fast_cmd_launched_alone_receive
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}
@@ -3078,7 +3078,7 @@ def test_cli_2748_the_verify_refactor_leaf_without_fast_cmd_launched_alone_exits
     (tiers / ".gitignore").write_text(".tdd/\n*.received\n*.prompt\n")
     step = checked_step(tiers, committed_head(tiers))
     stub = tmp_path / "tier-claude"
-    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift; }\n'
+    stub.write_text('#!/bin/sh\nwhile [ "$#" -gt 0 ]; do\n  [ "$1" = "-p" ] && { case "$2" in --*|"") cat > "$LEAF_PROMPT_OUT" ;; *) printf \'%s\\n\' "$2" > "$LEAF_PROMPT_OUT"; shift ;; esac; }\n'
                     '  shift\ndone\nprintf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\\nREASON: ok"}\'\n')
     stub.chmod(0o755)
     run, launched = subprocess.run, {}

@@ -2981,7 +2981,10 @@ def leaf_model_chain(monkeypatch, tmp_path, supervise, run_cli, name, extra=(), 
     class Claude:
         returncode = 0
 
-        def __init__(self, command, env=None, **_):
+        def __init__(self, command, env=None, stdin=None, **_):
+            command = list(command)
+            if stdin is not None and command[1] == "-p" and command[2].startswith("--"):
+                command.insert(2, "pick the model")
             launched.append((command, env))
             reader, writer = os.pipe()
             os.write(writer, b'{"type":"result","subtype":"success","is_error":false,"result":"ok"}\n')
