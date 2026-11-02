@@ -263,7 +263,9 @@ def main(argv):
         if any(c not in older and _exists(c) for c in _named_cases(argv[0])):
             write(sys.stdout, "revise")
             return 3
-        write(sys.stdout, "supersede " + " ".join(older))
+        own = _case_name(argv[1])
+        kind = "supersede-diff" if own in recorded else "supersede"
+        write(sys.stdout, kind + " " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:
