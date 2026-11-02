@@ -1,5 +1,6 @@
 """status.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import calendar
 import contextlib
 import glob
 import io
@@ -249,9 +250,20 @@ def watch_loop(seconds, as_json, scope):
         time.sleep(seconds)
 
 
+def snapshot_line():
+    try:
+        with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
+            fetched = json.load(f)["fetched_at"]
+        then = calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+    except OSError:
+        return "no snapshot"
+    minutes = int(time.time() - then) // 60
+    return "snapshot %dh %dm old" % divmod(minutes, 60)
+
+
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\nnone\n\nRunning\nnone\n\nQueue\nno snapshot\n\nWaiting\nnone")
+        print("Landed\nnone\n\nRunning\nnone\n\nQueue\n%s\n\nWaiting\nnone" % snapshot_line())
         return 0
     parsed = parse_args(argv)
     if parsed is None:
