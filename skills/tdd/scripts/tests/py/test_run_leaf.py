@@ -1517,6 +1517,23 @@ def test_cli_launches_a_prompt_larger_than_arg_max_and_the_child_receives_it_who
     assert (code, len(received), received.rstrip(b"\n") == prompt.encode()) == (0, len(prompt), True)
 
 
+@pytest.mark.process("run-leaf.sh exec'd with a prompt larger than the pipe buffer, a real stub claude that exits 1 without reading its stdin")
+def test_cli_returns_the_childs_status_when_the_leaf_exits_without_reading_a_prompt_larger_than_the_pipe_buffer_2882(
+        tmp_path, monkeypatch, run_cli):
+    prompt = "line of a revise prompt the leaf never reads, padding padding\n" * 4000
+    work = _prompt_workspace(tmp_path, monkeypatch, prompt.rstrip("\n"))
+    stub = _leaf_stub(tmp_path, "exit 1\n")
+
+    class _EntryPoint:
+        @staticmethod
+        def main(argv):
+            return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL).returncode
+
+    code, _, _ = run_cli(_EntryPoint, ["prompt.txt"], cwd=work, env={"CLAUDE_BIN": str(stub)})
+
+    assert code == 1
+
+
 def _run_with_operator_gitconfig(tmp_path, monkeypatch, run_cli, gitconfig, stub_body):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, _ = _workspace(tmp_path, monkeypatch)

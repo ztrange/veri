@@ -114,8 +114,13 @@ def main(argv):
             with leaf:
                 feed = getattr(leaf, "stdin", None)
                 if feed is not None:
-                    feed.write(os.fsencode(prompt))
-                    feed.close()
+                    previous = signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+                    try:
+                        with contextlib.suppress(BrokenPipeError):
+                            feed.write(os.fsencode(prompt))
+                            feed.close()
+                    finally:
+                        signal.signal(signal.SIGPIPE, previous)
                 while chunk := os.read(leaf.stdout.fileno(), 65536):
                     os.write(1, chunk)
                     os.write(stream_fd, chunk)
