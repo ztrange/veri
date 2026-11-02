@@ -298,3 +298,18 @@ def test_issue_2900_before_state_probe_puts_back_an_untracked_file_it_removed_by
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "test", "-e", "sub/scratch.bin"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "sub" / "scratch.bin").read_bytes()) == (0, untracked), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it would run against a scratch repo")
+def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_the_sha_does_not_resolve_to_a_commit(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    (tmp_path / "quote.txt").write_text("10\n")
+    result = subprocess.run([str(PROBE), "--before", "abcdef1234567", "--keep", "test.sh", "--", "touch", "ran.marker"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "ran.marker").exists()) == (2, False), result.stderr
