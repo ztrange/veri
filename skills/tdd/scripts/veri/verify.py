@@ -307,7 +307,10 @@ def main(argv):
         return to_contract(build_verify_prompt._refuse())
     if len(words) > 4:
         return to_contract(build_verify_prompt._refuse("build-verify-prompt: too many arguments"))
-    code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words)
+    base = ""
+    if words[0] == "pin":
+        base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+    code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base)
     if code:
         return to_contract(code)
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
