@@ -7,3 +7,12 @@ name
 command 335
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjmr40g3r/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_mutation_probe_process.py make test TESTS=skills/tdd/scripts/tests/py/test_mutation_probe_process.py::test_issue_2900_before_state_probe_runs_the_kept_file_as_it_is_and_exits_0_when_that_command_fails
 
+file 41
+skills/tdd/scripts/veri/mutation_probe.py
+old 34
+return 1 if returncode == 0 else 0
+new 34
+return 0 if returncode == 0 else 1
+command 355
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjmr40g3r/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_mutation_probe_process.py make test TESTS=skills/tdd/scripts/tests/py/test_mutation_probe_process.py::test_issue_2900_before_state_probe_exits_1_when_the_test_stays_green_on_the_branch_point_and_leaves_the_tree_unchanged
+

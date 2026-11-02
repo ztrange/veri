@@ -1,7 +1,7 @@
 # Plan for #2900 — A pin's red proof is a hand mutation, never the real before-state
 
 - [x] `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` runs the command with every tracked file that differs between `<sha>` and the working tree restored to its `<sha>` content, and exits 0 when the command fails. Minimal: its green adds only what this step's own case decides — no argument-shape check, no unknown-commit check, no signal handler; each lands in the later step that pins it ⟦criterion 1⟧
-- [ ] `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` exits 1 when the command passes on the restored before-state ⟦criterion 1⟧
+- [x] `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` exits 1 when the command passes on the restored before-state ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` leaves `<test-path>` exactly as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` leaves every file under `.tdd/` as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` removes a file added since `<sha>` (tracked or untracked) while the command runs ⟦criterion 1⟧
