@@ -10,8 +10,9 @@ Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev
 
 `$S` is `skills/tdd/scripts/`, reached from this skill's base directory as `../tdd/scripts/`.
 Every read and write runs against the target repository. Its CLAUDE.md names the triage label
-set (the opt-in label, the priority and bug labels, and any others); read it each time the
-labels are needed, and name none from memory.
+set (the opt-in label, the labels for issues taken ahead of the rest, for bugs, and for bugs
+that wait their number's turn, and any others); read each name from it each time the labels are
+needed, and name none from memory.
 
 ## Invocation
 
@@ -50,15 +51,19 @@ The groom never rewrites a requirement row.
 
 ## Labelling bugs
 
-For a bug, propose the label by what it costs each time it occurs. The priority and low-risk
-labels are those the target repo's CLAUDE.md names.
+For a bug, propose the label by what it costs each time it occurs. Each label is named by the
+target repo's CLAUDE.md, and its name is read from there, not written here: the label for bugs,
+the label for issues taken ahead of the rest, and the label for bugs that wait their number's turn.
 
 - **A repeat cost** — the bug charges money, time or tokens every time it occurs (a wasted
-  leaf, a retry, a slow suite, a re-run): propose the **priority** label.
-- **No repeat cost, and the harm is small**: propose the **low-risk** label.
+  leaf, a retry, a slow suite, a re-run): propose the label CLAUDE.md names for issues taken
+  ahead of the rest.
+- **No repeat cost, and the harm is small**: propose the label CLAUDE.md names for bugs that
+  wait their number's turn.
 - **Any other bug**: propose **neither**.
 
-A bug that charges a repeat cost is never low-risk, however small each occurrence looks.
+A bug that charges a repeat cost never gets the label for bugs that wait their number's turn,
+however small each occurrence looks.
 
 Every subagent brief this skill writes says, in these words:
 
