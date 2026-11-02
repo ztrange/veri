@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent
 
 DELETE = """
 test_skill_md_no_longer_carries_the_stopping_or_reconciling_sections_1716
