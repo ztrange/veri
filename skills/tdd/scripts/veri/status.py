@@ -306,7 +306,9 @@ def running_lines():
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         with open(path) as f:
             events = [json.loads(l) for l in f if l.strip()]
-        first = [e for e in events if e.get("event") == "conductor-start"][-1]
+        def of(kind):
+            return [e for e in events if e.get("event") == kind]
+        first = of("conductor-start")[-1]
         pid = first["pid"]
         try:
             os.kill(pid, 0)
@@ -314,10 +316,10 @@ def running_lines():
             continue
         if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
             name = "#" + os.path.basename(path)[:-len(".jsonl")]
-            plans = [e for e in events if e.get("event") == "plan"]
+            plans = of("plan")
             if plans:
-                name += " %d/%s" % (sum(1 for e in events if e.get("event") == "step-done"), plans[-1]["steps"])
-            launches = [e for e in events if e.get("event") == "launch"]
+                name += " %d/%s" % (len(of("step-done")), plans[-1]["steps"])
+            launches = of("launch")
             if launches:
                 name += " " + launches[-1]["phase"]
             blocks.append(name)
