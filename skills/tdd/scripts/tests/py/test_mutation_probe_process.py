@@ -2,6 +2,7 @@
 import os
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -369,3 +370,29 @@ def test_issue_2900_before_state_probe_exiting_0_appends_before_keep_and_command
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     expected = f"before {len(base)}\n{base}\nkeep 7\ntest.sh\ncommand 10\nsh test.sh\n\n"
     assert (result.returncode, record.read_text() if record.exists() else None) == (0, expected), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and python running a test that stubs the quote, against a scratch repo")
+def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and_leaves_the_working_tree_unchanged(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "view.py").write_text('def render(q): return str(q["deps"])\n')
+    (tmp_path / "quote.py").write_text('def fetch(deps=()): return {"deps": 0}\n')
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "quote.py").write_text('def fetch(deps=()): return {"deps": 10 * len(deps)}\n')
+    (tmp_path / "check_view.py").write_text(
+        'import sys\nfrom view import render\nsys.exit(0 if render({"deps": 10}) == "10" else 1)\n')
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "check_view.py", "--", sys.executable, "-B", "check_view.py"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    tree = {name: (tmp_path / name).read_text() for name in ("view.py", "quote.py", "check_view.py")}
+    assert (result.returncode, tree, git("status", "--porcelain")) == (
+        1, {"view.py": 'def render(q): return str(q["deps"])\n',
+            "quote.py": 'def fetch(deps=()): return {"deps": 10 * len(deps)}\n',
+            "check_view.py": 'import sys\nfrom view import render\nsys.exit(0 if render({"deps": 10}) == "10" else 1)\n'},
+        ""), result.stderr
