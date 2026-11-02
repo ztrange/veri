@@ -856,3 +856,26 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     assert (ran.returncode, (tmp_path / "src.txt").read_bytes(), (tmp_path / "pin.txt").read_bytes(),
             (tmp_path / "z_new.txt").read_bytes() if (tmp_path / "z_new.txt").exists() else None) == (
         1, b"fixed behaviour\n", b"pin v1\n", b"added \x00 later\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record on a branch that deleted a tracked file")
+def test_2974_a_before_keep_replay_restores_a_file_the_branch_deleted_and_exits_with_the_replay_verdict(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "gone.txt").write_text("needed by the old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("rm", "-q", "gone.txt")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "delete gone.txt and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", command="test -e gone.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "gone.txt").exists()) == (1, False), ran.stderr
