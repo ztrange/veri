@@ -1,5 +1,5 @@
 # Plan for #2913 — rerecord-committed pairs a renamed case with the wrong recorded title by file position when no body digest matches
 
 - [x] When a step's frozen record holds two titles missing at HEAD and the file holds two new cases (in the opposite file order) whose bodies match neither recorded body digest, rerecording the committed record (via tick-ledger.sh --refactor-pending, a process case in skills/tdd/scripts/tests/py/test_tick_ledger_process.py) exits 2 with stderr naming the record file and an unpaired title, and leaves the record file byte-for-byte unchanged, never pairing a title with a case by file position ⟦criterion 1⟧
-- [ ] One missing title, one new case, no digest match still re-pairs: test_ticking_does_not_pair_a_missing_title_with_a_case_already_committed_in_head_2825 and the other single-candidate cases in test_tick_ledger_process.py stay green ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] One missing title, one new case, no digest match still re-pairs: test_ticking_does_not_pair_a_missing_title_with_a_case_already_committed_in_head_2825 and the other single-candidate cases in test_tick_ledger_process.py stay green ⟦full-suite⟧ ⟦criterion 2⟧
 - [ ] Go-red: restoring the fresh[0] fallback for the several-candidate case turns the first criterion's case red, watched by hand and restored ⟦human-owed⟧ ⟦criterion 3⟧
