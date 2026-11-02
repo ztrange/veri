@@ -19,7 +19,7 @@
 - [x] Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
 - [x] Running's steps carry their delta since the time in `.tdd/status-last`: the run's `step-done` events after that time ⟦criterion 1⟧
 - [x] Running's cost carries its delta since the time in `.tdd/status-last`: the cost of the run's journal events after that time ⟦criterion 1⟧
-- [x] Queue's counts each carry their delta against the queue counts recorded in `.tdd/status-last` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Queue's counts each carry their delta against the queue counts recorded in `.tdd/status-last` ⟦criterion 1⟧
 - [ ] Waiting lists each bail since the time in `.tdd/status-last`, from the journals' `bail` events, with its cause ⟦criterion 1⟧
 - [ ] Waiting lists each PR ready to merge: a journal whose `done` event carries a `pr` and which holds no later `merged` event ⟦criterion 1⟧
 - [ ] When a live `.tdd/wt/<n>/.tdd/conductor.pid` names a run with no journal, `status.sh --report` prints a one-line note naming that run instead of leaving it out silently
