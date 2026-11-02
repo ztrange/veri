@@ -331,3 +331,13 @@ def test_cli_reads_every_verdict_the_leaf_prompts_offer_on_their_prediction_line
 
     assert offered
     assert unread == []
+
+
+def test_main_2949_writes_a_fail_output_line_saying_the_failing_output_was_not_reported_for_a_diverged_report_that_omits_it(monkeypatch, capsys, red_divergence):
+    report = "PREDICTED_FAILURE: assert slug == 'a-b' fires\nPREDICTION: DIVERGED\nPREDICTION_NOTE: died on a missing fixture"
+    code, out, err = run(monkeypatch, capsys, red_divergence, report, [])
+
+    fail_output = [line for line in out.splitlines() if line.startswith("FAIL_OUTPUT:")]
+    assert code == 0
+    assert len(fail_output) == 1
+    assert "not reported" in fail_output[0]
