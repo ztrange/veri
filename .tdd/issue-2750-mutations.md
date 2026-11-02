@@ -47,3 +47,12 @@ name += " | cost | $%.2f" % dollars
 command 336
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running_cost.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running_cost.py::test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_label
 
+file 33
+skills/tdd/scripts/veri/status.py
+old 16
+if "model" in e:
+new 8
+if True:
+command 330
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running_models.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running_models.py::test_2750_report_running_block_skips_a_launch_event_with_no_model_field
+
