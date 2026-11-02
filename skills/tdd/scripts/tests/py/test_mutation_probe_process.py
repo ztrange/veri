@@ -157,3 +157,22 @@ def test_issue_2900_before_state_probe_removes_a_file_added_since_the_sha_tracke
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert result.returncode == 1, result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_keeps_a_test_path_that_is_new_since_the_sha_with_its_working_tree_bytes_while_the_command_runs(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "quote.txt").write_text("10\n")
+    (tmp_path / "test.sh").write_text("# kept-marker\nexit 0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "kept-marker", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "test.sh").read_text()) == (1, "# kept-marker\nexit 0\n"), result.stderr
