@@ -14,7 +14,7 @@
 - [x] A Running block shows the run's phase now, from its journal's latest `launch` event ⟦criterion 1⟧
 - [x] A Running block shows the attempts in the run's current phase, from its journal's `launch` events ⟦criterion 1⟧
 - [x] A Running block shows the run's PASS and REJECT verdict counts, from its journal's `verdict` events ⟦criterion 1⟧
-- [ ] A Running block shows the run's cost as the `| total |` row of its metrics, computed in-process from its journal ⟦criterion 1⟧
+- [x] A Running block shows the run's cost as the `| total |` row of its metrics, computed in-process from its journal ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A Running block shows the model each role (developer, revise, verifier, conductor) ran on, computed in-process from its journal ⟦criterion 1⟧
 - [ ] Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
 - [ ] Running's steps carry their delta since the time in `.tdd/status-last`: the run's `step-done` events after that time ⟦criterion 1⟧
