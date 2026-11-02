@@ -905,3 +905,31 @@ def test_2974_a_before_keep_record_on_a_branch_that_deleted_a_tracked_file_repla
 
     assert (ran.returncode, (tmp_path / "gone.txt").exists(), (tmp_path / "src.txt").read_bytes(),
             (tmp_path / "pin.txt").read_bytes()) == (0, False, b"fixed behaviour\n", b"pin v1\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record with a green commit, after main moved an unrelated file")
+def test_2974_a_before_keep_record_with_a_green_commit_replays_without_touching_a_file_a_rebase_brought_in(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "other.txt").write_text("other v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "fix and pin")
+    green = git("rev-parse", "HEAD")
+    (tmp_path / "other.txt").write_text("other v1\n")
+    git("commit", "-q", "-am", "main moved on")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", green=green,
+           command="cp other.txt seen.out; ! grep -q old src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "seen.out").read_bytes(), (tmp_path / "other.txt").read_bytes()) == (
+        0, b"other v1\n", b"other v1\n"), ran.stderr

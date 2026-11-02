@@ -54,7 +54,8 @@ def write_tail(run):
 
 
 def replay_before(pin):
-    names = subprocess.run(["git", "diff", "--name-only", pin["before"]], capture_output=True, text=True,
+    names = subprocess.run(["git", "diff", "--name-only", pin["before"], *([pin["green"]] if "green" in pin else [])],
+                           capture_output=True, text=True,
                            check=True).stdout.split()
     names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
     saved = {n: Path(n).read_bytes() for n in names if Path(n).exists()}
