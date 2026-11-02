@@ -35,8 +35,6 @@ ALLOWED = {
         "document-wide site list",
     "unit/test_skill_event_files.py::test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339":
         "document-wide site list",
-    "unit/test_skill_event_files.py::test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_present_in_their_files_2218":
-        "reads the moved lines from PHASED.md and asserts them absent from SKILL.md",
     "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
     "test_ledger_steps.py": "script suite", "test_tick_ledger.py": "script suite", "test_next_unchecked.py": "script suite",
