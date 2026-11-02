@@ -4,7 +4,7 @@
 - [x] Once the step's event log already holds a `reroute` event, a `WRONG_TEST:` report naming its case in bare prose prints `revise` and exits 3, so a later route cannot loop with no budget, pinned by a small `run_cli` case ⟦criterion 3⟧
 - [x] A `WRONG_TEST:` report naming another existing case in backticks routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
 - [x] A `WRONG_TEST:` report naming another existing case in double quotes routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
-- [ ] A `WRONG_TEST:` report naming another existing case in curly quotes routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
+- [x] A `WRONG_TEST:` report naming another existing case in curly quotes routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
 - [ ] A `WRONG_TEST:` report naming another existing case in the bare `test_` form routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
 - [ ] A `WRONG_TEST:` report naming another existing Go case in the bare `Test` form routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
 - [ ] A `WRONG_TEST:` report naming another existing case in the `suite › case` form routes exactly as today (`red <case>`, exit 0), pinned by a small `run_cli` case ⟦criterion 4⟧
