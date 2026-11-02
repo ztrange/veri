@@ -753,3 +753,24 @@ def test_2959_a_green_before_keep_record_beside_an_old_format_record_is_reported
 
     assert (ran.returncode, "pin.txt" in ran.stderr, "guard.txt" in ran.stdout + ran.stderr, "KeyError" in ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (1, True, False, False, b"if guard\nmore\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record that is neither format")
+def test_2959_a_record_with_neither_file_nor_before_exits_2_naming_the_record_and_not_a_key_error(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", keep="pin.txt", command="touch ran.witness")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, "issue-2959-mutations.md" in ran.stderr, "KeyError" in ran.stderr,
+            (tmp_path / "ran.witness").exists()) == (2, "", True, False, False), ran.stderr
