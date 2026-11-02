@@ -220,3 +220,19 @@ def test_check_still_refuses_naming_each_suite_red_on_the_default_branch_too_aft
 
     assert (code, out) == (1, "")
     assert "test_b.py" in err and "test_d.py" in err and "test_a.py" not in err
+
+
+def test_flake_at_resume_writes_one_suite_flake_event_naming_each_red_file_and_exits_0_2906(run_cli, events, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    (tmp_path / ".git").mkdir()
+    red = tmp_path / "red"
+    red.write_text("backend/a.test.ts — FAIL a\nscripts/b.test.mjs\n")
+    alone = tmp_path / "alone-red"
+    alone.write_text("none\n")
+
+    code, _, _ = run_cli(module, ["flake", "resume", str(red), str(alone)], cwd=tmp_path)
+
+    flakes = [e for e in events.records(tmp_path) if e["event"] == "suite-flake"]
+    assert code == 0 and len(flakes) == 1
+    assert "at=resume" in flakes[0].values() or flakes[0].get("at") == "resume"
+    assert "backend/a.test.ts" in json.dumps(flakes[0]) and "scripts/b.test.mjs" in json.dumps(flakes[0])
