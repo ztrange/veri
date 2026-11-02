@@ -4,7 +4,7 @@
 - [x] With no `.tdd/report-cache.json` snapshot, Queue says there is no snapshot while Landed, Running and Waiting still print ⟦criterion 3⟧
 - [x] An empty Landed, Running or Waiting section keeps its heading and says "none" ⟦criterion 1⟧
 - [x] With a snapshot present, Queue's first line states the snapshot's age, computed from its `fetched_at` ⟦criterion 3⟧
-- [x] Queue counts the snapshot's open opted-in (`VERI_LABEL`) issues by label ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Queue counts the snapshot's open opted-in (`VERI_LABEL`) issues by label ⟦criterion 1⟧
 - [ ] Queue lists each open opted-in issue the snapshot shows blocked, with the open issue blocking it, taken from that issue's `blockedBy` ⟦criterion 1⟧
 - [ ] Landed lists one line per local `vN.M` tag, carrying the tag and its message (the capability) ⟦criterion 1⟧
 - [ ] Landed leaves out a tag cut before the time in `.tdd/status-last` ⟦criterion 1⟧
