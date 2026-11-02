@@ -382,3 +382,42 @@ def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_leaves_the
         second = "blocked"
 
     assert second == 0
+
+
+FAKE_GIT_LOCAL_PULL = FAKE_GIT.replace('rebase|push|fetch|pull) exit 0 ;;', 'rebase|push|fetch) exit 0 ;;')
+
+
+@pytest.mark.tree_audit("copies the scripts directory into the linked worktree")
+@pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims from a copy inside a real linked worktree, with gh and remote git planted on PATH")
+def test_queued_merge_run_from_the_scripts_of_the_worktree_it_removes_fast_forwards_main_and_exits_0_2871(tmp_path):
+    primary = tmp_path / "primary"
+    primary.mkdir()
+    real_git = shutil.which("git")
+    ident = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    for args in (["init", "-q", "-b", "main"],
+                 [*ident, "commit", "-q", "--allow-empty", "-m", "initial"],
+                 ["worktree", "add", "-q", "-b", "feature", str(tmp_path / "wt")],
+                 [*ident, "commit", "-q", "--allow-empty", "-m", "merged upstream"],
+                 ["update-ref", "refs/remotes/origin/main", "HEAD"],
+                 ["reset", "-q", "--hard", "HEAD~1"]):
+        subprocess.run([real_git, "-C", str(primary), *args], check=True)
+    upstream = subprocess.run([real_git, "-C", str(primary), "rev-parse", "refs/remotes/origin/main"],
+                              check=True, capture_output=True, text=True).stdout.strip()
+    worktree = tmp_path / "wt"
+    (primary / ".git" / "info" / "exclude").write_text("scripts-copy/\n")
+    copied = worktree / "scripts-copy"
+    shutil.copytree(SCRIPTS, copied, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_GREEN)
+    plant(bin_dir, "git", FAKE_GIT_LOCAL_PULL)
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+           "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
+
+    run = subprocess.run(["/bin/sh", str(copied / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "feature", "-"],
+                         cwd=worktree, timeout=30, env=env, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    main_tip = subprocess.run([real_git, "-C", str(primary), "rev-parse", "main"],
+                              capture_output=True, text=True).stdout.strip()
+
+    assert (run.returncode, main_tip) == (0, upstream), run.stderr
