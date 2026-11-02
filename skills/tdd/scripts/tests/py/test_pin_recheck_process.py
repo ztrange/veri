@@ -460,3 +460,25 @@ def test_2876_a_bash_c_command_with_its_script_unquoted_runs_no_test_and_needs_a
 
     assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
         0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose command runs its test, passes clean and fails mutated")
+def test_2876_a_command_that_runs_its_test_passing_clean_and_failing_mutated_reports_the_pin_held_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="bash -c \"echo result; grep -q 'if guard' guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, ran.stderr, (tmp_path / "guard.txt").read_bytes()) == (
+        0, "", "", b"if guard\nmore\n")
