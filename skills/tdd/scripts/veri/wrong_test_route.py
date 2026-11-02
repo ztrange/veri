@@ -110,12 +110,15 @@ def _named_cases(report):
         yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
 
 
+def _is_none(body):
+    return re.match(r"none\b", body, re.IGNORECASE)
+
+
 def _unparseable_claim(report):
     if any(True for _ in _named_cases(report)):
         return False
     for line in _lines_with(report, "WRONG_TEST:"):
-        body = line.partition(":")[2].strip()
-        if not re.match(r"none\b", body, re.IGNORECASE):
+        if not _is_none(line.partition(":")[2].strip()):
             return True
     return False
 
@@ -220,7 +223,7 @@ def _missing(report):
     lines = _lines_with(report, "MISSING_TEST:")
     for line in lines:
         behaviour = line.partition(":")[2].strip()
-        if re.match(r"none\b", behaviour, re.IGNORECASE):
+        if _is_none(behaviour):
             return None
         if behaviour:
             return behaviour
