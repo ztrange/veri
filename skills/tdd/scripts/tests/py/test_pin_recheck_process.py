@@ -724,3 +724,32 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_restored_files_
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr, "KeyError" in ran.stderr) == (1, True, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over an old-format record that holds and a before/keep record that stays green")
+def test_2959_a_green_before_keep_record_beside_an_old_format_record_is_reported_and_exits_1_while_the_old_format_record_holds(
+        tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "fix, pin and touch guard")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
+           command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin.txt" in ran.stderr, "guard.txt" in ran.stdout + ran.stderr, "KeyError" in ran.stderr,
+            (tmp_path / "guard.txt").read_bytes()) == (1, True, False, False, b"if guard\nmore\n"), ran.stderr
