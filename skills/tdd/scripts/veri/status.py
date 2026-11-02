@@ -335,11 +335,12 @@ def running_lines():
             verdicts = [e["verdict"] for e in of("verdict")]
             if verdicts:
                 name += " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
-            dollars = sum(e["total_cost_usd"] for e in of("usage"))
+            usage = of("usage")
+            dollars = sum(e["total_cost_usd"] for e in usage)
             if dollars:
                 name += " | total | $%.2f" % dollars
                 if since is not None:
-                    name += " +$%.2f" % sum(e["total_cost_usd"] for e in of("usage") if e["ts"] > since)
+                    name += " +$%.2f" % sum(e["total_cost_usd"] for e in usage if e["ts"] > since)
             models = {}
             for e in launches:
                 if "model" in e:
