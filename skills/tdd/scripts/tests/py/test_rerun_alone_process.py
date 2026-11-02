@@ -139,3 +139,25 @@ def test_several_summary_lines_naming_one_file_run_it_alone_once_and_name_it_onc
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
     assert flakes[0].count("skills/tdd/scripts/tests/py/test_foo.py") == 1
+
+
+@pytest.mark.process("rerun-alone.sh run on pytest red output whose summary names no test file")
+def test_pytest_red_output_naming_no_file_on_a_summary_line_exits_1_runs_no_alone_command_and_writes_no_event_2883(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text(
+        "skills/tdd/scripts/tests/py/test_foo.py ....                [ 50%]\n"
+        "skills/tdd/scripts/tests/py/test_bar.py ....                [100%]\n"
+        "!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!\n"
+        "no tests ran in 3.21s\n"
+    )
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 1
+    assert not ran_log.exists()
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
