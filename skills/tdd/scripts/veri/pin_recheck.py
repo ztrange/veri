@@ -53,6 +53,20 @@ def write_tail(run):
     sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
 
 
+def replay_before(pin):
+    names = subprocess.run(["git", "diff", "--name-only", pin["before"]], capture_output=True, text=True,
+                           check=True).stdout.split()
+    names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
+    saved = {n: Path(n).read_bytes() for n in names}
+    for n in names:
+        Path(n).write_bytes(subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True,
+                                           check=True).stdout)
+    ran = run_captured(current_wrapper(pin["command"]))
+    for n, data in saved.items():
+        Path(n).write_bytes(data)
+    return ran.returncode
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -60,11 +74,16 @@ def main(argv):
     touched = set(subprocess.run(["git", "diff", "--name-only", f"{argv[0]}..HEAD"], capture_output=True, text=True,
                                  check=True).stdout.split())
     pins = [r for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())
-            if r["file"] in touched]
+            if "before" in r or r["file"] in touched]
     if not pins:
         return 3
     status = 0
     for pin in pins:
+        if "before" in pin:
+            if replay_before(pin) == 0:
+                sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
+                status = 1
+            continue
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
         original = path.read_bytes()
