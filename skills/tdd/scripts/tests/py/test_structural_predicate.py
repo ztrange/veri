@@ -200,6 +200,24 @@ def test_main_2881_blank_lines_after_a_single_line_predicate_do_not_make_it_mult
     assert (tmp_path / "record").read_bytes() == b"false\n"
 
 
+def test_main_2881_a_heredoc_predicate_exits_2_naming_the_multi_line_predicate_running_nothing_and_writing_no_record(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    ran = []
+
+    def run(args, *rest, **kwargs):
+        ran.append(args)
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    fake_stdin(monkeypatch, b"PREDICATE: python3 - <<'PY'\nimport sys\nsys.exit(1)\nPY\n")
+    code = structural_predicate.main(["record"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, "multi-line" in captured.err.lower(), ran) == (2, "", True, [])
+    assert list(tmp_path.iterdir()) == []
+
+
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "structural-predicate.sh"))
 
 
