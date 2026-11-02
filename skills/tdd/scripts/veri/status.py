@@ -251,7 +251,7 @@ def watch_loop(seconds, as_json, scope):
 
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\n\nRunning\n\nQueue\nno snapshot\n\nWaiting")
+        print("Landed\nnone\n\nRunning\nnone\n\nQueue\nno snapshot\n\nWaiting\nnone")
         return 0
     parsed = parse_args(argv)
     if parsed is None:
