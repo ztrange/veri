@@ -282,10 +282,21 @@ def queue_counts():
 
 
 def landed_lines():
-    listed = subprocess.run(["git", "-C", main_working_tree(), "tag", "--list",
-                             "--format=%(refname:short)  %(contents:subject)"],
-                            capture_output=True, text=True).stdout
-    return listed.strip() or "none"
+    root = main_working_tree()
+    try:
+        with open(os.path.join(root, ".tdd", "status-last")) as f:
+            since = calendar.timegm(time.strptime(json.load(f)["time"], "%Y-%m-%dT%H:%M:%SZ"))
+    except OSError:
+        since = None
+
+    def tags(fmt):
+        return subprocess.run(["git", "-C", root, "tag", "--list", "--format=" + fmt],
+                              capture_output=True, text=True).stdout.splitlines()
+    lines = tags("%(refname:short)  %(contents:subject)")
+    if since is not None:
+        cut = {l.split()[1] for l in tags("%(creatordate:unix) %(refname:short)") if int(l.split()[0]) >= since}
+        lines = [l for l in lines if l.split()[0] in cut]
+    return "\n".join(lines) or "none"
 
 
 def main(argv):
