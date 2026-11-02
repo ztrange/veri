@@ -19,7 +19,7 @@ USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
 def leaf_argv(binary, model, prompt, extra):
-    argv = [binary or "claude", "-p", prompt,
+    argv = [binary or "claude", "-p",
             "--output-format", "stream-json", "--verbose"] + context_limits()
     if model and "--model" not in extra:
         argv += ["--model", model]
@@ -104,13 +104,18 @@ def main(argv):
             env.pop("PYTHONCOERCECLOCALE", None)
         command = leaf_argv(binary, model, prompt, argv[1:])
         try:
-            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=env,
+            leaf = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE, env=env,
                                     restore_signals=False)
         except OSError as error:
             complain(command[0], error)
             status = 2
         else:
             with leaf:
+                feed = getattr(leaf, "stdin", None)
+                if feed is not None:
+                    feed.write(os.fsencode(prompt))
+                    feed.close()
                 while chunk := os.read(leaf.stdout.fileno(), 65536):
                     os.write(1, chunk)
                     os.write(stream_fd, chunk)
