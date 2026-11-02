@@ -11,7 +11,11 @@ On re-run, preflight step 3 calls `issue-worktree.sh` again; because it is **ide
 prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
 worktree the previous run committed in — the branch is already checked out there, nothing is
 re-created or switched, and a resumed run's baseline runs on the branch head there, before
-any cycle of the resumed run starts. When that baseline is red, preflight step 3 runs the red suites on
+any cycle of the resumed run starts. When that baseline is red, preflight step 3 first runs each test file the red baseline
+names alone, once, with the repo's own runner (`make test TESTS="<file>"` here), and asks
+`$S/suite-red-resume.sh flake resume <red-file> <alone-red-file>`: on exit 0 — every file passed alone — the `suite-flake` event names
+the files, no `.tdd/resume-suite-red` is written, and the resume goes on as on a green baseline; on exit 1 — any file still red alone,
+or the output names no file — the baseline takes the path below. Otherwise preflight step 3 runs the red suites on
 `origin/<default>`: in a throwaway checkout made with `git worktree add --detach <scratch> origin/<default>` (removed afterwards),
 it runs the test command restricted to the branch-red suites — `make test TESTS="<those suite paths>"` here — in the foreground,
 and writes `<default-red-file>`, one suite still red there per line, optionally followed by ` — ` and its first FAIL line, or the

@@ -706,6 +706,7 @@
 | RS32 | Sub-step 4: then run the cycle loop as normal. Go to the draft PR only when `next-pending-refactor.sh` and `next-unchecked.sh` have both exited 3: every step is checked, and every checked step's refactor is verified. | A resumed run never readies a PR over untidied or unfinished steps. |
 | RS33 | Sub-step 4: an unchecked `⟦full-suite⟧` or `⟦human-owed⟧` line does not hold the run back from its draft PR, since no cycle ticks either and `next-unchecked.sh` skips both. | Lines the cycle loop never ticks cannot block the draft PR. |
 | RS34 | Because each step was checked off atomically with its green commit, the ledger and the git history agree on exactly what is done, so resume never repeats or skips a step. (Closing paragraph.) | The ledger can be trusted as the record of what is done. |
+| RS35 | Before preflight step 3 runs the branch-red suites on `origin/<default>`, the conductor runs each test file the red baseline names alone once, with the repo's own runner (`make test TESTS="<file>"` on veri). When all of them pass, it writes a `suite-flake` event naming the files, writes no `.tdd/resume-suite-red`, and goes on as on a green baseline. When any stays red, or the output names no file, the baseline takes today's path. | A load flake on resume is not a defect of the branch, and must not buy the run a repair step with nothing to repair. |
 
 ## skills/tdd/REVISE.md
 
