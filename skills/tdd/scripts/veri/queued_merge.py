@@ -207,6 +207,12 @@ def main(argv):
         found = subprocess.run([os.path.join(SCRIPTS, "detect-test-command.sh"), "--tier", "all"],
                                cwd=worktree, capture_output=True, text=True)
         full = found.stdout.strip()
+        if found.returncode or not full:
+            _say("no full test command for the rebased tree (%s); not merged" % (
+                "detect-test-command.sh exited %d" % found.returncode if found.returncode
+                else "detect-test-command.sh printed nothing"))
+            _release(pid)
+            return 2
         if _gate(pid, "sh", "-c", full, keep=True):
             _say("the full test command (%s) is red on the rebased tree; not merged" % full)
             _release(pid)

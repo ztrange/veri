@@ -533,3 +533,41 @@ def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_moved_its_tip_mer
     full_runs = [c for c in calls if "make test" in c]
     merges = [c for c in calls if "pulls/7/merge" in c and "sha=%s" % PUSHED_HEAD in c]
     assert (code, len(full_runs), len(merges)) == (0, 1, 1)
+
+
+def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_moved_its_tip_never_merges_when_the_full_test_command_is_empty_and_names_the_cause(
+        fake_processes, run_cli):
+    def empty_detection(answer):
+        def wrapped(line, **kwargs):
+            if "detect-test-command" in line:
+                return 0, "  \n", ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(empty_detection)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_CI_ON_PR": "0"})
+
+    merges = [c for c in calls if "pulls/7/merge" in c or "pr merge" in c]
+    shells = [c for c in calls if c.startswith("sh -c")]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, merges, shells, len(released), "printed nothing" in err) == (2, [], [], 1, True)
+
+
+def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_moved_its_tip_never_merges_when_detecting_the_full_test_command_fails_and_names_the_exit_code(
+        fake_processes, run_cli):
+    def failed_detection(answer):
+        def wrapped(line, **kwargs):
+            if "detect-test-command" in line:
+                return 4, "make test\n", "boom"
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(failed_detection)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_CI_ON_PR": "0"})
+
+    merges = [c for c in calls if "pulls/7/merge" in c or "pr merge" in c]
+    shells = [c for c in calls if c.startswith("sh -c")]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, merges, shells, len(released), "exited 4" in err) == (2, [], [], 1, True)
