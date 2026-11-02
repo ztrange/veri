@@ -1,1 +1,2 @@
 - [ ] `mutation-probe.sh --before` keeps a `<test-path>` that is itself new since `<sha>` present with its working-tree bytes while the command runs, so a command that reads the kept file passes where one that finds it removed or blanked fails ⟦added⟧ ⟦criterion 1⟧
+- [ ] a pin verify (`verify.sh pin`) renders its prompt with `{{BRANCH_BASE}}` filled by the run's branch point, `git merge-base HEAD origin/<default>`, so the before-state probe line never reaches the verifier with an empty sha ⟦added⟧ ⟦criterion 2⟧
