@@ -3,8 +3,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 try:
@@ -18,9 +20,12 @@ USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "veri/merge_lock.py",
+                 "veri/tunables.py", "veri/entry.py", "veri/pycache_prefix.py")
 
-def _script(name, *args):
-    return subprocess.run([os.path.join(SCRIPTS, name), *args]).returncode
+
+def _script(name, *args, scripts=SCRIPTS, cwd=None):
+    return subprocess.run([os.path.join(scripts, name), *args], cwd=cwd).returncode
 
 
 def _gate(pid, *cmd, keep=False):
@@ -43,8 +48,8 @@ def _say(message):
     print("queued-merge: %s" % message, file=sys.stderr)
 
 
-def _release(pid):
-    code = _script("merge-lock.sh", "release", "--pid", pid)
+def _release(pid, scripts=SCRIPTS, cwd=None):
+    code = _script("merge-lock.sh", "release", "--pid", pid, scripts=scripts, cwd=cwd)
     if code:
         _say("releasing the merge lock failed (exit %d)" % code)
     return code
@@ -113,13 +118,19 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     """Tag, delete the branch, remove the worktree, release the lock: every step runs, each failure is named."""
     failed = []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
+    spare = tempfile.mkdtemp(prefix="queued-merge-scripts-")
+    scripts = os.path.join(spare, "scripts")
+    for name in RELEASE_FILES:
+        os.makedirs(os.path.dirname(os.path.join(scripts, name)), exist_ok=True)
+        shutil.copy2(os.path.join(SCRIPTS, name), os.path.join(scripts, name))
     if message != "-" and not _tag(worktree, message, pull, pr):
         failed.append("tag")
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
-    if _release(pid):
+    if _release(pid, scripts, clone):
         failed.append("release")
+    shutil.rmtree(spare)
     current = _git(clone, "branch", "--show-current").stdout.strip()
     if current not in ("", "main"):
         _say("fast-forward of main to origin/main not done: the main clone is on %s" % current)
