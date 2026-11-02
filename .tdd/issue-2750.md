@@ -1,0 +1,30 @@
+# Plan for #2750 — PRD 014.3: status.sh --report renders /vstatus from local files, with no gh
+
+- [ ] With no `.tdd/report-cache.json` snapshot, `status.sh --report` exits 0 and prints the headings Landed, Running, Queue and Waiting in that order, Queue saying there is no snapshot and each other empty section saying "none" (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 3⟧
+- [ ] With a snapshot present, Queue's first line states the snapshot's age, computed from its `fetched_at` ⟦criterion 3⟧
+- [ ] Queue counts the snapshot's open opted-in (`VERI_LABEL`) issues by label ⟦criterion 1⟧
+- [ ] Queue lists each open opted-in issue the snapshot shows blocked, with the open issue blocking it, taken from that issue's `blockedBy` ⟦criterion 1⟧
+- [ ] Landed lists one line per local `vN.M` tag, carrying the tag and its message (the capability) ⟦criterion 1⟧
+- [ ] Landed leaves out a tag cut before the time in `.tdd/status-last` ⟦criterion 1⟧
+- [ ] Running lists one block headed `#<n>` for each run whose journal (`$VERI_HOME/runs/<owner>-<repo>/<n>.jsonl`) holds a `conductor-start` event whose `pid` answers `kill -0` with a start time matching its `started` ⟦criterion 1⟧
+- [ ] Running leaves out a run whose journal's `conductor-start` pid is dead or whose start time does not match `started` ⟦criterion 1⟧
+- [ ] A Running block shows the run's steps ticked of planned: its journal's `step-done` events of the latest `plan` event's `steps` ⟦criterion 1⟧
+- [ ] A Running block shows the run's phase now and the attempts in that phase, from its journal's `launch` events ⟦criterion 1⟧
+- [ ] A Running block shows the run's PASS and REJECT verdict counts, from its journal's `verdict` events ⟦criterion 1⟧
+- [ ] A Running block shows the run's cost as the `| total |` row of its metrics, computed in-process from its journal ⟦criterion 1⟧
+- [ ] A Running block shows the model each role (developer, revise, verifier, conductor) ran on, computed in-process from its journal ⟦criterion 1⟧
+- [ ] Running's awake wall time for a run is its journal's last event's `awake` minus its first event's `awake` ⟦criterion 5⟧
+- [ ] Running's steps carry their delta since the time in `.tdd/status-last`: the run's `step-done` events after that time ⟦criterion 1⟧
+- [ ] Running's cost carries its delta since the time in `.tdd/status-last`: the cost of the run's journal events after that time ⟦criterion 1⟧
+- [ ] Queue's counts each carry their delta against the queue counts recorded in `.tdd/status-last` ⟦criterion 1⟧
+- [ ] Waiting lists each bail since the time in `.tdd/status-last`, from the journals' `bail` events, with its cause ⟦criterion 1⟧
+- [ ] Waiting lists each PR ready to merge: a journal whose `done` event carries a `pr` and which holds no later `merged` event ⟦criterion 1⟧
+- [ ] When a live `.tdd/wt/<n>/.tdd/conductor.pid` names a run with no journal, `status.sh --report` prints a one-line note naming that run instead of leaving it out silently
+- [ ] Every ETA reads "no rate yet" when the journals hold fewer than three finished runs ⟦criterion 6⟧
+- [ ] With three or more finished runs in the journals, the drain ETA and each PRD's ETA are ranges from the fastest to the slowest quartile of those runs' wall times ⟦criterion 6⟧
+- [ ] After a report printed, `.tdd/status-last` holds the report's time and its queue counts ⟦criterion 7⟧
+- [ ] When the report failed to print, `.tdd/status-last` is left as it was ⟦criterion 7⟧
+- [ ] `status.sh --report` starts one detached `report-cache.sh refresh`, without waiting for it, when the snapshot's `fetched_at` is older than `VERI_SNAPSHOT_MAX_AGE` seconds (default 60) ⟦criterion 4⟧
+- [ ] `status.sh --report` starts no refresh when the snapshot is no older than `VERI_SNAPSHOT_MAX_AGE` ⟦criterion 4⟧
+- [ ] `status.sh --report` starts no refresh when a `report-cache.sh refresh` is already running ⟦criterion 4⟧
+- [ ] With `gh` refusing, `status.sh --report` exits 0 and prints the same report as with `gh` available ⟦criterion 2⟧
