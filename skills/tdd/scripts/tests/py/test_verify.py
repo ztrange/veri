@@ -1396,7 +1396,8 @@ HUNG_LEAF = "#!/bin/sh\necho thinking...\nexec sleep 60\n"
 def build_prompt(words, monkeypatch):
     built, captured = io.BytesIO(), sys.stdout
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
-    code = importlib.import_module("veri.build_verify_prompt").main(words)
+    pinned = ["--branch-base", "0" * 40] if "pin" in words and "--branch-base" not in words else []
+    code = importlib.import_module("veri.build_verify_prompt").main([*pinned, *words])
     monkeypatch.setattr(sys, "stdout", captured)
     return code, built.getvalue()
 
@@ -1722,6 +1723,21 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
                                   "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
     assert (code, (repo / "notes.txt").read_text()) == (2, "the developer has not committed this yet\n")
+
+
+@pytest.mark.process("a real git scratch repository with no origin, whose pin verifier leaf answers VERDICT: PASS")
+def test_verify_sh_pin_in_a_repository_with_no_origin_still_launches_the_verifier_and_its_pass_stands_2900(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {})
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
+    verify = importlib.import_module("veri.verify")
+
+    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                      "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "full suite are green" in out) == (0, True), out + err
 
 
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf rewrites its mutation record and makes it unreadable")
