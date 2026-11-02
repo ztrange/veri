@@ -62,6 +62,14 @@ def flake(at, red_file, alone_file):
     text, failed = attempt(lambda: suites(read_text(red_file)))
     if failed:
         return failed
+    alone, failed = attempt(lambda: suites(read_text(alone_file)))
+    if failed:
+        return failed
+    still_red = [name for name in alone if name != "none"]
+    if still_red:
+        for name in still_red:
+            complain(f"{name} is still red alone")
+        return 1
     return event.append("", {}, "suite-flake", ["at=" + at, "files=" + ",".join(text)])
 
 
