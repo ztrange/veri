@@ -238,3 +238,24 @@ def test_issue_2900_before_state_probe_restores_a_renamed_file_as_the_new_name_r
                              "test ! -e new_name.txt && grep -q 'line two' old_name.txt"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "new_name.txt").exists(), (tmp_path / "old_name.txt").exists()) == (1, True, False), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_puts_a_restored_tracked_file_back_to_its_uncommitted_working_tree_bytes(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "prod.bin").write_bytes(b"sha-content\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "prod.bin").write_bytes(b"branch-content\n")
+    (tmp_path / "test.sh").write_text("exit 0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    dirty = b"\x00\xffuncommitted edit\r\n"
+    (tmp_path / "prod.bin").write_bytes(dirty)
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "grep", "-q", "sha-content", "prod.bin"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "prod.bin").read_bytes()) == (1, dirty), result.stderr
