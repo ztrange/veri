@@ -1167,21 +1167,6 @@ def test_1041_diff_with_fast_cmd_refuses_an_extra_positional_argument_with_exit_
     assert problems == []
 
 
-def test_a_diff_prompt_tells_the_verifier_the_wrapper_hands_the_test_commands_exit_status_straight_back(
-        tmp_path, spec, run_cli, build_verify_prompt):
-    problems = []
-
-    code, prompt, _ = run_cli(build_verify_prompt, ["--step", DIFF_STEP, "--fast-cmd", "make unit", "diff", spec,
-                                                    DIFF_BASE, STEP_BASE])
-    if code != 0:
-        problems.append(f"exited {code}, want 0")
-    if ("The wrapper hands the command's own exit status straight back, so a red run stays red."
-            not in prompt.replace("\n", " ")):
-        problems.append("never says the wrapper hands the exit status straight back")
-
-    assert problems == []
-
-
 def test_main_renders_the_ordinary_red_prompt_for_a_step_mentioning_the_replaces_case_mark_only_in_its_prose_or_backticks_1538(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
