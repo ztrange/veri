@@ -29,7 +29,7 @@ def cksum(data):
 USAGE = [
     ("3345015868 167", "add-ledger-step.sh", []),
     ("3115481657 48", "affected-suites.sh", []),
-    ("787667760 308", "build-develop-prompt.sh", []),
+    ("1250444232 315", "build-develop-prompt.sh", []),
     ("217537457 94", "build-verify-prompt.sh", []),
     ("3916945256 64", "clear-refactor-pending.sh", []),
     ("3860559291 55", "comment-class.sh", []),
@@ -55,7 +55,7 @@ USAGE = [
     ("3019634167 120", "verify.sh", []),
     ("3132011146 48", "wait-leaf.sh", []),
     ("3345015868 167", "add-ledger-step.sh", [".tdd/issue-1.md", "after", "anchor"]),
-    ("2658457917 361", "build-develop-prompt.sh", ["green", "spec", "step"]),
+    ("82452057 368", "build-develop-prompt.sh", ["green", "spec", "step"]),
     ("217537457 94", "build-verify-prompt.sh", ["green"]),
     ("217537457 94", "build-verify-prompt.sh", ["green", "spec"]),
     ("2618584748 136", "build-verify-prompt.sh", ["--step"]),
