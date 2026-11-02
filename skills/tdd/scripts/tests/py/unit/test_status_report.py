@@ -25,3 +25,15 @@ def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_o
     headings = [line for line in lines if line in ("Landed", "Running", "Queue", "Waiting")]
     assert (code, headings, "no snapshot" in " ".join(after_queue).lower()) == (
         0, ["Landed", "Running", "Queue", "Waiting"], True)
+
+
+def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+
+    code, out, _ = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    first_after = {h: ([x for x in lines[lines.index(h) + 1:] if x] or [""])[0]
+                   for h in ("Landed", "Running", "Waiting")}
+    assert (code, first_after) == (0, {"Landed": "none", "Running": "none", "Waiting": "none"})
