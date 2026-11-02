@@ -363,3 +363,28 @@ def test_done_records_lane_ready_for_agent_when_veri_label_is_set_to_an_empty_st
 
     done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
     assert (code, done.get("lane")) == (0, "ready-for-agent")
+
+
+import re
+
+import pytest
+
+from conftest import ROOT
+
+PY_DELETES_OR_COPIES = re.compile(
+    r"os\.(remove|unlink|rmdir|removedirs)\b|\.unlink\(|shutil\.(rmtree|copy\w*|move)\b|\.rmdir\(")
+SH_DELETES_OR_COPIES = re.compile(r"^\s*(rm|mv|cp)\s")
+
+
+@pytest.mark.tree_audit("every non-test .py and .sh file under skills/ that names $VERI_HOME")
+def test_nothing_in_skills_outside_the_tests_deletes_from_veri_home_or_copies_a_transcript_there():
+    offenders = []
+    for path in sorted((ROOT / "skills").rglob("*")):
+        if path.suffix not in (".py", ".sh") or "tests" in path.relative_to(ROOT).parts:
+            continue
+        text = path.read_text(errors="replace")
+        if "VERI_HOME" not in text and "/.veri/" not in text:
+            continue
+        offenders += [f"{path.relative_to(ROOT)}:{n}" for n, line in enumerate(text.splitlines(), 1)
+                      if (SH_DELETES_OR_COPIES if path.suffix == ".sh" else PY_DELETES_OR_COPIES).search(line)]
+    assert offenders == []
