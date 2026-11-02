@@ -464,3 +464,21 @@ def test_2749_queued_merge_given_a_dash_for_the_message_emits_merged_with_the_pr
     rows = [json.loads(r) for r in seen.get("before_remove", "").splitlines()]
     merged = [(r["issue"], r["pr"], r["tag"], r["message"]) for r in rows if r.get("event") == "merged"]
     assert (code, merged) == (0, [("2749", PR, "", "")])
+
+
+def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_leaves_head_unchanged_merges_without_running_the_full_test_command(
+        fake_processes, run_cli):
+    def unmoved(answer):
+        def wrapped(line, **kwargs):
+            if "rev-parse --verify HEAD" in line:
+                return 0, PUSHED_HEAD + "\n", ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(unmoved)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_CI_ON_PR": "0"})
+
+    full_runs = [c for c in calls if "detect-test-command" in c or "make test" in c]
+    merges = [c for c in calls if "pulls/7/merge" in c]
+    assert (code, full_runs, len(merges)) == (0, [], 1)
