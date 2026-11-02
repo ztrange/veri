@@ -24,7 +24,7 @@ def main(argv):
     predicate = fields["PREDICATE"]
     lines = report.split("\n")
     last = max(i for i, line in enumerate(lines) if line.startswith("PREDICATE:"))
-    if any(lines[last + 1:]):
+    if any(line.strip() for line in lines[last + 1:]):
         sys.stderr.write(MULTI_LINE + "\n")
         return 2
     if predicate == "NONE" or predicate.startswith(("NONE ", "NONE—", "NONE:")):

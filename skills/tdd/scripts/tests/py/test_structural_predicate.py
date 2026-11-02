@@ -200,6 +200,23 @@ def test_main_2881_blank_lines_after_a_single_line_predicate_do_not_make_it_mult
     assert (tmp_path / "record").read_bytes() == b"false\n"
 
 
+def test_main_2881_a_whitespace_only_line_after_the_predicate_line_is_judged_like_a_single_line_reply(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    ran = []
+
+    def run(args, *rest, **kwargs):
+        ran.append(args)
+        return subprocess.CompletedProcess(args, 1)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    fake_stdin(monkeypatch, b"PREDICATE: false\n   \t\n")
+    code = structural_predicate.main(["record"])
+    assert (code, capsys.readouterr(), ran) == (0, ("", ""), [["bash", "-c", "false"]])
+    assert (tmp_path / "record").read_bytes() == b"false\n"
+
+
 def test_main_2881_a_heredoc_predicate_exits_2_naming_the_multi_line_predicate_running_nothing_and_writing_no_record(
     monkeypatch, capsys, tmp_path, structural_predicate
 ):
