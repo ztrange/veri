@@ -164,3 +164,22 @@ def test_output_over_the_bound_with_no_fail_line_leaves_its_last_line_in_the_rea
     assert ran.returncode == 1
     assert reason.strip() != b""
     assert b"error: unique-final-tail-marker" in reason
+
+
+@pytest.mark.process("pin-fast-tier.sh run on a failing fast command printing far more than the bound, every line a FAIL line")
+def test_output_of_many_fail_lines_over_the_bound_leaves_a_reason_file_under_the_cap_2909(tmp_path):
+    from pin_fast_tier import BOUND_BYTES
+
+    (tmp_path / ".tdd").mkdir()
+    fast = stub(tmp_path / "fast-all-fail",
+                "i=0\nwhile [ $i -lt 20000 ]; do\n"
+                "echo \" FAIL  src/case-$i.test.ts > case $i padding padding padding\"\n"
+                "i=$((i+1))\ndone\n"
+                "echo 'error: unique-final-tail-marker'\nexit 1\n")
+
+    ran = subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True, text=True)
+
+    reason = (tmp_path / ".tdd" / "verify-pin.reason").read_bytes()
+    assert ran.returncode == 1
+    assert len(reason) < 2 * BOUND_BYTES
+    assert b"error: unique-final-tail-marker" in reason

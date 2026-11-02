@@ -23,6 +23,7 @@ def main(argv):
 
 
 BOUND_BYTES = 128 * 1024
+FAIL_CAP_BYTES = 64 * 1024
 FAIL_BLOCK_LINES = 13
 TAIL_LINES = 40
 
@@ -32,9 +33,14 @@ def bounded(output):
         return output
     lines = output.split(b"\n")
     keep = set()
+    kept_bytes = 0
     for i, line in enumerate(lines):
         if b" FAIL " in line:
-            keep.update(range(i, min(i + FAIL_BLOCK_LINES, len(lines))))
+            block = [j for j in range(i, min(i + FAIL_BLOCK_LINES, len(lines))) if j not in keep]
+            kept_bytes += sum(len(lines[j]) + 1 for j in block)
+            keep.update(block)
+            if kept_bytes >= FAIL_CAP_BYTES:
+                break
     keep.update(range(max(0, len(lines) - TAIL_LINES), len(lines)))
     return b"\n".join(lines[i] for i in sorted(keep))
 
