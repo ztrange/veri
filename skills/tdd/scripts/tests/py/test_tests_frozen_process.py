@@ -4052,3 +4052,29 @@ def test_check_earlier_exits_1_for_a_go_case_after_a_t_fatal_line_is_deleted_fro
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert checked == (1, "TestX (%s)\n" % step)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_check_earlier_exits_1_for_a_python_case_after_an_assert_line_is_deleted_from_its_helper_above_it_following_the_rerecord_2867(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "test_suite.py"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("def test_one():\n    x = 1\n    assert x == 1\n    assert x < 2\n")
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text("def check_one(x):\n    assert x == 1\n    assert x < 2\n\n\ndef test_one():\n    x = 1\n    check_one(x)\n")
+    _commit(tmp_path, "A refactor moves the asserts into a helper")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    suite.write_text("def check_one(x):\n    assert x == 1\n\n\ndef test_one():\n    x = 1\n    check_one(x)\n")
+    _commit(tmp_path, "later commit drops an assert from the helper")
+
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked == (1, "test_one (%s)\n" % step)
