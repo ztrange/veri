@@ -1,7 +1,7 @@
 # Plan for #2750 — PRD 014.3: status.sh --report renders /vstatus from local files, with no gh
 
 - [x] `status.sh --report` exits 0 and prints the section headings Landed, Running, Queue and Waiting, in that order (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 1⟧
-- [x] With no `.tdd/report-cache.json` snapshot, Queue says there is no snapshot while Landed, Running and Waiting still print ⟦criterion 3⟧ ⟂ refactor pending
+- [x] With no `.tdd/report-cache.json` snapshot, Queue says there is no snapshot while Landed, Running and Waiting still print ⟦criterion 3⟧
 - [ ] An empty Landed, Running or Waiting section keeps its heading and says "none" ⟦criterion 1⟧
 - [ ] With a snapshot present, Queue's first line states the snapshot's age, computed from its `fetched_at` ⟦criterion 3⟧
 - [ ] Queue counts the snapshot's open opted-in (`VERI_LABEL`) issues by label ⟦criterion 1⟧
