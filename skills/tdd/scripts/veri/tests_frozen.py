@@ -85,9 +85,13 @@ def _toplevel():
     return os.fsdecode(done.stdout).rstrip("\n") if done.returncode == 0 else None
 
 
-def _has_head():
-    return subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
+def _has_rev(rev):
+    return subprocess.run(["git", "rev-parse", "--verify", "-q", rev],
                           stdout=subprocess.DEVNULL).returncode == 0
+
+
+def _has_head():
+    return _has_rev("HEAD")
 
 
 def _enter_root(record, files):
@@ -594,8 +598,7 @@ def rerecord_committed(step):
             if name not in held:
                 at_head = _cases_at("HEAD", name)
                 recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
-                before = _cases_at("HEAD~1", name) if subprocess.run(
-                    ["git", "rev-parse", "-q", "--verify", "HEAD~1"], stdout=subprocess.DEVNULL).returncode == 0 else {}
+                before = _cases_at("HEAD~1", name) if _has_rev("HEAD~1") else {}
                 held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
             at_head, fresh = held[name]
             if case not in at_head and fresh:
