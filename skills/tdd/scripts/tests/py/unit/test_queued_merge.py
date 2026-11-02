@@ -493,3 +493,23 @@ def test_2886_queued_merge_on_a_pr_with_checks_whose_rebase_moved_its_tip_merges
     full_runs = [c for c in calls if "detect-test-command" in c or "make test" in c]
     merges = [c for c in calls if "pulls/7/merge" in c]
     assert (code, full_runs, len(merges)) == (0, [], 1)
+
+
+def test_2886_queued_merge_on_a_pr_with_no_checks_whose_rebase_moved_its_tip_never_merges_when_the_full_test_command_is_red_and_names_the_run(
+        fake_processes, run_cli):
+    def red_full_run(answer):
+        def wrapped(line, **kwargs):
+            if "detect-test-command" in line:
+                return 0, "make test\n", ""
+            if "make test" in line:
+                return 1, "", "FAILED test_combined"
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(red_full_run)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_CI_ON_PR": "0"})
+
+    merges = [c for c in calls if "pulls/7/merge" in c or "pr merge" in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, merges, len(released), "make test" in err) == (1, [], 1, True)

@@ -187,6 +187,7 @@ def main(argv):
         _say("origin/%s has commits the worktree lacks; nothing pushed" % branch)
         _release(pid)
         return 2
+    before = _rev(worktree, "HEAD")
     for git_args in (("rebase", "origin/main"),
                      ("push", "--force-with-lease=%s:%s" % (branch, lease), "origin", branch)):
         code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
@@ -202,6 +203,14 @@ def main(argv):
         code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
     if code:
         return code
+    if tunables.read("VERI_CI_ON_PR") == "0" and before != head:
+        found = subprocess.run([os.path.join(SCRIPTS, "detect-test-command.sh"), "--tier", "all"],
+                               cwd=worktree, capture_output=True, text=True)
+        full = found.stdout.strip()
+        if _gate(pid, "sh", "-c", full, keep=True):
+            _say("the full test command (%s) is red on the rebased tree; not merged" % full)
+            _release(pid)
+            return 1
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
