@@ -15,13 +15,18 @@ def before_state(argv):
     sha, keep, command = argv[1], argv[3], argv[5:]
     names = subprocess.run(["git", "diff", "--name-only", "-z", sha], capture_output=True).stdout
     saved = {}
-    for name in names.decode().split("\0"):
+    untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True).stdout
+    for name in names.decode().split("\0") + untracked.decode().split("\0"):
         if name and name != keep and not name.startswith(".tdd/"):
             path = Path(name)
             saved[path] = path.read_bytes()
     try:
         for path in saved:
-            path.write_bytes(subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True).stdout)
+            old = subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True)
+            if old.returncode:
+                path.unlink()
+            else:
+                path.write_bytes(old.stdout)
         returncode = subprocess.run(command).returncode
     finally:
         for path, content in saved.items():

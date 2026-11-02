@@ -137,3 +137,23 @@ def test_issue_2900_before_state_probe_leaves_every_file_under_tdd_as_it_is_in_t
     result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / ".tdd" / "ledger.md").read_text()) == (1, "new\n"), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_2900_before_state_probe_removes_a_file_added_since_the_sha_tracked_or_untracked_while_the_command_runs(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "added.txt").write_text("tracked\n")
+    (tmp_path / "test.sh").write_text("test ! -e added.txt && test ! -e fresh.txt\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    (tmp_path / "fresh.txt").write_text("untracked\n")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert result.returncode == 1, result.stderr
