@@ -31,6 +31,9 @@ def before_state(argv):
         if name and name != keep and not name.startswith(".tdd/"):
             path = Path(name)
             saved[path] = path.read_bytes() if path.exists() else None
+    if not saved:
+        sys.stderr.write(f"mutation-probe.sh: no file differs from {sha}\n")
+        return 2
     try:
         for path in saved:
             old = subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True)

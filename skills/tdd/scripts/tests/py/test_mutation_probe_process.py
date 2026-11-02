@@ -328,3 +328,22 @@ def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_
     result = subprocess.run([str(PROBE), "--before", "HEAD", "--keep", "test.sh", "--", "touch", "ran.marker"],
                             cwd=tmp_path, capture_output=True, text=True, timeout=20)
     assert (result.returncode, (tmp_path / "ran.marker").exists()) == (2, False), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it would run against a scratch repo")
+def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_only_the_test_path_and_tdd_differ_from_the_sha(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    (tmp_path / "test.sh").write_text("old\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "test.sh").write_text("new\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "ledger.md").write_text("step\n")
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "touch", "ran.marker"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    assert (result.returncode, (tmp_path / "ran.marker").exists()) == (2, False), result.stderr
