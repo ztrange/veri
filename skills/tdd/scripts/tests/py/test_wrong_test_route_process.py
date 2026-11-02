@@ -71,3 +71,23 @@ def test_2868_two_superseded_cases_with_the_own_red_case_recorded_and_unnamed_ro
 
     assert (code, out) == (0, "supersede-diff %s test_a_gear_never_slips\n" % OLDER), err
 
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_2916_criterion_2_a_missing_report_with_a_later_step_that_is_unchecked_in_the_ledger_routes_later(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    later = "a cog never moves alone ⟦criterion 3⟧"
+    (repo / ".tdd" / "issue-77.md").write_text(
+        "# Plan for #77\n\n- [ ] %s\n- [ ] a gear never slips ⟦criterion 2⟧\n- [ ] %s\n" % (STEP, later))
+    (repo / ".tdd" / "verify-green.out").write_text(
+        "The cog can still move alone.\n"
+        "MISSING_TEST: a cog never moves alone\n"
+        "LATER_STEP: %s\n"
+        "VERDICT: REJECT\n" % later)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_STEP"] = STEP
+    env["VERI_ISSUE"] = "77"
+
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+                         env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "later %s\n" % later), ran.stderr
