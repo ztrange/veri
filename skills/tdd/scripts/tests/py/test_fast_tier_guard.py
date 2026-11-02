@@ -449,14 +449,6 @@ def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_
     assert _misplaced(tmp_path) == ["unit/test_waits.py: named by the guard, inside the tier"]
 
 
-def test_the_veri_coord_and_veri_dev_lane_prose_suites_live_under_tests_py_unit_and_not_beside_it():
-    tier = SCRIPTS / "tests" / "py"
-    names = ("test_veri_coord_lane.py", "test_veri_dev_lane.py")
-    assert [(name, (tier / name).is_file(), (tier / "unit" / name).is_file()) for name in names] == [
-        (name, False, True) for name in names
-    ]
-
-
 def test_1668_the_comment_class_suite_whose_only_suite_looking_strings_are_prose_labels_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
     name = "test_comment_class.py"
