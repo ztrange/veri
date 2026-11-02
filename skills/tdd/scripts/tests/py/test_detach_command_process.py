@@ -87,3 +87,17 @@ def test_a_command_started_by_start_sees_sigint_sigquit_and_sigxfsz_ignored_and_
     traps = sorted((tdd / "sigs.traps").read_text().splitlines())
     assert (traps, (tdd / "sigs.py").read_text().strip()) == (
         ["trap -- '' SIGINT", "trap -- '' SIGQUIT", "trap -- '' SIGXFSZ"], "1 1")
+
+
+@pytest.mark.process("a real detached red command and a real alone command that fails for the named file")
+def test_wait_alone_on_a_red_command_whose_named_file_is_still_red_alone_exits_1_with_the_code_and_writes_no_suite_flake_event_2912(
+        tmp_path, run):
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text('#!/bin/sh\ncase "$1" in *b.test.mjs) exit 1;; esac\nexit 0\n')
+    alone.chmod(0o755)
+
+    run("start", "red", "sh", "-c", "echo 'FAIL scripts/b.test.mjs'; exit 3")
+    result = run("wait", "red", "--alone", f'{alone} "$1"')
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    assert (result, "suite-flake" in (events.read_text() if events.is_file() else "")) == ((1, "3\n", ""), False)
