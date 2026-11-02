@@ -1331,3 +1331,30 @@ def test_main_renders_a_verify_dual_stub_prompt_telling_the_blind_verifier_to_re
             b"does not stub both transports" in prompt,
             b"unmoved production code" in prompt,
             b"removed or weakened" in prompt) == (True,) * 6, out
+
+
+def test_main_fills_the_pin_prompts_branch_base_slot_from_branch_base_with_only_that_hex_commit_name_2900(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"slugify must lowercase.\n")
+    base = "3f9a1c07e2b4"
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    pin = ["pin", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]
+    filled = run(["--branch-base", base, *pin])
+    prompt = filled[1].decode("utf-8", "surrogateescape")
+    refused = {value: run(["--branch-base", value, *pin])[::2] for value in ("nothex", "3f9a1C0", "3f9a1c0\n")}
+    assert {
+        "exit": filled[0],
+        "before-state probe names the base": f"--before {base} --keep 'tests/test_slugify.py'" in prompt,
+        "no slot left": "{{BRANCH_BASE}}" not in prompt,
+        "non-hex refusals": {value: (code, bool(err)) for value, (code, err) in refused.items()},
+    } == {
+        "exit": 0,
+        "before-state probe names the base": True,
+        "no slot left": True,
+        "non-hex refusals": {value: (2, True) for value in refused},
+    }

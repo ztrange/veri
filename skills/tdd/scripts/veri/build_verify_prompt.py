@@ -77,7 +77,7 @@ def _expand(text, prompts, chain=()):
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": ""}
+    options = {"--step": "", "--fast-cmd": "", "--branch-base": ""}
     while argv[:1] and argv[0] in options:
         if len(argv) < 2 or not argv[1]:
             return _refuse(f"build-verify-prompt: {argv[0]} needs a value")
@@ -87,7 +87,7 @@ def main(argv):
         return _refuse()
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
-    code, out = build(options["--step"], options["--fast-cmd"], *argv)
+    code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"])
     sys.stdout.buffer.write(out)
     return code
 
@@ -96,7 +96,9 @@ def _refused(message=None):
     return _refuse(message), b""
 
 
-def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base=""):
+    if branch_base and not re.fullmatch(r"[0-9a-f]{7,40}", branch_base):
+        return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
         return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
@@ -174,6 +176,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
                                (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
+                               (b"BRANCH_BASE", os.fsencode(branch_base)),
                                (b"FAST_CMD", os.fsencode(fast_cmd)),
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
