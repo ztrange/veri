@@ -9,6 +9,8 @@ from report import report_read
 USAGE = "usage: structural-predicate.sh <record>"
 MISSING = "structural-predicate.sh: the report carries no PREDICATE: line"
 
+MULTI_LINE = "structural-predicate.sh: the PREDICATE: line is followed by more lines: a multi-line predicate is refused"
+
 
 def main(argv):
     if not argv or not argv[0]:
@@ -20,6 +22,11 @@ def main(argv):
         sys.stderr.write(MISSING + "\n")
         return 2
     predicate = fields["PREDICATE"]
+    lines = report.split("\n")
+    last = max(i for i, line in enumerate(lines) if line.startswith("PREDICATE:"))
+    if any(lines[last + 1:]):
+        sys.stderr.write(MULTI_LINE + "\n")
+        return 2
     if predicate == "NONE" or predicate.startswith(("NONE ", "NONE—", "NONE:")):
         return 3
     env = {key: value for key, value in os.environ.items() if key != "predicate"}
