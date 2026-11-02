@@ -330,6 +330,11 @@ def running_lines():
             dollars = sum(e["total_cost_usd"] for e in of("usage"))
             if dollars:
                 name += " | total | $%.2f" % dollars
+            models = {}
+            for e in launches:
+                if "model" in e:
+                    models["revise" if e["name"].startswith("revise") else e["actor"]] = e["model"]
+            name += "".join(" %s %s" % (r, m) for r, m in models.items())
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
