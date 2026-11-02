@@ -22,8 +22,6 @@ ALLOWED = {
         "absence: no line of the unit runs git push",
     "unit/test_skill_draft_pr.py::test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr":
         "whole-document ban on gh repo/issue/pr subcommands",
-    "unit/test_skill_suite_runs.py::test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle":
-        "reads the Refactor loop, another unit",
 }
 
 

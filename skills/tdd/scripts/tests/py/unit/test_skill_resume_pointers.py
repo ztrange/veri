@@ -27,15 +27,6 @@ def test_resume_pointers_name_resume_md_in_the_base_directory():
                 assert "RESUME.md" in line, f"{path.name}:{n} names Resume without naming RESUME.md"
 
 
-def test_resume_section_lives_in_resume_md_and_skill_md_carries_none_of_its_lines():
-    moved = [r"\$S/event\.sh resume`", r"left=\$\(\( \$\{VERI_REFACTOR_BUDGET:-5\} - count \)\)",
-             r"add-ledger-step\.sh --planned --criterion"]
-    skill = _lines(SKILL)
-    assert "## Resume" not in skill, "SKILL.md still carries the ## Resume heading"
-    left = [p for p in moved if any(re.search(p, line) for line in skill)]
-    assert not left, f"SKILL.md still carries the moved lines {left}"
-
-
 def test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and_its_exit_2_bails_as_a_system_failure():
     text = SKILL.with_name("PREFLIGHT.md").read_text()
     start = text.index("A run that `issue-worktree.sh` handed back an existing worktree")

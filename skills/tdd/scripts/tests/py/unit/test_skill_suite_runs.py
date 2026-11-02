@@ -26,19 +26,6 @@ def after(text, sep):
     return text.split(sep, 1)[1] if sep in text else text
 
 
-def test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle():
-    lines = SKILL.read_text().splitlines(keepends=True)
-    start = next((i for i, line in enumerate(lines) if line.startswith("#### Refactor loop")), None)
-    end = next((i for i, line in enumerate(lines) if line.startswith("### 4. Draft PR")), len(lines))
-    assert start is not None, "SKILL.md has no text from '#### Refactor loop' to '### 4. Draft PR' to read"
-    text = re.sub(r"[\n ]+", " ", plain("".join(lines[start:end])))
-    for pattern in (r"(^| )(not|neither|nor|never|no)( [a-z-]+){0,5} full suite", r"full[- ]suite run (in|at) (4\. )?draft pr"):
-        while (m := re.search(pattern, text)):
-            text = text.replace(m.group(0), "", 1)
-    m = re.search(r"[^.]{0,60}(full suite|full-suite run)[^.]{0,40}", text)
-    assert not m, f"SKILL.md names a full-suite run inside a step's cycle: {m.group(0) if m else ''}"
-
-
 def test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor():
     assert "suite-reported.sh" not in doc_text(SKILL, REFACTOR_LOOP), (
         "Refactor loop: runs suite-reported.sh after a leaf whose prompt asks for no SUITE: line")

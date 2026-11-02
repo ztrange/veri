@@ -19,8 +19,6 @@ MARKERS = (
 ALLOWED = {
     "unit/test_skill_refactor_footer.py::test_skill_md_refactor_section_names_exactly_the_report_lines_the_built_refactor_prompt_asks_the_leaf_for":
         "mechanical: two-sided RESULT:/CANDIDATES:/FLAGS: label parity with the built refactor prompt",
-    "unit/test_skill_suite_runs.py::test_skill_md_names_no_full_suite_run_inside_a_step_s_cycle":
-        "document-wide absence over Red to Draft PR; the Draft PR slice owns it",
     "unit/test_skill_suite_runs.py::test_1300_skill_md_runs_suite_reported_sh_only_after_a_leaf_whose_prompt_asks_for_a_suite_line_never_after_the_refactor_leaf_or_a_revise_of_red_green_or_refactor":
         "absence assertion; the prose states nothing about it",
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",

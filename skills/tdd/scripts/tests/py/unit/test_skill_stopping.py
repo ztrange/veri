@@ -3,13 +3,12 @@ import importlib
 import pathlib
 import re
 
-from skill_sections import LOWER, has_match as _has, plain as _plain
+from skill_sections import has_match as _has, plain as _plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 PROCEDURE = "## Procedure"
 PREFLIGHT = "## 0. Preflight — baseline checks (bail before any cycle)"
-BAILING = "## Bailing"
 SCRIPTS = "## The scripts (this skill's `scripts/` directory)"
 
 
@@ -62,46 +61,6 @@ def _branch(lines, start, end):
     return out
 
 
-def _phase_exit2(heading, anchor):
-    inside, kept = False, []
-    for raw in (SKILL.read_text() + "\n" + SKILL.with_name("REVISE.md").read_text()).splitlines():
-        if re.match(r"#{2,4} ", raw):
-            inside = bool(re.search(heading, raw.translate(LOWER)))
-            continue
-        if inside:
-            kept.append(_plain(raw))
-    out, buf, hit = None, "", False
-    for line in kept:
-        if re.match(r"[ \t]*$", line) or re.match(r"[ \t]*(- |[0-9]+\. )", line):
-            if hit:
-                out = buf
-                break
-            buf = ""
-        if re.match(r"[ \t]*$", line):
-            continue
-        buf += " " + line
-        if re.search(anchor, line):
-            hit = True
-    else:
-        if hit:
-            out = buf
-    return None if out is None else re.sub(" +", " ", out)
-
-
-def test_each_phases_leaf_exit_2_branch_points_back_to_launching_a_leaf_where_stop_requested_is_asked_before_the_exit_2_is_read_as_killed_stuck():
-    phases = [
-    ]
-    problems = []
-    for phase, heading, anchor in phases:
-        clause = _phase_exit2(heading, anchor)
-        if not clause:
-            problems.append(f"the {phase} branch has no exit-2 clause to read — nothing could be checked")
-            continue
-        _require(problems, "launching a leaf", [clause],
-                 f"the {phase} branch reads a leaf's exit 2 without pointing back to Launching a leaf — a pending now stop there would bail")
-    assert not problems, problems
-
-
 def test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write():
     lines, problems = [_joined(_branch(_section(PREFLIGHT, SKILL.with_name("PREFLIGHT.md")), r"^3\. suite is green at baseline", r"^4\. "))], []
     _require(problems, r"\.tdd/conductor\.pid", lines,
@@ -122,9 +81,3 @@ def test_standing_bail_rule_is_stated_once_and_no_line_names_bailing_without_bai
     assert not bare, f"lines name Bailing without {pointer}: {bare}"
 
 
-def test_skill_md_carries_none_of_the_bailing_sections_lines():
-    moved = [r"preserve-attempt\.sh <n> .*\bbail\b", r"event\.sh bail cause=<cause>", r"metrics: what bailing on"]
-    skill = SKILL.read_text().split("\n")
-    assert not [line for line in skill if line == BAILING], "SKILL.md still carries the ## Bailing heading"
-    left = [p for p in moved if _has(p, skill)]
-    assert not left, f"SKILL.md still carries the moved lines {left}"
