@@ -437,6 +437,14 @@ three times over branches its ledger pinned on later lines.
    start at the process boundary, say), plan that case as a separate Red/Green step tagged
    with the same `⟦criterion k⟧`, so the case never exists only inside the phased step.
 
+   A change that supersedes existing frozen cases, and whose proxy over the new interface
+   would itself change pinned behaviour, is planned as one step listing `⟦phases: beside,
+   cover-new, dual-stub, migrate, contract-a, contract-b⟧`: `- [ ] <criterion> ⟦phases:
+   beside, cover-new, dual-stub, migrate, contract-a, contract-b⟧ ⟦criterion k⟧`. This shape
+   applies in place of `expand` (the list has `beside` where the interface-change list has
+   `expand`), and it is distinct from `⟦replaces-case⟧`, which swaps a bash case for a pytest
+   case asserting the same behaviour and supersedes no frozen pytest case.
+
    Each step's text carries every constraint the issue attaches to the cases that step covers,
    because the leaves work from the step text and not from the issue: the case size it must
    keep (a medium case, with a real process), "no production change", and any end-to-end path
