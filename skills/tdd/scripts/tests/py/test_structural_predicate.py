@@ -183,6 +183,23 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
     assert not (tmp_path / "missing").exists()
 
 
+def test_main_2881_blank_lines_after_a_single_line_predicate_do_not_make_it_multi_line(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    ran = []
+
+    def run(args, *rest, **kwargs):
+        ran.append(args)
+        return subprocess.CompletedProcess(args, 1)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    fake_stdin(monkeypatch, b"PREDICATE: false\n\n\n\n")
+    code = structural_predicate.main(["record"])
+    assert (code, capsys.readouterr(), ran) == (0, ("", ""), [["bash", "-c", "false"]])
+    assert (tmp_path / "record").read_bytes() == b"false\n"
+
+
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "structural-predicate.sh"))
 
 
