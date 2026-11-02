@@ -597,3 +597,31 @@ def test_2877_a_recorded_pin_whose_title_has_an_apostrophe_and_spaces_is_replaye
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, (tmp_path / "seen.txt").read_text()) == (0, "", f"1:{title}"), ran.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh probing through the real timed-test-run.sh and pin-recheck.sh replaying the record")
+def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_it_replays_green(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt\n')
+    (tmp_path / ".tdd").mkdir()
+    record_path = tmp_path / ".tdd" / "issue-2877-mutations.md"
+    probed = subprocess.run(
+        ["sh", str(SCRIPTS / "mutation-probe.sh"), "guard.txt", "if guard", "if (true)", "--",
+         str(SCRIPTS / "timed-test-run.sh"), "affected", "runner", "sh", "runner.sh"],
+        cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_MUTATION_RECORD": str(record_path)})
+    assert probed.returncode == 0, probed.stderr
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    recorded = record_path.read_text()
+    assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
+        0, "", True, False), ran.stderr + recorded
