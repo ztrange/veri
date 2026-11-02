@@ -392,3 +392,49 @@ def test_2843_a_silent_unmutated_run_and_a_mutated_build_failure_writes_the_muta
 
     assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), ran.stderr) == (
         1, True, "error: build failed\n"), ran.stdout
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run fails a Go test and shares no output line with the unmutated run")
+def test_2875_a_go_test_failure_on_the_mutated_run_counts_as_red_and_exits_0_and_restores_the_file(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2875-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then printf 'ok  \\tpkg\\t0.1s\\n'; "
+                   "else echo '--- FAIL: TestX (0.00s)'; echo FAIL; printf 'FAIL\\tpkg\\t0.2s\\n'; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        0, "", b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run fails to build a Go package")
+def test_2875_a_go_build_failure_on_the_mutated_run_still_needs_a_look_and_exits_1_and_restores_the_file(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2875-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="if grep -q 'if guard' guard.txt; then printf 'ok  \\tpkg\\t0.1s\\n'; "
+                   "else printf 'FAIL\\tpkg [build failed]\\n'; exit 1; fi")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
+        1, "needs a look: guard.txt (mutation did not build)\n", b"if guard\nmore\n"), ran.stdout + ran.stderr

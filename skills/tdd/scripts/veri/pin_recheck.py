@@ -37,6 +37,11 @@ def output_lines(run):
     return set(run.stdout.splitlines()) | set(run.stderr.splitlines())
 
 
+def is_go_test_failure(run):
+    lines = output_lines(run)
+    return any(line.startswith("--- FAIL: ") for line in lines)
+
+
 def write_tail(run):
     sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
 
@@ -69,7 +74,7 @@ def main(argv):
         path.write_bytes(original)
         green = mutated.returncode == 0
         base_lines = output_lines(base)
-        if not green and not base_lines & output_lines(mutated):
+        if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated):
             sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
             write_tail(mutated)
             status = 1
