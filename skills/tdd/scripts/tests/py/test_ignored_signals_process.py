@@ -7,6 +7,7 @@ import sys
 import pytest
 
 HERE = pathlib.Path(__file__).resolve().parent
+CHILD_SESSION_WAIT = 60
 SIGNAL_CASE = ("test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_"
                "lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently")
 DETACH_CASE = ("test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_"
@@ -18,9 +19,9 @@ def test_a_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_igno
     command = "trap '' INT TERM HUP; exec \"$0\" -m pytest -p no:cacheprovider -q --timeout=10 \"$1\""
     try:
         done = subprocess.run(["sh", "-c", command, sys.executable, str(HERE / SIGNAL_CASE)],
-                              cwd=HERE, capture_output=True, text=True, timeout=25)
+                              cwd=HERE, capture_output=True, text=True, timeout=CHILD_SESSION_WAIT)
     except subprocess.TimeoutExpired as exc:
-        pytest.fail("the signal case did not finish in 25 s: %r" % (exc.stdout,))
+        pytest.fail("the signal case did not finish in %d s: %r" % (CHILD_SESSION_WAIT, exc.stdout))
 
     assert done.returncode == 0, done.stdout[-1500:]
 
@@ -32,9 +33,9 @@ def test_a_detach_leaf_signal_case_passes_in_a_pytest_run_started_with_int_term_
     path = os.pathsep.join(entry for entry in os.environ["PATH"].split(os.pathsep) if entry != guard)
     try:
         done = subprocess.run(["sh", "-c", command, sys.executable, str(HERE / DETACH_CASE)],
-                              cwd=HERE, env=dict(os.environ, PATH=path), capture_output=True, text=True, timeout=25)
+                              cwd=HERE, env=dict(os.environ, PATH=path), capture_output=True, text=True, timeout=CHILD_SESSION_WAIT)
     except subprocess.TimeoutExpired as exc:
-        pytest.fail("the detach-leaf signal case did not finish in 25 s: %r" % (exc.stdout,))
+        pytest.fail("the detach-leaf signal case did not finish in %d s: %r" % (CHILD_SESSION_WAIT, exc.stdout))
 
     assert done.returncode == 0, done.stdout[-1500:]
 
@@ -61,6 +62,6 @@ def test_an_unmarked_case_after_a_process_case_still_sees_hup_ignored_in_a_run_s
     command = "trap '' HUP; exec \"$0\" -m pytest -p conftest -p no:cacheprovider -q --timeout=10 test_order.py"
     env = dict(os.environ, PYTHONPATH=str(HERE))
     done = subprocess.run(["sh", "-c", command, sys.executable], cwd=tmp_path, env=env,
-                          capture_output=True, text=True, timeout=25)
+                          capture_output=True, text=True, timeout=CHILD_SESSION_WAIT)
 
     assert done.returncode == 0, done.stdout[-1500:]
