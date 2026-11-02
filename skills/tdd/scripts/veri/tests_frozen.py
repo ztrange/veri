@@ -661,10 +661,12 @@ def rerecord_refactored(ledger, green):
         head = _cases_at("HEAD", name).get(case)
         if head is None:
             return skip(name, case, record)
-        head_lines = _assertion_lines(head)
+        helpers = _called_helpers("HEAD", name, head)
+        called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
+        head_lines = [l for l in _assertion_lines(head) if l.split("(")[0] not in called]
         verified_lines = _assertion_lines(verified)
         if head_lines != verified_lines and \
-                sorted(head_lines + _assertion_lines(_called_helpers("HEAD", name, head))) \
+                sorted(head_lines + _assertion_lines(helpers)) \
                 != sorted(verified_lines):
             return skip(name, case, record)
         if not verified_lines and _squeezed(head) != _squeezed(verified):
