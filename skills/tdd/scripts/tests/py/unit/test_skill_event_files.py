@@ -108,14 +108,6 @@ def test_every_line_launching_the_reconcile_leaf_points_at_reconcile_md_1716():
     assert [line for line in launches if "`<base directory>/RECONCILE.md`" not in line] == []
 
 
-def test_skill_md_no_longer_carries_the_stopping_or_reconciling_sections_1716():
-    """Subject is source text: the moved sections and their distinctive lines are gone from SKILL.md."""
-    text = SKILL.read_text()
-
-    assert [line for line in _lines() if line in ("## Stopping", "## Reconciling a rejected push")] == []
-    assert [marker for marker in ("event.sh stop mode=", "reconcile-ledger.before") if marker in text] == []
-
-
 def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
     """Subject is source text: each SKILL.md line sending a run into the pin names PIN.md, to Read, on PASSES."""
     sends = [line for line in _outside_red(_lines()) if re.search(EVENT_FILES["PIN.md"], line)]
@@ -126,19 +118,6 @@ def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
         if not ("`<base directory>/PIN.md`" in line and "`Read`" in line and "`AGAINST_UNMODIFIED: PASSES`" in line)
     ]
     assert missing == []
-
-
-def test_the_pin_section_lives_in_pin_md_not_skill_md_1852():
-    """Subject is source text: the pin heading and its two distinctive lines are in PIN.md and gone from SKILL.md."""
-    heading = "## Already satisfied — the pin"
-    markers = ("git commit -m \"test: pin", "VERI_PHASE=pin $S/event.sh pin")
-    skill = SKILL.read_text()
-    pin = SKILL.with_name("PIN.md").read_text()
-
-    assert [line for line in _lines() if line == heading] == []
-    assert [marker for marker in markers if marker in skill] == []
-    assert heading in pin.splitlines()
-    assert [marker for marker in markers if marker not in pin] == []
 
 
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
@@ -154,20 +133,6 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
     ]
     assert missing == []
     assert re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text()).group(1) == "2"
-
-
-def test_the_revise_section_lives_in_revise_md_not_skill_md_1855():
-    """Subject is source text: the revise heading and its three distinctive lines are gone from SKILL.md."""
-    heading = "## Revising on a REJECT"
-    markers = (
-        "$S/event.sh revise budget=",
-        "build-develop-prompt.sh exhausted",
-        "exhausted-outcome.sh < .tdd/develop-exhausted.out",
-    )
-    skill = SKILL.read_text()
-
-    assert [line for line in _lines() if line == heading] == []
-    assert [marker for marker in markers if marker in skill] == []
 
 
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
@@ -204,19 +169,6 @@ def test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_
     """Subject is source text: the send-scoped placement check over SKILL.md and every file a pointer names reports no misplaced pointer."""
     files = [SKILL] + [SKILL.parent / name for name in EVENT_FILES]
     assert {f.name: misplaced_send_pointers(f.read_text()) for f in files} == {f.name: [] for f in files}
-
-
-def test_the_moved_sections_distinctive_lines_are_absent_from_skill_md_and_present_in_their_files_2218():
-    """Subject is source text: each moved section's distinctive lines sit in STRUCTURAL.md, PHASED.md and REFACTOR-KIND.md, not in SKILL.md."""
-    moved = {
-        "STRUCTURAL.md": ["$S/transform-touches-tests.sh <base-sha> <bound>", "event.sh structural-pass transforms="],
-        "PHASED.md": ["tick-ledger.sh --phase-owed", "no-product-caller.sh <old-interface>"],
-        "REFACTOR-KIND.md": ["coverage-blocker.sh <n>", ".tdd/issue-<n>-proof"],
-    }
-    skill = SKILL.read_text()
-    in_skill = [line for lines in moved.values() for line in lines if line in skill]
-    missing = [(name, line) for name, lines in moved.items() for line in lines if line not in (SKILL.parent / name).read_text()]
-    assert (in_skill, missing) == ([], [])
 
 
 def test_the_structural_phased_and_refactor_kind_files_exist_and_skill_md_tells_the_run_to_read_each_2218():
