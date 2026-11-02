@@ -212,3 +212,63 @@ def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2
     status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True).stdout
 
     assert (ticked, status) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, its step recorded then its pinned case renamed before the commit")
+def test_ticking_a_step_whose_recorded_case_was_renamed_before_its_commit_records_the_renamed_title_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one adds a pinned case"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_pinned_2825():\n    assert 1 == 2\n")
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=tmp_path)[0]
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_renamed_2825():\n    assert 1 == 2\n")
+
+    ticked = run_cli(tick_ledger, [str(ledger), step], cwd=tmp_path)[0]
+    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    names = sorted(line[6:] for line in record.splitlines() if line.startswith("case: "))
+
+    assert (recorded, ticked, names) == (0, 0, ["test_renamed_2825"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its step recorded with a same-bodied sibling and a pinned case, then the pinned case deleted before the tick")
+def test_ticking_a_step_whose_pinned_case_has_a_same_bodied_sibling_or_is_gone_leaves_its_record_untouched_2825(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    older = "def test_older_case():\n    assert True\n"
+    pinned = "def test_pinned_2825():\n    assert 1 == 2\n"
+    sibling = "def test_sibling_2825():\n    assert 1 == 2\n"
+    suite, other = tmp_path / "tests/test_suite.py", tmp_path / "tests/test_other.py"
+    suite.write_text(older)
+    other.write_text(older)
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    step = "step one pins a case with a same-bodied sibling, then loses it"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] %s\n" % step)
+    suite.write_text(older + "\n\n" + sibling + "\n\n" + pinned)
+    other.write_text(older + "\n\n" + pinned)
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py", "tests/test_other.py"],
+                       cwd=tmp_path)[0]
+    other.write_text(older)
+    record_path = tmp_path / tests_frozen._record_path(step)
+    before = record_path.read_text()
+
+    ticked = run_cli(tick_ledger, [str(ledger), step], cwd=tmp_path)[0]
+    after = record_path.read_text()
+
+    assert "case: test_pinned_2825" in before
+    assert (recorded, ticked, after) == (0, 0, before)

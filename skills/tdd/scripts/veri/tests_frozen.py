@@ -580,6 +580,29 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
+def follow_renames(step):
+    if not os.path.exists(_record_path(_unphased(step))):
+        return
+    root = _toplevel()
+    path = os.path.join(root, _record_path(_unphased(step)))
+    with open(path) as handle:
+        lines = handle.read().splitlines()
+    out = []
+    for line in lines:
+        parsed = _body_record(line)
+        if parsed:
+            name, case, digest = parsed
+            with open(os.path.join(root, name)) as handle:
+                now = dict(_cases(handle.read()))
+            if case not in now:
+                other = next((c for c in now if _body_digest(now[c].replace(c, case, 1)) == digest), None)
+                if other:
+                    out[-1] = "case: %s" % other
+                    line = _body_line(name, other, now[other])
+        out.append(line)
+    _write_record(path, [line + "\n" for line in out])
+
+
 def _squeezed(text):
     return re.sub(r"\s+", "", text)
 

@@ -56,8 +56,10 @@ def main(argv):
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None:
         ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+        step = ticked_line.split("] ", 1)[1]
+        tests_frozen.follow_renames(step)
         if tests_frozen.is_diff_checked(ticked_line):
-            return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
+            return tests_frozen.rerecord_earlier(argv[0], step)
         return 0
     if left:
         complain(f"left {left} behind")
