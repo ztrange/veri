@@ -22,6 +22,23 @@ def append_record(fields):
             f.write("\n")
 
 
+def run_with(contents, command):
+    saved = {path: path.read_bytes() if path.exists() else None for path in contents}
+    try:
+        for path, content in contents.items():
+            if content is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(content)
+        return subprocess.run(command).returncode
+    finally:
+        for path, content in saved.items():
+            if content is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(content)
+
+
 def before_state(argv):
     if len(argv) < 6 or argv[2] != "--keep" or argv[4] != "--":
         sys.stderr.write(BEFORE_USAGE + "\n")
@@ -34,29 +51,16 @@ def before_state(argv):
         sys.stderr.write(f"mutation-probe.sh: {sha} does not resolve to a commit\n")
         return 2
     names = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z", sha], capture_output=True).stdout
-    saved = {}
     untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True).stdout
+    restored = {}
     for name in names.decode().split("\0") + untracked.decode().split("\0"):
         if name and name != keep and not name.startswith(".tdd/"):
-            path = Path(name)
-            saved[path] = path.read_bytes() if path.exists() else None
-    if not saved:
+            old = subprocess.run(["git", "show", f"{sha}:{name}"], capture_output=True)
+            restored[Path(name)] = None if old.returncode else old.stdout
+    if not restored:
         sys.stderr.write(f"mutation-probe.sh: no file differs from {sha}\n")
         return 2
-    try:
-        for path in saved:
-            old = subprocess.run(["git", "show", f"{sha}:{path}"], capture_output=True)
-            if old.returncode:
-                path.unlink()
-            else:
-                path.write_bytes(old.stdout)
-        returncode = subprocess.run(command).returncode
-    finally:
-        for path, content in saved.items():
-            if content is None:
-                path.unlink(missing_ok=True)
-            else:
-                path.write_bytes(content)
+    returncode = run_with(restored, command)
     if returncode == 0:
         return 1
     append_record((("before", sha), ("keep", keep), ("command", shlex.join(command))))
@@ -76,11 +80,7 @@ def main(argv):
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
     signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(128 + signum))
-    path.write_bytes(mutated)
-    try:
-        returncode = subprocess.run(argv[4:]).returncode
-    finally:
-        path.write_bytes(saved)
+    returncode = run_with({path: mutated}, argv[4:])
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
