@@ -288,3 +288,34 @@ def test_2679_the_five_verify_green_fragment_units_are_signed_and_owe_no_grade()
                          capture_output=True, text=True)
 
     assert ([u for u in units if u not in graded], ran.returncode, ran.stdout) == ([], 0, ""), ran.stderr
+
+
+@pytest.mark.process("prose-owed.sh run as a script")
+@pytest.mark.tree_audit("the repository's own graded prose units")
+def test_2782_the_twelve_wording_rows_sit_under_their_units_and_the_six_units_owe_no_grade():
+    repo = SCRIPTS.parents[2]
+    owed = {
+        "skills/tdd/SKILL.md": ("skills/tdd/REQUIREMENTS.md", ["SS1", "SS2", "SS3", "PL63", "CY129"]),
+        "skills/tdd/PREFLIGHT.md": ("skills/tdd/REQUIREMENTS.md", ["PF36", "PF37", "PF38"]),
+        "skills/tdd/REFACTOR-KIND.md": ("skills/tdd/REQUIREMENTS.md", ["PL64"]),
+        "skills/tdd/scripts/prompts/develop-revise.md": ("skills/tdd/scripts/prompts/REQUIREMENTS.md", ["DV5"]),
+        "skills/vdev/SKILL.md": ("skills/vdev/REQUIREMENTS.md", ["D22"]),
+        "skills/vcoord/SKILL.md": ("skills/vcoord/REQUIREMENTS.md", ["C19"]),
+    }
+    missing = []
+    for unit, (path, ids) in owed.items():
+        rows, under = set(), False
+        for line in (repo / path).read_text().splitlines():
+            if line.startswith("## "):
+                under = line == "## " + unit
+            elif under and line.startswith("|"):
+                rows.add(line.split("|")[1].strip())
+        missing += [unit + ":" + i for i in ids if i not in rows]
+    graded = {line.split()[0] for line in (repo / "skills/tdd/GRADED").read_text().splitlines() if line.strip()}
+    graded |= {line.split()[0] for line in (repo / "skills/vdev/GRADED").read_text().splitlines() if line.strip()}
+    graded |= {line.split()[0] for line in (repo / "skills/vcoord/GRADED").read_text().splitlines() if line.strip()}
+
+    ran = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(repo)], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+
+    assert (missing, [u for u in owed if u not in graded], ran.returncode, ran.stdout) == ([], [], 0, ""), ran.stderr
