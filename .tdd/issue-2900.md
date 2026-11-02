@@ -3,7 +3,7 @@
 - [x] `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` runs the command with every tracked file that differs between `<sha>` and the working tree restored to its `<sha>` content, and exits 0 when the command fails. Minimal: its green adds only what this step's own case decides — no argument-shape check, no unknown-commit check, no signal handler; each lands in the later step that pins it ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before <sha> --keep <test-path> -- <command…>` exits 1 when the command passes on the restored before-state ⟦criterion 1⟧
 - [x] `mutation-probe.sh --before` leaves `<test-path>` exactly as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
-- [x] `mutation-probe.sh --before` leaves every file under `.tdd/` as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `mutation-probe.sh --before` leaves every file under `.tdd/` as it is in the working tree while the command runs, not restored to `<sha>` ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` removes a file added since `<sha>` (tracked or untracked) while the command runs ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` brings back a file deleted since `<sha>`, with its `<sha>` content, while the command runs ⟦criterion 1⟧
 - [ ] `mutation-probe.sh --before` restores a file renamed since `<sha>` as a deletion of the new name and a return of the old name (the diff runs with `--no-renames`), so the old name comes back with its `<sha>` content ⟦criterion 1⟧
