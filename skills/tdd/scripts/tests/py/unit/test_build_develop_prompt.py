@@ -2034,3 +2034,21 @@ def test_cli_dual_stub_with_too_few_arguments_exits_2_naming_the_four_it_needs_a
     code, out, err = run_cli(build_develop_prompt, ["dual-stub", _spec(tmp_path), "QWIXTLE: zorblat quuxes"])
 
     assert (code, out, "dual-stub needs 4 arguments, got 3" in err) == (2, "", True), err
+
+
+def test_main_renders_a_red_revise_prompt_asking_for_fail_output_and_prediction_note_and_naming_both_in_its_report_format_key_list_2949(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    code = build_develop_prompt.main(["revise", "red", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    prompt = out.decode()
+    keys = re.search(r"^REPORT-FORMAT revise \| keys ([^|]*)\|", prompt, re.M)
+    assert (code, err) == (0, b"")
+    assert re.search(r"^FAIL_OUTPUT: ", prompt, re.M), prompt
+    assert re.search(r"^PREDICTION_NOTE: ", prompt, re.M), prompt
+    assert keys and "FAIL_OUTPUT:" in keys.group(1).split() and "PREDICTION_NOTE:" in keys.group(1).split(), prompt
