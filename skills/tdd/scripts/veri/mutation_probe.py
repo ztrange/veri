@@ -13,6 +13,9 @@ USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 
 def before_state(argv):
     sha, keep, command = argv[1], argv[3], argv[5:]
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"], capture_output=True).returncode:
+        sys.stderr.write(f"mutation-probe.sh: {sha} does not resolve to a commit\n")
+        return 2
     names = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z", sha], capture_output=True).stdout
     saved = {}
     untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], capture_output=True).stdout
