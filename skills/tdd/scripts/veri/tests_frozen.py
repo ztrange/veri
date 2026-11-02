@@ -785,7 +785,7 @@ def main(argv):
         try:
             with open(record) as handle:
                 entries = [line.rstrip("\n").split("  ", 1) for line in handle
-                           if line.strip() and not line.startswith(("case: ", "body: ", "format: "))]
+                           if line.strip() and not line.startswith(("case: ", "body: ", "helpers: ", "format: "))]
         except OSError:
             write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
