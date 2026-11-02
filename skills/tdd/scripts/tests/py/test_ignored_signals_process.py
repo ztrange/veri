@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import pytest
+from conftest import PROCESS_CASE_TIMEOUT
 
 HERE = pathlib.Path(__file__).resolve().parent
 CHILD_SESSION_WAIT = 60
@@ -12,6 +13,10 @@ SIGNAL_CASE = ("test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_
                "lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently")
 DETACH_CASE = ("test_detach_leaf.py::test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_the_"
                "launchers_process_group_where_a_nohup_child_does_not")
+
+
+def test_the_child_session_wait_outlasts_25_s_and_ends_inside_a_process_cases_timeout_2910():
+    assert 25 < CHILD_SESSION_WAIT < PROCESS_CASE_TIMEOUT
 
 
 @pytest.mark.process("a child pytest session started with SIGINT, SIGTERM and SIGHUP ignored, running a real signal case")
