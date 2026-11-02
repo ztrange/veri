@@ -1038,3 +1038,17 @@ def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(
     (tmp_path / "skills/tdd/scripts/tests/py/test_foo.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_foo.py\n", "")
+
+
+def test_a_bash_suite_planted_under_tests_naming_the_changed_script_is_printed_by_no_rule(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/foo.sh", "skills/tdd/scripts/veri/bar.py"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "unit").mkdir()
+    (tests / "py/unit/test_bar.py").write_text("")
+    (tests / "foo.test.sh").write_text("skills/tdd/scripts/foo.sh\n")
+    (tests / "unit/bar.test.sh").write_text("skills/tdd/scripts/veri/bar.py\n")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/py/unit/test_bar.py\n", "")
