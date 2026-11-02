@@ -4214,3 +4214,22 @@ def test_check_earlier_exits_1_naming_the_case_when_its_body_changes_after_a_rec
 
     assert checked[0] == 1
     assert "TestX" in checked[1]
+
+
+@pytest.mark.process("a real git repository under tmp_path, its record file read back by check")
+def test_check_exits_0_on_a_record_holding_helper_data_when_no_test_file_changed_2867(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func checkX(t *testing.T) {\n\tt.Fatal(\"bad\")\n}\n\n"
+                     "func TestX(t *testing.T) {\n\tcheckX(t)\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
+    with record.open("a") as handle:
+        handle.write("helpers: suite_test.go\tTestX\t%s\n" % ("0" * 64))
+
+    code, out, _ = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (code, out) == (0, "")

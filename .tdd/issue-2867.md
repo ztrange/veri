@@ -7,6 +7,6 @@
 - [x] A change to a helper the re-recorded frozen case calls that keeps every one of its assertion lines leaves `check-earlier` at 0 (a git repo in tmp_path: a medium case marked process) ⟦criterion 2⟧
 - [x] A record written without helper data, as today's records are, passes `check-earlier` at 0 when nothing changed (a git repo in tmp_path: a medium case marked process) ⟦criterion 3⟧
 - [x] A record written without helper data, as today's records are, makes `check-earlier` exit 1 naming the case when the case body changes (a git repo in tmp_path: a medium case marked process) ⟦criterion 3⟧
-- [ ] A step record that holds helper data still reads as well-formed: `tests-frozen.sh check <record-file>` exits 0 on it when no test file changed, never 2 for a malformed record (a git repo in tmp_path: a medium case marked process)
+- [x] A step record that holds helper data still reads as well-formed: `tests-frozen.sh check <record-file>` exits 0 on it when no test file changed, never 2 for a malformed record (a git repo in tmp_path: a medium case marked process) ⟂ refactor pending
 - [ ] A helper assertion line deleted after the re-record stays flagged across a later `rerecord-refactored`: that later re-record does not absorb the deletion into the record, and `check-earlier` still exits 1 naming the case (a git repo in tmp_path: a medium case marked process)
 - [ ] Go-red control: with `check-earlier` inspecting only the case body, the helper-deletion case goes red, watched and restored ⟦human-owed⟧ ⟦criterion 4⟧
