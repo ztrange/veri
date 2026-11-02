@@ -20,5 +20,5 @@
 - [x] `skills/tdd/scripts/prompts/verify-pin.md`: check 2 first runs the before-state probe `{{MUTATION_PROBE}} --before {{BRANCH_BASE}} --keep '{{TEST_PATH}}' -- <command>`, REJECTs naming "the real before-state stays green" on its exit 1, and allows a hand mutation only when it exits 2 because no file differs (VP5, VP8) ⟦skill-edit⟧ ⟦criterion 2⟧
 - [x] `build-verify-prompt.sh pin` fills a `{{BRANCH_BASE}}` slot in the pin template with the run's branch point, `git merge-base HEAD origin/<default>`, carrying only that commit name ⟦criterion 2⟧
 - [x] a pin verify (`verify.sh pin`) renders its prompt with `{{BRANCH_BASE}}` filled by the run's branch point, `git merge-base HEAD origin/<default>`, so the before-state probe line never reaches the verifier with an empty sha ⟦added⟧ ⟦criterion 2⟧
-- [x] `build-verify-prompt.sh pin` refuses with exit 2 when the branch base it would fill into `{{BRANCH_BASE}}` is not 7-40 lowercase hex ⟦criterion 2⟧ ⟂ refactor pending
+- [x] `build-verify-prompt.sh pin` refuses with exit 2 when the branch base it would fill into `{{BRANCH_BASE}}` is not 7-40 lowercase hex ⟦criterion 2⟧
 - [ ] Guard go-red: with the before-state probe's exit 1 inverted, or with the slot left out of the pin prompt, the cases above go red; watched failing, then restored ⟦human-owed⟧ ⟦criterion 3⟧
