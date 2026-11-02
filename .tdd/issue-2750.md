@@ -1,6 +1,6 @@
 # Plan for #2750 — PRD 014.3: status.sh --report renders /vstatus from local files, with no gh
 
-- [ ] `status.sh --report` exits 0 and prints the section headings Landed, Running, Queue and Waiting, in that order (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 1⟧
+- [x] `status.sh --report` exits 0 and prints the section headings Landed, Running, Queue and Waiting, in that order (logic in `veri/status.py`, the `.sh` shim unchanged) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] With no `.tdd/report-cache.json` snapshot, Queue says there is no snapshot while Landed, Running and Waiting still print ⟦criterion 3⟧
 - [ ] An empty Landed, Running or Waiting section keeps its heading and says "none" ⟦criterion 1⟧
 - [ ] With a snapshot present, Queue's first line states the snapshot's age, computed from its `fetched_at` ⟦criterion 3⟧
