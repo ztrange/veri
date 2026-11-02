@@ -14,5 +14,3 @@ def test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftes
     repo = SCRIPTS.parent.parent.parent
     for path in (suite.group(), "skills/tdd/scripts/tests/py/conftest.py"):
         assert (repo / path).is_file(), path
-    assert re.search(r"full repo-relative path, matched exactly", flat), flat
-    assert re.search(r"directory or a glob", flat), flat

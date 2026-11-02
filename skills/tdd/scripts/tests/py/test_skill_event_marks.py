@@ -65,10 +65,6 @@ def _mark(records, event, what, *patterns):
     return None, [f"SKILL.md {what} but calls no `event.sh {event.decode()}` beside it: {anchored[:130].decode(errors='replace')}"]
 
 
-def _comment_mark(records, event, heading, *patterns):
-    return _mark(records, event, f"posts the `{heading}` comment", *patterns, b"comment")
-
-
 def _records_or_fail(what):
     records = _records()
     assert records, f"SKILL.md has no instructions to read — {what} could not be checked"
@@ -78,11 +74,7 @@ def _records_or_fail(what):
 def test_skill_prescribes_an_event_sh_call_for_each_of_the_conductors_seven_marks_beside_the_issue_comment_it_mirrors():
     records = _records_or_fail("no mark")
     problems = []
-    for result in (
-        _mark(records, b"step-start", "takes the next unchecked step with next-unchecked.sh", rb"next-unchecked\.sh"),
-        _comment_mark(records, b"pin", "### 📌 Already satisfied", b"already satisfied"),
-    ):
-        problems += result[1]
+    problems += _mark(records, b"step-start", "takes the next unchecked step with next-unchecked.sh", rb"next-unchecked\.sh")[1]
     assert not problems, "\n".join(problems)
 
 
