@@ -29,3 +29,12 @@ pass
 command 345
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py bash -c make test TESTS="skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_backticks_to_a_red_over_that_case"
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 41
+yield from re.findall(r'"([^"]+)"', line)
+new 4
+pass
+command 339
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp3_f3ut08/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_quotes_to_a_red_over_that_case
+
