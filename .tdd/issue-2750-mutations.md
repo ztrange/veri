@@ -38,3 +38,12 @@ for l in f]
 command 379
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running_latest_start.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running_latest_start.py::test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_by_other_events_and_a_blank_line
 
+file 33
+skills/tdd/scripts/veri/status.py
+old 36
+name += " | total | $%.2f" % dollars
+new 35
+name += " | cost | $%.2f" % dollars
+command 336
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpklyw6cwh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_running_cost.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_running_cost.py::test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_label
+

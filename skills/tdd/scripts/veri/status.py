@@ -327,6 +327,9 @@ def running_lines():
             verdicts = [e["verdict"] for e in of("verdict")]
             if verdicts:
                 name += " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
+            dollars = sum(e["total_cost_usd"] for e in of("usage"))
+            if dollars:
+                name += " | total | $%.2f" % dollars
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
