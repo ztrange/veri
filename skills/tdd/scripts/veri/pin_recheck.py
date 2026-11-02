@@ -58,15 +58,17 @@ def replay_before(pin):
                            check=True).stdout.split()
     names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
     saved = {n: Path(n).read_bytes() for n in names}
-    for n in names:
-        shown = subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True)
-        if shown.returncode == 0:
-            Path(n).write_bytes(shown.stdout)
-        else:
-            Path(n).unlink()
-    ran = run_captured(current_wrapper(pin["command"]))
-    for n, data in saved.items():
-        Path(n).write_bytes(data)
+    try:
+        for n in names:
+            shown = subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True)
+            if shown.returncode == 0:
+                Path(n).write_bytes(shown.stdout)
+            else:
+                Path(n).unlink()
+        ran = run_captured(current_wrapper(pin["command"]))
+    finally:
+        for n, data in saved.items():
+            Path(n).write_bytes(data)
     return ran.returncode
 
 
