@@ -24,6 +24,7 @@ def main(argv):
 
 BOUND_BYTES = 128 * 1024
 FAIL_BLOCK_LINES = 13
+TAIL_LINES = 40
 
 
 def bounded(output):
@@ -34,6 +35,7 @@ def bounded(output):
     for i, line in enumerate(lines):
         if b" FAIL " in line:
             keep.update(range(i, min(i + FAIL_BLOCK_LINES, len(lines))))
+    keep.update(range(max(0, len(lines) - TAIL_LINES), len(lines)))
     return b"\n".join(lines[i] for i in sorted(keep))
 
 
