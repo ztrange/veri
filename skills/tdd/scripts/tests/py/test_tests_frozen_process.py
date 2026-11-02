@@ -3931,6 +3931,38 @@ def test_rerecord_refactored_re_records_a_go_case_without_a_skipped_line_and_che
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_leaves_check_earlier_at_exit_1_when_an_assertion_is_deleted_from_assert_refused_after_a_successful_re_record_2898(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    chk = lambda m: '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    inline = 'func TestOne(t *testing.T) {\n\tv := "x"\n' + chk("a") + chk("b") + '}\n'
+    case = 'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n'
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n' + case)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+    first = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    suite.write_text('func assertRefused(t *testing.T, v string) {\n' + chk("a") + '}\n\n' + case)
+    _commit(tmp_path, "A refactor drops an assertion from the helper")
+
+    second = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    assert (first[0], first[2].splitlines().count("skipped: suite_test.go TestOne"), second[0], checked) == (
+        0, 0, 0, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_re_records_a_python_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assert_into_assert_refused_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]
