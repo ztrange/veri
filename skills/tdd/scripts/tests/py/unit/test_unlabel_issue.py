@@ -1,6 +1,19 @@
 """In-process case for veri/unlabel_issue.py, the module unlabel-issue.sh is a shim over."""
 import importlib
+import json
+import os
 import subprocess
+
+
+def _labels_read(args, labels):
+    """The read of an issue's labels, answered with its names as a JSON list; None for any other call."""
+    if args[:2] != ["gh", "api"] or "-X" in args:
+        return None
+    path = next((arg for arg in args if arg.startswith("repos/{owner}/{repo}/issues/") and arg.endswith("/labels")), None)
+    number = path.partition("/issues/")[2].partition("/")[0] if path else None
+    if number not in labels:
+        return None
+    return subprocess.CompletedProcess(args, 0, json.dumps([{"name": name} for name in sorted(labels[number])]), "")
 
 
 def _claim_call(args):
@@ -21,6 +34,9 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         joined = " ".join(args)
+        read = _labels_read(args, labels)
+        if read:
+            return read
         claim = _claim_call(args)
         if claim:
             return claim
@@ -50,6 +66,9 @@ def _deleting(monkeypatch, answer):
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, {"7": {os.environ.get("VERI_LABEL", "ready-for-agent")}})
+        if read:
+            return read
         claim = _claim_call(args)
         if claim:
             return claim
@@ -97,6 +116,9 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, labels)
+        if read:
+            return read
         claim = _claim_call(args)
         if claim and args[-1].partition("/issues/")[2].partition("/")[0] in labels or args[:3] == ["gh", "label", "create"]:
             return claim
@@ -139,6 +161,9 @@ def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_i
 
     def port_launch(*args, **kwargs):
         ported.append(list(args))
+        read = _labels_read(["gh"] + list(args), {"7": {"ready-for-agent"}})
+        if read:
+            return read
         return subprocess.CompletedProcess(args, 0, "", "")
 
     def own_launch(args, **kwargs):
@@ -191,6 +216,9 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, issue_labels)
+        if read:
+            return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             if args[-1].rpartition("/labels/")[2].replace("%3A", ":") in repository_labels:
                 return subprocess.CompletedProcess(args, 0, "{}", "")
@@ -225,6 +253,9 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, issue_labels)
+        if read:
+            return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 0, "{}", "")
         if args[:3] == ["gh", "label", "create"]:
@@ -313,6 +344,9 @@ def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_b
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, issue_labels)
+        if read:
+            return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
         if args[:3] == ["gh", "label", "create"]:
@@ -339,6 +373,9 @@ def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_an
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        read = _labels_read(args, issue_labels)
+        if read:
+            return read
         if args[:2] == ["gh", "api"] and "/labels/" in args[-1] and "-X" not in args:
             return subprocess.CompletedProcess(args, 1, "", "gh: Not Found (HTTP 404)\n")
         if args[:3] == ["gh", "label", "create"]:
