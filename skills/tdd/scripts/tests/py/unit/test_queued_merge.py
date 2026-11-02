@@ -416,3 +416,51 @@ def test_2585_queued_merge_under_an_explicit_rest_driver_merges_through_one_rest
     puts = [c for c in calls if "gh api" in c and "pulls/7/merge" in c]
     assert (code, len(puts), all("PUT" in c and "merge_method=rebase" in c and "sha=%s" % PUSHED_HEAD in c and "repos/o/r/pulls/7/merge" in c for c in puts),
             [c for c in calls if "pr merge" in c], len([c for c in calls if " tag -a " in c])) == (0, 1, True, [], 1)
+
+
+def test_2749_queued_merge_that_cuts_a_tag_emits_merged_with_pr_tag_and_message_before_the_worktree_is_removed(
+        fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/2749-prd-014-2"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    events = worktree / ".tdd" / "events.jsonl"
+    seen = {}
+
+    def spied(answer):
+        def wrapped(line, **kwargs):
+            if "worktree remove" in line:
+                seen["before_remove"] = events.read_text() if events.exists() else ""
+            return answer(line.replace(BRANCH, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(spied)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "the capability"])
+
+    rows = [json.loads(r) for r in seen.get("before_remove", "").splitlines()]
+    merged = [(r["issue"], r["pr"], r["tag"], r["message"]) for r in rows if r.get("event") == "merged"]
+    assert (code, merged) == (0, [("2749", PR, "v0.11", "the capability")])
+
+
+def test_2749_queued_merge_given_a_dash_for_the_message_emits_merged_with_the_pr_and_an_empty_tag_and_message(
+        fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/2749-prd-014-2"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    events = worktree / ".tdd" / "events.jsonl"
+    seen = {}
+
+    def spied(answer):
+        def wrapped(line, **kwargs):
+            if "worktree remove" in line:
+                seen["before_remove"] = events.read_text() if events.exists() else ""
+            return answer(line.replace(BRANCH, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    scenario(spied)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "-"])
+
+    rows = [json.loads(r) for r in seen.get("before_remove", "").splitlines()]
+    merged = [(r["issue"], r["pr"], r["tag"], r["message"]) for r in rows if r.get("event") == "merged"]
+    assert (code, merged) == (0, [("2749", PR, "", "")])

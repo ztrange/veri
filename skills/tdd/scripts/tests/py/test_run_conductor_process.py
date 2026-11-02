@@ -38,6 +38,31 @@ def test_conduct_records_the_pid_of_the_claude_process_it_starts_in_the_worktree
     assert (tmp_path / "seen").read_text().splitlines()[0] == (tmp_path / "mine").read_text().strip() != ""
 
 
+@pytest.mark.process("a real stub process standing in for claude -p, started by run_conductor.conduct")
+def test_conduct_emits_conductor_start_with_the_pid_and_started_the_conductor_pid_lock_records_on_its_two_lines_issue_2749(
+        tmp_path, monkeypatch):
+    import json
+
+    (tmp_path / ".git").mkdir()
+    stub = tmp_path / "stub-claude"
+    stub.write_text('#!/bin/sh\ncat "%s/.tdd/wt/2749/.tdd/conductor.pid" > "%s/seen"\nsleep 1\n' % (tmp_path, tmp_path))
+    stub.chmod(0o755)
+    (tmp_path / ".tdd" / "wt" / "2749").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("CLAUDE_BIN", str(stub))
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("PATH", os.path.dirname(sys.executable) + ":/usr/bin:/bin")
+    sys.path[:0] = [str(SCRIPTS)]
+    from veri import run_conductor
+
+    run_conductor.conduct("", "2749", dict(os.environ))
+
+    lock = (tmp_path / "seen").read_text().splitlines()
+    events = [json.loads(row) for row in (tmp_path / ".tdd" / "wt" / "2749" / ".tdd" / "events.jsonl").read_text().splitlines()]
+    starts = [e for e in events if "conductor-start" in e.values()]
+    assert [(e.get("pid"), e.get("started")) for e in starts] == [(lock[0], lock[1])]
+
+
 @pytest.mark.tree_audit("copies the veri and lib directories into a scratch clone")
 @pytest.mark.process("a real run_conductor.main in its own process whose stub claude SIGKILLs it, over a real skill clone and a real caller repository with the run's worktree registered")
 def test_main_leaves_the_pinned_scripts_under_the_existing_run_worktrees_tdd_when_the_conductor_is_killed_by_sigkill_issue_2627(
@@ -161,7 +186,7 @@ def test_main_leaves_a_runnable_pinned_script_under_a_worktree_cut_during_the_ru
     (repo / ".tdd").mkdir()
     (repo / ".tdd" / "issue-2627-skill-commit").write_text(pin + "\n")
     stub = tmp_path / "stub-claude"
-    stub.write_text("#!/bin/sh\ncat > /dev/null\nrm -f .tdd/wt/2627/.tdd/conductor.pid\n"
+    stub.write_text("#!/bin/sh\ncat > /dev/null\nrm -f .tdd/wt/2627/.tdd/conductor.pid .tdd/wt/2627/.tdd/events.jsonl\n"
                     "rmdir .tdd/wt/2627/.tdd .tdd/wt/2627\n"
                     "git worktree add -q -b tdd/2627-pin .tdd/wt/2627 || exit 9\nexit 3\n")
     stub.chmod(0o755)

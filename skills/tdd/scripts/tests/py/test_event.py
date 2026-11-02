@@ -431,3 +431,22 @@ def test_event_suite_repair_retired_exits_0_and_appends_one_line_naming_the_suit
     assert len(lines) == 1
     logged = json.loads(lines[0])
     assert (logged["event"], logged["step"]) == ("suite-repair-retired", step)
+
+
+@pytest.mark.process("event.sh run for real, its shim starting python3, under the case's hermetic VERI_HOME and a scratch HOME")
+def test_event_sh_under_hermetic_environment_writes_its_journal_under_tmp_path_and_leaves_the_real_veri_home_untouched(
+        tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    clone = tmp_path / "clone"
+    (clone / ".git").mkdir(parents=True)
+    (clone / ".git" / "config").write_text(
+        '[remote "origin"]\n\turl = https://github.com/acme/widgets.git\n')
+
+    done = subprocess.run([str(SCRIPTS / "event.sh"), "journal-isolation-mark"], cwd=clone,
+                          env={**os.environ, "HOME": str(home), "VERI_ISSUE": "42"}, capture_output=True)
+
+    journal = tmp_path / "runs" / "acme-widgets" / "42.jsonl"
+    assert done.returncode == 0
+    assert [json.loads(t)["event"] for t in journal.read_text().splitlines()] == ["journal-isolation-mark"]
+    assert list(home.iterdir()) == []

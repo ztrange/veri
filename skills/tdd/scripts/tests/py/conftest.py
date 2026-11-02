@@ -318,6 +318,7 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    monkeypatch.setenv("VERI_HOME", str(tmp_path))
     monkeypatch.setenv("VERI_VENV", INTERPRETER_VENV)
     inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
