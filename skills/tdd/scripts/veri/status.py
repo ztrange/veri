@@ -274,11 +274,22 @@ def queue_counts():
     opted_in = [i for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]]
     state = {i["number"]: i["state"] for i in issues}
     text = "\n%d %s" % (len(opted_in), label)
+    last = status_last_queue()
+    if label in last:
+        text += " %+d" % (len(opted_in) - last[label])
     for i in opted_in:
         for b in i["blockedBy"]:
             if state.get(b) == "OPEN":
                 text += "\n#%d blocked by #%d" % (i["number"], b)
     return text
+
+
+def status_last_queue():
+    try:
+        with open(os.path.join(main_working_tree(), ".tdd", "status-last")) as f:
+            return json.load(f).get("queue", {})
+    except OSError:
+        return {}
 
 
 def status_last_time():
