@@ -16,8 +16,12 @@ def complain(message):
     print(f"tick-ledger.sh: {message}", file=sys.stderr)
 
 
+def changed_index(text, new):
+    return next(i for i, (old, line) in enumerate(zip(text.split("\n"), new.split("\n"))) if old != line)
+
+
 def changed_line(text, new):
-    return next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+    return new.split("\n")[changed_index(text, new)]
 
 
 def main(argv):
@@ -64,12 +68,11 @@ def main(argv):
     else:
         ticked, new = ledger.ledger_tick(text, matcher, pending)
         if ticked and reason_file:
-            old_lines, new_lines = text.split("\n"), new.split("\n")
-            at = next(i for i, (old, line) in enumerate(zip(old_lines, new_lines)) if old != line)
-            new_lines[at] += RETIRED_MARK
+            new_lines = new.split("\n")
+            new_lines[changed_index(text, new)] += RETIRED_MARK
             new = "\n".join(new_lines)
-        if ticked and ledger.listed_phases(next(
-                old for old, line in zip(text.split("\n"), new.split("\n")) if old != line)):
+        if ticked and ledger.listed_phases(
+                text.split("\n")[changed_index(text, new)]):
             complain("step lists phases; mark one with --phase <phase>")
             return 2
     if not ticked:
