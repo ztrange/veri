@@ -197,3 +197,21 @@ def test_2916_reroute_later_moves_the_later_step_before_the_current_one_and_writ
     assert ledger.read_text() == "# Plan for #2916\n\n- [ ] charlie step\n- [ ] alpha step\n- [ ] bravo step\n"
     events = [json.loads(line) for line in (tdd / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["step"], e["kind"]) for e in events if e["event"] == "reroute"] == [("reroute", "alpha step", "later")]
+
+
+def test_2916_after_reroute_later_next_unchecked_hands_over_the_moved_step_and_no_revise_event_is_written(tmp_path, run_cli, reorder):
+    from conftest import ViaStdin
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-2916.md"
+    ledger.write_text("# Plan for #2916\n\n- [ ] alpha step\n- [ ] bravo step\n- [ ] charlie step\n")
+
+    code, out, err = run_cli(reorder, ["--reroute-later", str(ledger), "charlie", "before", "alpha"],
+                             env={"VERI_ISSUE": "2916", "VERI_STEP": "alpha step"})
+    assert code == 0, err
+    handed = run_cli(ViaStdin(next_unchecked, ledger.read_text()), [])
+
+    assert handed == (0, "charlie step\n", "")
+    events = [json.loads(line) for line in (tdd / "events.jsonl").read_text().splitlines()]
+    assert [e["event"] for e in events if e["event"] == "revise"] == []

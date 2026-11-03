@@ -21,3 +21,10 @@ return named
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/test_wrong_test_route_process.py::test_2916_criterion_4_a_later_step_report_naming_no_step_of_the_ledger_falls_through_to_missing
 
+before 40
+aaeb16978bdd39996a472bb9894193e0c113cc3f
+keep 61
+skills/tdd/scripts/tests/py/unit/test_reorder_ledger_steps.py
+command 180
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reorder_ledger_steps.py::test_2916_after_reroute_later_next_unchecked_hands_over_the_moved_step_and_no_revise_event_is_written
+
