@@ -21,3 +21,12 @@ skills/tdd/scripts/tests/py/test_tests_frozen_process.py
 command 378
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdfmujm_s/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_when_the_refactor_added_an_assertion_2985
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 54
+if verified is None or head is None or digest not in {
+new 64
+if verified is None or head is None or False and digest not in {
+command 200
+make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens_nor_heads_while_its_helpers_digest_is_greens_2985
+

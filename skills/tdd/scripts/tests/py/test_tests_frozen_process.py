@@ -4909,3 +4909,36 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
             err.splitlines().count("skipped: suite_test.go TestY"),
             [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
         0, 1, 0, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens_nor_heads_while_its_helpers_digest_is_greens_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n\tif x > 1 {\n\t\tt.Fatal(\"big\")\n\t}\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    record.write_text("".join(
+        "body: suite_test.go\tTestX\t%s\n" % ("f" * 64) if line.startswith("body: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    with record.open("a") as handle:
+        handle.write("helpers: suite_test.go\tTestX\t%s\n" % tests_frozen._helper_digest(
+            suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "TestX")[0]))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("x := 1", "x := 1 // one"))
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+
+    assert (b"\nhelpers: " in before, code, err.splitlines().count("skipped: suite_test.go TestX"),
+            record.read_bytes() == before) == (True, 0, 1, True)
