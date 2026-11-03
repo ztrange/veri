@@ -1,6 +1,8 @@
 """Cases for veri/resume_clean.py that start a real process."""
 import importlib
+import io
 import os
+import sys
 import subprocess
 
 import pytest
@@ -255,3 +257,36 @@ def test_main_leaves_a_crlf_ledger_byte_identical_when_there_is_no_tick_to_chang
 
     assert code == 0
     assert ledger.read_bytes() == b"# plan\r\n- [x] one\r\n- [ ] two\r\n"
+
+
+@pytest.mark.process("git")
+def test_main_keeps_a_committed_unpinnable_retirement_ticked_and_next_unchecked_hands_over_the_following_step_2999(
+        tmp_path, run_cli, monkeypatch):
+    resume_clean = importlib.import_module("veri.resume_clean")
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger_file = repo / ".tdd" / "issue-42.md"
+    ledger_file.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    git(repo, "add", "-f", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+    tick_code, _, tick_err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger_file), "a one"],
+                                     env={"VERI_ISSUE": "42"}, cwd=repo)
+    git(repo, "add", "-f", str(ledger_file))
+    git(repo, "commit", "-q", "--allow-empty", "-m", "retire a one")
+
+    code, out, err = run_cli(resume_clean, [], cwd=repo)
+    after = ledger_file.read_text()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(after.encode())))
+    taken = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(taken))
+    next_code = next_unchecked.main([])
+    sys.stdout.flush()
+    next_out = taken.getvalue().decode()
+
+    retired = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n"
+    assert (tick_code, code, after, next_code, next_out) == (0, 0, retired, 0, "b two ⟦criterion 2⟧\n"), tick_err + err
