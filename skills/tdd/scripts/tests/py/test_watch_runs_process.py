@@ -155,6 +155,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         full = watch("--target", "2", "--max-wait", "3")
         second.terminate()
         second.wait()
+        reported = watch("--target", "2", "--max-wait", "20", timeout=25)
         below = watch("--target", "2", "--max-wait", "20", timeout=25)
     finally:
         first.terminate()
@@ -164,6 +165,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         reused.kill()
         reused.wait()
     assert (full.returncode, full.stdout.strip()) == (3, "timeout"), full.stderr
+    assert reported.returncode == 0 and reported.stdout.startswith("exited 102 "), reported.stderr
     assert below.stdout.strip() != "timeout", "the watcher timed out before observing the exit: %s" % below.stderr
     assert (below.returncode, below.stdout.strip()) == (0, "slot-free 1/2 next 777"), below.stderr
     assert calls.read_text().split("\n")[:-1] == ["--not-running"]
