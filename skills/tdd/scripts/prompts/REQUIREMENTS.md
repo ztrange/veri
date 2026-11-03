@@ -192,6 +192,7 @@
 | RP8 | Item 5 tells the leaf that, if the case PASSES, it predicts what breaking the behaviour should print, breaks it, runs the case and checks the output against that prediction, all before restoring, then restores the production code exactly and verifies the restore with `git diff --exit-code` on the file it touched. (Item 5, from "If it PASSES" to the end.) | A passing pin is accepted only once seen to go red as predicted. |
 | RP9 | Item 6 tells the leaf to leave no change to any file other than the test file, and no change in it outside the named case. (Item 6.) | Only the named case moves. |
 | RP10 | The fragment ends by asking for the red report lines in order: `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:` (UNTESTABLE only), `FAIL_OUTPUT:`, `PREDICTED_FAILURE:` (the missing name for a name error, otherwise assertion, values and message shape, as predicted before running), `PREDICTION: MATCHED | DIVERGED`, `PREDICTION_NOTE:` (on DIVERGED). (Report section.) | The conductor and `red-divergence.sh` read fixed lines. |
+| RP11 | Step 4 defines the comparison: the same assertion firing on the same observed and expected values is `MATCHED` whatever the message text; `DIVERGED` is a different assertion, different values, or a different kind of failure. (Compare section.) | A message-text-only difference cost a revise attempt on run #2750 although the test failed exactly as predicted. |
 
 ## skills/tdd/scripts/prompts/_develop-red-spec-and-testability.md
 
