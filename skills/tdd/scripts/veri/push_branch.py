@@ -65,7 +65,7 @@ def main(argv):
     if backoff is None:
         return 2
     lease_file = ".tdd/rebase-lease"
-    leased_push = not argv and os.path.isfile(lease_file)
+    leased_push = os.path.isfile(lease_file)
     if leased_push:
         leased = open(lease_file).read().strip()
         branch = output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
