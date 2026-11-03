@@ -7,3 +7,12 @@ command 243
 green 40
 32965896a2f02be892b7c1f591c47ed6dc7bec09
 
+file 42
+skills/tdd/scripts/veri/affected_suites.py
+old 11
+if section:
+new 9
+if False:
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/test_affected_suites.py::test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_read_that_section_2980
+
