@@ -72,16 +72,25 @@ def _lines_with(report, prefix):
         return [l for l in handle.read().splitlines() if l.startswith(prefix)]
 
 
-def _named_cases(report):
+def _names_in(line):
+    yield from re.findall(r"\btest_\w+", line)
+    yield from re.findall(r"\bTest[A-Z]\w*", line)
+    yield from re.findall(r"`([^`]+)`", line)
+    yield from re.findall(r'"([^"]+)"', line)
+    yield from re.findall(r"“([^”]+)”", line)
+    yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
+
+
+def _contradicted(report):
     for line in _lines_with(report, "CONTRADICTS:"):
         yield line.partition(":")[2].strip()
+        yield from _names_in(line)
+
+
+def _named_cases(report):
+    yield from _contradicted(report)
     for line in _lines_with(report, "WRONG_TEST:"):
-        yield from re.findall(r"\btest_\w+", line)
-        yield from re.findall(r"\bTest[A-Z]\w*", line)
-        yield from re.findall(r"`([^`]+)`", line)
-        yield from re.findall(r'"([^"]+)"', line)
-        yield from re.findall(r"“([^”]+)”", line)
-        yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
+        yield from _names_in(line)
 
 
 def _is_none(body):
@@ -112,13 +121,21 @@ def _is_own(case, own_id):
     return not any(len(t) > len(case) and t != tail and _exists(t) for t in longer)
 
 
-def route(report, own_id):
-    for case in _named_cases(report):
+def _other_case(names, own_id):
+    for case in names:
         if not _is_own(case, own_id):
             found = _exists(case)
             if found and not _is_own(found, own_id):
                 return found
     return None
+
+
+def route(report, own_id):
+    return _other_case(_contradicted(report), own_id)
+
+
+def _evidence_only(report, own_id):
+    return not _lines_with(report, "CONTRADICTS:") and _other_case(_named_cases(report), own_id) is not None
 
 
 def _recorded_cases(step):
@@ -257,7 +274,7 @@ def main(argv):
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
-    if case is None and not rerouted and _unparseable_claim(argv[0]):
+    if case is None and not rerouted and (_unparseable_claim(argv[0]) or _evidence_only(argv[0], argv[1])):
         write(sys.stdout, "repair " + _case_name(argv[1]))
         return 0
     if case is None:
