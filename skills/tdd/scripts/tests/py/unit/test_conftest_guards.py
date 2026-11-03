@@ -344,10 +344,10 @@ def test_the_real_pycache_guard_fails_a_planted_case_that_adds_changes_or_remove
     (cache / "doomed.pyc").write_bytes(b"doomed")
     monkeypatch.setattr(conftest, "SCRIPTS", scripts)
     pytester.makepyfile(test_planted="""
-        import conftest
+        import pathlib
 
         def cache():
-            return conftest.SCRIPTS / "veri" / "__pycache__"
+            return pathlib.Path(%r)
 
         def test_adds():
             (cache() / "added.pyc").write_bytes(b"x")
@@ -360,7 +360,7 @@ def test_the_real_pycache_guard_fails_a_planted_case_that_adds_changes_or_remove
 
         def test_leaves_alone():
             assert cache().is_dir()
-    """)
+    """ % str(cache))
 
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-k", "adds or changes or removes", plugins=[conftest])
     result.assert_outcomes(failed=3)
