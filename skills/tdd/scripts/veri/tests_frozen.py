@@ -670,8 +670,8 @@ def rerecord_refactored(ledger, green):
     for _, __, records in _earlier_records(lines, ""):
         recorded_helpers.update(_helper_records(records))
 
-    def skip(name, case, record):
-        write(sys.stderr, "skipped: %s %s" % (name, case))
+    def skip(name, case, record, reason=""):
+        write(sys.stderr, "skipped: %s %s%s" % (name, case, " (%s)" % reason if reason else ""))
         return record
 
     seen = {}
@@ -687,7 +687,7 @@ def rerecord_refactored(ledger, green):
         green_text = _text_at(green, name, subprocess.DEVNULL)
         if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
                 _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case))}:
-            return skip(name, case, record)
+            return skip(name, case, record, "body digest matches neither green nor HEAD")
         if (digest != _body_digest(head) or digest == _body_digest(verified)) and recorded_helpers.get(
                 (name, case), _helper_digest(green_text, verified)) != _helper_digest(green_text, verified):
             return skip(name, case, record)

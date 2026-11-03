@@ -4946,3 +4946,33 @@ def test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens
 
     assert (b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, 0, 1, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_names_the_body_digest_guard_in_parentheses_on_the_skipped_line_of_a_case_whose_body_digest_is_neither_greens_nor_heads_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    record.write_text("".join(
+        "body: suite_test.go\tTestX\t%s\n" % ("f" * 64) if line.startswith("body: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(suite.read_text().replace("x := 1", "x := 1 // one"))
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+
+    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
+                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+        0, 1, [True])
