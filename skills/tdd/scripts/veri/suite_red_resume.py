@@ -1,6 +1,7 @@
 """suite-red-resume.sh's check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import subprocess
 import sys
 
 try:
@@ -79,7 +80,10 @@ def main(argv):
     if len(argv) == 4 and argv[0] == "flake":
         return flake(argv[1], argv[2], argv[3])
     if len(argv) == 4 and argv[0] == "rebased-tip":
-        return insert(argv[1], argv[2])
+        code = insert(argv[1], argv[2])
+        if code == 1:
+            subprocess.run(["git", "reset", "--hard", argv[3]])
+        return code
     if len(argv) == 3 and argv[0] == "insert":
         return insert(argv[1], argv[2])
     if len(argv) != 4 or argv[0] != "check":
