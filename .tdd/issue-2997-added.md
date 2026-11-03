@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/test_skill_edit_step_process.py — FAILED test_skill_edit_step_process.py::test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_2236 - assert [3, ""] == [2, ""] ⟦ci-repair⟧ ⟦criterion 4⟧
