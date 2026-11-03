@@ -1,162 +1,211 @@
 ### 📊 Metrics — issue 2883
 
-Wall time for the issue: 20949 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
+Wall time for the issue: 8041 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 8 of 8 planned.
-Outcome: the run bailed — suite-red, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2981.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $6.76 over 143 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $10.60 over 196 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 88983 tokens, largest 240818 tokens
+Conductor context: first turn 88983 tokens, largest 242723 tokens
+Conductor context: first turn 88985 tokens, largest 140511 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.57 | 88983 |
-| 2 | $0.07 | 95959 |
-| 3 | $0.03 | 97288 |
-| 4 | $0.03 | 98947 |
-| 5 | $0.02 | 99263 |
-| 6 | $0.03 | 99947 |
-| 7 | $0.02 | 100545 |
-| 8 | $0.03 | 101163 |
-| 9 | $0.02 | 101467 |
-| 10 | $0.03 | 102853 |
-| 11 | $0.02 | 103097 |
-| 12 | $0.02 | 103557 |
-| 13 | $0.02 | 104003 |
-| 14 | $0.02 | 104315 |
-| 15 | $0.03 | 105193 |
-| 16 | $0.02 | 105552 |
-| 17 | $0.06 | 110550 |
-| 18 | $0.05 | 114160 |
-| 19 | $0.05 | 117883 |
-| 20 | $0.05 | 121559 |
-| 21 | $0.03 | 122244 |
-| 22 | $0.05 | 125367 |
-| 23 | $0.05 | 128719 |
-| 24 | $0.03 | 129303 |
-| 25 | $0.04 | 131186 |
-| 26 | $0.03 | 131878 |
-| 27 | $0.03 | 132264 |
-| 28 | $0.03 | 132758 |
-| 29 | $0.03 | 133374 |
-| 30 | $0.03 | 133993 |
-| 31 | $0.03 | 134543 |
-| 32 | $0.04 | 135826 |
-| 33 | $0.03 | 136728 |
-| 34 | $0.04 | 137835 |
-| 35 | $0.03 | 138180 |
-| 36 | $0.03 | 138885 |
-| 37 | $0.03 | 139574 |
-| 38 | $0.03 | 140273 |
-| 39 | $0.03 | 140987 |
-| 40 | $0.04 | 142015 |
-| 41 | $0.04 | 142894 |
-| 42 | $0.03 | 143334 |
-| 43 | $0.04 | 144423 |
-| 44 | $0.04 | 145288 |
+| 1 | $0.58 | 88983 |
+| 2 | $0.09 | 95959 |
+| 3 | $0.04 | 97288 |
+| 4 | $0.04 | 98947 |
+| 5 | $0.04 | 99263 |
+| 6 | $0.04 | 99947 |
+| 7 | $0.03 | 100545 |
+| 8 | $0.04 | 101163 |
+| 9 | $0.03 | 101467 |
+| 10 | $0.05 | 102853 |
+| 11 | $0.03 | 103097 |
+| 12 | $0.04 | 103557 |
+| 13 | $0.03 | 104003 |
+| 14 | $0.04 | 104315 |
+| 15 | $0.04 | 105193 |
+| 16 | $0.03 | 105552 |
+| 17 | $0.08 | 110550 |
+| 18 | $0.06 | 114160 |
+| 19 | $0.06 | 117883 |
+| 20 | $0.07 | 121559 |
+| 21 | $0.04 | 122244 |
+| 22 | $0.06 | 125367 |
+| 23 | $0.06 | 128719 |
+| 24 | $0.05 | 129303 |
+| 25 | $0.05 | 131186 |
+| 26 | $0.04 | 131878 |
+| 27 | $0.04 | 132264 |
+| 28 | $0.05 | 132758 |
+| 29 | $0.04 | 133374 |
+| 30 | $0.04 | 133993 |
+| 31 | $0.04 | 134543 |
+| 32 | $0.05 | 135826 |
+| 33 | $0.05 | 136728 |
+| 34 | $0.05 | 137835 |
+| 35 | $0.04 | 138180 |
+| 36 | $0.04 | 138885 |
+| 37 | $0.05 | 139574 |
+| 38 | $0.04 | 140273 |
+| 39 | $0.05 | 140987 |
+| 40 | $0.05 | 142015 |
+| 41 | $0.05 | 142894 |
+| 42 | $0.04 | 143334 |
+| 43 | $0.05 | 144423 |
+| 44 | $0.05 | 145288 |
 | 45 | $0.04 | 146084 |
-| 46 | $0.03 | 146695 |
-| 47 | $0.03 | 147012 |
-| 48 | $0.04 | 147862 |
-| 49 | $0.04 | 148765 |
-| 50 | $0.03 | 149183 |
-| 51 | $0.04 | 150399 |
+| 46 | $0.05 | 146695 |
+| 47 | $0.04 | 147012 |
+| 48 | $0.05 | 147862 |
+| 49 | $0.05 | 148765 |
+| 50 | $0.04 | 149183 |
+| 51 | $0.06 | 150399 |
 | 52 | $0.04 | 151118 |
-| 53 | $0.09 | 158860 |
-| 54 | $0.04 | 160322 |
-| 55 | $0.04 | 161837 |
-| 56 | $0.04 | 162690 |
-| 57 | $0.04 | 163264 |
-| 58 | $0.04 | 164781 |
-| 59 | $0.05 | 166611 |
-| 60 | $0.04 | 167759 |
-| 61 | $0.05 | 169533 |
-| 62 | $0.04 | 170424 |
-| 63 | $0.04 | 171095 |
-| 64 | $0.04 | 171725 |
-| 65 | $0.04 | 172433 |
-| 66 | $0.04 | 172780 |
-| 67 | $0.04 | 173463 |
-| 68 | $0.04 | 173852 |
-| 69 | $0.04 | 174426 |
-| 70 | $0.04 | 175654 |
-| 71 | $0.04 | 176432 |
-| 72 | $0.05 | 177848 |
-| 73 | $0.04 | 178716 |
-| 74 | $0.04 | 179458 |
-| 75 | $0.04 | 180314 |
-| 76 | $0.05 | 181467 |
-| 77 | $0.05 | 182700 |
-| 78 | $0.04 | 183470 |
-| 79 | $0.05 | 184845 |
-| 80 | $0.04 | 185677 |
-| 81 | $0.05 | 187012 |
-| 82 | $0.05 | 188131 |
-| 83 | $0.05 | 189378 |
-| 84 | $0.06 | 192046 |
-| 85 | $0.04 | 192728 |
-| 86 | $0.04 | 192991 |
-| 87 | $0.04 | 193606 |
-| 88 | $0.04 | 194204 |
+| 53 | $0.11 | 158860 |
+| 54 | $0.05 | 160322 |
+| 55 | $0.06 | 161837 |
+| 56 | $0.05 | 162690 |
+| 57 | $0.05 | 163264 |
+| 58 | $0.05 | 164781 |
+| 59 | $0.06 | 166611 |
+| 60 | $0.06 | 167759 |
+| 61 | $0.06 | 169533 |
+| 62 | $0.05 | 170424 |
+| 63 | $0.05 | 171095 |
+| 64 | $0.05 | 171725 |
+| 65 | $0.05 | 172433 |
+| 66 | $0.05 | 172780 |
+| 67 | $0.05 | 173463 |
+| 68 | $0.05 | 173852 |
+| 69 | $0.05 | 174426 |
+| 70 | $0.06 | 175654 |
+| 71 | $0.05 | 176432 |
+| 72 | $0.06 | 177848 |
+| 73 | $0.06 | 178716 |
+| 74 | $0.05 | 179458 |
+| 75 | $0.05 | 180314 |
+| 76 | $0.06 | 181467 |
+| 77 | $0.06 | 182700 |
+| 78 | $0.05 | 183470 |
+| 79 | $0.06 | 184845 |
+| 80 | $0.06 | 185677 |
+| 81 | $0.06 | 187012 |
+| 82 | $0.06 | 188131 |
+| 83 | $0.06 | 189378 |
+| 84 | $0.07 | 192046 |
+| 85 | $0.05 | 192728 |
+| 86 | $0.05 | 192991 |
+| 87 | $0.06 | 193606 |
+| 88 | $0.06 | 194204 |
 | 89 | $0.05 | 195342 |
-| 90 | $0.04 | 196036 |
-| 91 | $0.05 | 197599 |
-| 92 | $0.04 | 198251 |
-| 93 | $0.04 | 198546 |
-| 94 | $0.05 | 199530 |
-| 95 | $0.05 | 200695 |
-| 96 | $0.05 | 201541 |
-| 97 | $0.05 | 203008 |
-| 98 | $0.05 | 203819 |
-| 99 | $0.04 | 204162 |
-| 100 | $0.05 | 205795 |
-| 101 | $0.05 | 206554 |
-| 102 | $0.05 | 207749 |
-| 103 | $0.05 | 208905 |
-| 104 | $0.05 | 209846 |
-| 105 | $0.05 | 210834 |
-| 106 | $0.05 | 211872 |
-| 107 | $0.05 | 212874 |
-| 108 | $0.05 | 213641 |
-| 109 | $0.05 | 213948 |
+| 90 | $0.06 | 196036 |
+| 91 | $0.06 | 197599 |
+| 92 | $0.06 | 198251 |
+| 93 | $0.05 | 198546 |
+| 94 | $0.06 | 199530 |
+| 95 | $0.06 | 200695 |
+| 96 | $0.06 | 201541 |
+| 97 | $0.07 | 203008 |
+| 98 | $0.06 | 203819 |
+| 99 | $0.05 | 204162 |
+| 100 | $0.07 | 205795 |
+| 101 | $0.06 | 206554 |
+| 102 | $0.06 | 207749 |
+| 103 | $0.06 | 208905 |
+| 104 | $0.06 | 209846 |
+| 105 | $0.06 | 210834 |
+| 106 | $0.07 | 211872 |
+| 107 | $0.06 | 212874 |
+| 108 | $0.06 | 213641 |
+| 109 | $0.06 | 213948 |
 | 110 | $0.05 | 214291 |
-| 111 | $0.05 | 214642 |
-| 112 | $0.06 | 216400 |
-| 113 | $0.05 | 217662 |
-| 114 | $0.05 | 219040 |
-| 115 | $0.05 | 219343 |
-| 116 | $0.05 | 219609 |
+| 111 | $0.06 | 214642 |
+| 112 | $0.07 | 216400 |
+| 113 | $0.06 | 217662 |
+| 114 | $0.07 | 219040 |
+| 115 | $0.06 | 219343 |
+| 116 | $0.06 | 219609 |
 | 117 | $0.05 | 220037 |
-| 118 | $0.05 | 220478 |
-| 119 | $0.05 | 221493 |
-| 120 | $0.05 | 222256 |
-| 121 | $0.05 | 222493 |
-| 122 | $0.05 | 222791 |
+| 118 | $0.06 | 220478 |
+| 119 | $0.07 | 221493 |
+| 120 | $0.06 | 222256 |
+| 121 | $0.06 | 222493 |
+| 122 | $0.06 | 222791 |
 | 123 | $0.05 | 223028 |
-| 124 | $0.05 | 223296 |
-| 125 | $0.05 | 223690 |
-| 126 | $0.05 | 224718 |
-| 127 | $0.05 | 225628 |
-| 128 | $0.05 | 226435 |
-| 129 | $0.05 | 226672 |
-| 130 | $0.05 | 226909 |
-| 131 | $0.05 | 227146 |
-| 132 | $0.05 | 227468 |
-| 133 | $0.06 | 228809 |
-| 134 | $0.06 | 230416 |
-| 135 | $0.05 | 231226 |
-| 136 | $0.05 | 231573 |
-| 137 | $0.05 | 231907 |
-| 138 | $0.05 | 232203 |
-| 139 | $0.05 | 232539 |
+| 124 | $0.06 | 223296 |
+| 125 | $0.06 | 223690 |
+| 126 | $0.07 | 224718 |
+| 127 | $0.06 | 225628 |
+| 128 | $0.06 | 226435 |
+| 129 | $0.06 | 226672 |
+| 130 | $0.06 | 226909 |
+| 131 | $0.06 | 227146 |
+| 132 | $0.06 | 227468 |
+| 133 | $0.07 | 228809 |
+| 134 | $0.07 | 230416 |
+| 135 | $0.06 | 231226 |
+| 136 | $0.06 | 231573 |
+| 137 | $0.07 | 231907 |
+| 138 | $0.06 | 232203 |
+| 139 | $0.06 | 232539 |
 | 140 | $0.06 | 233649 |
-| 141 | $0.06 | 235568 |
-| 142 | $0.05 | 236278 |
-| 143 | $0.08 | 240818 |
+| 141 | $0.08 | 235568 |
+| 142 | $0.06 | 236278 |
+| 143 | $0.10 | 240818 |
+| 144 | $0.06 | 241772 |
+| 145 | $0.07 | 242723 |
+| 146 | $0.57 | 88985 |
+| 147 | $0.07 | 96133 |
+| 148 | $0.03 | 97481 |
+| 149 | $0.03 | 99323 |
+| 150 | $0.08 | 107296 |
+| 151 | $0.03 | 108282 |
+| 152 | $0.03 | 109044 |
+| 153 | $0.03 | 110006 |
+| 154 | $0.03 | 110558 |
+| 155 | $0.03 | 111065 |
+| 156 | $0.05 | 114313 |
+| 157 | $0.03 | 114683 |
+| 158 | $0.05 | 118588 |
+| 159 | $0.03 | 119662 |
+| 160 | $0.03 | 120147 |
+| 161 | $0.03 | 120474 |
+| 162 | $0.03 | 120761 |
+| 163 | $0.03 | 121128 |
+| 164 | $0.03 | 121364 |
+| 165 | $0.03 | 121600 |
+| 166 | $0.03 | 122329 |
+| 167 | $0.03 | 122780 |
+| 168 | $0.03 | 123469 |
+| 169 | $0.03 | 123923 |
+| 170 | $0.03 | 124122 |
+| 171 | $0.03 | 124321 |
+| 172 | $0.03 | 124640 |
+| 173 | $0.03 | 124985 |
+| 174 | $0.03 | 125409 |
+| 175 | $0.03 | 126009 |
+| 176 | $0.09 | 134150 |
+| 177 | $0.03 | 134819 |
+| 178 | $0.03 | 135756 |
+| 179 | $0.03 | 136266 |
+| 180 | $0.03 | 136477 |
+| 181 | $0.03 | 136688 |
+| 182 | $0.03 | 136983 |
+| 183 | $0.03 | 137360 |
+| 184 | $0.03 | 137564 |
+| 185 | $0.03 | 137823 |
+| 186 | $0.03 | 138102 |
+| 187 | $0.03 | 138500 |
+| 188 | $0.03 | 138799 |
+| 189 | $0.04 | 140023 |
+| 190 | $0.03 | 140511 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -169,16 +218,17 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | red-missing | 2 | 0 | 0 | 0 | 156 | 69 | 7 | 14 | 5736 | 196795 | 35037 | 0.16 |
 | pin | 5 | 3 | 2 | 0 | 296 | 133 | 22 | 44 | 9056 | 617321 | 66385 | 0.32 |
 | refactor | 5 | 0 | 0 | 0 | 65 | 39 | 12 | 22 | 1419 | 252249 | 87189 | 0.26 |
-| prose | 4 | 0 | 0 | 0 | 250 | 231 | 4 | 8 | 34235 | 75999 | 298390 | 1.10 |
+| prose | 6 | 0 | 0 | 0 | 469 | 443 | 6 | 12 | 68753 | 192045 | 413138 | 1.74 |
 | skill-edit | 1 | 0 | 0 | 0 | 22 | 17 | 4 | 8 | 1386 | 416184 | 117052 | 0.35 |
+| rebase | 2 | 1 | 0 | 0 | 2416 | 32 | 13 | 26 | 3021 | 307055 | 93834 | 0.30 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 21 | 15 | 6 | 0 | 7727 | 424 | 86 | 170 | 30773 | 2224848 | 418777 | 1.58 |
+| verifier | claude-sonnet-5-5 | 22 | 16 | 6 | 0 | 9938 | 438 | 90 | 178 | 32122 | 2285170 | 479775 | 1.75 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 519 | 175 | 42 | 82 | 16058 | 1234004 | 212418 | 1.34 |
-| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 1891 | 368 | 88 | 170 | 27468 | 2405616 | 362922 | 1.42 |
+| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 2096 | 386 | 97 | 188 | 29140 | 2652349 | 395758 | 1.55 |
 
 #### Rework and waste, by phase
 
@@ -192,6 +242,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -204,7 +255,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `rerun-alone.sh` on a red pytest output naming two test files on `FAILED` lines, one of which is still red when run alone, exits 1 and writes no `suite-flake` event, so the full run takes today's path (repair step or bail); pinned by a case in `skills/tdd/scripts/tests/py/test_rerun_alone_process.py` with a stub alone command that fails for that one file, no production change ⟦criterion 3⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 87 | 20 | 38 | 7374 | 553295 | 77326 | 0.46 | unknown | 1/2 | unknown | unknown |  |  | pin |
 | `metrics.sh <n>`'s report, which the readied PR's body carries, names each test file a `suite-flake` event in the run's `.tdd/events.jsonl` recorded (its `files=` field, comma-separated), and names none when the log holds no `suite-flake` event; pinned by a case in `skills/tdd/scripts/tests/py/test_metrics.py` ⟦criterion 4⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 110 | 30 | 58 | 8562 | 823605 | 114554 | 0.55 | 947 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `skills/tdd/SKILL.md` (DP89): *4. Draft PR* states, at each place a full-run result is read (the branch's own run, and the rebased tip's in sub-step 1 and after `verify-rebase`), that the wait is `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'`, `<alone-cmd>` being the repo's own runner for one test file with the file as `$1` (`make test TESTS="$1"` on veri), so before a red result takes its repair step or its `rebased-tip-red` bail each test file the red output names is run alone once; a red output naming no file takes today's path; when all pass, the one `suite-flake` event naming the files is written, the run is treated as green, and the files are named in the PR body; when any stays red, the red result stands as it is ⟦skill-edit⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 248 | 8 | 16 | 35621 | 492183 | 415442 | 1.44 | 307 | unknown | unknown | unknown |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_detach_test_command.py — FAILED test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh - assert ["SKILL.md:1379: **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** … (`make test TESTS=\"<file>\"` on veri) …"] == [] ⟦suite-repair⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 97 | 29 | 58 | 9087 | 706099 | 231481 | 0.74 | 8460 | unknown | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_detach_test_command.py — FAILED test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh - assert ["SKILL.md:1379: **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** … (`make test TESTS=\"<file>\"` on veri) …"] == [] ⟦suite-repair⟧ ⟦criterion 1⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 129 | 42 | 84 | 12108 | 1013154 | 325315 | 1.04 | 8460 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -218,6 +269,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `metrics.sh <n>`'s report, which the readied PR's body carries, names each test file a `suite-flake` event in the run's `.tdd/events.jsonl` recorded (its `files=` field, comma-separated), and names none when the log holds no `suite-flake` event; pinned by a case in `skills/tdd/scripts/tests/py/test_metrics.py` ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.04 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_detach_test_command.py — FAILED test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh - assert ["SKILL.md:1379: **Before any red full-run result takes its repair step or its `rebased-tip-red` bail** … (`make test TESTS=\"<file>\"` on veri) …"] == [] ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.08 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s |
@@ -225,9 +280,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | affected | 11 | 10 | 14 | 9 | 9 | 10 | 10 | 10 | 10 | 9 | 9 | 7 | 10 | 9 | 12 | 12 | 18 | 10 | 10 | 11 | 11 | 9 | 10 | 13 | 10 | 10 | 12 | 14 | 13 | 11 | 10 | 10 | 18 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | fast | 112 | 96 | 79 | 80 | 85 | 76 | 85 | 111 | 128 | 85 | 82 | 66 | 70 | 79 | 80 | 84 | 69 | 132 | 2544 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | target | 12 | 10 | 7 | 9 | 9 | 8 | 12 | 8 | 8 | 9 | 9 | 13 | 10 | 10 | 9 | 9 | 8 | 8 | 8 | 8 | 9 | 8 | 11 | 11 | 8 | 9 | 9 | 8 | 9 | 9 | 8 | 11 | 9 | 8 | 7 | 10 | 10 | 10 | 11 | 12 | 13 | 14 | 12 | 11 | 15 | 9 | 10 | 10 | 9 | 10 | 0 | 8 | 8 | 9 | 9 | 7 | 8 | 8 | 8 | 8 | 8 | 15 | 10 | 8 | 8 | 10 | 10 | 9 | 9 | 9 | 11 |
+| all | 59 | 2190 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 224 | 438 | 109920 | 6356651 | 1409559 | 12.55 (estimate) |
+| total | 239 | 468 | 147459 | 6779752 | 1618141 | 17.32 (estimate) |
