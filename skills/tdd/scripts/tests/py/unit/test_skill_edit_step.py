@@ -547,6 +547,34 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_la
     assert code == 3, (code, out, err)
 
 
+def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    events = []
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: events.append(a))
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
+
+    named = [a for a in events if "skill-edit-no-author" in a]
+    assert len(named) == 1 and "unit=unit.md" in named[0][-1], (code, out, err, events)
+
+
 def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_list_unit_and_graded_unmodified_2583(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess
