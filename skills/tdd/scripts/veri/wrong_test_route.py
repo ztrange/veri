@@ -73,6 +73,8 @@ def _lines_with(report, prefix):
 
 
 def _named_cases(report):
+    for line in _lines_with(report, "CONTRADICTS:"):
+        yield line.partition(":")[2].strip()
     for line in _lines_with(report, "WRONG_TEST:"):
         yield from re.findall(r"\btest_\w+", line)
         yield from re.findall(r"\bTest[A-Z]\w*", line)
