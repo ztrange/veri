@@ -78,6 +78,8 @@ def flake(at, red_file, alone_file):
 def main(argv):
     if len(argv) == 4 and argv[0] == "flake":
         return flake(argv[1], argv[2], argv[3])
+    if len(argv) == 4 and argv[0] == "rebased-tip":
+        return insert(argv[1], argv[2])
     if len(argv) == 3 and argv[0] == "insert":
         return insert(argv[1], argv[2])
     if len(argv) != 4 or argv[0] != "check":
