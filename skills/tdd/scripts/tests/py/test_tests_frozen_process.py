@@ -4828,3 +4828,44 @@ def test_rerecord_refactored_re_records_a_go_case_at_heads_body_whose_helpers_di
     assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
             "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
         0, False, True, (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_when_the_refactor_lost_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    kept = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2))
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n\n"
+                     "func TestY(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text("func requireTwo(t *testing.T, x int) {\n" + kept + "}\n\n"
+                     "func requireAll(t *testing.T, x int) {\n" + asserts + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireTwo(t, x)\n}\n\n"
+                     "func TestY(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+    _commit(tmp_path, "A refactor moves the assertions into helpers; TestX's loses one")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    heads = {case: tests_frozen._bodies_of(suite.read_text(), case)[0] for case in ("TestX", "TestY")}
+    record.write_text("".join(
+        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen._body_line(
+            "suite_test.go", line.split("\t")[1], heads[line.split("\t")[1]]), line.split("\t")[1], "6" * 64)
+        if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+    x_lines = [line for line in record.read_text().splitlines() if "\tTestX\t" in line]
+    held = "helpers: suite_test.go\tTestY\t%s" % tests_frozen._helper_digest(suite.read_text(), heads["TestY"])
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+    after = record.read_text().splitlines()
+
+    assert (code, err.splitlines().count("skipped: suite_test.go TestX"),
+            err.splitlines().count("skipped: suite_test.go TestY"),
+            [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
+        0, 1, 0, True, True)
