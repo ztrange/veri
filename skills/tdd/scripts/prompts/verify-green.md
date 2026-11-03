@@ -61,5 +61,9 @@ the `VERDICT:` line. A rejection for a product defect carries no such line. Nor 
 code outside the step's criterion: that code is not named on a `MISSING_TEST:` line, since
 it is rejected by asking for its removal, not by a test.
 
+When the step above is followed by a list of the ledger's later unchecked steps and the
+`MISSING_TEST:` behaviour is one of them, also put one `LATER_STEP: <step text>` line, copying
+that step's text from the list, before the `VERDICT:` line.
+
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
