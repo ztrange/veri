@@ -43,3 +43,12 @@ command 392
 green 40
 8a361237f21a8efad62a6dfb26ea48fbe19facce
 
+file 34
+skills/tdd/scripts/veri/wait_ci.py
+old 55
+if state in ("none", "skipped") and mergeable is False:
+new 114
+if state in ("none", "skipped") and mergeable is False and (explicit or not no_pull_request_workflow(repo, head)):
+command 225
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_still_exits_2_naming_the_conflict_on_a_conflicting_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_no_pull_request_workflow_issue_2885
+
