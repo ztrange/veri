@@ -90,6 +90,21 @@ def test_main_reports_at_its_start_only_the_run_that_exited_between_watches_and_
     assert watches == [(0, "exited 7 done\n"), (0, "exited 5 done\n")]
 
 
+def test_main_remembers_at_its_start_the_runs_it_saw_live_when_it_reports_an_exit_so_the_next_watch_reports_their_exit_2995(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    watch_runs._remember(["5"])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["7"])
+    assert (watch_runs.main([]), capsys.readouterr().out) == (0, "exited 5 done\n")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: [])
+    code = watch_runs.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "exited 7 done\n")
+
+
 def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fewer_than_target_are_live(
         monkeypatch, capsys, watch_runs):
     waits = []
