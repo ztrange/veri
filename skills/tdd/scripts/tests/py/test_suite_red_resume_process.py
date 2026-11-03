@@ -126,3 +126,27 @@ def test_2884_rebased_tip_whose_rebase_conflicted_and_was_resolved_by_hand_inser
     assert lines.count(step) == 1
     assert git(repo, "rev-parse", "HEAD").strip() == head
     assert (repo / "shared.txt").read_text() == "branch and main\n"
+
+
+@pytest.mark.process("suite-red-resume.sh over a real git repository whose ledger already holds a done suite-repair step")
+def test_2884_rebased_tip_on_a_ledger_already_holding_a_suite_repair_step_exits_1_and_adds_no_step(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [x] a wheel turns ⟦criterion 2⟧\n"
+                      "- [x] fix the full-suite failure: test_a.py ⟦suite-repair⟧ ⟦criterion 2⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    pre_rebase = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "main.txt").write_text("landed on main\n")
+    git(repo, "add", "main.txt")
+    git(repo, "commit", "-q", "-m", "feat: main moved (#1)")
+    red = tmp_path / "red"
+    red.write_text("test_b.py — FAIL b\n")
+    before = ledger.read_text()
+
+    ran = script("suite-red-resume.sh", "rebased-tip", str(ledger), str(red), pre_rebase, cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert ledger.read_text() == before
