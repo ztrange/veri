@@ -73,9 +73,12 @@ reads the plan out of these headings.
 2. **Check the inputs.** Check that **every input a criterion names exists** (file, script,
    command, label), and that **the criterion's literal rule meets its goal**: read as written,
    passing it must really achieve what the issue is for.
+3. **An open PRD that rebuilds the bug's module** (a bug only). Check whether an open PRD's
+   plan rebuilds the module the bug is in. When one does, **add the bug to that PRD as a case
+   the PRD must cover and file no issue**; report the PRD's url instead.
 
-Both checks are raw reads, so hand each to a subagent (P6). **Every subagent brief you write**
-— the duplicate search and the input check alike — asks for a **return of at most 10 lines**,
+All three checks are raw reads, so hand each to a subagent (P6). **Every subagent brief you write**
+— the duplicate search, the input check and the PRD check alike — asks for a **return of at most 10 lines**,
 and says that **all writes stay in the project repo, and a fix belonging elsewhere is
 reported, not made** (P11).
 
@@ -85,6 +88,11 @@ reported, not made** (P11).
   label on a refactor or a feature beyond what the repo uses.
 - **The opt-in label** (`ready-for-agent`, narrowed to `ready-for-agent:<scope>` if a scope was
   named) is added **only when the human said to take the issue**. Without that, file without it.
+
+- **Veri defects found on another repository.** Every defect in veri that one run on another
+  repository turns up is filed as **one issue for that run**, on veri's own repo, labelled `bug`
+  and `candidate` and **never opted in** (no `ready-for-agent`). It lists each defect; grooming
+  splits it into issues of its own.
 
 File with `gh issue create`.
 
