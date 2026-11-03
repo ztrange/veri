@@ -25,12 +25,8 @@ def plain_lines(lines):
     return " ".join(line.replace("*", "").replace("`", "").lower() for line in lines) + " "
 
 
-def plain_bytes(raw):
-    return raw.translate(None, b"*`").lower()
-
-
 def plain_folded(raw):
-    return plain_bytes(raw).replace(b"\n", b" ")
+    return raw.translate(None, b"*`").lower().replace(b"\n", b" ")
 
 
 def has(text, pattern):
