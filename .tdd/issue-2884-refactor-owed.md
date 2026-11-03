@@ -1,0 +1,2 @@
+### when the `⟦suite-repair⟧` insertion of `suite-red-resume.sh rebased-tip` exits 1, the script runs `git reset --hard <pre-rebase-sha>`, so HEAD and the working tree are back at `<pre-rebase-sha>`, and exits 1; pinned by a case in `skills/tdd/scripts/tests/py/test_suite_red_resume_process.py` ⟦criterion 4⟧
+- test-only | extract the repeated repo, ledger and pre-rebase-commit setup of the four test_2884 rebased-tip cases in test_suite_red_resume_process.py into one helper
