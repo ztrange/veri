@@ -892,7 +892,7 @@ def test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_223
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1 | The widget is blue. | shade |\n")
     git(repo, "add", "issue.md")
     git(repo, "commit", "-q", "-m", "issue")
     claude = tmp_path / "claude"
