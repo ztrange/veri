@@ -1,1 +1,3 @@
 - [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_watch_runs_process.py — FAILED test_target_slot_is_free_only_below_target_asking_for_not_running_issues_1930 - ImportError: cannot import name ledger_path from ledger ⟦suite-repair⟧ ⟦criterion 3⟧
+- [ ] RD5 and RD15 of `skills/tdd/scripts/prompts/develop-red.md` require the predicted assertion to fail and treat the message shape as an optional hint, keeping each row's site ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 3⟧
+- [ ] RP1 and RP10 of `skills/tdd/scripts/prompts/_develop-red-run-and-report.md` require the predicted assertion to fail and treat the message shape as an optional hint, keeping each row's site ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 3⟧
