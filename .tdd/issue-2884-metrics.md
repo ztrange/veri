@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 2884
 
-Wall time for the issue: 2900 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3100 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 11 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Steps done: 10 of 10 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.98 over 144 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $10.57 over 190 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89840 tokens, largest 206305 tokens
-Conductor context: first turn 89851 tokens, largest 158539 tokens
+Conductor context: first turn 89851 tokens, largest 160461 tokens
+Conductor context: first turn 89833 tokens, largest 150624 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -116,50 +117,96 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 98 | $0.09 | 204757 |
 | 99 | $0.06 | 205512 |
 | 100 | $0.06 | 206305 |
-| 101 | $0.58 | 89851 |
+| 101 | $0.59 | 89851 |
 | 102 | $0.08 | 97004 |
-| 103 | $0.04 | 100077 |
-| 104 | $0.03 | 101938 |
+| 103 | $0.05 | 100077 |
+| 104 | $0.05 | 101938 |
 | 105 | $0.05 | 105590 |
-| 106 | $0.03 | 106687 |
-| 107 | $0.03 | 107304 |
+| 106 | $0.04 | 106687 |
+| 107 | $0.04 | 107304 |
 | 108 | $0.05 | 110508 |
-| 109 | $0.03 | 111294 |
+| 109 | $0.04 | 111294 |
 | 110 | $0.03 | 111719 |
-| 111 | $0.03 | 112052 |
+| 111 | $0.04 | 112052 |
 | 112 | $0.03 | 112408 |
-| 113 | $0.03 | 112786 |
-| 114 | $0.03 | 114004 |
-| 115 | $0.04 | 116281 |
+| 113 | $0.04 | 112786 |
+| 114 | $0.04 | 114004 |
+| 115 | $0.05 | 116281 |
 | 116 | $0.05 | 119198 |
-| 117 | $0.04 | 121097 |
+| 117 | $0.05 | 121097 |
 | 118 | $0.06 | 125065 |
-| 119 | $0.03 | 125989 |
-| 120 | $0.03 | 126666 |
-| 121 | $0.03 | 127844 |
-| 122 | $0.03 | 128544 |
+| 119 | $0.04 | 125989 |
+| 120 | $0.04 | 126666 |
+| 121 | $0.05 | 127844 |
+| 122 | $0.04 | 128544 |
 | 123 | $0.05 | 130975 |
-| 124 | $0.04 | 132915 |
-| 125 | $0.03 | 133428 |
-| 126 | $0.03 | 133838 |
+| 124 | $0.05 | 132915 |
+| 125 | $0.04 | 133428 |
+| 126 | $0.04 | 133838 |
 | 127 | $0.03 | 134087 |
-| 128 | $0.03 | 134336 |
-| 129 | $0.03 | 134979 |
-| 130 | $0.03 | 135645 |
-| 131 | $0.03 | 136285 |
-| 132 | $0.04 | 138255 |
-| 133 | $0.04 | 139837 |
-| 134 | $0.03 | 140286 |
-| 135 | $0.03 | 140812 |
-| 136 | $0.03 | 141254 |
-| 137 | $0.03 | 141801 |
-| 138 | $0.03 | 142424 |
+| 128 | $0.04 | 134336 |
+| 129 | $0.04 | 134979 |
+| 130 | $0.04 | 135645 |
+| 131 | $0.04 | 136285 |
+| 132 | $0.05 | 138255 |
+| 133 | $0.05 | 139837 |
+| 134 | $0.04 | 140286 |
+| 135 | $0.04 | 140812 |
+| 136 | $0.04 | 141254 |
+| 137 | $0.05 | 141801 |
+| 138 | $0.04 | 142424 |
 | 139 | $0.04 | 143319 |
-| 140 | $0.03 | 143756 |
-| 141 | $0.09 | 151542 |
-| 142 | $0.04 | 152645 |
-| 143 | $0.04 | 153910 |
+| 140 | $0.04 | 143756 |
+| 141 | $0.10 | 151542 |
+| 142 | $0.05 | 152645 |
+| 143 | $0.05 | 153910 |
 | 144 | $0.07 | 158539 |
+| 145 | $0.05 | 159384 |
+| 146 | $0.05 | 160461 |
+| 147 | $0.58 | 89833 |
+| 148 | $0.08 | 96980 |
+| 149 | $0.04 | 100012 |
+| 150 | $0.05 | 103293 |
+| 151 | $0.06 | 108732 |
+| 152 | $0.03 | 109325 |
+| 153 | $0.03 | 109890 |
+| 154 | $0.03 | 111016 |
+| 155 | $0.04 | 112735 |
+| 156 | $0.03 | 113595 |
+| 157 | $0.03 | 113935 |
+| 158 | $0.03 | 114335 |
+| 159 | $0.03 | 114717 |
+| 160 | $0.03 | 115107 |
+| 161 | $0.03 | 115450 |
+| 162 | $0.02 | 115667 |
+| 163 | $0.03 | 116998 |
+| 164 | $0.03 | 117441 |
+| 165 | $0.03 | 117883 |
+| 166 | $0.03 | 118261 |
+| 167 | $0.03 | 118726 |
+| 168 | $0.03 | 119110 |
+| 169 | $0.03 | 119774 |
+| 170 | $0.03 | 120661 |
+| 171 | $0.06 | 124611 |
+| 172 | $0.03 | 125408 |
+| 173 | $0.05 | 128308 |
+| 174 | $0.04 | 129706 |
+| 175 | $0.05 | 132571 |
+| 176 | $0.03 | 133471 |
+| 177 | $0.03 | 133810 |
+| 178 | $0.04 | 135019 |
+| 179 | $0.03 | 135380 |
+| 180 | $0.03 | 135950 |
+| 181 | $0.04 | 136959 |
+| 182 | $0.04 | 138132 |
+| 183 | $0.04 | 139531 |
+| 184 | $0.04 | 140747 |
+| 185 | $0.03 | 141156 |
+| 186 | $0.03 | 141495 |
+| 187 | $0.03 | 141834 |
+| 188 | $0.03 | 142160 |
+| 189 | $0.05 | 144290 |
+| 190 | $0.08 | 150624 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -171,6 +218,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 14 | 6 | 0 | 0 | 2253 | 264 | 85 | 164 | 22437 | 2541308 | 288484 | 1.37 |
 | refactor | 8 | 2 | 0 | 0 | 330 | 71 | 29 | 58 | 5664 | 804896 | 123173 | 0.45 |
 | pin | 2 | 2 | 0 | 0 | 83 | 27 | 6 | 12 | 2484 | 137438 | 46254 | 0.15 |
+| prose | 9 | 0 | 0 | 0 | 356 | 321 | 9 | 18 | 48152 | 111291 | 464843 | 1.65 |
+| skill-edit | 2 | 0 | 0 | 0 | 51 | 41 | 8 | 14 | 3269 | 546620 | 182742 | 0.54 |
 
 #### By model
 
@@ -189,6 +238,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | green | 0 | 0.00 | 369 | 0.48 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -204,6 +254,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | `push-branch.sh` removes `.tdd/rebase-lease` once a push under the recorded lease succeeds, so the next push is a plain one; pinned by a case in `skills/tdd/scripts/tests/py/test_push_branch_process.py` ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 73 | 26 | 52 | 6668 | 740956 | 94229 | 0.38 | 964 | unknown | 1/5 | nothing-left |  |  | full |
 | `push-branch.sh --force-with-lease=<branch>:<sha>` while `.tdd/rebase-lease` holds a different sha (a later rebase's, or a resume rebase's, `<pre-rebase-sha>` naming a commit the remote never had) pushes under the recorded sha and exits 0 with the remote branch at HEAD; pinned by a case in `skills/tdd/scripts/tests/py/test_push_branch_process.py` ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 103 | 27 | 54 | 7019 | 741826 | 130410 | 0.47 | 974 | unknown | 1/5 | nothing-left |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py; skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py ⟦suite-repair⟧ ⟦criterion 5⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 118 | 32 | 62 | 11443 | 1013296 | 143109 | 0.74 | unknown | 1/2 | unknown | unknown |  |  | full |
+| skill-edit skills/tdd/SCRIPTS.md: the `suite-red-resume.sh` entry documents the `rebased-tip <ledger-file> <red-file> <pre-rebase-sha>` subcommand (insert one `⟦suite-repair⟧` step after the last done step and record `<pre-rebase-sha>` in `rebase-lease` beside the ledger, exit 0; on the insertion's exit 1 `git reset --hard <pre-rebase-sha>` and exit 1; exit 2 no answer), and the `push-branch.sh` entry documents that a recorded `.tdd/rebase-lease` sha is the lease every push uses, taking precedence over a `--force-with-lease` argument, and is removed once that push succeeds ⟦skill-edit⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 76 | 7 | 14 | 10903 | 159519 | 182548 | 0.58 | 137 | unknown | unknown | unknown |  |  | full |
+| skill-edit skills/tdd/SKILL.md: apply rows DP22 and DP26 — *4. Draft PR*'s red rebased tip (sub-step 1's exit 0, and after a `verify-rebase` PASS) runs `$S/suite-red-resume.sh rebased-tip .tdd/issue-<n>.md <red-file> <pre-rebase-sha>`: exit 0 keeps the rebased branch, commits the ledger with `.tdd/issue-<n>-added.md` and returns to the cycle loop for the repair step, the recorded lease carrying `<pre-rebase-sha>` to the later pushes; exit 1 (the script has already reset to `<pre-rebase-sha>`) bails `rebased-tip-red` with the PR left a draft; exit 2 bails `no-verdict` ⟦skill-edit⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 258 | 9 | 16 | 36269 | 497743 | 419789 | 1.46 | 312 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -230,4 +282,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 198 | 388 | 61273 | 5592196 | 938971 | 11.67 (estimate) |
+| total | 215 | 420 | 112694 | 6250107 | 1586556 | 16.46 (estimate) |
