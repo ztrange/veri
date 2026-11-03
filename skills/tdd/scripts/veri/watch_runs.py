@@ -76,6 +76,12 @@ def _remember(issues):
         pass
 
 
+def _report_exit(issue, state):
+    _remember([i for i in _seen() if i != issue])
+    print("exited %s %s" % (issue, state))
+    return 0
+
+
 def _whole_number(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
 
@@ -96,9 +102,7 @@ def main(argv):
     for issue in seen:
         if issue not in started:
             state = run_state(issue).split(" ")[0]
-            _remember([i for i in seen if i != issue])
-            print("exited %s %s" % (issue, state))
-            return 0
+            return _report_exit(issue, state)
     _remember(started)
     if not given and not started:
         print("nothing to watch")
@@ -133,9 +137,7 @@ def main(argv):
                         continue
                     print("vanished %s" % issue)
                     return 2
-                _remember([i for i in _seen() if i != issue])
-                print("exited %s %s" % (issue, state))
-                return 0
+                return _report_exit(issue, state)
         if deadline is not None and clock() >= deadline:
             print("timeout")
             return 3
