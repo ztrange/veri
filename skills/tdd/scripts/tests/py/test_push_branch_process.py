@@ -261,3 +261,27 @@ def test_rebase_exiting_3_after_a_repair_step_leaves_the_lease_naming_the_pre_re
 
     assert rebased[0] == 3 and lease_after_rebase == pre
     assert (pushed[0], remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
+
+
+@pytest.mark.process("resume-clean.sh then push-branch.sh against a bare repository")
+def test_a_resume_between_the_rebase_and_the_push_keeps_the_lease_and_the_push_replaces_the_remote_at_the_pre_rebase_sha(
+        tmp_path, run_cli, push_branch):
+    clean = importlib.import_module("veri.resume_clean")
+    remote = bare(tmp_path / "origin.git")
+    repo = fixture_repo(tmp_path / "work", remote)
+    (repo / "tracked.txt").write_text("committed\n")
+    git(repo, "add", "tracked.txt")
+    git(repo, "commit", "-q", "-m", "feat: a tracked file (#191)")
+    git(repo, "push", "-q", "origin", BRANCH)
+    pre = git(repo, "rev-parse", "HEAD")
+    lease = repo / ".tdd" / "rebase-lease"
+    lease.write_text(pre + "\n")
+    git(repo, "commit", "-q", "--amend", "-m", "rebased")
+    (repo / "tracked.txt").write_text("uncommitted\n")
+
+    resumed = run_cli(clean, [], cwd=repo)
+    lease_after_resume = lease.read_text().strip() if lease.exists() else "<absent>"
+    pushed = run_cli(push_branch, [], env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
+
+    assert (resumed[0], lease_after_resume) == (0, pre)
+    assert (pushed[0], remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
