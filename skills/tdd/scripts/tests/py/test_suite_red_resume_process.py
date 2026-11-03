@@ -150,3 +150,28 @@ def test_2884_rebased_tip_on_a_ledger_already_holding_a_suite_repair_step_exits_
 
     assert ran[0] == 1, ran
     assert ledger.read_text() == before
+
+
+@pytest.mark.process("suite-red-resume.sh over a real git repository whose rebased tip is refused a second repair step")
+def test_2884_rebased_tip_refused_by_exit_1_resets_hard_to_the_pre_rebase_sha(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [x] a wheel turns ⟦criterion 2⟧\n"
+                      "- [x] fix the full-suite failure: test_a.py ⟦suite-repair⟧ ⟦criterion 2⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    pre_rebase = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "main.txt").write_text("landed on main\n")
+    git(repo, "add", "main.txt")
+    git(repo, "commit", "-q", "-m", "feat: main moved (#1)")
+    assert git(repo, "rev-parse", "HEAD").strip() != pre_rebase
+    red = tmp_path / "red"
+    red.write_text("test_b.py — FAIL b\n")
+
+    ran = script("suite-red-resume.sh", "rebased-tip", str(ledger), str(red), pre_rebase, cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert git(repo, "rev-parse", "HEAD").strip() == pre_rebase
+    assert not (repo / "main.txt").exists()
