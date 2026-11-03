@@ -155,6 +155,7 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
+    explicit = bool(tunables.read("VERI_CI_ON_PR"))
     on_pr = tunables.read("VERI_CI_ON_PR", unless_empty="1")
     if on_pr not in ("0", "1"):
         warn("VERI_CI_ON_PR '%s' is not 0 or 1" % on_pr)
@@ -214,7 +215,7 @@ def main(argv):
         if state == "none" and on_pr == "0" and not mismatched:
             warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % pr)
             return 0
-        if state == "none" and no_pull_request_workflow(repo, head):
+        if state == "none" and not explicit and no_pull_request_workflow(repo, head):
             warn("%s has no checks and no workflow triggers on pull_request; no check will come" % pr)
             return 0
         if state == "skipped":
