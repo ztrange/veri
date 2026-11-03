@@ -1486,10 +1486,16 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
    in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`;
    under `ci` run no full test command on the rebased tip, and go on to the push below.
-   Under `local`, a red result on the rebased tip does **bail**, as a **process** failure
-   (`rebased-tip-red`), with the PR left a draft: it is never readied (`Read` `<base directory>/BAIL.md`). Before the bail's push,
-   `git reset --hard <pre-rebase-sha>` puts the branch back where it stood, so that push is a
-   fast-forward and the un-rebased branch is what is kept. On green, publish the rewritten history:
+   Under `local`, a red result on the rebased tip does not reset and bail outright: write `<red-file>`
+   as for any red full run and run `$S/suite-red-resume.sh rebased-tip .tdd/issue-<n>.md <red-file> <pre-rebase-sha>`.
+   Its exit 0 keeps the rebased branch, appends one `⟦suite-repair⟧` step naming every red suite, and the
+   conductor commits the ledger with `.tdd/issue-<n>-added.md` (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`)
+   and returns to step 3, *The cycle loop*, for that repair step; the recorded `.tdd/rebase-lease` carries
+   `<pre-rebase-sha>` to the later pinned-lease push. Only its exit 1 (the insertion exits 1; the script has already run
+   `git reset --hard <pre-rebase-sha>`, so the bail's push is a fast-forward and the un-rebased branch is what is kept)
+   does **bail**, as a **process** failure (`rebased-tip-red`), with the PR left a draft: it is never readied
+   (`Read` `<base directory>/BAIL.md`). Its exit 2, no answer, does **bail** as a **system** failure (`no-verdict`,
+   `Read` `<base directory>/BAIL.md`). On green, publish the rewritten history:
 
        $S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>
 
@@ -1523,8 +1529,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `REVISE_BUDGET` like any other phase (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). A malformed verdict does **bail** as a **system**
    failure (`no-verdict`, see `<base directory>/BAIL.md`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
-   under `VERI_REBASED_TIP_SUITE=local` the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a bail on red (`rebased-tip-red`) with
-   `git reset --hard <pre-rebase-sha>` before the bail's push, and on green the push under
+   under `VERI_REBASED_TIP_SUITE=local` the full test command once on the rebased tip (the regrade having already run before `verify-rebase`), a red result taking `$S/suite-red-resume.sh rebased-tip .tdd/issue-<n>.md <red-file> <pre-rebase-sha>`
+   as above (its exit 0 appends the `⟦suite-repair⟧` step and returns to step 3; only its exit 1, after its own
+   `git reset --hard <pre-rebase-sha>`, bails `rebased-tip-red`; its exit 2 bails `no-verdict`), and on green the push under
    the lease pinned to `<pre-rebase-sha>`; under `ci`, that push with no full test command before it (see `<base directory>/BAIL.md`).
 
    A rebase not resolved within budget — the leaf reports `REBASE: FAILED` or exits 1 or 2,
