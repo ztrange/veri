@@ -549,8 +549,9 @@ def _rewrite_records(earlier, rewrite):
                 record = rewrite(owner, record, *parsed)
                 replaced = "\nhelpers: " in record
             elif replaced and record.startswith("helpers: "):
-                replaced = False
                 continue
+            else:
+                replaced = False
             out.append(record + "\n")
         if not _write_record(path, out):
             return False
