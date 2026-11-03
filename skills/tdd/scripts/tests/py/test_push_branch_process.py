@@ -285,3 +285,26 @@ def test_a_resume_between_the_rebase_and_the_push_keeps_the_lease_and_the_push_r
 
     assert (resumed[0], lease_after_resume) == (0, pre)
     assert (pushed[0], remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
+
+
+@pytest.mark.process("git push --force-with-lease to an unreachable and then a reachable bare repository")
+def test_a_failed_push_leaves_the_lease_so_the_next_push_with_origin_back_replaces_the_remote_at_the_leased_sha(
+        tmp_path, run_cli, push_branch):
+    remote = bare(tmp_path / "origin.git")
+    repo = fixture_repo(tmp_path / "work", remote)
+    git(repo, "push", "-q", "origin", BRANCH)
+    pre = git(repo, "rev-parse", "HEAD")
+    lease = repo / ".tdd" / "rebase-lease"
+    lease.write_text(pre + "\n")
+    git(repo, "commit", "-q", "--amend", "-m", "rebased")
+    env = {**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}
+
+    git(repo, "remote", "set-url", "origin", str(tmp_path / "no-such-remote.git"))
+    failed = run_cli(push_branch, [], env=env, cwd=repo)
+    lease_after_failure = lease.read_text().strip() if lease.exists() else "<absent>"
+    remote_after_failure = remote_at(remote)
+    git(repo, "remote", "set-url", "origin", str(remote))
+    pushed = run_cli(push_branch, [], env=env, cwd=repo)
+
+    assert (failed[0], lease_after_failure, remote_after_failure) == (0, pre, pre)
+    assert (pushed[0], remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
