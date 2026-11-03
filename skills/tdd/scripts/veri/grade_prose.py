@@ -34,6 +34,7 @@ Rules:
 - A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits it, contradicts it, or states something that would lead the reader to act against it.
 - A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose does not name that artefact too; substance alone does not discharge a named reference. A row that names no artefact passes on meaning alone, in any wording, so a unit wording such a row differently keeps PASS; the artefact rule is not substring matching.
 - Judge each requirement independently.
+- Answer from the text given here. Do not call any tool.
 - An empty unit is graded FAIL on every requirement row without using any reading tool.
 
 First, analyse each requirement against the prose in free text — quote the prose you rely on. Change your mind here if you need to.
