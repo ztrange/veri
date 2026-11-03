@@ -34,10 +34,12 @@ def main(argv):
             phase, owed, argv = argv[1], True, argv[2:]
         else:
             break
+    reason_text = ""
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
-            if "stays green" not in handle.read():
-                return 1
+            reason_text = handle.read()
+        if "stays green" not in reason_text:
+            return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2
@@ -75,8 +77,7 @@ def main(argv):
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
         step = changed_line(text, new)
-        with open(reason_file, encoding="utf-8") as handle:
-            reason = next((l[7:].strip() for l in handle.read().splitlines() if l.startswith("REASON:")), "")
+        reason = next((l[7:].strip() for l in reason_text.splitlines() if l.startswith("REASON:")), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
         return event.append(tdd_parent, event.context(os.environ), "unpinnable-step",
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
