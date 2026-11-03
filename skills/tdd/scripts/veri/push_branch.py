@@ -38,6 +38,10 @@ def output(args):
     return run(args, stdout=subprocess.PIPE, text=True).stdout.rstrip("\n")
 
 
+def current_branch():
+    return output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+
+
 def failed(attempts):
     print(f"push-branch.sh: push failed after {attempts} attempts; the branch is not on the remote",
           file=sys.stderr)
@@ -68,7 +72,7 @@ def main(argv):
     leased_push = os.path.isfile(lease_file)
     if leased_push:
         leased = open(lease_file).read().strip()
-        branch = output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        branch = current_branch()
         argv = [f"--force-with-lease={branch}:{leased}"]
     attempt = 0
     retries = int(retries)
@@ -82,7 +86,7 @@ def main(argv):
             return 0
         out = pushed.stdout.rstrip("\n")
         if "[rejected]" in out and any(reason in out for reason in REJECTIONS):
-            branch = output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            branch = current_branch()
             listed = output(["git", "ls-remote", "origin", f"refs/heads/{branch}"])
             remote_sha = "\n".join(line.split("\t")[0] for line in listed.split("\n")) if listed else ""
             print(f"push rejected (non-fast-forward): origin/{branch} is at {remote_sha}",
