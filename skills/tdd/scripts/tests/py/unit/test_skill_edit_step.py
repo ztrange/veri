@@ -575,6 +575,40 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_ap
     assert len(named) == 1 and "unit=unit.md" in named[0][-1], (code, out, err, events)
 
 
+def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep green.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    prompts = []
+    grades = [(1, "A1: FAIL - not blue\n"), (0, "")]
+
+    def launch(name, prompt, *args, env=None):
+        prompts.append(open(prompt).read())
+        return subprocess.CompletedProcess([name], 0, b"", None)
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(leaf, "launch", launch)
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert len(prompts) == 1, (code, out, err, prompts)
+    assert "The widget is blue." in prompts[0] and "The widget is red." not in prompts[0], prompts[0]
+
+
 def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_list_unit_and_graded_unmodified_2583(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess

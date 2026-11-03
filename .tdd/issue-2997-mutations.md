@@ -16,3 +16,12 @@ if added is not None and graded == 0 and change is None and False:
 command 213
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the_list_unchanged_when_every_issue_row_equals_its_listed_row_2997
 
+file 42
+skills/tdd/scripts/veri/skill_edit_step.py
+old 39
+row = reworded.get(_row_id(line), line)
+new 10
+row = line
+command 195
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997
+
