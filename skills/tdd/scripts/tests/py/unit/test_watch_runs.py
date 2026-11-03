@@ -38,6 +38,21 @@ def test_main_prints_exited_with_the_first_word_of_the_state_when_a_conductor_li
     assert len(waits) == 2
 
 
+def test_main_reports_at_its_start_a_run_seen_live_by_an_earlier_watch_whose_conductor_exited_between_watches_2995(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    listings = iter([["5", "7"], ["7"]])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    assert (watch_runs.main([]), capsys.readouterr().out) == (0, "exited 5 done\n")
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: [])
+    code = watch_runs.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "exited 7 done\n")
+
+
 def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fewer_than_target_are_live(
         monkeypatch, capsys, watch_runs):
     waits = []

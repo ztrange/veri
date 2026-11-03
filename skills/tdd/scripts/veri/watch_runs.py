@@ -55,6 +55,27 @@ def clock():
     return time.monotonic()
 
 
+def _seen_path():
+    return os.path.join(status.main_working_tree(), ".tdd", "watch-seen-live")
+
+
+def _seen():
+    try:
+        with open(_seen_path()) as f:
+            return f.read().split()
+    except Exception:
+        return []
+
+
+def _remember(issues):
+    try:
+        os.makedirs(os.path.dirname(_seen_path()), exist_ok=True)
+        with open(_seen_path(), "w") as f:
+            f.write("".join(issue + "\n" for issue in issues))
+    except Exception:
+        pass
+
+
 def _whole_number(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
 
@@ -71,6 +92,14 @@ def main(argv):
     target = given.get("--target")
     max_wait = given.get("--max-wait")
     started = live_conductors()
+    seen = _seen()
+    for issue in seen:
+        if issue not in started:
+            state = run_state(issue).split(" ")[0]
+            _remember([i for i in seen if i != issue])
+            print("exited %s %s" % (issue, state))
+            return 0
+    _remember(started)
     if not given and not started:
         print("nothing to watch")
         return 3
@@ -104,6 +133,7 @@ def main(argv):
                         continue
                     print("vanished %s" % issue)
                     return 2
+                _remember([i for i in _seen() if i != issue])
                 print("exited %s %s" % (issue, state))
                 return 0
         if deadline is not None and clock() >= deadline:
