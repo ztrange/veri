@@ -62,7 +62,13 @@ Every other step takes the verdict as follows:
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
-- **REJECT (exit 1):** enter the **revise loop** for the **red** phase, building the prompt as
+- **REJECT (exit 1):** first run
+  `$S/tick-ledger.sh --unpinnable .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`.
+  On its exit **0** the step is retired as unpinnable: commit the retired ledger, write no
+  `revise` mark, spend no `REVISE_BUDGET` attempt, post the step's retirement to the thread,
+  and loop back to `next-unchecked.sh` for the next unchecked ledger step. On its exit **1**
+  enter the revise loop as follows; on its exit **2** **bail** as a **system** failure.
+  The revise loop: enter it for the **red** phase, building the prompt as
   `revise red … .tdd/verify-pin.reason` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). The phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
   that rejected, here `pin`. The rejection reason is the carry-forward signal that tells the
