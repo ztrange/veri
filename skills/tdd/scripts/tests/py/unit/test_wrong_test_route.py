@@ -2941,3 +2941,24 @@ def test_main_3037_criterion_2_prints_fixture_with_the_own_file_when_the_helper_
         wrong_test_route, [str(report), "tests/test_z_own.py::test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "fixture tests/test_z_own.py ran\n")
+
+
+def test_main_3007_criterion_2_a_contradicts_line_naming_an_existing_other_case_routes_red_when_the_wrong_test_prose_names_no_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def test_main_returns_zero():\n    pass\n\n"
+        "def %s():\n    pass\n" % contradicted)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the criterion asserts the opposite of an older case\n"
+        "CONTRADICTS: %s\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % contradicted)
