@@ -302,7 +302,7 @@ def main(argv):
                 if more is None:
                     return no_verdict("the grader leaf exited non-zero")
                 again = extract(more)
-                if "BEGIN GRADES" in again:
+                if "BEGIN GRADES" in again and keeps_protocol(again, asked):
                     break
             if not asked <= set(graded_ids(again)):
                 return no_verdict("the re-grade has no GRADES block for the rows it was asked about")
