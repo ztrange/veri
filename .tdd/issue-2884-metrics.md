@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 2884
 
-Wall time for the issue: 3100 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 10 planned.
+Wall time for the issue: 10367 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 10 of 12 planned.
 Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $10.57 over 190 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $12.50 over 215 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89840 tokens, largest 206305 tokens
 Conductor context: first turn 89851 tokens, largest 160461 tokens
-Conductor context: first turn 89833 tokens, largest 150624 tokens
+Conductor context: first turn 89833 tokens, largest 153300 tokens
+Conductor context: first turn 89805 tokens, largest 132059 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -163,50 +164,75 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 144 | $0.07 | 158539 |
 | 145 | $0.05 | 159384 |
 | 146 | $0.05 | 160461 |
-| 147 | $0.58 | 89833 |
+| 147 | $0.59 | 89833 |
 | 148 | $0.08 | 96980 |
-| 149 | $0.04 | 100012 |
+| 149 | $0.06 | 100012 |
 | 150 | $0.05 | 103293 |
-| 151 | $0.06 | 108732 |
-| 152 | $0.03 | 109325 |
-| 153 | $0.03 | 109890 |
-| 154 | $0.03 | 111016 |
+| 151 | $0.07 | 108732 |
+| 152 | $0.04 | 109325 |
+| 153 | $0.04 | 109890 |
+| 154 | $0.04 | 111016 |
 | 155 | $0.04 | 112735 |
-| 156 | $0.03 | 113595 |
+| 156 | $0.04 | 113595 |
 | 157 | $0.03 | 113935 |
-| 158 | $0.03 | 114335 |
-| 159 | $0.03 | 114717 |
+| 158 | $0.04 | 114335 |
+| 159 | $0.04 | 114717 |
 | 160 | $0.03 | 115107 |
-| 161 | $0.03 | 115450 |
-| 162 | $0.02 | 115667 |
-| 163 | $0.03 | 116998 |
-| 164 | $0.03 | 117441 |
-| 165 | $0.03 | 117883 |
+| 161 | $0.04 | 115450 |
+| 162 | $0.03 | 115667 |
+| 163 | $0.04 | 116998 |
+| 164 | $0.04 | 117441 |
+| 165 | $0.04 | 117883 |
 | 166 | $0.03 | 118261 |
-| 167 | $0.03 | 118726 |
+| 167 | $0.04 | 118726 |
 | 168 | $0.03 | 119110 |
-| 169 | $0.03 | 119774 |
-| 170 | $0.03 | 120661 |
-| 171 | $0.06 | 124611 |
-| 172 | $0.03 | 125408 |
-| 173 | $0.05 | 128308 |
+| 169 | $0.04 | 119774 |
+| 170 | $0.04 | 120661 |
+| 171 | $0.07 | 124611 |
+| 172 | $0.04 | 125408 |
+| 173 | $0.06 | 128308 |
 | 174 | $0.04 | 129706 |
-| 175 | $0.05 | 132571 |
-| 176 | $0.03 | 133471 |
-| 177 | $0.03 | 133810 |
-| 178 | $0.04 | 135019 |
-| 179 | $0.03 | 135380 |
-| 180 | $0.03 | 135950 |
+| 175 | $0.06 | 132571 |
+| 176 | $0.04 | 133471 |
+| 177 | $0.04 | 133810 |
+| 178 | $0.05 | 135019 |
+| 179 | $0.04 | 135380 |
+| 180 | $0.04 | 135950 |
 | 181 | $0.04 | 136959 |
-| 182 | $0.04 | 138132 |
-| 183 | $0.04 | 139531 |
+| 182 | $0.05 | 138132 |
+| 183 | $0.05 | 139531 |
 | 184 | $0.04 | 140747 |
-| 185 | $0.03 | 141156 |
-| 186 | $0.03 | 141495 |
-| 187 | $0.03 | 141834 |
-| 188 | $0.03 | 142160 |
+| 185 | $0.04 | 141156 |
+| 186 | $0.05 | 141495 |
+| 187 | $0.04 | 141834 |
+| 188 | $0.04 | 142160 |
 | 189 | $0.05 | 144290 |
-| 190 | $0.08 | 150624 |
+| 190 | $0.09 | 150624 |
+| 191 | $0.05 | 152174 |
+| 192 | $0.05 | 153300 |
+| 193 | $0.58 | 89805 |
+| 194 | $0.07 | 96788 |
+| 195 | $0.05 | 100016 |
+| 196 | $0.05 | 103675 |
+| 197 | $0.08 | 111316 |
+| 198 | $0.03 | 111863 |
+| 199 | $0.05 | 115080 |
+| 200 | $0.03 | 116317 |
+| 201 | $0.03 | 116677 |
+| 202 | $0.03 | 117130 |
+| 203 | $0.04 | 119119 |
+| 204 | $0.03 | 120001 |
+| 205 | $0.03 | 120347 |
+| 206 | $0.03 | 121165 |
+| 207 | $0.03 | 121519 |
+| 208 | $0.03 | 121829 |
+| 209 | $0.03 | 122143 |
+| 210 | $0.03 | 122797 |
+| 211 | $0.03 | 123517 |
+| 212 | $0.03 | 124236 |
+| 213 | $0.04 | 125954 |
+| 214 | $0.03 | 127029 |
+| 215 | $0.07 | 132059 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -240,6 +266,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | pin | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| preflight | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -282,4 +309,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 215 | 420 | 112694 | 6250107 | 1586556 | 16.46 (estimate) |
+| total | 215 | 420 | 112694 | 6250107 | 1586556 | 18.38 (estimate) |
