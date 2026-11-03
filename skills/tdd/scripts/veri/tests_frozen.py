@@ -688,8 +688,9 @@ def rerecord_refactored(ledger, green):
         if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
                 _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case))}:
             return skip(name, case, record, "body digest matches neither green nor HEAD")
+        green_helpers = _helper_digest(green_text, verified)
         if (digest != _body_digest(head) or digest == _body_digest(verified)) and recorded_helpers.get(
-                (name, case), _helper_digest(green_text, verified)) != _helper_digest(green_text, verified):
+                (name, case), green_helpers) != green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = _called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
