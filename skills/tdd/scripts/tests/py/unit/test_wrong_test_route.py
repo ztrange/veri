@@ -18,7 +18,7 @@ def test_main_1621_routes_a_green_whose_wrong_test_names_a_contradicted_case_to_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -77,7 +77,7 @@ def test_main_1621_finds_a_real_pytest_function_from_the_repository_root(
     monkeypatch.chdir(ROOT)
     pytest_case = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
     report = tmp_path / "report.txt"
-    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % pytest_case)
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % pytest_case + "CONTRADICTS: %s\n" % pytest_case)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
@@ -122,7 +122,7 @@ def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_
     report.write_text(
         "OUTCOME: the revised green still fails the suite\n"
         "AGAINST_UNMODIFIED: N/A\n"
-        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -157,7 +157,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_backticks
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: `%s` asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: `%s`\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -175,7 +175,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_qu
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        'WRONG_TEST: "%s" asserts the opposite of the criterion\n' % contradicted)
+        'WRONG_TEST: "%s" asserts the opposite of the criterion\n' % contradicted + 'CONTRADICTS: "%s"\n' % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -193,7 +193,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quo
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: “%s” asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: “%s” asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: “%s”\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -211,7 +211,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_bare_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
@@ -230,7 +230,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_ba
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted)
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "TestMainReturnsZero"], cwd=tmp_path)
@@ -247,7 +247,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite
         "  test('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: make test\nWRONG_TEST: checkout.spec.ts › rejects an empty name\n")
+    report.write_text("SUITE: make test\nWRONG_TEST: checkout.spec.ts › rejects an empty name\n" + "CONTRADICTS: checkout.spec.ts › rejects an empty name\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "checkout.spec.ts::checkout accepts a name"], cwd=tmp_path)
@@ -288,7 +288,7 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
         report = repo / "green-report.txt"
         report.write_text(
             "SUITE: make test\n"
-            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case)
+            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, stdout))
@@ -324,7 +324,7 @@ def test_main_1621_counts_a_test_prefixed_python_function_only_when_defined_in_a
         report = repo / "green-report.txt"
         report.write_text(
             "SUITE: make test\n"
-            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case)
+            "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, stdout))
@@ -494,7 +494,7 @@ def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_
     results = []
     for number, case in enumerate((first, second)):
         report = tmp_path / ("green-report-%d.txt" % number)
-        report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
+        report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case + "CONTRADICTS: %s\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
         results.append((code, stdout))
@@ -567,7 +567,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_
     _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
     (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older)
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older + "CONTRADICTS: %s\n" % older)
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
 
@@ -589,7 +589,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red
     _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
     (tmp_path / record_path.rstrip("\n")).write_text("%s  %s\n" % ("0" * 64, name.relative_to(tmp_path)))
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older)
+    report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older + "CONTRADICTS: %s\n" % older)
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), edited], cwd=tmp_path)
 
@@ -900,7 +900,7 @@ def test_main_1865_prints_red_over_another_existing_case_a_wrong_test_line_says_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: %s contradicts the step's criterion, it asserts the opposite\n" % contradicting)
+        "WRONG_TEST: %s contradicts the step's criterion, it asserts the opposite\n" % contradicting + "CONTRADICTS: %s\n" % contradicting)
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
@@ -1513,7 +1513,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_backticks_an_it_title_in_a_foo_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1538,7 +1538,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "src/%s::foo accepts a name" % filename], cwd=tmp_path)
@@ -1560,7 +1560,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "src/__tests__/foo.ts::foo accepts a name"], cwd=tmp_path)
@@ -1618,7 +1618,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1639,7 +1639,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_an_only_or_skip_form_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1660,7 +1660,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1700,7 +1700,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_s
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1742,7 +1742,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_double_quotes_the_title_of_a_js
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        'WRONG_TEST: "%s" contradicts the criterion\n' % sibling)
+        'WRONG_TEST: "%s" contradicts the criterion\n' % sibling + 'CONTRADICTS: "%s"\n' % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1762,7 +1762,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_curly_quotes_the_title_of_a_js_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: “%s” contradicts the criterion\n" % sibling)
+        "WRONG_TEST: “%s” contradicts the criterion\n" % sibling + "CONTRADICTS: “%s”\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1786,7 +1786,7 @@ def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_
         report = repo / "green-report.txt"
         report.write_text(
             "SUITE: make test\n"
-            "WRONG_TEST: `rejects an empty name%s` contradicts the criterion\n" % ellipsis)
+            "WRONG_TEST: `rejects an empty name%s` contradicts the criterion\n" % ellipsis + "CONTRADICTS: `rejects an empty name%s`\n" % ellipsis)
         code, stdout, stderr = run_cli(
             wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=repo)
         results.append((code, stdout, stderr))
@@ -1823,7 +1823,7 @@ def test_main_1957_routes_a_wrong_test_name_that_is_the_exact_title_of_a_sibling
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `name` contradicts the criterion\n")
+        "WRONG_TEST: `name` contradicts the criterion\n" + "CONTRADICTS: `name`\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -1941,7 +1941,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_it_call_on_a_l
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
+        "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2030,7 +2030,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `doesn…` contradicts the criterion\n")
+        "WRONG_TEST: `doesn…` contradicts the criterion\n" + "CONTRADICTS: `doesn…`\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2049,7 +2049,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     report = tmp_path / "green-report.txt"
     report.write_text(
         "SUITE: make test\n"
-        "WRONG_TEST: `says…` contradicts the criterion\n")
+        "WRONG_TEST: `says…` contradicts the criterion\n" + "CONTRADICTS: `says…`\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2306,7 +2306,7 @@ def test_main_2172_prints_red_when_a_wrong_test_name_is_both_a_js_it_title_and_a
     nowhere.mkdir()
     (nowhere / "router.test.ts").write_text("it('expires an idle session', () => {});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: make test\nWRONG_TEST: `adminOnClock` sets a password without the clock\n")
+    report.write_text("SUITE: make test\nWRONG_TEST: `adminOnClock` sets a password without the clock\n" + "CONTRADICTS: `adminOnClock`\n")
 
     case = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=shared)
     missed = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=nowhere)
@@ -2503,7 +2503,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` "rejects an empty name"\n')
+    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` "rejects an empty name"\n' + "CONTRADICTS: `foo.test.ts`\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2520,7 +2520,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` “rejects an empty name”\n')
+    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` “rejects an empty name”\n' + "CONTRADICTS: `foo.test.ts`\n")
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2537,7 +2537,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › rejects an empty name\n')
+    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › rejects an empty name\n' + 'CONTRADICTS: foo.test.ts › rejects an empty name\n')
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2554,7 +2554,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › "rejects an empty name"\n')
+    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › "rejects an empty name"\n' + 'CONTRADICTS: "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2786,7 +2786,7 @@ def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare
         "func TestAdded(t *testing.T) {\n}\n\n"
         "func TestOther(t *testing.T) {\n}\n")
     report = tmp_path / "green-report.txt"
-    report.write_text("SUITE: go test ./...\nWRONG_TEST: TestOther asserts the opposite of the criterion\n")
+    report.write_text("SUITE: go test ./...\nWRONG_TEST: TestOther asserts the opposite of the criterion\n" + "CONTRADICTS: TestOther\n")
 
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
 
