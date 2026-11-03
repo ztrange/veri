@@ -325,8 +325,10 @@ full-suite lock wait.
    its wait for the full-suite lock, run `$S/unlabel-issue.sh <n>`, which removes the opt-in
    label (`VERI_LABEL`) so `solvable-issues.sh` stops listing the issue, and adds the label
    `taken:<lane>`, `<lane>` being the text after `VERI_LABEL`'s last `:`, or `main` when it has
-   none. It refuses with **exit 2** an issue already carrying any `taken:*` label or lacking the
-   opt-in label, and that exit 2 stops the run before any baseline, plan or leaf: report its
+   none. It refuses with **exit 2** an issue already carrying another lane's `taken:*` label, or its
+   own lane's when a ledger `.tdd/issue-<n>.md` exists, or lacking the opt-in label; a re-claim
+   with no ledger (an earlier launch claimed, then stopped in preflight) accepts the run's own
+   lane's label and exits 0. That exit 2 stops the run before any baseline, plan or leaf: report its
    diagnostic verbatim and do not start (a preflight-class stop, as in step 2 above).
    This is the run's **first claim**; the
    draft PR is its **durable claim**. A bailed or parked issue keeps `taken:<lane>`, so it never
