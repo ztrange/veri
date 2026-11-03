@@ -24,12 +24,12 @@
 
 | ID | Requirement | Why |
 |---|---|---|
-| CB1 | The prompt says this is the contract-b phase of an interface change: neither product code nor any test calls the old interface any more, and the old interface's proxy is deleted. (Opening paragraph, first two sentences.) | The leaf deletes the proxy only once nothing calls it. |
+| CB1 | The prompt says this is the contract-b phase of an interface change: neither product code nor any test calls the old interface any more, and the old interface is deleted: its proxy after expand, the old interface itself after beside. (Opening paragraph, first two sentences.) | The leaf deletes the old interface only once nothing calls it, and must know what exists to delete in each shape. |
 | CB2 | The prompt says behaviour does not change: every test that was green stays green, and test files stay frozen. (Opening paragraph, last sentence.) | The phase is a pure deletion; a changed test would hide a behaviour change. |
-| CB3 | Step 1 tells the leaf to delete the old interface's proxy from production. (Numbered list, item 1.) | It is the one change this phase makes. |
+| CB3 | Step 1 tells the leaf to delete the old interface from production: its proxy after expand, the interface itself after beside. (Numbered list, item 1.) | It is the one change this phase makes, and it differs by the shape the earlier phases left. |
 | CB4 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`. (Numbered list, item 3, first sentence.) | The commit carries the issue number. |
 | CB5 | Step 3 tells the leaf never to modify a test file: a contract-b commit that touches one is rejected. (Numbered list, item 3, second sentence.) | The frozen half of the phase is enforced by rejection. |
-| CB6 | The numbered list has three items in this order: delete the proxy (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The deletion is proven green before it is committed. |
+| CB6 | The numbered list has three items in this order: delete the old interface (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The deletion is proven green before it is committed. |
 
 ## skills/tdd/scripts/prompts/develop-expand.md
 
