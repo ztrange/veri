@@ -1,0 +1,9 @@
+before 40
+73b10bb7468d2e1e26a46bb8e509f6e12d57e43c
+keep 60
+skills/tdd/scripts/tests/py/test_suite_red_resume_process.py
+command 347
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeokkj_k6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_suite_red_resume_process.py make test TESTS=skills/tdd/scripts/tests/py/test_suite_red_resume_process.py::test_2884_rebased_tip_whose_rebase_conflicted_and_was_resolved_by_hand_inserts_the_step_and_keeps_that_tip
+green 40
+dbaa36ab58047f3110051c5527f9b418fb032262
+
