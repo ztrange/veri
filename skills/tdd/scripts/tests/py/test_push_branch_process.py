@@ -191,3 +191,17 @@ def test_a_bad_argument_and_a_bad_push_retries_each_exit_2_with_nothing_on_stdou
     assert answers == {arg: (2, "", only % arg + usage)
                        for arg in ("--bogus", "--force-with-lease", "--force-with-lease=tdd/1-x")}
     assert tunable == (2, "", "push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'\n")
+
+
+@pytest.mark.process("git push --force-with-lease to a bare repository")
+def test_no_argument_with_a_rebase_lease_file_pushes_a_rewritten_history_over_a_remote_still_at_the_leased_sha(
+        tmp_path, run_cli, push_branch):
+    remote = bare(tmp_path / "origin.git")
+    repo = fixture_repo(tmp_path / "work", remote)
+    git(repo, "push", "-q", "origin", BRANCH)
+    (repo / ".tdd" / "rebase-lease").write_text(git(repo, "rev-parse", "HEAD") + "\n")
+    git(repo, "commit", "-q", "--amend", "-m", "rebased")
+
+    code, _, _ = run_cli(push_branch, [], env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
+
+    assert (code, remote_at(remote)) == (0, git(repo, "rev-parse", "HEAD"))

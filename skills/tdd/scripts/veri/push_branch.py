@@ -64,6 +64,10 @@ def main(argv):
     backoff = tunable("VERI_PUSH_BACKOFF", "2")
     if backoff is None:
         return 2
+    if not argv and os.path.isfile(".tdd/rebase-lease"):
+        leased = open(".tdd/rebase-lease").read().strip()
+        branch = output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        argv = [f"--force-with-lease={branch}:{leased}"]
     attempt = 0
     retries = int(retries)
     while attempt <= retries:
