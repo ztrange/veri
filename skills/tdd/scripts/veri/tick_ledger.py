@@ -1,11 +1,14 @@
 """tick-ledger.sh's tick, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
+import event
 import ledger
 import tests_frozen
 from build_verify_prompt import INTERFACE_PHASES
 
+RETIRED_MARK = " ⟂ retired unpinnable"
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>"
 
 
@@ -14,8 +17,11 @@ def complain(message):
 
 
 def main(argv):
-    pending, phase, owed = False, None, False
+    pending, phase, owed, reason_file = False, None, False, None
     while True:
+        if argv[:1] == ["--unpinnable"] and len(argv) > 1:
+            reason_file, argv = argv[1], argv[2:]
+            continue
         if argv[:1] == ["--refactor-pending"]:
             pending, argv = True, argv[1:]
         elif argv[:1] == ["--phase"] and len(argv) > 1:
@@ -47,6 +53,11 @@ def main(argv):
             return 2
     else:
         ticked, new = ledger.ledger_tick(text, matcher, pending)
+        if ticked and reason_file:
+            old_lines, new_lines = text.split("\n"), new.split("\n")
+            at = next(i for i, (old, line) in enumerate(zip(old_lines, new_lines)) if old != line)
+            new_lines[at] += RETIRED_MARK
+            new = "\n".join(new_lines)
         if ticked and ledger.listed_phases(next(
                 old for old, line in zip(text.split("\n"), new.split("\n")) if old != line)):
             complain("step lists phases; mark one with --phase <phase>")
@@ -54,6 +65,13 @@ def main(argv):
     if not ticked:
         return 3
     left = ledger.rewrite_ledger(argv[0], new)
+    if left is None and reason_file:
+        step = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+        with open(reason_file, encoding="utf-8") as handle:
+            reason = next((l[7:].strip() for l in handle.read().splitlines() if l.startswith("REASON:")), "")
+        tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
+        return event.append(tdd_parent, event.context(os.environ), "unpinnable-step",
+                            ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:
         ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
         if tests_frozen.is_diff_checked(ticked_line):
