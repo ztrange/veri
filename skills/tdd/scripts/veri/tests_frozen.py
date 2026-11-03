@@ -698,7 +698,7 @@ def rerecord_refactored(ledger, green):
         if head_lines != verified_lines and \
                 sorted(head_lines + _assertion_lines(helpers)) \
                 != sorted(verified_lines):
-            return skip(name, case, record)
+            return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
         if head_lines == verified_lines and len(_assertion_lines(helpers)) \
                 != len(_assertion_lines(_called_helpers(green, name, verified))):
             return skip(name, case, record)

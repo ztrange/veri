@@ -5006,3 +5006,37 @@ def test_rerecord_refactored_names_the_helpers_digest_guard_in_parentheses_on_th
     assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
                                and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
         0, 1, [True])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_names_the_assertion_lines_guard_in_parentheses_on_the_skipped_line_of_a_head_body_record_whose_case_and_helpers_lost_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    kept = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2))
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text("func requireTwo(t *testing.T, x int) {\n" + kept + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireTwo(t, x)\n}\n")
+    _commit(tmp_path, "A refactor moves the assertions into a helper and loses one")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    head = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    record.write_text("".join(
+        "%s\nhelpers: suite_test.go\tTestX\t%s\n" % (tests_frozen._body_line("suite_test.go", "TestX", head), "6" * 64)
+        if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+
+    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
+                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+        0, 1, [True])
