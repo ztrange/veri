@@ -220,3 +220,19 @@ def test_a_push_under_the_rebase_lease_that_lands_removes_the_lease_file_so_the_
     code, _, _ = run_cli(push_branch, [], env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
 
     assert (code, remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
+
+
+@pytest.mark.process("git push --force-with-lease to a bare repository")
+def test_force_with_lease_naming_a_sha_the_remote_never_had_pushes_under_the_sha_the_rebase_lease_records(
+        tmp_path, run_cli, push_branch):
+    remote = bare(tmp_path / "origin.git")
+    repo = fixture_repo(tmp_path / "work", remote)
+    git(repo, "push", "-q", "origin", BRANCH)
+    (repo / ".tdd" / "rebase-lease").write_text(git(repo, "rev-parse", "HEAD") + "\n")
+    git(repo, "commit", "-q", "--amend", "-m", "rebased")
+    never_had = git(repo, "commit-tree", "-m", "a later rebase's pre-rebase sha", "HEAD^{tree}")
+
+    code, _, _ = run_cli(push_branch, ["--force-with-lease=%s:%s" % (BRANCH, never_had)],
+                         env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
+
+    assert (code, remote_at(remote)) == (0, git(repo, "rev-parse", "HEAD"))
