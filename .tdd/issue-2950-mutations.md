@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py
 command 393
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpjfa_0k5y/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py::test_cli_red_and_a_prompt_including_the_run_and_report_fragment_define_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950
 
+before 40
+a1d4cccfc15ec72048608a80bfdae56c530d8fc5
+keep 61
+skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py
+command 353
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpjfa_0k5y/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py::test_cli_revise_of_red_defines_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950
+

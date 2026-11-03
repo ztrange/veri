@@ -1478,6 +1478,21 @@ def test_cli_red_and_a_prompt_including_the_run_and_report_fragment_define_match
         "red": True, "red-contradicted": True}
 
 
+def test_cli_revise_of_red_defines_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950(
+        tmp_path, run_cli, build_develop_prompt):
+    reason = tmp_path / "reason.md"
+    reason.write_text("rejected\n")
+    rule = ("MATCHED when the same assertion fired on the same observed and expected values, "
+            "whatever the message text; DIVERGED only for a different assertion, different "
+            "values, or a different kind of failure")
+    note = "A message-text-only difference is MATCHED"
+
+    text = re.sub(r"\s+", " ", run_cli(
+        build_develop_prompt, ["revise", "red", _spec(tmp_path), "QWIXTLE step", "make test", str(reason)])[1])
+
+    assert (rule in text, note in text) == (True, True)
+
+
 def _spec(tmp_path, extra=""):
     spec = tmp_path / "spec.md"
     spec.write_text('zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\\n done.\n' + extra)
