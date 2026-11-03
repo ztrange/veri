@@ -690,7 +690,7 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "body digest matches neither green nor HEAD")
         if (digest != _body_digest(head) or digest == _body_digest(verified)) and recorded_helpers.get(
                 (name, case), _helper_digest(green_text, verified)) != _helper_digest(green_text, verified):
-            return skip(name, case, record)
+            return skip(name, case, record, "helpers digest differs from green's")
         helpers = _called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
         head_lines = [l for l in _assertion_lines(head) if l.split("(")[0] not in called]
