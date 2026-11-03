@@ -133,9 +133,23 @@ def no_pull_request_workflow(repo, head):
         if run.returncode != 0:
             return False
         text = base64.b64decode(json.loads(run.stdout)["content"]).decode()
-        if "pull_request" in text:
+        if any("pull_request" in line for line in trigger_lines(text)):
             return False
     return True
+
+
+def trigger_lines(text):
+    indent = None
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        depth = len(line) - len(line.lstrip(" "))
+        if indent is not None and depth > indent:
+            yield line
+            continue
+        indent = depth if line.lstrip(" ").startswith("on:") else None
+        if indent is not None:
+            yield line
 
 
 def unreadable(what):
