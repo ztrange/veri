@@ -297,10 +297,13 @@ def main(argv):
         asked = {l.split(":")[0] for l in failed}
         counted = set(asked)
         for _ in range(2):
-            more = launch_rows(asked)
-            if more is None:
-                return no_verdict("the grader leaf exited non-zero")
-            again = extract(more)
+            for _try in range(retries + 1):
+                more = launch_rows(asked)
+                if more is None:
+                    return no_verdict("the grader leaf exited non-zero")
+                again = extract(more)
+                if "BEGIN GRADES" in again:
+                    break
             if not asked <= set(graded_ids(again)):
                 return no_verdict("the re-grade has no GRADES block for the rows it was asked about")
             counted &= set(re.findall(r"^(?!VERDICT)(\S+): FAIL\b", again, re.M))
