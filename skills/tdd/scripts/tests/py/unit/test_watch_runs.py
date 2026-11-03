@@ -69,6 +69,27 @@ def test_main_does_not_report_again_at_its_start_a_run_whose_exit_the_watch_runn
     assert watches == [(0, "exited 5 done\n"), (0, "exited 7 done\n"), (3, "nothing to watch\n")]
 
 
+def test_main_reports_at_its_start_only_the_run_that_exited_between_watches_and_keeps_watching_the_run_still_live_2995(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    clock = iter([0, 10])
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(clock))
+    listings = iter([["5", "7"], ["5", "7"]])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    assert (watch_runs.main(["--max-wait", "1"]), capsys.readouterr().out) == (3, "timeout\n")
+
+    listings = iter([["5"], ["5"], ["5"], []])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    watches = []
+    for _ in range(2):
+        code = watch_runs.main([])
+        watches.append((code, capsys.readouterr().out))
+
+    assert watches == [(0, "exited 7 done\n"), (0, "exited 5 done\n")]
+
+
 def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fewer_than_target_are_live(
         monkeypatch, capsys, watch_runs):
     waits = []

@@ -26,3 +26,12 @@ new 17
 command 174
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_watch_runs.py::test_main_does_not_report_again_at_its_start_a_run_whose_exit_the_watch_running_at_the_time_reported_2995
 
+before 40
+f56f389bf32134a4cb5d6a1bca61035fb8f266b4
+keep 51
+skills/tdd/scripts/tests/py/unit/test_watch_runs.py
+command 337
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpw2s816wv/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_watch_runs.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_watch_runs.py::test_main_reports_at_its_start_only_the_run_that_exited_between_watches_and_keeps_watching_the_run_still_live_2995
+green 40
+6ab68cec43f6e27865432bf22e8f1ed16f99051d
+
