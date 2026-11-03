@@ -65,7 +65,7 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
 
 OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be met as stated>
 AGAINST_UNMODIFIED: FAILS | PASSES | N/A — <does the test fail against the unmodified production code; N/A if you did not touch a test>
-PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was predicted to fire on, the values it fires on and the shape of the message, as predicted before running; N/A otherwise>
+PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was predicted to fire on and the observed and expected values it fires on, as predicted before running; you may add the shape of the message as a hint only — the run is not compared on it; N/A otherwise>
 PREDICTION: MATCHED | DIVERGED — <redoing red only, so omit this line entirely otherwise. MATCHED when the same assertion fired on the same observed and expected values, whatever the message text; DIVERGED only for a different assertion, different values, or a different kind of failure (an error instead of an assertion failure, or a pass). A message-text-only difference is MATCHED>
 FAIL_OUTPUT: <redoing red only — the failure line the run printed; omit this line entirely otherwise>
 PREDICTION_NOTE: <redoing red only, and only on DIVERGED — what actually happened and why it could not be reconciled; omit this line entirely otherwise>
