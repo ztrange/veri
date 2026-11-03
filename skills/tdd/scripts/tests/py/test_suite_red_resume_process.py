@@ -85,3 +85,44 @@ def test_2884_rebased_tip_inserts_one_suite_repair_step_after_the_last_done_step
     assert lines.count(step) == 1 and lines.index(step) == lines.index("- [x] a wheel turns ⟦criterion 2⟧") + 1
     assert "suite-repair" in (repo / ".tdd" / "issue-42-added.md").read_text()
     assert git(repo, "rev-parse", "HEAD").strip() == head
+
+
+@pytest.mark.process("suite-red-resume.sh over a real git repository whose HEAD is a hand-resolved rebased tip")
+def test_2884_rebased_tip_whose_rebase_conflicted_and_was_resolved_by_hand_inserts_the_step_and_keeps_that_tip(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [x] a wheel turns ⟦criterion 2⟧\n")
+    (repo / "shared.txt").write_text("base\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    git(repo, "checkout", "-q", "-b", "tdd/42")
+    (repo / "shared.txt").write_text("branch\n")
+    git(repo, "commit", "-q", "-am", "feat: branch edit (#42)")
+    pre_rebase = git(repo, "rev-parse", "HEAD").strip()
+    git(repo, "checkout", "-q", "main")
+    (repo / "shared.txt").write_text("main\n")
+    git(repo, "commit", "-q", "-am", "feat: main edit (#1)")
+    git(repo, "checkout", "-q", "tdd/42")
+    conflicted = subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                                 "rebase", "main"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    assert conflicted.returncode != 0
+    (repo / "shared.txt").write_text("branch and main\n")
+    git(repo, "add", "shared.txt")
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                    "-c", "core.editor=true", "rebase", "--continue"], check=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    head = git(repo, "rev-parse", "HEAD").strip()
+    red = tmp_path / "red"
+    red.write_text("test_a.py — FAIL a\ntest_b.py\n")
+    step = "- [ ] fix the full-suite failure: test_a.py — FAIL a; test_b.py ⟦suite-repair⟧ ⟦criterion 2⟧"
+
+    ran = script("suite-red-resume.sh", "rebased-tip", str(ledger), str(red), pre_rebase, cwd=repo)
+
+    lines = ledger.read_text().split("\n")
+    assert head != pre_rebase
+    assert ran[0] == 0, ran
+    assert lines.count(step) == 1
+    assert git(repo, "rev-parse", "HEAD").strip() == head
+    assert (repo / "shared.txt").read_text() == "branch and main\n"
