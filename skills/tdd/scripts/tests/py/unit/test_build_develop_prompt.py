@@ -1116,6 +1116,22 @@ def test_main_keeps_a_dual_stub_revise_prompt_on_the_production_freeze_rule_and_
     assert (code, production_fragment in out, test_fragment in out) == (0, True, False)
 
 
+def test_main_freezes_tests_in_a_beside_revise_prompt_as_an_expand_revise_does_2922(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the new transport is not added beside the old.\n")
+
+    test_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-test.md").read_bytes().rstrip(b"\n")
+    production_fragment = (SCRIPTS / "prompts" / "_develop-revise-freeze-production.md").read_bytes().rstrip(b"\n")
+    code = build_develop_prompt.main(
+        ["revise", "beside", str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, test_fragment in out, production_fragment in out) == (0, True, False)
+
+
 def test_main_renders_a_red_prompt_taking_a_ci_repair_steps_quoted_ci_log_as_its_evidence_of_failure_and_a_local_pass_as_no_pin_only_for_the_mark_1431(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
