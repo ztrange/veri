@@ -104,6 +104,18 @@ alone, and route:
   the `file:line` where coverage was found (then it is not a finding) or the search term it
   used and found nothing for.
 
+  **Every finding is blocking or a PR-body line.** Each finding your review of a ✅ Done run
+  makes is one of two things. **Blocking**, fixed on the PR's branch before merge: a criterion
+  with no test that goes red when its behaviour is removed; a behaviour failure or regression;
+  a surviving mutant in a guard, an exit-code path, or data-deleting or data-overwriting code;
+  a doc miss (next paragraph). **Otherwise**, a line in the PR body. A review finding is never
+  filed as an issue.
+
+  **Doc miss.** When the run's PR adds or renames a phase, subcommand, flag or event, the
+  review searches for the name in the script's usage string, `SCRIPTS.md`, `REVISE.md`, the
+  `REQUIREMENTS.md` rows and the prompt templates. Any site that omits it, or still states the
+  old behaviour, blocks the merge.
+
   **Rate limits.** A GitHub call refused with `rate limit exceeded` while `gh api rate_limit`
   still reports quota has hit GitHub's secondary limit: use REST rather than wait for the
   reset.
