@@ -2,3 +2,4 @@
 - `rerecord_refactored` repeats the `_helper_digest(green_text, verified)` call, which could be computed once
 - the repeated `skip(...)` guards could be merged into one reason-bearing helper. This belongs to the "skip names the guard" criterion, which the plan does not cover in this step.
 applied | f38e4f5fdf0a5778a9186f352ff05b829af64a54 | `rerecord_refactored` repeats the `_helper_digest(green_text, verified)` call, which could be computed once	chore: refactor verified for the assertionless-shape guard's skip reason (#2985)
+not-done | uncovered | the repeated `skip(...)` guards could be merged into one reason-bearing helper. This belongs to the "skip names the guard" criterion, which the plan does not cover in this step.
