@@ -53,7 +53,10 @@ written inside. {{RED_CASES}}{{CI_REPAIR}}
    Save that run's output to `.tdd/red-run-output.txt`, the file `red-divergence.sh` dates your
    prediction file against.
 4. **Compare what it printed against what you predicted**, and report which it was.
-   *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case
+   *Matched* means the same assertion fired on the same observed and expected values,
+   whatever the message text says. *Diverged* means a different assertion, different
+   values, or a different kind of failure (an error where you predicted an assertion, or
+   the reverse). *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case
    failed for a reason you did not write it to catch, which is how a typo'd fixture path, a
    helper this suite does not have, or an assertion on the wrong value all reach Green
    looking red. Revise the **test**, predict again and re-run, until the observed failure is
