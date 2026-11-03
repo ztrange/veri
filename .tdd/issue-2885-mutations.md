@@ -25,3 +25,12 @@ make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_coun
 green 40
 ea1c9cbab197d6960e63d6814b4bc78b7f6f776e
 
+before 40
+4285b701485e92b52e4e98ea7609e33b4bcd161d
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 202
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_counts_an_on_map_holding_a_pull_request_key_as_triggering_and_the_same_map_without_it_as_not_when_ci_on_pr_is_unset_issue_2885
+green 40
+b3b0ba2e7fb3a3257370250c86d1dd9baa4b3074
+
