@@ -2,8 +2,9 @@
 
 ## Phase: develop-migrate
 
-This is the **migrate** phase of an interface change. The new interface exists and the old
-one is a proxy over it; the callers move to the new interface. Behaviour does not change:
+This is the **migrate** phase of an interface change. The new interface exists, and the old
+one is either a proxy over it (after expand) or stands beside it, unchanged (after beside);
+the callers move to the new interface. Behaviour does not change:
 every test that was green stays green, and test files stay frozen.
 
 {{INCLUDE:_develop-interface-change.md}}
