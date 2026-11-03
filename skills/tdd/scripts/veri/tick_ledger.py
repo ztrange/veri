@@ -16,6 +16,10 @@ def complain(message):
     print(f"tick-ledger.sh: {message}", file=sys.stderr)
 
 
+def changed_line(text, new):
+    return next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+
+
 def main(argv):
     pending, phase, owed, reason_file = False, None, False, None
     while True:
@@ -66,14 +70,14 @@ def main(argv):
         return 3
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
-        step = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+        step = changed_line(text, new)
         with open(reason_file, encoding="utf-8") as handle:
             reason = next((l[7:].strip() for l in handle.read().splitlines() if l.startswith("REASON:")), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
         return event.append(tdd_parent, event.context(os.environ), "unpinnable-step",
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:
-        ticked_line = next(line for old, line in zip(text.split("\n"), new.split("\n")) if old != line)
+        ticked_line = changed_line(text, new)
         if tests_frozen.is_diff_checked(ticked_line):
             return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
         if pending:
