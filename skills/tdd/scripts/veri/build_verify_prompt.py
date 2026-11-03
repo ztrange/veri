@@ -7,7 +7,7 @@ import re
 import sys
 
 from entry import write
-from ledger import carries_mark, trailing_markers
+from ledger import carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
@@ -78,7 +78,7 @@ def _expand(text, prompts, chain=()):
 
 
 def _later_steps(ledger, step_arg):
-    unchecked = [line[6:] for line in _read(ledger).decode().split("\n") if line.startswith("- [ ] ")]
+    unchecked = [step[6] for step in ledger_steps(_read(ledger).decode()) if step[1] == "open"]
     return list(itertools.dropwhile(lambda text: text != step_arg, unchecked))[1:]
 
 

@@ -2903,3 +2903,24 @@ def test_main_2845_prints_revise_and_exits_3_for_a_reject_whose_missing_test_lin
         answers.append((code, stdout))
 
     assert answers == [(3, "revise\n")] * 3
+
+
+def test_main_2916_criterion_5_a_later_step_report_is_checked_against_the_ledger_ledger_path_names(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    ledger = importlib.import_module("ledger")
+    step = "a cog turns ⟦criterion 1⟧"
+    later = "a cog never moves alone ⟦criterion 3⟧"
+    elsewhere = tmp_path / "elsewhere.md"
+    elsewhere.write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n" % step)
+    monkeypatch.setattr(ledger, "ledger_path", lambda run_dir, issue: str(elsewhere))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % later)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
