@@ -1,0 +1,3 @@
+### A case under skills/tdd/scripts/tests/py/ whose run leaves the real SCRIPTS/veri/__pycache__ not byte-identical to before it ran (a file added, removed or changed there) fails, by a check in conftest.py that every case passes through ⟦guard-subject: skills/tdd/scripts/tests/py/conftest.py⟧ ⟦criterion 4⟧
+- test-only | In `unit/test_conftest_guards.py`, replace `for name in ("added.pyc",): (cache / name).unlink(missing_ok=True)` with a plain `(cache / "added.pyc").unlink(missing_ok=True)`, since the one-element loop is needless.
+- test-only | In `conftest.py`, `veri_pycache_snapshot` and the `pytest_runtest_call` hook could take the `__pycache__` path from one helper. Both are this cycle's code and the duplication is small, so it is optional.
