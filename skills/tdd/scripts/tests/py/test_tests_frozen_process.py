@@ -4788,3 +4788,43 @@ def test_rerecord_refactored_refreshes_the_helpers_line_of_a_go_case_already_rec
     assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
             "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
         0, False, True, (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_a_go_case_at_heads_body_whose_helpers_digest_is_neither_greens_nor_heads_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    with record.open("a") as handle:
+        handle.write("helpers: suite_test.go\tTestX\t%s\n" % tests_frozen._helper_digest(
+            suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "TestX")[0]))
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    green_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    suite.write_text("func requireAll(t *testing.T, x int) {\n" + asserts + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+    _commit(tmp_path, "A refactor moves the assertions into a helper")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    older = "helpers: suite_test.go\tTestX\t%s\n" % ("6" * 64)
+    record.write_text("".join(
+        tests_frozen._body_line("suite_test.go", "TestX", head_body) + "\n"
+        if line.startswith("body: ") else older if line.startswith("helpers: ") else line
+        for line in record.read_text().splitlines(keepends=True)))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
+            "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
+        0, False, True, (0, ""))
