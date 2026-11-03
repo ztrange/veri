@@ -122,6 +122,8 @@ def sha_state(repo, sha):
 def no_pull_request_workflow(repo, head):
     root = "repos/%s/contents/.github/workflows" % repo
     listing = gh_api("%s?ref=%s" % (root, head), stderr=subprocess.PIPE)
+    if "HTTP 404" in (listing.stderr or ""):
+        return True
     try:
         entries = json.loads(listing.stdout)
     except ValueError:

@@ -1419,3 +1419,21 @@ def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_check
     code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, out, "no check will come" in err) == (0, "", True)
+
+
+def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_no_workflows_directory_issue_2885(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+
+    def workflows(line):
+        return NOT_FOUND if ".github/workflows" in line else None
+
+    served(fake_processes, bodies, workflows)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out, "no check will come" in err) == (0, "", True)
