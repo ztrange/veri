@@ -7,3 +7,12 @@ command 347
 green 40
 dbaa36ab58047f3110051c5527f9b418fb032262
 
+before 40
+73b10bb7468d2e1e26a46bb8e509f6e12d57e43c
+keep 60
+skills/tdd/scripts/tests/py/test_suite_red_resume_process.py
+command 335
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeokkj_k6/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_suite_red_resume_process.py make test TESTS=skills/tdd/scripts/tests/py/test_suite_red_resume_process.py::test_2884_rebased_tip_on_a_ledger_already_holding_a_suite_repair_step_exits_1_and_adds_no_step
+green 40
+6d6f2f06216e9c0c34a4fade8b216c36f32f2f60
+
