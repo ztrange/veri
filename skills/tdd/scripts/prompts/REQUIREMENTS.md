@@ -115,6 +115,7 @@
 | RD13 | Step 6 tells the leaf to leave no change to any file other than the test file. (What to do, item 6.) | Red writes no production code. |
 | RD14 | The prompt ends by asking, in its last lines, for `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:` (UNTESTABLE only), `FAIL_OUTPUT:`, `PREDICTED_FAILURE:`, `PREDICTION: MATCHED | DIVERGED` and `PREDICTION_NOTE:` (on DIVERGED), in that order. (Report section.) | The conductor and `red-divergence.sh` read fixed lines. |
 | RD15 | The `PREDICTED_FAILURE:` line asks for the missing name when the predicted failure is an error on the name the step introduces rather than an assertion, and otherwise for the assertion, the values and the message shape, as predicted before running. (Report section, the `PREDICTED_FAILURE:` line.) | A red that fails on an undefined name is predicted by that name, not by an assertion. |
+| RD16 | Step 4 carries the same MATCHED/DIVERGED definition as RP11. | develop-red.md renders its own copy of the step. |
 
 ## skills/tdd/scripts/prompts/develop-red-missing.md
 
