@@ -281,7 +281,9 @@ def main(argv):
         _restore(snapshot, path, unit, graded_file)
 
     listed = _listed_ids(path, unit)
-    fresh = any(_row_id(r) not in listed for r in issue_rows)
+    texts = dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
+    fresh = any(_row_id(r) not in listed or requirements.split_cells(r)[2] != texts.get(_row_id(r))
+                for r in issue_rows)
     moved = apply(issue, unit)
     if not _claimed(path, unit):
         if added is not None:
