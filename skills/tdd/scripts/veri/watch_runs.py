@@ -76,8 +76,9 @@ def _remember(issues):
         pass
 
 
-def _report_exit(issue, state):
-    _remember([i for i in _seen() if i != issue])
+def _report_exit(issue, state, live=()):
+    kept = [i for i in _seen() if i != issue]
+    _remember(kept + [i for i in live if i not in kept])
     print("exited %s %s" % (issue, state))
     return 0
 
@@ -102,7 +103,7 @@ def main(argv):
     for issue in seen:
         if issue not in started:
             state = run_state(issue).split(" ")[0]
-            return _report_exit(issue, state)
+            return _report_exit(issue, state, started)
     _remember(started)
     if not given and not started:
         print("nothing to watch")
