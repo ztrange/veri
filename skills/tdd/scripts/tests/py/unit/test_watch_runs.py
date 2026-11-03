@@ -53,6 +53,22 @@ def test_main_reports_at_its_start_a_run_seen_live_by_an_earlier_watch_whose_con
     assert (code, capsys.readouterr().out) == (0, "exited 7 done\n")
 
 
+def test_main_does_not_report_again_at_its_start_a_run_whose_exit_the_watch_running_at_the_time_reported_2995(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    listings = iter([["5", "7"], ["7"], [], []])
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+
+    watches = []
+    for _ in range(3):
+        code = watch_runs.main([])
+        watches.append((code, capsys.readouterr().out))
+
+    assert watches == [(0, "exited 5 done\n"), (0, "exited 7 done\n"), (3, "nothing to watch\n")]
+
+
 def test_main_with_target_prints_slot_free_with_the_first_solvable_issue_when_fewer_than_target_are_live(
         monkeypatch, capsys, watch_runs):
     waits = []
