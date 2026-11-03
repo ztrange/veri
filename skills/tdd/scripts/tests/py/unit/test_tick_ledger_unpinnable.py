@@ -29,3 +29,18 @@ def test_main_unpinnable_retires_the_matched_step_with_an_unpinnable_step_event_
     assert names.count("unpinnable-step") == 1 and "revise" not in names
     event = events[names.index("unpinnable-step")]
     assert "a one" in json.dumps(event, ensure_ascii=False) and "stays green" in json.dumps(event)
+
+
+def test_main_unpinnable_with_any_other_reject_reason_exits_1_and_leaves_ledger_and_events_unchanged_2999(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(before)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the test is trivial and over-coupled to the wording\n")
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err

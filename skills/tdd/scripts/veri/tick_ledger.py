@@ -34,6 +34,10 @@ def main(argv):
             phase, owed, argv = argv[1], True, argv[2:]
         else:
             break
+    if reason_file:
+        with open(reason_file, encoding="utf-8") as handle:
+            if "stays green" not in handle.read():
+                return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2
