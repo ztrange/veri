@@ -1,0 +1,9 @@
+before 40
+4285b701485e92b52e4e98ea7609e33b4bcd161d
+keep 52
+skills/tdd/scripts/tests/py/unit/test_grade_prose.py
+command 369
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpe9rzyqcv/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_grade_prose.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_grade_prose.py::test_with_two_retries_a_confirming_re_grade_that_never_writes_a_grades_block_is_launched_three_times_then_exits_2_with_the_re_grade_message_2989
+green 40
+5d17690dca143b52397541c68ffe39ef3687fd8f
+

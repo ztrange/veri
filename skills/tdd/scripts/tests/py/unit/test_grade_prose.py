@@ -1360,3 +1360,36 @@ def test_a_confirming_re_grade_reply_whose_grades_block_repeats_an_id_is_relaunc
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     assert code == 1, (code, out, err)
+
+
+@pytest.mark.tree_audit("the skills directory, for every skills/v*/GRADED file")
+def test_with_two_retries_a_confirming_re_grade_that_never_writes_a_grades_block_is_launched_three_times_then_exits_2_with_the_re_grade_message_2989(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    fail = "BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"
+    replies = iter([fail] + ["I will grep the file first."] * 10)
+    launched = []
+
+    def fake_launch(name, *a, **k):
+        launched.append(name)
+        (tmp_path / ".tdd" / f"{name}.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"result":"%s"}\n' % next(replies))
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "2")
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, len(launched) - 1, err.strip()) == (
+        2, 3,
+        "grade-prose.sh: no verdict obtained: the re-grade has no GRADES block for the rows it was asked about"), (
+        code, launched, err)
