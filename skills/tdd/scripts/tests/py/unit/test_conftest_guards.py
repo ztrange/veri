@@ -334,3 +334,40 @@ def test_2246_the_inherited_tmpdir_guard_fails_planted_cases_that_create_in_it_t
     for leak in ("leak-mkdir", "leak-open", "leak-os-open"):
         assert "the inherited TMPDIR" in output
         assert str(inherited / leak) in output
+
+
+def test_the_real_pycache_guard_fails_a_planted_case_that_adds_changes_or_removes_a_file_in_veri_pycache_while_a_case_leaving_it_alone_passes_issue_3002(pytester, monkeypatch, tmp_path):
+    scripts = tmp_path / "scripts"
+    cache = scripts / "veri" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "kept.pyc").write_bytes(b"kept")
+    (cache / "doomed.pyc").write_bytes(b"doomed")
+    monkeypatch.setattr(conftest, "SCRIPTS", scripts)
+    pytester.makepyfile(test_planted="""
+        import conftest
+
+        def cache():
+            return conftest.SCRIPTS / "veri" / "__pycache__"
+
+        def test_adds():
+            (cache() / "added.pyc").write_bytes(b"x")
+
+        def test_changes():
+            (cache() / "kept.pyc").write_bytes(b"changed")
+
+        def test_removes():
+            (cache() / "doomed.pyc").unlink()
+
+        def test_leaves_alone():
+            assert cache().is_dir()
+    """)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-k", "adds or changes or removes", plugins=[conftest])
+    result.assert_outcomes(failed=3)
+
+    for name in ("added.pyc",):
+        (cache / name).unlink(missing_ok=True)
+    (cache / "kept.pyc").write_bytes(b"kept")
+    (cache / "doomed.pyc").write_bytes(b"doomed")
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-k", "leaves_alone", plugins=[conftest])
+    result.assert_outcomes(passed=1)
