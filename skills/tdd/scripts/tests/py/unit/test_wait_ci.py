@@ -1462,3 +1462,30 @@ def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_check
     code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, out, "no check will come" in err) == (0, "", True)
+
+
+def test_main_counts_a_trigger_list_holding_pull_request_as_triggering_and_a_push_only_list_as_not_when_ci_on_pr_is_unset_issue_2885(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    answers = {}
+    for trigger in ("[push, pull_request]", "[push]"):
+        work = tmp_path / ("work-" + trigger.strip("[]").replace(", ", "-"))
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([], [], "pending")
+        bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                   "head": {"sha": FULL_SHA}})
+        workflow = "name: CI\non: %s\njobs: {}\n" % trigger
+
+        def workflows(line, workflow=workflow):
+            if ".github/workflows" not in line:
+                return None
+            if line.split("?")[0].endswith("ci.yml"):
+                return json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                   "content": base64.b64encode(workflow.encode()).decode()})
+            return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+        served(fake_processes, bodies, workflows)
+        code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        answers[trigger] = (code, out, "no check will come" in err)
+
+    assert answers == {"[push, pull_request]": (3, "", False), "[push]": (0, "", True)}
