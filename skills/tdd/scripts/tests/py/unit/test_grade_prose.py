@@ -1393,3 +1393,33 @@ def test_with_two_retries_a_confirming_re_grade_that_never_writes_a_grades_block
         2, 3,
         "grade-prose.sh: no verdict obtained: the re-grade has no GRADES block for the rows it was asked about"), (
         code, launched, err)
+
+
+@pytest.mark.tree_audit("the skills directory, for every skills/v*/GRADED file")
+def test_the_first_pass_prompt_and_the_confirming_re_grade_prompt_both_tell_the_grader_to_call_no_tool_2989(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    fail = "BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"
+    replies = iter([fail, fail, fail])
+    prompts = []
+
+    def fake_launch(name, prompt_path, *a, **k):
+        prompts.append(open(prompt_path).read())
+        (tmp_path / ".tdd" / f"{name}.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"result":"%s"}\n' % next(replies))
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    rule = "Answer from the text given here. Do not call any tool."
+    assert [rule in p for p in prompts] == [True, True, True], prompts
