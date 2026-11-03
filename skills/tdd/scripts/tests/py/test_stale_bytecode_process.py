@@ -40,27 +40,24 @@ def test_shim_run_with_a_stale_pyc_planted_beside_the_source_uses_the_current_so
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
 
 
-@pytest.mark.process("python3 run directly on veri/next_unchecked.py with a stale ledger .pyc planted in veri/__pycache__ and no pycache prefix in its environment")
+@pytest.mark.tree_audit("a copy of veri/ made into tmp_path")
+@pytest.mark.process("python3 run directly on a copy of veri/next_unchecked.py with a stale ledger .pyc planted in the copy's __pycache__ and no pycache prefix in its environment")
 def test_direct_module_run_with_a_stale_pyc_planted_beside_the_source_uses_the_current_source_2368(tmp_path):
-    source = SCRIPTS / "veri" / "ledger.py"
+    veri = tmp_path / "veri"
+    shutil.copytree(SCRIPTS / "veri", veri, ignore=shutil.ignore_patterns("__pycache__"))
+    source = veri / "ledger.py"
     planted = source.parent / "__pycache__" / ("ledger.%s.pyc" % sys.implementation.cache_tag)
     stat = source.stat()
     code = compile(STALE_LEDGER_MODULE, str(source), "exec")
     header = (importlib.util.MAGIC_NUMBER + (0).to_bytes(4, "little")
               + (int(stat.st_mtime) & 0xFFFFFFFF).to_bytes(4, "little")
               + (stat.st_size & 0xFFFFFFFF).to_bytes(4, "little"))
-    original = planted.read_bytes() if planted.exists() else None
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"}
     planted.parent.mkdir(exist_ok=True)
     planted.write_bytes(header + marshal.dumps(code))
-    try:
-        ran = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "next_unchecked.py")], input=LEDGER,
-                             env=env, cwd=tmp_path, capture_output=True, text=True)
-    finally:
-        if original is None:
-            planted.unlink(missing_ok=True)
-        else:
-            planted.write_bytes(original)
+
+    ran = subprocess.run([sys.executable, str(veri / "next_unchecked.py")], input=LEDGER,
+                         env=env, cwd=tmp_path, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "collapse non-alphanumerics to a single hyphen\n")
 
