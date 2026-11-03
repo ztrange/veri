@@ -670,8 +670,8 @@ def rerecord_refactored(ledger, green):
     for _, __, records in _earlier_records(lines, ""):
         recorded_helpers.update(_helper_records(records))
 
-    def skip(name, case, record, reason=""):
-        write(sys.stderr, "skipped: %s %s%s" % (name, case, " (%s)" % reason if reason else ""))
+    def skip(name, case, record, reason):
+        write(sys.stderr, "skipped: %s %s (%s)" % (name, case, reason))
         return record
 
     seen = {}
