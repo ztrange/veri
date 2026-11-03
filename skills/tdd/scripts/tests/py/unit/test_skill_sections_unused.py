@@ -1,6 +1,7 @@
 """Guard: skill_sections.py keeps no public helper that no other suite uses."""
 import ast
 import pathlib
+import shutil
 
 import pytest
 
@@ -45,3 +46,19 @@ def unused_public_helpers(module, tree):
 def test_skill_sections_defines_no_public_helper_that_no_other_suite_uses():
     unused = unused_public_helpers(MODULE, PY_TESTS)
     assert unused == [], f"skill_sections.py has unused public helpers: {unused}"
+
+
+def test_unused_helper_check_names_a_planted_helper_and_passes_without_it(tmp_path):
+    tree = tmp_path / "tree"
+    tree.mkdir()
+    clean = tree / "skill_sections.py"
+    clean.write_text(MODULE.read_text())
+    uses = ", ".join(_public_names(clean))
+    (tree / "test_consumer.py").write_text(f"from skill_sections import {uses}\n")
+    assert unused_public_helpers(clean, tree) == []
+
+    planted = tmp_path / "planted"
+    shutil.copytree(tree, planted)
+    with (planted / "skill_sections.py").open("a") as handle:
+        handle.write("\n\ndef planted_unused_helper():\n    return None\n")
+    assert unused_public_helpers(planted / "skill_sections.py", planted) == ["planted_unused_helper"]
