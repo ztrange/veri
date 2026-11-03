@@ -1,6 +1,6 @@
 # Plan for #2950 — A red failure on the predicted assertion with the predicted values counts as PREDICTION: MATCHED whatever its message text
 
-- [ ] _develop-red-run-and-report.md item 4 defines the comparison: the same assertion firing on the same observed and expected values is MATCHED whatever the message text, and DIVERGED is only a different assertion, different values or a different kind of failure (RP11), in skills/tdd/scripts/prompts/_develop-red-run-and-report.md ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] _develop-red-run-and-report.md item 4 defines the comparison: the same assertion firing on the same observed and expected values is MATCHED whatever the message text, and DIVERGED is only a different assertion, different values or a different kind of failure (RP11), in skills/tdd/scripts/prompts/_develop-red-run-and-report.md ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] develop-red.md item 4 carries the same MATCHED/DIVERGED definition as RP11 (RD16), in skills/tdd/scripts/prompts/develop-red.md ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] develop-revise.md, redoing red only, defines the PREDICTION: line by the same rule: a message-text-only difference is MATCHED (DV7), in skills/tdd/scripts/prompts/develop-revise.md ⟦skill-edit⟧ ⟦criterion 2⟧
 - [ ] _develop-red-run-and-report.md asks the prediction (item 2 and the PREDICTED_FAILURE: line) for the assertion and the values, and for the message only as a hint the run is not compared on, in skills/tdd/scripts/prompts/_develop-red-run-and-report.md ⟦skill-edit⟧ ⟦criterion 3⟧
