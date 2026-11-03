@@ -1,7 +1,8 @@
 2. **Predict the failure before you run anything.** Read the case you just wrote against
    the production code it will run against, and write — to `.tdd/red-prediction.md`, before
-   you run any suite — which assertion fires first, the observed-versus-expected values it fires on,
-   and the shape of the message the suite will print. It is formed from the test and the code,
+   you run any suite — which assertion fires first and the observed-versus-expected values it
+   fires on. You may add the shape of the message the suite will print, but only as a hint: the
+   run is not compared on the message. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
 3. Run the suites {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
@@ -48,7 +49,7 @@ TARGET_TEST: <the exact case name string you used, or NONE on UNTESTABLE>
 AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE
 WHY: <UNTESTABLE only — which rule (1, 2 or 3) the only available test would break, and why>
 FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, otherwise from the temporarily-broken code>
-PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion, the values and the message shape — as predicted before running>
+PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion and the observed and expected values it fires on, plus the message shape only as a hint the run is not compared on — as predicted before running>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
 
