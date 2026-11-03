@@ -1,8 +1,11 @@
 """reorder-ledger-steps.sh's move, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
+import event
 import ledger
+import tunables
 
 USAGE = "usage: reorder-ledger-steps.sh <ledger-file> <step-substring> before|after <anchor-substring>"
 
@@ -39,6 +42,9 @@ def _open_match(lines, substring, refusal):
 
 
 def main(argv):
+    later = argv[:1] == ["--reroute-later"]
+    if later:
+        argv = argv[1:]
     if len(argv) != 4 or argv[2] not in ("before", "after"):
         print(USAGE, file=sys.stderr)
         return 2
@@ -54,6 +60,9 @@ def main(argv):
         anchor -= 1
     lines.insert(anchor if argv[2] == "before" else anchor + 1, step)
     ledger.replace_ledger(argv[0], "\n".join(lines).encode(errors="surrogateescape"))
+    if later:
+        tdd = os.path.dirname(os.path.abspath(argv[0]))
+        return event.mark(os.path.dirname(tdd), event.context(tunables.with_values()), "reroute", ["kind=later"])
     return 0
 
 

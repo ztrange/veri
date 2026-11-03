@@ -1,5 +1,6 @@
 """In-process cases for veri/reorder_ledger_steps.py, the module reorder-ledger-steps.sh is a shim over."""
 import importlib
+import json
 
 import pytest
 
@@ -181,3 +182,18 @@ def test_the_four_ledger_entry_points_exit_2_naming_the_path_and_the_os_reason_f
 
         assert (name, code) == (name, 2)
         assert (name, str(ledger) in err, "Is a directory" in err) == (name, True, True)
+
+
+def test_2916_reroute_later_moves_the_later_step_before_the_current_one_and_writes_a_kind_later_reroute_event(tmp_path, run_cli, reorder):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-2916.md"
+    ledger.write_text("# Plan for #2916\n\n- [ ] alpha step\n- [ ] bravo step\n- [ ] charlie step\n")
+
+    code, out, err = run_cli(reorder, ["--reroute-later", str(ledger), "charlie", "before", "alpha"],
+                             env={"VERI_ISSUE": "2916", "VERI_STEP": "alpha step"})
+
+    assert code == 0, err
+    assert ledger.read_text() == "# Plan for #2916\n\n- [ ] charlie step\n- [ ] alpha step\n- [ ] bravo step\n"
+    events = [json.loads(line) for line in (tdd / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["step"], e["kind"]) for e in events if e["event"] == "reroute"] == [("reroute", "alpha step", "later")]
