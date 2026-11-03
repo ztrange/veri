@@ -515,7 +515,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | FT1 | The fragment opens, in bold, with: redoing an interface phase freezes the test files. (First sentence.) | The redo leaf must know which half of the tree is frozen. |
-| FT2 | The fragment tells the leaf never to modify a test file, and says the conductor's freeze check rejects a redone expand, migrate or contract-b that touches one. (Second sentence.) | The frozen half is enforced by rejection, so a touched test is a wasted attempt. |
+| FT2 | The fragment tells the leaf never to modify a test file, and says the conductor's freeze check rejects a redone expand, beside, migrate or contract-b that touches one. (Second sentence.) | The frozen half is enforced by rejection, so a touched test is a wasted attempt. |
 
 ## skills/tdd/scripts/prompts/_develop-revise-freeze-production.md
 
