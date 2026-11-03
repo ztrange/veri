@@ -1,1 +1,3 @@
 - [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py; skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py ⟦suite-repair⟧ ⟦criterion 5⟧
+- [ ] skill-edit `skills/tdd/SCRIPTS.md`: the `push-branch.sh` entry's synopsis names `[--force-with-lease=<branch>:<sha>]` (SC66) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧
+- [ ] skill-edit `skills/tdd/SKILL.md`: the sentence after a `verify-rebase` PASS names both modes, `VERI_REBASED_TIP_SUITE=local` and under `ci`, within its first 500 characters (DP26) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧
