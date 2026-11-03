@@ -5132,6 +5132,42 @@ def test_rerecord_refactored_leaves_one_helpers_line_from_head_for_a_go_case_who
         ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_rerecord_earlier_leaves_one_helpers_line_from_head_for_a_go_case_whose_record_held_two_stale_ones_so_check_earlier_exits_0_2998(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    git(tmp_path, "init", "-q")
+    (tmp_path / "base.txt").write_text("base\n")
+    git(tmp_path, "add", "base.txt")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    stale = "".join("helpers: suite_test.go\tTestX\t%s\n" % (digit * 64) for digit in "67")
+    record.write_text("".join(
+        line + stale if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+    git(tmp_path, "add", "suite_test.go")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", "-f", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
+    suite.write_text("func requireAll(t *testing.T, x int) {\n" + asserts + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+    git(tmp_path, "add", "suite_test.go")
+    git(tmp_path, "commit", "-q", "-m", "edit moves the assertions into a helper")
+    held = tests_frozen._helper_digest(suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "TestX")[0])
+
+    run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[:2]
+
+    assert ([l for l in record.read_text().splitlines() if l.startswith("helpers: ")], checked) == (
+        ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
+
+
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_keeps_a_helpers_line_of_a_later_case_that_does_not_follow_a_rewritten_body_2998(
         tmp_path, run_cli, tests_frozen, monkeypatch):
