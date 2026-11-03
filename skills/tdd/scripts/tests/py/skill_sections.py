@@ -22,7 +22,7 @@ def has_match(pattern, lines):
 
 
 def plain_lines(lines):
-    return " ".join(line.replace("*", "").replace("`", "").lower() for line in lines) + " "
+    return " ".join(plain_lower(line) for line in lines) + " "
 
 
 def plain_folded(raw):
