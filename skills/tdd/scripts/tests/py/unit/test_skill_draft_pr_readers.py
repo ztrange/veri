@@ -20,6 +20,8 @@ ALLOWED = {
         "whole-document audit of ledger reads",
     "unit/test_skill_draft_pr.py::test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own":
         "absence: no line of the unit runs git push",
+    "unit/test_skill_detach_test_command.py::test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh":
+        "whole-document ban on an undetached make test",
     "unit/test_skill_draft_pr.py::test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr":
         "whole-document ban on gh repo/issue/pr subcommands",
 }
