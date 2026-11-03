@@ -236,3 +236,28 @@ def test_force_with_lease_naming_a_sha_the_remote_never_had_pushes_under_the_sha
                          env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
 
     assert (code, remote_at(remote)) == (0, git(repo, "rev-parse", "HEAD"))
+
+
+@pytest.mark.process("rebase-onto-default.sh then push-branch.sh against a bare repository")
+def test_rebase_exiting_3_after_a_repair_step_leaves_the_lease_naming_the_pre_rebase_sha_and_the_push_replaces_the_remote_at_it(
+        tmp_path, run_cli, push_branch):
+    rebase = importlib.import_module("veri.rebase_onto_default")
+    remote = bare(tmp_path / "origin.git")
+    repo = fixture_repo(tmp_path / "work", remote)
+    git(repo, "push", "-q", "origin", "main", BRANCH)
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+    pre = git(repo, "rev-parse", "HEAD")
+    lease = repo / ".tdd" / "rebase-lease"
+    lease.write_text(pre + "\n")
+    git(repo, "commit", "-q", "--amend", "-m", "rebased")
+    (repo / "repair.txt").write_text("repair\n")
+    git(repo, "add", "repair.txt")
+    git(repo, "commit", "-q", "-m", "fix: the repair step's green commit (#191)")
+
+    rebased = run_cli(rebase, [], cwd=repo)
+    lease_after_rebase = lease.read_text().strip() if lease.exists() else "<absent>"
+    pushed = run_cli(push_branch, [], env={**LANDED_ENV, "VERI_PUSH_RETRIES": "0"}, cwd=repo)
+
+    assert rebased[0] == 3 and lease_after_rebase == pre
+    assert (pushed[0], remote_at(remote), lease.exists()) == (0, git(repo, "rev-parse", "HEAD"), False)
