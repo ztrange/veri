@@ -509,6 +509,44 @@ def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launc
     assert code == 3, (code, out, err)
 
 
+def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_launches_no_author_rewrites_the_row_regrades_commits_and_exits_3_2997(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    prose = "The widget is painted a deep blue.\n"
+    (tmp_path / "unit.md").write_text(prose)
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    launched = []
+    graded = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: graded.append(a) or (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
+
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    listed = (tmp_path / "REQUIREMENTS.md").read_text()
+    assert launched == [], launched
+    assert "The widget is blue." in listed and "The widget is red." not in listed, listed
+    assert len(graded) == 1, graded
+    assert (tmp_path / "unit.md").read_text() == prose
+    assert len(commits) == 1 and "REQUIREMENTS.md" in commits[0] and any("GRADED" in p for p in commits[0]), commands
+    assert code == 3, (code, out, err)
+
+
 def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_list_unit_and_graded_unmodified_2583(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess
