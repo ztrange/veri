@@ -8,7 +8,7 @@ SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 EVENT_FILES = {
     "BAIL.md": r"\*\*bails?\*\*|\bbails (with|as)\b|\bbail with\b|→ bail|\bis a bail\b|(?<=: )bail\b(?![-.]\w)",
     "PIN.md": r"\bthe pin path\b|\bcontinue at the pin\b",
-    "REVISE.md": r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the",
+    "REVISE.md": r"enter the \*\*revise loop|^\s*\*\*revise loop\*\* for red|revise under|bounded revise loop|goes round the revise loop|a revise of the|revise loop: enter it for the \*\*red",
     "RECONCILE.md": r"reconcile leaf",
     "STOPPING.md": r"\bgo(es)? to \*Stopping\*",
     "RESUME.md": r"\bresum(e|ing) (the run|at)\b",
