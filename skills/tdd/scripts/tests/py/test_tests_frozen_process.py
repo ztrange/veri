@@ -5095,3 +5095,66 @@ def test_rerecord_refactored_names_the_assertionless_shape_guard_in_parentheses_
     assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
                                and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
         0, 1, [True])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_leaves_one_helpers_line_from_head_for_a_go_case_whose_record_held_two_stale_ones_so_check_earlier_exits_0_2998(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text("func requireAll(t *testing.T, x int) {\n" + asserts + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+    _commit(tmp_path, "A refactor moves the assertions into a helper")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    stale = "".join("helpers: suite_test.go\tTestX\t%s\n" % (digit * 64) for digit in "67")
+    record.write_text("".join(
+        line for line in record.read_text().splitlines(keepends=True) if not line.startswith("body: ")
+    ).replace("case: TestX\n", "case: TestX\n" + tests_frozen._body_line("suite_test.go", "TestX", head_body)
+              + "\n" + stale))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert ([l for l in record.read_text().splitlines() if l.startswith("helpers: ")], checked) == (
+        ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_keeps_a_helpers_line_of_a_later_case_that_does_not_follow_a_rewritten_body_2998(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("func TestX(t *testing.T) {\n\tx := 1\n" + asserts + "}\n")
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text("func requireAll(t *testing.T, x int) {\n" + asserts + "}\n\n"
+                     "func TestX(t *testing.T) {\n\tx := 1\n\trequireAll(t, x)\n}\n")
+    _commit(tmp_path, "A refactor moves the assertions into a helper")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    later = "case: TestY\nhelpers: suite_test.go\tTestY\t%s\n" % ("8" * 64)
+    record.write_text(record.read_text() + later)
+
+    run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
+
+    assert record.read_text().endswith(later)
