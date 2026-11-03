@@ -6,5 +6,5 @@
 - [x] develop-contract-a.md's step 1 says the old interface stays because deleting it (its proxy, after expand) is contract-b, with rows CA2 and CA3 reworded to match, in skills/tdd/scripts/prompts/develop-contract-a.md ⟦skill-edit⟧ ⟦criterion 4⟧
 - [x] Row VA3's Why says a test still on the old interface keeps the old interface alive, not the proxy, in skills/tdd/scripts/prompts/verify-contract-a.md ⟦skill-edit⟧ ⟦criterion 4⟧
 - [x] Row VM3's Why says a caller left on the old interface would break when contract-b deletes the old interface, not the proxy, in skills/tdd/scripts/prompts/verify-migrate.md ⟦skill-edit⟧ ⟦criterion 4⟧
-- [ ] Every change to the five prompts and their rows landed through the skill-edit steps above, each unit signed by a grader PASS, and no other step edited them ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] Every change to the five prompts and their rows landed through the skill-edit steps above, each unit signed by a grader PASS, and no other step edited them ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] skills/tdd/GRADED carries a regraded entry for each of develop-contract-a.md, develop-contract-b.md, verify-contract-a.md, verify-contract-b.md and verify-migrate.md, the repo's GRADED-signature case staying green ⟦full-suite⟧ ⟦criterion 6⟧
