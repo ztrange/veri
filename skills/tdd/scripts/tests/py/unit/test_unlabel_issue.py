@@ -253,8 +253,11 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
         0, {"taken:mu"}, True, "")
 
 
-def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_and_leaves_it_on_the_issue(monkeypatch, capsys):
+def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_and_leaves_it_on_the_issue(monkeypatch, capsys, tmp_path):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("- [ ] step\n")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
     issue_labels = {"7": {"taken:mu", "bug"}}
@@ -451,5 +454,53 @@ def test_main_2966_exits_2_and_changes_no_label_when_the_issue_lacks_the_opt_in_
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code = unlabel_issue.main(["7"])
+
+    assert (code, changes) == (2, [])
+
+
+def _reclaim_run(monkeypatch, tmp_path, labels, ledger):
+    """Run main(["7"]) from a worktree with or without .tdd/issue-7.md; return (code, the label-changing calls)."""
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    monkeypatch.chdir(tmp_path)
+    if ledger:
+        (tmp_path / ".tdd").mkdir()
+        (tmp_path / ".tdd" / "issue-7.md").write_text("- [ ] step\n")
+    changes = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        read = _labels_read(args, {"7": labels})
+        if read:
+            return read
+        changes.append(" ".join(args))
+        return subprocess.CompletedProcess(args, 0, "{}", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    return unlabel_issue.main(["7"]), changes
+
+
+def test_main_2966_exits_0_on_a_reclaim_when_the_issue_carries_the_own_lane_taken_label_and_no_ledger_exists(monkeypatch, tmp_path):
+    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:main"}, ledger=False)
+
+    removed = [call for call in changes if "DELETE" in call and "ready-for-agent" in call]
+    removed_taken = [call for call in changes if "DELETE" in call and "taken" in call]
+    assert (code, len(removed), removed_taken) == (0, 1, [])
+
+
+def test_main_2966_exits_0_on_a_reclaim_without_the_opt_in_label_and_changes_no_label_when_the_own_lane_taken_label_is_held(monkeypatch, tmp_path):
+    code, changes = _reclaim_run(monkeypatch, tmp_path, {"taken:main", "bug"}, ledger=False)
+
+    assert (code, [call for call in changes if "DELETE" in call]) == (0, [])
+
+
+def test_main_2966_exits_2_and_changes_no_label_when_the_own_lane_taken_label_is_held_and_a_ledger_exists(monkeypatch, tmp_path):
+    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:main"}, ledger=True)
+
+    assert (code, changes) == (2, [])
+
+
+def test_main_2966_exits_2_and_changes_no_label_when_another_lanes_taken_label_is_held_and_no_ledger_exists(monkeypatch, tmp_path):
+    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:mu"}, ledger=False)
 
     assert (code, changes) == (2, [])
