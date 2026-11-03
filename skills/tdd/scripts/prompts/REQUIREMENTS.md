@@ -8,6 +8,7 @@
 | DV4 | Item 3 ends with a sentence whose single-suite invocation and its fallback come from two included fragments (`_run-suite-lead.md`, then `_run-suite-same-way.md`), and which closes with "the test command above and say so in your report". (What to do, item 3, last sentence.) | A fallback to the whole test command is reported, so a run that ran more than one suite says so. |
 | DV5 | Redoing green only: when the objection can only be met by a test the step lacks, the leaf edits no test and reports `OUTCOME: IMPOSSIBLE` with one `MISSING_TEST: <behaviour>` line naming the behaviour to pin, before the `OUTCOME:` line. (The paragraph after the IMPOSSIBLE paragraph.) | Revise cannot touch a frozen test, so the missing test has to be reported, not faked. |
 | DV6 | Redoing red only, the report also asks for `FAIL_OUTPUT: <the failure line the run printed>` and, on DIVERGED, `PREDICTION_NOTE: <what actually happened and why it could not be reconciled>`, and the `REPORT-FORMAT revise` key list names both; a revise of green or refactor does not ask for them. (Report section.) | `red-divergence.sh` echoes those keys into `.tdd/verify-red.reason`; without them a revise divergence and its bail comment show an empty failing output (#2750 step 17). |
+| DV7 | Redoing red only, the `PREDICTION:` line is defined by the same rule as RP11: a message-text-only difference is `MATCHED`. (Report section.) | A red revise is held to its prediction exactly as the original red. |
 
 ## skills/tdd/scripts/prompts/develop-contract-a.md
 
