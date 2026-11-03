@@ -2933,6 +2933,10 @@ STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a la
 CASE = "def test_%s():\n    assert %d\n"
 
 
+def _skip_lines(err, what):
+    return sum(1 for l in err.splitlines() if l == "skipped: " + what or l.startswith("skipped: " + what + " ("))
+
+
 def _ledger(repo, **state):
     """The ledger in its real shapes: open, pending (ticked, ledger.PENDING_MARK appended) and done."""
     marks = {"open": "- [ ] %s", "pending": "- [x] %s ⟂ refactor pending", "done": "- [x] %s"}
@@ -3472,7 +3476,7 @@ def test_rerecord_refactored_prints_one_stderr_line_naming_each_case_it_left_unr
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestOne")) == (0, 1)
+    assert (code, _skip_lines(err, "suite_test.go TestOne")) == (0, 1)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -3498,7 +3502,7 @@ def test_rerecord_refactored_names_a_case_gone_at_head_a_digest_mismatch_and_an_
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
-    assert (code, sorted(l for l in err.splitlines() if l.startswith("skipped:"))) == (0, [
+    assert (code, sorted(l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped:"))) == (0, [
         "skipped: suite_test.go TestBare", "skipped: suite_test.go TestGone", "skipped: suite_test.go TestMismatch"])
 
 
@@ -3840,7 +3844,7 @@ def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestOne"), checked) == (0, 1, 1)
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (0, 1, 1)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -3869,7 +3873,7 @@ def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestOne"), checked) == (0, 1, 1)
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (0, 1, 1)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -3927,7 +3931,7 @@ def test_rerecord_refactored_re_records_a_go_case_without_a_skipped_line_and_che
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestOne"), checked) == (0, 0, 0)
+    assert (code, _skip_lines(err, "suite_test.go TestOne"), checked) == (0, 0, 0)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -3958,7 +3962,7 @@ def test_rerecord_refactored_leaves_check_earlier_at_exit_1_when_an_assertion_is
     second = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (first[0], first[2].splitlines().count("skipped: suite_test.go TestOne"), second[0], checked) == (
+    assert (first[0], _skip_lines(first[2], "suite_test.go TestOne"), second[0], checked) == (
         0, 0, 0, 1)
 
 
@@ -3989,7 +3993,7 @@ def test_check_earlier_exits_1_when_the_case_body_is_edited_after_a_successful_r
 
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (first[0], first[2].splitlines().count("skipped: suite_test.go TestOne"), checked) == (0, 0, 1)
+    assert (first[0], _skip_lines(first[2], "suite_test.go TestOne"), checked) == (0, 0, 1)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -4013,7 +4017,7 @@ def test_rerecord_refactored_re_records_a_python_case_without_a_skipped_line_and
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    assert (code, err.splitlines().count("skipped: test_suite.py test_one"), checked) == (0, 0, 0)
+    assert (code, _skip_lines(err, "test_suite.py test_one"), checked) == (0, 0, 0)
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
@@ -4716,7 +4720,7 @@ def test_rerecord_refactored_skips_a_go_case_whose_body_record_digest_is_neither
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
-    assert (b"\nhelpers: " in before, code, err.splitlines().count("skipped: suite_test.go TestX"),
+    assert (b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, 0, 1, True)
 
 
@@ -4749,7 +4753,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
     assert (tests_frozen._body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
-            b"\nhelpers: " in before, code, err.splitlines().count("skipped: suite_test.go TestX"),
+            b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, True, 0, 1, True)
 
 
@@ -4785,7 +4789,7 @@ def test_rerecord_refactored_refreshes_the_helpers_line_of_a_go_case_already_rec
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)[:2]
 
-    assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
+    assert (code, _skip_lines(err, "suite_test.go TestX") > 0,
             "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
         0, False, True, (0, ""))
 
@@ -4825,7 +4829,7 @@ def test_rerecord_refactored_re_records_a_go_case_at_heads_body_whose_helpers_di
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", ".tdd/issue-9.md", "--step", STEPS[2]], cwd=tmp_path)[:2]
 
-    assert (code, "skipped: suite_test.go TestX" in err.splitlines(),
+    assert (code, _skip_lines(err, "suite_test.go TestX") > 0,
             "helpers: suite_test.go\tTestX\t%s\n" % held in record.read_text(), checked) == (
         0, False, True, (0, ""))
 
@@ -4865,8 +4869,8 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
     after = record.read_text().splitlines()
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestX"),
-            err.splitlines().count("skipped: suite_test.go TestY"),
+    assert (code, _skip_lines(err, "suite_test.go TestX"),
+            _skip_lines(err, "suite_test.go TestY"),
             [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
         0, 1, 0, True, True)
 
@@ -4905,8 +4909,8 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
     after = record.read_text().splitlines()
 
-    assert (code, err.splitlines().count("skipped: suite_test.go TestX"),
-            err.splitlines().count("skipped: suite_test.go TestY"),
+    assert (code, _skip_lines(err, "suite_test.go TestX"),
+            _skip_lines(err, "suite_test.go TestY"),
             [line for line in after if "\tTestX\t" in line] == x_lines, held in after) == (
         0, 1, 0, True, True)
 
@@ -4940,5 +4944,5 @@ def test_rerecord_refactored_skips_a_go_case_whose_body_digest_is_neither_greens
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
-    assert (b"\nhelpers: " in before, code, err.splitlines().count("skipped: suite_test.go TestX"),
+    assert (b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, 0, 1, True)
