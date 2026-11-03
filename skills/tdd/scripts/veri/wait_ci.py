@@ -1,5 +1,6 @@
 """wait-ci.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import base64
 import json
 import os
 import re
@@ -118,6 +119,23 @@ def sha_state(repo, sha):
     return "green", "", False
 
 
+def no_pull_request_workflow(repo, head):
+    root = "repos/%s/contents/.github/workflows" % repo
+    listing = gh_api("%s?ref=%s" % (root, head), stderr=subprocess.PIPE)
+    try:
+        entries = json.loads(listing.stdout)
+    except ValueError:
+        return False
+    for entry in entries:
+        run = gh_api("%s/%s?ref=%s" % (root, entry["name"], head), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            return False
+        text = base64.b64decode(json.loads(run.stdout)["content"]).decode()
+        if "pull_request" in text:
+            return False
+    return True
+
+
 def unreadable(what):
     warn("could not read the checks of %s" % what)
     return 2
@@ -193,6 +211,9 @@ def main(argv):
         mismatched = bool(want and head != want)
         if state == "none" and on_pr == "0" and not mismatched:
             warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % pr)
+            return 0
+        if state == "none" and no_pull_request_workflow(repo, head):
+            warn("%s has no checks and no workflow triggers on pull_request; no check will come" % pr)
             return 0
         if state == "skipped":
             state = "pending"
