@@ -119,7 +119,7 @@ def main(argv):
             freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
         if not repair and "\u27e6guard-subject: " in markers:
             freeze.append(f"{prompts}/_develop-guard-subject-grant.md")
-    if revised_phase in INTERFACE_PHASES + ("dual-stub",):
+    if revised_phase in DEVELOP_INTERFACE_PHASES + ("dual-stub",):
         frozen = "production" if revised_phase in ("cover-new", "contract-a", "dual-stub") else "test"
         marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
     if phase == "red-repair":
