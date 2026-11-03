@@ -86,8 +86,12 @@ def _claimed(path, unit):
     return os.path.exists(path) and requirements.claims(path, unit)
 
 
+def _listed_texts(path, unit):
+    return dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
+
+
 def _listed_ids(path, unit):
-    return {row.split("\t")[0] for row in (_claimed(path, unit) or "").splitlines()}
+    return set(_listed_texts(path, unit))
 
 
 def _append_section(path, unit, table):
@@ -281,7 +285,7 @@ def main(argv):
         _restore(snapshot, path, unit, graded_file)
 
     listed = _listed_ids(path, unit)
-    texts = dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
+    texts = _listed_texts(path, unit)
     fresh = any(_row_id(r) not in listed or requirements.split_cells(r)[2] != texts.get(_row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
