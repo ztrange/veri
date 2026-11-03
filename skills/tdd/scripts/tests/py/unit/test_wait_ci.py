@@ -1446,6 +1446,33 @@ def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_check
     assert (code, out, "no check will come" in err) == (0, "", True)
 
 
+def test_main_exits_0_warning_no_check_will_come_when_ci_on_pr_is_unset_and_a_push_only_workflow_mentions_pull_request_in_a_step_and_a_comment_issue_2885(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    answers = {}
+    for name, on in (("inline", "on: push\n"), ("map", "on:\n  push:\n    branches: [main]\n")):
+        work = tmp_path / ("work-" + name)
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([], [], "pending")
+        bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                   "head": {"sha": FULL_SHA}})
+        workflow = ("name: CI\n# runs on push, not on pull_request\n%sjobs:\n  t:\n    steps:\n"
+                    "      - run: echo pull_request\n" % on)
+
+        def workflows(line, workflow=workflow):
+            if ".github/workflows" not in line:
+                return None
+            if line.split("?")[0].endswith("ci.yml"):
+                return json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                   "content": base64.b64encode(workflow.encode()).decode()})
+            return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+        served(fake_processes, bodies, workflows)
+        code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        answers[name] = (code, out, "no check will come" in err)
+
+    assert answers == {"inline": (0, "", True), "map": (0, "", True)}
+
 def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_no_workflows_directory_issue_2885(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
