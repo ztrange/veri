@@ -21,6 +21,7 @@ import tunables
 from leaf_model import _env, resolve
 from entry import write
 from leaf_role import leaf_role
+from ledger import ledger_path
 from run_verdict import SCRIPTS, takes_a_value
 
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
@@ -311,7 +312,7 @@ def main(argv):
     if words[0] == "pin":
         base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip() or "0" * 40
     issue = tunables.read("VERI_ISSUE")
-    ledger = ".tdd/issue-%s.md" % issue if issue else ""
+    ledger = ledger_path(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
                                             ledger=ledger)
     if code:

@@ -1,6 +1,7 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
+import ledger as ledger_file
 import fnmatch
 import os
 import re
@@ -238,8 +239,8 @@ def _missing(report):
 def _later(report):
     for line in _lines_with(report, "LATER_STEP:"):
         named = line.partition(":")[2].strip()
-        with open(".tdd/issue-%s.md" % tunables.read("VERI_ISSUE"), encoding="utf-8") as ledger:
-            unchecked = [l[6:].strip() for l in ledger.read().splitlines() if l.startswith("- [ ] ")]
+        with open(ledger_file.ledger_path(".", tunables.read("VERI_ISSUE")), encoding="utf-8") as ledger:
+            unchecked = [step[6].strip() for step in ledger_file.ledger_steps(ledger.read()) if step[1] == "open"]
         return named if named in unchecked else None
     return None
 
