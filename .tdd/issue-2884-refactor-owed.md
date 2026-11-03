@@ -2,3 +2,5 @@
 - test-only | extract the repeated repo, ledger and pre-rebase-commit setup of the four test_2884 rebased-tip cases in test_suite_red_resume_process.py into one helper
 ### `suite-red-resume.sh rebased-tip`'s exit 0 records `<pre-rebase-sha>` in the file `rebase-lease` beside the ledger (`.tdd/rebase-lease` for `.tdd/issue-<n>.md`), an ignored run-state file a `git reset --hard` on resume leaves in place; pinned by a case in `skills/tdd/scripts/tests/py/test_suite_red_resume_process.py` ⟦criterion 5⟧
 - test-only | the repo-and-ledger setup is repeated across the new `test_2884_rebased_tip_*` cases in `test_suite_red_resume_process.py`. A shared helper would remove that duplication.
+### `push-branch.sh` removes `.tdd/rebase-lease` once a push under the recorded lease succeeds, so the next push is a plain one; pinned by a case in `skills/tdd/scripts/tests/py/test_push_branch_process.py` ⟦criterion 5⟧
+- test-only | the two new lease cases in test_push_branch_process.py repeat the same setup (push, write the lease, amend); a shared helper could take it
