@@ -3,6 +3,7 @@ import builtins
 import contextlib
 import dataclasses
 import errno
+import glob
 import io
 import json
 import os
@@ -359,6 +360,27 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
 
 def fail_unbacked_push(request):
     pytest.fail("%s reached the push backoff without setting VERI_PUSH_BACKOFF" % request.node.nodeid, pytrace=False)
+
+
+def veri_pycache_snapshot(cache):
+    parent = os.open(cache.parent, os.O_RDONLY)
+    try:
+        names = glob.glob(os.path.join(cache.name, "*"), dir_fd=parent)
+    finally:
+        os.close(parent)
+    return {name: (cache.parent / name).read_bytes() for name in names}
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_call(item):
+    cache = SCRIPTS / "veri" / "__pycache__"
+    before = veri_pycache_snapshot(cache)
+    result = yield
+    after = veri_pycache_snapshot(cache)
+    if after != before:
+        changed = sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name))
+        raise AssertionError(f"the case left {cache} changed: {', '.join(changed)}")
+    return result
 
 
 @pytest.fixture(autouse=True)
