@@ -1517,3 +1517,31 @@ def test_main_counts_an_on_map_holding_a_pull_request_key_as_triggering_and_the_
         answers[name] = (code, out, "no check will come" in err)
 
     assert answers == {"with": (3, "", False), "without": (0, "", True)}
+
+
+def test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_only_workflow_call_and_schedule_workflows_issue_2885(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    files = {"call.yml": "name: Call\non:\n  workflow_call:\njobs: {}\n",
+             "nightly.yml": "name: Nightly\non:\n  schedule:\n    - cron: '0 0 * * *'\njobs: {}\n"}
+
+    def workflows(line):
+        if ".github/workflows" not in line:
+            return None
+        path = line.split("?")[0]
+        for name, text in files.items():
+            if path.endswith(name):
+                return json.dumps({"name": name, "type": "file", "encoding": "base64",
+                                   "content": base64.b64encode(text.encode()).decode()})
+        return json.dumps([{"name": n, "type": "file", "path": ".github/workflows/" + n} for n in files])
+
+    served(fake_processes, bodies, workflows)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out, "no check will come" in err) == (0, "", True)
