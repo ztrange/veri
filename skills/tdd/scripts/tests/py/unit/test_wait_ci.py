@@ -1489,3 +1489,31 @@ def test_main_counts_a_trigger_list_holding_pull_request_as_triggering_and_a_pus
         answers[trigger] = (code, out, "no check will come" in err)
 
     assert answers == {"[push, pull_request]": (3, "", False), "[push]": (0, "", True)}
+
+
+def test_main_counts_an_on_map_holding_a_pull_request_key_as_triggering_and_the_same_map_without_it_as_not_when_ci_on_pr_is_unset_issue_2885(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    answers = {}
+    for name, on in (("with", "on:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n"),
+                     ("without", "on:\n  push:\n    branches: [main]\n")):
+        work = tmp_path / ("work-" + name)
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([], [], "pending")
+        bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                   "head": {"sha": FULL_SHA}})
+        workflow = "name: CI\n%sjobs: {}\n" % on
+
+        def workflows(line, workflow=workflow):
+            if ".github/workflows" not in line:
+                return None
+            if line.split("?")[0].endswith("ci.yml"):
+                return json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                   "content": base64.b64encode(workflow.encode()).decode()})
+            return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+        served(fake_processes, bodies, workflows)
+        code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        answers[name] = (code, out, "no check will come" in err)
+
+    assert answers == {"with": (3, "", False), "without": (0, "", True)}
