@@ -704,7 +704,7 @@ def rerecord_refactored(ledger, green):
                 != len(_assertion_lines(_called_helpers(green, name, verified))):
             return skip(name, case, record, "helper assertion count differs from green's")
         if not verified_lines and _squeezed(head) != _squeezed(verified):
-            return skip(name, case, record)
+            return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
         return _body_line(name, case, head) + "\nhelpers: %s\t%s\t%s" % (
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
