@@ -34,3 +34,12 @@ make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_coun
 green 40
 b3b0ba2e7fb3a3257370250c86d1dd9baa4b3074
 
+before 40
+4285b701485e92b52e4e98ea7609e33b4bcd161d
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 392
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp6exa3j5y/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wait_ci.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_0_warning_no_check_will_come_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_only_workflow_call_and_schedule_workflows_issue_2885
+green 40
+8a361237f21a8efad62a6dfb26ea48fbe19facce
+
