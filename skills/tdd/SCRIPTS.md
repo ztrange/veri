@@ -98,7 +98,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   that exits non-zero when the unmutated run printed nothing, printed as `needs a look`; a
   `needs a look` record from a failed run writes that run's stdout and stderr to stderr,
   limited to its last 40 lines; **exit 2** no answer; **exit 3** no record touches the range.
-- `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
+- `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
   earlier frozen cases its diff changed; **exit 2** can then follow the write of the ledger (the re-record failed). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
@@ -115,7 +115,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   phase; also for a step listing `⟦phases: …⟧` ticked without `--phase`, and for `--phase` given
   with `--refactor-pending`. `--phase-owed <phase>` appends ` ⟂ <phase> owed` instead, under the
   same refusals; an owed phase ends the step, so it and every phase after it are never handed out
-  again (see the exhausted-contract paragraph in `<base directory>/PHASED.md`). `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
+  again (see the exhausted-contract paragraph in `<base directory>/PHASED.md`). `--unpinnable <reason-file>` retires the matched step instead of ticking it as green: when the reason file (a verify-pin REJECT, `.tdd/verify-pin.reason`) says the mutation `stays green`, it ticks the step `[x]` with ` ⟂ retired unpinnable` appended, in the same write, and appends one `unpinnable-step` event (`step=`, `reason=` from its `REASON:` line) to `.tdd/events.jsonl`, never a `revise` event. Exit 0 retired; exit 1 the reason is any other rejection, ledger and events untouched; exit 2 no answer (bad arguments, an unreadable ledger, or the event not written); exit 3 as above when no unchecked step matched. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
   unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
   both — see `<base directory>/PHASED.md`.
 - `$S/reorder-ledger-steps.sh .tdd/issue-<n>.md "<step>" before|after "<anchor>"` — the one sanctioned way to change the order of **unchecked** steps, committed on its own as a `plan:` commit; running it is an operator's decision, never the conductor's own.
