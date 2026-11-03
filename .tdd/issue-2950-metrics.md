@@ -1,19 +1,20 @@
 ### 📊 Metrics — issue 2950
 
-Wall time for the issue: 1776 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 6394 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 9 of 12 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/2988.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.85 over 191 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $13.93 over 233 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89281 tokens, largest 134030 tokens
 Conductor context: first turn 89352 tokens, largest 178805 tokens
 Conductor context: first turn 89313 tokens, largest 142136 tokens
 Conductor context: first turn 89310 tokens, largest 111484 tokens
 Conductor context: first turn 111927 tokens, largest 136384 tokens
-Conductor context: first turn 89310 tokens, largest 128266 tokens
+Conductor context: first turn 89310 tokens, largest 130491 tokens
+Conductor context: first turn 89849 tokens, largest 129663 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -173,33 +174,74 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 151 | $0.13 | 134164 |
 | 152 | $0.10 | 135280 |
 | 153 | $0.10 | 136384 |
-| 154 | $0.57 | 89310 |
+| 154 | $0.58 | 89310 |
 | 155 | $0.08 | 96458 |
-| 156 | $0.03 | 98290 |
-| 157 | $0.03 | 100149 |
-| 158 | $0.06 | 105681 |
+| 156 | $0.04 | 98290 |
+| 157 | $0.05 | 100149 |
+| 158 | $0.07 | 105681 |
 | 159 | $0.04 | 107446 |
 | 160 | $0.03 | 108321 |
-| 161 | $0.02 | 108693 |
+| 161 | $0.04 | 108693 |
 | 162 | $0.03 | 109279 |
-| 163 | $0.05 | 112813 |
+| 163 | $0.06 | 112813 |
 | 164 | $0.03 | 113151 |
 | 165 | $0.03 | 113692 |
-| 166 | $0.02 | 113945 |
-| 167 | $0.02 | 114169 |
-| 168 | $0.02 | 114423 |
-| 169 | $0.02 | 114681 |
-| 170 | $0.03 | 115364 |
-| 171 | $0.05 | 119285 |
+| 166 | $0.03 | 113945 |
+| 167 | $0.04 | 114169 |
+| 168 | $0.03 | 114423 |
+| 169 | $0.03 | 114681 |
+| 170 | $0.04 | 115364 |
+| 171 | $0.06 | 119285 |
 | 172 | $0.03 | 119774 |
-| 173 | $0.03 | 120278 |
+| 173 | $0.04 | 120278 |
 | 174 | $0.03 | 120843 |
 | 175 | $0.03 | 121061 |
-| 176 | $0.03 | 121303 |
+| 176 | $0.04 | 121303 |
 | 177 | $0.03 | 121669 |
-| 178 | $0.03 | 122351 |
-| 179 | $0.06 | 127170 |
-| 180 | $0.03 | 128266 |
+| 178 | $0.04 | 122351 |
+| 179 | $0.07 | 127170 |
+| 180 | $0.04 | 128266 |
+| 181 | $0.04 | 129601 |
+| 182 | $0.04 | 130491 |
+| 183 | $0.58 | 89849 |
+| 184 | $0.08 | 97004 |
+| 185 | $0.03 | 98886 |
+| 186 | $0.05 | 102239 |
+| 187 | $0.09 | 110560 |
+| 188 | $0.05 | 114500 |
+| 189 | $0.03 | 115341 |
+| 190 | $0.03 | 115703 |
+| 191 | $0.03 | 116122 |
+| 192 | $0.03 | 116417 |
+| 193 | $0.03 | 116706 |
+| 194 | $0.03 | 116994 |
+| 195 | $0.03 | 117283 |
+| 196 | $0.03 | 117668 |
+| 197 | $0.03 | 117925 |
+| 198 | $0.03 | 118774 |
+| 199 | $0.04 | 120594 |
+| 200 | $0.03 | 121229 |
+| 201 | $0.03 | 121743 |
+| 202 | $0.03 | 121965 |
+| 203 | $0.03 | 122187 |
+| 204 | $0.03 | 122409 |
+| 205 | $0.03 | 122737 |
+| 206 | $0.03 | 123081 |
+| 207 | $0.03 | 124059 |
+| 208 | $0.03 | 124409 |
+| 209 | $0.03 | 124679 |
+| 210 | $0.03 | 124903 |
+| 211 | $0.03 | 125127 |
+| 212 | $0.03 | 125536 |
+| 213 | $0.03 | 125928 |
+| 214 | $0.03 | 126514 |
+| 215 | $0.03 | 127484 |
+| 216 | $0.03 | 128138 |
+| 217 | $0.03 | 128462 |
+| 218 | $0.03 | 128686 |
+| 219 | $0.03 | 128942 |
+| 220 | $0.03 | 129280 |
+| 221 | $0.03 | 129663 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -207,7 +249,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 17 | 12 | 4 | 8 | 1396 | 101272 | 34469 | 0.11 |
-| prose | 39 | 0 | 0 | 0 | 696 | 533 | 39 | 78 | 81570 | 109900 | 440639 | 1.93 |
+| prose | 45 | 0 | 0 | 0 | 799 | 612 | 45 | 90 | 93723 | 118129 | 503191 | 2.21 |
 | skill-edit | 6 | 0 | 0 | 0 | 65 | 40 | 21 | 38 | 4650 | 451000 | 111030 | 0.37 |
 | red | 3 | 0 | 0 | 0 | 213 | 72 | 20 | 40 | 9394 | 706786 | 74528 | 0.35 |
 | pin | 3 | 3 | 0 | 0 | 106 | 37 | 11 | 22 | 4043 | 280839 | 62961 | 0.23 |
@@ -250,6 +292,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s |
@@ -262,4 +308,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 101 | 198 | 102009 | 1804570 | 756078 | 14.94 (estimate) |
+| total | 107 | 210 | 114162 | 1812799 | 818630 | 17.30 (estimate) |
