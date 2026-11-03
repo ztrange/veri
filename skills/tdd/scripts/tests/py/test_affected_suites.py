@@ -1701,3 +1701,26 @@ def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(
     (tmp_path / "skills/tdd/scripts/tests/py/test_foo.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/py/test_foo.py\n", "")
+
+
+@pytest.mark.tree_audit("copies the real test_skill_*.py readers into a scratch tree")
+def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_read_that_section_2980(
+        monkeypatch, capsys, affected, tmp_path):
+    base = cli_git(["skills/tdd/SKILL.md"])
+
+    def run(args, **kwargs):
+        if list(args[:3]) == ["git", "diff", "-U0"]:
+            return subprocess.CompletedProcess(args, 0, "@@ -1380 +1380 @@\n-old\n+new\n", "")
+        return base(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    prefix = "skills/tdd/scripts/tests/py/"
+    for name in ["skills/tdd/SKILL.md"] + [
+            str(f.relative_to(ROOT)) for f in (ROOT / prefix).rglob("test_skill_*.py")]:
+        plant(tmp_path, {name: (ROOT / name).read_text()})
+    monkeypatch.chdir(tmp_path)
+    code = affected.main(["base..head"])
+    selected = capsys.readouterr().out.split()
+    assert code == 0
+    assert prefix + "unit/test_skill_draft_pr.py" in selected
+    assert prefix + "unit/test_skill_detect_call_tier_2433.py" not in selected
