@@ -547,6 +547,11 @@ def _rewrite_records(earlier, rewrite):
             parsed = _body_record(record)
             if parsed:
                 record = rewrite(owner, record, *parsed)
+                if record is None:
+                    if out and out[-1].startswith("case: "):
+                        out.pop()
+                    replaced = True
+                    continue
                 replaced = "\nhelpers: " in record
             elif replaced and record.startswith("helpers: "):
                 continue
@@ -742,6 +747,8 @@ def rerecord_rebased(ledger, pre):
     def rewrite(owner, record, name, case, digest):
         nonlocal stale
         head = _cases_at("HEAD", name).get(case)
+        if head is None and not _cases_at(pre, name).get(case):
+            return None
         if head is None:
             paths = [path for who, path, _ in earlier if who == owner]
             missing.append("tests-frozen.sh: record %s names case %s, which %s does not hold at HEAD"

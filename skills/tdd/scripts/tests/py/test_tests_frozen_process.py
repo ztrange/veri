@@ -4523,13 +4523,14 @@ def test_rerecord_rebased_exits_2_naming_the_record_and_the_title_when_an_earlie
     suite.write_text("def test_other_2825():\n    assert f() == 0\n\n\ndef test_config_before_rename_2825():\n    assert f() == 1\n")
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
     (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
-    suite.write_text("def test_other_2825():\n    assert f() == 0\n\n\ndef test_config_after_rename_2825():\n    assert f() == 1\n")
     git(repo, "commit", "-q", "-a", "-m", "step one")
+    pre = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                         text=True).stdout.strip()
+    suite.write_text("def test_other_2825():\n    assert f() == 0\n\n\ndef test_config_after_rename_2825():\n    assert f() == 1\n")
+    git(repo, "commit", "-q", "-a", "-m", "rename")
     (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
-                          text=True).stdout.strip()
 
-    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), head], cwd=repo)
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), pre], cwd=repo)
 
     assert (code, record.name in err, "test_config_before_rename_2825" in err, "KeyError" in err) == (
         2, True, True, False)
@@ -5222,3 +5223,94 @@ def test_rerecord_refactored_keeps_a_helpers_line_of_a_later_case_that_does_not_
     run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
     assert record.read_text().endswith(later)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_drops_a_recorded_case_never_committed_on_the_branch_instead_of_exiting_2_2994(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    kept = "def test_kept_2994():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == 1\n"
+    ghost = "\n\ndef test_ghost_2994():\n    assert f() == 2\n"
+    suite.write_text("")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the kept case", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(kept + ghost)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    suite.write_text(kept)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    (repo / "README.md").write_text("upstream\n")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-q", "-m", "upstream")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
+
+    assert (code in (0, 3), "test_ghost_2994" in record.read_text()) == (True, False)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_drops_the_helpers_line_of_a_recorded_go_case_never_committed_on_the_branch_2994(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/suite_test.go"
+    kept = "func TestKept(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
+    ghost = "\nfunc TestGhost(t *testing.T) {\n\tx := 2\n\tif x != 2 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
+    suite.write_text("")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the kept case", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(kept + ghost)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/suite_test.go"], cwd=repo)
+    (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    lines = record.read_text().splitlines(keepends=True)
+    at = next(i for i, l in enumerate(lines) if l.startswith("case: TestGhost")) + 1
+    record.write_text("".join(lines[:at + 1] + ["helpers: tests/suite_test.go\tTestGhost\t%s\n" % ("a" * 64)]
+                              + lines[at + 1:]))
+    suite.write_text(kept)
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "step one")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    (repo / "README.md").write_text("upstream\n")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-q", "-m", "upstream")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), before], cwd=repo)
+
+    assert (code in (0, 3), "TestGhost" in record.read_text(), "a" * 64 in record.read_text()) == (
+        True, False, False)
