@@ -58,3 +58,30 @@ def test_2226_a_resume_after_a_suite_red_bail_inserts_one_suite_repair_step_for_
     assert ledger.read_text().count("⟦suite-repair⟧") == 1 and step in ledger.read_text().split("\n")
     assert handed[:2] == (0, step[len("- [ ] "):] + "\n")
     assert grown[0] == 0
+
+
+@pytest.mark.process("suite-red-resume.sh over a real git repository whose HEAD is a rebased tip")
+def test_2884_rebased_tip_inserts_one_suite_repair_step_after_the_last_done_step_and_leaves_head(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [x] a wheel turns ⟦criterion 2⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    pre_rebase = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "main.txt").write_text("landed on main\n")
+    git(repo, "add", "main.txt")
+    git(repo, "commit", "-q", "-m", "feat: main moved (#1)")
+    head = git(repo, "rev-parse", "HEAD").strip()
+    red = tmp_path / "red"
+    red.write_text("test_a.py — FAIL a\ntest_b.py\n")
+    step = "- [ ] fix the full-suite failure: test_a.py — FAIL a; test_b.py ⟦suite-repair⟧ ⟦criterion 2⟧"
+
+    ran = script("suite-red-resume.sh", "rebased-tip", str(ledger), str(red), pre_rebase, cwd=repo)
+
+    lines = ledger.read_text().split("\n")
+    assert ran[0] == 0, ran
+    assert lines.count(step) == 1 and lines.index(step) == lines.index("- [x] a wheel turns ⟦criterion 2⟧") + 1
+    assert "suite-repair" in (repo / ".tdd" / "issue-42-added.md").read_text()
+    assert git(repo, "rev-parse", "HEAD").strip() == head
