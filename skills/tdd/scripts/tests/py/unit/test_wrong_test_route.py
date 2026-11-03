@@ -2508,7 +2508,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair foo accepts a name\n")
+    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_backticked_path_then_a_curly_quoted_title(
@@ -2525,7 +2525,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair foo accepts a name\n")
+    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_path_then_a_separator_then_an_unquoted_title(
@@ -2962,3 +2962,22 @@ def test_main_3007_criterion_2_a_contradicts_line_naming_an_existing_other_case_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
+
+
+def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_and_no_contradicts_line_prints_repair_of_the_step_own_case_never_red(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_prints_the_open_step_with_its_checkbox_prefix"
+    cited = "test_main_prints_the_text_and_one_newline_and_a_textless_open_step_as_an_empty_line"
+    (suite / ("test_" + "next_unchecked" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (own, cited))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: next-unchecked prints no prefix; see %s\n" % cited)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
