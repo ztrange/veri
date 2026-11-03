@@ -585,7 +585,9 @@ def rerecord_earlier(ledger, step):
             before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
         now = after[name].get(case)
         if now is not None and now != before[name].get(case):
-            return _body_line(name, case, now)
+            head_text = _text_at("HEAD", name, subprocess.DEVNULL)
+            return _body_line(name, case, now) + "\nhelpers: %s\t%s\t%s" % (
+                name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
         return record
     try:
         return 0 if _rewrite_records(_earlier_records(lines, step), rewrite) else 2
