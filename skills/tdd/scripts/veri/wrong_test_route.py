@@ -240,8 +240,11 @@ def _later(report):
     for line in _lines_with(report, "LATER_STEP:"):
         named = line.partition(":")[2].strip()
         with open(ledger_file.ledger_path(".", tunables.read("VERI_ISSUE")), encoding="utf-8") as ledger:
-            unchecked = [step[6].strip() for step in ledger_file.ledger_steps(ledger.read()) if step[1] == "open"]
-        return named if named in unchecked else None
+            steps = ledger_file.ledger_steps(ledger.read())
+        current = tunables.read("VERI_STEP")
+        names = [step[6].strip() for step in steps]
+        after = [step[6].strip() for step in steps[names.index(current) + 1:] if step[1] == "open"] if current in names else []
+        return named if named in after else None
     return None
 
 

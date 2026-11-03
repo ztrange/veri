@@ -143,3 +143,36 @@ def test_2916_criterion_4_a_later_step_report_naming_no_step_of_the_ledger_falls
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
+
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_2916_criterion_4_a_later_step_report_naming_the_current_step_falls_through_to_missing(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    (repo / ".tdd" / "issue-77.md").write_text(
+        "# Plan for #77\n\n- [ ] %s\n- [ ] a gear never slips ⟦criterion 2⟧\n" % STEP)
+    (repo / ".tdd" / "verify-green.out").write_text(
+        "MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % STEP)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env.update(VERI_STEP=STEP, VERI_ISSUE="77")
+
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+                         env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
+
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_2916_criterion_4_a_later_step_report_naming_an_earlier_unchecked_step_falls_through_to_missing(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    earlier = "a gear never slips ⟦criterion 0⟧"
+    (repo / ".tdd" / "issue-77.md").write_text(
+        "# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (earlier, STEP))
+    (repo / ".tdd" / "verify-green.out").write_text(
+        "MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % earlier)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env.update(VERI_STEP=STEP, VERI_ISSUE="77")
+
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+                         env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
