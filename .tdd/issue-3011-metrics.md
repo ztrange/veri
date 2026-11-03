@@ -1,15 +1,17 @@
 ### 📊 Metrics — issue 3011
 
-Wall time for the issue: 22563 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 7564 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 7 of 8 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 8 of 8 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3012.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $3.50 over 59 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $5.76 over 106 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89848 tokens, largest 139214 tokens
-Conductor context: first turn 89814 tokens, largest 117852 tokens
+Conductor context: first turn 89814 tokens, largest 119588 tokens
+Conductor context: first turn 89833 tokens, largest 143802 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
@@ -64,16 +66,63 @@ Conductor context: first turn 89814 tokens, largest 117852 tokens
 | 47 | $0.03 | 139214 |
 | 48 | unpriced | 0 |
 | 49 | $0.58 | 89814 |
-| 50 | $0.07 | 96764 |
-| 51 | $0.04 | 99640 |
-| 52 | $0.03 | 101463 |
-| 53 | $0.04 | 103790 |
-| 54 | $0.05 | 107719 |
+| 50 | $0.08 | 96764 |
+| 51 | $0.05 | 99640 |
+| 52 | $0.04 | 101463 |
+| 53 | $0.05 | 103790 |
+| 54 | $0.06 | 107719 |
 | 55 | $0.03 | 108214 |
 | 56 | $0.05 | 111410 |
-| 57 | $0.02 | 111724 |
-| 58 | $0.03 | 113252 |
-| 59 | $0.06 | 117852 |
+| 57 | $0.03 | 111724 |
+| 58 | $0.04 | 113252 |
+| 59 | $0.07 | 117852 |
+| 60 | $0.04 | 118947 |
+| 61 | $0.03 | 119588 |
+| 62 | $0.58 | 89833 |
+| 63 | $0.08 | 96981 |
+| 64 | $0.04 | 99900 |
+| 65 | $0.04 | 102476 |
+| 66 | $0.07 | 108577 |
+| 67 | $0.03 | 109143 |
+| 68 | $0.03 | 110149 |
+| 69 | $0.03 | 110662 |
+| 70 | $0.02 | 110925 |
+| 71 | $0.02 | 111228 |
+| 72 | $0.02 | 111492 |
+| 73 | $0.02 | 111752 |
+| 74 | $0.03 | 112200 |
+| 75 | $0.03 | 112602 |
+| 76 | $0.03 | 112998 |
+| 77 | $0.02 | 113260 |
+| 78 | $0.03 | 113998 |
+| 79 | $0.05 | 117956 |
+| 80 | $0.03 | 118452 |
+| 81 | $0.03 | 119031 |
+| 82 | $0.03 | 119446 |
+| 83 | $0.03 | 119712 |
+| 84 | $0.03 | 119999 |
+| 85 | $0.03 | 120411 |
+| 86 | $0.03 | 120899 |
+| 87 | $0.03 | 121503 |
+| 88 | $0.14 | 135451 |
+| 89 | $0.04 | 136521 |
+| 90 | $0.03 | 137174 |
+| 91 | $0.03 | 137660 |
+| 92 | $0.04 | 138690 |
+| 93 | $0.03 | 139173 |
+| 94 | $0.03 | 139383 |
+| 95 | $0.03 | 139593 |
+| 96 | $0.03 | 139828 |
+| 97 | $0.03 | 140162 |
+| 98 | $0.03 | 140685 |
+| 99 | $0.03 | 140906 |
+| 100 | $0.03 | 141162 |
+| 101 | $0.03 | 141519 |
+| 102 | $0.03 | 141886 |
+| 103 | $0.03 | 142695 |
+| 104 | $0.03 | 143222 |
+| 105 | $0.03 | 143520 |
+| 106 | $0.03 | 143802 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -81,16 +130,17 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 11 | 7 | 1 | 2 | 942 | 0 | 33497 | 0.09 |
-| prose | 13 | 0 | 0 | 0 | 122 | 74 | 13 | 26 | 8772 | 34287 | 87998 | 0.31 |
+| prose | 18 | 0 | 0 | 0 | 174 | 106 | 18 | 36 | 12140 | 41000 | 128492 | 0.45 |
 | skill-edit | 3 | 0 | 0 | 0 | 48 | 37 | 11 | 18 | 1950 | 194755 | 46380 | 0.15 |
 | diff | 2 | 1 | 0 | 0 | 3485 | 112 | 23 | 46 | 6401 | 628353 | 158718 | 0.52 |
+| rebase | 2 | 1 | 0 | 0 | 2761 | 84 | 18 | 34 | 5724 | 476911 | 102566 | 0.36 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 2 | 2 | 0 | 0 | 531 | 56 | 8 | 16 | 3124 | 205568 | 71701 | 0.23 |
-| developer | claude-sonnet-5-5 | 1 | 0 | 0 | 0 | 2965 | 63 | 16 | 32 | 4219 | 422785 | 120514 | 0.39 |
+| verifier | claude-sonnet-5-5 | 3 | 3 | 0 | 0 | 3112 | 76 | 13 | 24 | 4947 | 270609 | 135248 | 0.41 |
+| developer | claude-sonnet-5-5 | 2 | 0 | 0 | 0 | 3145 | 127 | 29 | 58 | 8120 | 834655 | 159533 | 0.56 |
 
 #### Rework and waste, by phase
 
@@ -100,6 +150,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -110,9 +161,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | verify-contract-b.md's opening, check 2 ("The old interface is deleted") and closing paragraph state the deletion for both shapes, so a beside-shape contract-b passes with no proxy ever existing, with rows VK2, VK3 and VK6 reworded to match, in skills/tdd/scripts/prompts/verify-contract-b.md ⟦skill-edit⟧ ⟦criterion 3⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 43 | 8 | 14 | 3896 | 84721 | 33394 | 0.13 | 89 | unknown | unknown | unknown |  |  | full |
 | develop-contract-a.md's step 1 says the old interface stays because deleting it (its proxy, after expand) is contract-b, with rows CA2 and CA3 reworded to match, in skills/tdd/scripts/prompts/develop-contract-a.md ⟦skill-edit⟧ ⟦criterion 4⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 21 | 5 | 10 | 1623 | 73783 | 25283 | 0.09 | 55 | unknown | unknown | unknown |  |  | full |
 | Row VA3's Why says a test still on the old interface keeps the old interface alive, not the proxy, in skills/tdd/scripts/prompts/verify-contract-a.md ⟦skill-edit⟧ ⟦criterion 4⟧ | 2 | 0 | 0 | 0 | 0 | 0 | 12 | 2 | 4 | 1330 | 3032 | 15912 | 0.05 | 31 | unknown | unknown | unknown |  |  | full |
-| Every change to the five prompts and their rows landed through the skill-edit steps above, each unit signed by a grader PASS, and no other step edited them ⟦diff-checked⟧ ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 112 | 23 | 46 | 6401 | 628353 | 158718 | 0.52 | 4302 | n/a | n/a | n/a |  |  | full |
+| Every change to the five prompts and their rows landed through the skill-edit steps above, each unit signed by a grader PASS, and no other step edited them ⟦diff-checked⟧ ⟦criterion 5⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 196 | 41 | 80 | 12125 | 1105264 | 261284 | 0.89 | 4302 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
@@ -121,9 +176,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | fast | 65 | 137 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | affected | 1054 | 1339 | 331 | 41 | 58 | 291 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | target | 14 | 12 | 12 | 13 | 15 | 16 | 23 | 17 | 18 | 11 | 11 | 16 | 12 | 10 | 13 | 12 | 13 | 11 | 10 | 9 | 11 | 14 | 11 | 12 | 10 | 13 | 14 | 15 |
+| all | 84 | 2525 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 48 | 92 | 18065 | 857395 | 326593 | 4.59 (estimate) |
+| total | 71 | 136 | 27157 | 1341019 | 469653 | 7.34 (estimate) |
