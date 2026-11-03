@@ -332,8 +332,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   With `VERI_CI_ON_PR=0`, a PR whose head has no check runs and no commit statuses exits 0, since
   there is nothing to wait for; checks that do exist are still waited on and read as above. A
   `VERI_CI_ON_PR` other than `0`, `1` or empty is an **exit 2**.
+  With `VERI_CI_ON_PR` unset, a PR with no checks in a tree where nothing under
+  `.github/workflows/` triggers on `pull_request` or `pull_request_target` exits 0 with a
+  warning, since no check will ever come; an explicit `VERI_CI_ON_PR` (`0` or `1`) wins over
+  this detection, so `VERI_CI_ON_PR=1` keeps the wait.
   Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_QUEUE_WAIT` (default 3600 s),
-  `VERI_CI_ON_PR` (unset means checks are expected).
+  `VERI_CI_ON_PR` (unset means checks are expected, unless the detection above finds no
+  `pull_request` workflow).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
 - `$S/handoff-state.sh` — print a read-only snapshot of the run state for a context reset. Its first line is `main <sha> <tag>`: main's commit and the highest version tag by `git tag --sort=-v:refname`. Exit **0**, **2** no answer. The conductor does not call this; it is an operator's.
 - `$S/merge-lock.sh take --pid <pid> | release --pid <pid> | release --force | holder | gate [--keep] --pid <pid> -- <cmd>` — the merge lock, `.tdd/merge.lock` in the main working tree. `take`: exit **0** the lock taken, after waiting while another holder has it; **2** no `--pid`, or a missing, unreadable or malformed holder record. `release`: exit **0** removed; **1** the caller is not the recorded holder and `--force` was not given; **2** neither `--pid` nor `--force`; **3** no lock. `holder`: exit **0** a live holder, printed; **1** a stale lock (the recorded pid dead, or its start time differs), printed as such; **2** an unreadable record; **3** the lock is free. `gate`: runs `<cmd>` and exits with its code; a code other than 0 or 3 (CI red, a refusing gate) releases the lock `<pid>` holds first, 0 and 3 keep it; with `--keep` (before `--`) every code keeps it, and a code other than 0 or 3 prints a note that the lock is kept (a conflict or a refused push); exit **2** no `--pid`, or no `--` and command, with no lock created or removed. Any verb: exit **2** no verb, or one other than these four. The conductor does not call this; it is an operator's (vmerge's and vhandoff's).
