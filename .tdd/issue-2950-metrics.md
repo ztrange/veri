@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 2950
 
-Wall time for the issue: 1034 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1776 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 9 of 12 planned.
-Outcome: the run bailed — step-added-off-route, a process failure.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.17 over 161 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $11.85 over 191 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 89281 tokens, largest 134030 tokens
 Conductor context: first turn 89352 tokens, largest 178805 tokens
 Conductor context: first turn 89313 tokens, largest 142136 tokens
 Conductor context: first turn 89310 tokens, largest 111484 tokens
-Conductor context: first turn 111927 tokens, largest 134164 tokens
+Conductor context: first turn 111927 tokens, largest 136384 tokens
+Conductor context: first turn 89310 tokens, largest 128266 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -154,22 +155,51 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 133 | $0.03 | 108015 |
 | 134 | $0.06 | 111168 |
 | 135 | $0.03 | 111484 |
-| 136 | $0.03 | 111927 |
-| 137 | $0.03 | 112855 |
-| 138 | $0.03 | 113359 |
-| 139 | $0.03 | 113656 |
-| 140 | $0.03 | 113947 |
-| 141 | $0.02 | 114205 |
-| 142 | $0.03 | 114924 |
-| 143 | $0.03 | 115413 |
-| 144 | $0.03 | 115940 |
-| 145 | $0.03 | 116565 |
-| 146 | $0.03 | 116961 |
-| 147 | $0.05 | 119858 |
-| 148 | $0.08 | 126941 |
-| 149 | $0.04 | 128348 |
-| 150 | $0.03 | 129173 |
-| 151 | $0.07 | 134164 |
+| 136 | $0.09 | 111927 |
+| 137 | $0.09 | 112855 |
+| 138 | $0.09 | 113359 |
+| 139 | $0.09 | 113656 |
+| 140 | $0.09 | 113947 |
+| 141 | $0.08 | 114205 |
+| 142 | $0.10 | 114924 |
+| 143 | $0.09 | 115413 |
+| 144 | $0.09 | 115940 |
+| 145 | $0.09 | 116565 |
+| 146 | $0.09 | 116961 |
+| 147 | $0.11 | 119858 |
+| 148 | $0.14 | 126941 |
+| 149 | $0.10 | 128348 |
+| 150 | $0.09 | 129173 |
+| 151 | $0.13 | 134164 |
+| 152 | $0.10 | 135280 |
+| 153 | $0.10 | 136384 |
+| 154 | $0.57 | 89310 |
+| 155 | $0.08 | 96458 |
+| 156 | $0.03 | 98290 |
+| 157 | $0.03 | 100149 |
+| 158 | $0.06 | 105681 |
+| 159 | $0.04 | 107446 |
+| 160 | $0.03 | 108321 |
+| 161 | $0.02 | 108693 |
+| 162 | $0.03 | 109279 |
+| 163 | $0.05 | 112813 |
+| 164 | $0.03 | 113151 |
+| 165 | $0.03 | 113692 |
+| 166 | $0.02 | 113945 |
+| 167 | $0.02 | 114169 |
+| 168 | $0.02 | 114423 |
+| 169 | $0.02 | 114681 |
+| 170 | $0.03 | 115364 |
+| 171 | $0.05 | 119285 |
+| 172 | $0.03 | 119774 |
+| 173 | $0.03 | 120278 |
+| 174 | $0.03 | 120843 |
+| 175 | $0.03 | 121061 |
+| 176 | $0.03 | 121303 |
+| 177 | $0.03 | 121669 |
+| 178 | $0.03 | 122351 |
+| 179 | $0.06 | 127170 |
+| 180 | $0.03 | 128266 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -177,7 +207,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERI
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 17 | 12 | 4 | 8 | 1396 | 101272 | 34469 | 0.11 |
-| prose | 35 | 0 | 0 | 0 | 637 | 488 | 35 | 70 | 74664 | 104703 | 399647 | 1.76 |
+| prose | 39 | 0 | 0 | 0 | 696 | 533 | 39 | 78 | 81570 | 109900 | 440639 | 1.93 |
 | skill-edit | 6 | 0 | 0 | 0 | 65 | 40 | 21 | 38 | 4650 | 451000 | 111030 | 0.37 |
 | red | 3 | 0 | 0 | 0 | 213 | 72 | 20 | 40 | 9394 | 706786 | 74528 | 0.35 |
 | pin | 3 | 3 | 0 | 0 | 106 | 37 | 11 | 22 | 4043 | 280839 | 62961 | 0.23 |
@@ -232,4 +262,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 97 | 190 | 95103 | 1799373 | 715086 | 12.09 (estimate) |
+| total | 101 | 198 | 102009 | 1804570 | 756078 | 14.94 (estimate) |
