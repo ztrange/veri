@@ -10,7 +10,7 @@ deleted, and production stays frozen.
 
 1. Rewrite every test of the old interface against the new one, or delete it where a
    test of the new interface already covers the same behaviour. Leave the old interface
-   in place: deleting its proxy is contract-b.
+   in place: deleting it (its proxy, after expand) is contract-b.
 2. {{INCLUDE:_develop-run-affected.md}}
 3. Commit the change, as `refactor: <what changed> (#<issue>)`. Never modify a
    production file: a contract-a commit that touches one is rejected.
