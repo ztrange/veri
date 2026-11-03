@@ -1478,6 +1478,22 @@ def test_cli_red_and_a_prompt_including_the_run_and_report_fragment_define_match
         "red": True, "red-contradicted": True}
 
 
+def test_cli_red_prompts_ask_the_prediction_for_the_assertion_and_the_values_and_the_message_only_as_a_hint_the_run_is_not_compared_on_2950(
+        tmp_path, run_cli, build_develop_prompt):
+    parts = ("which assertion fires first and the observed-versus-expected values it fires on",
+             "as a hint",
+             "the run is not compared on the message")
+    step = "QWIXTLE: a seed ending in a newline gains the block"
+
+    rendered = {
+        phase: re.sub(r"\s+", " ", run_cli(build_develop_prompt, [phase, _spec(tmp_path), step, "make test", "zorblat"])[1])
+        for phase in ("red", "red-contradicted")
+    }
+
+    assert {phase: [part in text for part in parts] for phase, text in rendered.items()} == {
+        "red": [True] * 3, "red-contradicted": [True] * 3}
+
+
 def test_cli_revise_of_red_defines_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950(
         tmp_path, run_cli, build_develop_prompt):
     reason = tmp_path / "reason.md"
