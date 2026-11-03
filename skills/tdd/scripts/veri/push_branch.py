@@ -64,7 +64,8 @@ def main(argv):
     backoff = tunable("VERI_PUSH_BACKOFF", "2")
     if backoff is None:
         return 2
-    if not argv and os.path.isfile(".tdd/rebase-lease"):
+    leased_push = not argv and os.path.isfile(".tdd/rebase-lease")
+    if leased_push:
         leased = open(".tdd/rebase-lease").read().strip()
         branch = output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
         argv = [f"--force-with-lease={branch}:{leased}"]
@@ -75,6 +76,8 @@ def main(argv):
         pushed = run(["git", "push", *argv, "--set-upstream", "origin", "HEAD"],
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         if pushed.returncode == 0:
+            if leased_push:
+                os.remove(".tdd/rebase-lease")
             return 0
         out = pushed.stdout.rstrip("\n")
         if "[rejected]" in out and any(reason in out for reason in REJECTIONS):
