@@ -1,6 +1,7 @@
 """suite-red-resume.sh's check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import os
 import subprocess
 import sys
 
@@ -83,6 +84,10 @@ def main(argv):
         code = insert(argv[1], argv[2])
         if code == 1:
             subprocess.run(["git", "reset", "--hard", argv[3]])
+        elif code == 0:
+            lease = os.path.join(os.path.dirname(os.path.abspath(argv[1])), "rebase-lease")
+            with open(lease, "w") as handle:
+                handle.write(argv[3] + "\n")
         return code
     if len(argv) == 3 and argv[0] == "insert":
         return insert(argv[1], argv[2])
