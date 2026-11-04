@@ -1,6 +1,7 @@
 """queued-merge.sh through the real /bin/sh shim, with gh and git faked on PATH."""
 import os
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -293,19 +294,31 @@ def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_r
            "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0"}
     run = dict(cwd=repo, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+    started = []
+
     def queued(message):
         call_log.write_text("")
-        code = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", message],
-                              timeout=30, **run).returncode
-        return code, call_log.read_text().splitlines()
+        proc = subprocess.Popen(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", message],
+                                start_new_session=True, **run)
+        started.append(proc)
+        proc.communicate(timeout=30)
+        return proc.returncode, call_log.read_text().splitlines()
 
-    code, calls = queued("the capability")
-    tag_cmds = [c for c in calls if " tag " in c and "v0.11" in c and "-a" in c and "the capability" in c and c.split()[-1] == "fedcba9"]
-    pushed = [c for c in calls if " push " in c and "v0.11" in c]
-    dash_code, dash_calls = queued("-")
-    dash_tagged = [c for c in dash_calls if "v0.11" in c]
+    try:
+        code, calls = queued("the capability")
+        tag_cmds = [c for c in calls if " tag " in c and "v0.11" in c and "-a" in c and "the capability" in c and c.split()[-1] == "fedcba9"]
+        pushed = [c for c in calls if " push " in c and "v0.11" in c]
+        dash_code, dash_calls = queued("-")
+        dash_tagged = [c for c in dash_calls if "v0.11" in c]
 
-    assert (code, len(tag_cmds), len(pushed), dash_code, dash_tagged) == (0, 1, 1, 0, [])
+        assert (code, len(tag_cmds), len(pushed), dash_code, dash_tagged) == (0, 1, 1, 0, [])
+    finally:
+        for proc in started:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
 
 
 @pytest.mark.process("queued-merge.sh and merge-lock.sh run as /bin/sh shims in a scratch repository, with gh and git planted on PATH")
