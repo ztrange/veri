@@ -78,9 +78,12 @@ def main(argv):
             return 2
     if not ticked:
         return 3
-    if re.search(r"the go-red control is \S+ at [0-9a-f]+|mutation-probe\.sh --before [0-9a-f]{7,40}", changed_line(text, new)):
+    step_line = changed_line(text, new)
+    before = re.search(r"mutation-probe\.sh --before ([0-9a-f]{7,40})", step_line)
+    if before or re.search(r"the go-red control is \S+ at [0-9a-f]+", step_line):
         record = re.sub(r"\.md$", "", argv[0]) + "-mutations.md"
-        if not os.path.exists(record):
+        if not os.path.exists(record) or (
+                before and not re.search(rf"^{before.group(1)}$", open(record, encoding="utf-8").read(), re.M)):
             complain(f"{record}: no mutation record for the step's go-red control")
             return 2
     left = ledger.rewrite_ledger(argv[0], new)
