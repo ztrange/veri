@@ -185,3 +185,23 @@ def test_pytest_red_output_naming_two_files_one_still_red_alone_exits_1_and_writ
         "skills/tdd/scripts/tests/py/test_bar.py",
     ]
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+@pytest.mark.process("rerun-alone.sh run on a pytest FAILED line naming a unit test_x.py, passing alone")
+def test_pytest_failed_line_naming_a_unit_file_reruns_it_alone_once_and_writes_one_suite_flake_event_2933(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text("FAILED skills/tdd/scripts/tests/py/unit/test_x.py::test_a - assert 0\n")
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/unit/test_x.py"]
+    events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    flakes = [e for e in events if "suite-flake" in e]
+    assert len(flakes) == 1
+    assert "skills/tdd/scripts/tests/py/unit/test_x.py" in flakes[0]
