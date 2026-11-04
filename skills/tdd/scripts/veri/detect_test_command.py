@@ -54,6 +54,16 @@ def declares(path, pattern):
     return re.search(pattern, read(path), re.M) is not None
 
 
+def selects_subset(command, root):
+    if not os.path.isfile(root + "/CLAUDE.md"):
+        return False
+    try:
+        answer_from_file(root + "/CLAUDE.md", b"veri: all tests:")
+    except Answer as found:
+        return command.startswith(found.command + b" TESTS=")
+    return False
+
+
 def decide(tier, issue, root):
     def at(name):
         return root + "/" + name
@@ -65,7 +75,7 @@ def decide(tier, issue, root):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
-            if found.command != resolved("fast", issue, root):
+            if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
     if tier and has("CLAUDE.md"):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + b" tests:")
