@@ -5524,3 +5524,37 @@ def test_rerecord_refactored_then_check_earlier_exits_1_naming_the_cases_when_th
 
     skipped = [line for line in err.splitlines() if line.startswith("skipped: suite.test.ts ")]
     assert (bool(skipped), checked) == (True, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_skips_only_the_go_case_whose_own_lines_the_shared_helper_exceeds_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+
+    def check(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+
+    inline = ("func TestX(t *testing.T) {\n\tx := 1\n" + check("a") + check("b") + "}\n\n"
+              "func TestY(t *testing.T) {\n\tx := 1\n" + check("a") + check("b") + check("c") + "}\n\n")
+    shared = "".join("func Test%s(t *testing.T) {\n\tx := 1\n\tsharedBase(t, x)\n}\n\n" % n for n in ("X", "Y"))
+    helper = "func sharedBase(t *testing.T, x int) {\n" + check("a") + check("b") + check("c") + "}\n"
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(shared + helper)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[2]
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    skipped = [line for line in err.splitlines() if line.startswith("skipped: ")]
+    assert (skipped, checked) == (["skipped: suite_test.go TestX"], 1)
