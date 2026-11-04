@@ -4,6 +4,7 @@ import os
 import sys
 
 import ledger
+from git import git
 
 USAGE = "usage: clear-refactor-pending.sh <ledger-file> <matcher>"
 
@@ -24,8 +25,16 @@ def main(argv):
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not cleared:
         return 3
-    if not os.path.exists(os.path.join(os.path.dirname(argv[0]), "pin-recheck-ok")):
+    receipt = os.path.join(os.path.dirname(argv[0]), "pin-recheck-ok")
+    if not os.path.exists(receipt):
         complain(argv[0], "no pin-recheck receipt: run pin-recheck.sh first")
+        return 2
+    with open(receipt) as handle:
+        sha = handle.read().strip()
+    changed = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
+                  cwd=os.path.dirname(argv[0]) or None).stdout.split()
+    if any(not path.startswith(".tdd/") for path in changed):
+        complain(argv[0], "a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again")
         return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None:

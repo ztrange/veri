@@ -488,3 +488,27 @@ def test_main_returns_3_leaving_the_ledger_byte_identical_when_no_receipt_is_pre
     code = clear_refactor_pending.main([str(led), "zeta"])
 
     assert (code, *capsysbinary.readouterr(), led.read_bytes()) == (3, b"", b"", seed)
+
+
+def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identical_when_a_path_outside_tdd_differs_since_the_receipts_sha_2972(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    import subprocess
+    seed = "- [x] a ⟂ refactor pending\n".encode()
+    led = tmp_path / "issue-42.md"
+    led.write_bytes(seed)
+    (tmp_path / "pin-recheck-ok").write_text("a" * 40 + "\n")
+
+    def faked_git(*args, **kwargs):
+        text = kwargs.get("text") or kwargs.get("universal_newlines")
+        out = "b" * 40 + "\n" if args[:1] == ("rev-parse",) else "src/changed.py\n"
+        return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
+
+    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    for module in list(sys.modules.values()):
+        if getattr(module, "git", None) in reals:
+            monkeypatch.setattr(module, "git", faked_git)
+
+    code = clear_refactor_pending.main([str(led), "a"])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
