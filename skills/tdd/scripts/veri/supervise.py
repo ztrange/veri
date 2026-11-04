@@ -1,6 +1,7 @@
 """supervise.sh's watchdog, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
+import glob
 import json
 import os
 import paths
@@ -249,6 +250,27 @@ def mark(role, env, *fields):
     event.mark("", event.context(dict(env, **dict(pair.split("=", 1) for pair in role.split()))), fields[0], fields[1:])
 
 
+def mutation_records():
+    out = {}
+    for path in glob.glob(".tdd/issue-*-mutations.md"):
+        with open(path, "rb") as f:
+            out[path] = f.read()
+    return out
+
+
+def restore_mutation_records(before, role, env, name):
+    after = mutation_records()
+    for path in sorted(set(before) | set(after)):
+        if before.get(path) == after.get(path):
+            continue
+        if path in before:
+            with open(path, "wb") as f:
+                f.write(before[path])
+        else:
+            os.remove(path)
+        mark(role, env, "mutation-record-restored", f"name={name}", f"file={path}")
+
+
 def refuse_launch(role, env, name, reason):
     write_line(f".tdd/{name}.exit", 2)
     mark(role or "actor=supervisor", env, "launch-refused", f"name={name}", f"reason={reason}")
@@ -487,6 +509,7 @@ def main(argv):
     pidfile = f".tdd/{name}.pid"
     tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
     discard(exitfile)
+    records = mutation_records() if name.startswith(("develop-", "revise-")) else None
     started = []
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
@@ -502,6 +525,8 @@ def main(argv):
         tries += 1
         mark(role, leaf_env, "retry", f"cause={reason}")
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
+    if records is not None:
+        restore_mutation_records(records, role, leaf_env, name)
     ec = {"success": 0, "failure": 1, "killed-stuck": 2, "killed-external": 2}[status]
     if rc == "2":
         ec = 2

@@ -311,3 +311,60 @@ def test_2644_a_supervisor_whose_leaf_outlives_the_cases_wait_is_gone_after_the_
             os.killpg(started[0].pid, 9)
 
     assert alive is False
+
+
+@pytest.mark.process("supervise.sh runs a real revise leaf whose shell rewrites a committed mutation record")
+def test_2927_a_revise_leaf_that_rewrites_a_mutations_record_has_it_restored_and_one_event_names_leaf_and_file(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-2927-mutations.md"
+    record.write_bytes(b"mutation: flip the sign\nwatched: FAILED\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "revise-red-1", "sh", "-c", 'echo forged > "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    lines = (work / ".tdd" / "events.jsonl").read_text().splitlines()
+    naming = [l for l in lines if "revise-red-1" in l and "issue-2927-mutations.md" in l and '"event": "launch"' not in l
+              and '"event":"launch"' not in l]
+
+    assert (ran.returncode, record.read_bytes(), len(naming)) == (
+        0, b"mutation: flip the sign\nwatched: FAILED\n", 1), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real revise leaf whose shell creates a mutation record that did not exist")
+def test_2927_a_revise_leaf_that_creates_a_mutations_record_has_it_removed_and_one_event_names_leaf_and_file(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-2927-mutations.md"
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "revise-red-1", "sh", "-c", 'echo forged > "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    lines = (work / ".tdd" / "events.jsonl").read_text().splitlines()
+    naming = [l for l in lines if "revise-red-1" in l and "issue-2927-mutations.md" in l and '"event": "launch"' not in l
+              and '"event":"launch"' not in l]
+
+    assert (ran.returncode, record.exists(), len(naming)) == (0, False, 1), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real verify-pin leaf whose shell appends to a committed mutation record")
+def test_2927_a_verify_pin_leaf_that_appends_to_a_mutations_record_keeps_the_append_and_gets_no_restore_event(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-2927-mutations.md"
+    record.write_bytes(b"mutation: flip the sign\nwatched: FAILED\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "verify-pin", "sh", "-c", 'echo probe >> "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    lines = (work / ".tdd" / "events.jsonl").read_text().splitlines()
+    naming = [l for l in lines if "mutation-record-restored" in l]
+
+    assert (ran.returncode, record.read_bytes(), naming) == (
+        0, b"mutation: flip the sign\nwatched: FAILED\nprobe\n", []), ran.stderr
