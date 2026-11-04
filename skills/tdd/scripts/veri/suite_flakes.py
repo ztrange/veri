@@ -9,13 +9,14 @@ def main(argv):
     if not argv:
         sys.stderr.write("usage: suite-flakes.sh <run-dir> [<run-dir>...]\n")
         return 2
-    for run_dir in argv:
-        if not os.path.isfile(os.path.join(run_dir, ".tdd", "events.jsonl")):
+    logs = {run_dir: os.path.join(run_dir, ".tdd", "events.jsonl") for run_dir in argv}
+    for run_dir, path in logs.items():
+        if not os.path.isfile(path):
             sys.stderr.write(f"suite-flakes.sh: no .tdd/events.jsonl in {run_dir}\n")
             return 2
     runs = {}
-    for run_dir in argv:
-        with open(os.path.join(run_dir, ".tdd", "events.jsonl")) as log:
+    for run_dir, path in logs.items():
+        with open(path) as log:
             for line in log:
                 for name in json.loads(line)["files"].split(","):
                     runs.setdefault(name, []).append(os.path.basename(run_dir))
