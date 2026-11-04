@@ -90,7 +90,7 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh resume` — then, when
    `.tdd/resume-suite-red` exists, run `$S/suite-red-resume.sh insert .tdd/issue-<n>.md .tdd/resume-suite-red`, commit the
    ledger with `.tdd/issue-<n>-added.md`, and hand the inserted `⟦suite-repair⟧` step to the cycle loop first. When `insert` exits 1 — the growth cap filed the step as
-   owed — bail with cause `suite-red`, naming the branch-red suites; when it exits 2 — no answer — bail with cause `no-verdict`;
+   owed — bail with cause `suite-red`, naming the branch-red suites; when it exits 2 — no answer — bail with cause `no-verdict`. When `insert` inserted nothing because the red is only a stale grade of the unit of a pending `⟦skill-edit⟧` step, hand that `⟦skill-edit⟧` step to the cycle loop first;
    then **reuse the claim the previous run left on the branch**, which every tick of the cycle
    loop edits and step 4 rewrites:
    ```
