@@ -1396,11 +1396,13 @@ HUNG_LEAF = "#!/bin/sh\necho thinking...\nexec sleep 60\n"
 def build_prompt(words, monkeypatch):
     built, captured = io.BytesIO(), sys.stdout
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
-    pinned = ["--branch-base", "0" * 40] if "pin" in words and "--branch-base" not in words else []
+    pinned = ["--branch-base", FAKE_BASE] if "pin" in words and "--branch-base" not in words else []
     code = importlib.import_module("veri.build_verify_prompt").main([*pinned, *words])
     monkeypatch.setattr(sys, "stdout", captured)
     return code, built.getvalue()
 
+
+FAKE_BASE = "3f9a1c0d5e7b4a2896fd01c3b5e7a9d2c4f60812"
 
 SPEC = "slugify must lowercase the title and join words with hyphens."
 
@@ -1417,6 +1419,8 @@ def answering_leaf(monkeypatch, *leaf_outs, supervised=None):
                 supervised.append(words)
             out = leaf_outs[min(len(launches), len(leaf_outs)) - 1]
             return subprocess.CompletedProcess(args, 0, out if isinstance(out, bytes) else (out + "\n").encode(), None)
+        if name == "git" and "merge-base" in words:
+            return subprocess.CompletedProcess(args, 0, (FAKE_BASE + "\n").encode(), None)
         return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
@@ -1590,7 +1594,7 @@ def git_state(repo):
         "%s %s" % (f, git("hash-object", "--", f).strip()) for f in files]
 
 
-def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked):
+def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked, origin=True):
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     repo = tmp_path / "repo"
     subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
@@ -1603,6 +1607,10 @@ def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked):
         (repo / path).write_text(text)
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "initial"], check=True)
+    if origin:
+        subprocess.run(["git", "-C", str(repo), "update-ref", "refs/remotes/origin/main", "HEAD"], check=True)
+        subprocess.run(["git", "-C", str(repo), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+                       check=True)
     (tmp_path / "spec.md").write_text(SPEC)
     claude = tmp_path / "claude-mutate"
     claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
@@ -1728,7 +1736,7 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
 @pytest.mark.process("a real git scratch repository with no origin, whose pin verifier leaf answers VERDICT: PASS")
 def test_verify_sh_pin_in_a_repository_with_no_origin_still_launches_the_verifier_and_its_pass_stands_2900(
         run_cli, tmp_path, monkeypatch):
-    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {})
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {}, origin=False)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
            "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
