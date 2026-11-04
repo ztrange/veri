@@ -62,3 +62,27 @@ def test_3027_take_with_no_lock_dir_and_a_failing_rename_polls_once_before_its_n
     except RuntimeError:
         pass
     assert events[:3] == ["pass", "poll", "pass"]
+
+
+def test_3027_take_with_no_lock_dir_and_its_staged_dir_gone_exits_2_with_a_line_on_stderr(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    polls = []
+
+    def rename(src, dst):
+        shutil.rmtree(src, ignore_errors=True)
+        raise FileNotFoundError(src)
+
+    def poll():
+        polls.append(1)
+        if len(polls) > 5:
+            raise RuntimeError("still trying")
+
+    monkeypatch.setattr(merge_lock.os, "rename", rename)
+    monkeypatch.setattr(merge_lock, "_poll_wait", poll)
+    lock = tmp_path / "tdd" / "merge.lock"
+    try:
+        code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(os.getpid())])
+    except RuntimeError:
+        code = "retried"
+    assert (code, bool(capsys.readouterr().err.strip())) == (2, True)

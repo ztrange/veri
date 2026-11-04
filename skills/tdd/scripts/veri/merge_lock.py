@@ -79,7 +79,9 @@ def _take(lock, record, args):
                     os.rename(staged, lock)
                     return 0
                 except OSError:
-                    pass
+                    if not os.path.isdir(staged):
+                        print(f"merge-lock.sh: staged lock dir {staged} is gone", file=sys.stderr)
+                        return 2
             try:
                 text, holder = _read_pid(record)
             except (OSError, ValueError, IndexError) as err:
