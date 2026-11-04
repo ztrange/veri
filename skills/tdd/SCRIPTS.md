@@ -55,7 +55,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   unless the caller already set them.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
-- `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|migrate|contract-a|contract-b> …` — assemble a **developer** leaf's prompt from a
+- `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|dual-stub|migrate|contract-a|contract-b> …` — assemble a **developer** leaf's prompt from a
   versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
   <step-text> <test-cmd> <test-path> <target> <fast-cmd> [<owed-cases>]` (the optional 8th argument
   is the named cases still owed for deletion), `refactor <spec-file> <step-text>
