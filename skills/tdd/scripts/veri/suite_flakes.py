@@ -26,7 +26,7 @@ def main(argv):
                     continue
                 for name in event["files"].split(","):
                     runs.setdefault(name, set()).add(os.path.basename(run_dir))
-    listed = {name: sorted(seen) for name, seen in runs.items() if len(seen) > 1}
+    listed = {name: sorted(seen, key=int) for name, seen in runs.items() if len(seen) > 1}
     for name in sorted(listed):
         sys.stdout.write(f"{name}: {', '.join(listed[name])}\n")
     return 0 if listed else 3

@@ -110,3 +110,18 @@ def test_2957_suite_flakes_prints_files_cleared_in_two_runs_sorted_by_file_name_
     code, out, err = run_cli(suite_flakes, run_dirs)
 
     assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\nscripts/b.test.mjs: 12, 19\n")
+
+
+def test_2957_suite_flakes_lists_run_numbers_in_ascending_numeric_order_so_run_9_comes_before_run_12(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dirs = []
+    for number in ("12", "9"):
+        run_dir = tmp_path / number
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "events.jsonl").write_text(
+            '{"event": "suite-flake", "files": "scripts/a.test.mjs"}\n')
+        run_dirs.append(str(run_dir))
+
+    code, out, err = run_cli(suite_flakes, run_dirs)
+
+    assert (code, out) == (0, "scripts/a.test.mjs: 9, 12\n")
