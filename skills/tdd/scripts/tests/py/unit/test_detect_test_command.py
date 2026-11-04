@@ -3,7 +3,7 @@ import importlib
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import ROOT, SCRIPTS
 
 
 @pytest.fixture
@@ -512,3 +512,7 @@ def test_cli_tier_one_test_file_without_a_claude_md_line_exits_3_even_with_a_ver
     (repo / "Makefile").write_text("test:\n\ttrue\n")
 
     assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (3, "", "")
+
+
+def test_cli_tier_one_test_file_on_the_veri_repository_root_prints_make_test_tests_dollar_1(run_cli, detect):
+    assert cli(run_cli, detect, "--tier", "one test file", str(ROOT)) == (0, 'make test TESTS="$1"\n', "")
