@@ -504,3 +504,13 @@ def test_cli_tier_one_test_file_prints_the_command_of_the_claude_md_one_test_fil
     (repo / "CLAUDE.md").write_text('# notes\n\nveri: fast tests: `make unit`\nveri: one test file: `npm test -- "$1"`\n')
 
     assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (0, 'npm test -- "$1"\n', "")
+
+
+def test_cli_tier_one_test_file_without_a_claude_md_line_exits_3_even_with_a_veri_test_command_and_a_makefile_test_target(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    (repo / ".veri").mkdir(parents=True)
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\n")
+    (repo / ".veri" / "test-command").write_text("make everything\n")
+    (repo / "Makefile").write_text("test:\n\ttrue\n")
+
+    assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (3, "", "")
