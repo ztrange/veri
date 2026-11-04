@@ -3349,6 +3349,29 @@ def test_2900_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_the_me
     assert (code, f"--before {base} --keep" in prompt, "{{BRANCH_BASE}}" in prompt) == (0, True, False)
 
 
+def test_2945_verify_sh_pin_whose_faked_git_answers_merge_base_with_nothing_exits_2_naming_origin_head_and_launches_no_leaf(
+        run_cli, tmp_path, monkeypatch):
+    (tmp_path / "spec.md").write_text(SPEC)
+    launched = answering_leaf(monkeypatch, b"VERDICT: PASS\nfine")
+    leaf_fake = subprocess.run
+
+    def fake(args, *rest, **kwargs):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "git" and "merge-base" in words:
+            return subprocess.CompletedProcess(args, 1, b"", b"")
+        return leaf_fake(args, *rest, **kwargs)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
+                                      "tests/test_slugify.py", "test_lowercases"],
+                             env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    assert (code, "origin/HEAD" in err, launched, "0" * 40 in out + err) == (2, True, [], False), out + err
+
+
 def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_so_the_prompt_lists_its_later_unchecked_steps(
         run_cli, tmp_path, monkeypatch):
     (tmp_path / "spec.md").write_text(SPEC)
