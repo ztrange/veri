@@ -2,3 +2,5 @@
 - test-only | the two #2972 process tests each define the same local `git(*words)` helper; lift it into one shared helper
 ### `clear-refactor-pending.sh`, when it would clear a step's mark and the receipt `pin-recheck-ok` in the ledger's directory (`.tdd/pin-recheck-ok` for `.tdd/issue-<n>.md`) is absent, exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 2⟧
 - test-only | In `test_clear_refactor_pending.py`, replace the `leave_receipt(tmp_path / "ledger.md")` call repeated at the top of almost every case with one autouse fixture. The absent-receipt case would opt out of it.
+### `tick-ledger.sh` ticking a `⟦diff-checked⟧` step with the receipt absent exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 3⟧
+- share the receipt-path construction (`os.path.join(os.path.dirname(ledger), "pin-recheck-ok")`) between tick_ledger.py and clear_refactor_pending.py in one helper (cross-file extraction, not applied)
