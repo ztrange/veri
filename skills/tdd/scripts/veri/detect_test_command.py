@@ -125,10 +125,10 @@ def option(args, flag):
 def main(argv):
     tier, args = option(list(argv), "--tier")
     if tier is None:
-        return 1
+        return 2
     issue, args = option(args, "--issue")
     if issue is None:
-        return 1
+        return 2
     root = args[0] if args and args[0] else "."
     command = resolved(tier, issue, root)
     if command is None:
