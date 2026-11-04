@@ -6,11 +6,12 @@ import subprocess
 import sys
 
 try:
-    from . import add_ledger_step, event
+    from . import add_ledger_step, event, prose_owed
     from .ledger import STEP_RE, read_ledger
 except ImportError:
     import add_ledger_step
     import event
+    import prose_owed
     from ledger import STEP_RE, read_ledger
 
 USAGE = (
@@ -55,6 +56,10 @@ def insert(ledger, branch_file):
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
+    if unchecked and "⟦skill-edit⟧" in unchecked[0]:
+        owed, _ = prose_owed.owed_listed()
+        if any(unit in unchecked[0] for _, unit in owed):
+            return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
     return add_ledger_step.main([ledger, where, anchor, step])

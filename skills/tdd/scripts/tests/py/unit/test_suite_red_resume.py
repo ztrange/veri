@@ -281,3 +281,22 @@ def test_flake_with_a_red_file_naming_no_test_file_exits_1_and_writes_no_event_2
 
     flakes = [e for e in events.records(tmp_path) if e["event"] == "suite-flake"]
     assert code == 1 and flakes == []
+
+
+def test_insert_adds_no_suite_repair_step_when_the_red_is_only_a_stale_grade_of_the_unit_the_first_unchecked_skill_edit_step_names_3004(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    text = f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48\n- [ ] c ⟦criterion 3⟧\n"
+    ledger.write_text(text)
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\ntest_prd_016_short_names.py\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert "⟦suite-repair⟧" not in ledger.read_text()
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][0] == f"- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48"
