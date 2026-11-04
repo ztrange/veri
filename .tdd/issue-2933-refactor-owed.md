@@ -1,0 +1,2 @@
+### A red output naming a `test_*.py` file only as a bare path (no pytest `FAILED`/`ERROR` summary line) has that file rerun alone once, and when it passes alone `rerun-alone.sh` exits 0 and writes one `suite-flake` event naming it; pinned by a process case in skills/tdd/scripts/tests/py/test_rerun_alone_process.py with a stub alone command ⟦criterion 1⟧
+- `argv[1]` is read without a length check, so a lone argument raises an IndexError instead of exiting 2 with the usage line. That is a behaviour change, not a tidy-up.
