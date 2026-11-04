@@ -1,0 +1,7 @@
+before 40
+e47010fce79f76e1bd44dfedd2460adef1f9dd77
+keep 60
+skills/tdd/scripts/tests/py/test_skill_edit_guard_process.py
+command 353
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpdmogygu2/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_skill_edit_guard_process.py make test TESTS=skills/tdd/scripts/tests/py/test_skill_edit_guard_process.py::test_skill_edit_guard_3045_untracked_mutation_record_beside_a_stray_change_prints_only_the_stray_file_and_exit_1
+

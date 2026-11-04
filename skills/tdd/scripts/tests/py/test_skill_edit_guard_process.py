@@ -253,3 +253,23 @@ def test_skill_edit_guard_3045_untracked_mutation_record_is_not_printed_and_exit
 
     assert git(repo, "ls-files", "--others", "--exclude-standard") == ".tdd/issue-3045-mutations.md"
     assert guard(repo, "skills/foo/FOO.md", base) == (0, "")
+
+
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_3045_untracked_mutation_record_beside_a_stray_change_prints_only_the_stray_file_and_exit_1(tmp_path):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / "skills/foo/OTHER.md").write_text("other\n")
+    (repo / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / "skills/foo/OTHER.md").write_text("other two\n")
+    (repo / "skills/foo/NOTES.md").write_text("stray\n")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd/issue-3045-mutations.md").write_text("record\n")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/OTHER.md\nskills/foo/NOTES.md\n")
