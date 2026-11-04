@@ -1,0 +1,2 @@
+### `suite-red-resume.sh insert` on that same ledger (first unchecked step a `⟦skill-edit⟧` step for a stale-graded U) when a branch-red suite is red for a reason other than U's stale grade still inserts the `⟦suite-repair⟧` step before the first unchecked step, as today, pinned by one small case in `skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py` ⟦criterion 2⟧
+- test-only | Extract the setup both new test cases repeat (the `owed_listed` monkeypatch, the ledger text and the bail `events.jsonl`) into a shared helper or fixture in `test_suite_red_resume.py`.
