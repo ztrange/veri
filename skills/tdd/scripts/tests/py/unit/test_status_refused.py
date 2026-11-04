@@ -295,3 +295,18 @@ def test_2739_json_lists_a_run_with_a_ledger_and_a_live_conductor_but_no_events_
     document = json.loads(out)
     listed = [(r.get("issue"), r.get("state"), r.get("step"), r.get("title")) for r in document["runs"]]
     assert (listed, document["scope"]["attempted"]) == ([("7", "running", "2 of 2", "My title")], 1)
+
+
+def test_3057_a_run_whose_events_end_in_a_bail_then_a_launch_with_a_live_conductor_reports_running_not_bailed(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "bail", "phase": "rebase", "classification": "process"}) + "\n"
+        + json.dumps({"ts": 200, "issue": "7", "event": "launch", "phase": "rebase", "name": "verify-rebase"}) + "\n")
+    live_conductor(monkeypatch, run / ".tdd", 7)
+
+    obj = json.loads(status.run_activity(str(run), True) or "{}")
+
+    assert obj.get("state") == "running"
