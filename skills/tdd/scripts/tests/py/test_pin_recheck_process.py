@@ -1026,3 +1026,27 @@ def test_2919_pin_recheck_replays_the_record_from_the_directory_it_is_run_in_not
     ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose before..green range replays no file")
+def test_3016_a_before_keep_record_whose_range_replays_no_file_exits_2_naming_before_and_green_not_a_stay_green(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-3016.md").write_text("- [ ] step\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "plan")
+    plan = git("rev-parse", "HEAD")
+    record(tmp_path / ".tdd" / "issue-3016-mutations.md", before=base, keep="pin.txt", green=plan, command="true")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, base in ran.stderr, plan in ran.stderr, "stayed green" in ran.stderr) == (
+        2, True, True, False), ran.stderr
