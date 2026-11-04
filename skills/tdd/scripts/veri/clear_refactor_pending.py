@@ -31,8 +31,12 @@ def main(argv):
         return 2
     with open(receipt) as handle:
         sha = handle.read().strip()
-    changed = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
-                  cwd=os.path.dirname(argv[0]) or None).stdout.split()
+    diff = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
+               cwd=os.path.dirname(argv[0]) or None)
+    if diff.returncode != 0:
+        complain(argv[0], "the pin-recheck receipt's sha does not resolve in git: run pin-recheck.sh again")
+        return 2
+    changed = diff.stdout.split()
     if any(not path.startswith(".tdd/") for path in changed):
         complain(argv[0], "a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again")
         return 2
