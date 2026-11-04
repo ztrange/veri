@@ -8,3 +8,7 @@ _TEST_FILE_BYTES = re.compile(rb"(^|/)tests/|\.test\.")
 def is_test_path(path):
     pattern = _TEST_FILE_BYTES if isinstance(path, bytes) else _TEST_FILE
     return bool(pattern.search(path))
+
+
+def is_go_test_file(name):
+    return name.endswith("_test.go")
