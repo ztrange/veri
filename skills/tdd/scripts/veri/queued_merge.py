@@ -65,6 +65,14 @@ def _rev(worktree, ref):
     return run.stdout.strip() if run.returncode == 0 else ""
 
 
+def _synced(worktree, lease):
+    if not _git(worktree, "merge-base", "--is-ancestor", lease, "HEAD").returncode:
+        return True
+    return (not _git(worktree, "merge-base", "--is-ancestor", "HEAD", lease).returncode
+            and not _git(worktree, "status", "--porcelain").stdout.strip()
+            and not _git(worktree, "merge", "--ff-only", lease).returncode)
+
+
 def _merged(repo, pr):
     """GitHub's pull record when it answers merged: true; None when it answers anything else."""
     run = gh_api("repos/%s/pulls/%s" % (repo, _number(pr)))
@@ -183,10 +191,7 @@ def main(argv):
         _say("origin/%s does not resolve; no lease to pin" % branch)
         _release(pid)
         return 2
-    if _git(worktree, "merge-base", "--is-ancestor", lease, "HEAD").returncode and not (
-            not _git(worktree, "merge-base", "--is-ancestor", "HEAD", lease).returncode
-            and not _git(worktree, "status", "--porcelain").stdout.strip()
-            and not _git(worktree, "merge", "--ff-only", lease).returncode):
+    if not _synced(worktree, lease):
         _say("origin/%s has commits the worktree lacks; nothing pushed" % branch)
         _release(pid)
         return 2
