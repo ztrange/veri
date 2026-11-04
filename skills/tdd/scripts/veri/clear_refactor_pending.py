@@ -1,5 +1,6 @@
 """clear-refactor-pending.sh's clear, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import sys
 
 import ledger
@@ -23,6 +24,9 @@ def main(argv):
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not cleared:
         return 3
+    if not os.path.exists(os.path.join(os.path.dirname(argv[0]), "pin-recheck-ok")):
+        complain(argv[0], "no pin-recheck receipt: run pin-recheck.sh first")
+        return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None:
         return 0

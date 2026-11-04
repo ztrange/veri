@@ -465,3 +465,15 @@ def test_main_keeps_the_original_file_mode_on_a_cleared_ledger(
     assert (code, *capsysbinary.readouterr()) == (0, b"", b"")
     assert led.read_bytes() == b"- [x] a\n"
     assert stat.S_IMODE(led.stat().st_mode) == 0o640
+
+
+def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identical_when_the_pin_recheck_receipt_is_absent_2972(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n".encode()
+    led = tmp_path / "issue-42.md"
+    led.write_bytes(seed)
+
+    code = clear_refactor_pending.main([str(led), "a"])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
