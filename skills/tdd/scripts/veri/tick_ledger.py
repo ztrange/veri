@@ -88,6 +88,10 @@ def main(argv):
                 "^(?:" + "|".join(map(re.escape, named)) + ")$", open(record, encoding="utf-8").read(), re.M):
             complain(f"{record}: no mutation record for the step's go-red control")
             return 2
+    if tests_frozen.is_diff_checked(step_line) and not os.path.exists(
+            os.path.join(os.path.dirname(argv[0]), "pin-recheck-ok")):
+        complain(f"{argv[0]}: no pin-recheck receipt: run pin-recheck.sh first")
+        return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
         step = step_line
