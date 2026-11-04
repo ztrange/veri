@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ledger import ledger_path
+
 
 def records(text):
     out, i = [], 0
@@ -55,7 +57,7 @@ def write_tail(run):
 
 def tick_commit(ledger):
     number = Path(ledger).name.removeprefix("issue-").removesuffix("-mutations.md")
-    return subprocess.run(["git", "log", "-1", "--format=%H", "--", f".tdd/issue-{number}.md"],
+    return subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger_path(".", number)],
                           capture_output=True, text=True).stdout.strip()
 
 
