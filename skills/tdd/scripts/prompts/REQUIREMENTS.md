@@ -962,3 +962,12 @@
 | BE2 | Step 1 tells the leaf to add the new interface beside the old one with no proxy, leave the old interface's behaviour unchanged, and move no caller, because that is the migrate phase. (Numbered list, item 1.) | Moving callers is the next phase's work, so the diff stays one kind of change. |
 | BE3 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`, and never to modify a test file: a beside commit that touches one is rejected. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
 | BE4 | The numbered list has three items in this order: add the interface (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
+
+## skills/tdd/scripts/prompts/develop-dual-stub.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| XD1 | The prompt says this is the dual-stub phase of an interface change that supersedes frozen cases: only tests change, and production stays as it is, so the cases run against unmoved production code. (Opening paragraph.) | The leaf must know which half of the tree it may touch. |
+| XD2 | Step 1 tells the leaf to edit only tests, to make every edited case that pins the old transport also stub the new one and still pass against the unmoved production code, and to remove or weaken no assertion. (Numbered list, item 1.) | Both stubs in place is what lets migrate move callers without turning a frozen case red. |
+| XD3 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`, and never to modify a production file: a dual-stub commit that touches one is rejected. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
+| XD4 | The numbered list has three items in this order: edit the tests (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
