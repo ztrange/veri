@@ -76,3 +76,21 @@ def test_2957_suite_flakes_counts_each_file_of_a_comma_list_so_one_named_second_
     code, out, err = run_cli(suite_flakes, run_dirs)
 
     assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\n")
+
+
+def test_2957_suite_flakes_skips_non_object_lines_and_other_events_with_files_so_a_file_only_they_name_is_not_listed(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    skipped = tmp_path / "12"
+    (skipped / ".tdd").mkdir(parents=True)
+    (skipped / ".tdd" / "events.jsonl").write_text(
+        'not json at all\n'
+        '["scripts/a.test.mjs"]\n'
+        '{"event": "other", "files": "scripts/a.test.mjs"}\n')
+    cleared = tmp_path / "19"
+    (cleared / ".tdd").mkdir(parents=True)
+    (cleared / ".tdd" / "events.jsonl").write_text(
+        '{"event": "suite-flake", "files": "scripts/a.test.mjs"}\n')
+
+    code, out, err = run_cli(suite_flakes, [str(skipped), str(cleared)])
+
+    assert (code, out) == (3, "")

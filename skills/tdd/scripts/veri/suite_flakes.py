@@ -18,7 +18,13 @@ def main(argv):
     for run_dir, path in logs.items():
         with open(path) as log:
             for line in log:
-                for name in json.loads(line)["files"].split(","):
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(event, dict) or event.get("event") != "suite-flake":
+                    continue
+                for name in event["files"].split(","):
                     runs.setdefault(name, set()).add(os.path.basename(run_dir))
     listed = {name: sorted(seen) for name, seen in runs.items() if len(seen) > 1}
     for name in listed:
