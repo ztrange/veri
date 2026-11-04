@@ -496,3 +496,11 @@ def test_cli_issue_3038_tier_all_with_a_tests_selector_command_and_no_all_tests_
     body.write_text("## Notes\n\nTest command: make test TESTS=foo\n")
 
     assert cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo)) == (0, "make test TESTS=foo\n", "")
+
+
+def test_cli_tier_one_test_file_prints_the_command_of_the_claude_md_one_test_file_line(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text('# notes\n\nveri: fast tests: `make unit`\nveri: one test file: `npm test -- "$1"`\n')
+
+    assert cli(run_cli, detect, "--tier", "one test file", str(repo)) == (0, 'npm test -- "$1"\n', "")
