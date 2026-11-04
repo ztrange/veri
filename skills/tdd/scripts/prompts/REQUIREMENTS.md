@@ -953,3 +953,12 @@
 | VM5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot. (Numbered list, item 4.) | The test-frozen rule is shared with expand and contract-b, stated once. |
 | VM6 | The template's own checks are numbered 2 to 4, continuing the list the included `_verify-interface-phase-lead.md` fragment opens with check 1. (Numbered list.) | Check 1 (still green) lives in the shared lead, so the template's numbering must follow it. |
 | VM7 | The closing paragraph says PASS if the suites are green, every product caller moved to the new interface and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/develop-beside.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| BE1 | The prompt says this is the beside phase of an interface change that supersedes frozen cases: production gains the new interface beside the old one, the old interface's behaviour stays unchanged and it is not turned into a proxy, and test files stay frozen. (Opening paragraph.) | The leaf must know what the phase adds and that, unlike expand, no proxy is written. |
+| BE2 | Step 1 tells the leaf to add the new interface beside the old one with no proxy, leave the old interface's behaviour unchanged, and move no caller, because that is the migrate phase. (Numbered list, item 1.) | Moving callers is the next phase's work, so the diff stays one kind of change. |
+| BE3 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`, and never to modify a test file: a beside commit that touches one is rejected. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
+| BE4 | The numbered list has three items in this order: add the interface (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
