@@ -53,8 +53,15 @@ def write_tail(run):
     sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
 
 
-def replay_before(pin):
-    names = subprocess.run(["git", "diff", "--name-only", pin["before"], *([pin["green"]] if "green" in pin else [])],
+def tick_commit(ledger):
+    number = Path(ledger).name.removeprefix("issue-").removesuffix("-mutations.md")
+    return subprocess.run(["git", "log", "-1", "--format=%H", "--", f".tdd/issue-{number}.md"],
+                          capture_output=True, text=True).stdout.strip()
+
+
+def replay_before(pin, ledger):
+    green = tick_commit(ledger) or pin.get("green")
+    names = subprocess.run(["git", "diff", "--name-only", pin["before"], *([green] if green else [])],
                            capture_output=True, text=True,
                            check=True).stdout.split()
     names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
@@ -87,13 +94,13 @@ def main(argv):
         if "before" not in r and "file" not in r:
             sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
             return 2
-    pins = [r for _, r in found if "before" in r or r["file"] in touched]
+    pins = [(f, r) for f, r in found if "before" in r or r["file"] in touched]
     if not pins:
         return 3
     status = 0
-    for pin in pins:
+    for ledger, pin in pins:
         if "before" in pin:
-            if replay_before(pin) == 0:
+            if replay_before(pin, ledger) == 0:
                 sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
                 status = 1
             continue
