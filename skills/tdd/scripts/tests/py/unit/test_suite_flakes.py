@@ -61,3 +61,18 @@ def test_2957_suite_flakes_counts_a_file_named_by_two_events_in_one_run_once_and
     code, out, err = run_cli(suite_flakes, [str(run_dir)])
 
     assert (code, out) == (3, "")
+
+
+def test_2957_suite_flakes_counts_each_file_of_a_comma_list_so_one_named_second_is_listed_with_both_runs(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dirs = []
+    for number, name in (("19", "scripts/b.test.mjs,scripts/a.test.mjs"), ("12", "scripts/a.test.mjs")):
+        run_dir = tmp_path / number
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "events.jsonl").write_text(
+            '{"event": "suite-flake", "files": "' + name + '"}\n')
+        run_dirs.append(str(run_dir))
+
+    code, out, err = run_cli(suite_flakes, run_dirs)
+
+    assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\n")
