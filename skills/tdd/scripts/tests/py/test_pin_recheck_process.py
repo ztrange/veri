@@ -969,3 +969,31 @@ def test_2974_a_before_keep_record_with_a_green_commit_replays_without_touching_
 
     assert (ran.returncode, (tmp_path / "seen.out").read_bytes(), (tmp_path / "other.txt").read_bytes()) == (
         0, b"other v1\n", b"other v1\n"), ran.stderr
+
+
+@pytest.mark.process("git, pin-recheck.sh replaying a directory-dependent record from a clone")
+def test_2919_pin_recheck_replays_the_record_from_the_directory_it_is_run_in_not_the_one_that_recorded_it(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*words, cwd=repo):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=cwd,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (repo / "guard.txt").write_text("if guard\n")
+    (repo / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt && grep -qx other where.txt\n')
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "issue-2919-mutations.md").write_text(
+        "file 9\nguard.txt\nold 8\nif guard\nnew 9\nif (true)\ncommand 12\nsh runner.sh\n\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (repo / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    other = tmp_path / "other"
+    git("clone", "-q", str(repo), str(other), cwd=tmp_path)
+    (repo / "where.txt").write_text("repo\n")
+    (other / "where.txt").write_text("other\n")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout) == (0, ""), ran.stderr

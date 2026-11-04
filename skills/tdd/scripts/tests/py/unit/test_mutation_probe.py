@@ -184,6 +184,35 @@ def test_main_records_only_the_test_command_when_the_probe_runs_through_timed_te
     assert lines[lines.index("command %d" % len(expected)) + 1] == expected
 
 
+def test_main_recognises_the_wrapper_when_the_module_itself_is_reached_through_a_symlink_2919(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    import importlib.util
+    import shlex
+    from pathlib import Path
+
+    link = tmp_path / "veri-link"
+    link.symlink_to(Path(mutation_probe.__file__).resolve().parent)
+    spec = importlib.util.spec_from_file_location("mutation_probe_via_symlink", link / "mutation_probe.py")
+    via_link = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(via_link)
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(via_link.subprocess, "run", lambda *a, **k: via_link.subprocess.CompletedProcess(a, 1))
+    wrapper = str(Path(mutation_probe.__file__).resolve().parent.parent / "timed-test-run.sh")
+    test_command = ["make", "test", "TESTS=tests/py/unit/test_a.py"]
+    code, out, err = run_cli(
+        via_link,
+        [str(target), "alpha", "beta", "--", wrapper, "affected", "a suite", *test_command],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    expected = shlex.join(test_command)
+    lines = record.read_text().split("\n")
+    assert lines[lines.index("command %d" % len(expected)) + 1] == expected
+
+
 @pytest.mark.parametrize(
     "args",
     [
