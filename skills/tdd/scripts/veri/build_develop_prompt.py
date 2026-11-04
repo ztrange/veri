@@ -22,7 +22,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         **dict.fromkeys(DEVELOP_INTERFACE_PHASES, 4)}
 ACCEPTED_WANT = {**WANT, "dual-stub": 4}
-WANT_PHASES = "|".join(PHASES)
+WANT_PHASES = "|".join(PHASES + ("dual-stub",))
 REVISABLE_PHASES = REVISE_PHASES + DEVELOP_INTERFACE_PHASES + ("dual-stub", "rebase")
 WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = paths.scripts_of(__file__)
@@ -32,7 +32,7 @@ ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TE
                          "<onto-sha>": "ONTO_SHA", "<pre-rebase-sha>": "PRE_REBASE_SHA",
                          "<conflicting-files>": "CONFLICTING_FILES", "<report-file>": "REPORT_FILE",
                          "<case>": "CASE"}
-USAGE = f"build-develop-prompt.sh: usage: {'|'.join(PHASES + ('dual-stub',))} <issue-spec-file> <step-text> <test-cmd> ..."
+USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
 def _read(path):

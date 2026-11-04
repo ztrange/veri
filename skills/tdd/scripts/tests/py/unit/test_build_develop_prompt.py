@@ -11,6 +11,7 @@ import pytest
 from conftest import SCRIPTS
 
 PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|migrate|contract-a|contract-b"
+WANT_PHASES = PHASES + b"|dual-stub"
 USAGE = importlib.import_module("veri.build_develop_prompt").USAGE.encode() + b"\n"
 NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
 
@@ -49,7 +50,7 @@ def test_main_refuses_no_argument_an_unknown_phase_a_short_count_an_unknown_revi
     assert results == {
         (): (2, b"", USAGE),
         ("bogus", s, "s", "c"): (
-            2, b"", b"build-develop-prompt.sh: unknown phase 'bogus' (want " + PHASES + b")\n" + USAGE),
+            2, b"", b"build-develop-prompt.sh: unknown phase 'bogus' (want " + WANT_PHASES + b")\n" + USAGE),
         ("green", s, "s", "c"): (2, b"", b"build-develop-prompt: green needs 7 arguments, got 4\n" + USAGE),
         ("revise", "bogus", s, "s", "c", r): (
             2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' (want "
@@ -129,7 +130,7 @@ def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_a
         return (2, b"", b"build-develop-prompt" + message + b"\n" + USAGE)
 
     expected = {
-        ("", s, "s", "c"): refused(b".sh: unknown phase '' (want " + PHASES + b")"),
+        ("", s, "s", "c"): refused(b".sh: unknown phase '' (want " + WANT_PHASES + b")"),
         ("revise", "bogus", "a", "b", "c"): refused(b": revise needs 6 arguments, got 5"),
         ("red", s, "s"): refused(b": red needs 4 arguments, got 3"),
         ("cover", s, "s"): refused(b": cover needs 4 arguments, got 3"),
@@ -1636,7 +1637,7 @@ def test_cli_unknown_phase_with_no_further_arguments_exits_2_names_the_phase_on_
     code, out, err = run_cli(build_develop_prompt, ["bogus"])
 
     assert (code, out, err) == (
-        2, "", "build-develop-prompt.sh: unknown phase 'bogus' (want " + PHASES.decode() + ")\n" + USAGE.decode())
+        2, "", "build-develop-prompt.sh: unknown phase 'bogus' (want " + WANT_PHASES.decode() + ")\n" + USAGE.decode())
 
 
 def test_cli_red_tells_a_bugs_leaf_to_write_from_expected_drive_with_steps_and_fail_as_what_happened_describes_and_a_leaf_with_no_bug_section_none_of_it(
