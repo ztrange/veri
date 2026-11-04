@@ -124,6 +124,15 @@ def write_check_earlier_pass(directory, step):
         os.chdir(here)
 
 
+def plant_origin_head(directory):
+    identity = ["-c", "user.name=probe", "-c", "user.email=probe@example.com"]
+    subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
+    (directory / ".git" / "info" / "exclude").write_text("*\n")
+    subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
+    subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=directory, check=True)
+    subprocess.run(["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], cwd=directory, check=True)
+
+
 def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS, clock=time.monotonic, sleep=time.sleep):
     directory = probe.run / f"{lineno}-{leaf}"
     (directory / ".tdd").mkdir(parents=True, exist_ok=True)
@@ -139,6 +148,8 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
             (directory / name).write_text(f"the {name} this launch names, which the stub never reads\n")
     if leaf in ("verify-red", "verify-green"):
         write_check_earlier_pass(directory, SENTINEL_STEP)
+    if leaf == "verify-pin":
+        plant_origin_head(directory)
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
     env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")
@@ -930,6 +941,14 @@ def test_every_leaf_skill_md_launches_through_supervise_sh_sees_the_runs_test_co
 @pytest.mark.timeout(900)
 def test_every_verifier_skill_md_launches_through_verify_sh_sees_the_runs_test_command_as_veri_test_cmd(scans):
     assert scans.verifier == []
+
+
+@pytest.mark.process("SKILL.md pin launch line through verify.sh")
+@pytest.mark.timeout(120)
+def test_2945_the_skill_md_verify_pin_launch_line_run_in_a_scratch_tree_launches_its_verifier_leaf(probe):
+    scan_launches(probe, r"\$S/run-verdict\.sh .* pin \.tdd/issue-<n>-spec\.md", "the pin verifier", check_verifier_launch)
+
+    assert probe.problems == []
 
 
 @pytest.mark.process("SKILL.md launch line through supervise.sh")
