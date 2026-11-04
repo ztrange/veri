@@ -4725,6 +4725,23 @@ def test_cli_refuses_a_run_leaf_launch_whose_prompt_file_does_not_exist_exiting_
     assert records[0]["name"] == "revise-pin-1", records
 
 
+def test_cli_launches_a_leaf_whose_command_is_not_run_leaf_sh_with_an_empty_existing_file_as_its_first_argument_writing_a_launch_event_and_no_launch_refused_event_2928(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "empty.txt").write_text("")
+    stub = tmp_path / "claude"
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["develop-red", str(stub), "empty.txt"], cwd=tmp_path,
+                             env={"VERI_ISSUE": "2928", "VERI_STEP": "1"})
+
+    assert code == 0, err
+    assert bool(started) is True, err
+    names = [r["event"] for r in events.records(tmp_path)]
+    assert "launch" in names and "launch-refused" not in names, names
+
+
 def test_cli_launches_the_leaf_as_usual_while_a_stop_at_ledger_is_pending_refusing_nothing_2549(
         monkeypatch, tmp_path, supervise, run_cli, events):
     clean_env(monkeypatch)
