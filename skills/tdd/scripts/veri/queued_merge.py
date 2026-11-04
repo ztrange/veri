@@ -37,6 +37,14 @@ def _gate(pid, *cmd, keep=False):
     return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
 
 
+def _rebase(pid, worktree, git_args):
+    code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
+    if code and not _git(worktree, "status", "--porcelain").stdout.strip():
+        _gate(pid, "git", "-C", worktree, "update-index", "--really-refresh", keep=True)
+        return _gate(pid, "git", "-C", worktree, "rebase", "--continue", keep=True)
+    return code
+
+
 def _git(worktree, *args):
     return subprocess.run(["git", "-C", worktree, *args], capture_output=True, text=True)
 
@@ -198,7 +206,10 @@ def main(argv):
     before = _rev(worktree, "HEAD")
     for git_args in (("rebase", "origin/main"),
                      ("push", "--force-with-lease=%s:%s" % (branch, lease), "origin", branch)):
-        code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
+        if git_args[0] == "rebase":
+            code = _rebase(pid, worktree, git_args)
+        else:
+            code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
         if code:
             return code
     head = _rev(worktree, "HEAD")
