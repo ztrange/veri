@@ -5,6 +5,8 @@ import shutil
 import sys
 import tempfile
 
+from git import git
+
 OPEN_STEP = "- [ ]"
 TICKED_STEP = "- [x]"
 PENDING_MARK = " ⟂ refactor pending"
@@ -20,6 +22,21 @@ TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^
 
 def ledger_path(run_dir, issue):
     return os.path.join(run_dir, ".tdd", f"issue-{issue}.md")
+
+
+def receipt_refusal(ledger_file):
+    receipt = os.path.join(os.path.dirname(ledger_file), "pin-recheck-ok")
+    if not os.path.exists(receipt):
+        return "no pin-recheck receipt: run pin-recheck.sh first"
+    with open(receipt) as handle:
+        sha = handle.read().strip()
+    diff = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
+               cwd=os.path.dirname(ledger_file) or None)
+    if diff.returncode != 0:
+        return "the pin-recheck receipt's sha does not resolve in git: run pin-recheck.sh again"
+    if any(not path.startswith(".tdd/") for path in diff.stdout.split()):
+        return "a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again"
+    return None
 
 
 class LeftBehind(OSError):
