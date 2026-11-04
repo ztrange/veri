@@ -69,7 +69,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
-  REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
+  REJECT, 2 = malformed or killed-stuck, or (`pin`) no resolvable merge-base: the branch has no base against `origin/HEAD`, and stderr names `origin/HEAD`**. The `pin` phase is the *already satisfied*
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
