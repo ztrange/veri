@@ -1,0 +1,9 @@
+before 40
+f59d93cb9a3fb5d7a64a9860402f6eba0ba16f18
+keep 55
+skills/tdd/scripts/tests/py/test_tick_ledger_process.py
+command 333
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp4bqv13u7/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tick_ledger_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tick_ledger_process.py::test_ticking_refactor_pending_from_a_subdirectory_and_from_the_root_leaves_byte_identical_records_2917
+green 40
+10f6b34eddb256a731bcf43d67d16d40c0d1eacb
+
