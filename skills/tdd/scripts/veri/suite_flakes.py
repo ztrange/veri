@@ -19,7 +19,7 @@ def main(argv):
         with open(path) as log:
             for line in log:
                 for name in json.loads(line)["files"].split(","):
-                    runs.setdefault(name, []).append(os.path.basename(run_dir))
+                    runs.setdefault(name, set()).add(os.path.basename(run_dir))
     listed = {name: sorted(seen) for name, seen in runs.items() if len(seen) > 1}
     for name in listed:
         sys.stdout.write(f"{name}: {', '.join(listed[name])}\n")
