@@ -15,7 +15,7 @@ PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True):
+def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False):
     """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, and commands that fail."""
     state = {"rebased": False, "ci": list(ci), "merged": False}
 
@@ -29,6 +29,10 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             state["rebased"] = True
         if "pr merge" in line:
             state["merged"] = True
+        if behind and "merge-base --is-ancestor" in line:
+            return (1 if line.endswith(" HEAD") else 0), "", ""
+        if dirty and "status --porcelain" in line:
+            return 0, " M file\n", ""
         if "merge-base --is-ancestor" in line and (ORIGIN_SHA in line or "origin/feature" in line):
             return (1 if diverged else 0), "", ""
         if "rev-parse --verify origin/main" in line or "rev-parse origin/main" in line:
@@ -173,6 +177,16 @@ def test_2372_queued_merge_whose_worktree_lacks_a_commit_on_origin_branch_exits_
     pushes = [c for c in calls if " push " in c]
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, "origin/feature" in err, pushes, first(calls, "rebase"), len(released)) == (2, True, [], None, 1)
+
+
+def test_3030_queued_merge_on_a_dirty_worktree_strictly_behind_origin_branch_exits_2_naming_it_and_never_rebases_or_pushes(fake_processes, run_cli):
+    calls = scenario(fake_processes, behind=True, dirty=True)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    pushes = [c for c in calls if " push " in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "has commits the worktree lacks" in err, pushes, first(calls, "rebase"), len(released)) == (2, True, [], None, 1)
 
 
 def test_2372_queued_merge_releases_the_lock_only_after_the_tag_branch_delete_and_worktree_remove(fake_processes, run_cli):
