@@ -5,6 +5,6 @@
 - [x] tick-ledger.sh on a step naming a before-sha control exits 0 and ticks the step once the mutation record file beside the ledger holds a before record for that same sha ⟦criterion 2⟧ ⟂ retired unpinnable
 - [x] tick-ledger.sh on a step naming a before-sha control still exits 2 with the ledger unchanged when the mutation record file holds only a before record for a different sha ⟦criterion 1⟧
 - [x] tick-ledger.sh on a step naming its go-red control as a file at a hex commit exits 0 and ticks the step once the mutation record file holds a file/old/new record for that file ⟦criterion 2⟧ ⟂ retired unpinnable
-- [ ] tick-ledger.sh on a step naming its go-red control as a file at a hex commit still exits 2 with the ledger unchanged when the mutation record file holds only a file/old/new record for a different file and no before record ⟦added⟧ ⟦criterion 1⟧
+- [x] tick-ledger.sh on a step naming its go-red control as a file at a hex commit still exits 2 with the ledger unchanged when the mutation record file holds only a file/old/new record for a different file and no before record ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] tick-ledger.sh on a step whose text mentions "go-red control" bare, with neither wording and no mutation record file, ticks the step and exits 0 as before ⟦criterion 3⟧
 - [ ] The guard, broken on purpose (the mutation-record existence check removed), turns the first criterion's case red, then is restored ⟦human-owed⟧ ⟦criterion 4⟧
