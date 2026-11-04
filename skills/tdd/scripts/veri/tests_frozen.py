@@ -596,7 +596,16 @@ def rerecord_earlier(ledger, step):
         return 2
 
 
-def rerecord_committed(step):
+def rerecord_committed(step, root):
+    here = os.getcwd()
+    os.chdir(root)
+    try:
+        return _rerecord_committed(step)
+    finally:
+        os.chdir(here)
+
+
+def _rerecord_committed(step):
     path = _record_path(step)
     if not os.path.exists(path):
         return 0
