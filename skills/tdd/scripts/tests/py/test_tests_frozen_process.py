@@ -5410,8 +5410,9 @@ def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_
     step = STEPS[1]
     suite = tmp_path / "suite_test.go"
     _plan_repo(tmp_path, monkeypatch)
-    inline = "".join('func Test%s(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n}\n\n' % (n, m)
-                     for n, m in (("One", "a"), ("Two", "b"), ("Three", "c")))
+    checks = "".join('\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m for m in "abc")
+    inline = "".join('func Test%s(t *testing.T) {\n\tx := 1\n%s}\n\n' % (n, checks)
+                     for n in ("One", "Two", "Three"))
     shared = "".join('func Test%s(t *testing.T) {\n\tx := 1\n\tsharedBase(t, x)\n}\n\n' % n for n in ("One", "Two", "Three"))
     helper = ('func sharedBase(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n'
               '\tif x != 1 {\n\t\tt.Fatal("c")\n\t}\n}\n')
@@ -5441,8 +5442,8 @@ def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_
     suite = tmp_path / "suite.test.ts"
     _plan_repo(tmp_path, monkeypatch)
     names = ("one", "two", "three")
-    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(%d);\n});\n\n" % (n, i)
-                     for i, n in enumerate(names, 1))
+    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n});\n\n" % n
+                     for n in names)
     shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in names)
     helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
     suite.write_text(inline)
@@ -5471,8 +5472,8 @@ def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_
     suite = tmp_path / "suite.test.ts"
     _plan_repo(tmp_path, monkeypatch)
     names = ("one", "two", "three")
-    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(%d);\n});\n\n" % (n, i)
-                     for i, n in enumerate(names, 1))
+    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n});\n\n" % n
+                     for n in names)
     shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in names)
     helper = "const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
     suite.write_text(inline)
