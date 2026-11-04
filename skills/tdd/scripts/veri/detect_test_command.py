@@ -78,7 +78,8 @@ def decide(tier, issue, root):
             if found.command != resolved("fast", issue, root) and not selects_subset(found.command, root):
                 raise
     if tier and has("CLAUDE.md"):
-        answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + b" tests:")
+        suffix = b":" if tier == "one test file" else b" tests:"
+        answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + suffix)
     if has(".veri/test-command"):
         for line in lines_of(at(".veri/test-command")):
             if line:
