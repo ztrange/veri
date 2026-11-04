@@ -273,3 +273,22 @@ def test_skill_edit_guard_3045_untracked_mutation_record_beside_a_stray_change_p
     (repo / ".tdd/issue-3045-mutations.md").write_text("record\n")
 
     assert guard(repo, "skills/foo/FOO.md", base) == (1, "skills/foo/OTHER.md\nskills/foo/NOTES.md\n")
+
+
+@pytest.mark.parametrize("stray", [".tdd/issue-3045-foo.md", ".tdd/other.md"])
+@pytest.mark.process("skill-edit-guard.sh run against a real git repository")
+def test_skill_edit_guard_3045_untracked_tdd_path_beside_the_mutation_record_is_printed_and_exit_1(tmp_path, stray):
+    repo = tmp_path / "guard"
+    (repo / "skills/foo").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "skills/foo/FOO.md").write_text("prose\n")
+    (repo / ".gitignore").write_text(".tdd/*\n!.tdd/*.md\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: foo")
+    base = git(repo, "rev-parse", "HEAD")
+    (repo / "skills/foo/FOO.md").write_text("prose two\n")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd/issue-3045-mutations.md").write_text("record\n")
+    (repo / stray).write_text("stray\n")
+
+    assert guard(repo, "skills/foo/FOO.md", base) == (1, stray + "\n")
