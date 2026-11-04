@@ -341,3 +341,12 @@ def test_main_2949_writes_a_fail_output_line_saying_the_failing_output_was_not_r
     assert code == 0
     assert len(fail_output) == 1
     assert "not reported" in fail_output[0]
+
+
+def test_main_2926_exits_3_without_a_prediction_not_written_reason_for_a_pin_revise_report_that_says_passes_and_has_no_prediction_file(monkeypatch, capsys, red_divergence, tmp_path):
+    pin_report = "OUTCOME: revised\nAGAINST_UNMODIFIED: PASSES\n"
+    argv = [str(tmp_path / "red-prediction.md"), str(tmp_path / "red-run-output.txt")]
+
+    code, out, err = run(monkeypatch, capsys, red_divergence, pin_report, argv)
+
+    assert (code, "prediction not written before the run" in out + err) == (3, False)

@@ -36,13 +36,15 @@ def prediction_file_content(argv):
 
 
 def main(argv):
+    report = sys.stdin.buffer.read().decode(errors="surrogateescape")
+    if report_read(report, ("AGAINST_UNMODIFIED",)).get("AGAINST_UNMODIFIED", "").strip() == "PASSES":
+        return 3
     unwritten = prediction_unwritten_before_run(argv)
     if unwritten:
         message = f"prediction not written before the run: {unwritten}\n"
         sys.stderr.write(message)
         sys.stdout.write(message)
         return 1
-    report = sys.stdin.buffer.read().decode(errors="surrogateescape")
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
     prediction = fields.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", ";", ":", "."):
