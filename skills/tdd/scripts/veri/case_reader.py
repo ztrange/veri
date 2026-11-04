@@ -1,5 +1,8 @@
 """Which paths are test files."""
+import fnmatch
 import re
+
+JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
 
 _TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 _TEST_FILE_BYTES = re.compile(rb"(^|/)tests/|\.test\.")
@@ -12,3 +15,16 @@ def is_test_path(path):
 
 def is_go_test_file(name):
     return name.endswith("_test.go")
+
+
+def is_test_file(name):
+    return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
+
+
+def is_js_test_file(name, root=""):
+    if name.endswith(".d.ts"):
+        return False
+    if re.search(r"\.(?:test|spec)" + JS_EXT, name):
+        return True
+    in_tests = "__tests__" in root.replace("\\", "/").split("/")
+    return in_tests and re.search(JS_EXT, name) is not None

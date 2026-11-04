@@ -1,25 +1,20 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
-from case_reader import is_go_test_file
+from case_reader import is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
-import fnmatch
 import os
 import re
 import sys
 import tests_frozen
 import tunables
-from js_tests import CALL, is_js_test_file
+from js_tests import CALL
 from entry import write
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
-
-
-def is_test_file(name):
-    return fnmatch.fnmatch(name, "test_*.py") or name.endswith("_test.py")
 
 
 def _live_call(pattern, text):
