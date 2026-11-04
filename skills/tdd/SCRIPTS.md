@@ -101,7 +101,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
-  earlier frozen cases its diff changed; **exit 2** can then follow the write of the ledger (the re-record failed). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
+  earlier frozen cases its diff changed; **exit 2** can then follow the write of the ledger (the re-record failed). **Exit 2** also refuses a step that names a go-red control (`mutation-probe.sh --before <sha>`, or `the go-red control is <file> at <sha>`) when `.tdd/issue-<n>-mutations.md` holds no `before <sha>` record for that sha and no `file`/`old`/`new` record for that file, naming the missing record and leaving the ledger unmodified; a step with neither wording, a bare mention of "go-red control" included, ticks as before. **Exit 3** if no unchecked step matched the substring — the file is left untouched,
   so a green commit that ticked nothing says so instead of reading as done.
   `--refactor-pending` appends ` ⟂ refactor pending` to that same line in the same write, so
   the green commit records the step as **green but not yet tidied**; that is the flag the
