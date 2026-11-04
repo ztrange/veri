@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_shims.py — FAILED skills/tdd/scripts/tests/py/test_shims.py::test_every_real_shim_is_executable_so_running_it_does_not_exit_126 ⟦suite-repair⟧ ⟦criterion 1⟧
