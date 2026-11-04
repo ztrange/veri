@@ -822,3 +822,16 @@ def test_main_ticks_a_skill_edit_step_with_no_mutation_record_exiting_0_2952(tmp
     code = tick_ledger.main([str(ledger), "the PR body lists the cogs"])
 
     assert (code, "- [x] the PR body lists the cogs" in ledger.read_text()) == (0, True)
+
+
+def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identical_when_ticking_a_diff_checked_step_with_the_pin_recheck_receipt_absent_2972(
+        tmp_path, capsysbinary, monkeypatch, tick_ledger):
+    monkeypatch.setattr(sys.modules["tests_frozen"], "rerecord_earlier", lambda *args: 0)
+    seed = "# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦diff-checked⟧ ⟦criterion 4⟧\n".encode()
+    led = tmp_path / "issue-7.md"
+    led.write_bytes(seed)
+
+    code = tick_ledger.main([str(led), "the PR body lists the cogs"])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
