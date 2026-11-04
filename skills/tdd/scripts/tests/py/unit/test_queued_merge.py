@@ -15,7 +15,7 @@ PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), behind=False, lease_readable=True):
+def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True):
     """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, and commands that fail."""
     state = {"rebased": False, "ci": list(ci), "merged": False}
 
@@ -29,8 +29,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             state["rebased"] = True
         if "pr merge" in line:
             state["merged"] = True
-        if "merge-base --is-ancestor %s HEAD" % ORIGIN_SHA in line:
-            return (1 if behind else 0), "", ""
+        if "merge-base --is-ancestor" in line and (ORIGIN_SHA in line or "origin/feature" in line):
+            return (1 if diverged else 0), "", ""
         if "rev-parse --verify origin/main" in line or "rev-parse origin/main" in line:
             return 0, ("later00" if state["merged"] else "pre0000") + "\n", ""
         if "wait-ci.sh" in line:
@@ -166,7 +166,7 @@ def test_2372_queued_merge_tags_the_merge_commit_github_reports_for_the_pr_fetch
 
 
 def test_2372_queued_merge_whose_worktree_lacks_a_commit_on_origin_branch_exits_2_naming_it_and_pushes_nothing(fake_processes, run_cli):
-    calls = scenario(fake_processes, behind=True)
+    calls = scenario(fake_processes, diverged=True)
 
     code, _, err = run_cli(queued_merge, ARGV)
 
