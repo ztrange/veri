@@ -267,3 +267,23 @@ def test_several_failed_lines_naming_one_unit_file_rerun_it_alone_once_and_list_
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
     assert flakes[0].count("skills/tdd/scripts/tests/py/unit/test_x.py") == 1
+
+
+@pytest.mark.process("rerun-alone.sh run on red output listing one x.test.ts file twice, passing alone")
+def test_a_test_ext_file_listed_twice_reruns_alone_once_and_is_listed_once_in_the_event_2933(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text("FAIL src/a.test.ts\nFAIL src/a.test.ts\n2 failed\n")
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert ran_log.read_text().splitlines() == ["src/a.test.ts"]
+    events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    flakes = [e for e in events if "suite-flake" in e]
+    assert len(flakes) == 1
+    assert flakes[0].count("src/a.test.ts") == 1
