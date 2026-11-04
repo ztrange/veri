@@ -421,3 +421,28 @@ def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and
             "quote.py": 'def fetch(deps=()): return {"deps": 10 * len(deps)}\n',
             "check_view.py": 'import sys\nfrom view import render\nsys.exit(0 if render({"deps": 10}) == "10" else 1)\n'},
         ""), result.stderr
+
+
+@pytest.mark.process("git, mutation-probe.sh --before and the sh command it runs against a scratch repo")
+def test_issue_3016_before_state_probe_at_a_plan_only_head_does_not_stamp_head_as_green(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "quote.txt").write_text("10\n")
+    (tmp_path / "test.sh").write_text("exit 1\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-3016.md").write_text("- [ ] 1. the step\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "plan")
+    head = git("rev-parse", "HEAD").strip()
+    record = tmp_path / ".tdd" / "issue-3016-mutations.md"
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", "sh", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    text = record.read_text() if record.exists() else ""
+    assert (result.returncode, f"green {len(head)}\n{head}\n" in text) == (0, False), (result.stderr, text)

@@ -63,9 +63,16 @@ def before_state(argv):
     returncode = run_with(restored, command)
     if returncode == 0:
         return 1
-    green = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    append_record((("before", sha), ("keep", keep), ("command", shlex.join(command)), ("green", green)))
+    fields = [("before", sha), ("keep", keep), ("command", shlex.join(command))]
+    if not names_issue_ledger(tunables.read("VERI_MUTATION_RECORD")):
+        green = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        fields.append(("green", green))
+    append_record(fields)
     return 0
+
+
+def names_issue_ledger(record):
+    return re.fullmatch(r"issue-\d+-mutations\.md", Path(record).name) is not None
 
 
 def main(argv):
