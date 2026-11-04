@@ -48,7 +48,9 @@ A developer agent has written the implementation intended to make the target tes
    step's criterion is rejected by asking for its removal, never by offering a test for it,
    and is not named on a `MISSING_TEST:` line. Establish each the way verify-pin
    establishes a mutation: remove the code through
-   `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the suites>`, which edits, runs the
+   `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the suites affected-suites.sh prints, together>`,
+   never the affected suites or one test file alone, so a branch only a fast-tier case
+   requires is not judged required by no test. It edits, runs the
    command and restores the file; if it exits 1 (the suites stay green) nothing
    required the code, and an exit of 2 gives no verdict. Confirm that
    `git diff` prints what it printed before the probe — before you report, since a verifier
