@@ -176,3 +176,15 @@ def test_2916_criterion_4_a_later_step_report_naming_an_earlier_unchecked_step_f
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
+
+
+@pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
+def test_3037_criterion_1_a_name_defined_only_in_an_untouched_test_file_routes_no_fixture(tmp_path):
+    repo = a_repo_with_an_older_frozen_case(tmp_path)
+    (repo / "tests" / "test_cog.py").write_text("def ran():\n    return 1\n")
+    (repo / ".tdd" / "develop-green.out").write_text(
+        "WRONG_TEST: the local variable `ran` in the Red case is never set\n")
+
+    code, out, err = route(repo, ".tdd/develop-green.out")
+
+    assert out == "revise\n", err
