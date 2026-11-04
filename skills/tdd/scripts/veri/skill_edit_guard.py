@@ -5,7 +5,7 @@ import re
 import subprocess
 import sys
 
-LEDGER = re.compile(r"\.tdd/issue-\d+(-added)?\.md")
+LEDGER = re.compile(r"\.tdd/issue-\d+(-added|-mutations)?\.md")
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]"
 
 
