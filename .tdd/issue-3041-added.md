@@ -1,0 +1,1 @@
+- [ ] the "#671 byte-identity" checksum pin in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py` is updated to the unmarked green prompt as it renders after the verify-green.md probe edit, both entries, so `make unit` is green again; test-only, no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧
