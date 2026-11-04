@@ -71,6 +71,7 @@ def replay_before(pin, ledger):
         sys.stderr.write(f"empty replay range: before {pin['before']} green {green}\n")
         return None
     saved = {n: Path(n).read_bytes() for n in names if Path(n).exists()}
+    modes = {n: Path(n).stat().st_mode for n in saved}
     try:
         for n in names:
             shown = subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True)
@@ -83,6 +84,7 @@ def replay_before(pin, ledger):
         for n in names:
             if n in saved:
                 Path(n).write_bytes(saved[n])
+                Path(n).chmod(modes[n])
             else:
                 Path(n).unlink(missing_ok=True)
     return ran.returncode
