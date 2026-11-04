@@ -310,3 +310,18 @@ def test_3057_a_run_whose_events_end_in_a_bail_then_a_launch_with_a_live_conduct
     obj = json.loads(status.run_activity(str(run), True) or "{}")
 
     assert obj.get("state") == "running"
+
+
+def test_3057_a_run_whose_events_end_in_a_stop_then_a_launch_with_a_live_conductor_reports_running_not_stopped(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    status = importlib.import_module("veri.status")
+    run = tmp_path / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "stop", "mode": "graceful"}) + "\n"
+        + json.dumps({"ts": 200, "issue": "7", "event": "launch", "phase": "rebase", "name": "verify-rebase"}) + "\n")
+    live_conductor(monkeypatch, run / ".tdd", 7)
+
+    obj = json.loads(status.run_activity(str(run), True) or "{}")
+
+    assert obj.get("state") == "running"
