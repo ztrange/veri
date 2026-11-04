@@ -982,3 +982,15 @@
 | VS4 | Check 3, "The old interface is untouched", says to REJECT a diff that changes the old interface's behaviour or turns it into a proxy over the new interface. (Numbered list, item 3.) | A proxy would change pinned behaviour, which is why this shape exists instead of expand. |
 | VS5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot; the template's own checks are numbered 2 to 4, continuing the included `_verify-interface-phase-lead.md` fragment's check 1. (Numbered list.) | The test-frozen rule is shared and stated once; numbering must follow the shared lead. |
 | VS6 | The closing paragraph says PASS if the suites are green, the new interface exists, the old one behaves as before with no proxy and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/verify-dual-stub.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VU1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-dual-stub`. (First lines.) | The blind verifier's shared rules come first, and the heading names the phase judged. |
+| VU2 | The opening paragraph says this is the **dual-stub** phase: it edits tests only, so the cases that pin the old transport stub the new one too, and production stays frozen. (Opening paragraph, before the include line.) | The verifier must know which half of the tree may change. |
+| VU3 | Check 2 says a range that touches a production file is a REJECT. (Numbered list, item 2.) | Production is the frozen half of this phase. |
+| VU4 | Check 3 says to REJECT a diff in which an edited case does not stub both transports. (Numbered list, item 3.) | Both stubs are what the phase delivers. |
+| VU5 | Check 4 says to run the edited cases at the range's tip against the production code as it stands, and that a case failing against unmoved production code is a REJECT. (Numbered list, item 4.) | The cases must stay green before any caller moves. |
+| VU6 | Check 5 says to REJECT a diff in which an assertion is removed or weakened, followed by the `{{LAST_PHASE_CHECK}}` slot; the template's own checks are numbered 2 to 5, continuing the included `_verify-interface-phase-lead.md` fragment's check 1. (Numbered list.) | A weakened assertion would pass the phase by testing less. |
+| VU7 | The closing paragraph says PASS if the suites are green, no production file changed, every edited case stubs both transports and passes against unmoved production code, and no assertion was removed or weakened, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
