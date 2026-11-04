@@ -40,8 +40,10 @@ def test_issue_2706_a_graded_only_conflict_with_the_marker_already_present_rebas
     def line(unit, digit):
         return f"guide/{unit}.md {digit * 64} 2026-01-01 {unit}\n"
 
-    def commit(graded, message):
+    def commit(graded, message, changed=()):
         (work / "guide" / "GRADED").write_text(graded)
+        for unit in changed:
+            (work / "guide" / f"{unit}.md").write_text(message)
         git("add", ".")
         git("commit", "-q", "-m", message)
 
@@ -56,7 +58,7 @@ def test_issue_2706_a_graded_only_conflict_with_the_marker_already_present_rebas
     git("push", "-q", "origin", "main")
     onto = git("rev-parse", "HEAD")
     git("checkout", "-q", "-b", "work", "HEAD~1")
-    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch")
+    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch", ("c",))
     (work / ".tdd").mkdir()
     (work / ".tdd" / "ci-conflict-rebased").write_text("")
 
