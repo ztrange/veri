@@ -16,3 +16,12 @@ command 399
 green 40
 4a3850788930d151519b375d0a6c19a8337df640
 
+file 38
+skills/tdd/scripts/veri/rerun_alone.py
+old 34
+files = list(dict.fromkeys(files))
+new 19
+files = list(files)
+command 174
+make test TESTS=skills/tdd/scripts/tests/py/test_rerun_alone_process.py::test_several_failed_lines_naming_one_unit_file_rerun_it_alone_once_and_list_it_once_in_the_event_2933
+
