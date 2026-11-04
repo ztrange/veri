@@ -74,6 +74,9 @@ def _take(lock, record, args):
         reported = False
         missing = 0
         while True:
+            if not _alive(int(pid)):
+                print(f"merge-lock.sh: pid {pid} is no longer alive", file=sys.stderr)
+                return 2
             if not os.path.isdir(lock):
                 try:
                     os.rename(staged, lock)
