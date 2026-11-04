@@ -37,3 +37,12 @@ skills/tdd/scripts/tests/py/test_supervise_process.py
 command 333
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp39ckv6il/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_supervise_process.py make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_2927_a_develop_leaf_that_truncates_two_mutations_records_gets_one_event_per_file_naming_leaf_and_file
 
+file 36
+skills/tdd/scripts/veri/supervise.py
+old 53
+if name.startswith(("develop-", "revise-")) else None
+new 17
+if True else None
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_2927_a_verify_pin_leaf_that_appends_to_a_mutations_record_keeps_the_append_and_gets_no_restore_event
+
