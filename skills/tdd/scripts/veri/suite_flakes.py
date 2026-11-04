@@ -12,6 +12,7 @@ def main(argv):
         if not os.path.isfile(os.path.join(run_dir, ".tdd", "events.jsonl")):
             sys.stderr.write(f"suite-flakes.sh: no .tdd/events.jsonl in {run_dir}\n")
             return 2
+    return 3
 
 
 if __name__ == "__main__":
