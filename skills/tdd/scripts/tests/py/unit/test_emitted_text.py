@@ -113,6 +113,12 @@ def test_usage_output_on_a_missing_argument_and_prompt_output_for_fixed_inputs_a
         for want, script, argv in table:
             argv = [a.format(**names) if stream == "prompt" else a for a in argv]
             text = emitted(run_cli, script, argv, stream)
+            if stream == "usage" and script == "build-develop-prompt.sh":
+                usage = [l for l in text.splitlines() if "usage: " in l]
+                phases = usage[0].split("usage: ")[1].split(" ")[0].split("|") if usage else []
+                if not text.startswith("exit 2\n") or "dual-stub" not in phases or "beside" not in phases:
+                    problems.append("%s %s: usage line must name dual-stub and beside, got %r" % (script, " ".join(argv), text))
+                continue
             text = text.replace(str(SCRIPTS), "<scripts>").replace(str(tmp_path), "<work>")
             text = text.replace((event.toplevel() or os.getcwd()) + "/.tdd/", "<root>/.tdd/")
             got = cksum(text.encode("utf-8", "surrogateescape"))

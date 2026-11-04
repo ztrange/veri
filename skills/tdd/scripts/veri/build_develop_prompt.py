@@ -32,7 +32,7 @@ ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TE
                          "<onto-sha>": "ONTO_SHA", "<pre-rebase-sha>": "PRE_REBASE_SHA",
                          "<conflicting-files>": "CONFLICTING_FILES", "<report-file>": "REPORT_FILE",
                          "<case>": "CASE"}
-USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
+USAGE = f"build-develop-prompt.sh: usage: {'|'.join(PHASES + ('dual-stub',))} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
 def _read(path):
