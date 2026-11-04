@@ -69,3 +69,14 @@ def test_production_frozen_range_base_sha_does_not_resolve_to_a_commit_exit_2(re
     code, _ = frozen(repo, "0123456789abcdef0123456789abcdef01234567")
 
     assert code == 2
+
+
+@pytest.mark.process("production-frozen.sh run against a real git range")
+def test_production_frozen_range_only_go_js_python_test_files_changed_exit_0_printing_no_path_2893(repo):
+    for path in ("pkg/x_test.go", "src/foo.spec.ts", "src/test_foo.py", "pkg/foo_test.py"):
+        base = git(repo, "rev-parse", "HEAD")
+        (repo / path).parent.mkdir(parents=True, exist_ok=True)
+        (repo / path).write_text("changed\n")
+        commit_all(repo, f"test: {path}")
+
+        assert frozen(repo, base) == (0, ""), path
