@@ -916,3 +916,24 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
 
     out, err = capsysbinary.readouterr()
     assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
+
+
+def test_main_ticks_a_step_not_marked_diff_checked_with_no_pin_recheck_receipt_for_a_plain_refactor_pending_and_phase_tick_2972(
+        tmp_path, capsysbinary, tick_ledger):
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
+    runs = {
+        "plain": ([], "- [ ] add lowercasing ⟦criterion 2⟧", "add lowercasing"),
+        "pending": (["--refactor-pending"], "- [ ] add lowercasing ⟦criterion 2⟧", "add lowercasing"),
+        "phase": (["--phase", "expand"], phased, "rename the slug helper"),
+    }
+    results = {}
+    for name, (flags, step, matcher) in runs.items():
+        directory = tmp_path / name
+        directory.mkdir()
+        led = directory / "issue-7.md"
+        led.write_text("# Plan for #7\n\n" + step + "\n")
+        code = tick_ledger.main([*flags, str(led), matcher])
+        _, err = capsysbinary.readouterr()
+        results[name] = (code, b"pin-recheck.sh" in err, led.read_text() != "# Plan for #7\n\n" + step + "\n")
+
+    assert results == {name: (0, False, True) for name in runs}
