@@ -686,3 +686,16 @@ def test_main_refuses_a_tick_of_a_step_naming_a_go_red_control_with_no_mutation_
     err = capsys.readouterr().err
 
     assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
+
+
+def test_main_refuses_a_tick_of_a_step_naming_mutation_probe_before_a_sha_with_no_mutation_record_leaving_the_ledger_untouched_2952(
+        tmp_path, capsys, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: prove the go-red with "
+            "mutation-probe.sh --before 84603a1e8 ⟦added⟧ ⟦criterion 3⟧\n").encode()
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main([str(ledger), "A refused start"])
+    err = capsys.readouterr().err
+
+    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)

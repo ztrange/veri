@@ -78,7 +78,7 @@ def main(argv):
             return 2
     if not ticked:
         return 3
-    if re.search(r"the go-red control is \S+ at [0-9a-f]+", changed_line(text, new)):
+    if re.search(r"the go-red control is \S+ at [0-9a-f]+|mutation-probe\.sh --before [0-9a-f]{7,40}", changed_line(text, new)):
         record = re.sub(r"\.md$", "", argv[0]) + "-mutations.md"
         if not os.path.exists(record):
             complain(f"{record}: no mutation record for the step's go-red control")
