@@ -13,9 +13,9 @@ import renamed_case
 import replaces_case
 import tunables
 from entry import write
-from js_tests import CALL, is_js_test_file
+from js_tests import CALL
 from ledger import KIND_RE, carries_mark, trailing_markers
-from case_reader import is_test_path
+from case_reader import is_js_test_file, is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
