@@ -9,6 +9,14 @@ import pytest
 from conftest import INTERPRETER_VENV
 from test_supervise import checked_step, committed_head
 
+
+def with_origin_head(work):
+    head = committed_head(work)
+    subprocess.run(["git", "-C", str(work), "update-ref", "refs/remotes/origin/main", head], check=True)
+    subprocess.run(["git", "-C", str(work), "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"],
+                   check=True)
+    return head
+
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
@@ -326,7 +334,7 @@ def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_l
                      " claude that records the VERI_MUTATION_RECORD it was launched with")
 def test_verify_sh_pin_launches_its_verifier_with_the_mutation_record_set_to_the_absolute_path_of_the_issue_file_2506(
         tmp_path):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
     seen = tmp_path / ".tdd" / "seen-record"
@@ -394,7 +402,7 @@ def test_verify_sh_green_launches_its_verifier_without_an_ambient_mutation_recor
 
 
 def run_verify_writing(tmp_path, phase, writes, then="", cwd=None, recorded=None):
-    head = committed_head(tmp_path)
+    head = with_origin_head(tmp_path)
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
     record = tmp_path / ".tdd" / "issue-2741-mutations.md"
