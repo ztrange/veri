@@ -14,3 +14,12 @@ skills/tdd/scripts/tests/py/test_tests_frozen_process.py
 command 346
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpz_d_fi37/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_rebased_drops_only_the_never_committed_case_and_still_re_records_the_upstream_only_changed_one_2994
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old 55
+if head is None and not _cases_at(pre, name).get(case):
+new 16
+if head is None:
+command 183
+make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_rebased_still_exits_2_for_a_recorded_case_committed_at_the_pre_rebase_sha_and_gone_at_head_2994
+

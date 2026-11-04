@@ -5360,3 +5360,45 @@ def test_rerecord_rebased_drops_only_the_never_committed_case_and_still_re_recor
 
     text = record.read_text()
     assert (code, "test_config_2994" in text, "test_ghost_2994" in text, after) == (0, True, False, 0)
+
+
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, rebased onto its default branch")
+def test_rerecord_rebased_still_exits_2_for_a_recorded_case_committed_at_the_pre_rebase_sha_and_gone_at_head_2994(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    kept = "def test_kept_2994():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == 1\n"
+    ghost = "\n\ndef test_ghost_2994():\n    assert f() == 2\n"
+    suite.write_text(kept)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    earlier, current = "step one pins the kept case", "step two adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(kept + ghost)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+    git(repo, "commit", "-q", "-a", "-m", "step one adds the ghost")
+    with_ghost = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                                text=True).stdout.strip()
+    suite.write_text(kept)
+    git(repo, "commit", "-q", "-a", "-m", "a later commit removes the ghost")
+    (repo / ".tdd/ledger.md").write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    git(repo, "checkout", "-q", "main")
+    (repo / "README.md").write_text("upstream\n")
+    git(repo, "add", "README.md")
+    git(repo, "commit", "-q", "-m", "upstream")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    git(repo, "rebase", "-q", "origin/main")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-rebased", str(repo / ".tdd/ledger.md"), with_ghost], cwd=repo)
+
+    assert (code, "names case test_ghost_2994, which tests/test_suite.py does not hold at HEAD" in err) == (2, True)
