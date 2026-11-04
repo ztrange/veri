@@ -1131,6 +1131,7 @@ def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_1
 
     assert (ran.returncode, state()) == (1, before), ran.stderr
 
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that leaves the recorded file alone")
 def test_2972_an_exit_0_or_3_leaves_a_receipt_holding_the_head_sha(tmp_path):
     def git(*words):
