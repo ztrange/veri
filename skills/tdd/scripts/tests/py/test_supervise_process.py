@@ -368,3 +368,19 @@ def test_2927_a_verify_pin_leaf_that_appends_to_a_mutations_record_keeps_the_app
 
     assert (ran.returncode, record.read_bytes(), naming) == (
         0, b"mutation: flip the sign\nwatched: FAILED\nprobe\n", []), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real develop leaf whose shell deletes a committed mutation record")
+def test_2927_a_develop_leaf_that_deletes_a_mutations_record_has_it_restored_byte_identical(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-2927-mutations.md"
+    record.write_bytes(b"mutation: flip the sign\nwatched: FAILED\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-green-1", "sh", "-c", 'rm "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert (ran.returncode, record.read_bytes()) == (0, b"mutation: flip the sign\nwatched: FAILED\n"), ran.stderr

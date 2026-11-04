@@ -16,3 +16,10 @@ if True else None
 command 176
 make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_2927_a_verify_pin_leaf_that_appends_to_a_mutations_record_keeps_the_append_and_gets_no_restore_event
 
+before 40
+ace970e842b9866583d9f7c564af7e692a72300f
+keep 53
+skills/tdd/scripts/tests/py/test_supervise_process.py
+command 314
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp39ckv6il/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_supervise_process.py make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_2927_a_develop_leaf_that_deletes_a_mutations_record_has_it_restored_byte_identical
+
