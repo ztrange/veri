@@ -7,3 +7,12 @@ make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_main_
 green 40
 99321212db3e22a4b62737f8f8b9e03eac45ddcd
 
+file 38
+skills/tdd/scripts/veri/tick_ledger.py
+old 25
+    if before or control:
+new 58
+    if before or control or "go-red control" in step_line:
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_main_ticks_a_step_mentioning_go_red_control_bare_with_neither_wording_and_no_mutation_record_exiting_0_2952
+
