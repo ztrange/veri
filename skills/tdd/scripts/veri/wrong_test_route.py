@@ -1,6 +1,7 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
+from case_reader import is_go_test_file
 import ledger as ledger_file
 import fnmatch
 import os
@@ -52,7 +53,7 @@ def _files():
 def _test_files():
     for root, name in _files():
         py = is_test_file(name)
-        go = name.endswith("_test.go")
+        go = is_go_test_file(name)
         js = is_js_test_file(name, root)
         if py or go or js or name.endswith(".test.sh"):
             yield root, name, py, go, js
