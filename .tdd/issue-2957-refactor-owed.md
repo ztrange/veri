@@ -4,3 +4,5 @@
 - test-only | extract the repeated run-directory/event-log setup in test_suite_flakes.py into a helper
 ### Lines of a run's `.tdd/events.jsonl` that are not JSON objects (a non-JSON line, a JSON array) and events other than `suite-flake` that carry a `files` field are skipped: they neither stop the script nor count a file, so a file only such lines name in a second run is not listed; a small unit case driven with `run_cli` in `skills/tdd/scripts/tests/py/unit/test_suite_flakes.py`
 - test-only | extract the repeated "make `<tmp>/<n>/.tdd/events.jsonl` with these lines" setup in `test_suite_flakes.py` into one helper
+### Each listed file's run numbers are in ascending numeric order (run `9` before run `12`), whatever order the run directories were given in; a small unit case driven with `run_cli` in `skills/tdd/scripts/tests/py/unit/test_suite_flakes.py`
+- test-only | extract the repeated "make `<n>/.tdd/events.jsonl` with these lines" setup in test_suite_flakes.py into one helper
