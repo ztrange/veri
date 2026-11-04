@@ -1,0 +1,2 @@
+### When the lock dir is absent and the rename fails because the staged `.merge.lock.*` dir is gone, `take` exits 2 with a line on stderr instead of trying again; pinned by one small case in `skills/tdd/scripts/tests/py/unit/test_merge_lock_take.py` ⟦criterion 1⟧
+- test-only | the two 3027 cases in test_merge_lock_take.py repeat the `_start_time` monkeypatch, lock path and `try/except RuntimeError` scaffolding; a shared helper is possible but a fixture would add generality no third case demands
