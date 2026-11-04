@@ -1,7 +1,8 @@
 #!/bin/sh
 # solvable-issues.sh — print the numbers of the issues veri may take right now, one per
-# line: the `priority`-labelled ones first, then the `bug`-labelled ones, then the rest,
-# each band ascending by number. A `low-risk` bug counts as the rest.
+# line: the `priority` bugs first, then the other `priority`-labelled ones, then the
+# `bug`-labelled ones, then the rest, each band ascending by number. A `low-risk` bug counts
+# as the rest unless it is also `priority`.
 #
 # An issue is solvable when it is open, carries the opt-in label (`ready-for-agent`, or the
 # name `VERI_LABEL` gives instead — the human's explicit opt-in, since nothing is taken

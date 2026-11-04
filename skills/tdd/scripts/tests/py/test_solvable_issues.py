@@ -446,7 +446,7 @@ def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_wideni
     out, err = capsys.readouterr()
     observed.append((code, out))
 
-    assert observed == [(0, "3\n8\n2\n1\n9\n"), (0, "9\n2\n8\n1\n3\n"), (3, "")]
+    assert observed == [(0, "8\n3\n2\n1\n9\n"), (0, "9\n2\n8\n1\n3\n"), (3, "")]
 
 
 def cli_fixtures(tmp_path, monkeypatch, issues):
@@ -529,14 +529,14 @@ def test_cli_prints_a_bug_labelled_issue_ahead_of_a_lower_numbered_plain_one_eac
     assert answer == (0, "203\n205\n201\n202\n", "")
 
 
-def test_cli_prints_a_priority_labelled_issue_ahead_of_a_lower_numbered_bug_and_one_carrying_both_in_the_priority_band(tmp_path, monkeypatch, run_cli, solvable_issues):
+def test_cli_prints_a_priority_bug_ahead_of_a_lower_numbered_priority_issue_and_that_ahead_of_a_lower_numbered_bug(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
         labelled(120, "ready-for-agent", "bug"), labelled(160, "bug", "ready-for-agent", "priority"),
-        labelled(150, "priority", "ready-for-agent")])
+        labelled(150, "priority", "ready-for-agent"), labelled(170, "bug", "ready-for-agent", "priority")])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
-    assert answer == (0, "150\n160\n120\n", "")
+    assert answer == (0, "160\n170\n150\n120\n", "")
 
 
 def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):

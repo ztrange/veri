@@ -299,13 +299,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
-  saying `Closes #<n>` — one per line, in three bands: the issues labelled `priority` first,
-  then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
+  saying `Closes #<n>` — one per line, in four bands: the `bug`s labelled `priority` first,
+  then the other issues labelled `priority`, then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
   as the rest, and `priority` outranks `low-risk`. The band only reorders that
   set, it never enlarges it — the four conditions run first, so a `priority` issue that is
   blocked, claimed or not opted in is still not printed. `VERI_PRIORITY_LABEL` names the
-  first band's label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
-  and the second band's is GitHub's own `bug`. **Exit 0** when it printed at least one,
+  `priority` label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
+  and `bug` is GitHub's own. **Exit 0** when it printed at least one,
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. `VERI_GH_DRIVER` picks the route

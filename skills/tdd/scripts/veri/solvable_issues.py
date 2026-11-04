@@ -56,10 +56,10 @@ def priority_label():
 
 
 def band(issue, priority):
-    """An issue's selection band: priority, then bugs the groom did not call low-risk, then the rest."""
+    """An issue's selection band: priority bugs, then priority, then bugs the groom did not call low-risk, then the rest."""
     if carries(issue, priority):
-        return 0
-    return 1 if carries(issue, "bug") and not carries(issue, "low-risk") else 2
+        return 0 if carries(issue, "bug") else 1
+    return 2 if carries(issue, "bug") and not carries(issue, "low-risk") else 3
 
 
 def is_open(entry):
