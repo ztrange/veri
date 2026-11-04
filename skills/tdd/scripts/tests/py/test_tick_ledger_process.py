@@ -328,6 +328,39 @@ def test_ticking_refactor_pending_from_a_subdirectory_records_a_work_tree_rename
     assert (ticked, titles) == (0, ["test_renamed_2917"])
 
 
+@pytest.mark.process("two real git repositories under tmp_path, asked which test files differ from HEAD")
+def test_ticking_refactor_pending_from_a_subdirectory_and_from_the_root_leaves_byte_identical_records_2917(
+        tmp_path, run_cli):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    step = "step adds a case"
+
+    def tick_after_rename(name, cwd_sub):
+        repo = tmp_path / name
+        (repo / "tests").mkdir(parents=True)
+        (repo / ".tdd").mkdir()
+        (repo / "nested").mkdir()
+        suite = repo / "tests/test_suite.py"
+        suite.write_text("def test_older_case():\n    assert True\n")
+        git(repo, "init", "-q")
+        git(repo, "add", "tests")
+        git(repo, "commit", "-q", "-m", "base")
+        ledger = repo / ".tdd/ledger.md"
+        ledger.write_text("- [ ] %s\n" % step)
+        suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_pinned_2917():\n    assert 1 == 2\n")
+        run_cli(tests_frozen, ["record", "--step", step, "tests/test_suite.py"], cwd=repo)
+        suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_renamed_2917():\n    assert 1 == 2\n")
+        run_cli(tick_ledger, ["--refactor-pending", str(ledger), step], cwd=repo / cwd_sub)
+        return sorted((repo / ".tdd").glob("tests-frozen-*.record"))
+
+    from_root = tick_after_rename("root", ".")
+    from_nested = tick_after_rename("sub", "nested")
+
+    assert [r.name for r in from_nested] == [r.name for r in from_root]
+    assert [r.read_bytes() for r in from_nested] == [r.read_bytes() for r in from_root]
+    assert b"test_renamed_2917" in from_nested[0].read_bytes()
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_ticking_pairs_each_work_tree_renamed_case_with_its_missing_title_by_body_not_by_position_2825(
         tmp_path, run_cli):
