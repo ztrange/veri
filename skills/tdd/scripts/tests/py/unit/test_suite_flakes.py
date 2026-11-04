@@ -8,3 +8,13 @@ def test_2957_suite_flakes_with_no_argument_prints_a_usage_line_naming_the_scrip
     code, out, err = run_cli(suite_flakes, [])
 
     assert (code, out, "suite-flakes.sh" in err) == (2, "", True)
+
+
+def test_2957_suite_flakes_with_a_run_directory_lacking_an_event_log_exits_2_naming_that_directory(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dir = tmp_path / "12"
+    run_dir.mkdir()
+
+    code, out, err = run_cli(suite_flakes, [str(run_dir)])
+
+    assert (code, out, str(run_dir) in err) == (2, "", True)
