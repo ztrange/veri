@@ -890,3 +890,29 @@ def test_main_ticks_a_diff_checked_step_whose_receipt_matches_head_resolving_it_
     code = tick_ledger.main([str(led), "the PR body lists the cogs"])
 
     assert (code, "- [x] the PR body lists the cogs" in led.read_text()) == (0, True)
+
+
+def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identical_when_ticking_a_diff_checked_step_and_a_path_outside_tdd_differs_since_the_receipts_sha_2972(
+        tmp_path, capsysbinary, monkeypatch, tick_ledger):
+    import importlib
+    import subprocess
+    monkeypatch.setattr(sys.modules["tests_frozen"], "rerecord_earlier", lambda *args: 0)
+
+    def faked_git(*args, **kwargs):
+        text = kwargs.get("text") or kwargs.get("universal_newlines")
+        out = "b" * 40 + "\n" if args[:1] == ("rev-parse",) else "src/changed.py\n"
+        return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
+
+    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    for module in list(sys.modules.values()):
+        if getattr(module, "git", None) in reals:
+            monkeypatch.setattr(module, "git", faked_git)
+    seed = "# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦diff-checked⟧ ⟦criterion 4⟧\n".encode()
+    led = tmp_path / "issue-7.md"
+    led.write_bytes(seed)
+    (tmp_path / "pin-recheck-ok").write_text("a" * 40 + "\n")
+
+    code = tick_ledger.main([str(led), "the PR body lists the cogs"])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)

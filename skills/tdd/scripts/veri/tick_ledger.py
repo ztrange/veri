@@ -96,9 +96,13 @@ def main(argv):
             return 2
         with open(receipt) as handle:
             sha = handle.read().strip()
-        if git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
-               cwd=os.path.dirname(argv[0]) or None).returncode != 0:
+        diff = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
+                   cwd=os.path.dirname(argv[0]) or None)
+        if diff.returncode != 0:
             complain(f"{argv[0]}: the pin-recheck receipt's sha does not resolve in git: run pin-recheck.sh again")
+            return 2
+        if any(not path.startswith(".tdd/") for path in diff.stdout.split()):
+            complain(f"{argv[0]}: a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again")
             return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
