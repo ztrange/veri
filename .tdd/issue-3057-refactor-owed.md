@@ -1,0 +1,2 @@
+### run_activity reports state "running" in its JSON for a run whose events.jsonl ends in a standing stop mark with no later resume/step-added event while live_conductor returns a pid — a small in-process case in skills/tdd/scripts/tests/py/unit/test_status_refused.py ⟦criterion 2⟧
+- test-only | merge the two test_3057 cases in test_status_refused.py into one parametrized case over the bail and stop events, since they differ only in the first event
