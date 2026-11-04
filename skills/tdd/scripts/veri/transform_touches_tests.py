@@ -4,8 +4,9 @@ import re
 import subprocess
 import sys
 
+from case_reader import is_test_path
+
 USAGE = "usage: transform-touches-tests.sh <base-sha>"
-TEST_FILE = re.compile(rb"(^|/)tests/|\.test\.")
 REFACTOR_OWED = re.compile(rb"\.tdd/issue-[0-9]+-refactor-owed\.md")
 
 
@@ -40,7 +41,7 @@ def main(argv):
     paths = changed_paths(base)
     if paths is None:
         return 2
-    touched = sorted_names(line for line in paths if TEST_FILE.search(line))
+    touched = sorted_names(line for line in paths if is_test_path(line))
     if touched:
         print(f"transform changed a test file: {touched}")
         return 1

@@ -15,7 +15,7 @@ import tunables
 from entry import write
 from js_tests import CALL, is_js_test_file
 from ledger import KIND_RE, carries_mark, trailing_markers
-from transform_touches_tests import TEST_FILE
+from case_reader import is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
@@ -119,7 +119,7 @@ def _differing_tests():
             raise OSError("git %s failed: %s" % (command[1], " ".join(os.fsdecode(done.stderr).split())))
         for raw in done.stdout.split(b"\0"):
             name = os.fsdecode(raw)
-            if raw and (TEST_FILE.search(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
+            if raw and (is_test_path(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
                 names.append(name)
     return names
 
