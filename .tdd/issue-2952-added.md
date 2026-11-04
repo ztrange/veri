@@ -1,0 +1,1 @@
+- [ ] tick-ledger.sh on a step naming its go-red control as a file at a hex commit still exits 2 with the ledger unchanged when the mutation record file holds only a file/old/new record for a different file and no before record ⟦added⟧ ⟦criterion 1⟧
