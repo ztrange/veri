@@ -90,7 +90,8 @@ def main(argv):
             return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
         if pending:
             return tests_frozen.rerecord_committed(
-                ticked_line.split("] ", 1)[1].removesuffix(ledger.PENDING_MARK))
+                ticked_line.split("] ", 1)[1].removesuffix(ledger.PENDING_MARK),
+                os.path.dirname(os.path.dirname(os.path.abspath(argv[0]))))
         return 0
     if left:
         complain(f"left {left} behind")
