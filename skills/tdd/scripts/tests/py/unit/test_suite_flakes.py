@@ -48,3 +48,16 @@ def test_2957_suite_flakes_lists_a_file_cleared_in_two_runs_with_ascending_run_n
     code, out, err = run_cli(suite_flakes, run_dirs)
 
     assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\n")
+
+
+def test_2957_suite_flakes_counts_a_file_named_by_two_events_in_one_run_once_and_exits_3(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dir = tmp_path / "12"
+    (run_dir / ".tdd").mkdir(parents=True)
+    (run_dir / ".tdd" / "events.jsonl").write_text(
+        '{"event": "suite-flake", "files": "scripts/a.test.mjs"}\n'
+        '{"event": "suite-flake", "files": "scripts/a.test.mjs"}\n')
+
+    code, out, err = run_cli(suite_flakes, [str(run_dir)])
+
+    assert (code, out) == (3, "")
