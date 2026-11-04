@@ -4,8 +4,8 @@ import re
 
 JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
 
-_TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
-_TEST_FILE_BYTES = re.compile(rb"(^|/)tests/|\.test\.")
+_TEST_FILE = re.compile(r"(^|/)tests/|\.test\.|\.spec\.|_test\.go$|(^|/)test_[^/]*\.py$|_test\.py$")
+_TEST_FILE_BYTES = re.compile(rb"(^|/)tests/|\.test\.|\.spec\.|_test\.go$|(^|/)test_[^/]*\.py$|_test\.py$")
 
 
 def is_test_path(path):
