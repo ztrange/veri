@@ -108,7 +108,10 @@ issue, not only in the conductor's log.
    resume, whatever its last bail's cause: when its baseline is red only in suites that are red on the branch head but
    green on the default branch, preflight does not refuse. On the exit 0 of the check
    (`suite-red-resume.sh check`) the conductor inserts one `⟦suite-repair⟧` step naming those suites before
-   the first unchecked step, commits the ledger and runs that step first; for the check, `Read` `<base directory>/RESUME.md`. A suite also red on the default branch still
+   the first unchecked step, commits the ledger and runs that step first — except that when those
+   suites are red only because a unit's `GRADED` signature is stale and that unit has a pending
+   `⟦skill-edit⟧` step, it inserts no repair step and that step runs first. This holds whatever the
+   previous bail's cause (`revise-exhausted` included). For the check, `Read` `<base directory>/RESUME.md`. A suite also red on the default branch still
    refuses as above. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
