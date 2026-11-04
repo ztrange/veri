@@ -1,0 +1,2 @@
+### A leaf that dies after more than the old 30 s bound (say at 45 s on the fake clock) reads as gone from `leaf_left` called with its default bound: a small unit case in `skills/tdd/scripts/tests/py/unit/test_supervise_leaf_waits.py` driven by the fake clock, no real wait ⟦guard-subject: skills/tdd/scripts/tests/py/leaf_waits.py⟧ ⟦criterion 2⟧
+- test-only | the new 45 s case in `test_supervise_leaf_waits.py` could assert `clock.now >= 45.0`, as its sibling case does for 7.5
