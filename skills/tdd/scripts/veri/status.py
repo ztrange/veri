@@ -33,7 +33,7 @@ def run_activity(run, as_json=False, closed=False):
     events = read_events(events_path) if events_path_exists else []
     dollars, tokens = usage_totals(events)
     ended, cause, end = run_end.run_end(run) if events_path_exists else (False, None, {})
-    if end.get("event") in ("preflight-refused", "bail") and live_conductor(os.fspath(run)):
+    if end.get("event") in ("preflight-refused", "bail", "stop") and live_conductor(os.fspath(run)):
         ended, end = False, {}
     for line in events:
         newest = line
