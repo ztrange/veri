@@ -4,6 +4,7 @@ import contextlib
 import dataclasses
 import errno
 import glob
+import importlib
 import io
 import json
 import os
@@ -1035,3 +1036,28 @@ def run_supervised(args, timeout, started=None, **kwargs):
     with supervised(args, started=started, **kwargs) as ran:
         out, err = ran.communicate(timeout=timeout)
         return subprocess.CompletedProcess(args, ran.returncode, out, err)
+
+
+RECEIPT_SHA = "0123456789abcdef0123456789abcdef01234567"
+
+
+@pytest.fixture
+def leave_receipt(monkeypatch):
+    """Leave a pin-recheck-ok receipt beside a ledger; in-process, git() answers that sha with no path changed."""
+    def faked_git(*args, **kwargs):
+        text = kwargs.get("text") or kwargs.get("universal_newlines")
+        out = RECEIPT_SHA + "\n" if args[:1] == ("rev-parse",) else ""
+        return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
+
+    def leave(ledger, repo=None):
+        sha = RECEIPT_SHA
+        if repo is not None:
+            sha = REAL_RUN(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
+        else:
+            reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+            for module in list(sys.modules.values()):
+                if getattr(module, "git", None) in reals:
+                    monkeypatch.setattr(module, "git", faked_git)
+        (pathlib.Path(ledger).parent / "pin-recheck-ok").write_text(sha + "\n")
+
+    return leave

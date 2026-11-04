@@ -37,7 +37,7 @@ def git(repo, *argv):
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_changed_so_check_earlier_passes_2199(
-        tmp_path, run_cli):
+        tmp_path, run_cli, leave_receipt):
     tick_ledger = importlib.import_module("veri.tick_ledger")
     tests_frozen = importlib.import_module("veri.tests_frozen")
     (tmp_path / "tests").mkdir()
@@ -61,6 +61,7 @@ def test_ticking_a_diff_checked_step_rerecords_the_earlier_frozen_case_it_change
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "edit")
 
+    leave_receipt(ledger, repo=tmp_path)
     ticked = run_cli(tick_ledger, [str(ledger), "diff-checked"], cwd=tmp_path)[0]
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
@@ -138,7 +139,7 @@ def test_ticking_an_ordinary_step_that_quotes_the_diff_checked_tag_ahead_of_a_cr
 @pytest.mark.tree_audit("copies the lib and veri script directories")
 @pytest.mark.process("the pinned snapshot's tick-ledger.sh and tests-frozen.sh, run beside a differing checkout copy")
 def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tests_frozen_not_the_checkouts_2199(
-        tmp_path):
+        tmp_path, leave_receipt):
     repo, snapshot = tmp_path / "repo", tmp_path / "snapshot"
     checkout = repo / "skills/tdd/scripts"
     for target in (snapshot, checkout):
@@ -175,6 +176,7 @@ def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tes
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "edit")
 
+    leave_receipt(ledger, repo=repo)
     ticked = snap("tick-ledger.sh", str(ledger), "diff-checked")[0]
     checked = snap("tests-frozen.sh", "check-earlier", str(ledger), "--step", later)
 
@@ -182,7 +184,7 @@ def test_the_diff_checked_tick_digests_the_rerecorded_case_with_the_snapshot_tes
 
 
 @pytest.mark.process("a real git repository under tmp_path, committed after a diff-checked tick")
-def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2199(tmp_path, run_cli):
+def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2199(tmp_path, run_cli, leave_receipt):
     tick_ledger = importlib.import_module("veri.tick_ledger")
     tests_frozen = importlib.import_module("veri.tests_frozen")
     (tmp_path / "tests").mkdir()
@@ -207,6 +209,7 @@ def test_committing_the_ledger_after_a_diff_checked_tick_leaves_the_tree_clean_2
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "edit")
 
+    leave_receipt(ledger, repo=tmp_path)
     ticked = run_cli(tick_ledger, [str(ledger), "diff-checked"], cwd=tmp_path)[0]
     git(tmp_path, "add", ".tdd/issue-7.md")
     git(tmp_path, "commit", "-q", "-m", "tick")

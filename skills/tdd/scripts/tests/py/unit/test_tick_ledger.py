@@ -650,10 +650,11 @@ def test_cli_exits_2_with_one_path_and_reason_stderr_line_for_a_ledger_path_runn
 
 
 def test_cli_of_tick_ledger_and_clear_refactor_pending_exit_3_on_no_match_and_0_on_a_tick_or_clear(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, leave_receipt):
     clear = importlib.import_module("veri.clear_refactor_pending")
     ledger = tmp_path / "issue-42.md"
     ledger.write_text(STEPS)
+    leave_receipt(ledger)
 
     tick_miss = run_cli(tick_ledger, [str(ledger), "nonexistent step"])[0]
     tick_hit = run_cli(tick_ledger, ["--refactor-pending", str(ledger), "collapse to single hyphen"])[0]
