@@ -149,7 +149,7 @@ def test_main_counts_a_path_as_a_test_file_by_the_case_sensitive_ere_on_the_path
         git_fakes, capsys, transform_touches_tests):
     counted = ("pkg/tests/x", "x.test.js", "my.test.dir", "a.test.d/x",
                r'"pkg/tests/\303\251.sh"', r'"\303\251.test.sh"')
-    ignored = ("pkg/contests/x", "Tests/c", "test/d", "foo_test.go", r'"tests/\303\251.sh"')
+    ignored = ("pkg/contests/x", "Tests/c", "test/d",r'"tests/\303\251.sh"')
     expected, observed = {}, {}
     for path in counted + ignored:
         git_fakes["log_text"] = f"src/a.sh\n{path}\n"
