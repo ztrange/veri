@@ -292,7 +292,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: for `--tier all` only, the issue body's own `Test command:` line, unless it equals the
-  fast tier's command (#1225); then the repo's CLAUDE.md line for the tier; then the repo's
+  fast tier's command or is CLAUDE.md's `veri: all tests:` command plus a ` TESTS=` selector (#1225); then the repo's CLAUDE.md line for the tier; then the repo's
   `.veri/test-command`; then every inference (see *Detecting the test command*).
   `--tier fast` never reads the issue's line.
 - `$S/worktree-setup.sh <n>` — run from inside a run worktree: runs the `veri: setup: <cmd>` line of its CLAUDE.md (read like `veri: all tests:`) once in the worktree root; exit 2 with no argument. Called by preflight.
