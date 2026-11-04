@@ -94,16 +94,16 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   from the worktree. Takes the fast command as its one argument. On failure it writes the
   command's output to `.tdd/verify-pin.reason`. **Exit 0 = the command passed, 1 = it failed
   (output in the reason file), 2 = no command given.**
-- `$S/pin-recheck.sh <base-sha>` — re-run each recorded mutation whose file the range touches:
+- `$S/pin-recheck.sh <base-sha>` — re-run each recorded mutation whose file the range touches (a before record's file is its `keep` file):
   **exit 0** every such pin still goes red, printing any that need a look; **exit 1** a pin
   stayed green under its mutation, or a mutated run did not build, which prints
   `needs a look: <file> (mutation did not build)` on stdout; exit 1 also covers a mutated run
   that exits non-zero when the unmutated run printed nothing, printed as `needs a look`; a
   `needs a look` record from a failed run writes that run's stdout and stderr to stderr,
-  limited to its last 40 lines; **exit 2** no answer, or a before-state pin whose replay range names no file (stderr `empty replay range: before <sha> green <sha>`); **exit 3** no record touches the range.
+  limited to its last 40 lines; **exit 2** no answer, or a before-state pin with a green commit whose replay range names no file (stderr `empty replay range: before <sha> green <sha>`); **exit 3** no record touches the range.
   A before-state pin replays the files changed from its `before` sha to the last commit of its
   issue's ledger (the step's tick), falling back to the record's `green` when the ledger has no
-  commit; `mutation-probe.sh --before` writes no `green` into an `.tdd/issue-<n>-mutations.md` record.
+  commit; a before record with no green commit and an empty replay range runs its command instead of exiting 2; `mutation-probe.sh --before` writes no `green` into an `.tdd/issue-<n>-mutations.md` record.
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
