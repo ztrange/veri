@@ -7,3 +7,12 @@ new 45
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_refused.py::test_3057_a_run_whose_events_end_in_a_done_mark_with_a_live_conductor_still_reports_done_with_its_pr
 
+file 33
+skills/tdd/scripts/veri/status.py
+old 32
+elif end.get("event") == "bail":
+new 11
+elif False:
+command 198
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_refused.py::test_3057_a_run_whose_events_end_in_a_bail_mark_with_no_live_conductor_still_reports_bailed_with_its_phase_and_classification
+

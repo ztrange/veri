@@ -340,3 +340,16 @@ def test_3057_a_run_whose_events_end_in_a_done_mark_with_a_live_conductor_still_
     obj = json.loads(status.run_activity(str(run), True) or "{}")
 
     assert (obj.get("state"), obj.get("pr")) == ("done", "#99")
+
+
+def test_3057_a_run_whose_events_end_in_a_bail_mark_with_no_live_conductor_still_reports_bailed_with_its_phase_and_classification(tmp_path):
+    status = importlib.import_module("veri.status")
+    run = tmp_path / "wt" / "7"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"ts": 100, "issue": "7", "event": "launch", "phase": "rebase", "name": "verify-rebase"}) + "\n"
+        + json.dumps({"ts": 200, "issue": "7", "event": "bail", "phase": "rebase", "classification": "process"}) + "\n")
+
+    obj = json.loads(status.run_activity(str(run), True) or "{}")
+
+    assert (obj.get("state"), obj.get("bail_phase"), obj.get("classification")) == ("bailed", "rebase", "process")
