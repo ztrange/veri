@@ -486,3 +486,13 @@ def test_cli_issue_3038_tier_all_with_an_issue_command_that_is_the_all_tests_com
     body.write_text('## Notes\n\nTest command: make test TESTS="path/to/one_file.py"\n')
 
     assert cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo)) == (0, "make test\n", "")
+
+
+def test_cli_issue_3038_tier_all_with_a_tests_selector_command_and_no_all_tests_line_prints_the_issues_command(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make test TESTS=foo\n")
+
+    assert cli(run_cli, detect, "--tier", "all", "--issue", str(body), str(repo)) == (0, "make test TESTS=foo\n", "")
