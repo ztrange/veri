@@ -88,13 +88,13 @@ def main(argv):
             return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
-        step = changed_line(text, new)
+        step = step_line
         reason = next((l[7:].strip() for l in reason_text.splitlines() if l.startswith("REASON:")), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
         return event.append(tdd_parent, event.context(os.environ), "unpinnable-step",
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:
-        ticked_line = changed_line(text, new)
+        ticked_line = step_line
         if tests_frozen.is_diff_checked(ticked_line):
             return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
         if pending:
