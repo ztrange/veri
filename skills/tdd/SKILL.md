@@ -1732,9 +1732,10 @@ already answered the question for the full suite, and that is what `--issue` put
 of the rest of the full tier's detection. It never changes `<test-cmd>`, the fast tier's
 command every leaf receives as `VERI_TEST_CMD` and as the `<test-cmd>` argument. That is the
 per-issue escape hatch. One
-exception (#1225): for `--tier all`, a line equal to the command the fast tier resolves to
+exception (#1225): for `--tier all`, a line equal to the command the fast tier resolves to,
+or equal to CLAUDE.md's `veri: all tests:` command with a `TESTS=` selector appended,
 is dropped, and the full tier falls through to CLAUDE.md's `veri: all tests:` line and then
-the usual detection, so an issue naming the fast tier never stops the full suite running.
+the usual detection, so an issue naming the fast tier or a subset of the suite never stops the full suite running.
 
 When the inference guesses wrong for a particular repo rather than for one issue, the fix
 is that repo's, not this skill's: a human writes `.veri/test-command` there, and its first
