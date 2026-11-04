@@ -643,3 +643,24 @@ def test_3022_queued_merge_whose_rebase_stops_on_a_real_conflict_fails_with_gits
 
     ran = [c for c in calls if "update-index" in c or "rebase --continue" in c or " push " in c or "merge-lock.sh release" in c]
     assert (code, ran) == (1, [])
+
+
+def test_3022_queued_merge_whose_rebase_first_stops_on_a_phantom_would_be_overwritten_with_a_clean_status_refreshes_the_index_continues_the_rebase_and_pushes(fake_processes, run_cli):
+    def phantom_world(answer):
+        stopped = []
+
+        def world(line, **kwargs):
+            if "status --porcelain" in line:
+                return 0, "", ""
+            if "rebase origin/main" in line and not stopped:
+                stopped.append(answer(line, **kwargs))
+                return 1, "", "error: Your local changes to the following files would be overwritten by merge:\n"
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    calls = scenario(phantom_world)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    ran = [needle for c in calls for needle in ("update-index --really-refresh", "rebase --continue", "--force-with-lease") if needle in c]
+    assert (code, ran) == (0, ["update-index --really-refresh", "rebase --continue", "--force-with-lease"])
