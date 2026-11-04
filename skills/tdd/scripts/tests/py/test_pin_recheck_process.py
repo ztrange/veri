@@ -1044,9 +1044,35 @@ def test_3016_a_before_keep_record_whose_range_replays_no_file_exits_2_naming_be
     git("add", "-A")
     git("commit", "-q", "-m", "plan")
     plan = git("rev-parse", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "touch the keep file after the green")
     record(tmp_path / ".tdd" / "issue-3016-mutations.md", before=base, keep="pin.txt", green=plan, command="true")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, base in ran.stderr, plan in ran.stderr, "stayed green" in ran.stderr) == (
         2, True, True, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose keep file the range does not touch")
+def test_3017_a_before_keep_record_whose_keep_file_the_range_does_not_touch_is_not_replayed_and_exits_3(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "other.txt").write_text("one\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    first = git("rev-parse", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "pin from another issue")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "other.txt").write_text("two\n")
+    git("commit", "-q", "-am", "touch only other.txt")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=first, keep="pin.txt", command="touch ran.witness")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (3, False), ran.stderr
