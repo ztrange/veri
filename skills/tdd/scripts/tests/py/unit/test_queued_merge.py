@@ -189,6 +189,28 @@ def test_3030_queued_merge_on_a_dirty_worktree_strictly_behind_origin_branch_exi
     assert (code, "has commits the worktree lacks" in err, pushes, first(calls, "rebase"), len(released)) == (2, True, [], None, 1)
 
 
+def test_3030_queued_merge_on_a_clean_worktree_strictly_behind_origin_branch_fast_forwards_then_rebases_and_pushes_under_the_lease_pinned_to_that_tip(fake_processes, run_cli):
+    calls = scenario(fake_processes, behind=True)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    pushes = [c for c in calls if " push " in c and "--delete" not in c and "v0." not in c]
+    assert (code, first(calls, "rebase origin/main") is not None, pushes) == (
+        0, True, ["merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin feature"
+                  % (PID, ORIGIN_SHA)])
+
+
+def test_3030_queued_merge_on_a_clean_worktree_strictly_behind_origin_branch_whose_fast_forward_fails_exits_2_and_pushes_nothing(fake_processes, run_cli):
+    calls = scenario(fake_processes, behind=True, fail=("merge --ff-only",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    pushes = [c for c in calls if " push " in c]
+    forwards = [c for c in calls if "merge --ff-only" in c]
+    assert (code, "has commits the worktree lacks" in err, forwards, pushes, first(calls, "rebase")) == (
+        2, True, ["git -C /wt merge --ff-only " + ORIGIN_SHA], [], None)
+
+
 def test_2372_queued_merge_releases_the_lock_only_after_the_tag_branch_delete_and_worktree_remove(fake_processes, run_cli):
     calls = scenario(fake_processes)
 

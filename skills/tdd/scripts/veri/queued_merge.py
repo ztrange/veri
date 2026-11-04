@@ -183,7 +183,10 @@ def main(argv):
         _say("origin/%s does not resolve; no lease to pin" % branch)
         _release(pid)
         return 2
-    if _git(worktree, "merge-base", "--is-ancestor", lease, "HEAD").returncode:
+    if _git(worktree, "merge-base", "--is-ancestor", lease, "HEAD").returncode and not (
+            not _git(worktree, "merge-base", "--is-ancestor", "HEAD", lease).returncode
+            and not _git(worktree, "status", "--porcelain").stdout.strip()
+            and not _git(worktree, "merge", "--ff-only", lease).returncode):
         _say("origin/%s has commits the worktree lacks; nothing pushed" % branch)
         _release(pid)
         return 2
