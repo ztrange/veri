@@ -319,3 +319,40 @@ def test_insert_still_adds_the_suite_repair_step_before_the_skill_edit_step_when
 
     assert code == 0
     assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+
+
+def test_insert_still_adds_the_suite_repair_step_when_the_stale_graded_unit_has_no_pending_skill_edit_step_3004(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text(f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [x] ⟦skill-edit⟧ regrade `{unit}` against SC48\n- [ ] c ⟦criterion 3⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\ntest_prd_016_short_names.py\n")
+    step = "- [ ] fix the full-suite failure: test_prd_015_prose_signed.py; test_prd_016_short_names.py ⟦suite-repair⟧ ⟦criterion 3⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][0] == step
+
+
+def test_insert_still_adds_the_suite_repair_step_when_the_first_unchecked_skill_edit_step_names_a_different_unit_3004(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    stale = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", stale)], []))
+    ledger = tmp_path / "issue-7.md"
+    skill_edit = "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/RESUME.md` against RS28"
+    ledger.write_text(f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n{skill_edit}\n- [ ] c ⟦criterion 3⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\ntest_prd_016_short_names.py\n")
+    step = "- [ ] fix the full-suite failure: test_prd_015_prose_signed.py; test_prd_016_short_names.py ⟦suite-repair⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
