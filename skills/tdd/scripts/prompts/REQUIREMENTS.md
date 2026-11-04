@@ -971,3 +971,14 @@
 | XD2 | Step 1 tells the leaf to edit only tests, to make every edited case that pins the old transport also stub the new one and still pass against the unmoved production code, and to remove or weaken no assertion. (Numbered list, item 1.) | Both stubs in place is what lets migrate move callers without turning a frozen case red. |
 | XD3 | Step 3 tells the leaf to commit the change as `refactor: <what changed> (#<issue>)`, and never to modify a production file: a dual-stub commit that touches one is rejected. (Numbered list, item 3.) | The frozen half of the phase is enforced by rejection. |
 | XD4 | The numbered list has three items in this order: edit the tests (1), run the suites covering the touched files (2, an included fragment), commit (3). (Numbered list.) | The change is proven green before it is committed. |
+
+## skills/tdd/scripts/prompts/verify-beside.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VS1 | The template opens with the `{{SHARED}}` slot, then the heading `## Phase: verify-beside`. (First lines.) | The blind verifier's shared rules come first, and the heading names the phase judged. |
+| VS2 | The opening paragraph says this is the **beside** phase: it adds the new interface to production beside the old one, the old interface keeps its behaviour, and test files stay frozen. (Opening paragraph, before the include line.) | The verifier must know what the phase adds and that no test may change. |
+| VS3 | Check 2, "The new interface exists", says production gains the new interface the step names. (Numbered list, item 2.) | The new interface is what the phase delivers. |
+| VS4 | Check 3, "The old interface is untouched", says to REJECT a diff that changes the old interface's behaviour or turns it into a proxy over the new interface. (Numbered list, item 3.) | A proxy would change pinned behaviour, which is why this shape exists instead of expand. |
+| VS5 | Check 4 is the included `_verify-tests-frozen.md` fragment, followed by the `{{LAST_PHASE_CHECK}}` slot; the template's own checks are numbered 2 to 4, continuing the included `_verify-interface-phase-lead.md` fragment's check 1. (Numbered list.) | The test-frozen rule is shared and stated once; numbering must follow the shared lead. |
+| VS6 | The closing paragraph says PASS if the suites are green, the new interface exists, the old one behaves as before with no proxy and no test file changed, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
