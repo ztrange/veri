@@ -675,8 +675,7 @@ def rerecord_refactored(ledger, green):
         verified_lines = _assertion_lines(verified)
         verified_count = collections.Counter(verified_lines)
         carried = collections.Counter(head_lines + _assertion_lines(helpers))
-        if head_lines != verified_lines and (collections.Counter(head_lines) - verified_count
-                                             or {line: carried[line] for line in verified_count} != verified_count):
+        if head_lines != verified_lines and verified_count - carried:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
         if head_lines == verified_lines and len(_assertion_lines(helpers)) \
                 != len(_assertion_lines(_called_helpers(green, name, verified))):
