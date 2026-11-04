@@ -44,6 +44,13 @@ def test_every_real_script_is_the_canonical_shim_or_a_listed_exemption():
     assert shim_problems(SCRIPTS, EXEMPT) == []
 
 
+@pytest.mark.tree_audit("every scripts/*.sh mode bit")
+def test_every_real_shim_is_executable_so_running_it_does_not_exit_126():
+    not_executable = [s.name for s in sorted(SCRIPTS.glob("*.sh")) if not os.stat(s).st_mode & 0o111]
+
+    assert not_executable == []
+
+
 def test_the_exemption_table_lists_the_five_non_canonical_shims_with_a_reason_each_and_a_stale_row_fails_naming_the_script(tmp_path):
     assert len(EXEMPT) == 5 and all(reason.strip() for reason in EXEMPT.values())
 
