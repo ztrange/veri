@@ -11,7 +11,7 @@ def detect():
     return importlib.import_module("veri.detect_test_command")
 
 
-def test_main_returns_0_with_the_command_3_with_nothing_and_1_for_a_valueless_tier_or_issue(tmp_path, capsys, detect):
+def test_main_returns_0_with_the_command_and_3_with_nothing(tmp_path, capsys, detect):
     made = tmp_path / "made"
     made.mkdir()
     (made / "Makefile").write_text("test:\n\t./run\n")
@@ -20,10 +20,8 @@ def test_main_returns_0_with_the_command_3_with_nothing_and_1_for_a_valueless_ti
 
     found = (detect.main([str(made)]), capsys.readouterr().out)
     none = (detect.main([str(bare)]), capsys.readouterr().out)
-    tier = detect.main(["--tier"])
-    issue = detect.main(["--issue"])
 
-    assert (found, none, tier, issue) == ((0, "make test\n"), (3, ""), 1, 1)
+    assert (found, none) == ((0, "make test\n"), (3, ""))
 
 
 def test_main_returns_3_with_nothing_for_a_makefile_without_a_test_target(tmp_path, capsys, detect):
@@ -421,8 +419,8 @@ def test_cli_a_repo_matching_nothing_prints_nothing_and_exits_3(tmp_path, run_cl
     assert cli(run_cli, detect, str(repo)) == (3, "", "")
 
 
-def test_cli_tier_and_issue_each_with_no_value_exit_1_with_empty_stdout_and_stderr(run_cli, detect):
-    assert [cli(run_cli, detect, flag) for flag in ("--tier", "--issue")] == [(1, "", "")] * 2
+def test_cli_tier_and_issue_each_with_no_value_exit_2_with_empty_stdout(run_cli, detect):
+    assert [cli(run_cli, detect, flag)[:2] for flag in ("--tier", "--issue")] == [(2, "")] * 2
 
 
 def test_cli_tier_all_with_an_issue_command_equal_to_the_fast_tiers_prints_claude_mds_all_tests_command(tmp_path, run_cli, detect):
