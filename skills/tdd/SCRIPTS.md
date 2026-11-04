@@ -27,7 +27,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   killed-stuck included — that is what makes a detached launch waitable. And because a
   killed-stuck leaf is relaunched (`VERI_STUCK_RETRIES`), one call can take **more than one**
   `VERI_TIMEOUT` of wall time, which is why the wait below loops rather than naming one long
-  timeout.
+  timeout. When a `develop-*` or `revise-*` leaf exits, any change it made to a committed
+  `.tdd/issue-*-mutations.md` record (an edit, a deletion, a new file) is undone and one
+  `mutation-record-restored` event (`name=`, `file=`) goes to `events.jsonl` per record —
+  only `mutation-probe` writes that record.
 - `$S/detach-leaf.sh <cmd> [args...]` — **the detaching half of a detached launch.** Runs
   `<cmd>` as the leader of a **new session**, and so of a new process group, then returns at
   once. Every leaf launch below goes through it, and none uses `nohup` — *Launching a leaf*
