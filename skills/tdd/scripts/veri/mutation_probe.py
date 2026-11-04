@@ -85,7 +85,7 @@ def main(argv):
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
-    recorded = argv[7:] if argv[4] == str(Path(__file__).resolve().parent.parent / "timed-test-run.sh") else argv[4:]
+    recorded = argv[7:] if Path(argv[4]).resolve() == Path(__file__).resolve().parent.parent / "timed-test-run.sh" else argv[4:]
     append_record((("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(recorded))))
     return 0
 

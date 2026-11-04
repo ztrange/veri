@@ -627,6 +627,40 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
         0, "", True, False), ran.stderr + recorded
 
 
+@pytest.mark.process("git, mutation-probe.sh probing through a symlinked scripts directory and pin-recheck.sh replaying the record from a clone")
+def test_2919_a_probe_through_a_symlinked_scripts_directory_records_the_test_command_alone_and_it_replays_green_from_another_directory(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*words, cwd=repo):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=cwd,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (repo / "guard.txt").write_text("if guard\n")
+    (repo / "runner.sh").write_text('echo result\ngrep -q "if guard" guard.txt\n')
+    (repo / ".tdd").mkdir()
+    link = tmp_path / "scripts-link"
+    link.symlink_to(SCRIPTS)
+    record_path = repo / ".tdd" / "issue-2919-mutations.md"
+    probed = subprocess.run(
+        ["sh", str(SCRIPTS / "mutation-probe.sh"), "guard.txt", "if guard", "if (true)", "--",
+         str(link / "timed-test-run.sh"), "affected", "runner", "sh", "runner.sh"],
+        cwd=repo, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_MUTATION_RECORD": str(record_path)})
+    assert probed.returncode == 0, probed.stderr
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (repo / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    other = tmp_path / "other"
+    git("clone", "-q", str(repo), str(other), cwd=tmp_path)
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
+
+    recorded = record_path.read_text()
+    assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
+        0, "", True, False), ran.stderr + recorded
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose command is red on the restored files")
 def test_2959_a_before_keep_record_whose_command_is_red_on_the_restored_files_exits_0_without_a_keyerror(tmp_path):
     def git(*words):
