@@ -384,3 +384,18 @@ def test_2927_a_develop_leaf_that_deletes_a_mutations_record_has_it_restored_byt
                               "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
 
     assert (ran.returncode, record.read_bytes()) == (0, b"mutation: flip the sign\nwatched: FAILED\n"), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real develop leaf whose shell creates a mutation record of another issue")
+def test_2927_a_develop_leaf_that_creates_a_mutations_record_has_it_removed(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-41-mutations.md"
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-green-1", "sh", "-c", 'echo forged > "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert (ran.returncode, record.exists()) == (0, False), ran.stderr
