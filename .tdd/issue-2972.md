@@ -6,7 +6,7 @@
 - [x] `clear-refactor-pending.sh`, when it would clear a step's mark and the receipt `pin-recheck-ok` in the ledger's directory (`.tdd/pin-recheck-ok` for `.tdd/issue-<n>.md`) is absent, exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 2⟧
 - [x] `clear-refactor-pending.sh` with no receipt present and a matcher no marked step matches still exits 3, leaving the ledger byte-identical ⟦criterion 2⟧
 - [x] `clear-refactor-pending.sh`, when it would clear a mark and a path outside `.tdd/` differs between the receipt's sha and HEAD, exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 2⟧
-- [ ] `clear-refactor-pending.sh` clears the mark, exit 0, when the only paths differing between the receipt's sha and HEAD are under `.tdd/` ⟦criterion 2⟧
+- [x] `clear-refactor-pending.sh` clears the mark, exit 0, when the only paths differing between the receipt's sha and HEAD are under `.tdd/` ⟦criterion 2⟧ ⟂ retired unpinnable
 - [ ] `clear-refactor-pending.sh` refuses, exit 2 naming `pin-recheck.sh` with the ledger byte-identical, a receipt whose sha git cannot resolve ⟦criterion 2⟧
 - [ ] With a valid receipt (its sha equal to HEAD) `clear-refactor-pending.sh` clears the mark as today, exit 0, leaving every other ledger line unchanged ⟦criterion 2⟧
 - [ ] `tick-ledger.sh` ticking a `⟦diff-checked⟧` step with the receipt absent exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 3⟧
