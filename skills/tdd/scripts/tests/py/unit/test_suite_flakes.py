@@ -18,3 +18,18 @@ def test_2957_suite_flakes_with_a_run_directory_lacking_an_event_log_exits_2_nam
     code, out, err = run_cli(suite_flakes, [str(run_dir)])
 
     assert (code, out, str(run_dir) in err) == (2, "", True)
+
+
+def test_2957_suite_flakes_with_each_cleared_file_in_one_run_only_prints_nothing_and_exits_3(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dirs = []
+    for number, name in (("12", "scripts/a.test.mjs"), ("19", "scripts/b.test.mjs")):
+        run_dir = tmp_path / number
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "events.jsonl").write_text(
+            '{"event": "suite-flake", "files": "' + name + '"}\n')
+        run_dirs.append(str(run_dir))
+
+    code, out, err = run_cli(suite_flakes, run_dirs)
+
+    assert (code, out) == (3, "")
