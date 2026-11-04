@@ -2,7 +2,8 @@
 # detect-test-command.sh — print the command of the tier asked for (default: the full suite) of a repo: a shim over veri/detect_test_command.py.
 #
 # Precedence is first-match-wins: for --tier all only, the issue's `Test command:` line (never for
-# --tier fast); then the tier markers in the repo's CLAUDE.md, then .veri/test-command, then
+# --tier fast; dropped when it equals the fast tier's command or is CLAUDE.md's `veri: all tests:`
+# command plus a ` TESTS=` selector); then the tier markers in the repo's CLAUDE.md, then .veri/test-command, then
 # inference from the repo's files.
 #
 # usage:   detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]
