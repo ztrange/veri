@@ -65,9 +65,12 @@ For attempt `k = 1 … REVISE_BUDGET`:
    crash: the leaf says no revision can meet the objection. With no `MISSING_TEST:` line
    (that answer is routed above), spend no further attempt and launch no re-verify: **bail**
    at once with cause `revise-impossible`, carrying the leaf's stated reason.
-4. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
-   the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
-   the same gate the Red section runs before anything reaches a verifier:
+4. **Check the prediction first (red only).** When `<phase>` is red and the revise leaf's report
+   says `AGAINST_UNMODIFIED: FAILS`, the leaf rewrote the failing test and reported its own
+   `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run the same gate the Red section runs before
+   anything reaches a verifier. A revise of red whose report says `AGAINST_UNMODIFIED: PASSES` is
+   still a pin: it runs no `red-divergence.sh`, spends no attempt for a missing prediction file, and
+   goes straight to the verify-pin re-verify below.
    ```
    $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/revise-red-<k>.out > .tdd/verify-red.reason; echo $?
    ```
