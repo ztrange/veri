@@ -67,7 +67,7 @@ def replay_before(pin, ledger):
                            capture_output=True, text=True,
                            check=True).stdout.split()
     names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
-    if not names:
+    if not names and green:
         sys.stderr.write(f"empty replay range: before {pin['before']} green {green}\n")
         return None
     saved = {n: Path(n).read_bytes() for n in names if Path(n).exists()}
