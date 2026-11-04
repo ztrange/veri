@@ -1076,3 +1076,26 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_does_not_touch_is_n
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (3, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose keep file the range touches and whose command stays green")
+def test_3017_a_before_keep_record_whose_keep_file_the_range_touches_is_replayed_and_a_green_command_exits_1_naming_it(
+        tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "touch the keep file")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3017-mutations.md", before=base, keep="pin.txt",
+           command="grep -q old src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin.txt" in ran.stderr) == (1, True), ran.stderr
