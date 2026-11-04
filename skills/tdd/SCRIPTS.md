@@ -97,7 +97,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `needs a look: <file> (mutation did not build)` on stdout; exit 1 also covers a mutated run
   that exits non-zero when the unmutated run printed nothing, printed as `needs a look`; a
   `needs a look` record from a failed run writes that run's stdout and stderr to stderr,
-  limited to its last 40 lines; **exit 2** no answer; **exit 3** no record touches the range.
+  limited to its last 40 lines; **exit 2** no answer, or a before-state pin whose replay range names no file (stderr `empty replay range: before <sha> green <sha>`); **exit 3** no record touches the range.
+  A before-state pin replays the files changed from its `before` sha to the last commit of its
+  issue's ledger (the step's tick), falling back to the record's `green` when the ledger has no
+  commit; `mutation-probe.sh --before` writes no `green` into an `.tdd/issue-<n>-mutations.md` record.
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
