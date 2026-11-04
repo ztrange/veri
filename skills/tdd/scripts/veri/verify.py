@@ -310,7 +310,10 @@ def main(argv):
         return to_contract(build_verify_prompt._refuse("build-verify-prompt: too many arguments"))
     base = ""
     if words[0] == "pin":
-        base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip() or "0" * 40
+        base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+        if not base:
+            write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a pin needs the real before-state")
+            return 2
     issue = tunables.read("VERI_ISSUE")
     ledger = ledger_path(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,

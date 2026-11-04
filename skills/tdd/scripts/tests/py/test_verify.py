@@ -1737,7 +1737,8 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
 def test_verify_sh_pin_in_a_repository_with_no_origin_still_launches_the_verifier_and_its_pass_stands_2900(
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {}, origin=False)
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+    launch_mark = tmp_path / "leaf-launched"
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": f'touch "{launch_mark}"',
            "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
@@ -1745,7 +1746,7 @@ def test_verify_sh_pin_in_a_repository_with_no_origin_still_launches_the_verifie
     code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
                                       "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
 
-    assert (code, "full suite are green" in out) == (0, True), out + err
+    assert (code, "origin/HEAD" in err, launch_mark.exists()) == (2, True, False), out + err
 
 
 @pytest.mark.process("a real git scratch repository whose pin verifier leaf rewrites its mutation record and makes it unreadable")
