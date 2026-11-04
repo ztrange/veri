@@ -1734,7 +1734,7 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
 
 
 @pytest.mark.process("a real git scratch repository with no origin, whose pin verifier leaf answers VERDICT: PASS")
-def test_verify_sh_pin_in_a_repository_with_no_origin_still_launches_the_verifier_and_its_pass_stands_2900(
+def test_verify_sh_pin_in_a_repository_with_no_origin_refuses_with_exit_2_naming_origin_head_and_launches_no_verifier_2900(
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {}, origin=False)
     launch_mark = tmp_path / "leaf-launched"
