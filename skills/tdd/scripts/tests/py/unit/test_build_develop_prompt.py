@@ -2159,3 +2159,12 @@ def test_main_renders_a_red_revise_prompt_asking_for_fail_output_and_prediction_
     assert re.search(r"^FAIL_OUTPUT: ", prompt, re.M), prompt
     assert re.search(r"^PREDICTION_NOTE: ", prompt, re.M), prompt
     assert keys and "FAIL_OUTPUT:" in keys.group(1).split() and "PREDICTION_NOTE:" in keys.group(1).split(), prompt
+
+
+def test_main_with_no_arguments_exits_2_and_prints_a_usage_line_naming_dual_stub_and_beside_2923(
+        capsysbinary, build_develop_prompt):
+    code = build_develop_prompt.main([])
+    out, err = capsysbinary.readouterr()
+    phases = err.decode().splitlines()[0].split("usage: ")[1].split(" ")[0].split("|")
+
+    assert (code, out, "dual-stub" in phases, "beside" in phases) == (2, b"", True, True)
