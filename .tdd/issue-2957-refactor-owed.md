@@ -1,0 +1,2 @@
+### `suite-flakes.sh` given run directories (run number = the directory's basename) whose logs hold `suite-flake` events naming the same test file in two or more of them prints one line `<file>: <run>, <run>` listing that file with those run numbers ascending and exits 0, while a file named in one run only is not listed; a small unit case driven with `run_cli` in `skills/tdd/scripts/tests/py/unit/test_suite_flakes.py` ⟦criterion 1⟧
+- test-only | the four cases in `test_suite_flakes.py` repeat the same run-directory setup, which a shared helper could remove
