@@ -33,3 +33,18 @@ def test_2957_suite_flakes_with_each_cleared_file_in_one_run_only_prints_nothing
     code, out, err = run_cli(suite_flakes, run_dirs)
 
     assert (code, out) == (3, "")
+
+
+def test_2957_suite_flakes_lists_a_file_cleared_in_two_runs_with_ascending_run_numbers_and_not_one_cleared_once(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dirs = []
+    for number, name in (("19", "scripts/a.test.mjs,scripts/b.test.mjs"), ("12", "scripts/a.test.mjs")):
+        run_dir = tmp_path / number
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "events.jsonl").write_text(
+            '{"event": "suite-flake", "files": "' + name + '"}\n')
+        run_dirs.append(str(run_dir))
+
+    code, out, err = run_cli(suite_flakes, run_dirs)
+
+    assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\n")
