@@ -8,7 +8,7 @@
 # usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>
 # Exit:    0 a step ticked; 2 no <ledger-file>, it is a directory, the ledger could not be read, or the
 #          ticked ledger could not be written — the file is left untouched — or the step names a go-red
-#          control (`mutation-probe.sh --before <sha>` or `the go-red control is <file> at <sha>`) and
+#          control (a before-state mutation probe of <sha>, or `the go-red control is <file> at <sha>`) and
 #          `.tdd/issue-<n>-mutations.md` holds no `before <sha>` record for that sha nor a file/old/new
 #          record for that file — the ledger is left unmodified — or, for a ⟦diff-checked⟧
 #          tick, the re-record of earlier frozen records failed after the ledger was written; 3 no unchecked step matched —
