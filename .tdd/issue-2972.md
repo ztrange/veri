@@ -1,6 +1,6 @@
 # Plan for #2972 — A step is ticked only after its pin-recheck exits 0
 
-- [x] `pin-recheck.sh <base-sha>` exiting 0 or 3 leaves a receipt `.tdd/pin-recheck-ok` (relative to the working directory it runs in) holding the HEAD sha (`git rev-parse HEAD`) on one line ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `pin-recheck.sh <base-sha>` exiting 0 or 3 leaves a receipt `.tdd/pin-recheck-ok` (relative to the working directory it runs in) holding the HEAD sha (`git rev-parse HEAD`) on one line ⟦criterion 1⟧
 - [ ] `pin-recheck.sh <base-sha>` exiting 1 or 2 leaves no `.tdd/pin-recheck-ok`: a receipt an earlier run left is removed at the start of every run, before any record is read ⟦criterion 1⟧
 - [ ] Every existing case that expects `clear-refactor-pending.sh` (or `veri/clear_refactor_pending.py`) to clear a mark, or `tick-ledger.sh` (or `veri/tick_ledger.py`) to tick a `⟦diff-checked⟧` step, first leaves a valid receipt: a `pin-recheck-ok` file in the ledger's own directory holding a sha, with HEAD answering that sha and no path changed since it (in-process cases fake the git boundary, `veri/git.py`'s `git()`; process cases use a real repository); no production change, every such case still passing ⟦diff-checked⟧
 - [ ] `clear-refactor-pending.sh`, when it would clear a step's mark and the receipt `pin-recheck-ok` in the ledger's directory (`.tdd/pin-recheck-ok` for `.tdd/issue-<n>.md`) is absent, exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 2⟧
