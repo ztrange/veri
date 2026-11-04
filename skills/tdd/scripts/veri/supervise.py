@@ -480,6 +480,8 @@ def main(argv):
         return refuse_launch(role, leaf_env, name, "VERI_STEP is set but empty")
     if "--step" in argv and argv[argv.index("--step") + 1:][:1] == [""]:
         return refuse_launch(role, leaf_env, name, "--step is empty")
+    if argv[2:] and os.path.isfile(argv[2]) and not os.path.getsize(argv[2]):
+        return refuse_launch(role, leaf_env, name, f"the prompt file {argv[2]} is empty")
     if os.path.isfile(".tdd/stop"):
         with open(".tdd/stop") as f:
             if (mode := f.read().strip()) in ("at-leaf", "now"):

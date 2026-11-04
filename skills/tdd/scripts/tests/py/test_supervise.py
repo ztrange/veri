@@ -4692,6 +4692,23 @@ def test_cli_refuses_a_launch_while_a_stop_now_is_pending_exiting_2_starting_no_
     assert "now" in records[0]["reason"], records
 
 
+def test_cli_refuses_a_run_leaf_launch_whose_prompt_file_is_empty_exiting_2_writing_a_launch_refused_event_naming_the_leaf_and_no_launch_event_2928(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    clean_env(monkeypatch)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "revise-pin-1.prompt").write_text("")
+    started = spy_leaf_start(monkeypatch, tmp_path, supervise)
+
+    code, out, err = run_cli(supervise, ["revise-pin-1", "run-leaf.sh", ".tdd/revise-pin-1.prompt"], cwd=tmp_path,
+                             env={"VERI_ISSUE": "2928", "VERI_STEP": "1"})
+
+    assert (code, out) == (2, ""), err
+    assert bool(started) is False, err
+    records = events.records(tmp_path)
+    assert [r["event"] for r in records] == ["launch-refused"], records
+    assert records[0]["name"] == "revise-pin-1", records
+
+
 def test_cli_launches_the_leaf_as_usual_while_a_stop_at_ledger_is_pending_refusing_nothing_2549(
         monkeypatch, tmp_path, supervise, run_cli, events):
     clean_env(monkeypatch)
