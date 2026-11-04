@@ -10,6 +10,7 @@ supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 veri: fast tests: `make unit`
 veri: all tests: `make test`
+veri: one test file: `make test TESTS="$1"`
 
 | | |
 |---|---|
