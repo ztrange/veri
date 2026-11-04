@@ -535,3 +535,15 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
 
     out, err = capsysbinary.readouterr()
     assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
+
+
+def test_main_clears_the_mark_exiting_0_and_leaves_every_other_ledger_line_unchanged_when_the_receipts_sha_equals_head_2972(
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    led = tmp_path / "issue-42.md"
+    led.write_bytes("# Plan\n\n- [x] a ⟂ refactor pending\n- [x] b ⟂ refactor pending\n- [ ] c\n".encode())
+    leave_receipt(led)
+
+    code = clear_refactor_pending.main([str(led), "a"])
+
+    assert (code, *capsysbinary.readouterr(), led.read_bytes()) == (
+        0, b"", b"", "# Plan\n\n- [x] a\n- [x] b ⟂ refactor pending\n- [ ] c\n".encode())
