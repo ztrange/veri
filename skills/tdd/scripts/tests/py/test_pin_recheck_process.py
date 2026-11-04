@@ -971,6 +971,35 @@ def test_2974_a_before_keep_record_with_a_green_commit_replays_without_touching_
         0, b"other v1\n", b"other v1\n"), ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose green is the plan commit, earlier than the ledger's tick")
+def test_3016_a_before_keep_record_whose_green_precedes_the_tick_commit_replays_against_the_tick_commit(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-3016.md").write_text("- [ ] step\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "plan")
+    plan = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / ".tdd" / "issue-3016.md").write_text("- [x] step\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "green and tick")
+    record(tmp_path / ".tdd" / "issue-3016-mutations.md", before=base, keep="pin.txt", green=plan,
+           command="! grep -q old src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "src.txt").read_bytes()) == (0, b"fixed behaviour\n"), ran.stderr
+
+
 @pytest.mark.process("git, pin-recheck.sh replaying a directory-dependent record from a clone")
 def test_2919_pin_recheck_replays_the_record_from_the_directory_it_is_run_in_not_the_one_that_recorded_it(tmp_path):
     repo = tmp_path / "repo"
