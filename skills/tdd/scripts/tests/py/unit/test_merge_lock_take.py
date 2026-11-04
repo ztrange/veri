@@ -86,3 +86,27 @@ def test_3027_take_with_no_lock_dir_and_its_staged_dir_gone_exits_2_with_a_line_
     except RuntimeError:
         code = "retried"
     assert (code, bool(capsys.readouterr().err.strip())) == (2, True)
+
+
+def test_3027_take_waiting_on_a_live_holder_exits_2_naming_its_own_dead_pid_on_stderr(
+        tmp_path, monkeypatch, capsys):
+    me = os.getpid()
+    dead = 4242424
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock, "_alive", lambda pid: pid == me)
+    polls = []
+
+    def poll():
+        polls.append(1)
+        if len(polls) > 5:
+            raise RuntimeError("still waiting")
+
+    monkeypatch.setattr(merge_lock, "_poll_wait", poll)
+    lock = tmp_path / "tdd" / "merge.lock"
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{me} h t\n")
+    try:
+        code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(dead)])
+    except RuntimeError:
+        code = "retried"
+    assert (code, str(dead) in capsys.readouterr().err) == (2, True)
