@@ -49,7 +49,8 @@ def unit_lines(text):
 
 def union_graded(path):
     base, onto, branch = (unit_lines(output("show", f":{stage}:{path}")) for stage in (1, 2, 3))
-    merged = onto | {unit: row for unit, row in branch.items() if row != base.get(unit)}
+    merged = onto | {unit: row for unit, row in branch.items() if row != base.get(unit)
+                          and git("diff", "--quiet", "HEAD", "REBASE_HEAD", "--", unit).returncode != 0}
     pathlib.Path(path).write_text("".join(row + "\n" for row in merged.values()))
     git("add", path, text=True)
 
