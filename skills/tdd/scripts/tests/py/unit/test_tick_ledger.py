@@ -835,3 +835,58 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
 
     out, err = capsysbinary.readouterr()
     assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
+
+
+def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identical_when_the_diff_checked_tick_receipt_sha_does_not_resolve_in_git_2972(
+        tmp_path, capsysbinary, monkeypatch, tick_ledger):
+    import importlib
+    import subprocess
+    monkeypatch.setattr(sys.modules["tests_frozen"], "rerecord_earlier", lambda *args: 0)
+    unresolved = lambda *args, **kwargs: subprocess.CompletedProcess(args, 128, "", "fatal: bad object")
+    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    for module in list(sys.modules.values()):
+        if getattr(module, "git", None) in reals:
+            monkeypatch.setattr(module, "git", unresolved)
+    seed = "# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦diff-checked⟧ ⟦criterion 4⟧\n".encode()
+    led = tmp_path / "issue-7.md"
+    led.write_bytes(seed)
+    (tmp_path / "pin-recheck-ok").write_text("deadbeef" * 5 + "\n")
+
+    code = tick_ledger.main([str(led), "the PR body lists the cogs"])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
+
+
+def test_main_ticks_a_diff_checked_step_whose_receipt_matches_head_resolving_it_in_the_ledgers_repository_from_a_cwd_outside_it_2972(
+        tmp_path, capsysbinary, monkeypatch, tick_ledger):
+    import pathlib
+    import subprocess
+    monkeypatch.setattr(sys.modules["tests_frozen"], "rerecord_earlier", lambda *args: 0)
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    head = "c" * 40
+
+    def faked_git(*args, **kwargs):
+        text = kwargs.get("text") or kwargs.get("universal_newlines")
+        where = args[args.index("-C") + 1] if "-C" in args else kwargs.get("cwd") or os.getcwd()
+        inside = pathlib.Path(where).resolve().is_relative_to(repo.resolve())
+        out = (head + "\n" if "rev-parse" in args else "") if inside else ""
+        err = "" if inside else "fatal: not a git repository\n"
+        return subprocess.CompletedProcess(args, 0 if inside else 128,
+                                           out if text else out.encode(), err if text else err.encode())
+
+    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    for module in list(sys.modules.values()):
+        if getattr(module, "git", None) in reals:
+            monkeypatch.setattr(module, "git", faked_git)
+    led = repo / ".tdd" / "issue-7.md"
+    led.write_text("# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦diff-checked⟧ ⟦criterion 4⟧\n")
+    (repo / ".tdd" / "pin-recheck-ok").write_text(head + "\n")
+    monkeypatch.chdir(elsewhere)
+
+    code = tick_ledger.main([str(led), "the PR body lists the cogs"])
+
+    assert (code, "- [x] the PR body lists the cogs" in led.read_text()) == (0, True)
