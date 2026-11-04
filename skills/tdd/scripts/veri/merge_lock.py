@@ -84,6 +84,7 @@ def _take(lock, record, args):
                 text, holder = _read_pid(record)
             except (OSError, ValueError, IndexError) as err:
                 if not os.path.isdir(lock):
+                    _poll_wait()
                     continue
                 if isinstance(err, FileNotFoundError):
                     missing += 1
