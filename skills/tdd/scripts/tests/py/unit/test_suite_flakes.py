@@ -94,3 +94,19 @@ def test_2957_suite_flakes_skips_non_object_lines_and_other_events_with_files_so
     code, out, err = run_cli(suite_flakes, [str(skipped), str(cleared)])
 
     assert (code, out) == (3, "")
+
+
+def test_2957_suite_flakes_prints_files_cleared_in_two_runs_sorted_by_file_name_whatever_order_the_events_came_in(run_cli, tmp_path):
+    suite_flakes = importlib.import_module("veri.suite_flakes")
+    run_dirs = []
+    for number in ("19", "12"):
+        run_dir = tmp_path / number
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "events.jsonl").write_text(
+            '{"event": "suite-flake", "files": "scripts/b.test.mjs"}\n'
+            '{"event": "suite-flake", "files": "scripts/a.test.mjs"}\n')
+        run_dirs.append(str(run_dir))
+
+    code, out, err = run_cli(suite_flakes, run_dirs)
+
+    assert (code, out) == (0, "scripts/a.test.mjs: 12, 19\nscripts/b.test.mjs: 12, 19\n")
