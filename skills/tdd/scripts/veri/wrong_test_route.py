@@ -80,7 +80,8 @@ def _exists(case):
     return titles.pop() if len(titles) == 1 else None
 
 
-def _fixture(report):
+def _fixture(report, own_id):
+    own_file = os.path.normpath(own_id.partition("::")[0]) if "::" in own_id else None
     for name in _named_cases(report):
         if name.startswith(("test_", "Test")):
             continue
@@ -93,6 +94,8 @@ def _fixture(report):
             if not py_file and not go_file and not js_file:
                 continue
             path = os.path.join(root, file)
+            if own_file is not None and os.path.normpath(path) != own_file:
+                continue
             with open(path, encoding="utf-8", errors="replace") as handle:
                 if (helper if py_file else go_helper if go_file else js_helper).search(handle.read()):
                     return os.path.normpath(path), name
@@ -287,7 +290,7 @@ def main(argv):
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:
         case = older[0]
-    fixture = None if case is not None or rerouted else _fixture(argv[0])
+    fixture = None if case is not None or rerouted else _fixture(argv[0], argv[1])
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
