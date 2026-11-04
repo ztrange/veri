@@ -727,3 +727,16 @@ def test_main_refuses_a_tick_of_a_step_naming_a_before_sha_when_the_mutation_rec
     err = capsys.readouterr().err
 
     assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
+
+
+def test_main_ticks_a_step_naming_its_go_red_control_file_once_the_mutation_record_holds_a_file_old_new_record_for_that_file_2952(
+        tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
+                      "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n")
+    (tmp_path / "issue-7-mutations.md").write_text(
+        "file 22\nscripts/smoke-core.mjs\nold 3\nabc\nnew 3\nxyz\ncommand 6\npytest\n\n")
+
+    code = tick_ledger.main([str(ledger), "A refused start"])
+
+    assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
