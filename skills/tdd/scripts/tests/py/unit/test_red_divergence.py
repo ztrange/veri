@@ -350,3 +350,12 @@ def test_main_2926_exits_3_without_a_prediction_not_written_reason_for_a_pin_rev
     code, out, err = run(monkeypatch, capsys, red_divergence, pin_report, argv)
 
     assert (code, "prediction not written before the run" in out + err) == (3, False)
+
+
+def test_main_2926_exits_1_naming_the_prediction_not_written_on_stdout_for_a_red_revise_report_that_says_fails_and_has_no_prediction_file(monkeypatch, capsys, red_divergence, tmp_path):
+    red_report = "OUTCOME: revised\nAGAINST_UNMODIFIED: FAILS\nPREDICTION: MATCHED\nFAIL_OUTPUT: f\n"
+    argv = [str(tmp_path / "red-prediction.md"), str(tmp_path / "red-run-output.txt")]
+
+    code, out, err = run(monkeypatch, capsys, red_divergence, red_report, argv)
+
+    assert (code, "prediction not written before the run" in out) == (1, True)
