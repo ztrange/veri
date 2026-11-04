@@ -678,18 +678,11 @@ def rerecord_refactored(ledger, green):
         verified_lines = _assertion_lines(verified)
         verified_count = collections.Counter(verified_lines)
         carried = collections.Counter(head_lines + _assertion_lines(helpers))
-        if head_lines != verified_lines and verified_count - carried:
+        if head_lines != verified_lines and carried != verified_count:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
         if head_lines == verified_lines and len(_assertion_lines(helpers)) \
                 != len(_assertion_lines(_called_helpers(green, name, verified))):
             return skip(name, case, record, "helper assertion count differs from green's")
-        if head_lines != verified_lines:
-            union = collections.Counter(verified_lines)
-            for other, other_body in _cases_at("HEAD", name).items():
-                if any(re.search(r"\b%s\(" % n, other_body) for n in re.findall(_HELPER_NAME, helpers, re.M)):
-                    union |= collections.Counter(_assertion_lines(_cases_at(green, name).get(other, "")))
-            if carried - union:
-                return skip(name, case, record, "helper carries assertion lines no calling case verified")
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
