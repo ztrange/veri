@@ -2924,3 +2924,20 @@ def test_main_2916_criterion_5_a_later_step_report_is_checked_against_the_ledger
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def test_main_3037_criterion_2_prints_fixture_with_the_own_file_when_the_helper_is_defined_there_and_in_another_test_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests"
+    suite.mkdir()
+    (suite / "test_a_other.py").write_text("def ran():\n    return 1\n")
+    (suite / "test_z_own.py").write_text(
+        "def ran():\n    return 2\n\ndef test_session_expires():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: `ran` is never set in the Red case\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, [str(report), "tests/test_z_own.py::test_session_expires"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "fixture tests/test_z_own.py ran\n")
