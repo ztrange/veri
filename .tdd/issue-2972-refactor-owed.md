@@ -1,2 +1,4 @@
 ### `pin-recheck.sh <base-sha>` exiting 1 or 2 leaves no `.tdd/pin-recheck-ok`: a receipt an earlier run left is removed at the start of every run, before any record is read ⟦criterion 1⟧
 - test-only | the two #2972 process tests each define the same local `git(*words)` helper; lift it into one shared helper
+### `clear-refactor-pending.sh`, when it would clear a step's mark and the receipt `pin-recheck-ok` in the ledger's directory (`.tdd/pin-recheck-ok` for `.tdd/issue-<n>.md`) is absent, exits 2 with a stderr message naming `pin-recheck.sh` and leaves the ledger byte-identical ⟦criterion 2⟧
+- test-only | In `test_clear_refactor_pending.py`, replace the `leave_receipt(tmp_path / "ledger.md")` call repeated at the top of almost every case with one autouse fixture. The absent-receipt case would opt out of it.
