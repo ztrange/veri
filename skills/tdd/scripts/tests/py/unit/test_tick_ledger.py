@@ -781,3 +781,43 @@ def test_main_ticks_a_step_mentioning_go_red_control_bare_with_neither_wording_a
     code = tick_ledger.main([str(ledger), "A refused start"])
 
     assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
+
+
+def test_main_ticks_a_step_naming_its_go_red_control_file_at_a_sha_once_the_mutation_record_holds_a_before_record_for_that_sha_2952(
+        tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
+                      "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n")
+    (tmp_path / "issue-7-mutations.md").write_text(
+        "before 9\nab20a4945\nkeep 4\nt.py\ncommand 6\npytest\ngreen 1\n0\n\n")
+
+    code = tick_ledger.main([str(ledger), "A refused start"])
+
+    assert (code, "- [x] A refused start" in ledger.read_text()) == (0, True)
+
+
+def test_main_ticks_a_already_satisfied_step_with_no_mutation_record_exiting_0_2952(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦added⟧ ⟦already-satisfied⟧ ⟦criterion 4⟧\n")
+
+    code = tick_ledger.main([str(ledger), "the PR body lists the cogs"])
+
+    assert (code, "- [x] the PR body lists the cogs" in ledger.read_text()) == (0, True)
+
+
+def test_main_ticks_a_human_owed_step_with_no_mutation_record_exiting_0_2952(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦added⟧ ⟦human-owed⟧ ⟦criterion 4⟧\n")
+
+    code = tick_ledger.main([str(ledger), "the PR body lists the cogs"])
+
+    assert (code, "- [x] the PR body lists the cogs" in ledger.read_text()) == (0, True)
+
+
+def test_main_ticks_a_skill_edit_step_with_no_mutation_record_exiting_0_2952(tmp_path, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] the PR body lists the cogs ⟦added⟧ ⟦skill-edit⟧ ⟦criterion 4⟧\n")
+
+    code = tick_ledger.main([str(ledger), "the PR body lists the cogs"])
+
+    assert (code, "- [x] the PR body lists the cogs" in ledger.read_text()) == (0, True)
