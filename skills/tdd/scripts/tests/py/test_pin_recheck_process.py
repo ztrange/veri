@@ -1152,3 +1152,25 @@ def test_2972_an_exit_0_or_3_leaves_a_receipt_holding_the_head_sha(tmp_path):
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.read_text() if receipt.exists() else None) == (3, git("rev-parse", "HEAD") + "\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over an unparseable record with an earlier run's receipt in place")
+def test_2972_an_exit_2_removes_a_receipt_an_earlier_run_left(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "other.txt").write_text("one\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", old="if guard", new="if (true)", command="true")
+    receipt = tmp_path / ".tdd" / "pin-recheck-ok"
+    receipt.write_text("stale\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "other.txt").write_text("two\n")
+    git("commit", "-q", "-am", "touch only other.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, receipt.read_text() if receipt.exists() else None) == (2, None), ran.stderr
