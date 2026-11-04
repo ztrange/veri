@@ -99,7 +99,7 @@ def main(argv):
         if "before" not in r and "file" not in r:
             sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
             return 2
-    pins = [(f, r) for f, r in found if "before" in r or r["file"] in touched]
+    pins = [(f, r) for f, r in found if r.get("keep", r.get("file")) in touched]
     if not pins:
         return 3
     status = 0
