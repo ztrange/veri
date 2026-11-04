@@ -399,3 +399,25 @@ def test_2927_a_develop_leaf_that_creates_a_mutations_record_has_it_removed(tmp_
                               "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
 
     assert (ran.returncode, record.exists()) == (0, False), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real develop leaf whose shell truncates two committed mutation records")
+def test_2927_a_develop_leaf_that_truncates_two_mutations_records_gets_one_event_per_file_naming_leaf_and_file(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    first = work / ".tdd" / "issue-41-mutations.md"
+    second = work / ".tdd" / "issue-2927-mutations.md"
+    first.write_bytes(b"mutation: a\n")
+    second.write_bytes(b"mutation: b\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-green-1", "sh", "-c", ': > "$1"; : > "$2"', "sh", str(first), str(second)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    lines = (work / ".tdd" / "events.jsonl").read_text().splitlines()
+    restored = [l for l in lines if "mutation-record-restored" in l]
+
+    assert (ran.returncode, first.read_bytes(), second.read_bytes(),
+            [("develop-green-1" in l, "issue-41-mutations.md" in l, "issue-2927-mutations.md" in l) for l in restored]) == (
+        0, b"mutation: a\n", b"mutation: b\n", [(True, False, True), (True, True, False)]), ran.stderr
