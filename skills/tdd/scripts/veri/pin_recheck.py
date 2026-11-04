@@ -90,7 +90,7 @@ def replay_before(pin, ledger):
     return ran.returncode
 
 
-def main(argv):
+def recheck(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
         return 2
@@ -142,6 +142,14 @@ def main(argv):
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
+    return status
+
+
+def main(argv):
+    status = recheck(argv)
+    if status in (0, 3):
+        head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        Path(".tdd/pin-recheck-ok").write_text(head + "\n")
     return status
 
 
