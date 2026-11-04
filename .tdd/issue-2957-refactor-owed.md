@@ -2,3 +2,5 @@
 - test-only | the four cases in `test_suite_flakes.py` repeat the same run-directory setup, which a shared helper could remove
 ### A file named by two `suite-flake` events in the same run counts once: with it in that one run only, `suite-flakes.sh` lists nothing and exits 3; a small unit case driven with `run_cli` in `skills/tdd/scripts/tests/py/unit/test_suite_flakes.py` ⟦criterion 2⟧
 - test-only | extract the repeated run-directory/event-log setup in test_suite_flakes.py into a helper
+### Lines of a run's `.tdd/events.jsonl` that are not JSON objects (a non-JSON line, a JSON array) and events other than `suite-flake` that carry a `files` field are skipped: they neither stop the script nor count a file, so a file only such lines name in a second run is not listed; a small unit case driven with `run_cli` in `skills/tdd/scripts/tests/py/unit/test_suite_flakes.py`
+- test-only | extract the repeated "make `<tmp>/<n>/.tdd/events.jsonl` with these lines" setup in `test_suite_flakes.py` into one helper
