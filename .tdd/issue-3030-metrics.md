@@ -1,15 +1,15 @@
 ### 📊 Metrics — issue 3030
 
-Wall time for the issue: 1488 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2068 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 3 of 3 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3042.
+Outcome: the run bailed — ci-timeout, a system failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $6.21 over 106 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $6.37 over 110 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 90179 tokens, largest 198156 tokens
-Conductor context: first turn 90281 tokens, largest 143132 tokens
+Conductor context: first turn 90281 tokens, largest 149135 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -122,6 +122,10 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 104 | $0.03 | 142438 |
 | 105 | $0.03 | 142785 |
 | 106 | $0.03 | 143132 |
+| 107 | $0.03 | 143686 |
+| 108 | $0.03 | 144110 |
+| 109 | $0.03 | 144511 |
+| 110 | $0.07 | 149135 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -188,4 +192,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 95 | 180 | 34315 | 2477786 | 523416 | 8.23 (estimate) |
+| total | 95 | 180 | 34315 | 2477786 | 523416 | 8.40 (estimate) |
