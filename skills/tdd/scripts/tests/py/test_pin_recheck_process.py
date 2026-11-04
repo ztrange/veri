@@ -1099,3 +1099,34 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_touches_is_replayed
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, "pin.txt" in ran.stderr) == (1, True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose touched files are absent at the before sha")
+def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_100644_with_the_same_bytes(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+
+    def state():
+        return (git("ls-files", "-s", "scripts/x.sh", "scripts/y.txt"),
+                {n: ((tmp_path / n).stat().st_mode & 0o111 != 0, (tmp_path / n).read_bytes())
+                 for n in ("scripts/x.sh", "scripts/y.txt")})
+    git("init", "-q")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "x.sh").write_text("#!/bin/sh\necho x\n")
+    (tmp_path / "scripts" / "x.sh").chmod(0o755)
+    (tmp_path / "scripts" / "y.txt").write_text("plain\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "add scripts and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3046-mutations.md", before=base, keep="pin.txt", command="true")
+    before = state()
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, state()) == (1, before), ran.stderr
