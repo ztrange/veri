@@ -1,0 +1,2 @@
+### build-develop-prompt.sh called with no arguments exits 2 and prints a usage line on stderr whose phase list names dual-stub and still names beside ⟦criterion 1⟧
+- Derive `WANT_PHASES` and `USAGE` from one shared tuple that includes `dual-stub`, so the unknown-phase message "(want …)" lists `dual-stub` too. It is not applied: it would change the unknown-phase message, which no step in this cycle asks for.
