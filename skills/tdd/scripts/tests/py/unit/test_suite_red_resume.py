@@ -300,3 +300,22 @@ def test_insert_adds_no_suite_repair_step_when_the_red_is_only_a_stale_grade_of_
     assert code == 0
     assert "⟦suite-repair⟧" not in ledger.read_text()
     assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][0] == f"- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48"
+
+
+def test_insert_still_adds_the_suite_repair_step_before_the_skill_edit_step_when_a_branch_red_suite_is_red_for_another_reason_3004(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    skill_edit = f"- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48"
+    ledger.write_text(f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n{skill_edit}\n- [ ] c ⟦criterion 3⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\ntest_unrelated_parser.py — FAIL parser broke\n")
+    step = "- [ ] fix the full-suite failure: test_prd_015_prose_signed.py; test_unrelated_parser.py — FAIL parser broke ⟦suite-repair⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]

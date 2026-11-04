@@ -19,6 +19,7 @@ USAGE = (
     "       suite-red-resume.sh insert <ledger-file> <branch-red-file>"
 )
 SEPARATOR = " — "
+GRADE_SUITES = {"test_prd_015_prose_signed.py", "test_prd_016_short_names.py"}
 
 
 def complain(message):
@@ -58,7 +59,7 @@ def insert(ledger, branch_file):
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
     if unchecked and "⟦skill-edit⟧" in unchecked[0]:
         owed, _ = prose_owed.owed_listed()
-        if any(unit in unchecked[0] for _, unit in owed):
+        if set(suites(text)) <= GRADE_SUITES and any(unit in unchecked[0] for _, unit in owed):
             return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
