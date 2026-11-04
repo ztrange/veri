@@ -1,6 +1,7 @@
 """queued-merge.sh through the real /bin/sh shim, with gh and git faked on PATH."""
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -329,7 +330,8 @@ def test_queued_merge_finding_a_lock_left_by_a_dead_holder_reports_it_on_stderr_
         return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo, env=env,
                               stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
 
-    lock("take", "--pid", dead)
+    (repo / ".tdd" / "merge.lock").mkdir(parents=True)
+    (repo / ".tdd" / "merge.lock" / "holder").write_text(f"{dead} {socket.gethostname()} gone\n")
     errfile = tmp_path / "queued.err"
     with open(errfile, "w") as err:
         queued = subprocess.Popen(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", "-"],

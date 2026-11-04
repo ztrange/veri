@@ -73,7 +73,8 @@ def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid
     child = subprocess.Popen([sys.executable, "-c", "pass"])
     child.wait()
     dead = str(child.pid)
-    run_cli(merge_lock, ["take", "--pid", dead], cwd=tmp_path)
+    (tmp_path / ".tdd" / "merge.lock").mkdir(parents=True)
+    (tmp_path / ".tdd" / "merge.lock" / "holder").write_text(f"{dead} {socket.gethostname()} gone\n")
 
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
 

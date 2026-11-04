@@ -1,5 +1,6 @@
 """merge-lock.sh through the real /bin/sh shim."""
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -112,7 +113,8 @@ def test_take_on_a_stale_lock_reports_the_stale_holder_on_stderr_and_waits_with_
         return subprocess.run(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), *args], cwd=repo, env=env,
                               stdin=subprocess.DEVNULL, capture_output=True, text=True, **kw)
 
-    shim("take", "--pid", dead)
+    lock.mkdir(parents=True)
+    (lock / "holder").write_text(f"{dead} {socket.gethostname()} gone\n")
     errfile = tmp_path / "take.err"
     with open(errfile, "w") as err:
         taker = subprocess.Popen(["/bin/sh", str(SCRIPTS / "merge-lock.sh"), "take", "--pid", str(os.getpid())],
