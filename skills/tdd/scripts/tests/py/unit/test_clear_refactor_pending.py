@@ -20,7 +20,8 @@ def clear_refactor_pending():
 
 
 def test_main_refuses_a_missing_or_empty_ledger_file_clears_the_first_matching_mark_and_exits_3_leaving_an_unmatched_ledger_untouched(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] a ⟂ refactor pending\n- [x] b ⟂ refactor pending\n".encode()
     cleared = tmp_path / "cleared.md"
     cleared.write_bytes(seed)
@@ -42,7 +43,8 @@ def test_main_refuses_a_missing_or_empty_ledger_file_clears_the_first_matching_m
 
 
 def test_main_writes_what_the_ledger_modules_ledger_clear_pending_returns_and_passes_it_the_matcher(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     matchers = []
 
     def substitute(text, matcher):
@@ -61,7 +63,8 @@ def test_main_writes_what_the_ledger_modules_ledger_clear_pending_returns_and_pa
 
 
 def test_main_reads_a_lone_ledger_file_as_an_empty_matcher_clearing_the_first_marked_done_step_and_ignores_arguments_after_the_second(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] a ⟂ refactor pending\n- [x] b ⟂ refactor pending\n".encode()
     lone = tmp_path / "lone.md"
     lone.write_bytes(seed)
@@ -81,7 +84,8 @@ def test_main_reads_a_lone_ledger_file_as_an_empty_matcher_clearing_the_first_ma
 
 
 def test_main_matches_the_matcher_as_a_literal_substring_of_the_whole_line_box_and_mark_included(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] a ⟂ refactor pending\n- [x] b * c ⟂ refactor pending\n".encode()
     results = {}
     for name, matcher in (("pending", "refactor pending"), ("box", "[x] a"), ("mark", "a ⟂"),
@@ -102,7 +106,8 @@ def test_main_matches_the_matcher_as_a_literal_substring_of_the_whole_line_box_a
 
 
 def test_main_exits_3_leaving_an_open_marked_step_a_crlf_mark_and_a_mark_before_a_space_untouched_and_clears_only_the_last_of_a_double_mark(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seeds = {
         "open": "- [ ] a ⟂ refactor pending\n".encode(),
         "crlf": "- [x] a ⟂ refactor pending\r\n".encode(),
@@ -125,7 +130,8 @@ def test_main_exits_3_leaving_an_open_marked_step_a_crlf_mark_and_a_mark_before_
 
 
 def test_main_rewrites_a_cleared_ledger_ending_in_exactly_one_newline_and_leaves_an_unmatched_or_empty_ledger_byte_identical(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seeds = {
         "unterminated": ("- [x] a ⟂ refactor pending".encode(), "a"),
         "triple": ("- [x] a ⟂ refactor pending\n\n\n".encode(), "a"),
@@ -148,7 +154,8 @@ def test_main_rewrites_a_cleared_ledger_ending_in_exactly_one_newline_and_leaves
 
 
 def test_main_drops_a_nul_byte_on_a_clear_and_passes_a_non_utf8_byte_through_in_the_file_and_the_matcher(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     nul = tmp_path / "nul.md"
     nul.write_bytes("- [x] a\0z ⟂ refactor pending\n".encode())
     code = clear_refactor_pending.main([str(nul), "a"])
@@ -161,7 +168,8 @@ def test_main_drops_a_nul_byte_on_a_clear_and_passes_a_non_utf8_byte_through_in_
 
 
 def test_main_matches_a_step_line_by_the_c_locale_grammar_clearing_a_capital_box_a_tab_and_ascii_space_before_the_dash_but_not_034_or_nbsp(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seeds = {
         "capital": "- [X] a ⟂ refactor pending\n".encode(),
         "tab": "-\t[x] a ⟂ refactor pending\n".encode(),
@@ -188,7 +196,8 @@ def test_main_matches_a_step_line_by_the_c_locale_grammar_clearing_a_capital_box
 
 
 def test_main_writes_the_ledger_through_a_temp_file_renamed_over_it_keeping_a_symlink_a_symlink_and_reading_a_relative_ledger_file_from_the_working_directory(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] a ⟂ refactor pending\n".encode()
     target = tmp_path / "target.md"
     target.write_bytes(seed)
@@ -196,6 +205,7 @@ def test_main_writes_the_ledger_through_a_temp_file_renamed_over_it_keeping_a_sy
     link.symlink_to(target)
     cwd = tmp_path / "cwd"
     cwd.mkdir()
+    leave_receipt(cwd / "relative.md")
     (cwd / "relative.md").write_bytes(seed)
     (tmp_path / "relative.md").write_bytes(seed)
     monkeypatch.chdir(cwd)
@@ -211,7 +221,8 @@ def test_main_writes_the_ledger_through_a_temp_file_renamed_over_it_keeping_a_sy
 
 
 def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_every_write_to_the_ledger_fails_817(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "".join(f"- [x] step {n} of a ledger long enough to outgrow the file size limit ⟂ refactor pending\n"
                    for n in range(8)).encode()
     led = tmp_path / "ledger.md"
@@ -230,11 +241,14 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_every_write_to
 
 
 def test_main_returns_2_keeping_a_symlinked_ledger_a_symlink_its_target_byte_identical_and_nothing_beside_either_when_the_file_size_limit_refuses_the_write_1396(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "".join(f"- [x] step {n} of a ledger long enough to outgrow the file size limit ⟂ refactor pending\n"
                    for n in range(8)).encode()
     (tmp_path / "links").mkdir()
     (tmp_path / "targets").mkdir()
+    leave_receipt(tmp_path / "links" / "ledger.md")
+    leave_receipt(tmp_path / "targets" / "ledger.md")
     target = tmp_path / "targets" / "ledger.md"
     target.write_bytes(seed)
     link = tmp_path / "links" / "ledger.md"
@@ -254,11 +268,12 @@ def test_main_returns_2_keeping_a_symlinked_ledger_a_symlink_its_target_byte_ide
     assert (code, link.is_symlink(), target.read_bytes(),
             sorted(p.name for p in (tmp_path / "links").iterdir()),
             sorted(p.name for p in (tmp_path / "targets").iterdir())) == (
-        2, True, seed, ["ledger.md"], ["ledger.md"])
+        2, True, seed, ["ledger.md", "pin-recheck-ok"], ["ledger.md", "pin-recheck-ok"])
 
 
 def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_file_beside_it_cannot_be_created_817(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] alpha ⟂ refactor pending\n- [x] beta ⟂ refactor pending\n".encode()
     led = tmp_path / "ledger.md"
     led.write_bytes(seed)
@@ -281,7 +296,8 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_
 
 
 def test_main_returns_2_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_tempfile_mkstemp_fails_1396(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] alpha ⟂ refactor pending\n- [x] beta ⟂ refactor pending\n".encode()
     led = tmp_path / "ledger.md"
     led.write_bytes(seed)
@@ -297,11 +313,12 @@ def test_main_returns_2_leaving_the_ledger_byte_identical_and_nothing_beside_it_
     monkeypatch.undo()
     capsysbinary.readouterr()
 
-    assert (code, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (2, seed, ["ledger.md"])
+    assert (code, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (2, seed, ["ledger.md", "pin-recheck-ok"])
 
 
 def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_every_temp_file_write_and_rename_fail_1110(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
     led = tmp_path / "ledger.md"
     led.write_bytes(seed)
@@ -348,11 +365,12 @@ def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_no
     err = capsysbinary.readouterr().err
 
     assert (code, b"Traceback" in err, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (
-        2, False, seed, ["ledger.md"])
+        2, False, seed, ["ledger.md", "pin-recheck-ok"])
 
 
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])
     out, err = capsysbinary.readouterr()
     assert (code, out) == (2, b"")
@@ -360,7 +378,8 @@ def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
 
 
 def test_main_returns_2_on_a_directory_as_the_ledger_with_one_stderr_line_naming_it(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     code = clear_refactor_pending.main([str(tmp_path), "a"])
     out, err = capsysbinary.readouterr()
     assert (code, out) == (2, b"")
@@ -377,7 +396,8 @@ LEDGER = """# Plan for #42
 
 
 def test_cli_clears_the_first_matching_step_that_carries_the_mark_skipping_an_unmarked_match(
-        tmp_path, run_cli, clear_refactor_pending):
+        tmp_path, leave_receipt, run_cli, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     led = tmp_path / "issue-42.md"
     led.write_text(LEDGER)
 
@@ -388,7 +408,8 @@ def test_cli_clears_the_first_matching_step_that_carries_the_mark_skipping_an_un
 
 
 def test_cli_returns_2_with_one_stderr_line_naming_a_ledger_path_that_runs_through_a_regular_file_writing_nothing(
-        tmp_path, run_cli, clear_refactor_pending):
+        tmp_path, leave_receipt, run_cli, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     plain = tmp_path / "plain-file"
     plain.write_text("not a directory\n")
     path = plain / "issue-42.md"
@@ -402,7 +423,8 @@ def test_cli_returns_2_with_one_stderr_line_naming_a_ledger_path_that_runs_throu
 
 
 def test_main_returns_2_naming_the_temporary_file_left_behind_when_the_write_fails_and_that_file_cannot_be_removed(
-        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, monkeypatch, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     seed = "- [x] a ⟂ refactor pending\n".encode()
     led = tmp_path / "issue-42.md"
     led.write_bytes(seed)
@@ -432,7 +454,8 @@ def test_main_returns_2_naming_the_temporary_file_left_behind_when_the_write_fai
 
 
 def test_main_keeps_the_original_file_mode_on_a_cleared_ledger(
-        tmp_path, capsysbinary, clear_refactor_pending):
+        tmp_path, leave_receipt, capsysbinary, clear_refactor_pending):
+    leave_receipt(tmp_path / "ledger.md")
     led = tmp_path / "issue-42.md"
     led.write_bytes("- [x] a ⟂ refactor pending\n".encode())
     led.chmod(0o640)

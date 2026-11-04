@@ -11,13 +11,17 @@ LEDGER = "# Plan for #42\n\n- [x] a ⟂ refactor pending\n- [x] collapse to sing
 
 @pytest.mark.process("clear-refactor-pending.sh run through a symlink to the skill directory from another working directory")
 def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_clears_a_relative_ledger_as_in_place(
-        tmp_path, run_cli):
+        tmp_path, run_cli, leave_receipt):
     clear_refactor_pending = importlib.import_module("veri.clear_refactor_pending")
+    for step in (["init", "-q"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "base"]):
+        subprocess.run(["git", *step], cwd=tmp_path, check=True, capture_output=True)
     (tmp_path / "skill-link").symlink_to(SCRIPTS.parent, target_is_directory=True)
     (tmp_path / "caller").mkdir()
     (tmp_path / "inplace").mkdir()
     (tmp_path / "caller" / "issue-42.md").write_text(LEDGER)
     (tmp_path / "inplace" / "issue-42.md").write_text(LEDGER)
+    for name in ("caller", "inplace"):
+        leave_receipt(tmp_path / name / "issue-42.md", repo=tmp_path)
 
     in_place = run_cli(clear_refactor_pending, [str(tmp_path / "inplace" / "issue-42.md"), "collapse to single hyphen"])
     ran = subprocess.run([str(tmp_path / "skill-link" / "scripts" / "clear-refactor-pending.sh"),

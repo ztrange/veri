@@ -131,7 +131,8 @@ def test_ledger_tick_appends_the_refactor_pending_mark_at_the_line_end_only_when
     )
 
 
-def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_without_exiting_2(tmp_path, run_cli):
+def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_without_exiting_2(tmp_path, run_cli, leave_receipt):
+    leave_receipt(tmp_path / "ledger.md")
     cases = {
         "tick_ledger": (b"- [ ] alpha\0 \xff\n- [ ] bravo\n", ["{p}", "alpha"]),
         "clear_refactor_pending": (b"- [x] alpha\0 \xff \xe2\x9f\x82 refactor pending\n- [ ] bravo\n", ["{p}", "alpha"]),
@@ -149,7 +150,7 @@ def test_the_four_ledger_entry_points_drop_a_nul_and_keep_a_non_utf8_byte_withou
         assert b"alpha \xff" in path.read_bytes(), name
 
 
-def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_write_leaves_it_behind(tmp_path, monkeypatch, run_cli):
+def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_write_leaves_it_behind(tmp_path, monkeypatch, run_cli, leave_receipt):
     seed = b"- [ ] alpha\n- [ ] beta\n"
     real_replace, real_unlink = os.replace, os.unlink
     left = []
@@ -178,6 +179,7 @@ def test_the_four_entry_points_exit_2_and_name_the_temporary_file_when_a_failed_
         directory = tmp_path / module / "ledger-dir"
         directory.mkdir(parents=True)
         ledger = directory / "ledger.md"
+        leave_receipt(ledger)
         ledger.write_bytes(seed + (b"- [x] beta \xe2\x9f\x82 refactor pending\n" if module == "clear_refactor_pending" else b""))
         left.clear()
         code, out, err = run_cli(importlib.import_module("veri." + module), [str(ledger), *rest])
