@@ -1421,3 +1421,19 @@ def test_main_omits_a_checked_later_step_from_a_green_prompts_later_steps_and_re
 
     assert (green_code, red_code) == (0, 0)
     assert ("wibblet sorts" in green, "quuxlet nitzes" in green, "wibblet sorts" in red) == (True, False, False)
+
+
+def test_the_green_prompts_mutation_probe_line_names_the_fast_command_and_the_affected_suites_together_not_a_bare_suites_command_3041(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    assert build_verify_prompt.main(
+        ["--fast-cmd", "make unit-3041", "green", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]) == 0
+    prompt = " ".join(capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape").split())
+
+    probe_lines = re.findall(r"mutation-probe\.sh <file> <old> <new> -- [^`]*`", prompt)
+    assert len(probe_lines) == 1
+    assert "make unit-3041" in probe_lines[0]
+    assert "affected-suites.sh" in probe_lines[0]
+    assert "together" in probe_lines[0]
+    assert "<command that runs the suites>" not in prompt
