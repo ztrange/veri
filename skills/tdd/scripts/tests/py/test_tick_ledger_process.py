@@ -453,3 +453,22 @@ def test_ticking_refactor_pending_refuses_to_pair_two_renamed_cases_by_file_posi
     assert (ticked, [record.read_bytes() for record in records],
             records[0].name in err, "test_alpha_2913" in err or "test_beta_2913" in err) \
         == (2, before, True, True)
+
+
+@pytest.mark.process("a real git repository under tmp_path whose only change after the receipt's sha is a .tdd/ file")
+def test_2972_a_change_under_tdd_alone_since_the_receipt_still_ticks_a_diff_checked_step(tmp_path, run_cli, leave_receipt):
+    tick_ledger = importlib.import_module("veri.tick_ledger")
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [ ] step one ⟦diff-checked⟧ ⟦criterion 1⟧\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    leave_receipt(ledger, repo=tmp_path)
+    (tmp_path / ".tdd/notes.md").write_text("later\n")
+    git(tmp_path, "add", "-A")
+    git(tmp_path, "commit", "-q", "-m", "tdd only")
+
+    code = run_cli(tick_ledger, [str(ledger), "diff-checked"], cwd=tmp_path)[0]
+
+    assert (code, ledger.read_text().startswith("- [x] step one")) == (0, True)

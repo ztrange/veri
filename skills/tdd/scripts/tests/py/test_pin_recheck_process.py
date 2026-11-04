@@ -1175,3 +1175,26 @@ def test_2972_an_exit_2_removes_a_receipt_an_earlier_run_left(tmp_path):
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.read_text() if receipt.exists() else None) == (2, None), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose pin stays green, with an earlier run's receipt in place")
+def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="grep -q throws guard.txt")
+    receipt = tmp_path / ".tdd" / "pin-recheck-ok"
+    receipt.write_text("stale\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
+    git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, receipt.exists()) == (1, False), ran.stderr
