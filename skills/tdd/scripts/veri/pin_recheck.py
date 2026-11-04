@@ -146,6 +146,7 @@ def recheck(argv):
 
 
 def main(argv):
+    Path(".tdd/pin-recheck-ok").unlink(missing_ok=True)
     status = recheck(argv)
     if status in (0, 3):
         head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
