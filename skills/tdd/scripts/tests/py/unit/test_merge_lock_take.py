@@ -42,3 +42,23 @@ def test_2361_take_waiting_on_a_held_lock_exits_0_holding_it_wherever_release_fo
         code = merge_lock._take(str(lock), record, ["--pid", me])
         outcomes[point] = (code, (lock / "holder").read_text().split()[0] if (lock / "holder").is_file() else None)
     assert outcomes == {point: (0, me) for point in outcomes}
+
+
+def test_3027_take_with_no_lock_dir_and_a_failing_rename_polls_once_before_its_next_pass(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    events = []
+
+    def rename(src, dst):
+        events.append("pass")
+        if len(events) > 6:
+            raise RuntimeError("spinning")
+        raise OSError("staged dir gone")
+
+    monkeypatch.setattr(merge_lock.os, "rename", rename)
+    monkeypatch.setattr(merge_lock, "_poll_wait", lambda: events.append("poll"))
+    lock = tmp_path / "tdd" / "merge.lock"
+    try:
+        merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(os.getpid())])
+    except RuntimeError:
+        pass
+    assert events[:3] == ["pass", "poll", "pass"]
