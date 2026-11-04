@@ -2,7 +2,8 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-from transform_touches_tests import TEST_FILE, changed_paths, refuse
+from case_reader import is_test_path
+from transform_touches_tests import changed_paths, refuse
 
 USAGE = "usage: production-frozen.sh <base-sha>"
 
@@ -14,7 +15,7 @@ def main(argv):
     paths = changed_paths(base)
     if paths is None:
         return 2
-    changed = sorted({line for line in paths if line and not TEST_FILE.search(line)})
+    changed = sorted({line for line in paths if line and not is_test_path(line)})
     if not changed:
         return 0
     print("production changed while frozen: " + "\n".join(path.decode() for path in changed))

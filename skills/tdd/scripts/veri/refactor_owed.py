@@ -1,10 +1,10 @@
 """refactor-owed.sh's owed-file append, render and list, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import re
 import sys
 from collections import Counter
 
+from case_reader import is_test_path
 from candidates import CLASSES, LINE, candidate
 from report import report_read
 
@@ -28,7 +28,6 @@ APPLIED_MARK = "applied | "
 NOT_DONE_MARK = "not-done | "
 SUBJECT_SEP = "\t"
 NOT_DONE_REASONS = ("budget-spent", "no-predicate", "transform-rejected", "uncovered")
-TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
 
 def all_tests(bounds):
@@ -36,7 +35,7 @@ def all_tests(bounds):
     files = line.split(",")
     if files and files[-1] == "":
         files.pop()
-    return bool(bounds) and all(TEST_FILE.search(f) for f in files)
+    return bool(bounds) and all(is_test_path(f) for f in files)
 
 
 def joined(lines):
