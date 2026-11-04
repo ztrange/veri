@@ -624,9 +624,12 @@ def _called_helpers(rev, name, body):
     return _helpers_in(_text_at(rev, name, subprocess.DEVNULL), body)
 
 
+_HELPER_NAME = r"^(?:(?:function|func|def)\s+|const\s+)(\w+)"
+
+
 def _helpers_in(text, body):
     helpers = []
-    for definition in re.finditer(r"^(?:(?:function|func|def)\s+|const\s+)(\w+)[^\n]*\n(?:(?!(?:function|func|def)\b).*\n?)*", text, re.M):
+    for definition in re.finditer(_HELPER_NAME + r"[^\n]*\n(?:(?!(?:function|func|def)\b).*\n?)*", text, re.M):
         if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
             helpers.append(definition.group())
     return "\n".join(helpers)
@@ -683,7 +686,7 @@ def rerecord_refactored(ledger, green):
         if head_lines != verified_lines:
             union = collections.Counter(verified_lines)
             for other, other_body in _cases_at("HEAD", name).items():
-                if any(re.search(r"\b%s\(" % n, other_body) for n in re.findall(r"^(?:(?:function|func|def)\s+|const\s+)(\w+)", helpers, re.M)):
+                if any(re.search(r"\b%s\(" % n, other_body) for n in re.findall(_HELPER_NAME, helpers, re.M)):
                     union |= collections.Counter(_assertion_lines(_cases_at(green, name).get(other, "")))
             if carried - union:
                 return skip(name, case, record, "helper carries assertion lines no calling case verified")
