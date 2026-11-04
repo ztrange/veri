@@ -619,8 +619,10 @@ def test_2877_a_probe_through_timed_test_run_records_the_test_command_alone_and_
     base = git("rev-parse", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
+    other = tmp_path / "other"
+    git("clone", "-q", ".", "other")
 
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    ran = subprocess.run(["sh", RECHECK, base], cwd=other, capture_output=True, text=True, timeout=20)
 
     recorded = record_path.read_text()
     assert (ran.returncode, ran.stdout, "command 12\nsh runner.sh\n" in recorded, "timed-test-run" in recorded) == (
