@@ -3,5 +3,6 @@
 #
 # Usage: pin-recheck.sh <base-sha>   (run from the worktree)
 # Exit:  0 every touched pin still goes red; 1 a pin stayed green under its mutation; 2 no answer, or a before-state pin with a green commit whose replay range (its before sha to the issue ledger's tick commit, else the record's green) names no file; 3 no record touches the range
+#        Receipt: removed at start; on exit 0 or 3 .tdd/pin-recheck-ok holds HEAD's sha, which tick-ledger.sh and clear-refactor-pending.sh require
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/pin_recheck.py" "$@"

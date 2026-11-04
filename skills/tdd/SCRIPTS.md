@@ -104,10 +104,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   A before-state pin replays the files changed from its `before` sha to the last commit of its
   issue's ledger (the step's tick), falling back to the record's `green` when the ledger has no
   commit; a before record with no green commit and an empty replay range runs its command instead of exiting 2; `mutation-probe.sh --before` writes no `green` into an `.tdd/issue-<n>-mutations.md` record.
+  It removes `.tdd/pin-recheck-ok` at start and writes it, holding `HEAD`'s sha, only on exit 0 or 3: that receipt is what
+  `tick-ledger.sh` (a `⟦diff-checked⟧` step) and `clear-refactor-pending.sh` require.
 - `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). Ticking a `⟦diff-checked⟧` step also re-records, via `tests-frozen.sh rerecord-earlier`, the
-  earlier frozen cases its diff changed; **exit 2** can then follow the write of the ledger (the re-record failed). **Exit 2** also refuses a step that names a go-red control (`mutation-probe.sh --before <sha>`, or `the go-red control is <file> at <sha>`) when `.tdd/issue-<n>-mutations.md` holds no `before <sha>` record for that sha and no `file`/`old`/`new` record for that file, naming the missing record and leaving the ledger unmodified; a step with neither wording, a bare mention of "go-red control" included, ticks as before. **Exit 3** if no unchecked step matched the substring — the file is left untouched,
+  earlier frozen cases its diff changed; **exit 2** can then follow the write of the ledger (the re-record failed). **Exit 2** also refuses a step that names a go-red control (`mutation-probe.sh --before <sha>`, or `the go-red control is <file> at <sha>`) when `.tdd/issue-<n>-mutations.md` holds no `before <sha>` record for that sha and no `file`/`old`/`new` record for that file, naming the missing record and leaving the ledger unmodified; a step with neither wording, a bare mention of "go-red control" included, ticks as before. **Exit 2** also refuses to tick a `⟦diff-checked⟧` step, ledger byte-identical, naming `pin-recheck.sh`, when `.tdd/pin-recheck-ok` is absent, its sha does not resolve, or a path outside `.tdd/` differs between that sha and `HEAD`. **Exit 3** if no unchecked step matched the substring — the file is left untouched,
   so a green commit that ticked nothing says so instead of reading as done.
   `--refactor-pending` appends ` ⟂ refactor pending` to that same line in the same write, so
   the green commit records the step as **green but not yet tidied**; that is the flag the
@@ -159,7 +161,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   ticked step matching the substring, in place, once that step's refactor has been verified.
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
-  the transform found its line.
+  the transform found its line. **Exit 2**, file byte-identical, naming `pin-recheck.sh`, when
+  `.tdd/pin-recheck-ok` is absent, its sha does not resolve, or a path outside `.tdd/` differs between that sha and `HEAD`.
 - `$S/same-reject.sh <previous-reason-file> <current-reason-file>` — compare the `REASON:` lines of two rejections after collapsing runs of whitespace. **Exit 0** when equal; **exit 1** when they differ; **exit 2** with a usage line when called with no arguments, or when either file is missing or holds no `REASON:` line.
 - `$S/add-ledger-step.sh [--planned] [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
