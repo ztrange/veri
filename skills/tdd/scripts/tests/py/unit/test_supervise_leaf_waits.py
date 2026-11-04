@@ -35,3 +35,8 @@ def test_a_leaf_that_never_starts_fails_with_the_leaf_never_started():
     clock = FakeClock()
     with pytest.raises(AssertionError, match="^the leaf never started$"):
         leaf_started(lambda: None, clock.sleep, clock)
+
+
+def test_a_leaf_that_dies_after_more_than_the_old_30_s_bound_reads_as_gone_2940():
+    clock = FakeClock()
+    assert leaf_left(4242, lambda _pid: clock.now < 45.0, clock.sleep, clock) is False

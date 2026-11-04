@@ -5,7 +5,7 @@ Each returns as soon as its condition holds, so a passing run pays nothing for t
 """
 
 LEAF_START_BOUND = 30.0
-LEAF_DEATH_BOUND = 30.0
+LEAF_DEATH_BOUND = 48.0
 
 
 def leaf_started(read_pid, sleep, clock, bound=LEAF_START_BOUND, step=0.02):
