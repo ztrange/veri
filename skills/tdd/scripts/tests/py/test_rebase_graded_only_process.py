@@ -92,8 +92,10 @@ def test_2706_graded_only_with_a_graded_conflict_of_adjacent_units_rebases_exits
     def line(unit, digit):
         return f"guide/{unit}.md {digit * 64} 2026-01-01 {unit}\n"
 
-    def commit(graded, message):
+    def commit(graded, message, changed=()):
         (work / "guide" / "GRADED").write_text(graded)
+        for unit in changed:
+            (work / "guide" / f"{unit}.md").write_text(message)
         git("add", ".")
         git("commit", "-q", "-m", message)
 
@@ -108,7 +110,7 @@ def test_2706_graded_only_with_a_graded_conflict_of_adjacent_units_rebases_exits
     git("push", "-q", "origin", "main")
     onto = git("rev-parse", "HEAD")
     git("checkout", "-q", "-b", "work", "HEAD~1")
-    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch")
+    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch", ("c",))
     before = git("rev-parse", "HEAD")
 
     ran = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env,
@@ -132,8 +134,10 @@ def test_2706_graded_only_with_one_hunk_changed_on_both_sides_keeps_the_branch_l
     def line(unit, digit):
         return f"guide/{unit}.md {digit * 64} 2026-01-01 {unit}\n"
 
-    def commit(graded, message):
+    def commit(graded, message, changed=()):
         (work / "guide" / "GRADED").write_text(graded)
+        for unit in changed:
+            (work / "guide" / f"{unit}.md").write_text(message)
         git("add", ".")
         git("commit", "-q", "-m", message)
 
@@ -147,7 +151,7 @@ def test_2706_graded_only_with_one_hunk_changed_on_both_sides_keeps_the_branch_l
     commit(line("a", "0") + line("x", "1") + line("z", "0"), "upstream")
     git("push", "-q", "origin", "main")
     git("checkout", "-q", "-b", "work", "HEAD~1")
-    commit(line("a", "3") + line("x", "0") + line("c", "2") + line("z", "0"), "branch")
+    commit(line("a", "3") + line("x", "0") + line("c", "2") + line("z", "0"), "branch", ("a", "c"))
 
     ran = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env,
                          capture_output=True, text=True)
@@ -170,8 +174,10 @@ def test_2706_graded_only_with_two_commits_that_each_conflict_only_in_a_graded_f
     def line(unit, digit):
         return f"guide/{unit}.md {digit * 64} 2026-01-01 {unit}\n"
 
-    def commit(graded, message):
+    def commit(graded, message, changed=()):
         (work / "guide" / "GRADED").write_text(graded)
+        for unit in changed:
+            (work / "guide" / f"{unit}.md").write_text(message)
         git("add", ".")
         git("commit", "-q", "-m", message)
 
@@ -185,8 +191,8 @@ def test_2706_graded_only_with_two_commits_that_each_conflict_only_in_a_graded_f
     commit(line("a", "0") + line("b", "1") + line("z", "0"), "upstream")
     git("push", "-q", "origin", "main")
     git("checkout", "-q", "-b", "work", "HEAD~1")
-    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch one")
-    commit(line("a", "0") + line("c", "3") + line("z", "0"), "branch two")
+    commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch one", ("c",))
+    commit(line("a", "0") + line("c", "3") + line("z", "0"), "branch two", ("c",))
 
     ran = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env,
                          capture_output=True, text=True)
