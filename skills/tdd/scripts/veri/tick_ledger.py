@@ -7,7 +7,6 @@ import sys
 import event
 import ledger
 import tests_frozen
-from git import git
 from build_verify_prompt import INTERFACE_PHASES
 
 RETIRED_MARK = " ⟂ retired unpinnable"
@@ -90,19 +89,9 @@ def main(argv):
             complain(f"{record}: no mutation record for the step's go-red control")
             return 2
     if tests_frozen.is_diff_checked(step_line):
-        receipt = os.path.join(os.path.dirname(argv[0]), "pin-recheck-ok")
-        if not os.path.exists(receipt):
-            complain(f"{argv[0]}: no pin-recheck receipt: run pin-recheck.sh first")
-            return 2
-        with open(receipt) as handle:
-            sha = handle.read().strip()
-        diff = git("diff", "--name-only", sha, "HEAD", capture_output=True, text=True,
-                   cwd=os.path.dirname(argv[0]) or None)
-        if diff.returncode != 0:
-            complain(f"{argv[0]}: the pin-recheck receipt's sha does not resolve in git: run pin-recheck.sh again")
-            return 2
-        if any(not path.startswith(".tdd/") for path in diff.stdout.split()):
-            complain(f"{argv[0]}: a path outside .tdd/ changed since the pin-recheck receipt: run pin-recheck.sh again")
+        refusal = ledger.receipt_refusal(argv[0])
+        if refusal:
+            complain(f"{argv[0]}: {refusal}")
             return 2
     left = ledger.rewrite_ledger(argv[0], new)
     if left is None and reason_file:
