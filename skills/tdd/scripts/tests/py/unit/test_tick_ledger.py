@@ -673,3 +673,16 @@ def test_cli_without_refactor_pending_ticks_an_unchecked_suite_repair_line_leavi
 
     assert code == 0
     assert ledger.read_text() == "- [x] add lowercasing\n- [x] fix the full-suite failure: suite_x ⟦suite-repair⟧\n"
+
+
+def test_main_refuses_a_tick_of_a_step_naming_a_go_red_control_with_no_mutation_record_leaving_the_ledger_untouched_2952(
+        tmp_path, capsys, tick_ledger):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n- [ ] A refused start leaves no temp directory behind: the go-red control is "
+            "scripts/smoke-core.mjs at ab20a4945 ⟦added⟧ ⟦criterion 3⟧\n").encode()
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main([str(ledger), "A refused start"])
+    err = capsys.readouterr().err
+
+    assert (code, "mutations" in err, ledger.read_bytes()) == (2, True, seed)
