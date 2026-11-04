@@ -477,3 +477,14 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
 
     out, err = capsysbinary.readouterr()
     assert (code, out, b"pin-recheck.sh" in err, led.read_bytes()) == (2, b"", True, seed)
+
+
+def test_main_returns_3_leaving_the_ledger_byte_identical_when_no_receipt_is_present_and_no_marked_step_matches_2972(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n- [ ] b\n".encode()
+    led = tmp_path / "issue-42.md"
+    led.write_bytes(seed)
+
+    code = clear_refactor_pending.main([str(led), "zeta"])
+
+    assert (code, *capsysbinary.readouterr(), led.read_bytes()) == (3, b"", b"", seed)
