@@ -102,8 +102,8 @@ def test_only(base, alone_cmd, named):
     for name in red:
         complain(f"{name} is still red alone")
     diff = subprocess.run(["git", "diff", base], capture_output=True, text=True).stdout.splitlines()
-    gone = {m.group(2) for m in map(CASE_RE.match, diff) if m and m.group(1) == "-"}
-    gone -= {m.group(2) for m in map(CASE_RE.match, diff) if m and m.group(1) == "+"}
+    cases = [m.groups() for m in map(CASE_RE.match, diff) if m]
+    gone = {name for sign, name in cases if sign == "-"} - {name for sign, name in cases if sign == "+"}
     for name in sorted(gone):
         complain(f"{name} is deleted")
     return 1 if red or gone else 0
