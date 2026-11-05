@@ -83,8 +83,10 @@ def _later_steps(ledger, step_arg):
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": ""}
+    options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": "", "--supersede-base": ""}
+    argv_seen = set()
     while argv[:1] and argv[0] in options:
+        argv_seen.add(argv[0])
         if len(argv) < 2 or not argv[1]:
             return _refuse(f"build-verify-prompt: {argv[0]} needs a value")
         options[argv[0]] = argv[1]
@@ -93,6 +95,9 @@ def main(argv):
         return _refuse()
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
+    base = options["--supersede-base"]
+    if "--supersede-base" in argv_seen and not _HEX_SHA.fullmatch(base):
+        return _refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
                       ledger=options["--ledger"])
     sys.stdout.buffer.write(out)
