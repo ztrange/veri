@@ -1044,3 +1044,22 @@ def test_cases_cuts_a_vitest_case_holding_an_unbalanced_paren_literal_at_its_own
     body = dict(tests_frozen._cases(text))["reports unmarked"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
+
+
+def test_cases_cuts_a_vitest_case_holding_a_double_quoted_unbalanced_paren_literal_at_its_own_closing_call_2970(tests_frozen):
+    text = (
+        'describe("names", () => {\n'
+        '  it("holds a double quote", () => {\n'
+        '    const source = "checks (value";\n'
+        "    expect(source).toBeTruthy();\n"
+        "  });\n"
+        "  const between = 1;\n"
+        '  it("second", () => {\n'
+        "    expect(2).toBe(2);\n"
+        "  });\n"
+        "});\n"
+    )
+
+    body = dict(tests_frozen._cases(text))["holds a double quote"]
+
+    assert body.endswith("  })") and "between" not in body and "second" not in body
