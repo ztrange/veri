@@ -390,6 +390,7 @@ def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(
 
 def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
@@ -409,6 +410,7 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
 
 def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
@@ -434,6 +436,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
 
 def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
@@ -1461,8 +1464,9 @@ def test_fresh_cut_from_a_github_enterprise_origin_runs_the_open_pr_check_and_an
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, a fetched remote-tracking ref of origin's branch")
 def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_exits_2_naming_the_branch_and_the_git_branch_command_that_takes_the_run_over_creating_no_worktree_or_branch_issue_1734(
-        tmp_path, issue_worktree, run_cli):
+        tmp_path, monkeypatch, issue_worktree, run_cli):
     upstream, clone = scratch_clone(tmp_path, "fetched-claimed")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     scratch_git(upstream, "branch", "-q", "tdd/64-taken-over", "main")
     scratch_git(clone, "fetch", "-q", "origin")
     want = scratch_wt_path(clone, 64)
