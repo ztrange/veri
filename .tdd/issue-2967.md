@@ -1,4 +1,4 @@
 # Plan for #2967 — pin-recheck: no test makes replay_before raise, so its tree restore is unpinned
 
 - [x] A case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py (a process case, real git and pin-recheck.sh) runs pin-recheck.sh over a before/keep record whose before-state replay raises mid-replay, after files were already swapped (for example the recorded probe command or a git step failing so an exception escapes replay_before), and asserts pin-recheck.sh exits 2 with the working tree byte-identical to before the run: a file the replay modified, a file it deleted then recreated, and a file it added all hold their exact pre-run bytes (and an added file is absent again only if it was absent before); no production change ⟦criterion 1⟧
-- [ ] That case, run with the finally removed from replay_before, goes red; restored, it goes green (watched by a human, quoted in the PR body) ⟦human-owed⟧ ⟦criterion 2⟧
+- [x] That case, run with the finally removed from replay_before, goes red; restored, it goes green (watched by a human, quoted in the PR body) ⟦human-owed⟧ ⟦criterion 2⟧
