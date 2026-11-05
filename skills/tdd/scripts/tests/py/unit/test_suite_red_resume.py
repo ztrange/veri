@@ -377,3 +377,19 @@ def test_usage_names_flake_beside_check_and_insert_each_with_its_arguments_for_a
     assert "suite-red-resume.sh insert <ledger-file> <branch-red-file>" in err
     assert "suite-red-resume.sh flake <at> <red-file> <alone-red-file>" in err
     assert "suite-red-resume.sh rebased-tip <ledger-file> <red-file> <pre-rebase-sha>" in err
+
+
+def test_insert_with_a_red_naming_a_case_no_graded_unit_pins_alongside_cases_that_do_adds_the_suite_repair_step_and_no_skill_edit_step_3009(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py — FAIL SCRIPTS.md synopsis\ntest_unrelated_parser.py — FAIL parser broke\n")
+    step = "- [ ] fix the full-suite failure: test_prd_015_prose_signed.py — FAIL SCRIPTS.md synopsis; test_unrelated_parser.py — FAIL parser broke ⟦suite-repair⟧ ⟦criterion 1⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")] == [step]
+    assert "⟦skill-edit⟧" not in ledger.read_text()
