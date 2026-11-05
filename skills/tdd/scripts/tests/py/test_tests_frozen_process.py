@@ -5663,3 +5663,36 @@ def test_rerecord_refactored_does_not_take_a_non_arrow_const_the_cases_call_for_
     skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper, shared)
 
     assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+@pytest.mark.parametrize("opener", ["const sharedBase = async () => {", "const sharedBase = x => {"])
+def test_rerecord_refactored_takes_an_async_or_single_parameter_typescript_arrow_const_for_the_shared_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, opener):
+    helper = opener + "\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+@pytest.mark.parametrize("word", ["constants", "functional"])
+def test_rerecord_refactored_does_not_end_the_shared_typescript_helper_at_a_column_0_line_merely_starting_with_a_keyword_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, word):
+    helper = ("const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n%s\n  expect(x).toBe(3);\n};\n" % word)
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_does_not_take_a_typescript_arrow_const_the_cases_do_not_call_for_their_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "const other = () => {\n  expect(x).toBe(9);\n};\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
