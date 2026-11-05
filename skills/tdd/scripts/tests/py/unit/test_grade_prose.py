@@ -1462,3 +1462,47 @@ def test_the_first_pass_prompt_and_the_confirming_re_grade_prompt_both_tell_the_
 
     rule = "Answer from the text given here. Do not call any tool."
     assert [rule in p for p in prompts] == [True, True, True], prompts
+
+
+def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous_run_is_asked_for_those_rows_only_and_exits_0_with_pass_3091(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    import re
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    ids = ["R%d" % n for n in range(1, 402)]
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        + "".join("| %s | Row %s holds. | because |\n" % (i, i) for i in ids))
+    (tmp_path / ".tdd").mkdir()
+    skipped = ids[77:99]
+    calls = []
+
+    def reply(lines):
+        body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
+        return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
+
+    def launch(argv, *a, **k):
+        with open(argv[-1], encoding="utf-8") as f:
+            asked = re.findall(r"^(R\d+): Row ", f.read(), re.M)
+        calls.append(asked)
+        if len(calls) == 1:
+            out = reply(["%s: PASS - ok" % i for i in ids] + ["R1: PASS - ok"])
+        elif len(calls) == 2:
+            out = reply(["%s: PASS - ok" % i for i in ids if i not in skipped])
+        else:
+            out = reply(["%s: PASS - ok" % i for i in asked])
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(out)
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    follow_ups = sorted(i for asked in calls[2:] for i in asked)
+    assert (code, "PASS" in verdicts, follow_ups) == (0, True, sorted(skipped)), (code, err[:200])
