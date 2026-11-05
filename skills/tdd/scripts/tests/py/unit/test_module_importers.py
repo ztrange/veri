@@ -3,6 +3,7 @@
 Each case's subject is source text: it reads the files of the repository as text and never runs them.
 """
 import re
+import shutil
 
 import pytest
 
@@ -57,3 +58,24 @@ def orphans(scripts, root, kept):
 @pytest.mark.tree_audit("every .py and .sh file under skills/tdd/scripts")
 def test_every_module_has_an_importer_besides_its_own_suite_or_is_kept():
     assert orphans(SCRIPTS, ROOT, KEPT) == []
+
+
+@pytest.mark.tree_audit("a copy of skills/tdd/scripts")
+def test_the_scan_names_a_planted_helper_and_a_planted_module_and_passes_without_them(tmp_path):
+    scripts = tmp_path / "skills" / "tdd" / "scripts"
+    shutil.copytree(SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copy(ROOT / "Makefile", tmp_path / "Makefile")
+    assert orphans(scripts, tmp_path, KEPT) == []
+
+    helper = scripts / "tests" / "py" / "orphan_helper_zq.py"
+    helper.write_text("VALUE = 1\n")
+    (scripts / "tests" / "py" / "unit" / "test_orphan_helper_zq.py").write_text("import orphan_helper_zq\n")
+    module = scripts / "veri" / "orphan_module_zq.py"
+    module.write_text("VALUE = 2\n")
+
+    found = orphans(scripts, tmp_path, KEPT)
+    assert [line for line in found if "orphan_helper_zq.py" in line] == [
+        "tests/py/orphan_helper_zq.py is imported by nothing but its own suite"]
+    assert [line for line in found if "orphan_module_zq.py" in line] == [
+        "veri/orphan_module_zq.py is imported by nothing but its own suite"]
+    assert len(found) == 2
