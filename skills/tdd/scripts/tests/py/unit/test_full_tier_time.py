@@ -1,5 +1,7 @@
 """In-process cases for veri/full_tier_time.py, the module full-tier-time.sh is a shim over."""
 import importlib
+import json
+import os
 
 import pytest
 
@@ -86,3 +88,58 @@ def test_main_recording_a_command_again_replaces_its_time_and_leaves_another_com
     other = run_cli(full_tier_time, ["make unit"], cwd=tmp_path)
 
     assert (replaced[0], replaced[1].strip(), other[0], other[1].strip()) == (0, "601", 0, "42")
+
+
+@pytest.mark.parametrize("stored", ['"abc"', "null", '""', '"-5"', '"1.5"'],
+                         ids=["word", "null", "empty", "negative", "fractional"])
+def test_main_asked_for_a_command_whose_stored_time_is_not_a_whole_number_exits_2_with_one_stderr_line_naming_the_file(
+        tmp_path, run_cli, full_tier_time, stored):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "full-tier-time.json").write_text('{"make test": %s}' % stored)
+
+    code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), "full-tier-time.json" in err) == (2, "", 1, True)
+
+
+@pytest.mark.parametrize("stored", ["{not json", "[1, 2]", "5", '{"other": "abc"}', '{"other": null}'],
+                         ids=["bad-json", "list", "number", "word-value", "null-value"])
+def test_main_asked_to_record_over_a_corrupt_record_replaces_it_with_a_record_holding_the_new_time(
+        tmp_path, run_cli, full_tier_time, stored):
+    (tmp_path / ".tdd").mkdir()
+    path = tmp_path / ".tdd" / "full-tier-time.json"
+    path.write_text(stored)
+
+    code, _, _ = run_cli(full_tier_time, ["--record", "42", "make test"], cwd=tmp_path)
+
+    assert (code, json.loads(path.read_text())) == (0, {"make test": "42"})
+
+
+def test_main_asked_to_record_over_an_undecodable_record_replaces_it_with_a_record_holding_the_new_time(
+        tmp_path, run_cli, full_tier_time):
+    (tmp_path / ".tdd").mkdir()
+    path = tmp_path / ".tdd" / "full-tier-time.json"
+    path.write_bytes(b"\xff\xfe\x00")
+
+    code, _, _ = run_cli(full_tier_time, ["--record", "42", "make test"], cwd=tmp_path)
+
+    assert (code, json.loads(path.read_text())) == (0, {"make test": "42"})
+
+
+def test_main_asked_to_record_when_the_write_fails_midway_leaves_the_old_record_intact_and_no_stray_file(
+        tmp_path, run_cli, full_tier_time, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    path = tmp_path / ".tdd" / "full-tier-time.json"
+    path.write_text('{"make test": "7"}')
+
+    def dump_then_die(obj, f, *args, **kwargs):
+        f.write('{"make te')
+        f.flush()
+        raise OSError("disk full")
+
+    monkeypatch.setattr(full_tier_time.json, "dump", dump_then_die)
+
+    code, _, _ = run_cli(full_tier_time, ["--record", "42", "make test"], cwd=tmp_path)
+
+    assert (code, path.read_text(), os.listdir(tmp_path / ".tdd")) == (
+        2, '{"make test": "7"}', ["full-tier-time.json"])
