@@ -1,14 +1,14 @@
 ### 📊 Metrics — issue 2931
 
-Wall time for the issue: 4559 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4799 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 3 of 4 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3084.
+Outcome: the run bailed — ci-timeout, a system failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $2.37 over 51 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $2.48 over 53 turns, in 1 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 90485 tokens, largest 152741 tokens
+Conductor context: first turn 90485 tokens, largest 158068 tokens
 
 #### Conductor per turn
 
@@ -65,6 +65,8 @@ Conductor context: first turn 90485 tokens, largest 152741 tokens
 | 49 | $0.03 | 151814 |
 | 50 | $0.03 | 152104 |
 | 51 | $0.04 | 152741 |
+| 52 | $0.04 | 153340 |
+| 53 | $0.07 | 158068 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE opus; models that answered: claude-sonnet-5-5.
 
 #### By phase
@@ -126,4 +128,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 61 | 118 | 24812 | 1925198 | 250718 | 3.44 (estimate) |
+| total | 61 | 118 | 24812 | 1925198 | 250718 | 3.55 (estimate) |
