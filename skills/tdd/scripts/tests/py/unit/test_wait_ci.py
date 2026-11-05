@@ -37,7 +37,7 @@ PAGE_1 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=1"
 PAGE_2 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=2"
 STATUS = f"gh api repos/o/r/commits/{SHA}/status"
 UNREADABLE = f"wait-ci.sh: could not read the checks of {PR}\n"
-PULL_THRICE = [PULL, "date +%s", "sleep 10", PULL, "sleep 10", PULL, "date +%s"]
+PULL_THRICE = [PULL, "date +%s", "sleep 10", PULL, "sleep 20", PULL, "date +%s"]
 
 
 def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
@@ -175,7 +175,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     failed = (1, "", gh_err)
     by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
     traced = "Traceback (most recent call last):\n"
-    thrice = lambda reads: reads + ["date +%s", "sleep 10"] + reads + ["sleep 10"] + reads + ["date +%s"]
+    thrice = lambda reads: reads + ["date +%s", "sleep 10"] + reads + ["sleep 20"] + reads + ["date +%s"]
     cases = [
         ({PULL: head, PAGE_1: one_run, PAGE_2: '{"x": [1], "check_runs":  [  ], "total_count": 1}',
           page_3: failed, STATUS: green},
@@ -211,7 +211,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
             if line == "date +%s":
                 clock.append(1000 * len(clock))
                 return subprocess.CompletedProcess(args, 0, f"{clock[-1]}\n", None)
-            answer = "" if line == "sleep 10" else bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            answer = "" if line.startswith("sleep ") else bodies.get(line, (1, "", f"unexpected: {line}\n"))
             code, out, err = (0, answer, "") if isinstance(answer, str) else answer
             if kwargs.get("stderr") is None:
                 sys.stderr.write(err)
@@ -1177,33 +1177,96 @@ def test_main_returns_the_answer_of_a_read_that_succeeds_after_more_than_three_h
     assert (code, len(status_reads)) == (0, 6)
 
 
-def test_main_waits_a_growing_backoff_from_its_base_knob_between_retries_after_http_5xx_failures_issue_3089(
-        tmp_path, wait_ci, fake_processes, run_cli):
-    work = tmp_path / "work"
-    (work / ".tdd").mkdir(parents=True)
-    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
-    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
-    status_reads = []
-    sleeps = []
+def backoff_run(wait_ci, fake_processes, run_cli, work, env, fails, clock=None):
+    """Runs wait-ci over a status endpoint that answers HTTP 503 on its <fails> -numbered reads,
+    pending on the others until the last; answers (code, sleeps, status reads)."""
+    (work / ".tdd").mkdir(parents=True, exist_ok=True)
+    mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
+    if not mark.exists():
+        mark.write_text("6000\n")
+    pending = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
+    green = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    reads, sleeps, ticks = [], [], []
 
-    def unavailable_four_times(line):
+    def answer(line):
         if line == f"{COMMITS}/status":
-            status_reads.append(line)
-            if len(status_reads) <= 4:
+            reads.append(line)
+            if len(reads) in fails:
                 return (1, "", "gh: HTTP 503: Service Unavailable\n")
+        return (green if len(reads) >= final_read else pending).get(line)
 
-    def recording(answer):
+    final_read = max(fails)
+
+    def recording(inner):
         def spy(line, **kwargs):
             if line.startswith("sleep "):
                 sleeps.append(float(line.split()[1]))
-            return answer(line, **kwargs)
+            if clock is not None and line == "date +%s":
+                ticks.append(1)
+                return 0, f"{clock[min(len(ticks) - 1, len(clock) - 1)]}\n", ""
+            return inner(line, **kwargs)
         fake_processes(spy)
 
-    served(recording, bodies, unavailable_four_times)
-    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA],
-                         env={"VERI_POLL": "0", "VERI_CI_RETRY_BACKOFF": "3"}, cwd=work)
+    served(recording, {}, answer)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env=env, cwd=work)
+    return code, sleeps, len(reads)
 
-    assert (code, sleeps[0], sleeps == sorted(set(sleeps)), len(sleeps)) == (0, 3.0, True, 4)
+
+def test_main_doubles_its_wait_from_the_poll_interval_per_consecutive_unread_read_by_default_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    code, sleeps, reads = backoff_run(wait_ci, fake_processes, run_cli, tmp_path / "work",
+                                      {"VERI_POLL": "3"}, fails={1, 2, 3, 4})
+
+    assert (code, sleeps, reads) == (0, [3.0, 6.0, 12.0, 24.0], 5)
+
+
+def test_main_caps_one_backoff_sleep_at_60_seconds_issue_3089(tmp_path, wait_ci, fake_processes, run_cli):
+    code, sleeps, reads = backoff_run(wait_ci, fake_processes, run_cli, tmp_path / "work",
+                                      {"VERI_POLL": "40"}, fails={1, 2, 3, 4})
+
+    assert (code, sleeps, reads) == (0, [40.0, 60.0, 60.0, 60.0], 5)
+
+
+def test_main_sleeps_the_poll_interval_flat_between_retries_when_the_backoff_is_0_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    code, sleeps, reads = backoff_run(wait_ci, fake_processes, run_cli, tmp_path / "work",
+                                      {"VERI_POLL": "3", "VERI_CI_RETRY_BACKOFF": "0"}, fails={1, 2, 3, 4})
+
+    assert (code, sleeps, reads) == (0, [3.0, 3.0, 3.0, 3.0], 5)
+
+
+def test_main_restarts_its_backoff_at_the_poll_interval_after_a_read_that_succeeds_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    code, sleeps, reads = backoff_run(wait_ci, fake_processes, run_cli, tmp_path / "work",
+                                      {"VERI_POLL": "3"}, fails={1, 2, 4})
+
+    assert (code, sleeps, reads) == (0, [3.0, 6.0, 3.0, 3.0], 5)
+
+
+def test_main_ends_with_2_at_the_very_second_of_its_deadline_and_retries_one_second_before_it_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("1000\n")
+    code, sleeps, reads = backoff_run(wait_ci, fake_processes, run_cli, work,
+                                      {"VERI_POLL": "0"}, fails=set(range(1, 99)), clock=[999, 1000])
+
+    assert (code, reads) == (2, 4)
+
+
+def test_main_refuses_a_ci_retry_backoff_other_than_0_1_or_empty_with_2_naming_the_value_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    observed = []
+    for value in ("abc", "2", "-1", "1.5"):
+        calls = fake_processes(lambda line, **_: (0, "", ""))
+        code, _, err = run_cli(wait_ci, [PR, "60", "60", FULL_SHA],
+                               env={"VERI_POLL": "0", "VERI_CI_RETRY_BACKOFF": value}, cwd=work)
+        observed.append((code, err, calls))
+
+    assert observed == [(2, "wait-ci.sh: VERI_CI_RETRY_BACKOFF '%s' is not 0 or 1\n" % value, [])
+                        for value in ("abc", "2", "-1", "1.5")]
 
 
 def test_main_retries_http_5xx_reads_from_its_first_call_with_no_deadline_mark_written_beforehand_issue_3089(

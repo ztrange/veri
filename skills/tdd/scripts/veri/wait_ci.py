@@ -23,6 +23,7 @@ PASSING = ("success", "neutral", "skipped")
 SLICE_CAP = 540
 CEILING = 600
 UNREAD_LIMIT = 3
+RETRY_CAP = 60
 
 
 def warn(message):
@@ -176,6 +177,13 @@ def before_deadline(mark):
     return epoch() < limit
 
 
+def retry_sleep(poll, unread):
+    try:
+        return "%g" % min(RETRY_CAP, float(poll) * 2 ** (unread - 1))
+    except ValueError:
+        return poll
+
+
 def record(mark, deadline):
     try:
         with open(mark, "w") as out:
@@ -192,6 +200,10 @@ def main(argv):
     on_pr = tunables.read("VERI_CI_ON_PR", unless_empty="1")
     if on_pr not in ("0", "1"):
         warn("VERI_CI_ON_PR '%s' is not 0 or 1" % on_pr)
+        return 2
+    backoff = tunables.read("VERI_CI_RETRY_BACKOFF", unless_empty="1")
+    if backoff not in ("0", "1"):
+        warn("VERI_CI_RETRY_BACKOFF '%s' is not 0 or 1" % backoff)
         return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
@@ -215,7 +227,6 @@ def main(argv):
             total = span
     want = argv[3] if len(argv) > 3 else ""
     poll = tunables.read("VERI_POLL", unless_empty="10")
-    backoff = tunables.read("VERI_CI_RETRY_BACKOFF")
     deadline = ""
     slice_end = None
     unread = 0
@@ -244,7 +255,7 @@ def main(argv):
                 record(deadline_mark(key), str(epoch() + arith(total, scope)))
             if unread >= UNREAD_LIMIT and not before_deadline(deadline_mark(want or head)):
                 return unreadable(head or pr)
-            subprocess.run(["sleep", str(int(backoff) * 2 ** (unread - 1)) if backoff else poll])
+            subprocess.run(["sleep", retry_sleep(poll, unread) if backoff == "1" else poll])
             continue
         unread = 0
         if state in ("none", "skipped") and mergeable is False:
