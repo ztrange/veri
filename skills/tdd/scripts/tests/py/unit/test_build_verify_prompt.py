@@ -1452,3 +1452,22 @@ def test_3104_supersede_base_that_is_not_lowercase_hex_exits_2_and_prints_no_pro
         assert (code, out) == (2, "")
         assert "--supersede-base" in err
         assert "7-40 lowercase hex characters" in err
+
+
+def test_3104_supersede_base_diff_prompt_judges_git_diff_of_that_sha_and_keeps_own_red_case_out_of_scope(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    sha = "abcdef1234567"
+
+    code, out, _ = run_cli(build_verify_prompt, [
+        "--step", "s", "--fast-cmd", "m", "--supersede-base", sha,
+        "diff", str(spec), "0123abc", "0123abd"])
+    flat = " ".join(out.split())
+
+    assert code == 0
+    assert f"git diff {sha}" in flat
+    assert "own uncommitted implementation" in flat
+    assert "own recorded Red case" in flat
+    assert "production file" in flat
+    assert "assertion" in flat
