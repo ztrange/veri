@@ -2962,3 +2962,22 @@ def test_main_3007_criterion_2_a_contradicts_line_naming_an_existing_other_case_
         wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
+
+
+def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_with_no_contradicts_line_routes_repair_of_the_step_own_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_prints_the_open_step_with_its_checkbox_prefix"
+    cited = "test_main_prints_the_text_and_one_newline"
+    (suite / ("test_" + "next_unchecked" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (own, cited))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: next-unchecked prints no prefix; see %s\n" % cited)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)

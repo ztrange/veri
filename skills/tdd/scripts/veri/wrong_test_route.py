@@ -72,16 +72,26 @@ def _lines_with(report, prefix):
         return [l for l in handle.read().splitlines() if l.startswith(prefix)]
 
 
-def _named_cases(report):
+def _spellings(line):
+    yield from re.findall(r"\btest_\w+", line)
+    yield from re.findall(r"\bTest[A-Z]\w*", line)
+    yield from re.findall(r"`([^`]+)`", line)
+    yield from re.findall(r'"([^"]+)"', line)
+    yield from re.findall(r"“([^”]+)”", line)
+    yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
+
+
+def _contradicted(report):
     for line in _lines_with(report, "CONTRADICTS:"):
-        yield line.partition(":")[2].strip()
+        body = line.partition(":")[2].strip()
+        yield body
+        yield from _spellings(body)
+
+
+def _named_cases(report):
+    yield from _contradicted(report)
     for line in _lines_with(report, "WRONG_TEST:"):
-        yield from re.findall(r"\btest_\w+", line)
-        yield from re.findall(r"\bTest[A-Z]\w*", line)
-        yield from re.findall(r"`([^`]+)`", line)
-        yield from re.findall(r'"([^"]+)"', line)
-        yield from re.findall(r"“([^”]+)”", line)
-        yield from re.findall(r"\S\s+›\s+(\S.*?)\s*$", line)
+        yield from _spellings(line)
 
 
 def _is_none(body):
@@ -112,13 +122,17 @@ def _is_own(case, own_id):
     return not any(len(t) > len(case) and t != tail and _exists(t) for t in longer)
 
 
-def route(report, own_id):
-    for case in _named_cases(report):
+def _existing_other(cases, own_id):
+    for case in cases:
         if not _is_own(case, own_id):
             found = _exists(case)
             if found and not _is_own(found, own_id):
                 return found
     return None
+
+
+def route(report, own_id):
+    return _existing_other(_contradicted(report), own_id)
 
 
 def _recorded_cases(step):
@@ -257,7 +271,7 @@ def main(argv):
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
-    if case is None and not rerouted and _unparseable_claim(argv[0]):
+    if case is None and not rerouted and (_unparseable_claim(argv[0]) or _existing_other(_named_cases(argv[0]), argv[1])):
         write(sys.stdout, "repair " + _case_name(argv[1]))
         return 0
     if case is None:
