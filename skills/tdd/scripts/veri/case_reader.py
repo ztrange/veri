@@ -93,8 +93,8 @@ def _old_cut_cases_all(text, call_form_only=False):
 
 
 def _call_end(text, opening):
-    depth, quote, escaped = 0, None, False
-    for i in range(opening, len(text)):
+    depth, quote, escaped, i = 0, None, False, opening
+    while i < len(text):
         if quote:
             if escaped:
                 escaped = False
@@ -102,6 +102,8 @@ def _call_end(text, opening):
                 escaped = True
             elif text[i] == quote:
                 quote = None
+        elif text.startswith("//", i):
+            i += len(text[i:].partition("\n")[0])
         elif text[i] in "'\"`":
             quote = text[i]
         elif text[i] == "(":
@@ -110,6 +112,7 @@ def _call_end(text, opening):
             depth -= 1
             if depth == 0:
                 return i + 1
+        i += 1
     return None
 
 
