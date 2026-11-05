@@ -1,7 +1,7 @@
 # Plan for #3113 — A suite-repair step whose repair is test-only finishes without a red bar
 
 - [x] `suite-red-resume.sh test-only <base-sha> <alone-cmd> <suite>…` exits 0 when the working tree differs from `<base-sha>` in test files only (the `case_reader.is_test_path` rule) and every named suite passes when run alone with `<alone-cmd>` ⟦criterion 1⟧
-- [ ] `suite-red-resume.sh test-only` exits 1, naming the suite on stderr, when a named suite is still red when run alone with `<alone-cmd>`, though the diff touches test files only ⟦criterion 1⟧
+- [x] `suite-red-resume.sh test-only` exits 1, naming the suite on stderr, when a named suite is still red when run alone with `<alone-cmd>`, though the diff touches test files only ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `suite-red-resume.sh test-only` exits 1, naming the case on stderr, when the diff from `<base-sha>` deletes a test case that `<base-sha>` holds, though the diff touches test files only and the named suites pass ⟦criterion 1⟧
 - [ ] `suite-red-resume.sh test-only` exits 1, naming the case on stderr, when the diff from `<base-sha>` removes an assertion line from a case it keeps, though the diff touches test files only and the named suites pass ⟦criterion 1⟧
 - [ ] `suite-red-resume.sh test-only` exits 1, naming the production file on stderr, when the diff from `<base-sha>` touches a production file (one `case_reader.is_test_path` does not count as a test file), whatever the named suites do ⟦criterion 2⟧

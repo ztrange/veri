@@ -240,3 +240,24 @@ def test_3113_test_only_runs_every_named_suite_alone_through_the_alone_cmd_befor
 
     assert ran[0] == 0, ran
     assert log.read_text().split() == ["tests/test_a.py", "tests/test_b.py"]
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository and a failing alone-cmd")
+def test_3113_test_only_exits_1_naming_the_suite_on_stderr_when_a_named_suite_is_still_red_alone(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("SHA = '" + "a" * 40 + "'\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 1\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "tests/test_a.py" in ran[2], ran
