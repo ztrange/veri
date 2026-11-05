@@ -209,3 +209,14 @@ def live_titles(case, text):
         return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
     return [m.group(2) for m in _js_title_pattern(case).finditer(text)
             if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
+
+
+def defines_helper(name, text, py_file, go_file):
+    escaped = re.escape(name)
+    if py_file:
+        pattern = r"^def %s\(" % escaped
+    elif go_file:
+        pattern = r"^func %s\(" % escaped
+    else:
+        pattern = r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped)
+    return re.search(pattern, text, re.M) is not None
