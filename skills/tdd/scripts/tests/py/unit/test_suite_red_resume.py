@@ -451,3 +451,25 @@ def test_insert_after_a_done_repair_skill_edit_step_with_a_red_naming_a_case_no_
     assert code == 1
     assert "⟦suite-repair⟧" not in ledger.read_text()
     assert ledger.read_text() == before
+
+
+def test_insert_after_a_done_repair_skill_edit_step_with_a_second_red_pinning_that_same_graded_unit_exits_1_and_adds_no_second_skill_edit_step_3009(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text(
+        "# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n"
+        f"- [x] fix the full-suite failure by editing `{unit}`: test_prd_015_prose_signed.py — FAIL {unit} synopsis ⟦skill-edit⟧\n"
+    )
+    before = ledger.read_text()
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_prd_016_short_names.py — FAIL {unit} name\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 1
+    assert ledger.read_text().count("⟦skill-edit⟧") == 1
+    assert ledger.read_text() == before
