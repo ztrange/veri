@@ -6,9 +6,11 @@ import subprocess
 import sys
 import time
 
+import github
 import paths
 import pid_file
 import status
+import tunables
 
 
 def _runs():
@@ -45,12 +47,7 @@ def solvable_issues():
 
 
 def rate_limit_reset():
-    done = subprocess.run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"],
-                          capture_output=True, text=True)
-    try:
-        return int(done.stdout.strip())
-    except ValueError:
-        return None
+    return github.rate_limit_reset(subprocess.run)
 
 
 _pause = 2
@@ -107,7 +104,7 @@ def main(argv):
         given[flag] = int(value[0])
     target = given.get("--target")
     max_wait = given.get("--max-wait")
-    interval = os.environ.get("VERI_WATCH_QUEUE_INTERVAL", "60")
+    interval = tunables.read("VERI_WATCH_QUEUE_INTERVAL", "60")
     if not _whole_number(interval):
         print("VERI_WATCH_QUEUE_INTERVAL must be a whole number >= 1, got %r" % interval, file=sys.stderr)
         return 2

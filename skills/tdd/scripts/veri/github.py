@@ -58,6 +58,14 @@ def _gh(*args, stderr=None):
             time.sleep(wait)
 
 
+def rate_limit_reset(run=subprocess.run):
+    done = run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"], capture_output=True, text=True)
+    try:
+        return int(done.stdout.strip())
+    except ValueError:
+        return None
+
+
 def gh_api(path, stderr=None):
     return _gh("api", path, stderr=stderr)
 
