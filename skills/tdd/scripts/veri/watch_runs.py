@@ -46,10 +46,6 @@ def solvable_issues():
     return [line.split()[0] for line in done.stdout.splitlines() if line.strip()]
 
 
-def rate_limit_reset():
-    return github.rate_limit_reset(subprocess.run)
-
-
 _pause = 2
 
 
@@ -134,7 +130,7 @@ def main(argv):
                 if "rate limit" not in str(failure):
                     sys.stderr.write(str(failure))
                     return 2
-                resume_at = rate_limit_reset()
+                resume_at = github.rate_limit_reset(subprocess.run)
                 if resume_at is None:
                     sys.stderr.write("gh rate limit exceeded and no reset time could be obtained\n")
                     return 2
