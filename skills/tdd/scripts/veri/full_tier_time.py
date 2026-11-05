@@ -26,7 +26,10 @@ def main(argv):
     if not os.path.exists(RECORD):
         return 3
     with open(RECORD) as f:
-        print(json.load(f)[argv[0]])
+        times = json.load(f)
+    if argv[0] not in times:
+        return 3
+    print(times[argv[0]])
     return 0
 
 
