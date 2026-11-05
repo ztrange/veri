@@ -1,0 +1,7 @@
+before 40
+e47010fce79f76e1bd44dfedd2460adef1f9dd77
+keep 59
+skills/tdd/scripts/tests/py/test_transform_touches_tests.py
+command 346
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpwv01yycq/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_transform_touches_tests.py make test TESTS=skills/tdd/scripts/tests/py/test_transform_touches_tests.py::test_2893_a_range_changing_a_go_js_spec_or_python_test_file_exits_1_naming_it_and_a_production_file_exits_0
+
