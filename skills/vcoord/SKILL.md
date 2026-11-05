@@ -72,9 +72,12 @@ file the issue that fixes it, in the repository that holds veri, and only if tha
 project repo; otherwise you report repository, file and change (P11). You do not edit the code.
 
 **Run `vmerge` and `vjudge` through a subagent** on the cheapest model that can do the job.
-Brief it to read the skill at `<base dir>/../<skill>/SKILL.md` and to return at most 10 lines.
+The harness may report this skill's base dir as a symlink. Resolve it first, with
+`cd -P <base dir> && pwd` (or `realpath <base dir>`), and read every sibling skill at
+`<resolved base dir>/../<skill>/SKILL.md`, never at the path the harness reports. Brief the
+subagent to read the skill at that path and to return at most 10 lines.
 
-**Load `vhandoff` yourself**, by reading `<base dir>/../vhandoff/SKILL.md`.
+**Load `vhandoff` yourself**, by reading `<resolved base dir>/../vhandoff/SKILL.md` (base dir resolved as above).
 
 ## Watching
 
