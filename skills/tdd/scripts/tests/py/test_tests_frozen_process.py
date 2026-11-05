@@ -5628,3 +5628,14 @@ def test_rerecord_refactored_skips_only_the_case_whose_helper_call_line_the_refa
     skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper, shared)
 
     assert (skipped, checked) == (["skipped: suite.test.ts two"], 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_does_not_let_a_non_arrow_const_before_the_shared_typescript_arrow_helper_swallow_it_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = ("const y = 2;\n"
+              "const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
