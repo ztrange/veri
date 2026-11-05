@@ -37,7 +37,7 @@ PAGE_1 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=1"
 PAGE_2 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=2"
 STATUS = f"gh api repos/o/r/commits/{SHA}/status"
 UNREADABLE = f"wait-ci.sh: could not read the checks of {PR}\n"
-PULL_THRICE = [PULL, "sleep 10", PULL, "sleep 10", PULL]
+PULL_THRICE = [PULL, "date +%s", "sleep 10", PULL, "sleep 10", PULL, "date +%s"]
 
 
 def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
@@ -50,7 +50,12 @@ def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
         STATUS: json.dumps({"state": "x", "statuses": [{"state": s} for s in states]}),
     }
 
+    clock = []
+
     def answer(line, **_):
+        if line == "date +%s":
+            clock.append(1000 * len(clock))
+            return 0, f"{clock[-1]}\n", ""
         if line == PULL:
             return (1, "", "") if pull is None else (0, json.dumps(pull), "")
         if line in bodies:
@@ -63,7 +68,7 @@ def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
     return code, captured.out, captured.err, calls
 
 
-def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypatch, capsys, wait_ci, fake_processes):
+def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypatch, capsys, wait_ci, fake_processes, tmp_path):
     head = {"mergeable": True, "head": {"sha": SHA}}
     read_all = [PULL, PAGE_1, PAGE_2, STATUS]
     cases = [
@@ -77,13 +82,18 @@ def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypa
         ({"mergeable": True, "head": {"sha": ""}}, ["success"], [], (2, "", UNREADABLE, PULL_THRICE)),
     ]
 
-    observed = [one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states)
-                for pull, conclusions, states, _ in cases]
+    observed = []
+    for n, (pull, conclusions, states, _) in enumerate(cases):
+        (tmp_path / str(n) / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(tmp_path / str(n))
+        observed.append(one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states))
 
     assert observed == [expected for *_, expected in cases]
 
 
-def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_pull(monkeypatch, capsys, wait_ci, fake_processes):
+def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_pull(monkeypatch, capsys, wait_ci, fake_processes, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
     code, out, err, calls = one_poll(fake_processes, capsys, wait_ci, None, ["success"], [])
 
     assert (code, out, err.endswith(UNREADABLE), calls) == (2, "", True, PULL_THRICE)
@@ -155,7 +165,7 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
 
 
 def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_body_fails(
-        monkeypatch, capsys, wait_ci):
+        monkeypatch, capsys, wait_ci, tmp_path):
     page_3 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=3"
     head = json.dumps({"mergeable": True, "head": {"sha": SHA}})
     one_run = json.dumps({"check_runs": [{"status": "completed", "conclusion": "success"}]})
@@ -165,7 +175,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     failed = (1, "", gh_err)
     by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
     traced = "Traceback (most recent call last):\n"
-    thrice = lambda reads: reads + ["sleep 10"] + reads + ["sleep 10"] + reads
+    thrice = lambda reads: reads + ["date +%s", "sleep 10"] + reads + ["sleep 10"] + reads + ["date +%s"]
     cases = [
         ({PULL: head, PAGE_1: one_run, PAGE_2: '{"x": [1], "check_runs":  [  ], "total_count": 1}',
           page_3: failed, STATUS: green},
@@ -189,12 +199,18 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     ]
 
     observed = []
-    for bodies, _ in cases:
+    for n, (bodies, _) in enumerate(cases):
         calls = []
+        (tmp_path / str(n) / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(tmp_path / str(n))
+        clock = []
 
-        def fake_run(args, bodies=bodies, calls=calls, **kwargs):
+        def fake_run(args, bodies=bodies, calls=calls, clock=clock, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
+            if line == "date +%s":
+                clock.append(1000 * len(clock))
+                return subprocess.CompletedProcess(args, 0, f"{clock[-1]}\n", None)
             answer = "" if line == "sleep 10" else bodies.get(line, (1, "", f"unexpected: {line}\n"))
             code, out, err = (0, answer, "") if isinstance(answer, str) else answer
             if kwargs.get("stderr") is None:
@@ -1075,7 +1091,7 @@ def test_main_exits_2_naming_the_checks_only_after_three_consecutive_failed_read
             return (1, "", "")
 
     served(fake_processes, bodies, refused)
-    code, _, err = run_cli(wait_ci, [PR, "1800", "1800", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+    code, _, err = run_cli(wait_ci, [PR, "1800", "0", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, len(status_reads), err) == (
         2, 3, f"wait-ci.sh: could not read the checks of {FULL_SHA}\n")

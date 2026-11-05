@@ -220,6 +220,7 @@ def main(argv):
     slice_end = None
     unread = 0
     while True:
+        draft = False
         try:
             mergeable, head, draft = pr_head(repo, pr)
         except Exception:
@@ -238,6 +239,9 @@ def main(argv):
                 traceback.print_exc()
         if state is None:
             unread += 1
+            key = want or head
+            if key and not draft and not os.path.exists(deadline_mark(key)):
+                record(deadline_mark(key), str(epoch() + arith(total, scope)))
             if unread >= UNREAD_LIMIT and not before_deadline(deadline_mark(want or head)):
                 return unreadable(head or pr)
             subprocess.run(["sleep", str(int(backoff) * 2 ** (unread - 1)) if backoff else poll])
