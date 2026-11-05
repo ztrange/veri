@@ -314,9 +314,14 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
   saying `Closes #<n>` — one per line, in four bands: the `bug`s labelled `priority` first,
   then the other issues labelled `priority`, then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
-  as the rest, and `priority` outranks `low-risk`. The band only reorders that
-  set, it never enlarges it — the four conditions run first, so a `priority` issue that is
-  blocked, claimed or not opted in is still not printed. `VERI_PRIORITY_LABEL` names the
+  as the rest, and `priority` outranks `low-risk`. An issue also **inherits** the band of every
+  open issue that names it under `## Blocked by`, transitively, and takes the better of its own
+  band and the inherited one: blocking a `priority` bug puts it in the first band, blocking
+  another `priority` issue in the second; blocking a plain `bug` lifts nothing. Each printed
+  issue whose band was inherited gets one stderr line
+  `#<blocker> inherits <band> from #<dependent>`. The band only reorders that
+  set, it never enlarges it — the four conditions run first, so a `priority` issue, or a
+  blocker of one, that is blocked, claimed or not opted in is still not printed. `VERI_PRIORITY_LABEL` names the
   `priority` label (default `priority`; set-but-empty is **exit 2**, like `VERI_LABEL`),
   and `bug` is GitHub's own. **Exit 0** when it printed at least one,
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
