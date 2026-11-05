@@ -4,7 +4,7 @@
 # usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
-# concluded anything else · 2 no answer (bad arguments, a read of the checks still failing at the deadline, a 4xx other than
+# concluded anything else · 2 no answer (bad arguments, a <head-sha> that is not a full 40-hex sha (one stderr line), a read of the checks still failing at the deadline, a 4xx other than
 # 403/429 at once), a
 # check still pending past the deadline an earlier call recorded for the same head commit, or
 # checks never started: still queued VERI_CI_QUEUE_WAIT secs after the first call that saw them

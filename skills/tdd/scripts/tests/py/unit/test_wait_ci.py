@@ -1918,3 +1918,12 @@ def test_main_refuses_a_head_sha_that_is_not_40_hex_with_2_and_one_stderr_line_n
         observed.append((code, out, err.count("\n"), given in err, "40" in err, len(lines) + len(clock)))
 
     assert observed == [(2, "", 1, True, True, 0)] * 3
+
+
+def test_main_refuses_an_uppercase_40_hex_head_sha_with_2_issue_3099(tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    served(fake_processes, sha_bodies([[]], [], "pending"), lambda line: OPEN_PULL if line == PULL else None)
+    code, out, err = run_cli(wait_ci, [PR, "5", "5", FULL_SHA.upper()], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, out, err.count("\n")) == (2, "", 1)
