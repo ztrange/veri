@@ -986,3 +986,18 @@ def test_cli_with_an_added_file_leaves_it_byte_identical_for_a_planned_step_or_a
         "write-fails": (2, first + second),
         "added": (0, first + second.replace("- [ ]", "- [x]")),
     }
+
+
+def test_cli_ticking_an_added_step_with_refactor_pending_ticks_the_first_still_open_line_of_equal_step_text_in_the_added_file_2976(
+        tmp_path, run_cli, tick_ledger):
+    done = "- [x] reject a blank slug ⟦added⟧ ⟦criterion 2⟧\n"
+    open_line = "- [ ] reject a blank slug ⟦added⟧ ⟦criterion 2⟧\n"
+    other = "- [ ] keep unicode letters ⟦added⟧ ⟦criterion 3⟧\n"
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + open_line + other)
+    added = tmp_path / "issue-7-added.md"
+    added.write_text(done + open_line + other)
+
+    code = run_cli(tick_ledger, ["--refactor-pending", str(ledger), "reject a blank slug"])[0]
+
+    assert (code, added.read_text()) == (0, done + done + other)
