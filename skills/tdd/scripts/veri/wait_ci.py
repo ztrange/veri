@@ -157,6 +157,15 @@ def unreadable(what):
     return 2
 
 
+def before_deadline(mark):
+    try:
+        with open(mark) as found:
+            limit = int(found.read())
+    except (OSError, ValueError):
+        return False
+    return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout) < limit
+
+
 def record(mark, deadline):
     try:
         with open(mark, "w") as out:
@@ -217,7 +226,7 @@ def main(argv):
                 traceback.print_exc()
         if state is None:
             unread += 1
-            if unread >= UNREAD_LIMIT:
+            if unread >= UNREAD_LIMIT and not before_deadline(".tdd/ci-deadline-" + (want or head)):
                 return unreadable(head or pr)
             subprocess.run(["sleep", poll])
             continue
