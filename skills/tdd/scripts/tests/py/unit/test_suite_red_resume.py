@@ -473,3 +473,21 @@ def test_insert_after_a_done_repair_skill_edit_step_with_a_second_red_pinning_th
     assert code == 1
     assert ledger.read_text().count("⟦skill-edit⟧") == 1
     assert ledger.read_text() == before
+
+
+def test_insert_appends_a_step_that_ledger_steps_has_mark_skill_edit_finds_so_graded_changed_does_not_bail_it_3009(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_prd_015_prose_signed.py — FAIL {unit} synopsis\n")
+
+    run_cli(module, ["insert", str(ledger), str(branch)])
+    records = importlib.import_module("veri.ledger").ledger_steps(ledger.read_text())
+    code = importlib.import_module("veri.ledger_steps").has_mark(records, "skill-edit")
+
+    assert code == 0
