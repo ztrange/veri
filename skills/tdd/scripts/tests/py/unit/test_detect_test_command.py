@@ -516,3 +516,13 @@ def test_cli_tier_one_test_file_without_a_claude_md_line_exits_3_even_with_a_ver
 
 def test_cli_tier_one_test_file_on_the_veri_repository_root_prints_make_test_tests_dollar_1(run_cli, detect):
     assert cli(run_cli, detect, "--tier", "one test file", str(ROOT)) == (0, 'make test TESTS="$1"\n', "")
+
+
+def test_cli_tier_one_test_file_ignores_the_issues_test_command_and_exits_3_without_a_claude_md_line(tmp_path, run_cli, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `make unit`\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: make evil\n")
+
+    assert cli(run_cli, detect, "--tier", "one test file", "--issue", str(body), str(repo)) == (3, "", "")

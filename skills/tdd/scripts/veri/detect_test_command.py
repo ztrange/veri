@@ -71,7 +71,7 @@ def decide(tier, issue, root):
     def has(name):
         return os.path.isfile(at(name))
 
-    if tier != "fast" and issue and os.path.isfile(issue):
+    if tier not in ("fast", "one test file") and issue and os.path.isfile(issue):
         try:
             answer_from_file(issue, b"Test command:")
         except Answer as found:
