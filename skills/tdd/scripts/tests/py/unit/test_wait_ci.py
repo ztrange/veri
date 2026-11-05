@@ -1121,6 +1121,35 @@ def test_main_returns_the_answer_of_a_read_that_succeeds_after_more_than_three_h
     assert (code, len(status_reads)) == (0, 6)
 
 
+def test_main_waits_a_growing_backoff_from_its_base_knob_between_retries_after_http_5xx_failures_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+    sleeps = []
+
+    def unavailable_four_times(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            if len(status_reads) <= 4:
+                return (1, "", "gh: HTTP 503: Service Unavailable\n")
+
+    def recording(answer):
+        def spy(line, **kwargs):
+            if line.startswith("sleep "):
+                sleeps.append(float(line.split()[1]))
+            return answer(line, **kwargs)
+        fake_processes(spy)
+
+    served(recording, bodies, unavailable_four_times)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA],
+                         env={"VERI_POLL": "0", "VERI_CI_RETRY_BACKOFF": "3"}, cwd=work)
+
+    assert (code, sleeps[0], sleeps == sorted(set(sleeps)), len(sleeps)) == (0, 3.0, True, 4)
+
+
 def test_main_resets_the_failed_read_count_on_a_successful_poll_so_alternating_failures_never_end_the_wait_issue_1553(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"

@@ -209,6 +209,7 @@ def main(argv):
             total = span
     want = argv[3] if len(argv) > 3 else ""
     poll = tunables.read("VERI_POLL", unless_empty="10")
+    backoff = tunables.read("VERI_CI_RETRY_BACKOFF")
     deadline = ""
     slice_end = None
     unread = 0
@@ -232,7 +233,7 @@ def main(argv):
             unread += 1
             if unread >= UNREAD_LIMIT and not before_deadline(".tdd/ci-deadline-" + (want or head)):
                 return unreadable(head or pr)
-            subprocess.run(["sleep", poll])
+            subprocess.run(["sleep", str(int(backoff) * 2 ** (unread - 1)) if backoff else poll])
             continue
         unread = 0
         if state in ("none", "skipped") and mergeable is False:
