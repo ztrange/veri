@@ -410,7 +410,7 @@ def rerecord_earlier(ledger, step):
         now = after[name].get(case)
         if now is not None and now != before[name].get(case):
             head_text = _text_at("HEAD", name, subprocess.DEVNULL)
-            return _body_line(name, case, now) + "\nhelpers: %s\t%s\t%s" % (
+            return _body_line(name, case, now) + "\n" + frozen_record._helpers_line(
                 name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
         return record
     try:
@@ -548,7 +548,7 @@ def rerecord_refactored(ledger, green):
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
-        return _body_line(name, case, head) + "\nhelpers: %s\t%s\t%s" % (
+        return _body_line(name, case, head) + "\n" + frozen_record._helpers_line(
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
     return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
 
@@ -680,7 +680,7 @@ def main(argv):
             lines += ["deleted  %s\n" % name for name in deleted]
             if by_step:
                 if files:
-                    lines.append("format: 2\n")
+                    lines.append(frozen_record._format_line())
                 for name in files:
                     try:
                         added = _added_cases(name)
@@ -692,8 +692,7 @@ def main(argv):
                               "with no renamed successor: nothing left to record\n" % (step, name))
                         return 2
                     for case, body in added + kept:
-                        lines += ["case: %s\n" % case,
-                                  "body: %s\t%s\t%s\n" % (name, case, _body_digest(body))]
+                        lines += frozen_record._case_lines(name, case, body)
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except (OSError, LookupError) as error:

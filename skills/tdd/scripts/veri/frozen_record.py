@@ -32,6 +32,18 @@ def _body_line(name, case, body):
     return "body: %s\t%s\t%s" % (name, case, _body_digest(body))
 
 
+def _helpers_line(name, case, digest):
+    return "helpers: %s\t%s\t%s" % (name, case, digest)
+
+
+def _format_line():
+    return "format: 2\n"
+
+
+def _case_lines(name, case, body):
+    return ["case: %s\n" % case, _body_line(name, case, body) + "\n"]
+
+
 def _body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
 
