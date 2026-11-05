@@ -1,7 +1,7 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
-from case_reader import defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
+from case_reader import cut_prefix, defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
@@ -14,10 +14,6 @@ USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <ca
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
-
-
-def _cut_prefix(case):
-    return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
 
 
 def _files():
@@ -37,7 +33,7 @@ def _test_files():
 
 
 def _exists(case):
-    cut = _cut_prefix(case)
+    cut = cut_prefix(case)
     titles = set()
     for root, name, py_file, go_file, js_file in _test_files():
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
