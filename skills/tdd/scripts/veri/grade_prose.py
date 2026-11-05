@@ -266,6 +266,10 @@ def main(argv):
             lines = kept + added
             verdict = "REJECT" if any(": FAIL" in l for l in lines) else "PASS"
             reply = "\n".join(lines + ["VERDICT: " + verdict, "END GRADES"])
+        still = [i for i in missing if i not in graded_ids(reply)]
+        if still:
+            return no_verdict("GRADES block is missing requirement IDs %s; the follow-up for them was tried"
+                              % ", ".join(still))
     block, _, after = reply.partition("END GRADES")
     trailing = "\n".join(l for l in after.splitlines() if l.strip())
     if trailing:
