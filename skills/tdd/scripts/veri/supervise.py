@@ -17,9 +17,9 @@ import event
 import event_log
 import harvest_usage
 import preserve_attempt
-import tests_frozen
 import tunables
 from extract_result import extract
+from frozen_record import _work_tree_hash, pass_marker_current
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
@@ -120,17 +120,6 @@ def captured(*args):
 def answered(*args):
     done = captured(*args)
     return done.stdout.rstrip("\n") if done.returncode == 0 else None
-
-
-def pass_marker_current(text):
-    try:
-        with open(tests_frozen._pass_marker_path(text), encoding="utf-8") as handle:
-            lines = handle.read().splitlines()
-    except OSError:
-        return False
-    head = answered("git", "rev-parse", "HEAD")
-    return (head is not None and f"step: {text}" in lines and f"head: {head}" in lines
-            and f"tree: {tests_frozen._work_tree_hash()}" in lines)
 
 
 def now():
@@ -498,7 +487,7 @@ def main(argv):
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
-    if name.startswith(("verify-red", "verify-green")) and not tests_frozen._work_tree_hash():
+    if name.startswith(("verify-red", "verify-green")) and not _work_tree_hash():
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
     if name.startswith(("verify-red", "verify-green")) \
