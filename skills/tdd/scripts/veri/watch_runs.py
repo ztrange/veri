@@ -47,7 +47,10 @@ def solvable_issues():
 def rate_limit_reset():
     done = subprocess.run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"],
                           capture_output=True, text=True)
-    return int(done.stdout.strip())
+    try:
+        return int(done.stdout.strip())
+    except ValueError:
+        return None
 
 
 _pause = 2
@@ -130,6 +133,9 @@ def main(argv):
                     sys.stderr.write(str(failure))
                     return 2
                 resume_at = rate_limit_reset()
+                if resume_at is None:
+                    sys.stderr.write("gh rate limit exceeded and no reset time could be obtained\n")
+                    return 2
                 solvable = []
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))

@@ -912,3 +912,23 @@ def test_main_with_target_waits_for_the_rate_limit_reset_after_an_http_429_refus
 
     assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
     assert len(reads) == 2 and epoch + reads[1] >= reset
+
+
+def test_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_when_no_reset_time_can_be_obtained_2958(
+        monkeypatch, capsys, watch_runs):
+    def run(argv, **kwargs):
+        if os.path.basename(argv[0]) == "gh":
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="gh: unreachable\n")
+        return subprocess.CompletedProcess(
+            argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+
+    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+
+    code = watch_runs.main(["--target", "2"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (2, "")
+    assert len(err.splitlines()) == 1 and "rate limit" in err.lower() and "reset" in err.lower()
+    assert "HTTP 403" not in err and "user ID" not in err
