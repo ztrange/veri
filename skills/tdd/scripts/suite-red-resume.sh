@@ -5,6 +5,7 @@
 #        suite-red-resume.sh insert <ledger-file> <branch-red-file>
 #        suite-red-resume.sh rebased-tip <ledger-file> <red-file> <pre-rebase-sha>
 #        suite-red-resume.sh flake <at> <red-file> <alone-red-file>
+#        suite-red-resume.sh test-only <base-sha> <alone-cmd> <suite>...
 # Exit:    0 no branch-red suite is red on the default branch — the branch-red file is printed;
 #          1 a branch-red suite is also red on the default branch (named on stderr);
 #          2 bad arguments, or a file could not be read
