@@ -218,3 +218,25 @@ def test_3113_test_only_exits_0_when_the_tree_differs_from_base_in_test_files_on
     ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
 
     assert ran[0] == 0, ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository and a recording alone-cmd")
+def test_3113_test_only_runs_every_named_suite_alone_through_the_alone_cmd_before_exiting_0(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    (repo / "tests" / "test_b.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("SHA = '" + "a" * 40 + "'\n")
+    (repo / "tests" / "test_b.py").write_text("SHA = '" + "b" * 40 + "'\n")
+    log = tmp_path / "ran-alone.log"
+
+    ran = script("suite-red-resume.sh", "test-only", base, f'echo "$1" >> {log}', "tests/test_a.py", "tests/test_b.py",
+                 cwd=repo)
+
+    assert ran[0] == 0, ran
+    assert log.read_text().split() == ["tests/test_a.py", "tests/test_b.py"]
