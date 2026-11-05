@@ -1506,3 +1506,44 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
     verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
     follow_ups = sorted(i for asked in calls[2:] for i in asked)
     assert (code, "PASS" in verdicts, follow_ups) == (0, True, sorted(skipped)), (code, err[:200])
+
+
+def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leaves_rows_ungraded_exits_2_naming_them_and_saying_the_follow_up_was_tried_3091(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    import re
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    ids = ["R%d" % n for n in range(1, 31)]
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        + "".join("| %s | Row %s holds. | because |\n" % (i, i) for i in ids))
+    (tmp_path / ".tdd").mkdir()
+    skipped = ids[10:14]
+    calls = []
+
+    def reply(lines):
+        body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
+        return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
+
+    def launch(argv, *a, **k):
+        with open(argv[-1], encoding="utf-8") as f:
+            asked = re.findall(r"^(R\d+): Row ", f.read(), re.M)
+        calls.append(asked)
+        if len(calls) == 1:
+            out = reply(["%s: PASS - ok" % i for i in ids] + ["R1: PASS - ok"])
+        elif len(calls) == 2:
+            out = reply(["%s: PASS - ok" % i for i in ids if i not in skipped])
+        else:
+            out = reply([])
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(out)
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, all(i in err for i in skipped), "follow-up" in err and "tried" in err) == (2, True, True), (code, err)
