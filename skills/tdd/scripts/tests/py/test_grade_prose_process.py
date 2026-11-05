@@ -409,10 +409,11 @@ def test_a_grades_block_with_a_missing_or_an_extra_requirement_id_makes_grade_pr
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     block = "A1: PASS - ok\\nA2: PASS - ok"
     outcomes = {}
-    for defect, lines, named in (("missing", "A1: PASS - ok", "A2"),
-                                 ("extra", block + "\\nA9: PASS - ok", "A9")):
+    never_a2 = rows_stub({}).replace('    *) body=', '    A2) ;;\n    *) body=')
+    for defect, text, named in (("missing", never_a2, "A2"),
+                                ("extra", STUB.replace(block, block + "\\nA9: PASS - ok"), "A9")):
         claude = tmp_path / ("claude-" + defect)
-        claude.write_text(STUB.replace(block, lines))
+        claude.write_text(text)
         claude.chmod(0o755)
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
