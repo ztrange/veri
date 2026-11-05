@@ -141,7 +141,7 @@ def main(argv):
                     return 2
                 solvable = []
             else:
-                resume_at = time.time() + 60
+                resume_at = time.time() + int(os.environ.get("VERI_WATCH_QUEUE_INTERVAL", "60"))
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0
