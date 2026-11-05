@@ -92,6 +92,10 @@ def _old_cut_cases_all(text, call_form_only=False):
             if m.group(4) or not call_form_only or text.startswith("func", start)]
 
 
+class UnclosedCase(LookupError):
+    pass
+
+
 def _call_end(text, opening):
     depth, quote, escaped, i = 0, None, False, opening
     while i < len(text):
@@ -133,6 +137,8 @@ def _cases(text):
             body = "".join(lines[span[0] - 1:span[1]]).rstrip()
         elif closed:
             body = text[start:closed]
+        elif m.group(4):
+            raise UnclosedCase("the call of case %s never closes" % _unescaped(m.group(4)))
         else:
             if m.group(1):
                 body = "".join(body.partition("\n}")[:2])
