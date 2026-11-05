@@ -345,3 +345,18 @@ def test_2305_a_covered_candidates_transform_is_inside_the_bound_on_the_files_it
     code, out, err = run_cli(transform_touches_tests, [green, bound.strip()], cwd=repo)
     assert (code, err) == (1, "")
     assert "src/c.sh" in out and "src/b.sh" not in out
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository per Go, JS spec and Python test path")
+def test_2893_a_range_changing_a_go_js_spec_or_python_test_file_exits_1_naming_it_and_a_production_file_exits_0(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "paths")
+    commit_all(repo, "base", README="x\n")
+    for path in ("pkg/x_test.go", "src/foo.spec.ts", "src/test_foo.py", "pkg/foo_test.py"):
+        base = git(repo, "rev-parse", "HEAD")
+        commit_all(repo, f"edit {path}", **{path.replace("/", "__"): "changed\n"})
+        assert run_cli(transform_touches_tests, [base], cwd=repo) == (
+            1, f"transform changed a test file: {path}\n", ""), path
+    base = git(repo, "rev-parse", "HEAD")
+    commit_all(repo, "edit production", pkg__x_go="package pkg\n")
+    assert run_cli(transform_touches_tests, [base], cwd=repo) == (0, "", "")
