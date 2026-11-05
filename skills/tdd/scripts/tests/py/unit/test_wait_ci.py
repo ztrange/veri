@@ -1860,3 +1860,44 @@ def test_main_still_exits_2_naming_the_conflict_on_a_conflicting_pr_with_no_chec
     code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, out, err) == (2, "", conflict)
+
+
+def test_main_writes_no_deadline_mark_for_a_draft_pr_whose_reads_fail_and_ends_2_unreadable_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    reads = []
+
+    def answer(line):
+        if line == PULL:
+            return json.dumps({"number": 1, "state": "open", "draft": True, "head": {"sha": FULL_SHA}})
+        if line == f"{COMMITS}/status":
+            reads.append(line)
+            return (1, "", "gh: HTTP 503: Service Unavailable\n")
+
+    served(fake_processes, sha_bodies([[]], [], "pending"), answer)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(reads), sorted(p.name for p in (work / ".tdd").iterdir())) == (2, 3, [])
+
+
+def test_main_keys_its_deadline_mark_by_the_head_sha_it_was_given_not_by_the_pull_requests_head_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    wanted = "0123456789abcdef0123456789abcdef01234567"
+    (work / ".tdd" / f"ci-deadline-{wanted}").write_text("0\n")
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("999999\n")
+    reads = []
+
+    def answer(line):
+        if line == PULL:
+            return OPEN_PULL
+        if line == f"{COMMITS}/status":
+            reads.append(line)
+            return (1, "", "gh: HTTP 503: Service Unavailable\n")
+
+    served(fake_processes, sha_bodies([[]], [], "pending"), answer)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", wanted], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(reads)) == (2, 3)
