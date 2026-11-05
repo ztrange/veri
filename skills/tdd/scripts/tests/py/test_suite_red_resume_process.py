@@ -305,3 +305,26 @@ def test_3113_test_only_exits_0_when_the_diff_moves_a_case_base_holds(tmp_path):
     ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
 
     assert ran[0] == 0, ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository whose diff removes an assertion from a kept case")
+def test_3113_test_only_exits_1_naming_the_case_on_stderr_when_the_diff_removes_an_assertion_from_a_case_it_keeps(
+        tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text(
+        "def test_weakened_case():\n    assert VALUE == 1\n    assert VALUE != 2\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("def test_weakened_case():\n    assert VALUE == 1\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "test_weakened_case" in ran[2], ran

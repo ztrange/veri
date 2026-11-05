@@ -15,6 +15,8 @@ except ImportError:
     import prose_owed
     from ledger import STEP_RE, read_ledger
 
+DEF_RE = re.compile(r"[-+ ]\s*def (test\w*)")
+ASSERT_RE = re.compile(r"-\s*assert\b")
 CASE_RE = re.compile(r"([-+])\s*def (test\w*)")
 
 USAGE = (
@@ -106,7 +108,17 @@ def test_only(base, alone_cmd, named):
     gone = {name for sign, name in cases if sign == "-"} - {name for sign, name in cases if sign == "+"}
     for name in sorted(gone):
         complain(f"{name} is deleted")
-    return 1 if red or gone else 0
+    weakened = set()
+    current = None
+    for line in diff:
+        found = DEF_RE.match(line)
+        if found:
+            current = found.group(1)
+        elif ASSERT_RE.match(line):
+            weakened.add(current)
+    for name in weakened:
+        complain(f"{name} has an assertion removed")
+    return 1 if red or gone or weakened else 0
 
 
 def main(argv):
