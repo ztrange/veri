@@ -27,7 +27,7 @@ def changed_line(text, new):
 
 
 def tick_added(path, step_line):
-    target = ledger.STEP_RE.fullmatch(step_line).group(4)
+    target = ledger.STEP_RE.fullmatch(step_line).group(4).split(" ⟂ ", 1)[0]
     record = added_file(path)
     try:
         with open(record, "rb") as handle:
@@ -36,7 +36,7 @@ def tick_added(path, step_line):
         return
     for i, line in enumerate(lines):
         match = ledger.STEP_RE.fullmatch(line)
-        if match and match.group(4) == target:
+        if match and match.group(2) == " " and match.group(4) == target:
             lines[i] = f"{match.group(1)}[x]{line[match.end(2) + 1:]}"
             with open(record, "wb") as handle:
                 handle.write("\n".join(lines).encode(errors="surrogateescape"))
