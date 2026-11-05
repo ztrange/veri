@@ -12,7 +12,8 @@ import renamed_case
 import replaces_case
 import tunables
 from entry import write
-from frozen_record import _pass_marker_path, _remove_pass_marker, _step_key, _work_tree_hash, _write_pass_marker
+from frozen_record import (_pass_marker_path, _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
+                           _write_pass_marker)
 from ledger import KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
@@ -31,10 +32,6 @@ def _digest(path):
 
 def _body_digest(body):
     return hashlib.sha256(body.encode()).hexdigest()
-
-
-def _record_path(step):
-    return ".tdd/tests-frozen-%s.record" % _step_key(step)
 
 
 def _toplevel():
