@@ -114,7 +114,7 @@ def test_2847_baseline_full_tier_set_to_reuse_resolves_to_reuse_with_no_error(mo
     assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
 
 
-@pytest.mark.parametrize("raw", ["x", "Run", "reuse ", " run", "REUSE"])
+@pytest.mark.parametrize("raw", ["x", "Run", "reuse ", " run", "REUSE", "skip", "none", "auto", "always", "1"])
 def test_2847_baseline_full_tier_set_to_any_value_but_run_or_reuse_is_refused_naming_the_value(
         monkeypatch, raw):
     tunables = importlib.import_module("veri.tunables")
