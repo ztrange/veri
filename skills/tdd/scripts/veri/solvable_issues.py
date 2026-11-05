@@ -111,6 +111,15 @@ def select(label, priority="priority", repo=None):
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
+    bands = {issue["number"]: band(issue, priority) for issue in issues}
+    changed = True
+    while changed:
+        changed = False
+        for issue in issues:
+            for n in blocked_by.blockers(issue.get("body") or "", repo or ""):
+                if n in bands and bands[issue["number"]] < bands[n]:
+                    bands[n] = bands[issue["number"]]
+                    changed = True
     main_tree = main_working_tree()
     survivors = [issue for issue in issues
                  if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
@@ -119,7 +128,7 @@ def select(label, priority="priority", repo=None):
     if not survivors:
         return 3, []
     return 0, [issue["number"] for issue in sorted(
-        survivors, key=lambda issue: (band(issue, priority), issue["number"]))]
+        survivors, key=lambda issue: (bands[issue["number"]], issue["number"]))]
 
 
 def running_numbers():
