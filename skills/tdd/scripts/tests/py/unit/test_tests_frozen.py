@@ -1082,3 +1082,22 @@ def test_cases_cuts_a_vitest_case_holding_a_template_quoted_unbalanced_paren_lit
     body = dict(tests_frozen._cases(text))["holds a template quote"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
+
+
+def test_cases_cuts_a_vitest_case_holding_an_escaped_quote_then_an_unbalanced_paren_literal_at_its_own_closing_call_2970(tests_frozen):
+    text = (
+        'describe("names", () => {\n'
+        '  it("holds an escaped quote", () => {\n'
+        '    const source = "say \\"hi (";\n'
+        "    expect(source).toBeTruthy();\n"
+        "  });\n"
+        "  const between = 1;\n"
+        '  it("second", () => {\n'
+        "    expect(2).toBe(2);\n"
+        "  });\n"
+        "});\n"
+    )
+
+    body = dict(tests_frozen._cases(text))["holds an escaped quote"]
+
+    assert body.endswith("  })") and "between" not in body and "second" not in body
