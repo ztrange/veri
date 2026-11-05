@@ -23,8 +23,6 @@ ALLOWED = {
         "the line order of two SKILL.md lines",
     "test_skill_leaf_launch.py": "whole-file launch-line audits, the verdict-plan line included",
     "test_skill_leaf_env.py": "runs every SKILL.md launch line through supervise.sh against a stub",
-    "test_affected_suites.py::test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_reading_that_section_through_a_slicing_helper_and_every_suite_reading_skill_md_any_other_way_and_not_a_suite_slicing_only_other_sections":
-        "uses step 2c's heading as an edit target",
     "test_skill_inline_ledger_reads.py::test_skill_md_spells_none_of_the_inline_current_step_last_done_and_criterion_k_pipelines_reading_each_through_ledger_steps_sh_current_last_done_and_criterion_k":
         "a whole-file negative pattern audit",
     "test_skill_guard_subject_paragraph.py::test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftest_and_says_the_path_is_matched_exactly_1775":
