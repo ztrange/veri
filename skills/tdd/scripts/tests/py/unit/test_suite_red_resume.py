@@ -393,3 +393,22 @@ def test_insert_with_a_red_naming_a_case_no_graded_unit_pins_alongside_cases_tha
     assert code == 0
     assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")] == [step]
     assert "⟦skill-edit⟧" not in ledger.read_text()
+
+
+def test_insert_with_a_red_whose_every_case_pins_one_graded_unit_adds_one_skill_edit_step_naming_it_and_no_suite_repair_step_3009(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_prd_015_prose_signed.py — FAIL {unit} synopsis\ntest_prd_016_short_names.py — FAIL {unit} name\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    unchecked = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    assert code == 0
+    assert len(unchecked) == 1 and "⟦skill-edit⟧" in unchecked[0] and f"`{unit}`" in unchecked[0]
+    assert "⟦suite-repair⟧" not in ledger.read_text()

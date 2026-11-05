@@ -117,7 +117,10 @@ def unit_of(text):
 
 
 def restates_list(path, unit):
-    lines = requirements.read_lines(spec_path(path))
+    try:
+        lines = requirements.read_lines(spec_path(path))
+    except FileNotFoundError:
+        return False
     rows = [requirements.table_cells(line)[:2] for heading, line in requirements.requirements_lines(lines)
             if heading == unit and line.startswith("|")][2:]
     current = requirements.claims(skill_edit_guard.list_path(unit), unit)

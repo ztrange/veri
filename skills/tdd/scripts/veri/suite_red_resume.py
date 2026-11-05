@@ -65,6 +65,11 @@ def insert(ledger, branch_file):
             return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
+    if set(suites(text)) <= GRADE_SUITES:
+        owed, _ = prose_owed.owed_listed()
+        pinned = [unit for _, unit in owed if all(unit in red for red in reds)]
+        if pinned:
+            step = f"fix the full-suite failure by editing `{pinned[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
     return add_ledger_step.main([ledger, where, anchor, step])
 
 
