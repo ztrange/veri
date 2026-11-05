@@ -140,6 +140,8 @@ def main(argv):
                     sys.stderr.write("gh rate limit exceeded; resets at %d, beyond --max-wait\n" % resume_at)
                     return 2
                 solvable = []
+            else:
+                resume_at = time.time() + 60
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0
