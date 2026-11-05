@@ -16,8 +16,8 @@ def test_issue_2868_supersede_diff_route_launches_the_diff_verifier_on_the_pre_r
     route = _route_paragraph()
     launches = re.findall(r"run-verdict\.sh [^`]*?\b(diff|pin|red|green|refactor)\b[^`]*`", route)
     command = re.search(r"run-verdict\.sh[^`]*`", route).group(0)
-    assert re.search(r"\bdiff\b\s+\.tdd/issue-<n>-spec\.md\s+<branch-base-sha>\s+<pre-reroute-sha>", command)
-    assert "git rev-parse HEAD" in route
+    assert re.search(r"--supersede-base\s+<pre-reroute-sha>\s+diff\s+\.tdd/issue-<n>-spec\.md\s+<branch-base-sha>\s+<step-base-sha>", command)
+    assert "git stash create" in route
     assert launches == ["diff"]
     assert re.search(r"never verify-red and never verify-pin", route)
     assert not re.search(r"run-verdict\.sh[^`]*\bpin\b", route)
