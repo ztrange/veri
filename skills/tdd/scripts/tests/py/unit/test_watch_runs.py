@@ -964,3 +964,34 @@ def test_main_with_target_and_max_wait_exits_2_at_once_naming_the_rate_limit_and
     assert (code, out, now[0]) == (2, "", 2)
     assert len(err.splitlines()) == 1 and "rate limit" in err.lower() and str(reset) in err
     assert "HTTP 403" not in err and "user ID" not in err
+
+
+def test_main_with_target_below_it_and_nothing_solvable_reads_the_queue_at_most_once_a_minute_while_checking_processes_every_2_seconds_2958(
+        monkeypatch, capsys, watch_runs):
+    now = [0]
+    reads = []
+    checks = []
+
+    def wait():
+        now[0] += 2
+
+    def live():
+        checks.append(now[0])
+        return ["5"]
+
+    def solvable():
+        reads.append(now[0])
+        return []
+
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: 1_000_000 + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", live)
+    monkeypatch.setattr(watch_runs, "solvable_issues", solvable)
+
+    code = watch_runs.main(["--target", "2", "--max-wait", "600"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
+    assert [b - a for a, b in zip(checks[1:], checks[2:])] == [2] * (len(checks) - 2) and len(checks) > 290
+    assert all(b - a >= 60 for a, b in zip(reads, reads[1:])) and len(reads) <= 11
