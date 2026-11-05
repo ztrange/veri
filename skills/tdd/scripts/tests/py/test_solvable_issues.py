@@ -578,6 +578,16 @@ def test_cli_keeps_an_opted_in_blocker_of_only_a_plain_bug_in_its_own_band_after
     assert (code, out) == (0, "40\n30\n")
 
 
+def test_cli_terminates_on_a_blocked_by_cycle_among_open_issues_printing_each_solvable_number_once(tmp_path, monkeypatch, run_cli, solvable_issues):
+    loop_a = dict(labelled(60, "bug", "priority", "ready-for-agent"), body="## Blocked by\n\n- #61\n")
+    loop_b = dict(labelled(61, "ready-for-agent"), body="## Blocked by\n\n- #60\n- #70\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(50, "ready-for-agent", "bug"), opted_in(70), loop_a, loop_b])
+
+    code, out, _ = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert (code, out) == (0, "70\n50\n")
+
+
 def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
         opted_in(210), labelled(215, "ready-for-agent", "bug", "low-risk"), opted_in(220), labelled(225, "ready-for-agent", "bug"),
