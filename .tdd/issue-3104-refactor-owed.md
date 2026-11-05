@@ -1,0 +1,2 @@
+### `run-verdict.sh --step "<STEP>" --fast-cmd '<cmd>' --supersede-base <sha> diff <spec> <branch-base-sha> <step-base-sha>` takes `diff` as the phase, clearing `.tdd/verify-diff.reason` and filing the verifier's stderr in `.tdd/verify-diff.stderr`, rather than reading the option's word or its sha as the phase ⟦criterion 1⟧
+- test-only | test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104 repeats the spare-fd / `dup2` / `execv` / `signal` stubbing of the case near line 186 of test_run_verdict.py; extract a shared fixture
