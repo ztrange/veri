@@ -736,3 +736,9 @@ def test_2623_the_venv_refusal_suite_that_starts_make_for_real_is_named_by_the_g
     (tmp_path / suite.name).write_text(suite.read_text())
 
     assert [line.split(":")[0] for line in guard.offences(tmp_path, {})] == [str(tmp_path / suite.name)]
+
+
+def test_3073_the_sibling_skill_refs_suite_whose_cases_start_no_process_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_sibling_skill_refs.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
