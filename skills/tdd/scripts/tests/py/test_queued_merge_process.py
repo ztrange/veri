@@ -17,7 +17,7 @@ case "$*" in
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "failure"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
-  *"/pulls/"*) echo '{"merged": true, "merge_commit_sha": "fedcba9", "mergeable": true, "draft": false, "head": {"sha": "abc1234"}}' ;;
+  *"/pulls/"*) echo '{"merged": true, "merge_commit_sha": "fedcba9", "mergeable": true, "draft": false, "head": {"sha": "abc1234abc1234abc1234abc1234abc1234abcde"}}' ;;
   *) echo '[]' ;;
 esac
 exit 0
@@ -26,7 +26,7 @@ exit 0
 FAKE_GIT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
-  *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -76,7 +76,7 @@ FAKE_GH_GREEN = FAKE_GH.replace('"conclusion": "failure"', '"conclusion": "succe
 FAKE_GIT_CONFLICT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
-  *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -123,7 +123,7 @@ case " $* " in
 esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
-  *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -172,7 +172,7 @@ FAKE_GIT_LOGGING = """#!/bin/sh
 echo "git $*" >> "$CALL_LOG"
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
-  *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -211,7 +211,7 @@ def test_queued_merge_with_green_ci_rebase_merges_the_pr_for_the_pushed_head_del
         second = "blocked"
 
     calls = call_log.read_text().splitlines()
-    rebase_merges = [c for c in calls if c.startswith("gh pr merge") and "--rebase" in c and "abc1234" in c]
+    rebase_merges = [c for c in calls if c.startswith("gh pr merge") and "--rebase" in c and "abc1234abc1234abc1234abc1234abc1234abcde" in c]
     branch_deleted = any("--delete" in c and "feature" in c for c in calls)
     worktree_removes = [i for i, c in enumerate(calls) if c.startswith("git") and "worktree remove" in c]
     local_deletes = [i for i, c in enumerate(calls) if c.startswith("git") and c.endswith(" branch -D feature")]
@@ -263,7 +263,7 @@ case "$*" in
 esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
-  *"rev-parse --verify HEAD"*) echo abc1234; exit 0 ;;
+  *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
