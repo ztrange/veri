@@ -328,3 +328,26 @@ def test_3113_test_only_exits_1_naming_the_case_on_stderr_when_the_diff_removes_
 
     assert ran[0] == 1, ran
     assert "test_weakened_case" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository whose diff touches a production file")
+def test_3113_test_only_exits_1_naming_the_production_file_on_stderr_when_the_diff_touches_one_whatever_the_suites_do(
+        tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "prod.py").write_text("VALUE = 2\n")
+    (repo / "tests" / "test_a.py").write_text("SHA = '" + "a" * 40 + "'\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "prod.py" in ran[2], ran

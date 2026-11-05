@@ -8,11 +8,13 @@ import sys
 
 try:
     from . import add_ledger_step, event, prose_owed
+    from .case_reader import is_test_path
     from .ledger import STEP_RE, read_ledger
 except ImportError:
     import add_ledger_step
     import event
     import prose_owed
+    from case_reader import is_test_path
     from ledger import STEP_RE, read_ledger
 
 DEF_RE = re.compile(r"[-+ ]\s*def (test\w*)")
@@ -104,6 +106,10 @@ def test_only(base, alone_cmd, named):
     for name in red:
         complain(f"{name} is still red alone")
     diff = subprocess.run(["git", "diff", base], capture_output=True, text=True).stdout.splitlines()
+    touched = subprocess.run(["git", "diff", "--name-only", base], capture_output=True, text=True).stdout.splitlines()
+    production = [path for path in touched if not is_test_path(path)]
+    for path in production:
+        complain(f"{path} is a production file")
     cases = [m.groups() for m in map(CASE_RE.match, diff) if m]
     gone = {name for sign, name in cases if sign == "-"} - {name for sign, name in cases if sign == "+"}
     for name in sorted(gone):
@@ -118,7 +124,7 @@ def test_only(base, alone_cmd, named):
             weakened.add(current)
     for name in weakened:
         complain(f"{name} has an assertion removed")
-    return 1 if red or gone or weakened else 0
+    return 1 if red or production or gone or weakened else 0
 
 
 def main(argv):
