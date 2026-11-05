@@ -1,0 +1,2 @@
+### watch-runs.sh --target --max-wait <s>, when the queue read is refused with a gh rate-limit error whose reset lies beyond the --max-wait deadline, exits 2 at once with one stderr line naming the rate limit and the reset time, and prints nothing on stdout (an in-process unit case) ⟦criterion 2⟧
+- test-only | the new `test_watch_runs.py` cases for #2958 repeat the same `time` stub class, the same `wait` closure that advances `now`, and the same `subprocess` stub setup. Extract them into a shared helper or fixture.
