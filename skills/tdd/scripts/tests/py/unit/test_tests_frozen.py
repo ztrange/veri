@@ -1265,6 +1265,62 @@ def test_check_earlier_over_a_js_case_whose_closing_paren_is_never_found_exits_2
 
 
 
+_DESCRIBE_UNCLOSED = (
+    'import { describe, it } from "vitest";\n'
+    'describe("d", () => {\n'
+    '  it("bad", () => {\n    expect(foo(1).toBe(1);\n  });\n'
+    '  it("next", () => {\n    expect(foo(1)).toBe(1);\n  });\n'
+    '});\n')
+_DESCRIBE_CLOSED = _DESCRIBE_UNCLOSED.replace("expect(foo(1).toBe(1);", "expect(foo(1)).toBe(1);")
+
+
+def test_cases_refuses_a_case_whose_call_is_not_closed_before_its_enclosing_blocks_brace_2970(tests_frozen):
+    with pytest.raises(tests_frozen.UnclosedCase):
+        tests_frozen._cases(_DESCRIBE_UNCLOSED)
+
+
+def test_cases_closes_a_call_on_the_paren_right_after_a_block_comment_2970(tests_frozen):
+    text = "describe('d', () => {\n  it('a', () => expect(1).toBe(1) /* c */)\n});\n"
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("/* c */)")
+
+
+def test_record_over_a_js_case_not_closed_before_its_describes_brace_exits_2_naming_the_file_and_the_case_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(_DESCRIBE_UNCLOSED)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+
+    code, out, err = run_cli(tests_frozen, ["record", "--step", "the case passes: adds a case in a.test.ts", "a.test.ts"],
+                             cwd=tmp_path)
+
+    assert (code, "a.test.ts" in err, "bad" in err, "Traceback" in err) == (2, True, True, False)
+
+
+def test_check_over_a_js_case_not_closed_before_its_describes_brace_exits_2_naming_the_file_and_the_case_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = "the case passes: repairs the fixture 'db' in a.test.ts, reproduced by a case in a.test.ts ⟦fixture-repair⟧"
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.ts"
+    suite.write_text(_DESCRIBE_CLOSED)
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)[0]
+    suite.write_text(_DESCRIBE_UNCLOSED)
+
+    code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (recorded, code, "a.test.ts" in err, "bad" in err, "Traceback" in err) == (0, 2, True, True, False)
+
+
 def test_cases_gives_a_balanced_vitest_case_with_no_paren_in_a_literal_or_comment_the_same_body_as_before_2970(tests_frozen):
     text = (
         'describe("names", () => {\n'
