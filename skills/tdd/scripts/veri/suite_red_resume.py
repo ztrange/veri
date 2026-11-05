@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
 import os
+import re
 import subprocess
 import sys
 
@@ -13,6 +14,8 @@ except ImportError:
     import event
     import prose_owed
     from ledger import STEP_RE, read_ledger
+
+CASE_RE = re.compile(r"([-+])\s*def (test\w*)")
 
 USAGE = (
     "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>\n"
@@ -98,7 +101,12 @@ def test_only(base, alone_cmd, named):
     red = [name for name in named if subprocess.run(["sh", "-c", alone_cmd, "sh", name]).returncode]
     for name in red:
         complain(f"{name} is still red alone")
-    return 1 if red else 0
+    diff = subprocess.run(["git", "diff", base], capture_output=True, text=True).stdout.splitlines()
+    gone = {m.group(2) for m in map(CASE_RE.match, diff) if m and m.group(1) == "-"}
+    gone -= {m.group(2) for m in map(CASE_RE.match, diff) if m and m.group(1) == "+"}
+    for name in sorted(gone):
+        complain(f"{name} is deleted")
+    return 1 if red or gone else 0
 
 
 def main(argv):

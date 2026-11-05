@@ -261,3 +261,47 @@ def test_3113_test_only_exits_1_naming_the_suite_on_stderr_when_a_named_suite_is
 
     assert ran[0] == 1, ran
     assert "tests/test_a.py" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository whose diff deletes a test case")
+def test_3113_test_only_exits_1_naming_the_case_on_stderr_when_the_diff_deletes_a_case_base_holds(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text(
+        "def test_keeps():\n    assert True\n\n\ndef test_doomed_case():\n    assert True\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("def test_keeps():\n    assert True\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "test_doomed_case" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository whose diff moves a test case")
+def test_3113_test_only_exits_0_when_the_diff_moves_a_case_base_holds(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text(
+        "def test_first():\n    assert True\n\n\ndef test_moved_case():\n    assert True\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text(
+        "def test_moved_case():\n    assert True\n\n\ndef test_first():\n    assert True\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 0, ran
