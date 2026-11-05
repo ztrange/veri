@@ -1198,3 +1198,41 @@ def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tm
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, receipt.exists()) == (1, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose before-state replay raises after files were swapped")
+def test_2967_a_before_replay_that_raises_mid_run_exits_2_and_leaves_every_file_byte_identical(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+
+    def tree():
+        return {n: (tmp_path / n).read_bytes() for n in ("a_mod.txt", "b_recreated.txt", "c_added.txt", "z_gone.txt", "pin.txt")
+                if (tmp_path / n).exists()}
+    git("init", "-q")
+    for n, text in (("a_mod.txt", "a v0\n"), ("b_recreated.txt", "b v0\n"), ("pin.txt", "pin v0\n")):
+        (tmp_path / n).write_text(text)
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "a_mod.txt").write_text("a v1\n")
+    (tmp_path / "b_recreated.txt").unlink()
+    (tmp_path / "c_added.txt").write_text("c v1\n")
+    (tmp_path / "z_gone.txt").write_text("z v1\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix and pin")
+    green = git("rev-parse", "HEAD")
+    (tmp_path / "a_mod.txt").write_text("a v2\n")
+    (tmp_path / "b_recreated.txt").write_text("b v2\n")
+    (tmp_path / "c_added.txt").write_text("c v2\n")
+    (tmp_path / "z_gone.txt").unlink()
+    git("add", "-A")
+    git("commit", "-q", "-m", "later")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-2967-mutations.md", before=base, keep="pin.txt", green=green, command="true")
+    before = tree()
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, tree()) == (2, before), ran.stderr
