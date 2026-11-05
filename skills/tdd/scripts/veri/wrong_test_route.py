@@ -1,14 +1,13 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
-from case_reader import is_go_test_file, is_js_test_file, is_test_file
+from case_reader import defined_name, live_titles, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
 import sys
 import tests_frozen
 import tunables
-from js_tests import CALL
 from entry import write
 
 USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
@@ -17,25 +16,8 @@ USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <ca
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
 
 
-def _live_call(pattern, text):
-    def code(prefix):
-        return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
-    return [m.group(2) for m in pattern.finditer(text)
-            if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
-
-
 def _cut_prefix(case):
     return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
-
-
-def _js_title_pattern(case):
-    prefix = _cut_prefix(case)
-    gap = "(?:(?!\\1).)*"
-    if prefix is not None:
-        title = "(%s%s)" % (re.escape(prefix), gap)
-    else:
-        title = "(%s)" % gap.join(re.escape(part) for part in re.split(r"…|\.\.\.", case))
-    return re.compile(CALL + r"(['\"])" + title + r"\1")
 
 
 def _files():
@@ -56,18 +38,14 @@ def _test_files():
 
 def _exists(case):
     cut = _cut_prefix(case)
-    py = re.compile(r"def (%s\w*)\(" % re.escape(cut)) if cut else re.compile(r"def (%s)\(" % re.escape(case))
-    go = re.compile(r"func (%s)\(" % re.escape(case))
-    js = _js_title_pattern(case)
     titles = set()
     for root, name, py_file, go_file, js_file in _test_files():
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
             text = handle.read()
-        match = (go.search(text) if go_file and case.startswith("Test") else
-                 py.search(text) if py_file and case.startswith("test_") else None)
-        if match:
-            return match.group(1)
-        found = _live_call(js, re.sub(r"/\*.*?\*/", "", text, flags=re.S)) if js_file else []
+        defined = defined_name(case, text, py_file, go_file)
+        if defined:
+            return defined
+        found = live_titles(case, text) if js_file else []
         if found and cut is None:
             return found[0]
         titles.update(found)
