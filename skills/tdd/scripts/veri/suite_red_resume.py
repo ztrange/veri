@@ -95,6 +95,8 @@ def flake(at, red_file, alone_file):
 
 
 def test_only(base, alone_cmd, named):
+    for name in named:
+        subprocess.run(["sh", "-c", alone_cmd, "sh", name])
     return 0
 
 
