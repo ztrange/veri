@@ -40,3 +40,11 @@ def test_renamed_and_changed_to_returns_the_new_name_of_a_go_func_test_case_rena
 
     assert renamed_case.renamed_to("TestAdd", old, new, set()) is None
     assert renamed_case.renamed_and_changed_to("TestAdd", old, new, set()) == "TestSum"
+
+
+def test_renamed_and_changed_to_returns_the_new_title_of_a_js_it_case_renamed_with_its_body_changed():
+    old = 'it("adds two numbers", () => {\n  expect(add(1, 2)).toBe(3);\n});\n'
+    new = 'it("sums two numbers", () => {\n  expect(add(2, 2)).toBe(4);\n});\n'
+
+    assert renamed_case.renamed_to("adds two numbers", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("adds two numbers", old, new, set()) == "sums two numbers"
