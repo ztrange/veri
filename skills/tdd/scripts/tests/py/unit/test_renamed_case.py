@@ -48,3 +48,27 @@ def test_renamed_and_changed_to_returns_the_new_title_of_a_js_it_case_renamed_wi
 
     assert renamed_case.renamed_to("adds two numbers", old, new, set()) is None
     assert renamed_case.renamed_and_changed_to("adds two numbers", old, new, set()) == "sums two numbers"
+
+
+def test_a_js_case_renamed_with_its_closing_call_line_changed_is_not_a_pure_rename():
+    old = 'it("a", () => {\n  expect(add(1, 2)).toBe(3);\n});\n'
+    new = 'it("b", () => {\n  expect(add(1, 2)).toBe(3);\n}, 5000);\n'
+
+    assert renamed_case.renamed_to("a", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("a", old, new, set()) == "b"
+
+
+def test_a_renamed_go_func_that_is_not_a_test_is_not_recognised_as_a_case_rename():
+    old = 'func helper() {\n\tdo()\n}\n'
+    new = old.replace("helper", "assist")
+
+    assert renamed_case.renamed_to("helper", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("helper", old, new, set()) is None
+
+
+def test_an_indented_go_func_test_is_not_taken_as_a_case_head():
+    old = 'x := `\n  func TestAdd(t *testing.T) {\n\tdo()\n  }\n`\n'
+    new = old.replace("TestAdd", "TestSum")
+
+    assert renamed_case.renamed_to("TestAdd", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("TestAdd", old, new, set()) is None
