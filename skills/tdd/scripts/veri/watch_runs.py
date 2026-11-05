@@ -131,6 +131,8 @@ def main(argv):
                     sys.stderr.write(str(failure))
                     return 2
                 resume_at = github.rate_limit_reset(subprocess.run)
+                if resume_at is not None:
+                    resume_at = max(resume_at, time.time() + interval)
                 if resume_at is None:
                     sys.stderr.write("gh rate limit exceeded and no reset time could be obtained\n")
                     return 2

@@ -1050,3 +1050,32 @@ def test_main_exits_2_naming_VERI_WATCH_QUEUE_INTERVAL_before_any_listing_or_que
         outcomes.append((value, code, captured.out, "VERI_WATCH_QUEUE_INTERVAL" in captured.err, calls[:]))
 
     assert outcomes == [(value, 2, "", True, []) for value, *_ in outcomes]
+
+
+def test_main_with_target_waits_the_interval_before_the_next_queue_read_when_the_reported_reset_is_already_past_2958(
+        monkeypatch, capsys, watch_runs):
+    epoch = 1_000_000
+    now = [0]
+    reads = []
+
+    def wait():
+        now[0] += 2
+        if now[0] > 300:
+            raise StopIteration
+
+    def solvable():
+        reads.append(now[0])
+        raise watch_runs.QueueUnreadable("gh: API rate limit exceeded (HTTP 403)\n")
+
+    monkeypatch.setattr(watch_runs.github, "rate_limit_reset", lambda run: epoch - 100)
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "solvable_issues", solvable)
+
+    with pytest.raises(StopIteration):
+        watch_runs.main(["--target", "2", "--max-wait", "100000"])
+
+    assert len(reads) >= 2 and all(b - a >= 60 for a, b in zip(reads, reads[1:]))
