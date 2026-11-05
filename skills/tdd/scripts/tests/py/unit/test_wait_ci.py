@@ -1899,3 +1899,22 @@ def test_main_keys_its_deadline_mark_by_the_head_sha_it_was_given_not_by_the_pul
     code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", wanted], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, len(reads)) == (2, 3)
+
+
+def test_main_refuses_a_head_sha_that_is_not_40_hex_with_2_and_one_stderr_line_naming_it_before_any_process_issue_3099(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    observed = []
+    for given in (FULL_SHA[:10], FULL_SHA + "0", "z" * 40):
+        lines = []
+
+        def answer(line):
+            lines.append(line)
+            return OPEN_PULL if line == PULL else None
+
+        clock = served(fake_processes, sha_bodies([[]], [], "pending"), answer)
+        code, out, err = run_cli(wait_ci, [PR, "5", "5", given], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, out, err.count("\n"), given in err, "40" in err, len(lines) + len(clock)))
+
+    assert observed == [(2, "", 1, True, True, 0)] * 3
