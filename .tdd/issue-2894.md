@@ -1,0 +1,4 @@
+# Plan for #2894 — PRD 017.1: cutting a test source into cases moves out of tests_frozen
+
+- [ ] Move Function: move the case cutter (`_CASE`, `_MODULE_LEVEL`, `_DECORATORS`, `_def_ends`, `_helpers_only`, `_module_level_cut`, `_unescaped`, `_spans`, `_old_cut_cases_all`, `_call_end`, `_cases`) byte-for-byte unchanged from `skills/tdd/scripts/veri/tests_frozen.py` into `skills/tdd/scripts/veri/case_reader.py`, with `tests_frozen.py` importing every name it still uses so `tests_frozen._cases` stays reachable and every recorded digest stays valid, no test file edited; predicate: `git grep -nE '^(def (_cases|_old_cut_cases_all|_def_ends)\(|_CASE =)' -- 'skills/tdd/scripts/veri/tests_frozen.py'` prints nothing ⟦criterion 1⟧
+- [ ] `git grep -nE '^(def (_?cases|_?old_cut_cases_all)\(|_?CASE =)' -- 'skills/tdd/scripts/veri/case_reader.py'` prints at least three lines, held by the move above; the step makes no change of its own ⟦diff-checked⟧ ⟦criterion 2⟧
