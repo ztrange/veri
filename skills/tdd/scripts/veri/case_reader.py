@@ -4,7 +4,7 @@ import re
 
 JS_EXT = r"\.(?:jsx?|tsx?|mjs|cjs)$"
 
-_TEST_PATTERN = r"(^|/)tests/|\.test\.|\.spec\.|_test\.go$|(^|/)test_[^/]*\.py$|_test\.py$"
+_TEST_PATTERN = r"(^|/)tests/|\.test\.|\.spec\.(?:jsx?|tsx?|mjs|cjs)$|_test\.go$|(^|/)test_[^/]*\.py$|_test\.py$"
 _TEST_FILE = re.compile(_TEST_PATTERN)
 _TEST_FILE_BYTES = re.compile(_TEST_PATTERN.encode())
 
