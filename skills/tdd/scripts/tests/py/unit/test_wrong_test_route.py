@@ -2981,3 +2981,25 @@ def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_with_n
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_3007_criterion_3_a_case_on_both_lines_routes_red_by_the_contradicts_line_only_and_the_cited_case_is_not_listed(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_prints_the_open_step_with_its_checkbox_prefix"
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    cited = "test_main_prints_the_text_and_one_newline"
+    (suite / ("test_" + "next_unchecked" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n\ndef %s():\n    pass\n" % (own, contradicted, cited))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s shows the correct output, so %s contradicts the criterion\n" % (cited, contradicted)
+        + "CONTRADICTS: %s\n" % contradicted)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert cited not in stdout
