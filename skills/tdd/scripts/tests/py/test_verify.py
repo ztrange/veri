@@ -1671,6 +1671,68 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
     assert (code, (repo / "tool.sh").stat().st_mode & 0o777) == (0, 0o755)
 
 
+@pytest.mark.process("a real git scratch repository whose verifier leaf chmods a tracked executable with a non-ASCII name")
+def test_verify_sh_restores_the_mode_of_a_tracked_file_with_a_non_ascii_name_and_ends_with_a_clean_tree_3087(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"\u00e9.sh": "#!/bin/sh\n"})
+    (repo / "\u00e9.sh").chmod(0o755)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make it executable"], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 \u00e9.sh",
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
+    assert (code, (repo / "\u00e9.sh").stat().st_mode & 0o777, status) == (0, 0o755, "")
+
+
+@pytest.mark.process("a real git scratch repository whose verifier leaf turns a tracked executable into a symlink")
+def test_verify_sh_still_refuses_a_verifier_leaf_that_turned_a_tracked_file_into_a_symlink_with_exit_2_3087(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
+    (repo / "tool.sh").chmod(0o755)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "rm tool.sh; ln -s src.txt tool.sh",
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "tool.sh" in out, "full suite are green" in out) == (2, True, False)
+
+
+@pytest.mark.process("a real git scratch repository whose verifier leaf chmods a tracked executable")
+def test_verify_sh_exits_2_naming_the_cause_when_restoring_a_mode_raises_3087(run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
+    (repo / "tool.sh").chmod(0o755)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 tool.sh",
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    def broken_chmod(path, mode):
+        raise PermissionError("chmod refused for the test")
+
+    monkeypatch.setattr(verify.os, "chmod", broken_chmod)
+
+    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                      "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "chmod refused for the test" in err, "full suite are green" in out) == (2, True, False)
+
+
 @pytest.mark.process("a real git scratch repository whose verifier leaf chmods and rewrites a tracked executable")
 def test_verify_sh_still_refuses_a_verifier_leaf_that_changed_both_the_mode_and_the_content_of_a_tracked_file_with_exit_2_3087(
         run_cli, tmp_path, monkeypatch):
