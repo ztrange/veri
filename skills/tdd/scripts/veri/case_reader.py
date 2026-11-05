@@ -93,9 +93,14 @@ def _old_cut_cases_all(text, call_form_only=False):
 
 
 def _call_end(text, opening):
-    depth = 0
+    depth, quote = 0, None
     for i in range(opening, len(text)):
-        if text[i] == "(":
+        if quote:
+            if text[i] == quote:
+                quote = None
+        elif text[i] in "'\"`":
+            quote = text[i]
+        elif text[i] == "(":
             depth += 1
         elif text[i] == ")":
             depth -= 1
