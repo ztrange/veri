@@ -83,9 +83,7 @@ def _spellings(line):
 
 def _contradicted(report):
     for line in _lines_with(report, "CONTRADICTS:"):
-        body = line.partition(":")[2].strip()
-        yield body
-        yield from _spellings(body)
+        yield from _spellings(line.partition(":")[2])
 
 
 def _named_cases(report):
