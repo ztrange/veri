@@ -18,7 +18,8 @@ USAGE = (
     "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>\n"
     "       suite-red-resume.sh insert <ledger-file> <branch-red-file>\n"
     "       suite-red-resume.sh rebased-tip <ledger-file> <red-file> <pre-rebase-sha>\n"
-    "       suite-red-resume.sh flake <at> <red-file> <alone-red-file>"
+    "       suite-red-resume.sh flake <at> <red-file> <alone-red-file>\n"
+    "       suite-red-resume.sh test-only <base-sha> <alone-cmd> <suite>..."
 )
 SEPARATOR = " — "
 GRADE_SUITES = {"test_prd_015_prose_signed.py", "test_prd_016_short_names.py"}
@@ -93,7 +94,13 @@ def flake(at, red_file, alone_file):
     return event.append("", {}, "suite-flake", ["at=" + at, "files=" + ",".join(text)])
 
 
+def test_only(base, alone_cmd, named):
+    return 0
+
+
 def main(argv):
+    if len(argv) >= 4 and argv[0] == "test-only":
+        return test_only(argv[1], argv[2], argv[3:])
     if len(argv) == 4 and argv[0] == "flake":
         return flake(argv[1], argv[2], argv[3])
     if len(argv) == 4 and argv[0] == "rebased-tip":

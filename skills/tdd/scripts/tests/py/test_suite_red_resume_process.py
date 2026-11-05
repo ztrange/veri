@@ -198,3 +198,23 @@ def test_2884_rebased_tip_exit_0_records_the_pre_rebase_sha_in_rebase_lease_besi
     assert ran[0] == 0, ran
     lease = repo / ".tdd" / "rebase-lease"
     assert lease.exists() and lease.read_text().strip() == pre_rebase
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository and a stub alone-cmd")
+def test_3113_test_only_exits_0_when_the_tree_differs_from_base_in_test_files_only_and_every_suite_passes_alone(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "prod.py").write_text("VALUE = 1\n")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("SHA = '" + "a" * 40 + "'\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 0, ran
