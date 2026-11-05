@@ -111,12 +111,13 @@ def select(label, priority="priority", repo=None):
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
+    blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
     bands = {issue["number"]: band(issue, priority) for issue in issues}
     changed = True
     while changed:
         changed = False
         for issue in issues:
-            for n in blocked_by.blockers(issue.get("body") or "", repo or ""):
+            for n in blockers[issue["number"]]:
                 if n in bands and bands[issue["number"]] < bands[n]:
                     bands[n] = bands[issue["number"]]
                     changed = True
@@ -124,7 +125,7 @@ def select(label, priority="priority", repo=None):
     survivors = [issue for issue in issues
                  if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
-                 and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))]
+                 and all(n not in open_issues for n in blockers[issue["number"]])]
     if not survivors:
         return 3, []
     return 0, [issue["number"] for issue in sorted(
