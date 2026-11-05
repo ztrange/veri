@@ -804,7 +804,8 @@ def doc_edit_with_pytest_file(monkeypatch, run_cli, affected, tmp_path, doc, pyt
     return affected_by(
         monkeypatch, run_cli, affected, tmp_path, [doc],
         {doc: "# doc\n\nstep 2\n",
-         SCRIPTS_REL + "tests/py/unit/" + pytest_file: 'def test_step():\n    open("%s").read()\n' % doc})
+         SCRIPTS_REL + "tests/py/unit/" + pytest_file: 'def test_step():\n    open("%s").read()\n' % doc,
+         SCRIPTS_REL + "tests/py/unit/test_decoy_not_mentioning_it.py": "def test_other():\n    pass\n"})
 
 
 @pytest.mark.parametrize("doc, pytest_file", [
@@ -941,6 +942,22 @@ def test_the_shim_run_through_a_symlink_to_the_skill_directory_answers_as_it_doe
 
     assert answer(link / "scripts/affected-suites.sh") == answer(SCRIPTS / "affected-suites.sh") == (
         0, SUITES + "py/test_status.py\n")
+
+
+@pytest.mark.process("real git: the changed lines come from git diff -U0 between two commits")
+@pytest.mark.parametrize("path", ["CLAUDE.md", "Makefile", "skills/merge/SKILL.md"])
+def test_an_edit_inside_one_section_of_claude_md_makefile_or_a_skill_md_other_than_tdds_is_not_section_scoped(
+        run_cli, affected, tmp_path, path):
+    text = "# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n"
+    repo = new_git_repo(tmp_path)
+    py = SCRIPTS_REL + "tests/py/unit/"
+    plant(repo, {path: text % "",
+                 py + "test_section_reader.py": 'def test_a():\n    section(doc, "## Alpha")\n',
+                 py + "test_whole_reader.py": 'def test_a():\n    open("skills/tdd/SKILL.md").read()\n'})
+    base = commit_all(repo, "base")
+    plant(repo, {path: text % " 2"})
+    commit_all(repo, "head")
+    assert run_cli(affected, [base + "..HEAD"], cwd=repo) == (3, "", "")
 
 
 def topic_range(run_cli, affected, repo):
