@@ -1,7 +1,7 @@
 # Plan for #2970 — tests_frozen._call_end counts parentheses inside string literals
 
 - [x] `_cases` fed a Vitest case whose body holds the single-quoted literal `'it.each([1, 2])("checks %s", (value) => {'`, followed by a second case, returns a first-case body that ends at its own closing `);` and does not contain the second case (regression case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py, a small unit case) ⟦criterion 1⟧
-- [ ] a call-form case whose body holds a double-quoted literal with an unbalanced `(` is cut at its own closing `);` by `_cases` (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
+- [x] a call-form case whose body holds a double-quoted literal with an unbalanced `(` is cut at its own closing `);` by `_cases` (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
 - [ ] a call-form case whose body holds a template-quoted (backtick) literal with an unbalanced `(` is cut at its own closing `);` by `_cases` (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
 - [ ] a call-form case whose body holds a quoted literal containing an escaped quote of its own kind followed by an unbalanced `(` is cut at its own closing `);` by `_cases` (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
 - [ ] a call-form case whose body holds a `//` line comment with an unbalanced `(` is cut at its own closing `);` by `_cases` (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 2⟧
