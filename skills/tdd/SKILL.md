@@ -1425,6 +1425,10 @@ The branch's own full run comes first, and it, with any `⟦suite-repair⟧` ste
 finish green before sub-step 1 runs `rebase-onto-default.sh`: the rebased tip's run there is
 the extra run a rebase owes under `VERI_REBASED_TIP_SUITE=local`, never a replacement for the branch's own.
 
+When the branch's own full run is green, record its elapsed seconds and its command with
+`$S/full-tier-time.sh --record <seconds> '<full-cmd>'`, `<full-cmd>` being the command that run used: the
+record replaces the earlier time for that command.
+
 `VERI_REBASED_TIP_SUITE` takes `local`, the default, or `ci`. Under `local` the rebased tip gets a
 full test run of its own. Under `ci` it gets none: the regrade block and the pinned-lease push
 still run, and the `wait-ci.sh` line on the pushed rebased tip is that tip's full-suite verdict,

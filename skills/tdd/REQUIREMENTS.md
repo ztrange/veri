@@ -403,6 +403,7 @@
 | CY132 | `<red-test-id>` is defined once, where it first appears, as `<test-path>::<case>`: the path of the test file and the case name joined by `::`. | `tests-frozen.sh record --red-case` exits 2 on a bare case name, and the conductor passed one in clarion2 runs #3 and #6. |
 | CY133 | The re-record after a reroute's red leaf is given once as a command that captures `$?` and stops on a non-zero status rather than echoing it: exit 1 is the verify-red REJECT of CY120 and CY129, exit 2 a bail. | An `echo $?` swallows the status, so verify-green ran past a failed gate and its verdict was discarded. |
 | CY134 | The `red`, `repair`, `supersede` and `missing` reroute bullets refer to that one re-record instead of each repeating `--red-case '<red-test-id>'`. | Four inline copies each had to carry the form and the gate; none did. |
+| DP90 | At the Draft PR step, a green branch full run records its elapsed seconds and command through `$S/full-tier-time.sh`, replacing the earlier time for that command. | Without a later record, `reuse` would size every run's timeout from one old measurement. |
 
 ## skills/tdd/PREFLIGHT.md
 
