@@ -117,6 +117,15 @@ def changed_paths(tree_before, head_before):
     head_after = head_snapshot()
     diff = git("diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after)
     paths = diff.stdout.decode().splitlines() if diff.returncode == 0 else []
+    if paths:
+        raw = git("diff", "--raw", "--no-renames", tree_before, tree_after)
+        for line in raw.stdout.decode().splitlines() if raw.returncode == 0 else []:
+            meta, _, path = line.partition("\t")
+            fields = meta[1:].split()
+            if len(fields) == 5 and fields[4] == "M" and fields[2] == fields[3] and path in paths \
+                    and {fields[0], fields[1]} == {"100755", "100644"}:
+                os.chmod(path, 0o755 if fields[0] == "100755" else 0o644)
+                paths.remove(path)
     if head_after != head_before:
         paths.append("HEAD")
     return paths, head_after, tree_after

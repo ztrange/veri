@@ -1652,6 +1652,25 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
         assert ("--disallowedTools" in reached, "MultiEdit" in reached) == (True, False)
 
 
+@pytest.mark.process("a real git scratch repository whose verifier leaf chmods a tracked executable")
+def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_tracked_files_mode_and_restores_the_mode_with_no_relaunch_3087(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
+    (repo / "tool.sh").chmod(0o755)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 tool.sh",
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, (repo / "tool.sh").stat().st_mode & 0o777) == (0, 0o755)
+
+
 @pytest.mark.process("a real git scratch repository whose verifier leaf edits a tracked file and makes an untracked one unreadable")
 def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unreadable_file_in_the_tree_2764(
         run_cli, tmp_path, monkeypatch):
@@ -2920,6 +2939,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
     monkeypatch.chdir(repo)
     write_inputs(repo)
     (repo / "tracked.sh").write_text("echo hi\n")
+    (repo / "tracked.sh").chmod(0o755)
     (repo / ".gitignore").write_text(".tdd/\n")
 
     def git(*args):
@@ -2931,26 +2951,23 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
     git("config", "core.fileMode", "true")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
-    expected = []
+    launches = []
     verify = importlib.import_module("veri.verify")
     real_start = verify.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
             return real_start(args, **kwargs)
-        os.chmod(repo / "tracked.sh", 0o755)
-        expected.append(git("diff", "HEAD", "--", "tracked.sh"))
+        launches.append(args)
+        os.chmod(repo / "tracked.sh", 0o644)
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
     monkeypatch.setattr(verify, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
-    out = capfd.readouterr().out
-    named = [m for m in re.findall(r"\.tdd/verify-green[\w.-]*", out)
-             if not m.endswith((".log", ".prompt"))]
-    saved = [(repo / m).read_bytes() for m in named if (repo / m).is_file()]
-    assert (code, len(named), saved, b"new mode 100755" in expected[0]) == (2, 1, expected, True)
+    capfd.readouterr()
+    assert (code, len(launches), (repo / "tracked.sh").stat().st_mode & 0o777) == (0, 1, 0o755)
 
 
 @pytest.mark.process("a real git scratch repository and a stub verifier leaf that changes a tracked binary file")
