@@ -10,4 +10,4 @@
 - [x] `tests-frozen.sh record` over a JS test file holding a call-form case whose closing paren is not found before its enclosing `describe` block's closing brace (later text balancing the count) exits 2 with a stderr line naming the file and the case (driven in-process with run_cli, a small case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 3⟧
 - [ ] the go-red check: with the string and comment skipping removed from `_call_end`, the criterion 1 regression case goes red; restored, it passes ⟦human-owed⟧ ⟦criterion 4⟧
 - [x] a call-form case whose parens were already balanced, holding no paren in a literal or comment, gets the same body from `_cases` as before the fix, so its recorded digest is unchanged (one small unit case in skills/tdd/scripts/tests/py/unit/test_tests_frozen.py) ⟦criterion 5⟧
-- [ ] `make test` stays green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] `make test` stays green ⟦full-suite⟧ ⟦criterion 5⟧
