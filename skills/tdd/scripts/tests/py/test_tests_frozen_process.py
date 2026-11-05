@@ -5556,5 +5556,5 @@ def test_rerecord_refactored_skips_only_the_go_case_whose_own_lines_the_shared_h
     err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[2]
     checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    skipped = [line for line in err.splitlines() if line.startswith("skipped: ")]
+    skipped = [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")]
     assert (skipped, checked) == (["skipped: suite_test.go TestX"], 1)
