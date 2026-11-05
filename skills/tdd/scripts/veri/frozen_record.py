@@ -44,6 +44,16 @@ def _case_lines(name, case, body):
     return ["case: %s\n" % case, _body_line(name, case, body) + "\n"]
 
 
+def is_marked(records):
+    return "format: 2" in records
+
+
+def digest_entry(line):
+    if not line.strip() or line.startswith(("case: ", "body: ", "helpers: ", "format: ")):
+        return None
+    return line.rstrip("\n").split("  ", 1)
+
+
 def _body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
 

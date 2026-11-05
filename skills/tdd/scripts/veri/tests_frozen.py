@@ -323,7 +323,7 @@ def _check_earlier(ledger, step, exempt=()):
     for owner, _, records in _earlier_records(lines, step):
         helper_digests.update(_helper_records(records))
         bodies = [r for r in map(_body_record, records) if r]
-        marked = "format: 2" in records
+        marked = frozen_record.is_marked(records)
         for name, case, digest in bodies:
             held = latest.get((name, case))
             latest[(name, case)] = (held[0] + [digest] if held and held[1] == owner else [digest], owner, marked)
@@ -709,8 +709,7 @@ def main(argv):
             record, _ = _enter_root(record, [])
         try:
             with open(record) as handle:
-                entries = [line.rstrip("\n").split("  ", 1) for line in handle
-                           if line.strip() and not line.startswith(("case: ", "body: ", "helpers: ", "format: "))]
+                entries = [entry for entry in map(frozen_record.digest_entry, handle) if entry]
         except OSError:
             write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
             return 2
