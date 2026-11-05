@@ -25,17 +25,7 @@
    ```
    $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent
    ```
-   Before its transform leaf, a `develop-cover` leaf, prompted by `build-develop-prompt.sh cover`
-   with the spec, the candidate and the test command, mutates the code the candidate will move, runs the suites,
-   expects red and restores. Read its report through `$S/cover-outcome.sh`: exit 2 bails as a
-   **system** failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` — goes on;
-   exit 1, `COVERED: no`, launches no transform: the candidate is recorded `uncovered`, and the
-   run neither bails nor files anything:
-   ```
-   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered
-   ```
-   This is where each candidate's predicate comes from: after a covered candidate, a
-   predicate leaf, prompted by `build-develop-prompt.sh predicate` with the spec, the
+   First, for each candidate, a predicate leaf, prompted by `build-develop-prompt.sh predicate` with the spec, the
    candidate, the test command and `<bound>`, and launched through the supervisor as `develop-predicate`, reports one
    `PREDICATE:` line, which the conductor checks and records:
    ```
@@ -44,9 +34,18 @@
    That record is the test path the transform verifier runs, in place of the prose
    candidate. A candidate with no predicate is skipped — only exit 3, for
    `PREDICATE: NONE`, is recorded with `refactor-owed.sh not-done` and `no-predicate`
-   rather than handed to a transform leaf; exit 1, a command already
+   rather than handed to a cover or transform leaf; exit 1, a command already
    true, means the candidate is already applied, and it is recorded as applied below
-   without a transform leaf; exit 2 is no answer and **bails** as a **system** failure (`no-verdict`, see `<base directory>/BAIL.md`).
+   without a cover or transform leaf; exit 2 is no answer and **bails** as a **system** failure (`no-verdict`, see `<base directory>/BAIL.md`).
+   Only after a predicate exit 0, and before its transform leaf, a `develop-cover` leaf, prompted by `build-develop-prompt.sh cover`
+   with the spec, the candidate and the test command, mutates the code the candidate will move, runs the suites,
+   expects red and restores. Read its report through `$S/cover-outcome.sh`: exit 2 bails as a
+   **system** failure (`no-verdict`) (`Read` `<base directory>/BAIL.md`). Exit 3 — `COVERED: unreachable` or `type-only` — goes on;
+   exit 1, `COVERED: no`, launches no transform: the candidate is recorded `uncovered`, and the
+   run neither bails nor files anything:
+   ```
+   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' uncovered
+   ```
    Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<bound>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
