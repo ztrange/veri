@@ -79,9 +79,12 @@ there is at least one, **exit 3** with empty stdout when there is none.
   unblocked and unclaimed. Nothing was started.
 - **Exit 0:** take the **first** number. Do not keep the rest of the list. The order is
   banded — `priority` bugs, then `priority`, then `bug`, then the rest, each ascending, a
-  `low-risk` bug counting as the rest unless it is also `priority` — so the first number is
+  `low-risk` bug counting as the rest unless it is also `priority`, and an issue that
+  **blocks** a `priority` issue inheriting that issue's band — so the first number is
   not always the lowest one. When it is not, **say so and name the band that did it**:
-  `#220 (priority) before #108`, `#120 (bug) before #117`. A jump is otherwise invisible in
+  `#220 (priority) before #108`, `#120 (bug) before #117`. When the band is inherited,
+  **also name the issue it came from**, which `solvable-issues.sh` prints on its stderr:
+  `#3050 (priority bug, blocks #3051) before #2897`. A jump is otherwise invisible in
   the report — a number that jumped a lower-numbered issue reads exactly like one that came
   up next — and the operator who labelled it an hour ago cannot tell the label was read.
 
