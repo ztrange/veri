@@ -995,3 +995,29 @@ def test_main_with_target_below_it_and_nothing_solvable_reads_the_queue_at_most_
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
     assert [b - a for a, b in zip(checks[1:], checks[2:])] == [2] * (len(checks) - 2) and len(checks) > 290
     assert all(b - a >= 60 for a, b in zip(reads, reads[1:])) and len(reads) <= 11
+
+
+def test_main_with_target_reads_the_queue_at_most_once_per_the_interval_VERI_WATCH_QUEUE_INTERVAL_sets_2958(
+        monkeypatch, capsys, watch_runs):
+    monkeypatch.setenv("VERI_WATCH_QUEUE_INTERVAL", "120")
+    now = [0]
+    reads = []
+
+    def wait():
+        now[0] += 2
+
+    def solvable():
+        reads.append(now[0])
+        return []
+
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: 1_000_000 + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+    monkeypatch.setattr(watch_runs, "solvable_issues", solvable)
+
+    code = watch_runs.main(["--target", "2", "--max-wait", "600"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
+    assert all(b - a >= 120 for a, b in zip(reads, reads[1:])) and len(reads) <= 6
