@@ -1,2 +1,3 @@
 ### `solvable-issues.sh`: a printed issue whose band came from inheritance gets exactly one stderr line `#<blocker> inherits <band> from #<dependent>` (`priority bug` or `priority`), naming the dependent that set it, while stdout stays one number per line, pinned by one small case in skills/tdd/scripts/tests/py/test_solvable_issues.py ⟦criterion 4⟧
 - extract the band-inheritance fixpoint loop and the stderr "inherits" line printing out of select() in solvable_issues.py into a helper
+applied | e776335a68938ad6007cec651dec733c54a04f38 | extract the band-inheritance fixpoint loop and the stderr "inherits" line printing out of select() in solvable_issues.py into a helper	refactor: extract band-inheritance loop and inherits-line printing from select() (#3105)
