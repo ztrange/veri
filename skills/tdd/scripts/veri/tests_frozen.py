@@ -536,7 +536,9 @@ def _helpers_in(text, body):
     helpers = []
     for definition in re.finditer(_HELPER_NAME + r"[^\n]*\n(?:(?!(?:function|func|def|const)\b).*\n?)*", text, re.M):
         name = definition.group(1) or definition.group(2)
-        if not name.lower().startswith("test") and re.search(r"\b%s\(" % name, body):
+        keyword = definition.group().split(None, 1)[0]
+        collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
+        if not collected and re.search(r"\b%s\(" % name, body):
             helpers.append(definition.group())
     return "\n".join(helpers)
 
