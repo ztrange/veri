@@ -550,7 +550,9 @@ def rerecord_refactored(ledger, green):
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
         return _body_line(name, case, head) + "\n" + frozen_record._helpers_line(
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
-    return 0 if _rewrite_records(_earlier_records(lines, ""), rewrite) else 2
+    if not _rewrite_records(_earlier_records(lines, ""), rewrite):
+        return 2
+    return _check_earlier(ledger, "")
 
 
 def rerecord_rebased(ledger, pre):
