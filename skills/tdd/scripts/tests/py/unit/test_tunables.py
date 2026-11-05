@@ -112,3 +112,21 @@ def test_2847_baseline_full_tier_set_to_reuse_resolves_to_reuse_with_no_error(mo
     monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "reuse")
 
     assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
+
+
+@pytest.mark.parametrize("raw", ["x", "Run", "reuse ", " run", "REUSE"])
+def test_2847_baseline_full_tier_set_to_any_value_but_run_or_reuse_is_refused_naming_the_value(
+        monkeypatch, raw):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setenv("VERI_BASELINE_FULL_TIER", raw)
+
+    value, error = tunables.resolve("VERI_BASELINE_FULL_TIER")
+
+    assert (value, error[0]) == (None, raw)
+
+
+def test_2847_baseline_full_tier_set_empty_resolves_to_the_default_run(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "")
+
+    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)

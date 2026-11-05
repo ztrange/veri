@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import os
 import sys
+import tempfile
 
 USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
 
@@ -30,11 +31,32 @@ def record_path():
     return os.path.join(main_tree(os.getcwd()), ".tdd", "full-tier-time.json")
 
 
+def whole(value):
+    return isinstance(value, str) and value.isascii() and value.isdigit()
+
+
 def read_times(record):
+    """The stored {command: seconds}; ValueError (or OSError) when the file is not a valid record."""
     if not os.path.exists(record):
         return {}
     with open(record) as f:
-        return json.load(f)
+        times = json.load(f)
+    if not isinstance(times, dict) or not all(whole(v) for v in times.values()):
+        raise ValueError("not a record of whole-number seconds")
+    return times
+
+
+def write_times(record, times):
+    directory = os.path.dirname(record)
+    fd, partial = tempfile.mkstemp(dir=directory, prefix="full-tier-time.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(times, f)
+        os.replace(partial, record)
+    except BaseException:
+        if os.path.exists(partial):
+            os.unlink(partial)
+        raise
 
 
 def refuse():
@@ -50,12 +72,19 @@ def main(argv):
             return refuse()
         record = record_path()
         os.makedirs(os.path.dirname(record), exist_ok=True)
-        times = read_times(record)
+        try:
+            times = read_times(record)
+        except (OSError, ValueError):
+            times = {}
         times[argv[2]] = argv[1]
-        with open(record, "w") as f:
-            json.dump(times, f)
+        write_times(record, times)
         return 0
-    times = read_times(record_path())
+    record = record_path()
+    try:
+        times = read_times(record)
+    except (OSError, ValueError) as exc:
+        print("full-tier-time: unreadable record %s: %s" % (record, exc), file=sys.stderr)
+        return 2
     if argv[0] not in times:
         return 3
     print(times[argv[0]])
