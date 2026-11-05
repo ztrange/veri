@@ -14,3 +14,10 @@ skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py
 command 366
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpxcpdbgz9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_with_a_red_pinned_by_two_listed_units_at_once_adds_one_skill_edit_step_naming_one_of_them_and_no_suite_repair_step_3009
 
+before 40
+db8591e0c10f85be787c8d5ba0a6ab2459e7a8ad
+keep 57
+skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py
+command 378
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpxcpdbgz9/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_after_a_done_repair_skill_edit_step_with_a_second_red_pinning_that_same_graded_unit_exits_1_and_adds_no_second_skill_edit_step_3009
+
