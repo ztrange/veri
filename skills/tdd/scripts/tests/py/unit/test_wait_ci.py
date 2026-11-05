@@ -1190,6 +1190,25 @@ def test_main_waits_a_growing_backoff_from_its_base_knob_between_retries_after_h
     assert (code, sleeps[0], sleeps == sorted(set(sleeps)), len(sleeps)) == (0, 3.0, True, 4)
 
 
+def test_main_retries_http_5xx_reads_from_its_first_call_with_no_deadline_mark_written_beforehand_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+
+    def unavailable_five_times(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            if len(status_reads) <= 5:
+                return (1, "", "gh: HTTP 503: Service Unavailable\n")
+
+    served(fake_processes, bodies, unavailable_five_times)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads), (work / ".tdd" / f"ci-deadline-{FULL_SHA}").exists()) == (0, 6, True)
+
+
 def test_main_exits_2_naming_the_checks_on_the_first_read_failing_with_an_http_404_without_retrying_or_sleeping_issue_3089(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
