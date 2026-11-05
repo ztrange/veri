@@ -844,6 +844,63 @@ def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_p
         py + "unit/test_reads_preflight.py", py + "unit/test_reads_skill.py"]), "")
 
 
+HEADER = '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
+
+
+def pytest_plants(*names):
+    return {SCRIPTS_REL + "tests/py/test_%s.py" % n: "def test_x(): pass\n" for n in names}
+
+
+def pytest_paths(*names):
+    return "".join(SUITES + "py/test_%s.py\n" % n for n in names)
+
+
+def test_rule_2_a_lib_prints_the_pytest_file_of_every_script_that_sources_it_and_no_others(
+        monkeypatch, run_cli, affected, tmp_path):
+    sourcing = '#!/usr/bin/env bash\nsource "$HERE/lib/bar.sh"\n'
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { :; }\n",
+         SCRIPTS_REL + "alpha.sh": sourcing, SCRIPTS_REL + "beta.sh": sourcing,
+         SCRIPTS_REL + "gamma.sh": "echo gamma\n", SCRIPTS_REL + "bar.sh": "echo bar\n",
+         **pytest_plants("alpha", "beta", "gamma", "bar")},
+    ) == (0, pytest_paths("alpha", "beta"), "")
+
+
+def test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to_that_callers_pytest_file(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
+         SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh" \\\n  || { echo "alpha: cannot read lib/bar.sh" >&2; exit 2; }\n',
+         SCRIPTS_REL + "gamma.sh": "echo gamma\n", **pytest_plants("alpha", "gamma")},
+    ) == (0, pytest_paths("alpha"), "")
+
+
+def test_487_a_caller_whose_source_line_ends_at_the_lib_path_with_or_without_a_trailing_quote_and_spaces_still_maps_to_its_pytest_file(
+        monkeypatch, run_cli, affected, tmp_path):
+    callers = {"alpha": 'source "$HERE/lib/bar.sh"\n', "beta": 'source "$HERE/lib/bar.sh"   \n',
+               "delta": "source $HERE/lib/bar.sh\n", "epsilon": "source $HERE/lib/bar.sh  \n"}
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n", SCRIPTS_REL + "gamma.sh": "echo gamma\n",
+         **{SCRIPTS_REL + n + ".sh": HEADER + line for n, line in callers.items()},
+         **pytest_plants(*callers, "gamma")},
+    ) == (0, pytest_paths("alpha", "beta", "delta", "epsilon"), "")
+
+
+def test_487_a_comment_that_names_a_lib_file_is_still_not_a_dependency(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
+         SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh"\n',
+         SCRIPTS_REL + "beta.sh": HEADER + '# source "$HERE/lib/bar.sh" \\\n',
+         SCRIPTS_REL + "gamma.sh": HEADER + '  # . "$HERE/lib/bar.sh"\n',
+         **pytest_plants("alpha", "beta", "gamma")},
+    ) == (0, pytest_paths("alpha"), "")
+
+
 def module_shim(module):
     return '#!/bin/sh\nexec python3 -m veri.%s "$@"\n' % module
 
