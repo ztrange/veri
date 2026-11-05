@@ -45,7 +45,12 @@ def tick_added(path, step_line):
 
 def main(argv):
     pending, phase, owed, reason_file = False, None, False, None
+    retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
     while True:
+        if argv[:1] == ["--already-holds"] and len(argv) > 1:
+            reason_file, argv = argv[1], argv[2:]
+            retired_mark, event_name = " ⟂ retired already holds", "already-holds-step"
+            continue
         if argv[:1] == ["--unpinnable"] and len(argv) > 1:
             reason_file, argv = argv[1], argv[2:]
             continue
@@ -61,7 +66,7 @@ def main(argv):
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if "stays green" not in reason_text:
+        if event_name == "unpinnable-step" and "stays green" not in reason_text:
             return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
@@ -88,7 +93,7 @@ def main(argv):
         ticked, new = ledger.ledger_tick(text, matcher, pending)
         if ticked and reason_file:
             new_lines = new.split("\n")
-            new_lines[changed_index(text, new)] += RETIRED_MARK
+            new_lines[changed_index(text, new)] += retired_mark
             new = "\n".join(new_lines)
         if ticked and ledger.listed_phases(
                 text.split("\n")[changed_index(text, new)]):
@@ -118,7 +123,7 @@ def main(argv):
         step = step_line
         reason = next((l[7:].strip() for l in reason_text.splitlines() if l.startswith("REASON:")), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
-        return event.append(tdd_parent, event.context(os.environ), "unpinnable-step",
+        return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:
         ticked_line = step_line
