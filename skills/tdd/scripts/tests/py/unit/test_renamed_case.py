@@ -72,3 +72,40 @@ def test_an_indented_go_func_test_is_not_taken_as_a_case_head():
 
     assert renamed_case.renamed_to("TestAdd", old, new, set()) is None
     assert renamed_case.renamed_and_changed_to("TestAdd", old, new, set()) is None
+
+
+def test_an_indented_js_case_renamed_with_its_indented_closing_call_line_changed_is_not_a_pure_rename():
+    old = 'describe("m", () => {\n  it("a", () => {\n    expect(add(1, 2)).toBe(3);\n  });\n});\n'
+    new = 'describe("m", () => {\n  it("b", () => {\n    expect(add(1, 2)).toBe(3);\n  }, 5000);\n});\n'
+
+    assert renamed_case.renamed_to("a", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("a", old, new, set()) == "b"
+
+
+def test_a_js_case_at_end_of_file_with_no_closing_line_is_a_pure_rename():
+    old = 'it("a", () => {\n  expect(add(1, 2)).toBe(3);'
+    new = old.replace('"a"', '"b"')
+
+    assert renamed_case.renamed_to("a", old, new, set()) == "b"
+
+
+def test_a_js_case_renamed_with_a_closing_line_starting_with_a_paren_changed_is_not_a_pure_rename():
+    old = 'it("a", () =>\n  expect(add(1, 2)).toBe(3)\n);\n'
+    new = 'it("b", () =>\n  expect(add(1, 2)).toBe(3)\n), 5000);\n'
+
+    assert renamed_case.renamed_to("a", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("a", old, new, set()) == "b"
+
+
+def test_a_one_line_js_case_followed_by_its_suites_closing_line_changed_is_still_a_pure_rename():
+    old = 'describe("m", () => {\n  it("a", () => expect(1).toBe(1));\n});\n'
+    new = 'describe("m", () => {\n  it("b", () => expect(1).toBe(1));\n}, 5000);\n'
+
+    assert renamed_case.renamed_to("a", old, new, set()) == "b"
+
+
+def test_a_js_case_with_a_closing_line_is_unaffected_by_a_changed_line_after_it():
+    old = 'it("a", () => {\n  expect(1).toBe(1);\n});\nit("c", () => {});\n'
+    new = 'it("b", () => {\n  expect(1).toBe(1);\n});\nit("d", () => {});\n'
+
+    assert renamed_case.renamed_to("a", old, new, set()) == "b"
