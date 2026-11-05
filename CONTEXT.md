@@ -155,7 +155,7 @@ default, so the same issue can be solvable for one loop and invisible to another
 the intended use — **one label per loop** when more than one loop runs against a repository,
 partitioning the backlog into disjoint pools rather than having both take the lowest number
 off one list. The print order — `priority` bugs, then `priority`, then `bug`, then the rest — runs over the set the
-four conditions leave and never enlarges it: a `priority` or `bug` issue that is blocked,
+four conditions leave and never enlarges it: a `priority` or `bug` issue, or a blocker of one, that is blocked,
 claimed or not carrying the opt-in label is still not printed, because a band says *sooner*
 and only `VERI_LABEL` says *at all*.
 _Avoid_: eligible, ready, available, unblocked (that is only one of the four)
@@ -167,7 +167,8 @@ verification, ledger — is identical at every rung. At rung 2 it is `solvable-i
 which prints the solvable numbers of one scope in four bands — the `bug`s labelled
 `priority` first, then the other issues labelled `priority`, then the `bug`s, then the rest, each band ascending by number (exit 3 when
 there are none). A bug labelled `low-risk` counts as the rest, and `priority` outranks
-`low-risk`. `VERI_PRIORITY_LABEL` names the `priority` label.
+`low-risk`. An issue that blocks a `priority` issue inherits that issue's band,
+transitively, and takes the better of its own band and the inherited one. `VERI_PRIORITY_LABEL` names the `priority` label.
 _Avoid_: scheduler, picker, queue
 
 **In flight**:
