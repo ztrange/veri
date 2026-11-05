@@ -105,3 +105,10 @@ def test_2847_baseline_full_tier_unset_resolves_to_run_with_no_error(monkeypatch
     monkeypatch.delenv("VERI_BASELINE_FULL_TIER", raising=False)
 
     assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)
+
+
+def test_2847_baseline_full_tier_set_to_reuse_resolves_to_reuse_with_no_error(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "reuse")
+
+    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
