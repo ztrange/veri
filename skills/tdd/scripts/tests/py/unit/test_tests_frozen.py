@@ -1198,6 +1198,42 @@ def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming
 
     assert (code, "a.test.ts" in err, "never closes" in err, "Traceback" in err) == (2, True, True, False)
 
+def _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, step):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "a.test.ts"
+    suite.write_text('import { it } from "vitest";\nit("never closes", () => {\n  expect(1).toBe(1);\n});\n')
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)[0]
+    suite.write_text('import { it } from "vitest";\nit("never closes", () => {\n  expect(1).toBe(1);\n')
+    return recorded
+
+
+def test_check_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming_the_file_and_the_case_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = "the case passes: repairs the fixture 'db' in a.test.ts, reproduced by a case in a.test.ts ⟦fixture-repair⟧"
+    recorded = _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, step)
+
+    code, out, err = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)
+
+    assert (recorded, code, "a.test.ts" in err, "never closes" in err, "Traceback" in err) == (0, 2, True, True, False)
+
+
+def test_check_earlier_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming_the_file_and_the_case_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    earlier, later = "the earlier step", "the later step"
+    recorded = _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, earlier)
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+
+    code, out, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (recorded, code, "a.test.ts" in err, "never closes" in err, "Traceback" in err) == (0, 2, True, True, False)
+
+
 
 def test_record_over_a_js_case_whose_closing_paren_lies_past_its_describe_block_exits_2_naming_the_file_and_the_case_2970(
         tmp_path, run_cli, tests_frozen, monkeypatch):

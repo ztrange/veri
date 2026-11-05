@@ -359,6 +359,10 @@ def _check_earlier(ledger, step, exempt=()):
                     continue
         except OSError:
             nows = olds = []
+        except UnclosedCase as error:
+            _remove_pass_marker(step)
+            write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
+            return 2
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
@@ -778,6 +782,9 @@ def main(argv):
                     changed.append(name)
             except OSError:
                 changed.append(name)
+            except UnclosedCase as error:
+                write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
+                return 2
         if by_step:
             recorded = {name for _, name in entries}
             parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
