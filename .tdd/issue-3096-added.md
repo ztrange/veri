@@ -1,0 +1,1 @@
+- [ ] The 4 older test_issue_worktree.py cases fake another lane's claim (the gh label), so they pin the cross-lane refusal and stay green with or without step 2's change ⟦added⟧ ⟦criterion 1⟧
