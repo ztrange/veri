@@ -149,6 +149,7 @@ MECHANICAL_READERS = (
     "test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left",
     "test_issue_2375_a_second_conflict_after_the_runs_own_rebase",
     "test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh",
+    "test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_without_widening",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
     "test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section",
