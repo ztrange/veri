@@ -161,7 +161,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     one_run = json.dumps({"check_runs": [{"status": "completed", "conclusion": "success"}]})
     no_runs = json.dumps({"check_runs": []})
     green = json.dumps({"statuses": [{"state": "success"}]})
-    gh_err = "gh: HTTP 502: Bad Gateway\n"
+    gh_err = "gh: error connecting to api.github.com\n"
     failed = (1, "", gh_err)
     by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
     traced = "Traceback (most recent call last):\n"
@@ -498,7 +498,7 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
             return 0, "", ""
         if line == PULL:
             if heads is None:
-                return 1, "", "gh: HTTP 502: Bad Gateway\n"
+                return 1, "", "gh: error connecting to api.github.com\n"
             head = heads[min(state["reads"], len(heads) - 1)]
             state["reads"] += 1
             return 0, json.dumps({"mergeable": True, "head": {"sha": head}}), ""
@@ -517,6 +517,7 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
 FULL_SHA = "89abcdef0123456789abcdef0123456789abcdef"
 COMMITS = f"gh api repos/o/r/commits/{FULL_SHA}"
 NOT_FOUND = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
+UNREACHABLE = (1, "", "gh: error connecting to api.github.com\n")
 OPEN_PULL = json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}})
 
 
@@ -666,7 +667,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
     success = run("gates", "completed", "success")
     observed = {
         "in progress": waited("race", [[run("gates", "in_progress")]]),
-        "unreadable": waited("unread", [NOT_FOUND]),
+        "unreadable": waited("unread", [UNREACHABLE]),
         "failure": waited("redsha", [[run("gates", "completed", "failure")]]),
         "neutral and skipped beside in progress": waited("quietsha", [[
             run("lint", "completed", "neutral"), run("docs", "completed", "skipped"), run("gates", "in_progress")]]),
@@ -679,7 +680,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 
     assert observed == {
         "in progress": (3, "", ""),
-        "unreadable": (2, "", "gh: Not Found (HTTP 404)\n" * 3 + by_sha),
+        "unreadable": (2, "", "gh: error connecting to api.github.com\n" * 3 + by_sha),
         "failure": (1, "gates\n", ""),
         "neutral and skipped beside in progress": (3, "", ""),
         "failure beyond the first page": (1, "gates-101\n", ""),
@@ -691,7 +692,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_head_whether_graphql_works_or_is_refused(
         tmp_path, wait_ci, fake_processes, run_cli):
     run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
-    by_sha = "gh: Not Found (HTTP 404)\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
+    by_sha = "gh: error connecting to api.github.com\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
     refusal = ("HTTP 403: GitHub GraphQL is not available from Claude Code sessions; "
                "use the REST API (gh api repos/{owner}/{repo}/...)\n")
 
@@ -717,7 +718,7 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
     observed = {
         "legacy failure": waited("statussha-failure", [success], statuses("failure", legacy("failure"))),
         "legacy error": waited("statussha-error", [success], statuses("error", legacy("error"))),
-        "status unreadable": waited("unstatus", [success], NOT_FOUND),
+        "status unreadable": waited("unstatus", [success], UNREACHABLE),
         "status with no statuses key": waited(
             "nostatuses", [success], json.dumps({"state": "pending", "sha": FULL_SHA, "total_count": 0})),
         "legacy pending": waited("pendingstatus", [success], statuses("pending", legacy("pending"))),
@@ -729,7 +730,7 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
                 ("green", [success], statuses("success")),
                 ("red", [run("completed", "failure")], None),
                 ("pending", [run("in_progress")], None),
-                ("unread", NOT_FOUND, None)):
+                ("unread", UNREACHABLE, None)):
             observed[f"no head-sha, {route} GraphQL, {want}"] = waited(
                 f"gql-{route}-{want}", runs, status, given=None, graphql=route)
 
@@ -754,7 +755,7 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
     other = "fedcba9876543210fedcba9876543210fedcba98"
     proxy = ("gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. "
              "Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)\n")
-    bad_gateway = (1, "", "HTTP 502: Bad Gateway\n")
+    bad_gateway = (1, "", "gh: error connecting to api.github.com\n")
     sizes = {}
 
     def waited(name, pages, statuses=(), broken=None):
@@ -778,7 +779,7 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
     paged = [[run("gates-1", "success"), run("gates-2", "neutral")],
              [run("gates-3", "success"), run("gates-4", "skipped")],
              [run("gates-5", "failure")]]
-    by_sha = "HTTP 502: Bad Gateway\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
+    by_sha = "gh: error connecting to api.github.com\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
 
     observed = {
         "REST head while pr view reports another": waited("rest-only", [[run("gates", "success")]],
