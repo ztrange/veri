@@ -1163,6 +1163,24 @@ def test_cases_keeps_division_a_division_and_reads_a_regex_literal_with_an_escap
     assert cases["a"].endswith("toBe(4 / 2); })") and cases["b"].endswith("toBe(2); })") and "it('b'" not in cases["a"]
 
 
+def test_cases_ends_a_string_only_at_its_own_quote_kind_2970(tests_frozen):
+    text = (
+        "it('a', () => { expect(\"it's (\").toBe(1); });\n"
+        "it('b', () => { expect(1).toBe(1); });\n"
+    )
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("toBe(1); })") and "it('b'" not in cases["a"]
+
+
+def test_cases_refuses_a_case_whose_block_comment_never_closes_like_an_unclosed_call_2970(tests_frozen):
+    text = "it('a', () => { /* never ends (\n  expect(1).toBe(1); });\n"
+
+    with pytest.raises(tests_frozen.UnclosedCase):
+        tests_frozen._cases(text)
+
+
 
 def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming_the_file_and_the_case_2970(
         tmp_path, run_cli, tests_frozen, monkeypatch):
