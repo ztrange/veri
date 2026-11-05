@@ -1,0 +1,3 @@
+### With every read of a PR's checks failing with HTTP 5xx and the CI deadline passing before any read succeeds, wait-ci.sh exits 2 naming the checks it could not read (small in-process case in test_wait_ci.py, VERI_POLL=0, faked clock and sleep, no real sleeping) ⟦criterion 1⟧
+- the `".tdd/ci-deadline-" + key` path is built in three places in `wait_ci.py` (the new unread check, the head-sha check, the deadline-file read); one shared helper would remove that. I didn't apply it because some of those sites predate this cycle.
+- `before_deadline` and the deadline-file read in `main` both open the file and parse it, which is a second copy of the same parsing.
