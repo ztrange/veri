@@ -96,6 +96,32 @@ class UnclosedCase(LookupError):
     pass
 
 
+_REGEX_PRECEDERS = "(,=:[!&|?{};"
+
+
+def _regex_may_start(text, i):
+    before = text[:i].rstrip(" \t")
+    return not before or before[-1] in _REGEX_PRECEDERS or before[-1] == "\n"
+
+
+def _regex_end(text, i):
+    # Index of the last char of the JS regex literal opening at i (flags included); i if it never closes on its line.
+    j, in_class = i + 1, False
+    while j < len(text) and text[j] != "\n":
+        if text[j] == "\\":
+            j += 1
+        elif text[j] == "[":
+            in_class = True
+        elif text[j] == "]":
+            in_class = False
+        elif text[j] == "/" and not in_class:
+            while j + 1 < len(text) and text[j + 1].isalpha():
+                j += 1
+            return j
+        j += 1
+    return i
+
+
 def _call_end(text, opening):
     depth, braces, quote, escaped, i = 0, 0, None, False, opening
     while i < len(text):
@@ -115,6 +141,8 @@ def _call_end(text, opening):
             i += 1
         elif text[i] in "'\"`":
             quote = text[i]
+        elif text[i] == "/" and _regex_may_start(text, i):
+            i = _regex_end(text, i)
         elif text[i] == "(":
             depth += 1
         elif text[i] == ")":
