@@ -97,7 +97,7 @@ class UnclosedCase(LookupError):
 
 
 def _call_end(text, opening):
-    depth, quote, escaped, i = 0, None, False, opening
+    depth, braces, quote, escaped, i = 0, 0, None, False, opening
     while i < len(text):
         if quote:
             if escaped:
@@ -121,6 +121,12 @@ def _call_end(text, opening):
             depth -= 1
             if depth == 0:
                 return i + 1
+        elif text[i] == "{":
+            braces += 1
+        elif text[i] == "}":
+            braces -= 1
+            if braces < 0:
+                return None
         i += 1
     return None
 

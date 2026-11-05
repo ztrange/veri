@@ -1157,3 +1157,23 @@ def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming
     code, out, err = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)
 
     assert (code, "a.test.ts" in err, "never closes" in err, "Traceback" in err) == (2, True, True, False)
+
+
+def test_record_over_a_js_case_whose_closing_paren_lies_past_its_describe_block_exits_2_naming_the_file_and_the_case_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(
+        'describe("names", () => {\n'
+        '  it("runs past the block", () => {\n'
+        "    expect(1).toBe(1);\n"
+        "  }\n"
+        "});\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
+    step = "the case passes: adds a case in a.test.ts"
+
+    code, out, err = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)
+
+    assert (code, "a.test.ts" in err, "runs past the block" in err, "Traceback" in err) == (2, True, True, False)
