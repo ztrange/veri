@@ -50,26 +50,6 @@ def test_main_prints_the_suite_of_a_touched_script_and_returns_0(tmp_path, monke
         0, "skills/tdd/scripts/tests/foo.test.sh\n", "")
 
 
-def test_main_places_the_ported_counts_check_for_an_added_suite_and_no_longer_the_bash_one(tmp_path, monkeypatch, capsys, affected):
-    def fake_run(args, **kwargs):
-        if list(args[:2]) == ["git", "rev-parse"]:
-            stdout = "abc\n"
-        elif list(args[:3]) == ["git", "diff", "--name-only"] and "--diff-filter=AD" in args:
-            stdout = "skills/tdd/scripts/tests/newbie.test.sh\n"
-        elif list(args[:3]) == ["git", "diff", "--name-only"]:
-            stdout = "skills/tdd/scripts/tests/newbie.test.sh\n"
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "skills/tdd/scripts/tests").mkdir(parents=True)
-    (tmp_path / "skills/tdd/scripts/tests/newbie.test.sh").write_text("")
-    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/newbie.test.sh\nskills/tdd/scripts/tests/py/unit/test_claude_md_counts.py\n", "")
-
-
 def fake_git(touched, diff_code=0):
     def run(args, **kwargs):
         if list(args[:2]) == ["git", "rev-parse"]:
@@ -845,7 +825,6 @@ def test_every_suite_path_affected_suites_names_exists():
 
 @pytest.mark.parametrize("rename", [
     ('"py/unit/test_build_develop_prompt.py"', '"py/unit/test_build_gone_prompt.py"'),
-    ('/tests/py/unit/test_claude_md_counts.py"', '/tests/py/unit/test_claude_md_gone.py"'),
 ])
 def test_the_suite_path_check_names_a_renderer_or_tests_path_planted_into_a_copy_of_affected_suites_that_is_not_a_file(rename):
     """Its subject is source text: a copy of veri/affected_suites.py's source with one suite path renamed to a file that does not exist."""
@@ -1410,39 +1389,7 @@ def test_on_the_real_skill_md_and_suites_a_one_section_edit_selects_the_suites_r
     assert wrong == []
 
 
-COUNTS = SUITES + "py/unit/test_claude_md_counts.py\n"
 HEADER = '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
-
-
-def test_a_range_that_adds_a_suite_file_under_tests_or_tests_unit_pulls_in_the_claude_md_counts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
-    added = [SCRIPTS_REL + "tests/newbie.test.sh", SCRIPTS_REL + "tests/unit/rookie.test.sh"]
-    assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, added,
-        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "",
-         SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "", **{a: "" for a in added}},
-        counted=added,
-    ) == (0, SUITES + "newbie.test.sh\n" + COUNTS + SUITES + "unit/rookie.test.sh\n", "")
-
-
-def test_editing_an_existing_suites_contents_does_not_pull_in_the_claude_md_counts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
-    assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/foo.test.sh"],
-        {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite 2\n",
-         SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": ""},
-    ) == (0, SUITES + "foo.test.sh\n", "")
-
-
-def test_a_range_that_adds_or_deletes_a_script_under_scripts_pulls_in_the_claude_md_counts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
-    touched = [SCRIPTS_REL + "bar.sh", SCRIPTS_REL + "newbie.sh", SCRIPTS_REL + "tests/newbie.test.sh"]
-    assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, touched,
-        {SCRIPTS_REL + "newbie.sh": "newbie\n", SCRIPTS_REL + "tests/newbie.test.sh": "",
-         SCRIPTS_REL + "tests/bar.test.sh": "", SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": ""},
-        counted=[SCRIPTS_REL + "bar.sh", SCRIPTS_REL + "newbie.sh", SCRIPTS_REL + "tests/newbie.test.sh"],
-    ) == (0, SUITES + "bar.test.sh\n" + SUITES + "newbie.test.sh\n" + COUNTS, "")
 
 
 def test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to_that_callers_suite(
@@ -1558,8 +1505,7 @@ def test_1138_a_suite_the_base_gained_after_the_branch_point_is_not_printed_only
 def foo_bar_repo_on_topic(tmp_path):
     repo = new_git_repo(tmp_path)
     plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
-                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n",
-                 SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n"})
+                 SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "tests/bar.test.sh": "# bar suite\n"})
     commit_all(repo, "base")
     sh_git(repo, "checkout", "-q", "-b", "topic")
     return repo
@@ -1583,30 +1529,6 @@ def test_1138_a_non_suite_file_the_base_changed_or_deleted_after_the_branch_poin
     commit_all(repo, "main changes a script and deletes a prompt")
     sh_git(repo, "checkout", "-q", "topic")
     assert topic_range(run_cli, affected, repo) == (0, SUITES + "foo.test.sh\n", "")
-
-
-@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
-def test_1138_a_suite_the_base_added_or_deleted_after_the_branch_point_does_not_pull_in_the_claude_md_counts_suite(
-        run_cli, affected, tmp_path):
-    repo = foo_bar_repo_on_topic(tmp_path)
-    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
-    commit_all(repo, "head")
-    sh_git(repo, "checkout", "-q", "main")
-    plant(repo, {SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
-    (repo / SCRIPTS_REL / "tests/bar.test.sh").unlink()
-    commit_all(repo, "main adds one suite and deletes another")
-    sh_git(repo, "checkout", "-q", "topic")
-    assert topic_range(run_cli, affected, repo) == (0, SUITES + "foo.test.sh\n", "")
-
-
-@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
-def test_1138_a_suite_the_branch_itself_deleted_is_not_printed(run_cli, affected, tmp_path):
-    repo = foo_bar_repo_on_topic(tmp_path)
-    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
-    (repo / SCRIPTS_REL / "tests/bar.test.sh").unlink()
-    commit_all(repo, "head")
-    assert topic_range(run_cli, affected, repo) == (
-        0, SUITES + "foo.test.sh\n" + SUITES + "py/unit/test_claude_md_counts.py\n", "")
 
 
 def working_tree_git(touched=(), untracked_=(), counted=(), counted_untracked=()):
@@ -1668,23 +1590,6 @@ def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, aff
     untracked_baz_suite(monkeypatch, tmp_path)
     code, out, err = run_cli(affected, ["base"], cwd=tmp_path)
     assert (code, SUITES + "baz.test.sh" in out.splitlines()) == (0, True)
-
-
-def test_working_tree_a_new_untracked_suite_also_prints_the_claude_md_counts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
-    untracked_baz_suite(monkeypatch, tmp_path,
-                        {SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n"})
-    assert run_cli(affected, ["base"], cwd=tmp_path) == (0, SUITES + "baz.test.sh\n" + COUNTS, "")
-
-
-def test_working_tree_a_committed_added_suite_with_no_untracked_file_still_prints_the_claude_md_counts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
-    monkeypatch.setattr(subprocess, "run", working_tree_git(
-        touched=[SCRIPTS_REL + "tests/baz.test.sh"], counted=[SCRIPTS_REL + "tests/baz.test.sh"]))
-    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "tests/foo.test.sh": "# foo suite\n",
-                     SCRIPTS_REL + "tests/py/unit/test_claude_md_counts.py": "# counts suite\n",
-                     SCRIPTS_REL + "tests/baz.test.sh": "# baz suite\n"})
-    assert run_cli(affected, ["base"], cwd=tmp_path) == (0, SUITES + "baz.test.sh\n" + COUNTS, "")
 
 
 def test_working_tree_with_nothing_changed_since_base_exits_3_and_prints_nothing(

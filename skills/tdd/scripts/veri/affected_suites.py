@@ -339,13 +339,6 @@ def main(argv):
         except Unplaced:
             unplaced.append(f)
 
-    counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
-    _, counted = changed(revisions, "--diff-filter=AD", *counting)
-    if working_tree and not counted:
-        _, counted = untracked(*counting)
-    if counted:
-        placed.append(SCRIPTS + "/tests/py/unit/test_claude_md_counts.py")
-
     if unplaced:
         print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
         placed = [p for p, _ in pytest_texts()]
