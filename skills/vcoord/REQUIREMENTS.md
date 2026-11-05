@@ -21,3 +21,4 @@
 | C17 | It runs `vmerge` and `vjudge` through a subagent on the cheapest model that can do the job, briefed to return at most 10 lines, reading the skill at `<base dir>/../<skill>/SKILL.md`. | The body stays out of a long-lived context. |
 | C18 | It loads `vhandoff` itself, by reading `<base dir>/../vhandoff/SKILL.md`. | It needs the role's own state. |
 | C19 | The optional first word names the lane: `/vcoord mu` runs every read and every launch with `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. It states the lane in its first line of output and names it in every message to the dev session. (Step 1.) | The dev session has to know which lane a message is about. |
+| SIB2 | Sibling skills are read from the real directory of the base dir (symlink resolved with `cd -P`/`realpath`), not from the path the harness reports. |
