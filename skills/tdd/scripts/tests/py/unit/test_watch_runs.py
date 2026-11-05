@@ -932,3 +932,35 @@ def test_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_wh
     assert (code, out) == (2, "")
     assert len(err.splitlines()) == 1 and "rate limit" in err.lower() and "reset" in err.lower()
     assert "HTTP 403" not in err and "user ID" not in err
+
+
+def test_main_with_target_and_max_wait_exits_2_at_once_naming_the_rate_limit_and_reset_when_the_reset_lies_beyond_the_deadline_2958(
+        monkeypatch, capsys, watch_runs):
+    epoch = 1_000_000
+    reset = epoch + 300
+    now = [0]
+
+    def run(argv, **kwargs):
+        if os.path.basename(argv[0]) == "gh":
+            return subprocess.CompletedProcess(argv, 0, stdout=str(reset) + "\n", stderr="")
+        return subprocess.CompletedProcess(
+            argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+
+    def wait():
+        now[0] += 2
+        if now[0] > 200:
+            raise RuntimeError("never exited")
+
+    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+
+    code = watch_runs.main(["--target", "2", "--max-wait", "10"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, now[0]) == (2, "", 2)
+    assert len(err.splitlines()) == 1 and "rate limit" in err.lower() and str(reset) in err
+    assert "HTTP 403" not in err and "user ID" not in err
