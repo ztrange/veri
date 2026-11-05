@@ -365,3 +365,14 @@ def test_flake_with_the_wrong_argument_count_exits_2_and_its_usage_line_names_fl
 
     assert (code, out) == (2, "")
     assert "suite-red-resume.sh flake" in err
+
+
+def test_usage_names_flake_beside_check_and_insert_each_with_its_arguments_for_a_no_argument_call_2946(run_cli):
+    module = importlib.import_module("veri.suite_red_resume")
+
+    code, out, err = run_cli(module, [])
+
+    assert (code, out) == (2, "")
+    assert "suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>" in err
+    assert "suite-red-resume.sh insert <ledger-file> <branch-red-file>" in err
+    assert "suite-red-resume.sh flake <at> <red-file> <alone-red-file>" in err
