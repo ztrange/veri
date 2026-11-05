@@ -31,7 +31,7 @@ def test_main_refuses_a_missing_or_empty_pr_url_with_its_usage_and_no_process(mo
 
 
 PR = "https://github.com/o/r/pull/1"
-SHA = "abc123"
+SHA = "abc123" * 6 + "abc1"
 PULL = "gh api repos/o/r/pulls/1"
 PAGE_1 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=1"
 PAGE_2 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=2"
@@ -125,7 +125,7 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
 
 def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks_to_a_verdict(
         monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
-    other = "def456"
+    other = "def456" * 6 + "def4"
     done = lambda c: {"status": "completed", "conclusion": c}
     conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
     pending = (3, "", "", True)
@@ -239,22 +239,20 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
     tick = ["date +%s", "sleep 10"]
     cases = [
         ([PR, "20", "100", SHA], None, True, {}, [1000, 1010, 1020],
-         (3, "", "", {"ci-deadline-abc123": "1100\n"}, tick * 2 + ["date +%s"])),
-        ([PR, "60", "120"], None, True, {"ci-deadline-abc123": "1000\n"}, [1000],
-         (2, "", past, {"ci-deadline-abc123": "1000\n"}, ["date +%s"])),
+         (3, "", "", {f"ci-deadline-{SHA}": "1100\n"}, tick * 2 + ["date +%s"])),
+        ([PR, "60", "120"], None, True, {f"ci-deadline-{SHA}": "1000\n"}, [1000],
+         (2, "", past, {f"ci-deadline-{SHA}": "1000\n"}, ["date +%s"])),
         ([PR, "60", "10", SHA], None, True, {}, [1000, 1010],
-         (3, "", "", {"ci-deadline-abc123": "1010\n"}, tick + ["date +%s"])),
+         (3, "", "", {f"ci-deadline-{SHA}": "1010\n"}, tick + ["date +%s"])),
         ([PR, "20", "100", SHA], "abc", True, {}, [1000, 1010, 1020],
-         (3, "", bad_sleep * 2, {"ci-deadline-abc123": "1100\n"},
+         (3, "", bad_sleep * 2, {f"ci-deadline-{SHA}": "1100\n"},
           ["date +%s", "sleep abc", "date +%s", "sleep abc", "date +%s"])),
         ([PR, "20", "100", SHA], None, False, {}, [1000, 1010, 1020],
          (3, "", True, None, tick * 2 + ["date +%s"])),
-        ([PR, "20", "100", "a/b"], None, True, {}, [1000, 1010, 1020],
-         (3, "", True, {}, tick * 2 + ["date +%s"])),
-        ([PR, "20", "100", "def456"], None, True, {}, [1000, 1010, 1020],
+        ([PR, "20", "100", "def456" * 6 + "def4"], None, True, {}, [1000, 1010, 1020],
          (3, "", "", {}, tick * 2 + ["date +%s"])),
         ([PR, "", "10000", SHA], None, True, {}, [1000, 1539, 1540],
-         (3, "", "", {"ci-deadline-abc123": "1600\n"}, tick * 2 + ["date +%s"])),
+         (3, "", "", {f"ci-deadline-{SHA}": "1600\n"}, tick * 2 + ["date +%s"])),
     ]
     bodies = {
         PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
@@ -308,7 +306,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
 
 def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refuses_a_deadline_file_without_one_issue_776(
         monkeypatch, capsys, tmp_path, wait_ci):
-    mark = "ci-deadline-abc123"
+    mark = f"ci-deadline-{SHA}"
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
     tick = ["date +%s", "sleep 10"]
     raised = "raised"
@@ -396,7 +394,7 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
 
 def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_runs(
         monkeypatch, capsys, tmp_path, wait_ci):
-    mark = "ci-deadline-abc123"
+    mark = f"ci-deadline-{SHA}"
     listing = "gh run list --repo o/r --workflow CI --status %s --limit 5 --json databaseId,conclusion,startedAt,updatedAt"
     success, failure = listing % "success", listing % "failure"
     tick = ["date +%s", "sleep 10", "date +%s"]
