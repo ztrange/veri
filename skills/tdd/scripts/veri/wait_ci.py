@@ -161,6 +161,10 @@ def epoch():
     return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
 
 
+def deadline_mark(key):
+    return ".tdd/ci-deadline-" + key
+
+
 def before_deadline(mark):
     try:
         with open(mark) as found:
@@ -231,7 +235,7 @@ def main(argv):
                 traceback.print_exc()
         if state is None:
             unread += 1
-            if unread >= UNREAD_LIMIT and not before_deadline(".tdd/ci-deadline-" + (want or head)):
+            if unread >= UNREAD_LIMIT and not before_deadline(deadline_mark(want or head)):
                 return unreadable(head or pr)
             subprocess.run(["sleep", str(int(backoff) * 2 ** (unread - 1)) if backoff else poll])
             continue
@@ -261,7 +265,7 @@ def main(argv):
         if slice_end is None:
             try:
                 slice_end = now + arith(span, scope)
-                if mismatched and os.path.dirname(".tdd/ci-deadline-" + want) != ".tdd":
+                if mismatched and os.path.dirname(deadline_mark(want)) != ".tdd":
                     warn("head-sha %s cannot name a deadline file" % want)
             except ArithError as error:
                 warn(error)
@@ -285,7 +289,7 @@ def main(argv):
         if not deadline:
             try:
                 key = want or head
-                mark = ".tdd/ci-deadline-" + key
+                mark = deadline_mark(key)
                 inherited = os.path.exists(mark)
                 if inherited:
                     try:
