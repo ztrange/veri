@@ -174,3 +174,38 @@ def _cases(text):
             body = _DECORATORS.sub("", body.rstrip()).rstrip()
         cases.append((m.group(1) or m.group(2) or _unescaped(m.group(4)), body))
     return cases
+
+
+def cut_prefix(case):
+    return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
+
+
+def _js_title_pattern(case):
+    prefix = cut_prefix(case)
+    gap = "(?:(?!\\1).)*"
+    if prefix is not None:
+        title = "(%s%s)" % (re.escape(prefix), gap)
+    else:
+        title = "(%s)" % gap.join(re.escape(part) for part in re.split(r"…|\.\.\.", case))
+    return re.compile(CALL + r"(['\"])" + title + r"\1")
+
+
+def defined_name(case, text, py_file, go_file):
+    cut = cut_prefix(case)
+    if go_file and case.startswith("Test"):
+        match = re.search(r"func (%s)\(" % re.escape(case), text)
+    elif py_file and case.startswith("test_"):
+        pattern = r"def (%s\w*)\(" % re.escape(cut) if cut else r"def (%s)\(" % re.escape(case)
+        match = re.search(pattern, text)
+    else:
+        return None
+    return match.group(1) if match else None
+
+
+def live_titles(case, text):
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+
+    def code(prefix):
+        return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
+    return [m.group(2) for m in _js_title_pattern(case).finditer(text)
+            if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
