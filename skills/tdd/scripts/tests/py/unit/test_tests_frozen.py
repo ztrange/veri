@@ -1152,6 +1152,17 @@ def test_cases_cuts_a_vitest_case_holding_a_regex_literal_with_a_quote_at_its_ow
     assert cases["a"].endswith("toBe('its'); })") and "it('b'" not in cases["a"] and "b" in cases
 
 
+def test_cases_keeps_division_a_division_and_reads_a_regex_literal_with_an_escaped_slash_or_a_class_holding_one_2970(tests_frozen):
+    text = (
+        "it('a', () => { expect(esc(x).replace(/a\\/'[/(]/gi, '')).toBe(4 / 2); });\n"
+        "it('b', () => { const q = 4 / 2; expect(q).toBe(2); });\n"
+    )
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("toBe(4 / 2); })") and cases["b"].endswith("toBe(2); })") and "it('b'" not in cases["a"]
+
+
 
 def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming_the_file_and_the_case_2970(
         tmp_path, run_cli, tests_frozen, monkeypatch):
