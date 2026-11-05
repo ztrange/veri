@@ -80,7 +80,7 @@ def _refused(argv):
 
 def main(argv):
     alone = None
-    if len(argv) >= 4 and argv[-2] == "--alone":
+    if argv[:1] == ["wait"] and len(argv) >= 4 and argv[-2] == "--alone":
         alone, argv = argv[-1], argv[:-2]
     if _refused(argv):
         print(USAGE, file=sys.stderr)

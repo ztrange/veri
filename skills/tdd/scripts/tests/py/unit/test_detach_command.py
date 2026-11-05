@@ -599,3 +599,21 @@ def test_wait_alone_reruns_through_the_shared_rerun_alone_helper_so_breaking_it_
     monkeypatch.setattr(detach_command.rerun_alone, "main", lambda argv: 1)
 
     assert run("wait", "red", "--alone", "true") == (1, "1\n", "")
+
+
+def test_start_passes_a_trailing_alone_and_its_value_to_the_command_unchanged_2955(
+        tmp_path, monkeypatch, run, detach_command):
+    launches = []
+
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, args, **kwargs):
+            launches.append(args)
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+    code = run("start", "x", "sh", "-c", 'printf %s "$*"', "_", "--alone", "x")[0]
+
+    assert (code, [args[4:] for args in launches]) == (
+        0, [["sh", "-c", 'printf %s "$*"', "_", "--alone", "x"]])
