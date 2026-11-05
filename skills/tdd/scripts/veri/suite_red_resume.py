@@ -59,14 +59,14 @@ def insert(ledger, branch_file):
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
+    graded_only = set(suites(text)) <= GRADE_SUITES
+    owed = prose_owed.owed_listed()[0] if graded_only else []
     if unchecked and "⟦skill-edit⟧" in unchecked[0]:
-        owed, _ = prose_owed.owed_listed()
-        if set(suites(text)) <= GRADE_SUITES and any(unit in unchecked[0] for _, unit in owed):
+        if graded_only and any(unit in unchecked[0] for _, unit in owed):
             return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
-    if set(suites(text)) <= GRADE_SUITES:
-        owed, _ = prose_owed.owed_listed()
+    if graded_only:
         pinned = [unit for _, unit in owed if all(unit in red for red in reds)]
         if pinned:
             step = f"fix the full-suite failure by editing `{pinned[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
