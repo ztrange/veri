@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/test_tests_frozen_process.py
 command 362
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpvv057ff_/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_0_for_a_python_case_whose_module_level_helper_precedes_a_second_case_whose_assertion_is_then_edited_2931
 
+before 40
+27a039727f705706f87075bdc721c8f2aa5af7f6
+keep 56
+skills/tdd/scripts/tests/py/test_tests_frozen_process.py
+command 377
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpvv057ff_/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_for_a_python_case_whose_module_level_helper_precedes_a_second_case_after_an_assertion_is_deleted_from_the_helper_2931
+
