@@ -60,3 +60,10 @@ skills/tdd/scripts/tests/py/test_full_tier_time_process.py
 command 337
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeho1hzmb/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_full_tier_time_process.py make test TESTS=skills/tdd/scripts/tests/py/test_full_tier_time_process.py::test_record_from_a_subdirectory_of_the_main_tree_reads_back_from_a_subdirectory_of_a_linked_worktree
 
+before 40
+49ff82c603ebfa2b34700864b787bce795fcd416
+keep 69
+skills/tdd/scripts/tests/py/unit/test_preflight_baseline_full_tier.py
+command 257
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeho1hzmb/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_preflight_baseline_full_tier.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_baseline_full_tier.py
+
