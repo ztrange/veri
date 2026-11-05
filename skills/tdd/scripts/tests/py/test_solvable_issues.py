@@ -549,6 +549,16 @@ def test_cli_lets_a_blocker_inherit_priority_bug_through_an_unlabelled_unopted_m
     assert (code, out) == (0, "30\n10\n")
 
 
+def test_cli_lets_an_opted_in_blocker_of_an_unopted_priority_bug_print_ahead_of_a_lower_numbered_priority_issue_and_a_bug(tmp_path, monkeypatch, run_cli, solvable_issues):
+    held = dict(labelled(50, "bug", "priority"), body="## Blocked by\n\n- #30\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        labelled(10, "priority", "ready-for-agent"), labelled(20, "bug", "ready-for-agent"), opted_in(30), held])
+
+    code, out, _ = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert (code, out) == (0, "30\n10\n20\n")
+
+
 def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
         opted_in(210), labelled(215, "ready-for-agent", "bug", "low-risk"), opted_in(220), labelled(225, "ready-for-agent", "bug"),
