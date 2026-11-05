@@ -1,0 +1,6 @@
+# Plan for #2931 — PRD 017.1: check-earlier: a module-level Python helper's body must end at the next def, not swallow later cases
+
+- [ ] In a tmp_path git repo (a process case, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py), a module-level Python test file whose recorded case test_a's inline assertions a refactor: commit moved into a module-level helper assert_refused defined before a second case test_b, with .tdd/verdict-refactor.exit holding 0: rerecord-refactored <ledger> <green-sha> exits 0 printing no skipped: line for test_a, and check-earlier then exits 0 ⟦criterion 1⟧
+- [ ] Same module-level shape after that successful re-record (a process case, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py), then an edit to an assertion in test_b alone: check-earlier still exits 0 for test_a's record ⟦criterion 2⟧
+- [ ] Same module-level shape after that successful re-record (a process case, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py), then an assertion deleted from the module-level helper assert_refused: check-earlier exits 1 ⟦criterion 3⟧
+- [ ] Go-red control: with the end of a Python helper's body restored to end-of-file in tests_frozen.py, the first criterion's case goes red, then the code is restored ⟦human-owed⟧ ⟦criterion 4⟧
