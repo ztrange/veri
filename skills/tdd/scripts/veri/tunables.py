@@ -56,16 +56,17 @@ def kill_poll(raw):
     return float(raw)
 
 
-def rebased_tip_suite(raw):
-    if raw not in ("local", "ci"):
-        raise ValueError
-    return raw
+def choice(*allowed):
+    def parse(raw):
+        if raw not in allowed:
+            raise ValueError
+        return raw
+
+    return parse
 
 
-def baseline_full_tier(raw):
-    if raw not in ("run", "reuse"):
-        raise ValueError
-    return raw
+rebased_tip_suite = choice("local", "ci")
+baseline_full_tier = choice("run", "reuse")
 
 
 class Tunable:
