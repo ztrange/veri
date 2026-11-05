@@ -1101,6 +1101,26 @@ def test_main_keeps_reading_through_http_5xx_failures_until_the_deadline_passes_
         f"wait-ci.sh: could not read the checks of {FULL_SHA}\n")) == (2, True, True)
 
 
+def test_main_returns_the_answer_of_a_read_that_succeeds_after_more_than_three_http_5xx_failures_before_the_deadline_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+
+    def unavailable_five_times(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            if len(status_reads) <= 5:
+                return (1, "", "gh: HTTP 503: Service Unavailable\n")
+
+    served(fake_processes, bodies, unavailable_five_times)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads)) == (0, 6)
+
+
 def test_main_resets_the_failed_read_count_on_a_successful_poll_so_alternating_failures_never_end_the_wait_issue_1553(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
