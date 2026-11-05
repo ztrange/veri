@@ -3,13 +3,14 @@ import re
 
 DEF = re.compile(r"^([ \t]*)def[ \t]+(test_\w+)")
 GO_FUNC = re.compile(r"^()func[ \t]+(Test\w+)")
+JS_CASE = re.compile(r"""^([ \t]*)(?:it|test)\(["'`]([^"'`]+)["'`]""")
 
 
 def case_texts(source):
     lines = source.splitlines()
     texts = {}
     for start, line in enumerate(lines):
-        found = DEF.match(line) or GO_FUNC.match(line)
+        found = DEF.match(line) or GO_FUNC.match(line) or JS_CASE.match(line)
         if not found:
             continue
         end = start + 1
