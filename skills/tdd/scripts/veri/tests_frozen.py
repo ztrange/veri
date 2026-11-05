@@ -14,7 +14,7 @@ import tunables
 from entry import write
 from frozen_record import _pass_marker_path, _remove_pass_marker, _step_key, _work_tree_hash, _write_pass_marker
 from ledger import KIND_RE, carries_mark, trailing_markers
-from case_reader import _cases, _old_cut_cases_all, is_js_test_file, is_test_path
+from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
@@ -728,8 +728,11 @@ def main(argv):
                 if files:
                     lines.append("format: 2\n")
                 for name in files:
-                    added = _added_cases(name)
-                    kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
+                    try:
+                        added = _added_cases(name)
+                        kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
+                    except UnclosedCase as error:
+                        raise LookupError("%s: %s" % (name, error))
                     if _recorded_digests(record, name) and not kept and not added:
                         write(sys.stderr, "tests-frozen.sh: step %s: every case recorded for %s is gone from HEAD "
                               "with no renamed successor: nothing left to record\n" % (step, name))
