@@ -213,12 +213,14 @@ def pytest_cases(sha):
     cases = set()
     for path in listed.stdout.decode().splitlines():
         name = path.rsplit("/", 1)[-1]
-        if not (name.startswith("test_") and name.endswith(".py")):
+        go = name.endswith("_test.go")
+        if not go and not (name.startswith("test_") and name.endswith(".py")):
             continue
         shown = git("show", "%s:%s" % (sha, path))
         if shown.returncode != 0:
             return None
-        for case in re.findall(r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)", shown.stdout.decode(), re.M):
+        pattern = r"^func[ \t]+(Test\w+)" if go else r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)"
+        for case in re.findall(pattern, shown.stdout.decode(), re.M):
             cases.add((path, case))
     return cases
 

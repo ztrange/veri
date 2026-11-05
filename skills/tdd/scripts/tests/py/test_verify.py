@@ -3504,3 +3504,43 @@ def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_
     prompt = launched[0][1] if launched else ""
     assert (code, "- second criterion" in prompt, "- third criterion" in prompt,
             "- first criterion" in prompt) == (0, True, True, False), prompt
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_a_go_test_func_removed_from_a_test_go_file(
+        run_cli, tmp_path, monkeypatch):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "pkg").mkdir()
+    (repo / "pkg" / "start_test.go").write_text("package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n")
+    branch_base = commit("branch base")
+    (repo / "pkg" / "start_test.go").write_text(
+        "package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n\nfunc TestDropped2897(t *testing.T) {\n\tif 3 != 3 {\n\t\tt.Fatal()\n\t}\n}\n")
+    step_base = commit("an earlier step adds TestDropped2897")
+    (repo / "pkg" / "start_test.go").write_text("package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n")
+    commit("this step removes TestDropped2897")
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
+                 str(tmp_path / "spec.md"), branch_base, step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, out.strip(), started.exists()) == (
+        1, "step deleted pytest cases an earlier step added: pkg/start_test.go::TestDropped2897", False)
