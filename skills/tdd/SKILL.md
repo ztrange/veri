@@ -1623,8 +1623,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
-   green, and the wait is `wait-ci.sh`, one bounded slice per Bash call, given the sha just
-   pushed (`git rev-parse HEAD`) so a rollup still reporting the previous head reads as pending: its exit 3 means a
+   green, and the wait is `wait-ci.sh`, one bounded slice per Bash call, given the full 40-hex sha just
+   pushed (`git rev-parse HEAD`; an abbreviated one exits 2) so a rollup still reporting the previous head reads as pending: its exit 3 means a
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
    pending past the deadline its first call recorded, checks still queued `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or `gh` unable to read the checks until that deadline (a 4xx other than 403 or 429 at once) — does
    **bail**, with cause `ci-timeout`, rather than waiting on (`Read` `<base directory>/BAIL.md`).

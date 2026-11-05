@@ -339,7 +339,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]` — **wait one bounded slice
   for a PR's checks**, then be called again: *4. Draft PR*'s CI wait. Reads the check runs and
   commit statuses of the PR's head; given `<head-sha>`, a PR still reporting another head reads
-  as pending. `<slice-seconds>` (default and cap 540) bounds this call; `<total-seconds>` (cap
+  as pending; a `<head-sha>` that is not a full 40-hex sha exits 2 with one stderr line. `<slice-seconds>` (default and cap 540) bounds this call; `<total-seconds>` (cap
   600) bounds the whole wait, and when it is not given it is twice the mean of the last 5
   completed CI runs, capped at 600; 540 when fewer than 5 exist or `gh` cannot answer; the
   slice length when reading them fails otherwise. The deadline does not run only while every
