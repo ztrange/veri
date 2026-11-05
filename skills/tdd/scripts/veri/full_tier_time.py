@@ -4,8 +4,30 @@ import json
 import os
 import sys
 
-RECORD = ".tdd/full-tier-time.json"
 USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
+
+
+def main_tree(start):
+    directory = os.path.abspath(start)
+    while True:
+        dotgit = os.path.join(directory, ".git")
+        if os.path.isdir(dotgit):
+            return directory
+        if os.path.isfile(dotgit):
+            with open(dotgit) as f:
+                gitdir = f.read().strip().removeprefix("gitdir:").strip()
+            gitdir = os.path.join(directory, gitdir)
+            with open(os.path.join(gitdir, "commondir")) as f:
+                common = os.path.join(gitdir, f.read().strip())
+            return os.path.dirname(os.path.normpath(common))
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return os.path.abspath(start)
+        directory = parent
+
+
+def record_path():
+    return os.path.join(main_tree(os.getcwd()), ".tdd", "full-tier-time.json")
 
 
 def refuse():
@@ -19,13 +41,15 @@ def main(argv):
     if argv[0] == "--record":
         if len(argv) < 3 or not argv[1].isascii() or not argv[1].isdigit():
             return refuse()
-        os.makedirs(".tdd", exist_ok=True)
-        with open(RECORD, "w") as f:
+        record = record_path()
+        os.makedirs(os.path.dirname(record), exist_ok=True)
+        with open(record, "w") as f:
             json.dump({argv[2]: argv[1]}, f)
         return 0
-    if not os.path.exists(RECORD):
+    record = record_path()
+    if not os.path.exists(record):
         return 3
-    with open(RECORD) as f:
+    with open(record) as f:
         times = json.load(f)
     if argv[0] not in times:
         return 3

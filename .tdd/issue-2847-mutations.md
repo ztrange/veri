@@ -53,3 +53,10 @@ new 0
 command 174
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_full_tier_time.py::test_main_asked_to_record_non_ascii_digit_seconds_prints_the_usage_line_and_exits_2_recording_nothing
 
+before 40
+49ff82c603ebfa2b34700864b787bce795fcd416
+keep 58
+skills/tdd/scripts/tests/py/test_full_tier_time_process.py
+command 337
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeho1hzmb/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_full_tier_time_process.py make test TESTS=skills/tdd/scripts/tests/py/test_full_tier_time_process.py::test_record_from_a_subdirectory_of_the_main_tree_reads_back_from_a_subdirectory_of_a_linked_worktree
+
