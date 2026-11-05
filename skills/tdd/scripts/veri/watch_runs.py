@@ -136,6 +136,9 @@ def main(argv):
                 if resume_at is None:
                     sys.stderr.write("gh rate limit exceeded and no reset time could be obtained\n")
                     return 2
+                if deadline is not None and resume_at - time.time() > deadline - clock():
+                    sys.stderr.write("gh rate limit exceeded; resets at %d, beyond --max-wait\n" % resume_at)
+                    return 2
                 solvable = []
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
