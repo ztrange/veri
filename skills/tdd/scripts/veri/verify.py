@@ -206,21 +206,34 @@ def no_verdict_budget(value):
     return int(value)
 
 
+CASE_PATTERNS = (
+    ("_test.go", r"^func[ \t]+(Test\w+)"),
+    (".test.js", r"^[ \t]*it\([ \t]*\"([^\"]+)"),
+)
+PY_CASE_PATTERN = r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)"
+
+
+def case_pattern(name):
+    for suffix, pattern in CASE_PATTERNS:
+        if name.endswith(suffix):
+            return pattern
+    if name.startswith("test_") and name.endswith(".py"):
+        return PY_CASE_PATTERN
+    return None
+
+
 def pytest_cases(sha):
     listed = git("ls-tree", "-r", "--name-only", sha)
     if listed.returncode != 0:
         return None
     cases = set()
     for path in listed.stdout.decode().splitlines():
-        name = path.rsplit("/", 1)[-1]
-        go = name.endswith("_test.go")
-        js = name.endswith(".test.js")
-        if not go and not js and not (name.startswith("test_") and name.endswith(".py")):
+        pattern = case_pattern(path.rsplit("/", 1)[-1])
+        if pattern is None:
             continue
         shown = git("show", "%s:%s" % (sha, path))
         if shown.returncode != 0:
             return None
-        pattern = r"^func[ \t]+(Test\w+)" if go else r"^[ \t]*it\([ \t]*\"([^\"]+)" if js else r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)"
         for case in re.findall(pattern, shown.stdout.decode(), re.M):
             cases.add((path, case))
     return cases
