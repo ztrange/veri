@@ -1177,3 +1177,20 @@ def test_record_over_a_js_case_whose_closing_paren_lies_past_its_describe_block_
     code, out, err = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)
 
     assert (code, "a.test.ts" in err, "runs past the block" in err, "Traceback" in err) == (2, True, True, False)
+
+
+def test_cases_gives_a_balanced_vitest_case_with_no_paren_in_a_literal_or_comment_the_same_body_as_before_2970(tests_frozen):
+    text = (
+        'describe("names", () => {\n'
+        '  it("balanced", () => {\n'
+        "    expect(add(1, 2)).toBe(3);\n"
+        "  });\n"
+        '  it("second", () => {\n'
+        "    expect(2).toBe(2);\n"
+        "  });\n"
+        "});\n"
+    )
+
+    body = dict(tests_frozen._cases(text))["balanced"]
+
+    assert body.endswith("expect(add(1, 2)).toBe(3);\n  })") and "second" not in body
