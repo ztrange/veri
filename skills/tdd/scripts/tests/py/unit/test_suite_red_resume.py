@@ -356,3 +356,12 @@ def test_insert_still_adds_the_suite_repair_step_when_the_first_unchecked_skill_
 
     assert code == 0
     assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+
+
+def test_flake_with_the_wrong_argument_count_exits_2_and_its_usage_line_names_flake_2946(run_cli):
+    module = importlib.import_module("veri.suite_red_resume")
+
+    code, out, err = run_cli(module, ["flake", "only-one-arg"])
+
+    assert (code, out) == (2, "")
+    assert "suite-red-resume.sh flake" in err

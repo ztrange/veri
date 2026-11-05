@@ -16,7 +16,8 @@ except ImportError:
 
 USAGE = (
     "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>\n"
-    "       suite-red-resume.sh insert <ledger-file> <branch-red-file>"
+    "       suite-red-resume.sh insert <ledger-file> <branch-red-file>\n"
+    "       suite-red-resume.sh flake <at> <red-file> <alone-file>"
 )
 SEPARATOR = " — "
 GRADE_SUITES = {"test_prd_015_prose_signed.py", "test_prd_016_short_names.py"}
