@@ -878,3 +878,37 @@ def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_
     assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
     assert all(epoch + t >= reset for t in after_refusal) and len(reads) == 2
     assert [b - a for a, b in zip(ticks[1:], ticks[2:])] == [2] * (len(ticks) - 2)
+
+
+def test_main_with_target_waits_for_the_rate_limit_reset_after_an_http_429_refusal_as_after_a_403_2958(
+        monkeypatch, capsys, watch_runs):
+    epoch = 1_000_000
+    reset = epoch + 32
+    now = [0]
+    reads = []
+
+    def run(argv, **kwargs):
+        if os.path.basename(argv[0]) == "gh":
+            return subprocess.CompletedProcess(argv, 0, stdout=str(reset) + "\n", stderr="")
+        reads.append(now[0])
+        if epoch + now[0] < reset:
+            return subprocess.CompletedProcess(
+                argv, 2, stdout="", stderr="gh: Too many requests: API rate limit exceeded (HTTP 429)\n")
+        return subprocess.CompletedProcess(argv, 0, stdout="12 title\n", stderr="")
+
+    def wait():
+        now[0] += 2
+        if now[0] > 200:
+            raise RuntimeError("never printed slot-free")
+
+    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
+
+    code = watch_runs.main(["--target", "2"])
+
+    assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
+    assert len(reads) == 2 and epoch + reads[1] >= reset
