@@ -1,0 +1,2 @@
+### After tick-ledger.sh ticks an ⟦added⟧ step, .tdd/issue-<n>-added.md shows that step's line as - [x], every other line of the file byte-identical, and ledger-growth.sh gives the same verdict as before on the same ledger (a case in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, driven in-process with run_cli) ⟦criterion 1⟧
+- test-only | the second #2976 case in test_tick_ledger.py assigns `added = tmp_path / "issue-7-added.md"` before the loop, and the loop immediately overwrites it, so the assignment is dead
