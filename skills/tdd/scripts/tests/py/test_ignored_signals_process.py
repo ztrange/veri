@@ -1,4 +1,5 @@
 """A pytest run started with INT, TERM and HUP ignored still delivers the signals its cases send."""
+import ast
 import os
 import pathlib
 import subprocess
@@ -17,6 +18,17 @@ DETACH_CASE = ("test_detach_leaf.py::test_main_launches_a_child_that_writes_its_
 
 def test_the_child_session_wait_outlasts_25_s_and_ends_inside_a_process_cases_timeout_2910():
     assert 25 < CHILD_SESSION_WAIT < PROCESS_CASE_TIMEOUT
+
+
+def test_every_subprocess_run_in_this_module_waits_for_the_child_session_wait_name_2941():
+    tree = ast.parse(pathlib.Path(__file__).read_text())
+    calls = [node for node in ast.walk(tree)
+             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "run"
+             and isinstance(node.func.value, ast.Name) and node.func.value.id == "subprocess"]
+    waits = {node.lineno: [ast.unparse(kw.value) for kw in node.keywords if kw.arg == "timeout"] for node in calls}
+
+    assert len(waits) >= 3
+    assert {line: wait for line, wait in waits.items() if wait != ["CHILD_SESSION_WAIT"]} == {}
 
 
 @pytest.mark.process("a child pytest session started with SIGINT, SIGTERM and SIGHUP ignored, running a real signal case")
