@@ -34,12 +34,14 @@ For attempt `k = 1 … REVISE_BUDGET`:
    (attempt `k-1` was rejected for the same reason it was revising) go to the `develop-exhausted` leaf
    without posting attempt `k`'s comment, writing its `revise` mark or launching it; on exit 1 or
    exit 2 continue the revise loop as today.
-2. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
-   the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
+2. **Mirror.** First build the revise prompt with step 3's `build-develop-prompt.sh revise <phase>`
+   line. On its **exit 2** post no comment, write no `revise` mark, launch no leaf and **bail** as a
+   system failure. Only on exit 0 post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment
+   carrying the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
-3. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
+3. **Fresh developer leaf.** The revise prompt, built first in the Mirror step from the `revise` template, names the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
    *Launching a leaf*). When `<phase>` is red, first run `$S/restore-production.sh <test-path>` (the
