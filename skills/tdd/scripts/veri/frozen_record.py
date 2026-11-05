@@ -16,6 +16,14 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % _step_key(step)
 
 
+def recorded_cases(step):
+    try:
+        with open(_record_path(step), encoding="utf-8", errors="replace") as handle:
+            return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
+    except OSError:
+        return set()
+
+
 def _body_digest(body):
     return hashlib.sha256(body.encode()).hexdigest()
 

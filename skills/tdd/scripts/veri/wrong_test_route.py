@@ -1,12 +1,12 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
+import frozen_record
 from case_reader import cut_prefix, defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
 import sys
-import tests_frozen
 import tunables
 from entry import write
 
@@ -120,11 +120,7 @@ def route(report, own_id):
 
 
 def _recorded_cases(step):
-    try:
-        with open(tests_frozen._record_path(step), encoding="utf-8", errors="replace") as handle:
-            return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
-    except OSError:
-        return set()
+    return frozen_record.recorded_cases(step)
 
 
 def _recorded(report, step, own_id):
