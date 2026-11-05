@@ -1431,3 +1431,21 @@ def test_main_not_running_keeps_the_issue_2388_whose_live_run_conductor_py_has_n
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n6\n7\n")
+
+
+def test_cli_names_on_stderr_one_line_per_inherited_band_blocker_and_none_for_an_issue_in_its_own_band(tmp_path, monkeypatch, run_cli, solvable_issues):
+    held = dict(labelled(50, "bug", "priority"), body="## Blocked by\n\n- #30\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(10, "priority", "ready-for-agent"), opted_in(30), held])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "30\n10\n", "#30 inherits priority bug from #50\n")
+
+
+def test_cli_names_on_stderr_the_priority_band_for_a_blocker_of_only_a_priority_non_bug(tmp_path, monkeypatch, run_cli, solvable_issues):
+    held = dict(labelled(50, "priority"), body="## Blocked by\n\n- #30\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(30), held])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "30\n", "#30 inherits priority from #50\n")
