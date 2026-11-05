@@ -1001,3 +1001,16 @@ def test_cli_ticking_an_added_step_with_refactor_pending_ticks_the_first_still_o
     code = run_cli(tick_ledger, ["--refactor-pending", str(ledger), "reject a blank slug"])[0]
 
     assert (code, added.read_text()) == (0, done + done + other)
+
+
+def test_cli_ticking_an_added_step_ticks_only_the_first_of_two_still_open_added_lines_with_equal_step_text_2976(
+        tmp_path, run_cli, tick_ledger):
+    open_line = "- [ ] reject a blank slug ⟦added⟧ ⟦criterion 2⟧\n"
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + open_line)
+    added = tmp_path / "issue-7-added.md"
+    added.write_text(open_line + open_line)
+
+    code = run_cli(tick_ledger, [str(ledger), "reject a blank slug"])[0]
+
+    assert (code, added.read_text()) == (0, open_line.replace("- [ ]", "- [x]") + open_line)

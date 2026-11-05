@@ -4,6 +4,8 @@
 # Flips the first unchecked `- [ ]` step containing <matcher> to `- [x]`. --refactor-pending
 # also appends the pending mark to that same line in the same write. Ticking a ⟦diff-checked⟧ step
 # also runs tests-frozen.sh rerecord-earlier for it.
+# Ticking an ⟦added⟧ step also ticks the first still-open line of equal step text (cut at ' ⟂ ') in
+# issue-<n>-added.md, skipped when that file is missing.
 #
 # usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>
 # Exit:    0 a step ticked; 2 no <ledger-file>, it is a directory, the ledger could not be read, or the
