@@ -31,6 +31,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `.tdd/issue-*-mutations.md` record (an edit, a deletion, a new file) is undone and one
   `mutation-record-restored` event (`name=`, `file=`) goes to `events.jsonl` per record —
   only `mutation-probe` writes that record.
+  A refused launch exits 2, writes one `launch-refused` event (`name=`, `reason=`) naming the leaf
+  and starts no leaf. Causes: a `run-leaf.sh` launch whose prompt file is missing or empty, a
+  `run-leaf.sh` launch with no prompt argument, `VERI_STEP` set but empty, an empty `--step`
+  value, and a pending `.tdd/stop` of `at-leaf` or `now`.
 - `$S/detach-leaf.sh <cmd> [args...]` — **the detaching half of a detached launch.** Runs
   `<cmd>` as the leader of a **new session**, and so of a new process group, then returns at
   once. Every leaf launch below goes through it, and none uses `nohup` — *Launching a leaf*

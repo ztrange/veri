@@ -29,6 +29,10 @@ from pytest_leg import lock_wait_path
 
 HERE = paths.scripts_of(__file__)
 
+# A refused launch exits 2, writes one `launch-refused` event (name=, reason=) naming the leaf and
+# starts no leaf. Causes: a run-leaf.sh launch whose prompt file is missing or empty, a run-leaf.sh
+# launch with no prompt argument, VERI_STEP set but empty, an empty --step value, and a pending
+# .tdd/stop of at-leaf or now.
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
 
 
