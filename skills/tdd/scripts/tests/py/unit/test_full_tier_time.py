@@ -65,3 +65,12 @@ def test_main_asked_to_record_non_ascii_digit_seconds_prints_the_usage_line_and_
     assert (code, out) == (2, "")
     assert "usage: full-tier-time.sh [--record <seconds>] <command>" in err
     assert not (tmp_path / ".tdd" / "full-tier-time.json").exists()
+
+
+def test_main_asked_for_a_command_with_no_record_while_the_file_holds_another_commands_time_prints_nothing_and_exits_3(
+        tmp_path, run_cli, full_tier_time):
+    rec_code, _, _ = run_cli(full_tier_time, ["--record", "587", "make unit"], cwd=tmp_path)
+
+    code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+
+    assert (rec_code, code, out) == (0, 3, "")
