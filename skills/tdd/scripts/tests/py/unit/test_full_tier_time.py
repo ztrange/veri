@@ -74,3 +74,15 @@ def test_main_asked_for_a_command_with_no_record_while_the_file_holds_another_co
     code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
 
     assert (rec_code, code, out) == (0, 3, "")
+
+
+def test_main_recording_a_command_again_replaces_its_time_and_leaves_another_commands_time_unchanged(
+        tmp_path, run_cli, full_tier_time):
+    run_cli(full_tier_time, ["--record", "587", "make test"], cwd=tmp_path)
+    run_cli(full_tier_time, ["--record", "42", "make unit"], cwd=tmp_path)
+    run_cli(full_tier_time, ["--record", "601", "make test"], cwd=tmp_path)
+
+    replaced = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+    other = run_cli(full_tier_time, ["make unit"], cwd=tmp_path)
+
+    assert (replaced[0], replaced[1].strip(), other[0], other[1].strip()) == (0, "601", 0, "42")

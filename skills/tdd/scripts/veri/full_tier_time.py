@@ -43,8 +43,13 @@ def main(argv):
             return refuse()
         record = record_path()
         os.makedirs(os.path.dirname(record), exist_ok=True)
+        times = {}
+        if os.path.exists(record):
+            with open(record) as f:
+                times = json.load(f)
+        times[argv[2]] = argv[1]
         with open(record, "w") as f:
-            json.dump({argv[2]: argv[1]}, f)
+            json.dump(times, f)
         return 0
     record = record_path()
     if not os.path.exists(record):
