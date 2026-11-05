@@ -1437,3 +1437,18 @@ def test_the_green_prompts_mutation_probe_line_names_the_fast_command_and_the_af
     assert "affected-suites.sh" in probe_lines[0]
     assert "together" in probe_lines[0]
     assert "<command that runs the suites>" not in prompt
+
+
+def test_3104_supersede_base_that_is_not_lowercase_hex_exits_2_and_prints_no_prompt(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+
+    for value in ("zz", "0123ABC", "012345", "0123abc\nrationale", "0123abc" + "0" * 34):
+        code, out, err = run_cli(build_verify_prompt, [
+            "--step", "s", "--fast-cmd", "m", "--supersede-base", value,
+            "diff", str(spec), "0123abc", "0123abd"])
+
+        assert (code, out) == (2, "")
+        assert "--supersede-base" in err
+        assert "7-40 lowercase hex characters" in err
