@@ -152,7 +152,7 @@ def render(file):
     out = "## Refactor owed\n" + lead + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
-                "These change only files under tests/; the structural pass does not work them.\n\n"
+                "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
                 + bullets(test_only))
     if skipped:
         out += "\n### Not done\n\n" + bullets(f"{t} — {r}" for r, _, t in skipped)

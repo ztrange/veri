@@ -107,8 +107,8 @@ stub or harness whose script under test is correct. Its line shape is `- [ ] <cr
 the fixture '<fixture or stub name>' in <fixture file>, reproduced by a case in <test file>
 ⟦fixture-repair⟧ ⟦criterion k⟧`. REJECT a `⟦fixture-repair⟧` step whose spec places the defect in
 the script under test, one that names no fixture (a function, stub or helper, not a line range),
-and one whose fixture file is not a test file by `transform-touches-tests.sh`'s rule (under a
-`tests/` directory, or named `*.test.*`). Your reason names the step and which of the three it is.
+and one whose fixture file is not a test file by `transform-touches-tests.sh`'s rule
+(`case_reader.is_test_path`: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere). Your reason names the step and which of the three it is.
 
 REJECT a plan in which a step's behaviour can only be observed once a later step is built: a
 step asserting that an input is ignored, guarded or without effect ("even when X is left in

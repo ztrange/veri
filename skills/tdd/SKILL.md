@@ -1221,8 +1221,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    leaf's report. `append` records an in-step candidate exactly when its own cover leaf
    answered `COVERED: no`, and no other in-step candidate.
    `$touched` is the step's bounds: when all are test files, a structural candidate is
-   recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, under `tests/`
-   or named `*.test.*`, so no transform could land it.
+   recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, which is
+   `case_reader.is_test_path`'s: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere, so no transform could land it.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
