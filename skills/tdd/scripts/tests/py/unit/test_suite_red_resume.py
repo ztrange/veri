@@ -432,3 +432,22 @@ def test_insert_with_a_red_pinned_by_two_listed_units_at_once_adds_one_skill_edi
     assert len(unchecked) == 1 and "⟦skill-edit⟧" in unchecked[0]
     assert any(f"`{u}`" in unchecked[0] for u in units)
     assert "⟦suite-repair⟧" not in ledger.read_text()
+
+
+def test_insert_after_a_done_repair_skill_edit_step_with_a_red_naming_a_case_no_graded_unit_pins_exits_1_and_adds_no_suite_repair_step_3009(run_cli, tmp_path):
+    module = importlib.import_module("veri.suite_red_resume")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text(
+        "# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n"
+        "- [x] fix the full-suite failure by editing `skills/tdd/SCRIPTS.md`: test_prd_015_prose_signed.py — FAIL synopsis ⟦skill-edit⟧\n"
+    )
+    before = ledger.read_text()
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_unrelated_parser.py — FAIL parser broke\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 1
+    assert "⟦suite-repair⟧" not in ledger.read_text()
+    assert ledger.read_text() == before

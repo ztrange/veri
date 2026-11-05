@@ -59,6 +59,8 @@ def insert(ledger, branch_file):
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     unchecked = [line for line in steps if STEP_RE.fullmatch(line).group(2) == " "]
+    if any("fix the full-suite failure by editing" in line for line in steps if STEP_RE.fullmatch(line).group(2) != " "):
+        return 1
     graded_only = set(suites(text)) <= GRADE_SUITES
     owed = prose_owed.owed_listed()[0] if graded_only else []
     if unchecked and "⟦skill-edit⟧" in unchecked[0]:
