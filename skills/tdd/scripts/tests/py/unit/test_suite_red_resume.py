@@ -510,3 +510,12 @@ def test_insert_appends_a_step_that_ledger_steps_has_mark_skill_edit_finds_so_gr
     code = importlib.import_module("veri.ledger_steps").has_mark(records, "skill-edit")
 
     assert code == 0
+
+
+def test_usage_names_the_test_only_verb_beside_the_others_with_its_arguments_for_a_no_argument_call_3113(run_cli):
+    module = importlib.import_module("veri.suite_red_resume")
+
+    code, out, err = run_cli(module, [])
+
+    assert (code, out) == (2, "")
+    assert "suite-red-resume.sh test-only <base-sha> <alone-cmd> <suite>..." in err
