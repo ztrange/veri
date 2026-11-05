@@ -157,13 +157,17 @@ def unreadable(what):
     return 2
 
 
+def epoch():
+    return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
+
+
 def before_deadline(mark):
     try:
         with open(mark) as found:
             limit = int(found.read())
     except (OSError, ValueError):
         return False
-    return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout) < limit
+    return epoch() < limit
 
 
 def record(mark, deadline):
@@ -251,7 +255,7 @@ def main(argv):
             if failed:
                 print(failed)
             return 1
-        now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
+        now = epoch()
         scope["now"] = now
         if slice_end is None:
             try:
