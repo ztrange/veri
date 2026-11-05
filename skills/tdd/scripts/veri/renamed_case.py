@@ -17,6 +17,9 @@ def case_texts(source):
         while end < len(lines) and (not lines[end].strip()
                                     or len(lines[end]) - len(lines[end].lstrip()) > len(found.group(1))):
             end += 1
+        if JS_CASE.match(line) and end < len(lines) and lines[end][:1] in ("}", ")") \
+                and len(lines[end]) - len(lines[end].lstrip()) == len(found.group(1)):
+            end += 1
         first = start
         while first and lines[first - 1].lstrip().startswith("@"):
             first -= 1
