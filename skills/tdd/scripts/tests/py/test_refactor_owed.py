@@ -773,3 +773,12 @@ def test_append_records_only_the_in_step_candidate_whose_own_cover_answered_no_2
     monkeypatch.setattr(sys, "stdin", io.StringIO(report))
     code = refactor_owed.main(["append", str(owed), "step one", "a.sh,b.sh"])
     assert (code, owed.read_text().splitlines()) == (0, ["### step one", "- fold the uncovered pass"])
+
+
+def test_append_2893_records_a_structural_transform_test_only_when_the_bounds_are_go_and_js_spec_test_files(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | t\n"))
+    code = refactor_owed.main(["append", str(owed), "S", "pkg/x_test.go,src/foo.spec.ts"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- test-only | t\n")

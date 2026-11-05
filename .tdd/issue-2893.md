@@ -5,4 +5,4 @@
 - [x] `transform-touches-tests.sh` exits 1, naming the file, on a range changing `pkg/x_test.go`, and likewise on a range changing each of `src/foo.spec.ts`, `src/test_foo.py` and `pkg/foo_test.py` ⟦criterion 2⟧
 - [x] `production-frozen.sh` still exits 1, naming it, on a range changing `pkg/x.go` ⟦criterion 3⟧ ⟂ retired unpinnable
 - [x] `transform-touches-tests.sh` still exits 0 on a range changing only `pkg/x.go` ⟦criterion 3⟧ ⟂ retired unpinnable
-- [ ] `echo 'CANDIDATES: structural | t' | refactor-owed.sh append <file> S 'pkg/x_test.go,src/foo.spec.ts'` prints `- test-only | t`, as it already does for `src/a.test.js` ⟦criterion 4⟧
+- [x] `echo 'CANDIDATES: structural | t' | refactor-owed.sh append <file> S 'pkg/x_test.go,src/foo.spec.ts'` prints `- test-only | t`, as it already does for `src/a.test.js` ⟦criterion 4⟧
