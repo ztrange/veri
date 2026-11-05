@@ -21,3 +21,19 @@ new 13
 command 150
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_full_tier_time.py::test_main_called_with_no_argument_prints_the_usage_line_to_stderr_and_exits_2
 
+before 40
+49ff82c603ebfa2b34700864b787bce795fcd416
+keep 55
+skills/tdd/scripts/tests/py/unit/test_full_tier_time.py
+command 325
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpeho1hzmb/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_full_tier_time.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_full_tier_time.py::test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_with_a_stderr_line
+
+file 41
+skills/tdd/scripts/veri/full_tier_time.py
+old 30
+if not os.path.exists(RECORD):
+new 72
+if not os.path.exists(RECORD) or open(RECORD).read().startswith("{not"):
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_full_tier_time.py::test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_with_a_stderr_line
+
