@@ -1585,6 +1585,36 @@ def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_
     assert re.findall(r"\{\{[A-Z_]*\}\}", expected) == []
 
 
+def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judges_only_git_diff_of_that_sha(
+        run_cli, tmp_path, monkeypatch):
+    (tmp_path / "spec.md").write_text(SPEC)
+    sha = "abcdef1234567"
+    argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--supersede-base", sha,
+            "diff", str(tmp_path / "spec.md"), "0123abc", "0123abd"]
+    launched = answering_leaf(monkeypatch, GREEN)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    prompts = [" ".join(prompt.split()) for _, prompt in launched]
+    assert code == 0
+    assert len(prompts) == 1
+    assert f"git diff {sha}" in prompts[0]
+    assert "own recorded Red case" in prompts[0]
+
+
+def test_3104_verify_sh_names_the_leaf_verify_diff_when_supersede_base_precedes_the_diff_phase(
+        run_cli, tmp_path, monkeypatch):
+    (tmp_path / "spec.md").write_text(SPEC)
+    argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--supersede-base", "abcdef1234567", "diff", str(tmp_path / "spec.md"), "0123abc", "0123abd"]
+    launched = answering_leaf(monkeypatch, GREEN)
+    verify = importlib.import_module("veri.verify")
+
+    run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    assert [name for name, _ in launched] == ["verify-diff"]
+
+
 def git_state(repo):
     def git(*args):
         return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=True).stdout.decode()
