@@ -1,6 +1,6 @@
 # Plan for #2847 — A run can reuse a measured full-tier time instead of running the suite in preflight
 
-- [x] `VERI_BASELINE_FULL_TIER` set to any value but `run` or `reuse` makes `run-conductor.sh` exit 2 at launch, before any cycle, through a `tunables.TABLE` entry, its one stderr line naming the variable and the value; the Red's case goes in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `VERI_BASELINE_FULL_TIER` set to any value but `run` or `reuse` makes `run-conductor.sh` exit 2 at launch, before any cycle, through a `tunables.TABLE` entry, its one stderr line naming the variable and the value; the Red's case goes in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
 - [ ] `VERI_BASELINE_FULL_TIER` unset, read through `tunables.resolve`, resolves to `run` with no error; one case in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
 - [ ] `VERI_BASELINE_FULL_TIER=reuse`, read through `tunables.resolve`, resolves to `reuse` with no error; one case in `skills/tdd/scripts/tests/py/unit/test_tunables.py` ⟦criterion 1⟧
 - [ ] A new `skills/tdd/scripts/full-tier-time.sh` (a `/bin/sh` shim over a new `skills/tdd/scripts/veri/full_tier_time.py`, with a usage line `usage: full-tier-time.sh [--record <seconds>] <command>` and exit 2 when called with no argument) asked for a command that has no record prints nothing and exits 3; one case in a new `skills/tdd/scripts/tests/py/unit/test_full_tier_time.py` driving the CLI in-process with `run_cli` ⟦criterion 2⟧
