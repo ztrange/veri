@@ -1,7 +1,7 @@
 """wrong-test-route.sh's decision, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
-from case_reader import defined_name, live_titles, is_go_test_file, is_js_test_file, is_test_file
+from case_reader import defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
@@ -59,11 +59,6 @@ def _fixture(report, own_id):
     for name in _named_cases(report):
         if name.startswith(("test_", "Test")):
             continue
-        escaped = re.escape(name)
-        helper = re.compile(r"^def %s\(" % escaped, re.M)
-        js_helper = re.compile(
-            r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped), re.M)
-        go_helper = re.compile(r"^func %s\(" % escaped, re.M)
         for root, file, py_file, go_file, js_file in _test_files():
             if not py_file and not go_file and not js_file:
                 continue
@@ -71,7 +66,7 @@ def _fixture(report, own_id):
             if own_file is not None and os.path.normpath(path) != own_file:
                 continue
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if (helper if py_file else go_helper if go_file else js_helper).search(handle.read()):
+                if defines_helper(name, handle.read(), py_file, go_file):
                     return os.path.normpath(path), name
     return None
 
