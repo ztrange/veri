@@ -107,6 +107,11 @@ def main(argv):
         given[flag] = int(value[0])
     target = given.get("--target")
     max_wait = given.get("--max-wait")
+    interval = os.environ.get("VERI_WATCH_QUEUE_INTERVAL", "60")
+    if not _whole_number(interval):
+        print("VERI_WATCH_QUEUE_INTERVAL must be a whole number >= 1, got %r" % interval, file=sys.stderr)
+        return 2
+    interval = int(interval)
     started = live_conductors()
     seen = _seen()
     for issue in seen:
@@ -141,7 +146,7 @@ def main(argv):
                     return 2
                 solvable = []
             else:
-                resume_at = time.time() + int(os.environ.get("VERI_WATCH_QUEUE_INTERVAL", "60"))
+                resume_at = time.time() + interval
             if solvable:
                 print("slot-free %d/%d next %s" % (len(live), target, solvable[0]))
                 return 0

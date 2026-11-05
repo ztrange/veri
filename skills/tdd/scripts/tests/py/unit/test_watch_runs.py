@@ -1021,3 +1021,32 @@ def test_main_with_target_reads_the_queue_at_most_once_per_the_interval_VERI_WAT
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
     assert all(b - a >= 120 for a, b in zip(reads, reads[1:])) and len(reads) <= 6
+
+
+def test_main_exits_2_naming_VERI_WATCH_QUEUE_INTERVAL_before_any_listing_or_queue_read_when_it_is_not_a_whole_number_of_at_least_1_2958(
+        monkeypatch, capsys, watch_runs):
+    calls = []
+    now = [0.0]
+
+    def wait():
+        calls.append("wait")
+        now[0] += 4
+
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: calls.append("live") or [])
+    monkeypatch.setattr(watch_runs, "solvable_issues", lambda: calls.append("read") or [])
+    monkeypatch.setattr(watch_runs, "clock", lambda: now[0], raising=False)
+    monkeypatch.setattr(watch_runs, "wait", wait)
+
+    outcomes = []
+    for value in ("0", "-1", "abc", "", "1.5", "60s"):
+        monkeypatch.setenv("VERI_WATCH_QUEUE_INTERVAL", value)
+        calls.clear()
+        now[0] = 0.0
+        try:
+            code = watch_runs.main(["--target", "2", "--max-wait", "10"])
+        except ValueError:
+            code = "raised"
+        captured = capsys.readouterr()
+        outcomes.append((value, code, captured.out, "VERI_WATCH_QUEUE_INTERVAL" in captured.err, calls[:]))
+
+    assert outcomes == [(value, 2, "", True, []) for value, *_ in outcomes]
