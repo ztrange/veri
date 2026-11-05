@@ -427,7 +427,7 @@ def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_wideni
     fake_git_answering_nothing(monkeypatch)
     (tmp_path / "issues.json").write_text(json.dumps([
         opted_in(1), labelled(2, "ready-for-agent", "bug"), labelled(3, "ready-for-agent", "priority"),
-        labelled(4, "priority", "bug"), dict(blocked_by(5, "#1"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
+        labelled(4, "priority", "bug"), dict(blocked_by(5, "#10"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
         labelled(6, "ready-for-agent", "bug"), dict(labelled(7, "ready-for-agent", "priority"), state="CLOSED"),
         labelled(8, "ready-for-agent", "bug", "priority"), labelled(9, "ready-for-agent", "urgent"), labelled(10, "urgent")]))
     (tmp_path / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #6"}]))
@@ -537,6 +537,16 @@ def test_cli_prints_a_priority_bug_ahead_of_a_lower_numbered_priority_issue_and_
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
     assert answer == (0, "160\n170\n150\n120\n", "")
+
+
+def test_cli_lets_a_blocker_inherit_priority_bug_through_an_unlabelled_unopted_middle_issue_ahead_of_a_lower_numbered_priority_issue(tmp_path, monkeypatch, run_cli, solvable_issues):
+    middle = {"number": 40, "title": "issue 40", "state": "OPEN", "labels": [], "body": "## Blocked by\n\n- #30\n"}
+    held = dict(labelled(50, "bug", "priority", "ready-for-agent"), body="## Blocked by\n\n- #40\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(10, "priority", "ready-for-agent"), opted_in(30), middle, held])
+
+    code, out, _ = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert (code, out) == (0, "30\n10\n")
 
 
 def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):
