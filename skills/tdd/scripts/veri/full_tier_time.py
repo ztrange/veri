@@ -8,14 +8,17 @@ RECORD = ".tdd/full-tier-time.json"
 USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
 
 
+def refuse():
+    print(USAGE, file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if not argv:
-        print(USAGE, file=sys.stderr)
-        return 2
+        return refuse()
     if argv[0] == "--record":
         if len(argv) < 3 or not argv[1].isascii() or not argv[1].isdigit():
-            print(USAGE, file=sys.stderr)
-            return 2
+            return refuse()
         os.makedirs(".tdd", exist_ok=True)
         with open(RECORD, "w") as f:
             json.dump({argv[2]: argv[1]}, f)
