@@ -98,6 +98,28 @@ def solvable_in_scope():
     return solvable(label, priority)
 
 
+def inherit_bands(issues, blockers, bands):
+    """Lift `bands` in place to the best band of each issue's dependents; return {blocker: dependent that set it}."""
+    origin = {}
+    changed = True
+    while changed:
+        changed = False
+        for issue in issues:
+            for n in blockers[issue["number"]]:
+                if n in bands and bands[issue["number"]] < min(bands[n], 2):
+                    bands[n] = bands[issue["number"]]
+                    origin[n] = issue["number"]
+                    changed = True
+    return origin
+
+
+def report_inherited(ordered, bands, origin):
+    for issue in ordered:
+        n = issue["number"]
+        if n in origin:
+            print("#%d inherits %s from #%d" % (n, ("priority bug", "priority")[bands[n]], origin[n]), file=sys.stderr)
+
+
 def select(label, priority="priority", repo=None):
     """(exit code, the solvable issue numbers in selection order) for the opt-in <label>."""
     scope = ["--repo", repo] if repo else []
@@ -113,16 +135,7 @@ def select(label, priority="priority", repo=None):
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
     bands = {issue["number"]: band(issue, priority) for issue in issues}
-    origin = {}
-    changed = True
-    while changed:
-        changed = False
-        for issue in issues:
-            for n in blockers[issue["number"]]:
-                if n in bands and bands[issue["number"]] < min(bands[n], 2):
-                    bands[n] = bands[issue["number"]]
-                    origin[n] = issue["number"]
-                    changed = True
+    origin = inherit_bands(issues, blockers, bands)
     main_tree = main_working_tree()
     survivors = [issue for issue in issues
                  if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
@@ -131,10 +144,7 @@ def select(label, priority="priority", repo=None):
     if not survivors:
         return 3, []
     ordered = sorted(survivors, key=lambda issue: (bands[issue["number"]], issue["number"]))
-    for issue in ordered:
-        n = issue["number"]
-        if n in origin:
-            print("#%d inherits %s from #%d" % (n, ("priority bug", "priority")[bands[n]], origin[n]), file=sys.stderr)
+    report_inherited(ordered, bands, origin)
     return 0, [issue["number"] for issue in ordered]
 
 
