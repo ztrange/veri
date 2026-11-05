@@ -42,3 +42,26 @@ def test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_
 
     assert (code, out) == (2, "")
     assert err.strip() != ""
+
+
+@pytest.mark.parametrize("argv", [
+    ["--record", "12.5", "make test"],
+    ["--record", "-3", "make test"],
+    ["--record", "12"],
+], ids=["fractional-seconds", "negative-seconds", "no-command"])
+def test_main_asked_to_record_bad_seconds_or_no_command_prints_the_usage_line_and_exits_2_recording_nothing(
+        tmp_path, run_cli, full_tier_time, argv):
+    code, out, err = run_cli(full_tier_time, argv, cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "usage: full-tier-time.sh [--record <seconds>] <command>" in err
+    assert not (tmp_path / ".tdd" / "full-tier-time.json").exists()
+
+
+def test_main_asked_to_record_non_ascii_digit_seconds_prints_the_usage_line_and_exits_2_recording_nothing(
+        tmp_path, run_cli, full_tier_time):
+    code, out, err = run_cli(full_tier_time, ["--record", "²", "make test"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "usage: full-tier-time.sh [--record <seconds>] <command>" in err
+    assert not (tmp_path / ".tdd" / "full-tier-time.json").exists()
