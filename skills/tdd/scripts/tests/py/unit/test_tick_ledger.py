@@ -937,3 +937,52 @@ def test_main_ticks_a_step_not_marked_diff_checked_with_no_pin_recheck_receipt_f
         results[name] = (code, b"pin-recheck.sh" in err, led.read_text() != "# Plan for #7\n\n" + step + "\n")
 
     assert results == {name: (0, False, True) for name in runs}
+
+
+def test_cli_ticking_an_added_step_ticks_its_line_in_the_added_file_leaving_every_other_line_and_the_growth_verdict_unchanged_2976(
+        tmp_path, run_cli, tick_ledger):
+    ledger_growth = importlib.import_module("veri.ledger_growth")
+    planned = "- [ ] add lowercasing ⟦criterion 1⟧\n"
+    first = "- [ ] reject a blank slug ⟦added⟧ ⟦criterion 2⟧\n"
+    second = "- [ ] keep unicode letters ⟦added⟧ ⟦criterion 3⟧\n"
+    plan = tmp_path / "plan.md"
+    plan.write_text("# Plan for #7\n\n" + planned)
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n" + planned + first + second)
+    added = tmp_path / "issue-7-added.md"
+    added.write_text(first + second)
+    verdict_before = run_cli(ledger_growth, [str(plan), str(ledger)])[0]
+
+    code = run_cli(tick_ledger, [str(ledger), "reject a blank slug"])[0]
+    verdict_after = run_cli(ledger_growth, [str(plan), str(ledger)])[0]
+
+    assert (code, added.read_text(), verdict_before, verdict_after) == (
+        0, first.replace("- [ ]", "- [x]") + second, 0, 0)
+
+
+def test_cli_with_an_added_file_leaves_it_byte_identical_for_a_planned_step_or_a_failed_ledger_write_and_ticks_only_the_equal_line_for_an_added_step_2976(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    planned = "- [ ] add lowercasing ⟦criterion 1⟧\n"
+    first = "- [ ] reject a blank slug ⟦added⟧ ⟦criterion 2⟧\n"
+    second = "- [ ] keep unicode letters ⟦added⟧ ⟦criterion 3⟧\n"
+    seed = "# Plan for #7\n\n" + planned + first + second
+    added = tmp_path / "issue-7-added.md"
+    results = {}
+    for name in ("planned", "write-fails", "added"):
+        ledger = tmp_path / f"{name}" / "issue-7.md"
+        ledger.parent.mkdir()
+        ledger.write_text(seed)
+        added = ledger.parent / "issue-7-added.md"
+        added.write_text(first + second)
+        matcher = "add lowercasing" if name == "planned" else "keep unicode letters"
+        if name == "write-fails":
+            monkeypatch.setattr(tick_ledger.ledger, "replace_ledger",
+                                lambda *_: (_ for _ in ()).throw(OSError("full")))
+        results[name] = (run_cli(tick_ledger, [str(ledger), matcher])[0], added.read_text())
+        monkeypatch.undo()
+
+    assert results == {
+        "planned": (0, first + second),
+        "write-fails": (2, first + second),
+        "added": (0, first + second.replace("- [ ]", "- [x]")),
+    }
