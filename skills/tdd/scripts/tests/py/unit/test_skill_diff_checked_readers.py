@@ -28,6 +28,8 @@ ALLOWED = {
     "unit/test_skill_stopping.py": "no CY row: document-wide stop-check cases",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "no CY row: document-wide site list",
+    "unit/test_supersede_diff_route.py::test_issue_2868_supersede_diff_route_launches_the_diff_verifier_on_the_pre_reroute_commit_and_no_verify_pin":
+        "runs the supersede-diff route and checks the verify-diff launch line",
     "test_skill_leaf_env.py::test_907_the_revise_diff_prompt_line": "runs build-develop-prompt.sh revise diff from REVISE.md",
 }
 
