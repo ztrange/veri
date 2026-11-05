@@ -98,3 +98,10 @@ def test_2847_baseline_full_tier_set_to_a_value_but_run_or_reuse_makes_run_condu
     assert "VERI_BASELINE_FULL_TIER" in tunables.TABLE
     assert (code, out, len(err.splitlines()), "VERI_BASELINE_FULL_TIER" in err, "bogus" in err, tuple(calls)) == (
         2, "", 1, True, True, ())
+
+
+def test_2847_baseline_full_tier_unset_resolves_to_run_with_no_error(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("VERI_BASELINE_FULL_TIER", raising=False)
+
+    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)
