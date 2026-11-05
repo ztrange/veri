@@ -95,9 +95,11 @@ def pr_head(repo, pr):
 
 def sha_state(repo, sha):
     runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
-    status = gh_api("repos/%s/commits/%s/status" % (repo, sha))
+    status = gh_api("repos/%s/commits/%s/status" % (repo, sha), stderr=subprocess.PIPE)
     if status.returncode != 0:
-        raise NoAnswer("")
+        sys.stderr.write(status.stderr or "")
+        refused = re.search(r"HTTP (4\d\d)", status.stderr or "")
+        raise NoAnswer("permanent" if refused and refused.group(1) not in ("403", "429") else "")
     statuses = status.stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
@@ -229,8 +231,9 @@ def main(argv):
         if head:
             try:
                 state, failed, queued = sha_state(repo, head)
-            except NoAnswer:
-                pass
+            except NoAnswer as error:
+                if str(error) == "permanent":
+                    return unreadable(head)
             except Exception:
                 traceback.print_exc()
         if state is None:

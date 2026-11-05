@@ -1190,6 +1190,34 @@ def test_main_waits_a_growing_backoff_from_its_base_knob_between_retries_after_h
     assert (code, sleeps[0], sleeps == sorted(set(sleeps)), len(sleeps)) == (0, 3.0, True, 4)
 
 
+def test_main_exits_2_naming_the_checks_on_the_first_read_failing_with_an_http_404_without_retrying_or_sleeping_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
+    status_reads = []
+    sleeps = []
+
+    def missing(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            return (1, "", "gh: Not Found (HTTP 404)\n")
+
+    def recording(answer):
+        def spy(line, **kwargs):
+            if line.startswith("sleep "):
+                sleeps.append(line)
+            return answer(line, **kwargs)
+        fake_processes(spy)
+
+    served(recording, bodies, missing)
+    code, _, err = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads), sleeps, err.endswith(
+        f"wait-ci.sh: could not read the checks of {FULL_SHA}\n")) == (2, 1, [], True)
+
+
 def test_main_resets_the_failed_read_count_on_a_successful_poll_so_alternating_failures_never_end_the_wait_issue_1553(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
