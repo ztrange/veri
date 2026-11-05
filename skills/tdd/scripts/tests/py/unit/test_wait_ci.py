@@ -1141,6 +1141,26 @@ def test_main_returns_the_answer_of_a_read_that_succeeds_after_more_than_three_h
     assert (code, len(status_reads)) == (0, 6)
 
 
+def test_main_returns_the_answer_of_a_read_that_succeeds_after_more_than_three_http_403_rate_limit_failures_before_the_deadline_issue_3089(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    status_reads = []
+
+    def limited_five_times(line):
+        if line == f"{COMMITS}/status":
+            status_reads.append(line)
+            if len(status_reads) <= 5:
+                return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+    served(fake_processes, bodies, limited_five_times)
+    code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, len(status_reads)) == (0, 6)
+
+
 def test_main_waits_a_growing_backoff_from_its_base_knob_between_retries_after_http_5xx_failures_issue_3089(
         tmp_path, wait_ci, fake_processes, run_cli):
     work = tmp_path / "work"
