@@ -1671,6 +1671,23 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
     assert (code, (repo / "tool.sh").stat().st_mode & 0o777) == (0, 0o755)
 
 
+@pytest.mark.process("a real git scratch repository whose verifier leaf makes a committed non-executable file executable")
+def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_made_a_committed_100644_file_executable_and_restores_100644_3087(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 755 tool.sh",
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                  "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True).stdout
+    assert (code, (repo / "tool.sh").stat().st_mode & 0o777, status) == (0, 0o644, "")
+
+
 @pytest.mark.process("a real git scratch repository whose verifier leaf chmods a tracked executable with a non-ASCII name")
 def test_verify_sh_restores_the_mode_of_a_tracked_file_with_a_non_ascii_name_and_ends_with_a_clean_tree_3087(
         run_cli, tmp_path, monkeypatch):
