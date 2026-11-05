@@ -5598,6 +5598,17 @@ def test_rerecord_refactored_does_not_take_a_let_or_return_line_for_a_typescript
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_does_not_count_the_assertions_of_a_function_following_the_shared_typescript_helper_as_the_helpers_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "function unrelated() {\n  expect(x).toBe(9);\n}\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_skips_every_case_and_check_earlier_exits_1_when_the_refactor_deletes_an_assertion_from_the_shared_typescript_helper_2942(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n}\n"
