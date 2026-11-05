@@ -9,6 +9,7 @@ import sys
 import tempfile
 
 import event_log
+import github
 import paths
 import tunables
 from git import git, symref_default
@@ -208,12 +209,29 @@ def issue_of(branch):
     return branch.split("-", 1)[0].removeprefix("tdd/")
 
 
+def own_lane_took(issue):
+    label = tunables.read("VERI_LABEL", "")
+    lane = label.rpartition(":")[2] if ":" in label else "main"
+    try:
+        labels = github.gh_issue_view(issue, "labels")
+    except (NoAnswer, OSError):
+        return False
+    return "taken:" + lane in labels.split("\n")
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
     else:
-        if ref_exists(remote_ref) and remote_issue_branch("tdd/" + issue_of(branch)):
+        tracked = ref_exists(remote_ref)
+        if tracked and own_lane_took(issue_of(branch)):
+            code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
+            if code != 0:
+                return to_contract(code)
+            sys.stdout.write(path + "\n")
+            return 0
+        if tracked and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
             return 2
