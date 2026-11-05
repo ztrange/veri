@@ -390,6 +390,7 @@ def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(
 
 def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
@@ -409,6 +410,7 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
 
 def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
@@ -434,6 +436,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
 
 def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
         monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
@@ -1461,8 +1464,9 @@ def test_fresh_cut_from_a_github_enterprise_origin_runs_the_open_pr_check_and_an
 
 @pytest.mark.process("git clone and git worktree add on scratch repositories, a fetched remote-tracking ref of origin's branch")
 def test_fresh_call_over_a_fetched_remote_tracking_ref_of_a_branch_origin_holds_exits_2_naming_the_branch_and_the_git_branch_command_that_takes_the_run_over_creating_no_worktree_or_branch_issue_1734(
-        tmp_path, issue_worktree, run_cli):
+        tmp_path, monkeypatch, issue_worktree, run_cli):
     upstream, clone = scratch_clone(tmp_path, "fetched-claimed")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     scratch_git(upstream, "branch", "-q", "tdd/64-taken-over", "main")
     scratch_git(clone, "fetch", "-q", "origin")
     want = scratch_wt_path(clone, 64)
@@ -1550,3 +1554,28 @@ def test_fresh_launch_onto_an_issue_whose_origin_branch_another_lane_claimed_exi
 
     assert (code, out, "tdd/9-slug is already on origin — another run" in err,
             os.path.exists(want)) == (2, "", True, False)
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_resume_by_the_lane_that_took_the_issue_recreates_the_worktree_at_the_origin_branch_tip_with_its_committed_ledger_issue_3096(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], capture_output=True)
+    seed = scratch_repo(tmp_path / "seed")
+    scratch_git(seed, "switch", "-q", "-c", "tdd/9-slug")
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-9.md").write_text("- [x] step one\n")
+    scratch_git(seed, "add", ".tdd/issue-9.md")
+    scratch_git(seed, "commit", "-q", "-m", "ledger")
+    scratch_git(seed, "push", "-q", str(origin), "main", "tdd/9-slug")
+    tip = scratch_git(seed, "rev-parse", "HEAD")
+    clone = tmp_path / "lane"
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], capture_output=True)
+    monkeypatch.setattr(sys.modules["github"], "gh_issue_view", lambda number, field: "taken:main\n", raising=False)
+    want = scratch_wt_path(clone, 9)
+
+    code, out, err = run_cli(issue_worktree, ["9", "slug"], cwd=clone)
+
+    ledger = pathlib.Path(want, ".tdd", "issue-9.md")
+    assert (code, out, scratch_git(want, "rev-parse", "HEAD") if os.path.isdir(want) else None,
+            ledger.read_text() if ledger.exists() else None) == (0, want + "\n", tip, "- [x] step one\n")
