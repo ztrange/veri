@@ -2,8 +2,9 @@
 # transform-touches-tests.sh — reject a refactor-kind transform whose commits change a test
 # file: a shim over veri/transform_touches_tests.py.
 #
-# The range read is <base-sha>..HEAD, every commit in it. A test file is one under a `tests/`
-# directory or named `*.test.*`.
+# The range read is <base-sha>..HEAD, every commit in it. A test file is one by
+# case_reader.is_test_path's rule: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go
+# `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere.
 #
 # usage: transform-touches-tests.sh <base-sha> [<bound>]
 #

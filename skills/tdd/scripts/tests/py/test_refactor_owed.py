@@ -164,7 +164,7 @@ def test_render_prints_the_file_under_refactor_owed_with_test_only_lines_moved_u
         monkeypatch, capsys, tmp_path, refactor_owed):
     heading = "## Refactor owed\n\n"
     test_only = ("\n### Test-only\n\n"
-                 "These change only files under tests/; the structural pass does not work them.\n\n")
+                 "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n")
     mixed = tmp_path / "mixed.md"
     mixed.write_text("### S1\n- a\n- test-only | t1\njunk line\n  - test-only | indented\n"
                      "### S2\n- test-only | t2\n")
@@ -192,7 +192,7 @@ def test_render_and_list_print_an_owed_file_holding_non_utf8_bytes_verbatim_and_
     for verb, expected in (
             ("render", b"## Refactor owed\n\n### S\n- caf\xe9 \xff\n"
              b"\n### Test-only\n\n"
-             b"These change only files under tests/; the structural pass does not work them.\n\n"
+             b"These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
              b"- t\xe9\n"),
             ("list", b"caf\xe9 \xff\n")):
         stdout = io.TextIOWrapper(io.BytesIO(), write_through=True)
@@ -296,7 +296,7 @@ def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the
     test_bounds = "skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/py/conftest.py"
     mixed_bounds = "skills/tdd/scripts/refactor-owed.sh,skills/tdd/scripts/tests/refactor-owed.test.sh"
     test_only_heading = ("### Test-only\n\n"
-                         "These change only files under tests/; the structural pass does not work them.\n\n")
+                         "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n")
 
     def run(argv, report=""):
         monkeypatch.setattr(sys, "stdin", io.StringIO(report))
@@ -402,7 +402,7 @@ def test_render_prints_no_heading_for_a_step_whose_only_leftovers_are_test_only_
     section = out[out.index("### Test-only"):] if "### Test-only" in out else ""
     assert (code, [l for l in out.splitlines() if l == "### step one"], section) == (
         0, [], "### Test-only\n\n"
-               "These change only files under tests/; the structural pass does not work them.\n\n"
+               "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
                "- fold helper A\n")
 
 
@@ -563,7 +563,7 @@ def test_render_prints_the_same_bytes_as_before_1018_for_an_owed_file_with_a_ste
     assert (code, capsys.readouterr().out) == (
         0, "## Refactor owed\n\n### S1\n- a\n- o\n"
            "\n### Test-only\n\n"
-           "These change only files under tests/; the structural pass does not work them.\n\n"
+           "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
            "- t\n"
            "\n### Applied\n\n- x — abc1234\n")
 
