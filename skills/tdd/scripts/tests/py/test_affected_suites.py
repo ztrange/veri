@@ -821,6 +821,29 @@ def test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_wit
                                      pytest_file) == (0, SUITES + "py/unit/" + pytest_file + "\n", "")
 
 
+def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_planted_bash_suites(
+        monkeypatch, run_cli, affected, tmp_path):
+    py = SCRIPTS_REL + "tests/py/"
+    touched = ["CLAUDE.md", "skills/tdd/SKILL.md", "skills/tdd/PREFLIGHT.md",
+               SCRIPTS_REL + "tests/fixtures/sample.txt", SCRIPTS_REL + "prompts/develop.md",
+               SCRIPTS_REL + "alpha-tool.sh", SCRIPTS_REL + "veri/beta.py"]
+    files = {name: "x\n" for name in touched}
+    files.update({
+        py + "unit/test_reads_skill.py": 'open("skills/tdd/SKILL.md")\n',
+        py + "unit/test_reads_preflight.py": 'open("skills/tdd/PREFLIGHT.md")\n',
+        py + "unit/test_emitted_text.py": "def test_x(): pass\n",
+        py + "test_alpha_tool.py": "def test_x(): pass\n",
+        py + "unit/test_beta.py": "def test_x(): pass\n",
+    })
+    for bash in ("claude-md", "skill", "preflight", "fixtures", "prompts", "alpha-tool", "beta"):
+        files[SUITES + bash + ".test.sh"] = "#!/bin/bash\n"
+        files[SUITES + "unit/" + bash + ".test.sh"] = "#!/bin/bash\n"
+    code, out, err = affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files)
+    assert (code, out.splitlines(), err) == (0, sorted([
+        py + "test_alpha_tool.py", py + "unit/test_beta.py", py + "unit/test_emitted_text.py",
+        py + "unit/test_reads_preflight.py", py + "unit/test_reads_skill.py"]), "")
+
+
 def module_shim(module):
     return '#!/bin/sh\nexec python3 -m veri.%s "$@"\n' % module
 
