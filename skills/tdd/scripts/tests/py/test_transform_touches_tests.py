@@ -149,7 +149,7 @@ def test_main_counts_a_path_as_a_test_file_by_the_case_sensitive_ere_on_the_path
         git_fakes, capsys, transform_touches_tests):
     counted = ("pkg/tests/x", "x.test.js", "my.test.dir", "a.test.d/x",
                r'"pkg/tests/\303\251.sh"', r'"\303\251.test.sh"')
-    ignored = ("pkg/contests/x", "Tests/c", "test/d",r'"tests/\303\251.sh"')
+    ignored = ("pkg/contests/x", "Tests/c", "test/d", r'"tests/\303\251.sh"')
     expected, observed = {}, {}
     for path in counted + ignored:
         git_fakes["log_text"] = f"src/a.sh\n{path}\n"
@@ -360,3 +360,34 @@ def test_2893_a_range_changing_a_go_js_spec_or_python_test_file_exits_1_naming_i
     base = git(repo, "rev-parse", "HEAD")
     commit_all(repo, "edit production", pkg__x_go="package pkg\n")
     assert run_cli(transform_touches_tests, [base], cwd=repo) == (0, "", "")
+
+
+def test_2893_a_spec_file_is_a_test_file_only_with_a_js_or_ts_extension(
+        git_fakes, capsys, transform_touches_tests):
+    observed = {}
+    for path in ("docs/a.spec.md", "web/a.spec.ts", "web/b.spec.js"):
+        git_fakes["log_text"] = f"src/a.sh\n{path}\n"
+        code = transform_touches_tests.main(["HEAD~1"])
+        captured = capsys.readouterr()
+        observed[path] = (code, captured.out, captured.err)
+
+    assert observed == {
+        "docs/a.spec.md": (0, "", ""),
+        "web/a.spec.ts": (1, "transform changed a test file: web/a.spec.ts\n", ""),
+        "web/b.spec.js": (1, "transform changed a test file: web/b.spec.js\n", ""),
+    }
+
+
+def test_2893_a_go_file_is_a_test_file_only_when_named_with_the_test_go_suffix(
+        git_fakes, capsys, transform_touches_tests):
+    observed = {}
+    for path in ("pkg/x.go", "pkg/x_test.go"):
+        git_fakes["log_text"] = f"src/a.sh\n{path}\n"
+        code = transform_touches_tests.main(["HEAD~1"])
+        captured = capsys.readouterr()
+        observed[path] = (code, captured.out, captured.err)
+
+    assert observed == {
+        "pkg/x.go": (0, "", ""),
+        "pkg/x_test.go": (1, "transform changed a test file: pkg/x_test.go\n", ""),
+    }
