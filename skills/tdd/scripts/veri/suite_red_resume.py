@@ -17,6 +17,7 @@ except ImportError:
 USAGE = (
     "usage: suite-red-resume.sh check <ledger-file> <branch-red-file> <default-red-file>\n"
     "       suite-red-resume.sh insert <ledger-file> <branch-red-file>\n"
+    "       suite-red-resume.sh rebased-tip <ledger-file> <red-file> <pre-rebase-sha>\n"
     "       suite-red-resume.sh flake <at> <red-file> <alone-red-file>"
 )
 SEPARATOR = " — "
