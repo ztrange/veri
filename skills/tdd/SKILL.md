@@ -1097,7 +1097,9 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>` for the landed
    commits; the ` ⟂ refactor pending` mark stays and **no ledger tick is committed**, both
    left for the step's final verify-refactor PASS, so the triangulating red's
-   `check-earlier` needs no `--except` for those cases. A REJECT of that early
+   `check-earlier` needs no `--except` for those cases. Its exit 1 means `check-earlier` still refuses a case after the re-record (a case it skipped
+   or any other stale one) and its exit 2 means no answer: treat them as at the final verify-refactor
+   PASS below (exit 1 a bail `needs-user`, exit 2 a system-failure bail), and launch no triangulating red. A REJECT of that early
    verify-refactor goes the normal revise path (when a verifier answers `REJECT`, `Read`
    `<base directory>/REVISE.md`), spends `REVISE_BUDGET`, and launches no triangulation
    until it passes. When no commit landed, no early verify-refactor runs. Then run, for
