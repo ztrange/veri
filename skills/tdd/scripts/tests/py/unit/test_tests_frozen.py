@@ -1141,6 +1141,17 @@ def test_cases_cuts_a_vitest_case_holding_a_block_comment_with_an_unbalanced_par
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
 
+def test_cases_cuts_a_vitest_case_holding_a_regex_literal_with_a_quote_at_its_own_closing_call_2970(tests_frozen):
+    text = (
+        "it('a', () => { expect(esc(\"it's\").replace(/'/g, '')).toBe('its'); });\n"
+        "it('b', () => { expect(1).toBe(1); });\n"
+    )
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("toBe('its'); })") and "it('b'" not in cases["a"] and "b" in cases
+
+
 
 def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming_the_file_and_the_case_2970(
         tmp_path, run_cli, tests_frozen, monkeypatch):
