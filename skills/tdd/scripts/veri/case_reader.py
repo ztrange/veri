@@ -1,4 +1,4 @@
-"""Which paths are test files."""
+"""Which paths are test files, and how a test source is cut into its cases."""
 import ast
 import fnmatch
 import re
