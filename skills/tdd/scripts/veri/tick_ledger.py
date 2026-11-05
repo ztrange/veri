@@ -47,11 +47,9 @@ def main(argv):
     pending, phase, owed, reason_file = False, None, False, None
     retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
     while True:
-        if argv[:1] == ["--already-holds"] and len(argv) > 1:
-            reason_file, argv = argv[1], argv[2:]
-            retired_mark, event_name = " ⟂ retired already holds", "already-holds-step"
-            continue
-        if argv[:1] == ["--unpinnable"] and len(argv) > 1:
+        if argv[:1] in (["--already-holds"], ["--unpinnable"]) and len(argv) > 1:
+            if argv[0] == "--already-holds":
+                retired_mark, event_name = " ⟂ retired already holds", "already-holds-step"
             reason_file, argv = argv[1], argv[2:]
             continue
         if argv[:1] == ["--refactor-pending"]:
