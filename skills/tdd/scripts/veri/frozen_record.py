@@ -2,7 +2,10 @@
 import hashlib
 import os
 import subprocess
+import sys
 import tempfile
+
+from entry import write
 
 
 def _step_key(step):
@@ -23,6 +26,47 @@ def _body_line(name, case, body):
 
 def _body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
+
+
+def _write_record(path, out, opener=open):
+    try:
+        with opener(path, "w", encoding="utf-8") as handle:
+            handle.writelines(out)
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
+        return False
+    return True
+
+
+def _helper_records(records):
+    for record in records:
+        if record.startswith("helpers: "):
+            name, case, digest = record[9:].split("\t")
+            yield (name, case), digest
+
+
+def _rewrite_records(earlier, rewrite, opener=open):
+    for owner, path, records in earlier:
+        out = []
+        replaced = False
+        for record in records:
+            parsed = _body_record(record)
+            if parsed:
+                record = rewrite(owner, record, *parsed)
+                if record is None:
+                    if out and out[-1].startswith("case: "):
+                        out.pop()
+                    replaced = True
+                    continue
+                replaced = "\nhelpers: " in record
+            elif replaced and record.startswith("helpers: "):
+                continue
+            else:
+                replaced = False
+            out.append(record + "\n")
+        if not _write_record(path, out, opener):
+            return False
+    return True
 
 
 def _pass_marker_path(step):

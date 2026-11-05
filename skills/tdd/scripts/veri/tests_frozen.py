@@ -12,8 +12,10 @@ import renamed_case
 import replaces_case
 import tunables
 from entry import write
-from frozen_record import (_body_digest, _body_line, _body_record, _pass_marker_path, _record_path,
-                           _remove_pass_marker, _step_key, _work_tree_hash, _write_pass_marker)
+from frozen_record import (_body_digest, _body_line, _body_record, _helper_records, _pass_marker_path,
+                           _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
+                           _write_pass_marker)
+import frozen_record
 from ledger import KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
@@ -376,45 +378,8 @@ def is_diff_checked(line):
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
-def _write_record(path, out):
-    try:
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.writelines(out)
-    except OSError as error:
-        write(sys.stderr, "tests-frozen.sh: the record %s could not be written: %s" % (path, error))
-        return False
-    return True
-
-
-def _helper_records(records):
-    for record in records:
-        if record.startswith("helpers: "):
-            name, case, digest = record[9:].split("\t")
-            yield (name, case), digest
-
-
-def _rewrite_records(earlier, rewrite):
-    for owner, path, records in earlier:
-        out = []
-        replaced = False
-        for record in records:
-            parsed = _body_record(record)
-            if parsed:
-                record = rewrite(owner, record, *parsed)
-                if record is None:
-                    if out and out[-1].startswith("case: "):
-                        out.pop()
-                    replaced = True
-                    continue
-                replaced = "\nhelpers: " in record
-            elif replaced and record.startswith("helpers: "):
-                continue
-            else:
-                replaced = False
-            out.append(record + "\n")
-        if not _write_record(path, out):
-            return False
-    return True
+_write_record = lambda path, out: frozen_record._write_record(path, out, open)
+_rewrite_records = lambda earlier, rewrite: frozen_record._rewrite_records(earlier, rewrite, open)
 
 
 def rerecord_earlier(ledger, step):
