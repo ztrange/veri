@@ -569,6 +569,15 @@ def test_cli_lets_an_opted_in_blocker_of_only_a_priority_issue_print_after_a_hig
     assert (code, out) == (0, "40\n30\n20\n")
 
 
+def test_cli_keeps_an_opted_in_blocker_of_only_a_plain_bug_in_its_own_band_after_a_higher_numbered_bug(tmp_path, monkeypatch, run_cli, solvable_issues):
+    held = dict(labelled(50, "bug"), body="## Blocked by\n\n- #30\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(30), labelled(40, "bug", "ready-for-agent"), held])
+
+    code, out, _ = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert (code, out) == (0, "40\n30\n")
+
+
 def test_cli_leaves_a_low_risk_bug_to_its_number_among_the_plain_issues_ahead_of_it_only_a_priority_and_other_bugs(tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
         opted_in(210), labelled(215, "ready-for-agent", "bug", "low-risk"), opted_in(220), labelled(225, "ready-for-agent", "bug"),
