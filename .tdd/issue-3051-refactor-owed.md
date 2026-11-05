@@ -1,0 +1,3 @@
+### After a verified refactor (`.tdd/verdict-refactor.exit` holding 0) removes an assertion line from an earlier step's frozen case, `tests-frozen.sh rerecord-refactored <ledger> <green-sha>` exits 1 and its stderr names the case as `skipped: <file> <case>`, pinned by a medium case (`@pytest.mark.process`, real `tests-frozen.sh` in a `tmp_path` git repo) in skills/tdd/scripts/tests/py/test_tests_frozen_process.py ⟦criterion 1⟧
+- test-only | Tighten the loosened `assert code in (0, 1)` assertions in `test_tests_frozen_process.py` to the exact exit code now that it is settled (the cases around lines 3146, 3518, 3573, 3600, 3943 and 3973)
+- test-only | Extract the setup shared by the two new #3051 cases (the `TWO_ASSERTS` repo, green sha and verdict file) into a helper
