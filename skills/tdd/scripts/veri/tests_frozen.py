@@ -12,8 +12,8 @@ import renamed_case
 import replaces_case
 import tunables
 from entry import write
-from frozen_record import (_pass_marker_path, _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
-                           _write_pass_marker)
+from frozen_record import (_body_digest, _body_line, _body_record, _pass_marker_path, _record_path,
+                           _remove_pass_marker, _step_key, _work_tree_hash, _write_pass_marker)
 from ledger import KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
@@ -28,10 +28,6 @@ REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 def _digest(path):
     with open(path, "rb") as handle:
         return hashlib.sha256(handle.read()).hexdigest()
-
-
-def _body_digest(body):
-    return hashlib.sha256(body.encode()).hexdigest()
 
 
 def _toplevel():
@@ -131,14 +127,6 @@ def _added_cases(name):
     for case, body in _head_cases_all(name):
         held.setdefault(case, set()).add(body)
     return [(case, body) for case, body in new if body not in held.get(case, ())]
-
-
-def _body_line(name, case, body):
-    return "body: %s\t%s\t%s" % (name, case, _body_digest(body))
-
-
-def _body_record(line):
-    return line[6:].split("\t") if line.startswith("body: ") else None
 
 
 def _recorded_digests(record, name):

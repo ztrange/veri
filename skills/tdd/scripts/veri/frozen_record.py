@@ -13,6 +13,18 @@ def _record_path(step):
     return ".tdd/tests-frozen-%s.record" % _step_key(step)
 
 
+def _body_digest(body):
+    return hashlib.sha256(body.encode()).hexdigest()
+
+
+def _body_line(name, case, body):
+    return "body: %s\t%s\t%s" % (name, case, _body_digest(body))
+
+
+def _body_record(line):
+    return line[6:].split("\t") if line.startswith("body: ") else None
+
+
 def _pass_marker_path(step):
     return ".tdd/check-earlier-%s.pass" % _step_key(step)
 
