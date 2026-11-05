@@ -3367,6 +3367,70 @@ def test_rerecord_refactored_then_check_earlier_exits_0_for_a_go_case_whose_refa
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_check_earlier_exits_1_for_a_go_case_whose_unchanged_named_asserting_helper_gained_an_assertion_in_the_same_refactor_3077(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    build_green = 'func build(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n}\n'
+    build_head = 'func build(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n\tif 2 != 2 {\n\t\tt.Fatalf("build twice")\n\t}\n}\n'
+    inline = ('func TestOne(t *testing.T) {\n\tbuild(t)\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n'
+              '\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n}\n\n' + build_green)
+    extracted = ('func TestOne(t *testing.T) {\n\tbuild(t)\n\tx := 1\n\tcheck(t, x)\n}\n\n'
+                 'func check(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n'
+                 '\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n}\n\n' + build_head)
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(extracted)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked[0] == 1
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_check_earlier_exits_0_for_a_go_case_whose_unchanged_asserting_helper_holds_a_duplicated_assertion_line_3077(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    build_green = 'func build(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n}\n'
+    build_head = 'func build(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n\tif 1 != 1 {\n\t\tt.Fatalf("build failed")\n\t}\n}\n'
+    inline = ('func TestOne(t *testing.T) {\n\tbuild(t)\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n'
+              '\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n}\n\n' + build_green)
+    extracted = ('func TestOne(t *testing.T) {\n\tbuild(t)\n\tx := 1\n\tcheck(t, x)\n}\n\n'
+                 'func check(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n'
+                 '\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n}\n\n' + build_head)
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(extracted)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert checked[0] == 0
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_check_earlier_exits_0_for_a_go_case_after_a_helper_is_appended_at_eof_following_the_rerecord_2863(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]
