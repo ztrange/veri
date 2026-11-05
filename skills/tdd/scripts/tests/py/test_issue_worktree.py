@@ -1530,3 +1530,23 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     monkeypatch.chdir(real.parent.parent)
 
     assert loaded.inside_own_scripts() is True
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_fresh_launch_onto_an_issue_whose_origin_branch_another_lane_claimed_exits_2_already_on_origin_and_creates_no_worktree_issue_3096(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], capture_output=True)
+    seed = scratch_repo(tmp_path / "seed")
+    scratch_git(seed, "switch", "-q", "-c", "tdd/9-slug")
+    scratch_git(seed, "commit", "-q", "--allow-empty", "-m", "ledger")
+    scratch_git(seed, "push", "-q", str(origin), "main", "tdd/9-slug")
+    clone = tmp_path / "lane"
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], capture_output=True)
+    monkeypatch.setattr(sys.modules["github"], "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    want = scratch_wt_path(clone, 9)
+
+    code, out, err = run_cli(issue_worktree, ["9", "slug"], cwd=clone)
+
+    assert (code, out, "tdd/9-slug is already on origin — another run" in err,
+            os.path.exists(want)) == (2, "", True, False)
