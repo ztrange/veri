@@ -1,0 +1,5 @@
+# Plan for #3052 — PRD 017.3: rerecord-earlier rewrites a case's body and helpers lines together from HEAD
+
+- [ ] After a `⟦diff-checked⟧` step makes an earlier step's frozen case call a new helper (a medium case, real git repo, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py), `tests-frozen.sh rerecord-earlier` rewrites that case's record so its `body:` and `helpers:` lines both match HEAD, and `tests-frozen.sh check-earlier` then exits 0 ⟦criterion 1⟧
+- [ ] A record rewritten by `tests-frozen.sh rerecord-earlier` for an earlier case that calls no helper at HEAD carries no `helpers:` line for that case afterwards (a medium case, real git repo, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py) ⟦criterion 2⟧
+- [ ] `tests-frozen.sh check-earlier` still exits 1 and names an earlier frozen case on stdout when only the assertion lines of a helper that case calls changed and no re-record was made (a medium case, real git repo, in skills/tdd/scripts/tests/py/test_tests_frozen_process.py) ⟦criterion 3⟧
