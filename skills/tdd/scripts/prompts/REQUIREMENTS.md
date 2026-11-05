@@ -810,6 +810,7 @@
 | VD7 | The closing paragraph says REJECT, too, if the fast command or the affected suites are red. (Closing paragraph, third sentence.) | A diff that breaks a suite fails whatever the criterion says. |
 | VD8 | The closing paragraph says REJECT, too, if the step's own commits add a test (those in `git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added): a criterion judged against the diff is never also pinned by a case left behind. (Closing paragraph, fourth sentence.) | A diff-checked step leaves no test; an earlier step's tests are not this step's. |
 | VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
+| VD10 | The prompt says that when the step is a supersede edit, the rule rejecting a test added by the step's own commits does not apply to the step's own Red case, which is outside the diff under judgement. | The blind verifier must not reject the step's own pinned case on the supersede route. |
 
 ## skills/tdd/scripts/prompts/_verify-green-replaces-case.md
 
