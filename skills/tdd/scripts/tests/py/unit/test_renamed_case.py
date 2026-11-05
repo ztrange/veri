@@ -32,3 +32,11 @@ def test_renamed_to_returns_the_new_title_of_an_indented_js_case_with_single_quo
 
     assert renamed_case.renamed_to("adds", old, new, set()) == "sums"
     assert renamed_case.renamed_to("subtracts", old, new, set()) == "takes away"
+
+
+def test_renamed_and_changed_to_returns_the_new_name_of_a_go_func_test_case_renamed_with_its_body_changed():
+    old = 'func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n\t\tt.Fatal("bad")\n\t}\n}\n'
+    new = 'func TestSum(t *testing.T) {\n\tif Add(2, 2) != 4 {\n\t\tt.Fatal("bad")\n\t}\n}\n'
+
+    assert renamed_case.renamed_to("TestAdd", old, new, set()) is None
+    assert renamed_case.renamed_and_changed_to("TestAdd", old, new, set()) == "TestSum"
