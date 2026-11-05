@@ -375,7 +375,7 @@ three times over branches its ledger pinned on later lines.
 
 **A step names exactly one observable outcome.** A behaviour and each distinct refusal, exit code or fail-closed branch its criterion names are planned as separate steps, one outcome per step: the Red phase's one-case rule ("One criterion, one case") allows a step exactly one new case, and verify-green's demand that every guard be pinned by a case rejects a guard no case pins, so a step naming two outcomes cannot satisfy both and cannot go green. The rule is keyed on the count of named outcomes, never on the mere presence of a guard: a step naming one outcome alone, a behaviour or one guard, is not split (#2553).
 
-**One step never both renames a pytest case and changes its body.** Work that does both is planned as two steps: the body amended under the old name first, then the rename with the body otherwise unchanged (#2594).
+**One step never both renames a pytest, Go or JS case and changes its body.** Work that does both is planned as two steps: the body amended under the old name first, then the rename with the body otherwise unchanged (#2594).
 
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
@@ -808,7 +808,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    **Before each verify-red launch** (and before each verify-green, below), also check every earlier step's frozen record:
    `$S/tests-frozen.sh check-earlier .tdd/issue-<n>.md --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" [--except <case>]…`,
    with one `--except` for each case the current step's route names (`red-contradicted`, `red-supersede`, `repair`,
-   `⟦replaces-case⟧`, `⟦fixture-repair⟧`). Exit 1 prints each changed or deleted case of an earlier step, with its step (a case renamed with its text otherwise unchanged is neither changed nor deleted):
+   `⟦replaces-case⟧`, `⟦fixture-repair⟧`). Exit 1 prints each changed or deleted case of an earlier step, with its step (a pytest, Go or JS case renamed with its text otherwise unchanged is neither changed nor deleted):
    write that to `.tdd/verify-red.reason`, treat the attempt as a verify-red REJECT that spends REVISE_BUDGET, and launch
    no verifier for it. Exit 0 launches the verifier as before; exit 2 is a system failure: **bail** (`Read` `<base directory>/BAIL.md`).
 
