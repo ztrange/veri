@@ -31,3 +31,14 @@ def test_main_asked_for_a_command_after_recording_its_time_prints_those_seconds_
     code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
 
     assert (rec_code, code, out.strip()) == (0, 0, "587")
+
+
+def test_main_asked_for_a_command_when_the_record_file_is_not_parseable_exits_2_with_a_stderr_line(
+        tmp_path, run_cli, full_tier_time):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "full-tier-time.json").write_text("{not json")
+
+    code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert err.strip() != ""
