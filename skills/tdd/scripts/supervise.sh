@@ -30,6 +30,11 @@
 #
 # usage: supervise.sh <name> <cmd> [args...]
 #
+# A refused launch exits 2, writes one `launch-refused` event (name=, reason=) naming the leaf and
+# starts no leaf. Causes: a run-leaf.sh launch whose prompt file is missing or empty, a run-leaf.sh
+# launch with no prompt argument, VERI_STEP set but empty, an empty --step value, and a pending
+# .tdd/stop of at-leaf or now.
+#
 # The leaf's combined stdout+stderr is captured to `.tdd/<name>.log` (the progress log the
 # heartbeat watches) and echoed to this script's stdout on completion, so a verifier leaf
 # can be piped straight into parse-verdict.sh.
