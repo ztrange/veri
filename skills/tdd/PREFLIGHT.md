@@ -135,7 +135,16 @@ issue, not only in the conductor's log.
    bounds work nobody does: that is how #300's green leaf was killed at the 900 s floor
    twice over while it was working. It is timed here, with the same single-measurement rule,
    and costs one full-tier run the Draft PR gate pays for anyway. If it is red, stop and
-   report, for the same reason a red fast tier stops the run.
+   report, for the same reason a red fast tier stops the run — unless every red test file
+   passes when run alone (`--alone`), as for the baseline: then it is a flake, a `suite-flake`
+   event names the files, and preflight goes on. A red output naming no file, or any file
+   still red alone, stops the run.
+
+   `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`. The fast-tier baseline
+   runs in both modes. Under `reuse`, `full` is taken from `$S/full-tier-time.sh` when it
+   holds a time for this run's full-tier command, and the full tier is not run; when it has
+   no usable time, the full tier runs anyway, as above. A green full-tier run records its
+   elapsed whole seconds through `$S/full-tier-time.sh`, so a later run can reuse it.
 4. **Default branch.** Capture it for the PR base:
    `gh api repos/{owner}/{repo} -q .default_branch`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
