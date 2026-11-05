@@ -8,7 +8,7 @@ at `{{BASE_SHA}}`. Judge the step's criterion against `git diff {{BASE_SHA}}..HE
 and do not read the range's commit messages: `git log` and `git show` on the range carry
 the author's rationale.
 
-{{STEP}}### The issue's behavior spec
+{{STEP}}{{SUPERSEDE}}### The issue's behavior spec
 
 {{ISSUE_SPEC}}
 

@@ -97,7 +97,7 @@ def main(argv):
     if base and not _HEX_SHA.fullmatch(base):
         return _refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
-                      ledger=options["--ledger"])
+                      ledger=options["--ledger"], supersede_base=options["--supersede-base"])
     sys.stdout.buffer.write(out)
     return code
 
@@ -109,7 +109,7 @@ def _refused(message=None):
     return _refuse(message), b""
 
 
-def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger=""):
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base=""):
     if branch_base and not _HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
@@ -184,6 +184,11 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
             step_block += (b"### The ledger's later unchecked steps\n\n"
                            + b"\n".join(b"- " + os.fsencode(text) for text in later) + b"\n\n")
     out = template
+    supersede = b""
+    if supersede_base:
+        supersede = _read(f"{prompts}/_verify-diff-supersede.md").replace(
+            b"{{SUPERSEDE_BASE}}", os.fsencode(supersede_base)) + b"\n"
+    out = out.replace(b"{{SUPERSEDE}}", supersede)
     written = b"**one new failing test**"
     if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
