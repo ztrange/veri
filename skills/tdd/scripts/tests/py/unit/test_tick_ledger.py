@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>\n"
+USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] <ledger-file> <matcher>\n"
 
 
 @pytest.fixture
@@ -614,6 +614,12 @@ def test_cli_with_no_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_
     code, out, err = run_cli(tick_ledger, [])
 
     assert (code, out, err) == (2, "", USAGE.decode())
+
+
+def test_cli_usage_line_names_unpinnable_and_already_holds_with_their_reason_file(run_cli, tick_ledger):
+    code, out, err = run_cli(tick_ledger, [])
+
+    assert (code, "--unpinnable <reason-file>" in err, "--already-holds <reason-file>" in err) == (2, True, True)
 
 
 def test_cli_exits_2_with_one_stderr_line_naming_a_directory_ledger_and_the_reason_without_a_traceback(
