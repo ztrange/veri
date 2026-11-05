@@ -99,12 +99,14 @@ def solvable_in_scope():
 
 
 def inherit_bands(issues, blockers, bands):
-    """Lift `bands` in place to the best band of each issue's dependents; return {blocker: dependent that set it}."""
+    """Lift `bands` in place to the best band of each open issue's dependents; return {blocker: dependent that set it}."""
     origin = {}
     changed = True
     while changed:
         changed = False
         for issue in issues:
+            if not is_open(issue):
+                continue
             for n in blockers[issue["number"]]:
                 if n in bands and bands[issue["number"]] < min(bands[n], 2):
                     bands[n] = bands[issue["number"]]

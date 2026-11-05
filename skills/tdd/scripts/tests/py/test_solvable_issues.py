@@ -1442,6 +1442,15 @@ def test_cli_names_on_stderr_one_line_per_inherited_band_blocker_and_none_for_an
     assert answer == (0, "30\n10\n", "#30 inherits priority bug from #50\n")
 
 
+def test_cli_does_not_lift_a_blocker_of_a_closed_priority_bug_and_names_no_inheritance_on_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
+    closed = dict(labelled(21, "bug", "priority"), state="CLOSED", body="## Blocked by\n\n- #20\n")
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(10, "priority", "ready-for-agent"), opted_in(20), closed])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "10\n20\n", "")
+
+
 def test_cli_names_on_stderr_the_priority_band_for_a_blocker_of_only_a_priority_non_bug(tmp_path, monkeypatch, run_cli, solvable_issues):
     held = dict(labelled(50, "priority"), body="## Blocked by\n\n- #30\n")
     fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(30), held])
