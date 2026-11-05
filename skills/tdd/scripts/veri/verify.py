@@ -308,7 +308,7 @@ def red_gate_failure():
 
 def main(argv):
     args = list(argv)
-    while args and takes_a_value(args[0]):
+    while args and (takes_a_value(args[0]) or args[0] == "--supersede-base"):
         if len(args) < 2 or not args[1]:
             return refuse("verify: %s needs a value" % args[0])
         args = args[2:]
@@ -325,7 +325,7 @@ def main(argv):
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
-    options = {"--step": "", "--fast-cmd": ""}
+    options = {"--step": "", "--fast-cmd": "", "--supersede-base": ""}
     words = list(argv)
     while words[:1] and words[0] in options:
         options[words[0]] = words[1]
@@ -343,7 +343,7 @@ def main(argv):
     issue = tunables.read("VERI_ISSUE")
     ledger = ledger_path(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
-                                            ledger=ledger)
+                                            ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
         return to_contract(code)
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
