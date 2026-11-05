@@ -1037,3 +1037,43 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
 
     assert [code, len(seen) >= 2 and "grading-2" in seen[1], len(seen) >= 2 and "grading-1" in seen[1]] \
         == [1, True, False], (code, seen, err)
+
+
+@pytest.mark.process("suite-red-resume.sh insert then skill-edit-step.sh --added run against a real git repository with a stub grader and a stub author")
+def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_list_regrades_and_commits_exiting_0_3009(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is crimson. | shade |\n")
+    (repo / ".tdd").mkdir()
+    ledger = repo / ".tdd" / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    (repo / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    (tmp_path / "red").write_text("test_prd_015_prose_signed.py — FAIL unit.md synopsis\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_MODEL)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "CAP": str(cap), "REPO": str(repo), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+    base = git(repo, "rev-list", "--count", "HEAD")
+
+    inserted = subprocess.run([str(SCRIPTS / "suite-red-resume.sh"), "insert", str(ledger), str(tmp_path / "red")], cwd=repo,
+                              capture_output=True, text=True, env=env)
+    steps = [l[6:] for l in ledger.read_text().splitlines() if l.startswith("- [ ]") and "⟦skill-edit⟧" in l]
+    ran = subprocess.run([str(STEP), "--added", steps[0] if steps else "", "issue.md", "unit.md"], cwd=repo,
+                         capture_output=True, text=True, env=env)
+
+    assert [inserted.returncode, len(steps), ran.returncode, int(git(repo, "rev-list", "--count", "HEAD")) - int(base),
+            sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()),
+            "crimson" in (repo / "REQUIREMENTS.md").read_text()] \
+        == [0, 1, 0, 1, ["GRADED", "REQUIREMENTS.md", "unit.md"], True], (inserted.stderr, ran.stdout, ran.stderr[-700:])
