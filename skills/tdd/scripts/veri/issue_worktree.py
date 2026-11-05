@@ -12,6 +12,7 @@ import event_log
 import paths
 import tunables
 from git import git, symref_default
+import github
 from github import NoAnswer, gh_json
 from json_documents import items
 from pid_file import live_conductor
@@ -208,12 +209,20 @@ def issue_of(branch):
     return branch.split("-", 1)[0].removeprefix("tdd/")
 
 
+def took_by_this_lane(issue):
+    opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+    lane = opt_in.rpartition(":")[2] if ":" in opt_in else "main"
+    return "taken:" + lane in github.gh_issue_view(issue, "labels").split("\n")
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
+    elif (on_origin := ref_exists(remote_ref)) and took_by_this_lane(issue_of(branch)):
+        code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
     else:
-        if ref_exists(remote_ref) and remote_issue_branch("tdd/" + issue_of(branch)):
+        if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
             return 2

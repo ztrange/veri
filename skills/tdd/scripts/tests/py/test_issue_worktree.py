@@ -1554,3 +1554,50 @@ def test_fresh_launch_onto_an_issue_whose_origin_branch_another_lane_claimed_exi
 
     assert (code, out, "tdd/9-slug is already on origin — another run" in err,
             os.path.exists(want)) == (2, "", True, False)
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_resume_by_the_lane_that_took_the_issue_recreates_the_worktree_at_the_origin_branch_tip_with_its_committed_ledger_issue_3096(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], capture_output=True)
+    seed = scratch_repo(tmp_path / "seed")
+    scratch_git(seed, "switch", "-q", "-c", "tdd/9-slug")
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-9.md").write_text("- [x] done step\n")
+    scratch_git(seed, "add", ".tdd/issue-9.md")
+    scratch_git(seed, "commit", "-q", "-m", "ledger")
+    scratch_git(seed, "push", "-q", str(origin), "main", "tdd/9-slug")
+    tip = scratch_git(seed, "rev-parse", "HEAD")
+    clone = tmp_path / "lane"
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], capture_output=True)
+    monkeypatch.setattr(sys.modules["github"], "gh_issue_view", lambda number, field: "taken:main\n", raising=False)
+    want = scratch_wt_path(clone, 9)
+
+    code, out, _ = run_cli(issue_worktree, ["9", "slug"], cwd=clone)
+
+    ledger = pathlib.Path(want, ".tdd", "issue-9.md")
+    assert (code, out.strip(), ledger.read_text() if ledger.exists() else None,
+            scratch_git(want, "rev-parse", "HEAD") if os.path.isdir(want) else None) == (
+        0, want, "- [x] done step\n", tip)
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_resume_with_a_veri_label_carrying_a_lane_matches_the_taken_label_of_the_text_after_its_last_colon_issue_3096(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], capture_output=True)
+    seed = scratch_repo(tmp_path / "seed")
+    scratch_git(seed, "switch", "-q", "-c", "tdd/9-slug")
+    scratch_git(seed, "commit", "-q", "--allow-empty", "-m", "ledger")
+    scratch_git(seed, "push", "-q", str(origin), "main", "tdd/9-slug")
+    clone = tmp_path / "lane"
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], capture_output=True)
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:other")
+    monkeypatch.setattr(sys.modules["github"], "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    want = scratch_wt_path(clone, 9)
+
+    code, out, _ = run_cli(issue_worktree, ["9", "slug"], cwd=clone)
+
+    assert (code, out.strip(), os.path.isdir(want)) == (0, want, True)
+
