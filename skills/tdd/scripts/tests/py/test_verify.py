@@ -620,7 +620,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
                 return subprocess.CompletedProcess(args, 0, heads[order.count("rev-parse") - 1], b"")
             if verb == "diff-tree":
                 diffed.append(words[2:])
-                return subprocess.CompletedProcess(args, 0, b"src.txt\nnew.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0new.txt\0", b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
         order.append(name)
         if name == "supervise.sh":
@@ -644,7 +644,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
         "add", "write-tree", "rev-parse"]
     assert [v for v in order[launch:] if v in ("add", "write-tree", "rev-parse")][:3] == [
         "add", "write-tree", "rev-parse"]
-    assert diffed == [["-r", "--name-only", "--no-commit-id", "a" * 40, "b" * 40]]
+    assert diffed == [["-r", "-z", "--name-only", "--no-commit-id", "a" * 40, "b" * 40]]
     snapshots = indexes[:4]
     assert all(index and not pathlib.Path(index).is_relative_to(tmp_path) for _, index in snapshots)
     assert (snapshots[0][1] == snapshots[1][1], snapshots[2][1] == snapshots[3][1]) == (True, True)
@@ -726,7 +726,7 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
         if name == "supervise.sh":
             return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
@@ -773,7 +773,7 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
             if verb == "diff-tree":
-                out = b"src.txt\n" if words[-2] != words[-1] else b""
+                out = b"src.txt\0" if words[-2] != words[-1] else b""
                 return subprocess.CompletedProcess(args, 0, out, b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
         if name == "supervise.sh":
@@ -825,7 +825,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
         started.append(words)
         if name == "supervise.sh":
@@ -913,7 +913,7 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             if verb == "update-ref":
                 return subprocess.CompletedProcess(args, 128, None, None)
             return subprocess.CompletedProcess(args, 0, b"", b"")
@@ -955,7 +955,7 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             if verb == "update-ref":
                 return subprocess.CompletedProcess(args, 1, None, None)
             return subprocess.CompletedProcess(args, 0, b"", b"")
@@ -997,7 +997,7 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             if verb == "update-ref":
                 raise FileNotFoundError(2, "No such file or directory", "git")
             return subprocess.CompletedProcess(args, 0, b"", b"")
@@ -1099,7 +1099,7 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
             if verb == "rev-parse":
                 return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
             if verb == "diff-tree":
-                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+                return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
         if name == "supervise.sh":
             gitconfig.write_bytes(b"[user]\n\tname = leaf\n")
