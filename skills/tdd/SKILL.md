@@ -1401,6 +1401,8 @@ the develop and verify prompts take that list from the step's text through their
 and the conductor never edits a built prompt to add a suite one of them left out. Its
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
+
+When every failing case pins prose of one graded unit, the step appended is a `⟦skill-edit⟧` step naming that unit (run from `<base directory>/SKILL-EDIT.md`), not a `⟦suite-repair⟧` step; otherwise it is the `⟦suite-repair⟧` step as before. A red after that step's cycle bails, with no second repair step.
 ```
 $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'; rc=$?
 [ "$rc" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=step-add-refused classification="$($S/classify-bail.sh step-add-refused)"
