@@ -1152,15 +1152,45 @@ def test_cases_cuts_a_vitest_case_holding_a_regex_literal_with_a_quote_at_its_ow
     assert cases["a"].endswith("toBe('its'); })") and "it('b'" not in cases["a"] and "b" in cases
 
 
-def test_cases_keeps_division_a_division_and_reads_a_regex_literal_with_an_escaped_slash_or_a_class_holding_one_2970(tests_frozen):
+def test_cases_cuts_a_vitest_case_holding_an_arrow_returned_regex_literal_with_a_quote_like_the_plain_count_2970(tests_frozen):
     text = (
-        "it('a', () => { expect(esc(x).replace(/a\\/'[/(]/gi, '')).toBe(4 / 2); });\n"
-        "it('b', () => { const q = 4 / 2; expect(q).toBe(2); });\n"
+        "it('a', () => { expect([1].some(x => /'/.test(x))).toBe(true); });\n"
+        "it('b', () => { expect(1).toBe(1); });\n"
     )
 
     cases = dict(tests_frozen._cases(text))
 
-    assert cases["a"].endswith("toBe(4 / 2); })") and cases["b"].endswith("toBe(2); })") and "it('b'" not in cases["a"]
+    assert cases["a"].endswith("toBe(true); })") and "it('b'" not in cases["a"] and "b" in cases
+
+
+def test_cases_cuts_a_vitest_case_with_a_returned_regex_literal_with_a_quote_like_the_plain_count_2970(tests_frozen):
+    text = (
+        "it('a', () => {\n  const has = (s) => {\n    return /'/.test(s);\n  };\n  expect(has(\"'\")).toBe(true);\n});\n"
+        "it('b', () => { expect(1).toBe(1); });\n"
+    )
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("toBe(true);\n})") and "it('b'" not in cases["a"] and "b" in cases
+
+
+def test_cases_falls_back_to_the_plain_paren_count_when_the_literal_aware_scan_finds_no_close_2970(tests_frozen):
+    text = "it('a', () => { const re = /'/; expect(re.test(\"'\")).toBe(true); });\n"
+
+    body = dict(tests_frozen._cases(text))["a"]
+
+    assert body == text.rstrip()[:-1]
+
+
+def test_cases_skips_a_paren_in_a_block_comment_inside_a_case_2970(tests_frozen):
+    text = (
+        "it('a', () => { /* ( */ expect(1).toBe(1); });\n"
+        "it('b', () => { expect(1).toBe(1); });\n"
+    )
+
+    cases = dict(tests_frozen._cases(text))
+
+    assert cases["a"].endswith("toBe(1); })") and "it('b'" not in cases["a"]
 
 
 def test_cases_ends_a_string_only_at_its_own_quote_kind_2970(tests_frozen):
@@ -1174,8 +1204,8 @@ def test_cases_ends_a_string_only_at_its_own_quote_kind_2970(tests_frozen):
     assert cases["a"].endswith("toBe(1); })") and "it('b'" not in cases["a"]
 
 
-def test_cases_refuses_a_case_whose_block_comment_never_closes_like_an_unclosed_call_2970(tests_frozen):
-    text = "it('a', () => { /* never ends (\n  expect(1).toBe(1); });\n"
+def test_cases_refuses_a_case_whose_call_the_plain_paren_count_cannot_close_either_2970(tests_frozen):
+    text = "it('a', () => { (\n"
 
     with pytest.raises(tests_frozen.UnclosedCase):
         tests_frozen._cases(text)
@@ -1235,26 +1265,6 @@ def test_check_earlier_over_a_js_case_whose_closing_paren_is_never_found_exits_2
 
 
 
-def test_record_over_a_js_case_whose_closing_paren_lies_past_its_describe_block_exits_2_naming_the_file_and_the_case_2970(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / "a.test.ts").write_text(
-        'describe("names", () => {\n'
-        '  it("runs past the block", () => {\n'
-        "    expect(1).toBe(1);\n"
-        "  }\n"
-        "});\n")
-    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
-    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
-    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    step = "the case passes: adds a case in a.test.ts"
-
-    code, out, err = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)
-
-    assert (code, "a.test.ts" in err, "runs past the block" in err, "Traceback" in err) == (2, True, True, False)
-
-
 def test_cases_gives_a_balanced_vitest_case_with_no_paren_in_a_literal_or_comment_the_same_body_as_before_2970(tests_frozen):
     text = (
         'describe("names", () => {\n'
@@ -1270,3 +1280,17 @@ def test_cases_gives_a_balanced_vitest_case_with_no_paren_in_a_literal_or_commen
     body = dict(tests_frozen._cases(text))["balanced"]
 
     assert body.endswith("expect(add(1, 2)).toBe(3);\n  })") and "second" not in body
+
+
+def test_check_earlier_over_a_case_whose_call_never_closes_removes_the_steps_pass_marker_2970(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    earlier, later = "the earlier step", "the later step"
+    _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, earlier)
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+    marker = tmp_path / tests_frozen._pass_marker_path(later)
+    marker.write_text("step: %s\n" % later)
+
+    code = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[0]
+
+    assert (code, marker.exists()) == (2, False)

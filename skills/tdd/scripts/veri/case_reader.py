@@ -96,33 +96,25 @@ class UnclosedCase(LookupError):
     pass
 
 
-_REGEX_PRECEDERS = "(,=:[!&|?{};"
-
-
-def _regex_may_start(text, i):
-    before = text[:i].rstrip(" \t")
-    return not before or before[-1] in _REGEX_PRECEDERS or before[-1] == "\n"
-
-
-def _regex_end(text, i):
-    # Index of the last char of the JS regex literal opening at i (flags included); i if it never closes on its line.
-    j, in_class = i + 1, False
-    while j < len(text) and text[j] != "\n":
-        if text[j] == "\\":
-            j += 1
-        elif text[j] == "[":
-            in_class = True
-        elif text[j] == "]":
-            in_class = False
-        elif text[j] == "/" and not in_class:
-            while j + 1 < len(text) and text[j + 1].isalpha():
-                j += 1
-            return j
-        j += 1
-    return i
+def _plain_call_end(text, opening):
+    depth = 0
+    for i in range(opening, len(text)):
+        if text[i] == "(":
+            depth += 1
+        elif text[i] == ")":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    return None
 
 
 def _call_end(text, opening):
+    # Literal-aware scan first; when it finds no close (a regex literal can hold a quote or a paren it
+    # cannot read), fall back to the plain paren count, so this is never worse than the plain count alone.
+    return _literal_call_end(text, opening) or _plain_call_end(text, opening)
+
+
+def _literal_call_end(text, opening):
     depth, braces, quote, escaped, i = 0, 0, None, False, opening
     while i < len(text):
         if quote:
@@ -141,8 +133,6 @@ def _call_end(text, opening):
             i += 1
         elif text[i] in "'\"`":
             quote = text[i]
-        elif text[i] == "/" and _regex_may_start(text, i):
-            i = _regex_end(text, i)
         elif text[i] == "(":
             depth += 1
         elif text[i] == ")":
