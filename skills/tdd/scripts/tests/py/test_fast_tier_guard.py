@@ -449,6 +449,17 @@ def test_the_placement_audit_still_names_an_offending_file_inside_the_tier_that_
     assert _misplaced(tmp_path) == ["unit/test_waits.py: named by the guard, inside the tier"]
 
 
+def test_the_importer_guard_suite_planted_outside_a_tiers_unit_is_named_as_guard_clean_outside_the_tier_and_accepted_inside_it(tmp_path):
+    source = (SCRIPTS / "tests" / "py" / "unit" / "test_module_importers.py").read_text()
+    (tmp_path / "unit").mkdir()
+    (tmp_path / "test_module_importers.py").write_text(source)
+    assert _misplaced(tmp_path) == ["test_module_importers.py: guard-clean, outside the tier"]
+
+    (tmp_path / "test_module_importers.py").unlink()
+    (tmp_path / "unit" / "test_module_importers.py").write_text(source)
+    assert _misplaced(tmp_path) == []
+
+
 def test_1668_the_comment_class_suite_whose_only_suite_looking_strings_are_prose_labels_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
     name = "test_comment_class.py"
