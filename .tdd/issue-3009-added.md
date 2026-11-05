@@ -1,1 +1,2 @@
 - [x] A case pins that the step `suite-red-resume.sh insert` appends carries the skill-edit mark: `ledger-steps.sh has-mark skill-edit` exits 0 on it, so the conductor's `graded-changed.sh` check does not bail it; the behaviour already holds on unmodified code, so the step takes the pin path (verify-pin) ⟦added⟧ ⟦criterion 4⟧
+- [ ] `skills/tdd/SKILL.md`: the DP92 sentence that a red after the appended repair step's cycle bails names `<base directory>/BAIL.md` to Read, as EV1 requires (the Draft PR regrade REJECTed it on EV1) ⟦skill-edit⟧ ⟦added⟧
