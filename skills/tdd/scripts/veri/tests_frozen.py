@@ -1,6 +1,5 @@
 """tests-frozen.sh's record and check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import ast
 import collections
 import hashlib
 import os
@@ -14,9 +13,8 @@ import replaces_case
 import tunables
 from entry import write
 from frozen_record import _pass_marker_path, _remove_pass_marker, _step_key, _work_tree_hash, _write_pass_marker
-from js_tests import CALL
 from ledger import KIND_RE, carries_mark, trailing_markers
-from case_reader import is_js_test_file, is_test_path
+from case_reader import _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
@@ -84,65 +82,7 @@ def _differing_tests():
     return names
 
 
-_CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*name=\"([^\"]+)\"|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\3", re.M)
-
-
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
-
-
-_MODULE_LEVEL = re.compile(r"\n[ \t]*\n(?:[ \t]*\n)*(?:#|\w+[ \t]*\(\))")
-
-
-_DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
-
-
-def _def_ends(text):
-    try:
-        tree = ast.parse(text)
-    except (SyntaxError, ValueError):
-        return {}
-    return {node.lineno: (min([d.lineno for d in node.decorator_list] + [node.lineno]), node.end_lineno)
-            for node in ast.walk(tree)
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
-
-
-def _helpers_only(tail):
-    in_function = False
-    for line in tail.splitlines():
-        if in_function:
-            in_function = line.rstrip() != "}"
-        elif not line.strip() or line.lstrip().startswith("#"):
-            continue
-        elif re.match(r"\w+[ \t]*\(\)", line):
-            in_function = not line.rstrip().endswith("}")
-        else:
-            return False
-    return True
-
-
-def _module_level_cut(body):
-    for cut in _MODULE_LEVEL.finditer(body):
-        if _helpers_only(body[cut.start():]):
-            return cut
-    return None
-
-
-def _unescaped(title):
-    return re.sub(r"\\(.)", r"\1", title)
-
-
-def _spans(text):
-    found = list(_CASE.finditer(text))
-    trailer = re.search(r"^finish\b.*\s*\Z", text, re.M)
-    starts = [m.end() - len(m.group().lstrip()) for m in found]
-    ends = starts[1:] + [trailer.start() if trailer and found and trailer.start() > found[-1].start() else len(text)]
-    return found, starts, ends
-
-
-def _old_cut_cases_all(text, call_form_only=False):
-    found, starts, ends = _spans(text)
-    return [(m.group(1) or m.group(2) or m.group(4), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
-            if m.group(4) or not call_form_only or text.startswith("func", start)]
 
 
 def _accepted_per_digest(digests, nows, olds):
@@ -155,41 +95,6 @@ def _accepted_per_digest(digests, nows, olds):
     if len(digests) == len(nows):
         return [accepted(now, olds[i] if i < len(olds) else None) for i, now in enumerate(nows)]
     return [accepted(*nows, *olds)] * len(digests)
-
-
-def _call_end(text, opening):
-    depth = 0
-    for i in range(opening, len(text)):
-        if text[i] == "(":
-            depth += 1
-        elif text[i] == ")":
-            depth -= 1
-            if depth == 0:
-                return i + 1
-    return None
-
-
-def _cases(text):
-    found, starts, ends = _spans(text)
-    lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
-    cases = []
-    for m, start, end in zip(found, starts, ends):
-        body = text[start:end]
-        span = def_ends.get(text.count("\n", 0, start) + 1)
-        closed = _call_end(text, text.rfind("(", start, m.start(4))) if m.group(4) else None
-        if m.group(1) and span:
-            body = "".join(lines[span[0] - 1:span[1]]).rstrip()
-        elif closed:
-            body = text[start:closed]
-        else:
-            if m.group(1):
-                body = "".join(body.partition("\n}")[:2])
-            else:
-                cut = _module_level_cut(body)
-                body = body[:cut.start()] if cut else body
-            body = _DECORATORS.sub("", body.rstrip()).rstrip()
-        cases.append((m.group(1) or m.group(2) or _unescaped(m.group(4)), body))
-    return cases
 
 
 def _cases_at(rev, name):
