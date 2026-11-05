@@ -5984,3 +5984,38 @@ def test_rerecord_refactored_exits_2_not_1_when_check_earlier_cannot_obtain_an_a
     monkeypatch.chdir(tmp_path)
 
     assert tests_frozen.rerecord_refactored(".tdd/issue-9.md", green) == 2
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_rerecord_earlier_rewrites_body_and_helpers_lines_together_from_head_when_a_diff_checked_step_makes_a_case_call_a_new_helper_3052(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef check_old(x):\n    assert x == 1\n\n\n"
+                     "def test_pinned_3052():\n    check_old(1)\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", "-f", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef check_new(x):\n    assert x == 1\n    assert x < 2\n\n\n"
+                     "def test_pinned_3052():\n    check_new(1)\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit makes the case call a new helper")
+    text = suite.read_text()
+    head = tests_frozen._helper_digest(text, tests_frozen._bodies_of(text, "test_pinned_3052")[0])
+
+    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    held = [l.split("\t")[-1] for l in record.read_text().splitlines() if l.startswith("helpers: ")]
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (rerecorded, held, code, out) == (0, [head], 0, "")
