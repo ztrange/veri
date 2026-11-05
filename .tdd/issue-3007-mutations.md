@@ -16,3 +16,12 @@ command 477
 green 40
 df32c0be2dcbe50d77d4d9b9646de0494ac5a608
 
+before 40
+5c5a3f1f8a0d58a067cd4e25da126eb96ed01e72
+keep 57
+skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py
+command 367
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpkpzkrt67/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3007_criterion_9_a_contradicts_line_naming_a_js_ts_case_by_a_backticked_path_then_a_quoted_title_routes_red_over_the_title
+green 40
+4b119223334ce923a4e1613b034c40ef2312c985
+
