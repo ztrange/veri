@@ -4,7 +4,8 @@
 # usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
-# concluded anything else · 2 no answer (bad arguments, gh failed, unreadable rollup), a
+# concluded anything else · 2 no answer (bad arguments, a read of the checks still failing at the deadline, a 4xx other than
+# 403/429 at once), a
 # check still pending past the deadline an earlier call recorded for the same head commit, or
 # checks never started: still queued VERI_CI_QUEUE_WAIT secs after the first call that saw them
 # queued · 3 a check is still pending, none has appeared yet, every one was SKIPPED, or the PR
@@ -17,7 +18,10 @@
 # when fewer than 5 exist or gh cannot answer; the slice length when reading them fails
 # otherwise. The first queued sighting is recorded in .tdd/ci-queued-<sha>.
 #
-# Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_QUEUE_WAIT secs checks may
+# A failed read is retried, doubling the sleep from VERI_POLL, at most 60 s each.
+#
+# Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_RETRY_BACKOFF 1 (default)
+# doubles the retry sleep, 0 keeps it VERI_POLL; VERI_CI_QUEUE_WAIT secs checks may
 # stay queued before exit 2 (default 3600).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/wait_ci.py" "$@"
