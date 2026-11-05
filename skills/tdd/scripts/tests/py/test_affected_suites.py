@@ -1015,3 +1015,82 @@ def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_r
     assert code == 0
     assert prefix + "unit/test_skill_draft_pr.py" in selected
     assert prefix + "unit/test_skill_detect_call_tier_2433.py" not in selected
+
+
+def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/lib/x.sh"]))
+    monkeypatch.chdir(tmp_path)
+    scripts = tmp_path / "skills/tdd/scripts"
+    (scripts / "dir.sh").mkdir(parents=True)
+    (scripts / "user.sh").write_text('source "$here/lib/x.sh"\n')
+    plant(tmp_path, pytest_plants("user"))
+    assert affected.main(["base..head"]) == 0
+    assert capsys.readouterr().out == pytest_paths("user")
+
+
+def test_main_keeps_the_suffix_of_a_script_named_only_by_its_suffix(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/.sh"]))
+    monkeypatch.chdir(tmp_path)
+    plant(tmp_path, {SUITES + "py/test_.sh.py": "", SUITES + "py/test_.py": ""})
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, SUITES + "py/test_.sh.py\n", "")
+
+
+def test_main_skips_a_directory_named_like_a_pytest_file_when_mapping_a_module(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/veri/foo.py"]))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / SUITES / "py/test_foo.py").mkdir(parents=True)
+    plant(tmp_path, {SUITES + "py/unit/test_foo.py": ""})
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, SUITES + "py/unit/test_foo.py\n", "")
+
+
+def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, affected, tmp_path):
+    baz = SUITES + "py/test_baz.py"
+    monkeypatch.setattr(subprocess, "run", working_tree_git(untracked_=[baz], counted_untracked=[baz]))
+    plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SUITES + "py/test_foo.py": "", baz: ""})
+    assert run_cli(affected, ["base"], cwd=tmp_path) == (0, baz + "\n", "")
+
+
+def test_run_state_a_tdd_ledger_alongside_a_script_change_prints_exactly_that_scripts_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", SCRIPTS_REL + "foo.sh"],
+        {".tdd/issue-416.md": "- [x] step one\n", SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+         **pytest_plants("foo", "bar")},
+    ) == (0, pytest_paths("foo"), "")
+
+
+def test_a_changed_makefile_or_claude_md_alone_places_without_widening_and_prints_no_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, ["Makefile"],
+        {"Makefile": "test:\n", **pytest_plants("foo")}) == (3, "", "")
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, ["CLAUDE.md"],
+        {"CLAUDE.md": "# veri\n"}) == (3, "", "")
+
+
+def test_a_changed_fixture_alone_places_without_widening_and_prints_no_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    assert affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [SUITES + "fixtures/plan.md"],
+        {SUITES + "fixtures/plan.md": "# plan\n", **pytest_plants("foo")}) == (3, "", "")
+
+
+@pytest.mark.process("real git: the merge base of main and topic decides which side a file belongs to")
+def test_1138_a_non_suite_file_the_base_changed_or_deleted_after_the_branch_point_contributes_no_suite(
+        run_cli, affected, tmp_path):
+    repo = new_git_repo(tmp_path)
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
+                 SCRIPTS_REL + "prompts/p.md": "a prompt\n",
+                 **pytest_plants("foo", "bar"), SUITES + "py/unit/test_build_develop_prompt.py": "# renders\n"})
+    commit_all(repo, "base")
+    sh_git(repo, "checkout", "-q", "-b", "topic")
+    plant(repo, {SCRIPTS_REL + "foo.sh": "foo 2\n"})
+    commit_all(repo, "head")
+    sh_git(repo, "checkout", "-q", "main")
+    plant(repo, {SCRIPTS_REL + "bar.sh": "bar 2\n"})
+    (repo / SCRIPTS_REL / "prompts/p.md").unlink()
+    commit_all(repo, "main changes a script and deletes a prompt")
+    sh_git(repo, "checkout", "-q", "topic")
+    assert topic_range(run_cli, affected, repo) == (0, pytest_paths("foo"), "")
