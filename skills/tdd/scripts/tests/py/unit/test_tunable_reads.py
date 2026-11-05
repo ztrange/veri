@@ -200,3 +200,7 @@ def test_queued_merge_takes_its_veri_values_from_the_one_reader_2585():
 
 def test_mutation_probe_takes_its_veri_values_from_the_one_reader_2506():
     assert direct_reads(VERI / "mutation_probe.py") == []
+
+
+def test_watch_runs_takes_its_veri_values_from_the_one_reader_2958():
+    assert direct_reads(VERI / "watch_runs.py") == []
