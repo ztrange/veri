@@ -7,6 +7,7 @@ import sys
 import event
 import ledger
 import tests_frozen
+from add_ledger_step import added_file
 from build_verify_prompt import INTERFACE_PHASES
 
 RETIRED_MARK = " ⟂ retired unpinnable"
@@ -23,6 +24,22 @@ def changed_index(text, new):
 
 def changed_line(text, new):
     return new.split("\n")[changed_index(text, new)]
+
+
+def tick_added(path, step_line):
+    target = ledger.STEP_RE.fullmatch(step_line).group(4)
+    try:
+        with open(added_file(path), "rb") as handle:
+            lines = handle.read().decode(errors="surrogateescape").split("\n")
+    except FileNotFoundError:
+        return
+    for i, line in enumerate(lines):
+        match = ledger.STEP_RE.fullmatch(line)
+        if match and match.group(4) == target:
+            lines[i] = f"{match.group(1)}[x]{line[match.end(2) + 1:]}"
+            with open(added_file(path), "wb") as handle:
+                handle.write("\n".join(lines).encode(errors="surrogateescape"))
+            return
 
 
 def main(argv):
@@ -94,6 +111,8 @@ def main(argv):
             complain(f"{argv[0]}: {refusal}")
             return 2
     left = ledger.rewrite_ledger(argv[0], new)
+    if left is None:
+        tick_added(argv[0], step_line)
     if left is None and reason_file:
         step = step_line
         reason = next((l[7:].strip() for l in reason_text.splitlines() if l.startswith("REASON:")), "")
