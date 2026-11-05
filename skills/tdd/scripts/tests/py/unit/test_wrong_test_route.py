@@ -2503,7 +2503,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` "rejects an empty name"\n' + "CONTRADICTS: `foo.test.ts`\n")
+    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` "rejects an empty name"\n' + 'CONTRADICTS: `foo.test.ts` "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2520,7 +2520,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` “rejects an empty name”\n' + "CONTRADICTS: `foo.test.ts`\n")
+    report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` “rejects an empty name”\n' + 'CONTRADICTS: `foo.test.ts` “rejects an empty name”\n')
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
@@ -2554,7 +2554,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
         "  it('rejects an empty name', () => {});\n"
         "});\n")
     report = tmp_path / "green-report.txt"
-    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › "rejects an empty name"\n' + 'CONTRADICTS: "rejects an empty name"\n')
+    report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › "rejects an empty name"\n' + 'CONTRADICTS: foo.test.ts › "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
         wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
