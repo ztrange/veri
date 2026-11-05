@@ -1671,6 +1671,26 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
     assert (code, (repo / "tool.sh").stat().st_mode & 0o777) == (0, 0o755)
 
 
+@pytest.mark.process("a real git scratch repository whose verifier leaf chmods and rewrites a tracked executable")
+def test_verify_sh_still_refuses_a_verifier_leaf_that_changed_both_the_mode_and_the_content_of_a_tracked_file_with_exit_2_3087(
+        run_cli, tmp_path, monkeypatch):
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
+    (repo / "tool.sh").chmod(0o755)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
+           "FAKE_MUTATE": 'chmod 644 tool.sh; printf "the verifier rewrote this\\n" > tool.sh',
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env.update(checked_head(repo))
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, "tool.sh" in out, "full suite are green" in out) == (2, True, False)
+
+
 @pytest.mark.process("a real git scratch repository whose verifier leaf edits a tracked file and makes an untracked one unreadable")
 def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unreadable_file_in_the_tree_2764(
         run_cli, tmp_path, monkeypatch):
