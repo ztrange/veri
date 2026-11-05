@@ -207,6 +207,10 @@ def main(argv):
         return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
+    want = argv[3] if len(argv) > 3 else ""
+    if want and not re.fullmatch(r"[0-9a-f]{40}", want):
+        warn("head-sha '%s' is not a full 40-hex sha; a full 40-hex sha is required" % want)
+        return 2
     scope = {}
     numbers = []
     for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2]):
@@ -225,7 +229,6 @@ def main(argv):
         except Exception:
             traceback.print_exc()
             total = span
-    want = argv[3] if len(argv) > 3 else ""
     poll = tunables.read("VERI_POLL", unless_empty="10")
     deadline = ""
     slice_end = None
