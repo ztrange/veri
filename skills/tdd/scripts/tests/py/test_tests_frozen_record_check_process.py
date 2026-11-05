@@ -127,3 +127,26 @@ def test_check_earlier_on_the_next_step_exit_0_after_rerecord_of_a_refactor_pend
     ledger.write_text("- [x] %s\n- [ ] step B\n" % step)
 
     assert frozen(tmp_path, "check-earlier", str(ledger), "--step", "step B")[:2] == (0, "")
+
+
+@pytest.mark.process("git rev-parse and write-tree in a real git repository under tmp_path")
+def test_pass_marker_current_is_false_for_a_marker_at_the_steps_path_whose_step_line_names_another_step_3049(
+        tmp_path, monkeypatch):
+    import importlib
+    frozen_record = importlib.import_module("frozen_record")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.txt").write_text("one\n")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "a.txt")
+    _git(tmp_path, "commit", "-q", "-m", "base")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                          text=True).stdout.strip()
+    tree = frozen_record._work_tree_hash()
+    marker = tmp_path / frozen_record._pass_marker_path("step A")
+    marker.parent.mkdir()
+    marker.write_text("step: step A\nhead: %s\ntree: %s\n" % (head, tree))
+    assert frozen_record.pass_marker_current("step A") is True
+
+    marker.write_text("step: step B\nhead: %s\ntree: %s\n" % (head, tree))
+
+    assert frozen_record.pass_marker_current("step A") is False
