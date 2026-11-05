@@ -3584,3 +3584,76 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_an_it_case_
 
     assert (code, out.strip().startswith("step deleted pytest cases an earlier step added: web/start.test.js::"),
             started.exists()) == (1, True, False), out
+
+
+def run_2897_diff(run_cli, tmp_path, path, base_text, added_text, final_text):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message, text):
+        (repo / path).parent.mkdir(parents=True, exist_ok=True)
+        (repo / path).write_text(text)
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    (repo / ".gitignore").write_text(".tdd/\n")
+    branch_base = commit("branch base", base_text)
+    step_base = commit("an earlier step adds cases", added_text)
+    commit("this step edits them", final_text)
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+    code, out, _ = run_cli(
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit", "diff",
+                 str(tmp_path / "spec.md"), branch_base, step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+    return code, out.strip(), started.exists()
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2897_verify_sh_diff_does_not_refuse_a_non_test_go_func_removed_from_a_test_go_file(run_cli, tmp_path):
+    keep = "package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n"
+    code, out, started = run_2897_diff(run_cli, tmp_path, "pkg/start_test.go", keep,
+                                       keep + "\nfunc helper2897() {\n}\n", keep)
+
+    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2897_verify_sh_diff_refuses_an_indented_it_case_removed_by_deleting_its_describe_in_a_test_js_file(
+        run_cli, tmp_path):
+    keep = 'it("keeps", () => {\n});\n'
+    block = 'describe("group2897", () => {\n  it("nested2897", () => {\n    expect(3).toBe(3);\n  });\n});\n'
+    code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.test.js", keep, keep + "\n" + block, keep)
+
+    assert (code, out, started) == (
+        1, "step deleted pytest cases an earlier step added: web/start.test.js::nested2897", False)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2897_verify_sh_diff_does_not_refuse_an_it_case_removed_from_a_plain_js_file(run_cli, tmp_path):
+    keep = 'it("keeps", () => {\n});\n'
+    code, out, started = run_2897_diff(run_cli, tmp_path, "web/helpers.js", keep,
+                                       keep + '\nit("dropped2897", () => {\n  run();\n});\n', keep)
+
+    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file_with_its_body_unchanged(
+        run_cli, tmp_path):
+    keep = "package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n"
+    body = "{\n\tif 3 != 3 {\n\t\tt.Fatal()\n\t}\n}\n"
+    code, out, started = run_2897_diff(run_cli, tmp_path, "pkg/start_test.go", keep,
+                                       keep + "\nfunc TestOld2897(t *testing.T) " + body,
+                                       keep + "\nfunc TestNew2897(t *testing.T) " + body)
+
+    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out

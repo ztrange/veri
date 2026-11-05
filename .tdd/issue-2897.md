@@ -2,4 +2,4 @@
 
 - [x] The diff verifier's deleted-case guard refuses a step that deletes a `func TestX` in a `_test.go` file which an earlier step of the branch added, with the existing refusal text unchanged (`step deleted pytest cases an earlier step added: …`) ⟦criterion 1⟧
 - [x] The diff verifier's deleted-case guard refuses a step that deletes an `it("x", …)` case in a `.test.js` file which an earlier step of the branch added, with the existing refusal text unchanged ⟦criterion 2⟧
-- [x] The diff verifier's deleted-case guard does not refuse a step that renames a `func TestX` in a `_test.go` file, added by an earlier step, with its body unchanged ⟦criterion 3⟧ ⟂ retired unpinnable
+- [x] The diff verifier's deleted-case guard does not refuse a step that renames a `func TestX` in a `_test.go` file, added by an earlier step, with its body unchanged ⟦criterion 3⟧ ⟂ test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file_with_its_body_unchanged
