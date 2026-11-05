@@ -651,8 +651,14 @@ def test_a_grades_block_that_leaves_out_one_requirement_id_makes_grade_prose_exi
     (tmp_path / ".tdd" / "grade-prose.log").write_text(
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+    launched = []
 
     def launch(argv, *a, **k):
+        launched.append(argv)
+        if len(launched) > 1:
+            (tmp_path / ".tdd" / "grade-prose.log").write_text(
+                '{"type":"result","subtype":"success","is_error":false,"result":'
+                '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n')
         return subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
@@ -681,9 +687,10 @@ def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_
 
     def launch(argv, *a, **k):
         launched.append(argv)
+        rows = "A1: PASS - ok\\nA3: PASS - ok" if len(launched) == 1 else "A2: PASS - ok"
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":'
-            '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+            '"BEGIN GRADES\\n' + rows + '\\nVERDICT: PASS\\nEND GRADES"}\n')
         return subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
@@ -694,7 +701,8 @@ def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    assert (code, "missing" in err and "A2" in err, events.exists()) == (2, True, False), (code, err)
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, "PASS" in verdicts) == (0, True), (code, err)
 
 
 def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2_naming_it_as_repeated_and_append_no_grading_event_2208(

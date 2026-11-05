@@ -234,10 +234,8 @@ def main(argv):
             os.unlink(g.name)
 
     wanted = [row.split("\t", 1)[0] for row in claims.splitlines()]
-    used = 0
     try:
         for _ in range(retries + 1):
-            used += 1
             raw = launch(f.name)
             if raw is None:
                 return no_verdict("the grader leaf exited non-zero")
@@ -252,7 +250,7 @@ def main(argv):
     reply = reply[reply.rindex("BEGIN GRADES"):]
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
-    if missing and used <= retries and "END GRADES" in reply and keeps_protocol(reply, wanted):
+    if missing and "END GRADES" in reply and keeps_protocol(reply, wanted):
         more = launch_rows(set(missing))
         if more is None:
             return no_verdict("the grader leaf exited non-zero")
