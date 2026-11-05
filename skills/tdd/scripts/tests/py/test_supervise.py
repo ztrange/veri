@@ -66,14 +66,15 @@ def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_
 SET_BY_CLEAN_ENV = set()
 
 
-REAL_WORK_TREE_HASH = importlib.import_module("veri.supervise").tests_frozen._work_tree_hash
+REAL_WORK_TREE_HASH = importlib.import_module("frozen_record")._work_tree_hash
 
 
 @pytest.fixture(autouse=True)
 def work_tree_hashes_to_tree(monkeypatch):
     """A directory that is no git repository hashes to "tree"; a repository, as it really does."""
-    monkeypatch.setattr(importlib.import_module("veri.supervise").tests_frozen, "_work_tree_hash",
-                        lambda: REAL_WORK_TREE_HASH() if os.path.isdir(".git") else "tree")
+    for name in ("frozen_record", "tests_frozen"):
+        monkeypatch.setattr(importlib.import_module(name), "_work_tree_hash",
+                            lambda: REAL_WORK_TREE_HASH() if os.path.isdir(".git") else "tree")
 
 
 def clean_env(monkeypatch, **env):
@@ -4223,7 +4224,7 @@ def test_cli_launches_verify_red_and_verify_green_with_a_current_pass_marker_and
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-2206.md").write_text("# Plan for #2206\n\n- [ ] first step\n")
     head = "0123456789abcdef0123456789abcdef01234567"
-    marker = tmp_path / supervise.tests_frozen._pass_marker_path("first step")
+    marker = tmp_path / importlib.import_module("frozen_record")._pass_marker_path("first step")
     stub = tmp_path / "claude"
     started = spy_leaf_start(monkeypatch, tmp_path, supervise)
 
