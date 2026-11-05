@@ -470,3 +470,28 @@ def test_cli_run_through_a_symlinked_skill_from_another_directory_acts_on_the_ca
             (elsewhere / ".tdd" / "verify-red.stderr").read_text()) == (
         (0, VERDICT_LINE, ""), [(verifier, [verifier, *argv])], "",
         "an earlier verifier wrote this to stderr\n" + NOISE)
+
+
+def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, monkeypatch):
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "verify-diff.reason").write_text("an earlier step's reason\n")
+    monkeypatch.chdir(run)
+    spare = os.open(os.devnull, os.O_WRONLY)
+    real_dup2 = os.dup2
+    monkeypatch.setattr(os, "dup2", lambda fd, fd2, inheritable=True: real_dup2(fd, spare, inheritable))
+    monkeypatch.setattr(os, "execv", lambda path, args: None)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    run_verdict.main(["--step", "t", "--fast-cmd", "make unit", "--supersede-base", "abc1234",
+                      "diff", "spec.md", "base", "step-base"])
+    os.write(spare, b"this verdict's stderr\n")
+    os.close(spare)
+
+    assert ((run / ".tdd" / "verify-diff.reason").read_text(),
+            sorted(p.name for p in (run / ".tdd").glob("*.stderr"))) == ("", ["verify-diff.stderr"])
