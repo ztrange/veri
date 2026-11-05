@@ -44,3 +44,15 @@ def _remove_pass_marker(step):
         os.remove(_pass_marker_path(step))
     except OSError:
         pass
+
+
+def pass_marker_current(text):
+    try:
+        with open(_pass_marker_path(text), encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return False
+    done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    head = done.stdout.rstrip("\n") if done.returncode == 0 else None
+    return (head is not None and f"step: {text}" in lines and f"head: {head}" in lines
+            and f"tree: {_work_tree_hash()}" in lines)
