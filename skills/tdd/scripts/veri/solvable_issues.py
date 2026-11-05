@@ -118,7 +118,7 @@ def select(label, priority="priority", repo=None):
         changed = False
         for issue in issues:
             for n in blockers[issue["number"]]:
-                if n in bands and bands[issue["number"]] < bands[n]:
+                if n in bands and bands[issue["number"]] < min(bands[n], 2):
                     bands[n] = bands[issue["number"]]
                     changed = True
     main_tree = main_working_tree()
