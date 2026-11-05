@@ -833,3 +833,48 @@ def test_2832_main_keeps_watching_a_started_run_whose_run_conductor_process_work
     code = watch_runs.main(["--max-wait", "6"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_resumes_reading_the_queue_2958(
+        monkeypatch, capsys, watch_runs):
+    epoch = 1_000_000
+    reset = epoch + 32
+    now = [0]
+    reads = []
+    gh_calls = []
+    ticks = []
+
+    def run(argv, **kwargs):
+        if os.path.basename(argv[0]) == "gh":
+            gh_calls.append((now[0], list(argv)))
+            body = str(reset) if "--jq" in argv else json.dumps(
+                {"resources": {"core": {"remaining": 0, "reset": reset}}})
+            return subprocess.CompletedProcess(argv, 0, stdout=body + "\n", stderr="")
+        reads.append(now[0])
+        if epoch + now[0] < reset:
+            return subprocess.CompletedProcess(
+                argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+        return subprocess.CompletedProcess(argv, 0, stdout="12 title\n", stderr="")
+
+    def wait():
+        now[0] += 2
+        if now[0] > 200:
+            raise RuntimeError("never printed slot-free")
+
+    def live():
+        ticks.append(now[0])
+        return ["5"]
+
+    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
+    monkeypatch.setattr(watch_runs, "time", type("T", (), {
+        "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
+        "sleep": staticmethod(lambda s: None)}))
+    monkeypatch.setattr(watch_runs, "wait", wait)
+    monkeypatch.setattr(watch_runs, "live_conductors", live)
+
+    code = watch_runs.main(["--target", "2"])
+
+    after_refusal = [t for t in reads[1:]] + [t for t, argv in gh_calls if "rate_limit" not in argv]
+    assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
+    assert all(epoch + t >= reset for t in after_refusal) and len(reads) == 2
+    assert [b - a for a, b in zip(ticks[1:], ticks[2:])] == [2] * (len(ticks) - 2)
