@@ -62,6 +62,12 @@ def rebased_tip_suite(raw):
     return raw
 
 
+def baseline_full_tier(raw):
+    if raw not in ("run", "reuse"):
+        raise ValueError
+    return raw
+
+
 class Tunable:
     def __init__(self, parse, default, must_be):
         self.parse, self.default, self.must_be = parse, default, must_be
@@ -76,6 +82,7 @@ TABLE = {
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
     "VERI_REBASED_TIP_SUITE": Tunable(rebased_tip_suite, "local", "local or ci"),
+    "VERI_BASELINE_FULL_TIER": Tunable(baseline_full_tier, "run", "run or reuse"),
 }
 
 

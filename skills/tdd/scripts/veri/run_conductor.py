@@ -37,7 +37,7 @@ HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
 def main(argv):
-    for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE"):
+    for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE", "VERI_BASELINE_FULL_TIER"):
         _, bad = tunables.resolve(name)
         if bad:
             sys.stderr.write("run-conductor: %s must be %s, got '%s'\n" % (name, bad[1], bad[0]))

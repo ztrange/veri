@@ -9,6 +9,7 @@ ENTRY_POINTS = {
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_REBASED_TIP_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
+    "VERI_BASELINE_FULL_TIER": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_KILL_POLL": ("veri.supervise", ["develop-red", "true"], {"VERI_TIMEOUT": "900"}),
 }
 CANDIDATES = ("abc", "-1", "0", "1.5.5", "1e3", "1e12", "nan", "inf", " 7")
@@ -80,3 +81,20 @@ def test_2841_rebased_tip_suite_set_to_ci_resolves_to_ci_with_no_error(monkeypat
     monkeypatch.setenv("VERI_REBASED_TIP_SUITE", "ci")
 
     assert tunables.resolve("VERI_REBASED_TIP_SUITE") == ("ci", None)
+
+
+def test_2847_baseline_full_tier_set_to_a_value_but_run_or_reuse_makes_run_conductor_exit_2_naming_it_and_the_value(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.chdir(tmp_path)
+    for name in [n for n in os.environ if n.startswith("VERI_") and n != "VERI_VENV"]:
+        monkeypatch.delenv(name)
+    module, argv, env = ENTRY_POINTS["VERI_BASELINE_FULL_TIER"]
+    calls = fake_processes()
+
+    code, out, err = run_cli(importlib.import_module(module), argv,
+                             env=dict(env, VERI_BASELINE_FULL_TIER="bogus"), cwd=tmp_path)
+
+    assert "VERI_BASELINE_FULL_TIER" in tunables.TABLE
+    assert (code, out, len(err.splitlines()), "VERI_BASELINE_FULL_TIER" in err, "bogus" in err, tuple(calls)) == (
+        2, "", 1, True, True, ())
