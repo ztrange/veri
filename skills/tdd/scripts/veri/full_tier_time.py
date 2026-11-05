@@ -30,6 +30,13 @@ def record_path():
     return os.path.join(main_tree(os.getcwd()), ".tdd", "full-tier-time.json")
 
 
+def read_times(record):
+    if not os.path.exists(record):
+        return {}
+    with open(record) as f:
+        return json.load(f)
+
+
 def refuse():
     print(USAGE, file=sys.stderr)
     return 2
@@ -43,19 +50,12 @@ def main(argv):
             return refuse()
         record = record_path()
         os.makedirs(os.path.dirname(record), exist_ok=True)
-        times = {}
-        if os.path.exists(record):
-            with open(record) as f:
-                times = json.load(f)
+        times = read_times(record)
         times[argv[2]] = argv[1]
         with open(record, "w") as f:
             json.dump(times, f)
         return 0
-    record = record_path()
-    if not os.path.exists(record):
-        return 3
-    with open(record) as f:
-        times = json.load(f)
+    times = read_times(record_path())
     if argv[0] not in times:
         return 3
     print(times[argv[0]])
