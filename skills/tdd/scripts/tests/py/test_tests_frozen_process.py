@@ -5639,3 +5639,27 @@ def test_rerecord_refactored_does_not_let_a_non_arrow_const_before_the_shared_ty
     skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
 
     assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_does_not_count_the_assertions_of_a_non_arrow_const_following_the_shared_typescript_helper_as_the_helpers_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = ("const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+              "const unrelated = 3;\nexpect(x).toBe(9);\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_does_not_take_a_non_arrow_const_the_cases_call_for_a_typescript_helper_definition_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "const other = wrap(() => {\n  expect(x).toBe(9);\n});\n")
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n  other();\n});\n\n" % n
+                     for n in ("one", "two", "three"))
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper, shared)
+
+    assert (skipped, checked) == ([], 0)

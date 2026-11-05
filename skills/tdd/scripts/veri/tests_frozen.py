@@ -624,13 +624,14 @@ def _called_helpers(rev, name, body):
     return _helpers_in(_text_at(rev, name, subprocess.DEVNULL), body)
 
 
-_HELPER_NAME = r"^(?:(?:function|func|def)\s+|const\s+)(\w+)"
+_HELPER_NAME = r"^(?:(?:function|func|def)\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
 
 
 def _helpers_in(text, body):
     helpers = []
-    for definition in re.finditer(_HELPER_NAME + r"[^\n]*\n(?:(?!(?:function|func|def)\b).*\n?)*", text, re.M):
-        if not definition.group(1).startswith("Test") and re.search(r"\b%s\(" % definition.group(1), body):
+    for definition in re.finditer(_HELPER_NAME + r"[^\n]*\n(?:(?!(?:function|func|def|const)\b).*\n?)*", text, re.M):
+        name = definition.group(1) or definition.group(2)
+        if not name.startswith("Test") and re.search(r"\b%s\(" % name, body):
             helpers.append(definition.group())
     return "\n".join(helpers)
 
