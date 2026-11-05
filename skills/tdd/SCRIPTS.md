@@ -280,7 +280,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   branch is checked out as it is, with no fetch. Only a **local** branch or a **registered
   worktree** makes a run a resume. A branch **only origin** holds is refused (exit 2) unless
   the run is a resume, even when this clone has fetched it (a remote-tracking ref is not a
-  resume): it creates no branch and no worktree, and names the takeover — `git branch
+  resume) — with one exception, the **own lane**: when the issue carries this lane's `taken:<lane>`
+  label (the text after the last `:` of `VERI_LABEL`, `main` without one), the run is a resume and the
+  worktree is recreated from origin's branch tip, ledger included; another lane's claim is still
+  refused. A refused one creates no branch and no worktree, and names the takeover — `git branch
   tdd/<n>-<slug> origin/tdd/<n>-<slug>` — after which the next run is a resume. A **stale**
   remote-tracking ref, whose branch origin no longer holds, is not a claim: the run cuts fresh
   from `origin/<default>`, as above. **Exit 0** = the path. **Exit 2** = no answer

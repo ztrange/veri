@@ -1601,3 +1601,22 @@ def test_resume_with_a_veri_label_carrying_a_lane_matches_the_taken_label_of_the
 
     assert (code, out.strip(), os.path.isdir(want)) == (0, want, True)
 
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_resume_by_lane_ma_is_refused_when_the_issue_carries_taken_main_since_the_lane_label_matches_whole_issue_3096(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], capture_output=True)
+    seed = scratch_repo(tmp_path / "seed")
+    scratch_git(seed, "switch", "-q", "-c", "tdd/9-slug")
+    scratch_git(seed, "commit", "-q", "--allow-empty", "-m", "ledger")
+    scratch_git(seed, "push", "-q", str(origin), "main", "tdd/9-slug")
+    clone = tmp_path / "lane"
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], capture_output=True)
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:ma")
+    monkeypatch.setattr(sys.modules["github"], "gh_issue_view", lambda number, field: "taken:main\n", raising=False)
+    want = scratch_wt_path(clone, 9)
+
+    code, out, _ = run_cli(issue_worktree, ["9", "slug"], cwd=clone)
+
+    assert (code, out, os.path.exists(want)) == (2, "", False)
