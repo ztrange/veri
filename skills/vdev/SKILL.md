@@ -129,11 +129,15 @@ Then take the slot decision.
 
 ## Running the sibling skills
 
+The harness may report this skill's base dir as a symlink. Resolve it first, with
+`cd -P <base dir> && pwd` (or `realpath <base dir>`), and read every sibling skill at
+`<resolved base dir>/../<skill>/SKILL.md`, never at the path the harness reports.
+
 Run `vmerge`, `vbail` and `vjudge` each through a subagent on the cheapest model that can do
 the job, briefed to return at most 10 lines and to read the skill at
-`<base dir>/../<skill>/SKILL.md`.
+`<resolved base dir>/../<skill>/SKILL.md`.
 
-Load `vhandoff` yourself, by reading `<base dir>/../vhandoff/SKILL.md`.
+Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
 ## Parked issues
 
