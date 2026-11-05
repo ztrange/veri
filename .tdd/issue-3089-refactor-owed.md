@@ -2,3 +2,4 @@
 - the `".tdd/ci-deadline-" + key` path is built in three places in `wait_ci.py` (the new unread check, the head-sha check, the deadline-file read); one shared helper would remove that. I didn't apply it because some of those sites predate this cycle.
 - `before_deadline` and the deadline-file read in `main` both open the file and parse it, which is a second copy of the same parsing.
 applied | 8cefeaef90e923237379a9d63671496726868f9b | the `".tdd/ci-deadline-" + key` path is built in three places in `wait_ci.py` (the new unread check, the head-sha check, the deadline-file read); one shared helper would remove that. I didn't apply it because some of those sites predate this cycle.	chore: refactor verified for wait-ci 4xx first-read exit (#3089)
+not-done | transform-rejected | `before_deadline` and the deadline-file read in `main` both open the file and parse it, which is a second copy of the same parsing.
