@@ -5558,3 +5558,62 @@ def test_rerecord_refactored_skips_only_the_go_case_whose_own_lines_the_shared_h
 
     skipped = [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")]
     assert (skipped, checked) == (["skipped: suite_test.go TestX"], 1)
+
+
+def _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper, shared=None):
+    """Three TS cases with inline expects, refactored into `shared` + `helper`; returns (skipped lines, check-earlier code)."""
+    step = STEPS[1]
+    suite = tmp_path / "suite.test.ts"
+    _plan_repo(tmp_path, monkeypatch)
+    names = ("one", "two", "three")
+    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n});\n\n" % n
+                     for n in names)
+    shared = shared or "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in names)
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite.test.ts")
+    run_cli(tests_frozen, ["record", "--step", step, "suite.test.ts"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(shared + helper)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+    err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)[2]
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[0]
+    return [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")], checked
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+@pytest.mark.parametrize("opener", ["let sharedBase = () => {", "return sharedBase = () => {"])
+def test_rerecord_refactored_does_not_take_a_let_or_return_line_for_a_typescript_helper_definition_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, opener):
+    helper = opener + "\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (len(skipped), checked) == (3, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_skips_every_case_and_check_earlier_exits_1_when_the_refactor_deletes_an_assertion_from_the_shared_typescript_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n}\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper)
+
+    assert (len(skipped), checked) == (3, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_skips_only_the_case_whose_helper_call_line_the_refactor_deleted_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+    shared = "".join("it('%s', () => {\n  const x = 1;\n%s});\n\n" % (n, "  sharedBase();\n" if n != "two" else "")
+                     for n in ("one", "two", "three"))
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, helper, shared)
+
+    assert (skipped, checked) == (["skipped: suite.test.ts two"], 1)
