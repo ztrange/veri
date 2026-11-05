@@ -341,7 +341,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   queued sighting is recorded in `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
   `SUCCESS`, `NEUTRAL` or `SKIPPED`, not all `SKIPPED`. **Exit 1** a completed check concluded
   anything else, or a commit status is `failure`/`error`; the failed check names go on stdout,
-  comma-separated. **Exit 2** no answer: bad arguments, the rollup unreadable 3 times running, a
+  comma-separated. **Exit 2** no answer: bad arguments, a read of the checks that fails and is still failing when the deadline passes (retried with backoff until it; a 4xx other than 403 or 429 exits 2 at once), a
   PR with no checks (or only skipped ones) that conflicts with its base branch (stderr says
   `conflicts with its base branch`), a check still pending past the recorded deadline, an
   unreadable deadline file, or checks that never started — still queued more than
@@ -354,7 +354,13 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `.github/workflows/` triggers on `pull_request` or `pull_request_target` exits 0 with a
   warning, since no check will ever come; an explicit `VERI_CI_ON_PR` (`0` or `1`) wins over
   this detection, so `VERI_CI_ON_PR=1` keeps the wait.
-  Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_QUEUE_WAIT` (default 3600 s),
+  An unreadable read (HTTP 5xx, 403, 429, or no HTTP status) is retried, not counted out: the
+  first one records the deadline like a pending read does (not on a draft), and each consecutive
+  one sleeps twice the last, from `VERI_POLL`, at most 60 s per sleep; a good read starts the
+  sequence over. `VERI_CI_RETRY_BACKOFF=0` keeps every retry sleep at `VERI_POLL`; a value other
+  than `0`, `1` or empty is an **exit 2**.
+  Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_RETRY_BACKOFF` (`1`, the default,
+  doubles the retry sleep; `0` keeps it flat), `VERI_CI_QUEUE_WAIT` (default 3600 s),
   `VERI_CI_ON_PR` (unset means checks are expected, unless the detection above finds no
   `pull_request` workflow).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
