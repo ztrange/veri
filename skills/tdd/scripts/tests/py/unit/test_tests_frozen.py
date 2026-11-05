@@ -1120,3 +1120,23 @@ def test_cases_cuts_a_vitest_case_holding_a_line_comment_with_an_unbalanced_pare
     body = dict(tests_frozen._cases(text))["holds a line comment"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
+
+
+def test_cases_cuts_a_vitest_case_holding_a_block_comment_with_an_unbalanced_paren_at_its_own_closing_call_2970(tests_frozen):
+    text = (
+        'describe("names", () => {\n'
+        '  it("holds a block comment", () => {\n'
+        "    /* checks (value */\n"
+        "    expect(1).toBe(1);\n"
+        "  });\n"
+        "  const between = 1;\n"
+        '  it("second", () => {\n'
+        "    expect(2).toBe(2);\n"
+        "  });\n"
+        "});\n"
+    )
+
+    body = dict(tests_frozen._cases(text))["holds a block comment"]
+
+    assert body.endswith("  })") and "between" not in body and "second" not in body
+

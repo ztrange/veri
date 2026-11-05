@@ -104,6 +104,11 @@ def _call_end(text, opening):
                 quote = None
         elif text.startswith("//", i):
             i += len(text[i:].partition("\n")[0])
+        elif text.startswith("/*", i):
+            i = text.find("*/", i + 2)
+            if i < 0:
+                return None
+            i += 1
         elif text[i] in "'\"`":
             quote = text[i]
         elif text[i] == "(":
