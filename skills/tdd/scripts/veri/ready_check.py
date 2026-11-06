@@ -18,12 +18,12 @@ def default_tip():
     return head.stdout.strip() if head.returncode == 0 else "main"
 
 
-def triggers_on_pull_request():
+def triggers_on(event):
     tip = default_tip()
     names = git("ls-tree", "--name-only", tip, ".github/workflows/").stdout.split()
     for name in names:
         text = git("show", tip + ":" + name).stdout
-        if any("pull_request" in line for line in trigger_lines(text)):
+        if any(event in line for line in trigger_lines(text)):
             return True
     return False
 
@@ -49,8 +49,11 @@ def main(argv):
         if found.returncode == 3:
             print(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
             failed += 1
-    if not os.environ.get("VERI_CI_ON_PR") and not triggers_on_pull_request():
+    if not os.environ.get("VERI_CI_ON_PR") and not triggers_on("pull_request"):
         print("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
+        failed += 1
+    if not triggers_on("push"):
+        print("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
         failed += 1
     if failed:
         print(f"not ready — {failed} rows to fix")
