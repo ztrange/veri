@@ -107,11 +107,12 @@ def main(argv):
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
-    rows = [f"ok    {name}" if not fix else f"fail  {name}: {fix}" for name, fix in (check() for check in CHECKS)]
-    failed = [r for r in rows if r.startswith("fail")]
+    results = [check() for check in CHECKS]
+    failed = sum(1 for _, fix in results if fix)
+    rows = [f"fail  {name}: {fix}" if fix else f"ok    {name}" for name, fix in results]
     print(*rows, sep="\n")
     if failed:
-        print(f"not ready — {len(failed)} rows to fix")
+        print(f"not ready — {failed} rows to fix")
         return 1
     print("ready")
     return 0
