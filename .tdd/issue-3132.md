@@ -5,7 +5,7 @@
 - [x] On a fresh launch (no readable `.tdd/issue-<n>-skill-commit`) with `VERI_SKIP_VERIFY=refactor`, `run-conductor.sh` writes the list `refactor` to `.tdd/issue-<n>-skip-verify`, beside the skill-commit pin ⟦criterion 3⟧
 - [x] On a fresh launch with `VERI_SKIP_VERIFY` unset, `run-conductor.sh` writes an empty `.tdd/issue-<n>-skip-verify` ⟦criterion 3⟧
 - [x] On a resume (a readable `.tdd/issue-<n>-skill-commit`, `VERI_NEW_SKILL` unset), `run-conductor.sh` leaves `.tdd/issue-<n>-skip-verify` holding what it held, whatever `VERI_SKIP_VERIFY` says ⟦criterion 3⟧ ⟂ retired unpinnable
-- [ ] On a resume with `VERI_NEW_SKILL=1`, `run-conductor.sh` re-pins `.tdd/issue-<n>-skip-verify` from `VERI_SKIP_VERIFY` ⟦criterion 3⟧
+- [x] On a resume with `VERI_NEW_SKILL=1`, `run-conductor.sh` re-pins `.tdd/issue-<n>-skip-verify` from `VERI_SKIP_VERIFY` ⟦criterion 3⟧
 - [ ] The `.tdd/.gitignore` seed `run-conductor.sh` writes lists `issue-*-skip-verify` ⟦criterion 3⟧
 - [ ] `tests-frozen.sh rerecord-refactored` re-records the refactored frozen cases when `.tdd/verdict-refactor.exit` holds `skipped`, exactly as when it holds `0` ⟦criterion 5⟧
 - [ ] `tests-frozen.sh rerecord-refactored` still returns 3 and re-records nothing when `.tdd/verdict-refactor.exit` holds a value other than `0` or `skipped` (such as `2`) ⟦criterion 5⟧
