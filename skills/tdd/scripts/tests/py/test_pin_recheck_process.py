@@ -1497,3 +1497,66 @@ def test_3151_a_before_replay_over_a_file_added_after_before_and_deleted_by_head
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "z_new.txt").exists()) == (0, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck run in-process over a before/keep record whose replayed command raises")
+def test_3151_a_before_replay_whose_command_raises_mid_run_restores_every_file_byte_identical(tmp_path, monkeypatch, run_cli):
+    import importlib
+    pin_recheck = importlib.import_module("veri.pin_recheck")
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+
+    def tree():
+        return {n: (tmp_path / n).read_bytes() for n in ("a_mod.txt", "c_added.txt", "z_gone.txt", "pin.txt")
+                if (tmp_path / n).exists()}
+    git("init", "-q")
+    for n, text in (("a_mod.txt", "a v0\n"), ("z_gone.txt", "z v0\n"), ("pin.txt", "pin v0\n")):
+        (tmp_path / n).write_text(text)
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "a_mod.txt").write_text("a v1\n")
+    (tmp_path / "c_added.txt").write_text("c v1\n")
+    (tmp_path / "z_gone.txt").unlink()
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3151-mutations.md", before=base, keep="pin.txt", command="true")
+    before = tree()
+
+    def interrupted(command):
+        assert tree() != before, "the replay had not swapped the files when the command ran"
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(pin_recheck, "run_captured", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        run_cli(pin_recheck, [base], cwd=tmp_path)
+
+    assert tree() == before
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose named test the range deletes")
+def test_3151_a_before_record_whose_named_test_the_range_deletes_is_retired_and_replays_nothing(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "t_gone.txt").write_text("test v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("rm", "-q", "t_gone.txt")
+    git("commit", "-q", "-am", "pin and delete the test")
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-3151-mutations.md"
+    record(ledger, before=base, keep="pin.txt", command="touch ran.witness; echo TESTS=t_gone.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (
+        3, "retired: .tdd/issue-3151-mutations.md pin.txt t_gone.txt\n", False), ran.stderr
