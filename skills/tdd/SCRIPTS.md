@@ -71,9 +71,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   structural), this one by what it **must** carry — the same instructions on every run of a
   phase, with only the variables changing. **Build every developer prompt with it**; a
   phase's instructions live in its template, not in prose you improvise per cycle.
-- `$S/build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
-  assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
+- `$S/build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
+  assemble the blind verifier prompt. `--supersede-base <sha>` (hex, 7-40 chars; `diff` phase) points the verifier at `git diff <sha>` for a supersede edit. Used by `verify.sh`; you rarely call it directly.
+- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck, or (`pin`) no resolvable merge-base: the branch has no base against `origin/HEAD`, and stderr names `origin/HEAD`**. The `pin` phase is the *already satisfied*
@@ -82,10 +82,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   / over-coupled / too-complex bar as `red`.
 - `$S/refactor-owed.sh append|applied|not-done|render|list <file> …` — the structural leftovers a step's refactor leaf reports. `append <file> '<STEP>' [<bounds>]` reads the report on stdin; `applied <file> '<transform>' <sha> '<subject>'` records a candidate as applied, `<subject>` being the applying commit's subject, `"$(git log -1 --format=%s)"`, which `render` prints beside the sha so the row stays readable after a rebase rewrites it; `not-done <file> '<candidate>' <reason>` records a candidate the pass did not apply, which `render` shows under `### Not done`; `render <file>` prints the `## Refactor owed` section; `list <file>` prints each structural transform once. Exit **0** done, **1** a write failed, **2** a missing argument or an unknown verb, **3** `render` or `list` found nothing.
 - `$S/mutation-parity.sh <pairs-table>` — proves each row of a `⟦replaces-case⟧` pairs table by applying its mutation: **exit 0** all proven, **exit 1** a REJECT, **exit 2** a bail. A row whose mutation no kept case catches prints `MISSING_TEST: <old>: no kept case fails when its mutation is applied` on stderr; saved to a reason file, that line routes through `wrong-test-route.sh` as `missing`.
-- `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]`
+- `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] [--supersede-base <sha>] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]`
   — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
   command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
-  it passes every argument through untouched and `exec`s the verify verb, so the step title
+  it passes every argument, `--supersede-base <sha>` included, through untouched and `exec`s the verify verb, so the step title
   travels in argv and its exit code is `verify.sh`'s.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
