@@ -1,5 +1,6 @@
 """ready-check.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import subprocess
 import sys
@@ -59,6 +60,13 @@ def main(argv):
         failed.append("fail  .tdd/: add `.tdd/` to .gitignore")
     if subprocess.run(["gh", "auth", "status"], capture_output=True).returncode != 0:
         failed.append("fail  gh auth: run `gh auth login`")
+    pushed = subprocess.run(["gh", "api", "repos/{owner}/{repo}"], capture_output=True, text=True)
+    try:
+        can_push = json.loads(pushed.stdout)["permissions"]["push"]
+    except (ValueError, KeyError, TypeError):
+        can_push = False
+    if not can_push:
+        failed.append("fail  push access: ask for write access to the repository, or use an account that has it")
     if failed:
         print(*failed, sep="\n")
         print(f"not ready — {len(failed)} rows to fix")
