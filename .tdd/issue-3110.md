@@ -1,6 +1,6 @@
 # Plan for #3110 — The deleted-case guard recognises a JS case however Jest/Mocha spell it
 
-- [x] deleted_cases reports a single-quoted it('…') case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] deleted_cases reports a single-quoted it('…') case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧
 - [ ] deleted_cases reports a backtick it(`…`) case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧
 - [ ] deleted_cases reports a double-quoted test("…") case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧
 - [ ] deleted_cases reports a single-quoted test('…') case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧

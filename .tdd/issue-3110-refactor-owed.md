@@ -1,0 +1,2 @@
+### deleted_cases reports a single-quoted it('…') case deleted from a .test.js file (case in skills/tdd/scripts/tests/py/test_verify.py) ⟦criterion 1⟧
+- out-of-bounds | `verify.py`'s `JS_CASE_PATTERN`, `renamed_case.JS_CASE` and `case_reader._CASE` still spell the JS case regex three times. Merging them means changing `case_reader.py` and `renamed_case.py`, which this cycle did not write, and the three patterns differ in how they handle backslash escapes, so a merge could change behaviour.
