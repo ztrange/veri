@@ -93,4 +93,6 @@ REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
 
-REPORT-FORMAT green-wrong-test | keys WRONG_TEST: CONTRADICTS: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran
+REPORT-FORMAT green-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran
+
+REPORT-FORMAT green-wrong-test-contradicts | keys WRONG_TEST: CONTRADICTS: | suite exempt: the test is wrong, so nothing was changed and no suite ran

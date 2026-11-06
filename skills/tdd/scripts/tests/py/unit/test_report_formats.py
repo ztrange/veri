@@ -138,3 +138,34 @@ def test_1980_suite_reported_exits_2_with_one_stderr_line_naming_a_leaf_whose_pr
     code, _, err = run_cli(importlib.import_module("veri.suite_reported"), ["develop-nosuchphase-2"], env={"VERI_ISSUE": "1"}, cwd=tmp_path)
 
     assert (code, len(err.splitlines()), "develop-nosuchphase-2" in err, (tmp_path / ".tdd" / "events.jsonl").exists()) == (2, 1, True, False)
+
+
+def _wrong_test_leaf(leaf, monkeypatch, tmp_path):
+    """Make suite-reported.sh read `leaf`'s prompt as the real one, the revise prompt with its wrong-test fragment filled in."""
+    if leaf == "develop-revise":
+        prompts = tmp_path / "scripts" / "prompts"
+        prompts.mkdir(parents=True)
+        revise = (SCRIPTS / "prompts" / "develop-revise.md").read_text()
+        revise = re.sub(r"\{\{INCLUDE:([^}]*)\}\}", lambda m: (SCRIPTS / "prompts" / m[1]).read_text(), revise)
+        (prompts / "develop-revise.md").write_text(revise.replace("{{WRONG_TEST_FORMAT}}", (SCRIPTS / "prompts" / "_develop-wrong-test-format.md").read_text()))
+        module = importlib.import_module("veri.suite_reported")
+        monkeypatch.setattr(module.paths, "scripts_of", lambda _file: str(tmp_path / "scripts"))
+
+
+@pytest.mark.parametrize("leaf", ["develop-green", "develop-revise"])
+@pytest.mark.parametrize("second", ["SUPERSEDED:", "CONTRADICTS:"])
+def test_3007_suite_reported_passes_a_wrong_test_report_with_a_superseded_or_a_contradicts_line_on_green_and_revise(leaf, second, run_cli, monkeypatch, tmp_path):
+    _wrong_test_leaf(leaf, monkeypatch, tmp_path)
+
+    code, events = run_suite_reported(run_cli, tmp_path / "work", leaf, ["WRONG_TEST:", second])
+
+    assert (code, events) == (0, None)
+
+
+@pytest.mark.parametrize("leaf", ["develop-green", "develop-revise"])
+def test_3007_suite_reported_refuses_a_wrong_test_line_alone_on_green_and_revise(leaf, run_cli, monkeypatch, tmp_path):
+    _wrong_test_leaf(leaf, monkeypatch, tmp_path)
+
+    code, events = run_suite_reported(run_cli, tmp_path / "work", leaf, ["WRONG_TEST:"])
+
+    assert code == 2 and '"event": "report-missing"' in events
