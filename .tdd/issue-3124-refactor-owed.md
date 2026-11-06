@@ -1,0 +1,2 @@
+### `pin-recheck.sh` exits 2, naming the pin file and the recorded `make` command on stderr, when that `make` command reports no makefile on its unmutated run, instead of printing `needs a look`; pinned by one process case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py ⟦criterion 1⟧
+- test-only | extract the repo setup (git init, record, base commit, touch commit) that the two new 3124 process cases share into a helper
