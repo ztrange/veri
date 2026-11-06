@@ -170,3 +170,8 @@ watch:
 .PHONY: run-finished
 run-finished:
 	@skills/tdd/scripts/run-finished.sh "$(ISSUE)"
+
+# `make ready-check` reports whether veri can run in this repository (ready-check.sh).
+.PHONY: ready-check
+ready-check:
+	@skills/tdd/scripts/ready-check.sh
