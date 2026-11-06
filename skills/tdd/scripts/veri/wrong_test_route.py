@@ -10,7 +10,7 @@ import sys
 import tunables
 from entry import write
 
-USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise)"
+USAGE = "usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise)"
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
@@ -233,7 +233,7 @@ def _criterion(spec, name):
     return boxes[index] if index < len(boxes) else None
 
 
-def _later(report, behaviour, spec=None):
+def _later(report, behaviour, spec):
     for line in _lines_with(report, "LATER_STEP:"):
         named = line.partition(":")[2].strip()
         return named if named in _open_after() else None
@@ -243,22 +243,17 @@ def _later(report, behaviour, spec=None):
         return None
     wanted = behaviour.lower()
     for name in after:
-        if spec:
-            text = (_criterion(spec, name) or "").lower()
-        else:
-            text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
+        text = (_criterion(spec, name) or "").lower()
         if text and (text in wanted or wanted in text):
             return name
     return None
 
 
 def main(argv):
-    spec = None
-    if len(argv) == 4 and argv[0] == "--spec":
-        spec, argv = argv[1], argv[2:]
-    if len(argv) != 2 or not argv[0] or not argv[1]:
+    if len(argv) != 4 or argv[0] != "--spec" or not all(argv[1:]):
         write(sys.stderr, USAGE)
         return 2
+    spec, argv = argv[1], argv[2:]
     step = tunables.read("VERI_STEP")
     rerouted = _rerouted(step)
     missing = _missing(argv[0])

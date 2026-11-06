@@ -1,6 +1,8 @@
 """In-process cases for wrong_test_route.py reading an unquoted prose SUPERSEDED: case name."""
 import importlib
 
+SPEC = ["--spec", ".tdd/issue-0-spec.md"]
+
 
 def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_behind_an_issue_reference_to_the_case_a_test_file_defines(
         run_cli, tmp_path):
@@ -12,7 +14,7 @@ def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_behind
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: #590 %s\n" % title)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % title)
 
@@ -27,7 +29,7 @@ def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_and_no
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % title)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % title)
 
@@ -41,6 +43,6 @@ def test_main_2416_names_on_stderr_a_superseded_line_whose_case_no_test_file_def
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\n%s\n" % line)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert line in stderr
