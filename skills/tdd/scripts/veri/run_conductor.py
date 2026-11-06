@@ -46,6 +46,9 @@ def main(argv):
         if word and word not in ("red", "pin", "green", "refactor", "diff"):
             sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which is not a phase that can be skipped\n" % word)
             return 2
+        if word and word != "refactor":
+            sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped yet\n" % word)
+            return 2
     if launch_floor.bash_refusal("run-conductor") or launch_floor.python_refusal("run-conductor"):
         return 2
     if not argv or not argv[0]:
