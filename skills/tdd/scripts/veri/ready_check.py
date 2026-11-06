@@ -43,20 +43,18 @@ def main(argv):
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
     detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
-    failed = 0
+    failed = []
     for tier in ("fast", "all"):
         found = subprocess.run([detect, "--tier", tier], capture_output=True)
         if found.returncode == 3:
-            print(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
-            failed += 1
+            failed.append(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
     if not os.environ.get("VERI_CI_ON_PR") and not triggers_on("pull_request"):
-        print("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
-        failed += 1
+        failed.append("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
     if not triggers_on("push"):
-        print("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
-        failed += 1
+        failed.append("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
     if failed:
-        print(f"not ready — {failed} rows to fix")
+        print(*failed, sep="\n")
+        print(f"not ready — {len(failed)} rows to fix")
         return 1
     print("ready")
     return 0
