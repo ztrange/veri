@@ -8,11 +8,11 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
-LINKED = ["vcoord", "vdev", "vfile", "vgroom", "vplan", "vreport", "vstatus", "vstop"]
+LINKED = ["vcoord", "vdev", "vfile", "vgroom", "vplan", "vready", "vreport", "vstatus", "vstop"]
 
 
 def _clone(tmp_path):
-    """A scratch git repository holding a copy of the scripts and the eight skill directories."""
+    """A scratch git repository holding a copy of the scripts and the nine skill directories."""
     clone = (tmp_path / "clone").resolve()
     scripts = clone / "skills" / "tdd" / "scripts"
     scripts.mkdir(parents=True)
@@ -324,7 +324,7 @@ def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_lin
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     reported = done.stdout.splitlines()
     assert (done.returncode, len(reported), sorted(n for n in LINKED if sum(n in line for line in reported) == 1)) == (
-        0, 8, sorted(LINKED))
+        0, 9, sorted(LINKED))
 
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it")
@@ -341,7 +341,7 @@ def test_install_links_sh_second_run_on_a_repo_already_holding_all_eight_links_p
 
     first = run()
     second = run()
-    assert (first.returncode, len(first.stdout.splitlines()), second.returncode, second.stdout) == (0, 8, 0, "")
+    assert (first.returncode, len(first.stdout.splitlines()), second.returncode, second.stdout) == (0, 9, 0, "")
 
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it around a dangling veri link")
@@ -363,3 +363,20 @@ def test_install_links_sh_after_one_veri_link_is_left_dangling_prints_one_stdout
     second = run()
     assert (first.returncode, second.returncode, len(second.stdout.splitlines()),
             [n for n in LINKED if n in second.stdout]) == (0, 0, 1, ["vdev"])
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it beside a clone holding vready")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_links_vready_into_the_project_pointing_at_the_clone_and_lists_it_in_the_exclude_file(tmp_path):
+    clone, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    link = project / ".claude" / "skills" / "vready"
+    target = os.readlink(link) if link.is_symlink() else None
+    exclude = project / ".git" / "info" / "exclude"
+    lines = [line.strip().strip("/") for line in exclude.read_text().splitlines()] if exclude.exists() else []
+    assert (done.returncode, target, lines.count(".claude/skills/vready")) == (
+        0, str(clone / "skills" / "vready"), 1)
