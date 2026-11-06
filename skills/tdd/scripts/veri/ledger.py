@@ -156,6 +156,22 @@ def new_step(text, criterion):
     return f"{OPEN_STEP} {text} {ADDED_MARK} {CRITERION_TAG}{criterion}⟧"
 
 
+ITEM_RE = re.compile(r"\s*- \[(.)\] (.*)")
+
+
+def ledger_items(text):
+    """Every checkbox item of a ledger text, ticked or not: a match of (box character, step text) per line."""
+    return [m for m in (ITEM_RE.match(line) for line in text.splitlines()) if m]
+
+
+def items_at(rev, path):
+    """The checkbox items the ledger at `path` holds at `rev`; OSError when git cannot show it."""
+    done = git("show", "%s:%s" % (rev, path), capture_output=True)
+    if done.returncode != 0:
+        raise OSError("git show %s:%s failed: %s" % (rev, path, " ".join(os.fsdecode(done.stderr).split())))
+    return ledger_items(done.stdout.decode("utf-8", "replace"))
+
+
 def ledger_steps(text):
     """One (index, state, kind, pending, added, criterion, text) record per step line."""
     records = []

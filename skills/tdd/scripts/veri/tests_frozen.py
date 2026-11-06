@@ -162,8 +162,7 @@ def _phases_done(text):
 
 
 def _ledger_items(rev, path):
-    return [m for m in (re.match(r"\s*- \[(.)\] (.*)", line)
-                        for line in _git_out("show", "%s:%s" % (rev, path)).splitlines()) if m]
+    return ledger.items_at(rev, path)
 
 
 def _step_commits(step):
@@ -245,7 +244,7 @@ def _recorded_cases_intact(record, name):
 
 def _earlier_records(lines, step, strict=False):
     for line in lines:
-        match = re.match(r"\s*- \[(.)\] (.*)", line)
+        match = ledger.ITEM_RE.match(line)
         if not match or match.group(1) == " " or match.group(2) == step:
             continue
         path = _record_path(match.group(2))
