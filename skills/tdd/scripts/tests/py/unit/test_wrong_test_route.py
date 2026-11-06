@@ -3032,6 +3032,23 @@ def test_main_3058_criterion_2_prints_missing_exhausted_for_a_missing_test_match
     assert (code, stdout) == (1, "missing-exhausted a cog never moves alone\n")
 
 
+def test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_only_a_checked_step_after_the_current_one(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a cog turns ⟦criterion 1⟧"
+    done = "A gear never slips ⟦criterion 3⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [x] %s\n" % (step, done))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a gear never slips\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "missing a gear never slips\n")
+
+
 def test_main_3037_criterion_2_prints_fixture_with_the_own_file_when_the_helper_is_defined_there_and_in_another_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
