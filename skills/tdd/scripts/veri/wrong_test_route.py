@@ -240,9 +240,10 @@ def _later(report, behaviour, spec=None):
         return None
     wanted = behaviour.lower()
     for name in after:
-        text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
         if spec:
             text = _criterion(spec, name).lower()
+        else:
+            text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
         if text and (text in wanted or wanted in text):
             return name
     return None
