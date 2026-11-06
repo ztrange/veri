@@ -110,20 +110,13 @@ def recheck(argv):
     status = 0
     retired = 0
     for ledger, pin in pins:
-        if "before" in pin:
-            replayed = replay_before(pin, ledger)
-            if replayed is None:
-                return 2
-            if replayed == 0:
-                sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
-                status = 1
-            continue
         named = re.findall(r"TESTS=(\S+)", pin["command"])
         gone = [n for n in named if n in deleted]
         named = [n for n in named if n not in deleted]
+        mutated_file = pin.get("file", pin.get("keep"))
         if gone and not named:
             for n in gone:
-                sys.stdout.write(f"retired: {ledger} {pin['file']} {n}\n")
+                sys.stdout.write(f"retired: {ledger} {mutated_file} {n}\n")
             retired += 1
             continue
         for n in gone:
@@ -132,6 +125,14 @@ def recheck(argv):
             if not Path(n).exists():
                 sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
                 return 2
+        if "before" in pin:
+            replayed = replay_before(pin, ledger)
+            if replayed is None:
+                return 2
+            if replayed == 0:
+                sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
+                status = 1
+            continue
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
         original = path.read_bytes()
