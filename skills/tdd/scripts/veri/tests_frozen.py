@@ -157,10 +157,6 @@ def _issue():
     return found.group(1) if found else ""
 
 
-def _unphased(text):
-    return re.sub(r" ⟂ \S+ done", "", text.removesuffix(ledger.PENDING_MARK))
-
-
 def _phases_done(text):
     return bool(ledger.listed_phases(text)) and ledger.next_phase(text) is None
 
@@ -176,21 +172,21 @@ def _step_commits(step):
     ledger of the step's own issue is the only record of which commit belongs to which step; a ticked line
     carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
     issue = _issue()
-    step = _unphased(step)
+    step = ledger.unphased(step)
     if issue:
         path = ledger.ledger_path(".", issue)
         revs = _git_out("log", "--reverse", "--format=%H", "--", path).split()
         previous, last_tick, tick = set(), revs[:1], None
         for rev in revs:
             matched = _ledger_items(rev, path)
-            texts = {_unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched}
+            texts = {ledger.unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched}
             ticked = {text for text, done in texts.items() if done}
             if step in ticked:
                 tick = rev
-                pending = any(_unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
+                pending = any(ledger.unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
                               for m in matched)
                 for later in revs[revs.index(rev) + 1:] if pending else ():
-                    if any(_unphased(m.group(2)) == step and not m.group(2).endswith(ledger.PENDING_MARK)
+                    if any(ledger.unphased(m.group(2)) == step and not m.group(2).endswith(ledger.PENDING_MARK)
                            for m in _ledger_items(later, path)):
                         tick = later
                         break
