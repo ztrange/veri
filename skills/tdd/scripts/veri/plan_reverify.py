@@ -22,6 +22,8 @@ def main(argv):
         issue = int(re.match(r"issue-(\d+)", os.path.basename(argv[0])).group(1))
         passes = [e["ts"] for e in read_events(events)
                   if e.get("issue", issue) == issue and e.get("event") == "verdict" and e.get("phase") == "plan" and e.get("verdict") == "PASS"]
+        if not passes:
+            return 0
         plan = git("log", "-1", "--format=%at", "--grep=^plan:", "--",argv[0], capture_output=True, text=True)
         if int(plan.stdout) < max(passes):
             return 3
