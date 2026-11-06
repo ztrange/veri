@@ -4,4 +4,4 @@
 - [x] A `MISSING_TEST:` report with no `LATER_STEP:` line, run against a ledger whose open steps after the current one match none of its behaviour, still prints `missing <behaviour>` and exits 0 ⟦criterion 2⟧
 - [x] A `MISSING_TEST:` report with no `LATER_STEP:` line, run against a ledger whose open steps after the current one match none of its behaviour, prints `missing-exhausted <behaviour>` and exits 1 once the step has taken `VERI_MISSING_REROUTE_BUDGET` missing reroutes ⟦criterion 2⟧
 - [x] A `MISSING_TEST:` report with no `LATER_STEP:` line whose behaviour matches only an already-checked ledger step after the current one prints `missing <behaviour>`, not `later` ⟦criterion 2⟧
-- [ ] A `MISSING_TEST:` report with no `LATER_STEP:` line whose behaviour matches only an open ledger step before the current one prints `missing <behaviour>`, not `later` ⟦criterion 2⟧
+- [x] A `MISSING_TEST:` report with no `LATER_STEP:` line whose behaviour matches only an open ledger step before the current one prints `missing <behaviour>`, not `later` ⟦criterion 2⟧ ⟂ retired unpinnable
