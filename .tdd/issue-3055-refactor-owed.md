@@ -4,3 +4,5 @@
 - test-only | parametrize the fast-tier and full-tier cases in test_ready_check_process.py, which differ only in the CLAUDE.md line kept, the `--tier` value and the expected `veri: <tier> tests:` text
 ### `ready-check.sh <repo-root>` run from a directory outside that repository checks the named repository: on the shared all-rows-hold fixture in tests/py/test_ready_check_process.py as a process case, it exits 0 with the last line `ready` ⟦added⟧ ⟦criterion 1⟧
 - test-only | `test_ready_check_process.py` repeats the `ci.yml` workflow strings and the `subprocess.run([... "ready-check.sh" ...])` call across cases, so a shared helper could replace them
+### With no workflow triggering on `pull_request` but `VERI_CI_ON_PR` set, on the shared all-rows-hold fixture in tests/py/test_ready_check_process.py as a process case, the PR-CI row is `ok` and `ready-check.sh` exits 0 with the last line `ready` ⟦added⟧ ⟦criterion 2⟧
+- test-only | In `test_ready_check_process.py`, the push-only `ci.yml` body is written out in four cases. Extract it into one shared constant or helper, and have `build_ready_repo` take the all-rows-hold body from the same place.
