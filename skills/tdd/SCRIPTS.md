@@ -104,7 +104,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `needs a look: <file> (mutation did not build)` on stdout; exit 1 also covers a mutated run
   that exits non-zero when the unmutated run printed nothing, printed as `needs a look`; a
   `needs a look` record from a failed run writes that run's stdout and stderr to stderr,
-  limited to its last 40 lines; **exit 2** no answer, or a before-state pin with a green commit whose replay range names no file (stderr `empty replay range: before <sha> green <sha>`); **exit 3** no record touches the range.
+  limited to its last 40 lines; **exit 2** no answer, or a before-state pin with a green commit whose replay range names no file (stderr `empty replay range: before <sha> green <sha>`), or a pin's recorded command that cannot run (not found, or `make` with no makefile), which exits 2 naming the pin file and the command; an ordinary red base run (the command runs and fails) is not that: it prints `needs a look`; **exit 3** no record touches the range.
   A before-state pin replays the files changed from its `before` sha to the last commit of its
   issue's ledger (the step's tick), falling back to the record's `green` when the ledger has no
   commit; a before record with no green commit and an empty replay range runs its command instead of exiting 2; `mutation-probe.sh --before` writes no `green` into an `.tdd/issue-<n>-mutations.md` record.
