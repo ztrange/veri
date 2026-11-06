@@ -38,7 +38,7 @@ def main(argv):
         listing = git("worktree", "list", "--porcelain").stdout.split("\n", 1)[0]
         if listing.startswith("worktree "):
             os.chdir(listing[len("worktree "):])
-    inside = subprocess.run(["git", "rev-parse", "--git-dir"], capture_output=True)
+    inside = git("rev-parse", "--git-dir")
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
