@@ -101,16 +101,24 @@ def flake(at, red_file, alone_file):
     return event.append("", {}, "suite-flake", ["at=" + at, "files=" + ",".join(text)])
 
 
-def git_diff_lines(*args):
-    return subprocess.run(["git", "diff", *args], capture_output=True, text=True).stdout.splitlines()
+def git_lines(*args):
+    ran = subprocess.run(["git", *args], capture_output=True, text=True)
+    if ran.returncode:
+        detail = (ran.stderr.strip().splitlines() or ["failed"])[0]
+        raise OSError(errno.EIO, detail, "git " + " ".join(args))
+    return ran.stdout.splitlines()
 
 
 def test_only(base, alone_cmd, named):
+    try:
+        diff = git_lines("diff", base)
+        touched = git_lines("diff", "--name-only", base) + git_lines("ls-files", "--others", "--exclude-standard")
+    except OSError as error:
+        complain(f"{error.filename}: {error.strerror}")
+        return 2
     red = [name for name in named if subprocess.run(["sh", "-c", alone_cmd, "sh", name]).returncode]
     for name in red:
         complain(f"{name} is still red alone")
-    diff = git_diff_lines(base)
-    touched = git_diff_lines("--name-only", base)
     production = [path for path in touched if not is_test_path(path)]
     for path in production:
         complain(f"{path} is a production file")

@@ -351,3 +351,82 @@ def test_3113_test_only_exits_1_naming_the_production_file_on_stderr_when_the_di
 
     assert ran[0] == 1, ran
     assert "prod.py" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository whose diff deletes a case holding no assert")
+def test_3113_test_only_exits_1_naming_a_deleted_case_that_holds_no_assert_line(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "tests" / "test_a.py").write_text(
+        "def test_keeps():\n    pass\n\n\ndef test_doomed_bare_case():\n    pass\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("def test_keeps():\n    pass\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "test_doomed_bare_case is deleted" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository and a base sha git cannot resolve")
+def test_3113_test_only_exits_2_with_one_stderr_line_when_the_base_sha_does_not_resolve(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", "deadbeef", str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 2, ran
+    assert len(ran[2].splitlines()) == 1 and "deadbeef" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository holding an untracked production file")
+def test_3113_test_only_exits_1_naming_an_untracked_production_file(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_a.py").write_text("SHA = '" + "a" * 40 + "'\n")
+    (repo / "newprod.py").write_text("VALUE = 1\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_a.py", cwd=repo)
+
+    assert ran[0] == 1, ran
+    assert "newprod.py" in ran[2], ran
+
+
+@pytest.mark.process("suite-red-resume.sh test-only over a real git repository holding an untracked test file")
+def test_3113_test_only_exits_0_for_an_untracked_test_file(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / "tests" / "test_a.py").write_text("SHA = 'abc1234'\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "base")
+    base = git(repo, "rev-parse", "HEAD").strip()
+    (repo / "tests" / "test_new.py").write_text("def test_new():\n    assert True\n")
+    alone = tmp_path / "alone.sh"
+    alone.write_text("#!/bin/sh\nexit 0\n")
+    alone.chmod(0o755)
+
+    ran = script("suite-red-resume.sh", "test-only", base, str(alone), "tests/test_new.py", cwd=repo)
+
+    assert ran[0] == 0, ran
