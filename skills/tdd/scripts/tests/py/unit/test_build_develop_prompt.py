@@ -2212,3 +2212,19 @@ def test_main_refuses_a_revise_prompt_with_exit_2_and_one_stderr_line_when_the_i
     out, err = capsysbinary.readouterr()
     assert (code, out, err) == (
         2, b"", b"build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number\n")
+
+
+def test_main_renders_the_revise_check_earlier_step_shell_quoted_so_a_quote_backtick_and_dollar_survive_3123(
+        tmp_path, capsysbinary, build_develop_prompt):
+    import shlex
+    step = "Pin it's `odd` $HOME step"
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    code = build_develop_prompt.main(["revise", "red", str(spec), step, "make test", str(reason)])
+
+    out, _ = capsysbinary.readouterr()
+    command = re.search(rb"`tests-frozen\.sh check-earlier (\S+) --step (.*?)` \xe2\x80\x94", re.sub(rb"\s+", b" ", out))
+    assert (code, shlex.split(command.group(2).decode())) == (0, [step])
