@@ -1,0 +1,2 @@
+### `plan-reverify.sh <ledger-file>` exits 3 (nothing to do, no verify-plan) when a verify-plan PASS event exists and every `plan:` commit in the ledger's history is older than it; the minimum: compare the newest `plan:` commit's date to the newest PASS event's, with no subject filter, no event filter and no author-date handling, which the later steps pin one case each; unit-tier, faking git ⟦criterion 2⟧
+- test-only | hoist the function-local `import json` and `import subprocess` in the third test to module level in test_plan_reverify.py
