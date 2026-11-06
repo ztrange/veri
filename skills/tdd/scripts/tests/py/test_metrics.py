@@ -1885,3 +1885,24 @@ def test_issue_2883_the_report_names_each_file_a_suite_flake_event_recorded_and_
 
     names = ["test_alpha_flaky.py", "test_beta_flaky.py"]
     assert ([name in with_event for name in names], [name in without for name in names]) == ([True, True], [False, False])
+
+
+def test_the_report_carries_an_unverified_phases_line_when_the_pinned_skip_verify_file_holds_refactor(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    (tmp_path / ".tdd" / "issue-108-skip-verify").write_text("refactor\n")
+    monkeypatch.chdir(tmp_path)
+
+    assert "⚠️ Unverified phases: refactor\n" in render(metrics, capsys)
+
+
+def test_the_report_prints_no_unverified_phases_line_for_a_whitespace_only_skip_verify_file_and_trims_a_padded_list(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+    pin = tmp_path / ".tdd" / "issue-108-skip-verify"
+
+    pin.write_text(" \n")
+    blank = render(metrics, capsys)
+    pin.write_text("  refactor \n")
+    padded = render(metrics, capsys)
+
+    assert ("Unverified phases" in blank, "⚠️ Unverified phases: refactor\n" in padded) == (False, True)
