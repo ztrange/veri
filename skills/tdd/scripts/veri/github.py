@@ -58,6 +58,10 @@ def _gh(*args, stderr=None):
             time.sleep(wait)
 
 
+def gh_probe(*args):
+    return subprocess.run(["gh", *args], capture_output=True, text=True)
+
+
 def rate_limit_reset(run=subprocess.run):
     done = run(["gh", "api", "rate_limit", "--jq", ".resources.core.reset"], capture_output=True, text=True)
     try:
