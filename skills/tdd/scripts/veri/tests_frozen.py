@@ -295,6 +295,13 @@ def _changed_by_refactor(name, case):
     return False
 
 
+def _legacy_accepted(releg, name, case, recorded, legacy, current):
+    if recorded != legacy:
+        return False
+    releg[(name, case)] = current
+    return True
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -324,6 +331,7 @@ def _check_earlier(ledger, step, exempt=()):
             latest[(name, case)] = (held[0] + [digest] if held and held[1] == owner else [digest], owner, marked)
     changed = []
     consumed = set()
+    releg = {}
     for (name, case), (digests, owner, marked) in latest.items():
         try:
             with open(name, encoding="utf-8", errors="replace") as handle:
@@ -349,14 +357,23 @@ def _check_earlier(ledger, step, exempt=()):
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
                 or ((name, case) in helper_digests
-                    and helper_digests[(name, case)] not in (
-                        _helper_digest(text, "\n".join(nows)), _helper_digest(text, "\n".join(nows), legacy=True)))):
+                    and helper_digests[(name, case)] != _helper_digest(text, "\n".join(nows))
+                    and not _legacy_accepted(releg, name, case, helper_digests[(name, case)],
+                                             _helper_digest(text, "\n".join(nows), legacy=True),
+                                             _helper_digest(text, "\n".join(nows))))):
             entry = "%s (%s)" % (case, owner)
             if nows and _changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
             changed.append(entry)
     for entry in changed:
         write(sys.stdout, entry)
+    if releg and not changed:
+        def rewrite(_, record, name, case, __):
+            if (name, case) in releg:
+                return record + "\n" + frozen_record._helpers_line(name, case, releg[(name, case)])
+            return record
+        if not _rewrite_records(_earlier_records(lines, step), rewrite):
+            return 2
     if not changed:
         tree = _work_tree_hash()
         if not tree:
