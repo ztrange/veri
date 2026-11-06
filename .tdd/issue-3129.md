@@ -1,6 +1,6 @@
 # Plan for #3129 — A criterion that changes graded prose is graded by its requirements rows, never pinned by a case reading the prose
 
-- [ ] `skills/vfile/SKILL.md` tells the filer that a criterion changing graded prose is graded by the issue's `## Requirements` rows and never asks for a case pinning the prose's wording, while a mechanical fact the prose names may still be pinned by a case (F18) ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] `skills/vfile/SKILL.md` tells the filer that a criterion changing graded prose is graded by the issue's `## Requirements` rows and never asks for a case pinning the prose's wording, while a mechanical fact the prose names may still be pinned by a case (F18) ⟦skill-edit⟧ ⟦criterion 1⟧
 - [ ] `skills/tdd/SKILL.md`'s Scope & plan plans no Red/Green, pin or diff-checked step whose test asserts a graded unit's wording, even when a criterion asks for one, the unit's skill-edit step carrying the criterion, while a step may still test a mechanical fact the unit states (PL66) ⟦skill-edit⟧ ⟦criterion 2⟧
 - [ ] `skills/tdd/scripts/prompts/verify-plan.md` REJECTs a plan with a step whose test asserts a graded unit's wording, naming the step and the unit, and does not reject a test of a mechanical fact the unit states (VL40) ⟦skill-edit⟧ ⟦criterion 3⟧
 - [ ] `skills/tdd/scripts/prompts/verify-red.md` REJECTs a red case that asserts a graded unit's wording, naming the case and the unit, and does not reject a case testing a mechanical fact the unit states (VR20) ⟦skill-edit⟧ ⟦criterion 3⟧
