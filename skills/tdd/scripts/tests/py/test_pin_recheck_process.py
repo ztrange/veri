@@ -1236,3 +1236,25 @@ def test_2967_a_before_replay_that_raises_mid_run_exits_2_and_leaves_every_file_
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, tree()) == (2, before), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose command is not found")
+def test_3124_a_record_whose_command_is_not_found_exits_2_naming_the_pin_file_and_the_command_instead_of_needs_a_look(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3124-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="no-such-runner-3124 ./...")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, "issue-3124-mutations.md" in ran.stderr, "no-such-runner-3124 ./..." in ran.stderr,
+            (tmp_path / "guard.txt").read_bytes()) == (2, "", True, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
