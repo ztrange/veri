@@ -453,6 +453,7 @@
 | PF37 | `detach-command.sh wait` answers 0 when the command passed, 1 when it finished red with its code on stdout (a red suite: stop and report), 2 when it died recording nothing, and 3 while it is still running (call again). (Step 3, the baseline.) | The conductor branches on these four answers. |
 | PF38 | The conductor waits with `$S/detach-command.sh wait <name>` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3, and never backgrounds it and ends the turn. (Step 3, the baseline.) | A fixed wait would end the turn on a slow suite. |
 | PF35 | Step 3 says `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`; that `reuse` runs the full tier anyway when `$S/full-tier-time.sh` has no usable time; and that the fast-tier baseline runs in both modes. | Under `reuse` the fast tier is the only suite proof before the first cycle, and a first run on a machine still has to measure. |
+| PF39 | Step 5 (the tunables check) checks `VERI_SKIP_VERIFY`: each comma-separated word must be a phase this release can skip, and `plan` is never one. Any other word exits 2 before the baseline, naming it. | A bad list must stop the run before it spends anything. |
 
 ## skills/tdd/PIN.md
 
