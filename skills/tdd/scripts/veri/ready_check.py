@@ -37,6 +37,8 @@ def tier_row(tier):
     def check():
         detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
         found = subprocess.run([detect, "--tier", tier], capture_output=True)
+        if found.returncode == 2:
+            return f"{tier} tier", f"no answer was obtained (exit 2 from detect-test-command.sh --tier {tier})"
         return f"{tier} tier", None if found.returncode != 3 else f"add a `veri: {tier} tests:` line to CLAUDE.md"
     return check
 
@@ -75,7 +77,10 @@ def push_access_row():
 def label_row():
     label = tunables.read("VERI_LABEL")
     listed = gh("label", "list", "--json", "name")
-    names = [entry["name"] for entry in json.loads(listed.stdout)]
+    try:
+        names = [entry["name"] for entry in json.loads(listed.stdout)] if listed.returncode == 0 else []
+    except (ValueError, KeyError, TypeError):
+        names = []
     return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
 
 
