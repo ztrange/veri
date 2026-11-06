@@ -105,6 +105,10 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    previous run was killed inside step 2.3's own window, between the plan commit and the
    PR-creating `gh api` call that follows it. Then, and only then, run that sub-step's push and
    PR-creating `gh api` call here — opening the first PR a branch has ever had is not opening a second.
+   Before the first step leaf, check whether the plan was rewritten since it was last verified: run
+   `$S/plan-reverify.sh .tdd/issue-<n>.md`. On **exit 0** — the newest `plan:` commit is newer than the last
+   verify-plan PASS — run step 2c's verify-plan on the ledger; a REJECT follows step 2c's revise-plan route.
+   On **exit 3** — no `plan:` commit is newer than that PASS — skip verify-plan.
    Then run the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
    checked, and every checked step's refactor is verified. An unchecked `⟦full-suite⟧` or
