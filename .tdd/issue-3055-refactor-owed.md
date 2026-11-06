@@ -21,3 +21,5 @@
 - the `fail` row prefix is written in `row()` and matched again by `startswith("fail")` in `main()`; keeping a failure count would remove that duplication, but I judged it too small to be worth a transform
 - test-only | the process cases repeat the same run-and-split-lines preamble and the same three-assert fail-row block; a shared helper in test_ready_check_process.py would remove it
 - test-only | the per-case gh stub bodies repeat one template and could be built by a helper that takes auth, label and push values
+### With bash older than 5 by preflight's own check (`launch_floor.py`), on the shared fixture in which every other row the issue lists holds (a real git repo, gh and the bash and Python floors faked at their boundary), in tests/py/test_ready_check_process.py as a process case, `ready-check.sh` exits 1 with a `fail` row naming its fix and the last line `not ready — 1 rows to fix` ⟦criterion 2⟧
+- move the `row()` closure and the row list out of `main` into module-level functions. The rule here is to apply only duplication removal against code this cycle wrote, so I left it.
