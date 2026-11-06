@@ -14,6 +14,13 @@ Invoked as `/vinstall [repo-root]`. Run `$S/install-links.sh [repo-root]`, passi
 argument through when the user gave one. Then report each skill the script linked or
 repaired, by name.
 
+## Checking readiness
+
+Only when the script linked or repaired at least one skill: run `/vready` through a
+subagent, on the cheapest model that can do it (haiku). Brief the subagent to return at
+most 10 lines, and report its answer. When the script changed nothing, skip this: do not
+run `/vready`.
+
 ## On exit 2
 
 Exit 2 means the script refused: it found a path veri did not create. Report the refusal
