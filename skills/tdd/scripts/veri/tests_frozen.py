@@ -295,11 +295,14 @@ def _changed_by_refactor(name, case):
     return False
 
 
-def _legacy_accepted(releg, name, case, recorded, legacy, current):
-    if recorded != legacy:
+def _helpers_stale(releg, name, case, recorded, text, body):
+    current = _helper_digest(text, body)
+    if recorded == current:
         return False
+    if recorded != _helper_digest(text, body, legacy=True):
+        return True
     releg[(name, case)] = current
-    return True
+    return False
 
 
 def _check_earlier(ledger, step, exempt=()):
@@ -357,10 +360,7 @@ def _check_earlier(ledger, step, exempt=()):
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
                 or ((name, case) in helper_digests
-                    and helper_digests[(name, case)] != _helper_digest(text, "\n".join(nows))
-                    and not _legacy_accepted(releg, name, case, helper_digests[(name, case)],
-                                             _helper_digest(text, "\n".join(nows), legacy=True),
-                                             _helper_digest(text, "\n".join(nows))))):
+                    and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows)))):
             entry = "%s (%s)" % (case, owner)
             if nows and _changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
