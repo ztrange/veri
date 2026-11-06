@@ -24,3 +24,13 @@ def test_3134_release_by_another_owner_token_on_the_same_pid_is_refused(tmp_path
     held = merge_lock._holder(lock, record, [])
     named = capsys.readouterr().out.split()[:1]
     assert (refused, os.path.isdir(lock), held, named) == (1, True, 0, [me])
+
+
+def test_3134_release_without_an_owner_of_a_lock_taken_under_one_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    refused = merge_lock._release(lock, record, ["--pid", me])
+    assert (refused, os.path.isdir(lock)) == (1, True)

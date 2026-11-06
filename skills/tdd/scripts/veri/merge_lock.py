@@ -124,7 +124,7 @@ def _release(lock, record, args):
         if fields[0] != pid:
             return 1
         owner = _owner(args)
-        if owner and fields[3:4] != [owner]:
+        if fields[3:4] != ([owner] if owner else []):
             return 1
     shutil.rmtree(lock)
     return 0

@@ -2,7 +2,7 @@
 
 - [x] The owner releases: with the merge lock taken by `take --pid <pid> --owner <token A>`, `release --pid <pid> --owner <token A>` exits 0 and the lock is free (`holder` exits 3) ⟦criterion 2⟧
 - [x] With the merge lock taken by `merge-lock.sh take --pid <pid> --owner <token A>`, a `release --pid <same pid> --owner <token B>` exits 1 and leaves the lock held, `holder` still naming the first taker ⟦criterion 1⟧
-- [ ] With the merge lock taken by `take --pid <pid> --owner <token A>`, a `release --pid <same pid>` given no `--owner` exits 1 and leaves the lock held ⟦criterion 1⟧
+- [x] With the merge lock taken by `take --pid <pid> --owner <token A>`, a `release --pid <same pid>` given no `--owner` exits 1 and leaves the lock held ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] With the merge lock taken by `take --pid <pid> --owner <token A>`, a `gate --pid <same pid> --owner <token B> -- <cmd exiting 1>` exits 1 and leaves the lock held by the first taker ⟦criterion 1⟧
 - [ ] While the merge lock is held by `take --pid <pid> --owner <token A>`, a second `take --pid <same pid> --owner <token B>` does not return: it keeps waiting with the first taker's lock in place ⟦criterion 1⟧
 - [ ] The owner's failed gate releases: with the merge lock taken by `take --pid <pid> --owner <token A>`, `gate --pid <pid> --owner <token A> -- <cmd exiting 1>` exits 1 and the lock is free ⟦criterion 2⟧
