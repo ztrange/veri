@@ -83,3 +83,61 @@ def test_main_exits_3_when_only_a_non_plan_commit_is_newer_than_the_newest_verif
     code, out, err = run_cli(plan_reverify, [str(ledger)])
 
     assert code == 3
+
+
+def test_main_exits_0_when_only_other_phase_passes_and_non_verdict_plan_events_are_newer_than_the_plan_commit(run_cli, tmp_path, monkeypatch):
+    import json
+    import subprocess
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    events = [
+        {"ts": 1000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"},
+        {"ts": 5000, "actor": "verifier", "phase": "green", "event": "verdict", "verdict": "PASS"},
+        {"ts": 6000, "actor": "conductor", "phase": "plan", "event": "launch"},
+    ]
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    monkeypatch.setattr(plan_reverify, "git",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, stdout="3000\n"), raising=False)
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 0
+
+
+def test_main_exits_0_when_a_non_verdict_plan_event_carrying_pass_is_newer_than_the_plan_commit(run_cli, tmp_path, monkeypatch):
+    import json
+    import subprocess
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    events = [
+        {"ts": 1000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"},
+        {"ts": 6000, "actor": "conductor", "phase": "plan", "event": "launch", "verdict": "PASS"},
+    ]
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    monkeypatch.setattr(plan_reverify, "git",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, stdout="3000\n"), raising=False)
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 0
+
+
+def test_main_exits_0_when_a_verify_plan_reject_is_newer_than_the_plan_commit(run_cli, tmp_path, monkeypatch):
+    import json
+    import subprocess
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    events = [
+        {"ts": 1000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"},
+        {"ts": 5000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "REJECT"},
+    ]
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    monkeypatch.setattr(plan_reverify, "git",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, stdout="3000\n"), raising=False)
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 0
