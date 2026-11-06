@@ -34,3 +34,19 @@ def test_main_exits_3_when_the_newest_plan_commit_is_older_than_the_newest_verif
     code, out, err = run_cli(plan_reverify, [str(ledger)])
 
     assert code == 3
+
+
+def test_main_exits_0_when_a_plan_commit_is_newer_than_the_newest_verify_plan_pass(run_cli, tmp_path, monkeypatch):
+    import json
+    import subprocess
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps(
+        {"ts": 2000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"}) + "\n")
+    monkeypatch.setattr(plan_reverify, "git",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, stdout="3000\n"), raising=False)
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 0
