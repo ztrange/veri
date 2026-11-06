@@ -569,8 +569,15 @@ def rerecord_rebased(ledger, pre):
         write(sys.stderr, "tests-frozen.sh: a record could not be read: %s" % error)
         return 2
 
+    latest_owner = {}
+    for who, _, records in earlier:
+        for body in filter(None, map(_body_record, records)):
+            latest_owner[(body[0], body[1])] = who
+
     def rewrite(owner, record, name, case, digest):
         nonlocal stale
+        if latest_owner.get((name, case), owner) != owner:
+            return record
         head = _cases_at("HEAD", name).get(case)
         if head is None and not _cases_at(pre, name).get(case):
             return None
