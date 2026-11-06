@@ -18,7 +18,8 @@ def main(argv):
         if not os.path.exists(events):
             return 0
         with open(events) as f:
-            passes = [e["ts"] for e in map(json.loads, f)]
+            passes = [e["ts"] for e in map(json.loads, f)
+                      if e.get("event") == "verdict" and e.get("phase") == "plan" and e.get("verdict") == "PASS"]
         plan = git("log", "-1", "--format=%ct", "--grep=^plan:", "--",argv[0], capture_output=True, text=True)
         if int(plan.stdout) < max(passes):
             return 3
