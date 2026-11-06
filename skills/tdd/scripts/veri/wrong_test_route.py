@@ -215,11 +215,8 @@ def _missing(report):
 
 
 def _open_after():
-    try:
-        with open(ledger_file.ledger_path(".", tunables.read("VERI_ISSUE")), encoding="utf-8") as ledger:
-            steps = ledger_file.ledger_steps(ledger.read())
-    except OSError:
-        return []
+    with open(ledger_file.ledger_path(".", tunables.read("VERI_ISSUE")), encoding="utf-8") as ledger:
+        steps = ledger_file.ledger_steps(ledger.read())
     current = tunables.read("VERI_STEP")
     names = [step[6].strip() for step in steps]
     return [step[6].strip() for step in steps[names.index(current) + 1:] if step[1] == "open"] if current in names else []
@@ -229,8 +226,12 @@ def _later(report, behaviour):
     for line in _lines_with(report, "LATER_STEP:"):
         named = line.partition(":")[2].strip()
         return named if named in _open_after() else None
+    try:
+        after = _open_after()
+    except OSError:
+        return None
     wanted = behaviour.lower()
-    for name in _open_after():
+    for name in after:
         text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
         if text and (text in wanted or wanted in text):
             return name
