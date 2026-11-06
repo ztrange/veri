@@ -3041,3 +3041,21 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_a_case_defined_nowhere_
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
+
+
+def test_main_3007_criterion_4_a_contradicts_line_naming_the_step_own_case_routes_repair_of_the_own_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_prints_the_open_step_with_its_checkbox_prefix"
+    (suite / ("test_" + "next_unchecked" + ".py")).write_text("def %s():\n    pass\n" % own)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the expected output carries a prefix the script never prints\n"
+        "CONTRADICTS: %s\n" % own)
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
