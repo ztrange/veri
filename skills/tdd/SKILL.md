@@ -320,6 +320,9 @@ full-suite lock wait.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, and go straight to the cycle loop (step 3), once you `Read` and follow `<base directory>/RESUME.md`.
+   A resume skips verify-plan only when the ledger's plan is unchanged since its last verify-plan PASS: when
+   `$S/plan-reverify.sh .tdd/issue-<n>.md` exits 0, a `plan:` commit is newer than that PASS, so run step 2c's
+   verify-plan before the cycle loop; on exit 3 skip it.
    Otherwise continue to step 2 to scope and plan. This check needs no special casing for a
    re-run: `issue-worktree.sh` is **idempotent**, so a second invocation puts you back in the
    same worktree the first run built, with its committed ledger already on disk.
