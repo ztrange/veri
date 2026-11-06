@@ -560,3 +560,23 @@ def test_insert_with_a_red_from_suites_outside_the_grade_suites_naming_one_liste
     assert "⟦skill-edit⟧" in named_steps[0] and "⟦suite-repair⟧" not in named.read_text()
     assert unnamed_code == 0 and len(unnamed_steps) == 1 and "⟦suite-repair⟧" in unnamed_steps[0]
     assert "⟦skill-edit⟧" not in unnamed.read_text()
+
+
+def test_insert_with_reds_outside_the_grade_suites_naming_two_different_listed_units_across_the_reds_adds_the_suite_repair_step_and_no_skill_edit_step_3107(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    units = ["skills/tdd/SCRIPTS.md", "skills/tdd/SKILL.md"]
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: units)
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_other_a.py — FAIL `{units[0]}` synopsis\ntest_other_b.py — FAIL {units[1]} sentence\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
+    assert "⟦skill-edit⟧" not in ledger.read_text()
