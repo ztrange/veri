@@ -17,8 +17,31 @@ def _caller_pid(args):
     return args[1] if args[:1] == ["--pid"] else str(os.getppid())
 
 
+USAGE = ("usage: merge-lock.sh take --pid <pid> [--owner <token>] | release --pid <pid> [--owner <token>] "
+         "| release --force | holder | gate [--keep] --pid <pid> [--owner <token>] -- <cmd>")
+
+
+class _Usage(Exception):
+    pass
+
+
+def _usage_guarded(handler):
+    def guarded(lock, record, args):
+        try:
+            return handler(lock, record, args)
+        except _Usage:
+            print(USAGE, file=sys.stderr)
+            return 2
+    return guarded
+
+
 def _owner(args):
-    return args[args.index("--owner") + 1] if "--owner" in args else None
+    if "--owner" not in args:
+        return None
+    i = args.index("--owner") + 1
+    if i >= len(args) or args[i].startswith("--"):
+        raise _Usage
+    return args[i]
 
 
 def _start_time(pid):
@@ -66,10 +89,12 @@ def _poll_wait():
 _MISSING_RECORD_GRACE = 5
 
 
+@_usage_guarded
 def _take(lock, record, args):
     if _needs_pid(args, False):
         return 2
     pid = _caller_pid(args)
+    _owner(args)
     os.makedirs(os.path.dirname(lock), exist_ok=True)
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
     try:
@@ -113,6 +138,7 @@ def _take(lock, record, args):
         shutil.rmtree(staged, ignore_errors=True)
 
 
+@_usage_guarded
 def _release(lock, record, args):
     if _needs_pid(args, True):
         return 2
@@ -141,12 +167,14 @@ def _holder(lock, record, args):
     return 0
 
 
+@_usage_guarded
 def _gate(lock, record, args):
     head = args[:args.index("--")] if "--" in args else args
     value = head[head.index("--pid") + 1:][:1] if "--pid" in head else []
     if not (value and value[0].isdigit() and int(value[0]) > 0) or "--" not in args or args.index("--") == len(args) - 1:
         print("usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
+    _owner(head)
     code = subprocess.run(args[args.index("--") + 1:]).returncode
     if code in (0, 3):
         return code
@@ -162,7 +190,7 @@ _HANDLERS = {"take": _take, "release": _release, "holder": _holder, "gate": _gat
 
 def main(argv):
     if not argv or argv[0] not in VERBS:
-        print("usage: merge-lock.sh take --pid <pid> [--owner <token>] | release --pid <pid> [--owner <token>] | release --force | holder | gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
     common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
                             stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
