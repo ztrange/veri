@@ -1,9 +1,26 @@
 """In-process cases for veri/wrong_test_route.py, the module wrong-test-route.sh is a shim over."""
 import importlib
+import re
 
 import pytest
 
 from conftest import ROOT
+
+SPEC = ["--spec", ".tdd/issue-0-spec.md"]
+
+
+def _spec_args(tmp_path, *steps):
+    """--spec for a spec whose criterion N reads as the Nth ledger step's text without its markers."""
+    boxes = {}
+    for text in steps:
+        marker = re.search(r"⟦criterion (\d+)⟧", text)
+        if marker:
+            boxes[int(marker.group(1))] = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", text)
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.parent.mkdir(exist_ok=True)
+    spec.write_text("## Acceptance criteria\n\n" + "".join(
+        "- [ ] %s\n" % boxes.get(n, "unrelated criterion %d" % n) for n in range(1, max(boxes) + 1)))
+    return ["--spec", str(spec)]
 
 
 def test_main_1621_routes_a_green_whose_wrong_test_names_a_contradicted_case_to_a_red_over_that_case(
@@ -21,7 +38,7 @@ def test_main_1621_routes_a_green_whose_wrong_test_names_a_contradicted_case_to_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -37,7 +54,7 @@ def test_main_1621_prints_revise_and_exits_3_when_the_green_report_has_no_wrong_
     report.write_text("SUITE: make test\nVERDICT: REJECT\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -53,7 +70,7 @@ def test_main_2596_prints_revise_and_exits_3_for_a_red_green_report_carrying_an_
     report.write_text("IMPL_PATH: skills/tdd/scripts/veri/ledger.py\nSUITE: RED\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -65,7 +82,7 @@ def test_main_1621_exits_2_with_nothing_on_stdout_when_the_green_report_is_a_dir
     report.mkdir()
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (2, "")
 
@@ -80,7 +97,7 @@ def test_main_1621_finds_a_real_pytest_function_from_the_repository_root(
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % pytest_case + "CONTRADICTS: %s\n" % pytest_case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (0, "red %s\n" % pytest_case)
 
@@ -91,7 +108,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
     own_id = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
-    usage = ("usage: wrong-test-route.sh <green-report> <red-test-id> "
+    usage = ("usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> "
              "(prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise)\n")
     lines = ("WRONG_TEST: the criterion contradicts nothing I can name",
              "WRONG_TEST: %s asserts the opposite of the criterion" % own_id,
@@ -100,13 +117,13 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
     for number, line in enumerate(lines):
         report = tmp_path / ("report-%d.txt" % number)
         report.write_text("SUITE: make test\n" + line + "\n")
-        code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=ROOT)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own_id], cwd=ROOT)
         results.append((code, stdout))
-    for argv in ([], [str(report)], [str(report), own_id, "extra"], ["", own_id], [str(report), ""]):
+    for argv in ([], [str(report)], [str(report), own_id, "extra"], ["", own_id], [str(report), ""], SPEC + [str(report)], SPEC + [str(report), own_id, "extra"], SPEC + ["", own_id], ["--spec", "", str(report), own_id]):
         code, stdout, stderr = run_cli(wrong_test_route, argv, cwd=ROOT)
         results.append((code, stdout, stderr))
 
-    assert results == [(0, "repair %s\n" % own_id), (3, "revise\n"), (3, "revise\n")] + [(2, "", usage)] * 5
+    assert results == [(0, "repair %s\n" % own_id), (3, "revise\n"), (3, "revise\n")] + [(2, "", usage)] * 9
 
 
 def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_a_red_over_the_contradicted_case(
@@ -125,7 +142,7 @@ def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -142,7 +159,7 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_only_the_step_own_red_p
         "SUITE: make test\n"
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % own_case)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=ROOT)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own_id], cwd=ROOT)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -160,7 +177,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_backticks
         "WRONG_TEST: `%s` asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: `%s`\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -178,7 +195,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_qu
         'WRONG_TEST: "%s" asserts the opposite of the criterion\n' % contradicted + 'CONTRADICTS: "%s"\n' % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -196,7 +213,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quo
         "WRONG_TEST: “%s” asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: “%s”\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -214,7 +231,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_bare_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -233,7 +250,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_ba
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "TestMainReturnsZero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "TestMainReturnsZero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -250,7 +267,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite
     report.write_text("SUITE: make test\nWRONG_TEST: checkout.spec.ts › rejects an empty name\n" + "CONTRADICTS: checkout.spec.ts › rejects an empty name\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "checkout.spec.ts::checkout accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "checkout.spec.ts::checkout accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -268,7 +285,7 @@ def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_sui
         "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % not_a_name)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -290,7 +307,7 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
             "SUITE: make test\n"
             "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
-            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
+            wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, stdout))
 
     assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
@@ -307,7 +324,7 @@ def test_main_1621_prints_revise_when_a_wrong_test_names_a_production_function_t
         "WRONG_TEST: the case `main` asserts the opposite of the criterion\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=ROOT)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=ROOT)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -326,7 +343,7 @@ def test_main_1621_counts_a_test_prefixed_python_function_only_when_defined_in_a
             "SUITE: make test\n"
             "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
-            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=repo)
+            wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, stdout))
 
     assert results == [(3, "revise\n"), (0, "red %s\n" % case)]
@@ -345,7 +362,7 @@ def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -363,7 +380,7 @@ def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -381,7 +398,7 @@ def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -399,7 +416,7 @@ def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -419,7 +436,7 @@ def test_main_1736_prints_revise_when_a_real_case_is_named_only_on_lines_other_t
         "WRONG_TEST: none\n" % (case, case))
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -436,7 +453,7 @@ def test_main_2878_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_it
         "SUITE: make test\n"
         "WRONG_TEST: the red case omits the required environment stub and asserts a payload field the upstream never sends\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -452,7 +469,7 @@ def test_main_2878_prints_revise_and_exits_3_for_a_green_report_whose_wrong_test
     report.write_text("SUITE: make test\nWRONG_TEST: none\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -474,7 +491,7 @@ def test_main_2878_prints_revise_and_exits_3_for_an_unparseable_wrong_test_once_
         "WRONG_TEST: the reroute bound case asserts a payload field the upstream never sends\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -496,7 +513,7 @@ def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_
         report = tmp_path / ("green-report-%d.txt" % number)
         report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case + "CONTRADICTS: %s\n" % case)
         code, stdout, stderr = run_cli(
-            wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+            wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
         results.append((code, stdout))
         (tmp_path / ".tdd" / "events.jsonl").write_text(
             '{"event": "reroute", "step": "%s"}\n' % step)
@@ -522,7 +539,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_pytest_function_in_th
     for number, case in enumerate((added, own)):
         report = tmp_path / ("green-report-%d.txt" % number)
         report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
-        code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
         results.append((code, stdout))
 
     assert results == [(0, "repair %s\n" % added), (0, "repair %s\n" % own)]
@@ -547,7 +564,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_bash_name_case_in_the
         "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % added)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % added)
 
@@ -569,7 +586,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older + "CONTRADICTS: %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -591,7 +608,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % older + "CONTRADICTS: %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), edited], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), edited], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -613,7 +630,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_an_existing_case_the_st
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % edited)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), older], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), older], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % edited)
 
@@ -634,7 +651,7 @@ def test_main_1765_prints_revise_for_a_wrong_test_naming_a_case_outside_the_step
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % outside)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -656,7 +673,7 @@ def test_main_1765_prints_revise_for_a_wrong_test_naming_a_red_record_case_once_
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % added)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -672,7 +689,7 @@ def test_main_1808_prints_missing_behaviour_for_a_verify_green_reject_carrying_a
         "REASON: no test requires the line that stops a closed session being counted twice\n"
         "MISSING_TEST: a closed conductor session is counted once\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a closed conductor session is counted once\n")
 
@@ -688,7 +705,7 @@ def test_main_1808_prints_missing_behaviour_for_a_revise_green_impossible_report
         "MISSING_TEST: a bare force-with-lease is refused\n"
         "AGAINST_UNMODIFIED: N/A\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a bare force-with-lease is refused\n")
 
@@ -714,7 +731,7 @@ def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_th
     events = tmp_path / ".tdd" / "events.jsonl"
 
     def answers(reports):
-        return [run_cli(wrong_test_route, [str(r), "test_other"], cwd=tmp_path)[:2]
+        return [run_cli(wrong_test_route, SPEC + [str(r), "test_other"], cwd=tmp_path)[:2]
                 for r in reports]
 
     events.write_text('{"event": "reroute", "step": "another step"}\n')
@@ -740,7 +757,7 @@ def test_main_2573_prints_missing_behaviour_for_a_missing_test_report_once_the_s
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a second guard is pinned by a case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a second guard is pinned by a case\n")
 
@@ -757,7 +774,7 @@ def test_main_2573_prints_missing_exhausted_and_exits_1_once_the_step_log_holds_
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a third guard is pinned by a case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (1, "missing-exhausted a third guard is pinned by a case\n")
 
@@ -774,7 +791,7 @@ def test_main_2568_prints_missing_behaviour_and_exits_0_when_the_only_missing_re
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a guard is pinned by a case\n")
 
@@ -791,7 +808,7 @@ def test_main_2568_prints_missing_exhausted_and_exits_1_when_the_only_missing_re
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (1, "missing-exhausted a guard is pinned by a case\n")
 
@@ -809,7 +826,7 @@ def test_main_2573_defaults_the_missing_reroute_budget_to_3_when_the_variable_is
     line = '{"event": "reroute", "step": "%s", "kind": "missing"}\n' % step
 
     def answer():
-        return run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)[:2]
+        return run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)[:2]
 
     events.write_text(line * 2)
     unset_two = answer()
@@ -836,7 +853,7 @@ def test_main_1808_prints_revise_and_exits_3_for_a_product_defect_reject_and_for
     empty = tmp_path / "empty-report.txt"
     empty.write_text("VERDICT: REJECT\nREASON: a line is unpinned\nMISSING_TEST:   \n")
 
-    answers = [run_cli(wrong_test_route, [str(r), "test_other"], cwd=tmp_path)[:2]
+    answers = [run_cli(wrong_test_route, SPEC + [str(r), "test_other"], cwd=tmp_path)[:2]
                for r in (defect, empty)]
 
     assert answers == [(3, "revise\n"), (3, "revise\n")]
@@ -857,7 +874,7 @@ def test_main_1862_prints_supersede_naming_every_older_case_a_green_report_lists
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "supersede %s %s\n" % (first, second))
 
@@ -884,7 +901,7 @@ def test_main_1862_prints_revise_when_superseded_lines_are_joined_by_a_wrong_tes
         "SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n"
         "WRONG_TEST: %s asserts the opposite of the criterion\n" % (first, second, unrelated))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -902,7 +919,7 @@ def test_main_1865_prints_red_over_another_existing_case_a_wrong_test_line_says_
         "SUITE: make test\n"
         "WRONG_TEST: %s contradicts the step's criterion, it asserts the opposite\n" % contradicting + "CONTRADICTS: %s\n" % contradicting)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicting)
 
@@ -928,7 +945,7 @@ def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
         "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
         " the correct pattern is %s, which patches metrics.prices.PRICES\n" % (own, pattern))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -945,7 +962,7 @@ def test_main_1865_prints_missing_behaviour_of_the_first_well_formed_missing_tes
         "MISSING_TEST: a closed conductor session is counted once\n"
         "MISSING_TEST: a second behaviour\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a closed conductor session is counted once\n")
 
@@ -961,7 +978,7 @@ def test_main_1865_prints_revise_and_says_on_stderr_no_well_formed_missing_test_
         "MISSING_TEST:\n"
         "MISSING_TEST:   \n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout, "no well-formed MISSING_TEST: line" in stderr) == (3, "revise\n", True)
 
@@ -984,7 +1001,7 @@ def test_main_1865_prints_red_over_the_one_case_a_green_report_lists_as_supersed
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1007,7 +1024,7 @@ def test_main_1865_prints_red_over_the_one_case_the_remaining_superseded_lines_n
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED:\nSUPERSEDED: %s\nSUPERSEDED:   \n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1030,7 +1047,7 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_in_backt
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: `%s`\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1054,7 +1071,7 @@ def test_main_1957_prints_revise_when_a_superseded_line_is_indented_by_one_to_th
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\n%sSUPERSEDED: %s\n" % (indent, older))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1077,7 +1094,7 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_before_a
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s asserts the old usage\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1101,7 +1118,7 @@ def test_main_1865_prints_repair_keeping_the_superseded_cases_a_repair_report_al
     report.write_text(
         "SUITE: make test\nWRONG_TEST: %s asserts the wrong usage\nSUPERSEDED: %s\n" % (own, older))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s %s\n" % (own, older))
 
@@ -1127,7 +1144,7 @@ def test_main_1865_prints_revise_for_one_or_several_superseded_lines_once_the_st
     several = tmp_path / "several-report.txt"
     several.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
 
-    answers = [run_cli(wrong_test_route, [str(r), added], cwd=tmp_path)[:2] for r in (one, several)]
+    answers = [run_cli(wrong_test_route, SPEC + [str(r), added], cwd=tmp_path)[:2] for r in (one, several)]
 
     assert answers == [(3, "revise\n"), (3, "revise\n")]
 
@@ -1152,7 +1169,7 @@ def test_main_2568_prints_red_over_the_one_superseded_case_when_the_step_reroute
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1177,7 +1194,7 @@ def test_main_2568_prints_revise_and_exits_3_for_the_one_superseded_case_when_th
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1200,7 +1217,7 @@ def _superseded_2568(run_cli, tmp_path, monkeypatch, label, events):
         "".join('{"event": "%s", "step": "%s", "kind": "red"}\n' % (e, step) for e in events))
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % older)
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
     return (code, stdout), older
 
 
@@ -1230,7 +1247,7 @@ def _missing_2568(run_cli, tmp_path, monkeypatch, budget, events):
         "".join('{"event": "%s", "step": "%s", "kind": "missing"}\n' % (e, step) for e in events))
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
     return code, stdout
 
 
@@ -1261,7 +1278,7 @@ def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: test_a_case_nobody_defines\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1283,7 +1300,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
         "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
         " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -1309,7 +1326,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
         "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
         " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -1336,7 +1353,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
         "WRONG_TEST: %s patches veri.prices.PRICES, which metrics never reads;"
         " the correct example is %s, which patches metrics.prices.PRICES\n" % (own, example))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own_id], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own_id], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -1353,7 +1370,7 @@ def test_main_1932_prints_revise_when_a_missing_test_line_is_indented_as_a_quote
         "    MISSING_TEST: the router ignores quoted lines\n\n"
         "which I could not satisfy.\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1376,7 +1393,7 @@ def test_main_1932_prints_red_over_the_case_a_bulleted_superseded_line_names(
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: - %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1389,7 +1406,7 @@ def test_main_1932_prints_revise_when_the_missing_test_line_says_none(
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nMISSING_TEST: NONE\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1412,7 +1429,7 @@ def test_main_1932_prints_red_over_the_one_case_a_backticked_superseded_line_nam
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: `%s` asserts the old `usage`\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1432,7 +1449,7 @@ def test_main_1957_prints_revise_when_a_wrong_test_line_is_indented_by_one_to_th
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\n%sWRONG_TEST: %s asserts the opposite\n" % (indent, contradicted))
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1455,7 +1472,7 @@ def test_main_1932_prints_revise_when_a_wrong_test_line_is_indented_by_a_tab_ins
         "\tWRONG_TEST: %s asserts the opposite of the criterion\n\n"
         "which I could not satisfy.\n" % contradicted)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1478,7 +1495,7 @@ def test_main_1932_prints_red_over_the_case_a_star_bulleted_superseded_line_name
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: * %s\n" % older)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), added], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -1494,7 +1511,7 @@ def test_main_1932_prints_revise_with_nothing_on_stderr_when_missing_test_none_p
         "MISSING_TEST: NONE\n"
         "MISSING_TEST: the router ignores quoted lines\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1516,7 +1533,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_backticks_an_it_title_in_a_foo_
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1541,7 +1558,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "src/%s::foo accepts a name" % filename], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "src/%s::foo accepts a name" % filename], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1563,7 +1580,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "src/__tests__/foo.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "src/__tests__/foo.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1582,7 +1599,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_fi
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1601,7 +1618,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_non_te
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1621,7 +1638,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1642,7 +1659,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_an_only_or_skip_form_
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1663,7 +1680,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % sibling)
 
@@ -1683,7 +1700,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1703,7 +1720,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_s
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
 
@@ -1725,7 +1742,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1745,7 +1762,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_double_quotes_the_title_of_a_js
         'WRONG_TEST: "%s" contradicts the criterion\n' % sibling + 'CONTRADICTS: "%s"\n' % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
 
@@ -1765,7 +1782,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_curly_quotes_the_title_of_a_js_
         "WRONG_TEST: “%s” contradicts the criterion\n" % sibling + "CONTRADICTS: “%s”\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
 
@@ -1788,7 +1805,7 @@ def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_
             "SUITE: make test\n"
             "WRONG_TEST: `rejects an empty name%s` contradicts the criterion\n" % ellipsis + "CONTRADICTS: `rejects an empty name%s`\n" % ellipsis)
         code, stdout, stderr = run_cli(
-            wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=repo)
+            wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=repo)
         results.append((code, stdout, stderr))
 
     assert results == [(0, "red %s\n" % sibling, "")] * 2
@@ -1807,7 +1824,7 @@ def test_main_1957_prints_revise_when_the_wrong_test_name_is_the_title_tail_of_t
         "WRONG_TEST: `accepts a name` contradicts the criterion\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -1826,7 +1843,7 @@ def test_main_1957_routes_a_wrong_test_name_that_is_the_exact_title_of_a_sibling
         "WRONG_TEST: `name` contradicts the criterion\n" + "CONTRADICTS: `name`\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red name\n", "")
 
@@ -1853,7 +1870,7 @@ def test_main_1957_prints_repair_listing_the_js_ts_case_a_quoted_superseded_line
         'SUPERSEDED: "rejects an empty name" asserts the old behaviour\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair accepts a long name rejects an empty name\n")
 
@@ -1872,7 +1889,7 @@ def test_main_1957_prints_red_over_the_full_title_when_a_superseded_line_names_a
     report.write_text('SUITE: make test\nSUPERSEDED: "rejects an empty n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -1889,7 +1906,7 @@ def test_main_1957_prints_revise_when_a_wrong_test_cut_name_ending_in_an_ellipsi
     report.write_text('SUITE: make test\nWRONG_TEST: "accepts a n…" contradicts the criterion\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1905,7 +1922,7 @@ def test_main_1957_prints_revise_when_a_wrong_test_bare_ellipsis_expands_to_the_
     report.write_text('SUITE: make test\nWRONG_TEST: "…" contradicts the criterion\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1923,7 +1940,7 @@ def test_main_1957_prints_revise_when_a_wrong_test_cut_name_is_a_prefix_of_more_
     report.write_text('SUITE: make test\nWRONG_TEST: "rejects an empty…" contradicts the criterion\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1944,7 +1961,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_it_call_on_a_l
         "WRONG_TEST: `%s` contradicts the criterion\n" % sibling + "CONTRADICTS: `%s`\n" % sibling)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
 
@@ -1963,7 +1980,7 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_c
         "WRONG_TEST: `rejects an empty name` contradicts the criterion\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -1982,7 +1999,7 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdow
         "WRONG_TEST: `rejects an empty name` contradicts the criterion\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2000,7 +2017,7 @@ def test_main_1957_prints_revise_when_the_named_title_is_the_tail_of_an_own_id_w
         "WRONG_TEST: `accepts a name` contradicts the criterion\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo > accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo > accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2014,7 +2031,7 @@ def test_main_1957_prints_revise_when_a_missing_test_line_is_indented_by_one_to_
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\n%sMISSING_TEST: the router ignores quoted lines\n" % indent)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2033,7 +2050,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
         "WRONG_TEST: `doesn…` contradicts the criterion\n" + "CONTRADICTS: `doesn…`\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, "red doesn't crash on null\n", "")
 
@@ -2052,7 +2069,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
         "WRONG_TEST: `says…` contradicts the criterion\n" + "CONTRADICTS: `says…`\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (0, 'red says "hi" loudly\n', "")
 
@@ -2074,7 +2091,7 @@ def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_the_
         'SUPERSEDED: "accepts a n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2100,7 +2117,7 @@ def test_main_1957_prints_revise_when_a_superseded_cut_name_on_the_repair_path_e
         'SUPERSEDED: "accepts a n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2126,7 +2143,7 @@ def test_main_1957_prints_repair_without_a_duplicate_when_a_superseded_cut_name_
         'SUPERSEDED: "rejects an empty n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair rejects an empty name\n")
 
@@ -2154,7 +2171,7 @@ def test_main_1957_prints_repair_without_the_other_recorded_case_when_a_two_case
         'SUPERSEDED: "rejects an empty n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair accepts a long name\n")
 
@@ -2180,7 +2197,7 @@ def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_a_re
         'SUPERSEDED: "rejects an empty n…"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2202,7 +2219,7 @@ def test_main_1977_prints_revise_when_the_step_reroute_event_follows_a_line_of_t
     report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2221,7 +2238,7 @@ def test_main_2172_prints_fixture_with_the_test_file_path_when_a_wrong_test_name
         "WRONG_TEST: `admin_on_clock` sets a password without the injected clock\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "fixture backend/tests/test_router.py admin_on_clock\n")
 
@@ -2239,7 +2256,7 @@ def test_main_2172_prints_revise_when_a_wrong_test_names_a_python_method_without
         "WRONG_TEST: `admin_on_clock` sets a password without the injected clock\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_session_expires"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2260,8 +2277,8 @@ def test_main_2172_prints_fixture_for_a_ts_function_helper_in_a_test_ts_file_and
     (without_test / "backend" / "src").mkdir(parents=True)
     (without_test / "backend" / "src" / "router.ts").write_text(helper)
 
-    found = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=with_test)
-    missed = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=without_test)
+    found = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=with_test)
+    missed = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=without_test)
 
     assert (found[0], found[1], missed[0], missed[1]) == (
         0, "fixture backend/src/router.test.ts adminOnClock\n", 3, "revise\n")
@@ -2285,8 +2302,8 @@ def test_main_2172_prints_fixture_for_a_const_arrow_helper_in_a_spec_file_and_a_
         "const adminOnClock = function (app) {\n  return app.post('/admin/password');\n};\n"
         "it('expires an idle session', () => {});\n")
 
-    first = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=arrow)
-    second = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=expression)
+    first = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=arrow)
+    second = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=expression)
 
     assert (first[0], first[1], second[0], second[1]) == (
         0, "fixture backend/src/router.spec.ts adminOnClock\n",
@@ -2308,8 +2325,8 @@ def test_main_2172_prints_red_when_a_wrong_test_name_is_both_a_js_it_title_and_a
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: `adminOnClock` sets a password without the clock\n" + "CONTRADICTS: `adminOnClock`\n")
 
-    case = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=shared)
-    missed = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=nowhere)
+    case = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=shared)
+    missed = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=nowhere)
 
     assert (case[0], case[1], missed[0], missed[1]) == (0, "red adminOnClock\n", 3, "revise\n")
 
@@ -2328,7 +2345,7 @@ def test_main_2172_prints_revise_for_a_wrong_test_naming_a_helper_in_a_test_file
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nWRONG_TEST: `adminOnClock` sets a password without the clock\n")
 
-    code, stdout, _ = run_cli(wrong_test_route, [str(report), "expires an idle session"], cwd=tmp_path)
+    code, stdout, _ = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2347,7 +2364,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     report.write_text('SUITE: make test\nSUPERSEDED: `foo.test.ts` "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2366,7 +2383,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     report.write_text('SUITE: make test\nSUPERSEDED: `foo.test.ts` “rejects an empty name”\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2385,7 +2402,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     report.write_text("SUITE: make test\nSUPERSEDED: foo.test.ts › rejects an empty name\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2404,7 +2421,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     report.write_text('SUITE: make test\nSUPERSEDED: foo.test.ts › "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2423,7 +2440,7 @@ def test_main_2227_prints_revise_when_a_superseded_line_holds_only_a_backticked_
     report.write_text("SUITE: make test\nSUPERSEDED: `foo.test.ts`\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2445,7 +2462,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_an
         '"shows the earlier ocupación, deporte answer and sexo … when a removed titular is added again"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red " + full + "\n")
 
@@ -2467,7 +2484,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_th
         '"shows the earlier ocupación, deporte answer and sexo ... when a removed titular is added again"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red " + full + "\n")
 
@@ -2489,7 +2506,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_ends_i
         '"shows the earlier ocupación, deporte answer and sexo …"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red " + full + "\n")
 
@@ -2506,7 +2523,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` "rejects an empty name"\n' + 'CONTRADICTS: `foo.test.ts` "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2523,7 +2540,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     report.write_text('SUITE: make test\nWRONG_TEST: `foo.test.ts` “rejects an empty name”\n' + 'CONTRADICTS: `foo.test.ts` “rejects an empty name”\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2540,7 +2557,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › rejects an empty name\n' + 'CONTRADICTS: foo.test.ts › rejects an empty name\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2557,7 +2574,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     report.write_text('SUITE: make test\nWRONG_TEST: foo.test.ts › "rejects an empty name"\n' + 'CONTRADICTS: foo.test.ts › "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -2575,7 +2592,7 @@ def test_main_2254_prints_red_over_the_full_name_when_a_lone_superseded_line_nam
     report.write_text("SUITE: make test\nSUPERSEDED: %s…\n" % older[:-8])
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -2596,7 +2613,7 @@ def test_main_2254_prints_red_over_the_older_case_a_revise_green_report_names_on
         "SUPERSEDED: tests/py/unit/test_take.py::%s asserts the old behaviour\n" % older)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % older)
 
@@ -2653,7 +2670,7 @@ def test_main_2573_counts_only_missing_kind_reroutes_against_the_missing_budget_
     report = tmp_path / "missing-report.txt"
     report.write_text("VERDICT: REJECT\nMISSING_TEST: a guard is pinned by a case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a guard is pinned by a case\n")
 
@@ -2677,7 +2694,7 @@ def test_main_2596_prints_repair_for_a_wrong_test_naming_the_own_vitest_case_wit
         "SUITE: make test\n"
         "WRONG_TEST: `mock underwriting > %s` uses ISO dates the code cannot parse\n" % title)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), title], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), title], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % title)
 
@@ -2702,7 +2719,7 @@ def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_te
         "SUITE: make test\n"
         "WRONG_TEST: `mock > underwriting > %s` uses ISO dates the code cannot parse\n" % title)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), title], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), title], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % title)
 
@@ -2726,7 +2743,7 @@ def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_te
         "SUITE: make test\n"
         "WRONG_TEST: `tests/test_thing.py::TestThing::%s` uses ISO dates the code cannot parse\n" % case)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), case], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), case], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % case)
 
@@ -2741,7 +2758,7 @@ def test_main_2565_resolves_an_unquoted_superseded_line_naming_a_case_whose_own_
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: make test\nSUPERSEDED: %s\n" % title)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout, "no defined test case resolves:" in stderr) == (0, "red %s\n" % title, False)
 
@@ -2757,7 +2774,7 @@ def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nSUPERSEDED: TestOther\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red TestOther\n")
 
@@ -2772,7 +2789,7 @@ def test_main_2807_prints_revise_for_a_superseded_line_naming_a_go_func_defined_
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nSUPERSEDED: TestOther\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2788,7 +2805,7 @@ def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nWRONG_TEST: TestOther asserts the opposite of the criterion\n" + "CONTRADICTS: TestOther\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red TestOther\n")
 
@@ -2807,7 +2824,7 @@ def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_na
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nSUPERSEDED: TestFirst\nSUPERSEDED: TestSecond\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestAdded"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "supersede TestFirst TestSecond\n")
 
@@ -2822,7 +2839,7 @@ def test_main_2807_prints_revise_when_a_wrong_test_names_only_the_step_own_go_ca
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nWRONG_TEST: TestOwn asserts the opposite of the criterion\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestOwn"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2838,7 +2855,7 @@ def test_main_2807_prints_fixture_with_the_go_test_file_path_when_a_wrong_test_n
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nWRONG_TEST: the helper `newServer` seeds the wrong clock\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestOwn"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "fixture pkg/server_test.go newServer\n")
 
@@ -2853,7 +2870,7 @@ def test_main_2807_prints_revise_when_a_wrong_test_names_a_go_helper_defined_onl
     report = tmp_path / "green-report.txt"
     report.write_text("SUITE: go test ./...\nWRONG_TEST: the helper `newServer` seeds the wrong clock\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "TestOwn"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestOwn"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2869,7 +2886,7 @@ def test_main_2845_prints_revise_and_exits_3_for_a_reject_whose_missing_test_lin
         "REASON: the extra handling should be removed\n"
         "MISSING_TEST: none; the extra handling should be removed, not tested.\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
 
@@ -2885,7 +2902,7 @@ def test_main_2845_prints_missing_for_a_reject_whose_missing_test_line_begins_wi
         "REASON: an edge case is not tested\n"
         "MISSING_TEST: nonexistent edge case\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing nonexistent edge case\n")
 
@@ -2899,7 +2916,7 @@ def test_main_2845_prints_revise_and_exits_3_for_a_reject_whose_missing_test_lin
     for i, line in enumerate(["None", "NONE.", "none - the extra handling should be removed"]):
         report = tmp_path / ("verify-green-report-%d.txt" % i)
         report.write_text("VERDICT: REJECT\nREASON: remove the extra handling\nMISSING_TEST: %s\n" % line)
-        code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_other"], cwd=tmp_path)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
         answers.append((code, stdout))
 
     assert answers == [(3, "revise\n")] * 3
@@ -2921,7 +2938,7 @@ def test_main_2916_criterion_5_a_later_step_report_is_checked_against_the_ledger
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % later)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
 
@@ -2938,7 +2955,7 @@ def test_main_3058_criterion_1_prints_later_for_a_missing_test_matching_an_open_
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
 
@@ -2956,7 +2973,7 @@ def test_main_3058_criterion_1_prints_later_for_a_behaviour_inside_a_longer_open
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, bare, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
 
@@ -2973,7 +2990,7 @@ def test_main_3058_criterion_1_prints_later_for_a_longer_behaviour_containing_an
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone, nor quickly\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
 
@@ -2990,7 +3007,7 @@ def test_main_3058_criterion_1_prints_later_for_an_upper_case_missing_test_behav
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: A COG NEVER MOVES ALONE\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
 
@@ -3007,7 +3024,7 @@ def test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_no_ope
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a cog never moves alone\n")
 
@@ -3027,7 +3044,7 @@ def test_main_3058_criterion_2_prints_missing_exhausted_for_a_missing_test_match
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, _spec_args(tmp_path, step, later) + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (1, "missing-exhausted a cog never moves alone\n")
 
@@ -3044,7 +3061,7 @@ def test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_only_a
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a gear never slips\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a gear never slips\n")
 
@@ -3061,7 +3078,7 @@ def test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_only_a
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a gear never slips\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a gear never slips\n")
 
@@ -3076,7 +3093,7 @@ def test_main_3058_a_later_step_line_with_an_unreadable_ledger_exits_2_not_missi
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % later)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (2, "")
     assert "issue-77.md" in stderr
@@ -3091,7 +3108,7 @@ def test_main_3058_criterion_2_prints_missing_without_a_ledger_when_no_later_ste
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_a_cog_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "missing a cog never moves alone\n")
 
@@ -3108,7 +3125,7 @@ def test_main_3037_criterion_2_prints_fixture_with_the_own_file_when_the_helper_
     report.write_text("SUITE: make test\nWRONG_TEST: `ran` is never set in the Red case\n")
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "tests/test_z_own.py::test_session_expires"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "tests/test_z_own.py::test_session_expires"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "fixture tests/test_z_own.py ran\n")
 
@@ -3129,7 +3146,7 @@ def test_main_3007_criterion_2_a_contradicts_line_naming_an_existing_other_case_
         "CONTRADICTS: %s\n" % contradicted)
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "test_main_returns_zero"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
 
@@ -3148,7 +3165,7 @@ def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_with_n
         "SUITE: make test\n"
         "WRONG_TEST: next-unchecked prints no prefix; see %s\n" % cited)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -3169,7 +3186,7 @@ def test_main_3007_criterion_3_a_case_on_both_lines_routes_red_by_the_contradict
         "WRONG_TEST: %s shows the correct output, so %s contradicts the criterion\n" % (cited, contradicted)
         + "CONTRADICTS: %s\n" % contradicted)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % contradicted)
     assert cited not in stdout
@@ -3190,7 +3207,7 @@ def test_main_3007_criterion_9_a_contradicts_line_naming_a_js_ts_case_by_a_backt
         'CONTRADICTS: `foo.test.ts` "rejects an empty name"\n')
 
     code, stdout, stderr = run_cli(
-        wrong_test_route, [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red rejects an empty name\n")
 
@@ -3208,7 +3225,7 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_a_case_defined_nowhere_
         "WRONG_TEST: the criterion asserts the opposite of an older case\n"
         "CONTRADICTS: test_main_a_case_nobody_defines\n")
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout, stderr) == (3, "revise\n", "")
 
@@ -3226,7 +3243,7 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_the_step_own_case_route
         "WRONG_TEST: the expected output carries a prefix the script never prints\n"
         "CONTRADICTS: %s\n" % own)
 
-    code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
 
@@ -3244,12 +3261,9 @@ def test_main_3135_criterion_1_prints_missing_for_a_behaviour_inside_a_later_ste
     monkeypatch.setenv("VERI_ISSUE", "77")
     report = tmp_path / "verify-green.out"
     report.write_text("MISSING_TEST: cog never moves\nVERDICT: REJECT\n")
-    ledger_only = run_cli(wrong_test_route, [str(report), "test_a_wheel_turns"], cwd=tmp_path)
-
     code, stdout, stderr = run_cli(
         wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
 
-    assert ledger_only[:2] == (0, "later %s\n" % later)
     assert (code, stdout) == (0, "missing cog never moves\n")
 
 
@@ -3356,3 +3370,21 @@ def test_main_3135_counts_only_unchecked_criteria_when_a_checked_box_precedes_th
         run_cli, tmp_path, monkeypatch, "a gear holds ⟦criterion 2⟧", spec, "gear never slips")
 
     assert (code, stdout, stderr) == (0, "later a gear holds ⟦criterion 2⟧\n", "")
+
+
+def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_absent_even_if_a_ledger_step_matches(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    later = "a cog never moves alone ⟦criterion 2⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: cog never moves\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (2, "")
+    assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")

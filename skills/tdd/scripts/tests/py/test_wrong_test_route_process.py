@@ -24,7 +24,7 @@ def a_repo_with_an_older_frozen_case(tmp_path):
 def route(repo, report):
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env["VERI_STEP"] = STEP
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), report, OWN_ID], cwd=repo, env=env,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", report, OWN_ID], cwd=repo, env=env,
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
     return ran.returncode, ran.stdout, ran.stderr
 
@@ -87,7 +87,7 @@ def test_2916_criterion_2_a_missing_report_with_a_later_step_that_is_unchecked_i
     env["VERI_STEP"] = STEP
     env["VERI_ISSUE"] = "77"
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "later %s\n" % later), ran.stderr
@@ -106,7 +106,7 @@ def test_2916_criterion_2_a_later_step_report_routes_later_even_when_the_missing
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env.update(VERI_STEP=STEP, VERI_ISSUE="77", VERI_MISSING_REROUTE_BUDGET="1")
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "later %s\n" % later), ran.stderr
@@ -123,7 +123,7 @@ def test_2916_criterion_4_a_later_step_report_naming_a_step_already_checked_fall
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env.update(VERI_STEP=STEP, VERI_ISSUE="77")
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
@@ -139,7 +139,7 @@ def test_2916_criterion_4_a_later_step_report_naming_no_step_of_the_ledger_falls
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env.update(VERI_STEP=STEP, VERI_ISSUE="77")
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
@@ -155,7 +155,7 @@ def test_2916_criterion_4_a_later_step_report_naming_the_current_step_falls_thro
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env.update(VERI_STEP=STEP, VERI_ISSUE="77")
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
@@ -172,7 +172,7 @@ def test_2916_criterion_4_a_later_step_report_naming_an_earlier_unchecked_step_f
     env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
     env.update(VERI_STEP=STEP, VERI_ISSUE="77")
 
-    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), ".tdd/verify-green.out", OWN_ID], cwd=repo,
+    ran = subprocess.run([str(SCRIPTS / "wrong-test-route.sh"), "--spec", ".tdd/issue-0-spec.md", ".tdd/verify-green.out", OWN_ID], cwd=repo,
                          env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, ran.stdout) == (0, "missing a cog never moves alone\n"), ran.stderr
