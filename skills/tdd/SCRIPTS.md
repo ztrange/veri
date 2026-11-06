@@ -169,6 +169,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line. **Exit 2**, file byte-identical, naming `pin-recheck.sh`, when
   `.tdd/pin-recheck-ok` is absent, its sha does not resolve, or a path outside `.tdd/` differs between that sha and `HEAD`.
+- `$S/plan-reverify.sh <ledger-file>` — decide whether a resume must re-verify the plan. It reads the `events.jsonl` beside the ledger, counting only the events of the ledger's own issue (the `<n>` of `issue-<n>.md`), for the issue's last `verify-plan` PASS, and compares its time with the author dates of the `plan:` commits. **Exit 0** when a `plan:` commit is newer than that PASS, or there is no PASS for the issue (or no `events.jsonl`): verify-plan is owed. **Exit 3** when that PASS is newer than every `plan:` commit: no re-verify. **Exit 2** with a usage line on a usage error (no argument).
 - `$S/same-reject.sh <previous-reason-file> <current-reason-file>` — compare the `REASON:` lines of two rejections after collapsing runs of whitespace. **Exit 0** when equal; **exit 1** when they differ; **exit 2** with a usage line when called with no arguments, or when either file is missing or holds no `REASON:` line.
 - `$S/add-ledger-step.sh [--planned] [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
