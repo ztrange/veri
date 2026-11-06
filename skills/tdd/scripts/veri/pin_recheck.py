@@ -119,14 +119,15 @@ def recheck(argv):
                 status = 1
             continue
         named = re.findall(r"TESTS=(\S+)", pin["command"])
-        if named and all(n in deleted for n in named):
-            for n in named:
+        gone = [n for n in named if n in deleted]
+        named = [n for n in named if n not in deleted]
+        if gone and not named:
+            for n in gone:
                 sys.stdout.write(f"retired: {ledger} {pin['file']} {n}\n")
             retired += 1
             continue
-        for n in [n for n in named if n in deleted]:
+        for n in gone:
             pin["command"] = re.sub(r"TESTS=" + re.escape(n) + r"(?=\s|$)", "", pin["command"])
-        named = [n for n in named if n not in deleted]
         for n in named:
             if not Path(n).exists():
                 sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
