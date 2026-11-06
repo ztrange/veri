@@ -149,3 +149,19 @@ def test_3134_a_pid_flag_without_a_value_is_a_usage_error(tmp_path, capsys):
         code = merge_lock._HANDLERS[verb](lock, os.path.join(lock, "holder"), ["--pid"])
         outcomes[verb] = (code, "usage: merge-lock.sh" in capsys.readouterr().err)
     assert outcomes == {"take": (2, True), "release": (2, True)}
+
+
+def test_3134_holder_reads_the_start_time_not_the_owner_of_an_owner_bearing_record(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    capsys.readouterr()
+    live = merge_lock._holder(lock, record, [])
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "other")
+    reused = merge_lock._holder(lock, record, [])
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock, "_alive", lambda pid: False)
+    dead = merge_lock._holder(lock, record, [])
+    assert (live, reused, dead) == (0, 1, 1)
