@@ -74,7 +74,8 @@ def _take(lock, record, args):
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
     try:
         with open(os.path.join(staged, "holder"), "w") as f:
-            f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}" + (f" {_owner(args)}" if _owner(args) else "") + "\n")
+            owner = _owner(args)
+            f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}" + (f" {owner}" if owner else "") + "\n")
         reported = False
         missing = 0
         while True:
@@ -122,7 +123,8 @@ def _release(lock, record, args):
         fields = _read(record).split()
         if fields[0] != pid:
             return 1
-        if _owner(args) and fields[3:4] != [_owner(args)]:
+        owner = _owner(args)
+        if owner and fields[3:4] != [owner]:
             return 1
     shutil.rmtree(lock)
     return 0
