@@ -192,3 +192,29 @@ def test_ledger_path_is_the_issue_ledger_under_the_run_directory():
     ledger = importlib.import_module("veri.ledger")
 
     assert str(ledger.ledger_path("/run/dir", "7")) == "/run/dir/.tdd/issue-7.md"
+
+
+def test_ledger_items_parses_an_indented_checkbox_line_as_an_item():
+    ledger = importlib.import_module("veri.ledger")
+
+    items = ledger.ledger_items("  - [ ] indented step\n- [x] top step\nnot - [ ] an item\n")
+
+    assert [(m.group(1), m.group(2)) for m in items] == [(" ", "indented step"), ("x", "top step")]
+
+
+def test_items_at_raises_oserror_naming_rev_path_and_stderr_when_git_show_fails(monkeypatch):
+    ledger = importlib.import_module("veri.ledger")
+
+    class Failed:
+        returncode = 128
+        stdout = b""
+        stderr = b"fatal: path 'x/ledger.md'\n  does not exist in 'abc123'\n"
+
+    monkeypatch.setattr(ledger, "git", lambda *args, **kwargs: Failed())
+
+    try:
+        ledger.items_at("abc123", "x/ledger.md")
+    except OSError as error:
+        assert str(error) == "git show abc123:x/ledger.md failed: fatal: path 'x/ledger.md' does not exist in 'abc123'"
+    else:
+        raise AssertionError("items_at returned for a failed git show")
