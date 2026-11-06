@@ -132,7 +132,8 @@ def main(argv):
             with open(record, "w") as out:
                 out.write(commit + "\n")
             with open(os.path.join(run_state, "issue-%s-skip-verify" % argv[0]), "w") as skip:
-                skip.write(tunables.read("VERI_SKIP_VERIFY", "") + "\n")
+                listed = tunables.read("VERI_SKIP_VERIFY", "")
+                skip.write(listed + "\n" if listed else "")
             if readable:
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
