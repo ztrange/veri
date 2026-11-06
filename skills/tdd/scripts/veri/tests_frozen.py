@@ -349,7 +349,8 @@ def _check_earlier(ledger, step, exempt=()):
         if case not in exempt and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
                 or ((name, case) in helper_digests
-                    and _helper_digest(text, "\n".join(nows)) != helper_digests[(name, case)])):
+                    and helper_digests[(name, case)] not in (
+                        _helper_digest(text, "\n".join(nows)), _helper_digest(text, "\n".join(nows), legacy=True)))):
             entry = "%s (%s)" % (case, owner)
             if nows and _changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
@@ -469,8 +470,8 @@ def _assertion_lines(body):
     return [_squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
 
 
-def _helper_digest(text, body):
-    return _body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body)))))
+def _helper_digest(text, body, legacy=False):
+    return _body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body, legacy)))))
 
 
 def _bodies_of(text, case):
@@ -484,14 +485,17 @@ def _called_helpers(rev, name, body):
 _HELPER_NAME = r"^(?:(?:function|func|def)\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
 
 
-def _helpers_in(text, body):
+def _helpers_in(text, body, legacy=False):
     helpers = []
-    for definition in re.finditer(_HELPER_NAME + r"[^\n]*\n(?:(?!(?:function|func|def|const)\b).*\n?)*", text, re.M):
-        name = definition.group(1) or definition.group(2)
-        keyword = definition.group().split(None, 1)[0]
+    stop = r"func" if legacy else r"(?:function|func|def|const)"
+    rest = re.compile(r"(?:(?!%s\b).*\n?)*" % stop)
+    for head in re.finditer(_HELPER_NAME + r"[^\n]*\n", text, re.M):
+        definition = head.group() + rest.match(text, head.end()).group()
+        name = head.group(1) or head.group(2)
+        keyword = definition.split(None, 1)[0]
         collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
         if not collected and re.search(r"\b%s\(" % name, body):
-            helpers.append(definition.group())
+            helpers.append(definition)
     return "\n".join(helpers)
 
 
