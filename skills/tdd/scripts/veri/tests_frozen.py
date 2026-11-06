@@ -410,8 +410,11 @@ def rerecord_earlier(ledger, step):
         now = after[name].get(case)
         if now is not None and now != before[name].get(case):
             head_text = _text_at("HEAD", name, subprocess.DEVNULL)
+            body = "\n".join(_bodies_of(head_text, case))
+            if not _helpers_in(head_text, body):
+                return _body_line(name, case, now)
             return _body_line(name, case, now) + "\n" + frozen_record._helpers_line(
-                name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
+                name, case, _helper_digest(head_text, body))
         return record
     try:
         return 0 if _rewrite_records(_earlier_records(lines, step), rewrite) else 2

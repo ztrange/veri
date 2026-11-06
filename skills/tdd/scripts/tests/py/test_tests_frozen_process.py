@@ -6019,3 +6019,34 @@ def test_rerecord_earlier_rewrites_body_and_helpers_lines_together_from_head_whe
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (rerecorded, held, code, out) == (0, [head], 0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_rerecord_earlier_leaves_no_helpers_line_for_a_case_that_calls_no_helper_at_head_3052(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef check_old(x):\n    assert x == 1\n\n\n"
+                     "def test_pinned_3052():\n    check_old(1)\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "red")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (earlier, edit, later))
+    git(tmp_path, "add", "-f", ".tdd/ledger.md")
+    git(tmp_path, "commit", "-q", "-m", "ledger")
+    suite.write_text("def test_older_case():\n    assert True\n\n\ndef test_pinned_3052():\n    assert 1 == 1\n")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "edit makes the case call no helper")
+
+    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    held = [l for l in record.read_text().splitlines() if l.startswith("helpers: ")]
+
+    assert (rerecorded, held) == (0, [])
