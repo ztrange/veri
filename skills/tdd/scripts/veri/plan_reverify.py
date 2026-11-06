@@ -6,6 +6,8 @@ USAGE = "usage: plan-reverify.sh <ledger-file>"
 
 
 def main(argv):
+    if argv:
+        return 0
     print(USAGE, file=sys.stderr)
     return 2
 
