@@ -247,22 +247,22 @@ def deleted_cases(branch_base, step_base, tip="HEAD"):
     kept = {case for _, case in after}
     taken = {other for _, other in middle}
     return sorted(case for case in sorted(middle - before)
-                  if case[1] not in kept and not was_renamed(case, step_base, taken))
+                  if case[1] not in kept and not was_renamed(case, step_base, taken, tip))
 
 
-def rename_of(find, case, step_base, taken):
+def rename_of(find, case, step_base, taken, tip="HEAD"):
     path, name = case
     old = git("show", "%s:%s" % (step_base, path))
-    new = git("show", "HEAD:" + path)
+    new = git("show", "%s:%s" % (tip, path))
     return find(name, old.stdout.decode(), new.stdout.decode(), taken)
 
 
-def was_renamed(case, step_base, taken):
-    return rename_of(renamed_case.renamed_to, case, step_base, taken) is not None
+def was_renamed(case, step_base, taken, tip="HEAD"):
+    return rename_of(renamed_case.renamed_to, case, step_base, taken, tip) is not None
 
 
-def changed_rename(case, step_base, taken):
-    return rename_of(renamed_case.renamed_and_changed_to, case, step_base, taken)
+def changed_rename(case, step_base, taken, tip="HEAD"):
+    return rename_of(renamed_case.renamed_and_changed_to, case, step_base, taken, tip)
 
 
 def added_markers(onto):
@@ -356,7 +356,7 @@ def main(argv):
             return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
         if deleted:
             taken = {other for _, other in pytest_cases(words[3])}
-            changed = [(case, changed_rename(case, words[3], taken)) for case in deleted]
+            changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
             pairs = [(case, other) for case, other in changed if other]
             if pairs:
                 write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
