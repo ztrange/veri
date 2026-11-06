@@ -1394,7 +1394,7 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
 
     declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
     assert (code, len(declared), "suite exempt" in " ".join(declared)) == (
-        0, 1, True)
+        0, 2, True)
 
 
 def test_main_asks_green_and_revise_green_prompts_to_name_the_contradicted_case_in_the_wrong_test_line_1621(
@@ -1464,7 +1464,7 @@ def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_gr
         formats = [l for l in out.splitlines() if l.startswith(b"REPORT-FORMAT ") and b"keys WRONG_TEST:" in l]
         seen[revised] = (code, len(formats), b"WRONG_TEST" in out)
 
-    assert seen == {"red": (0, 0, False), "green": (0, 1, True), "refactor": (0, 0, False)}
+    assert seen == {"red": (0, 0, False), "green": (0, 2, True), "refactor": (0, 0, False)}
 
 
 def test_main_asks_for_fail_output_and_prediction_note_in_a_revise_prompt_only_when_redoing_red_2949(

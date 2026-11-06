@@ -11,7 +11,7 @@ its check is stated under *A `⟦diff-checked⟧` step*.
 
 The phases sent to `build-develop-prompt.sh revise <phase>` are red, green, refactor, transform, diff, rebase and the interface phases expand, beside, cover-new, dual-stub, migrate, contract-a, contract-b; a rejected transform is revised as `revise transform`, never mapped to `refactor`; a rebase rejection (the Draft PR step's rebase verifier) is revised as `revise rebase`.
 
-A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line and is routed as a
+A revise of green whose leaf reports `WRONG_TEST: <why>` is exempt from the `SUITE:` line (formats `revise-wrong-test` with `SUPERSEDED:`, `revise-wrong-test-contradicts` with `CONTRADICTS:`) and is routed as a
 develop-green `WRONG_TEST:` report is, as is one carrying a `SUPERSEDED:` line, with or without `WRONG_TEST:`: `$S/wrong-test-route.sh .tdd/revise-green-<k>.out '<target-test-id>'` runs
 before the attempt is counted; its exit 0 writes no `revise` mark, spends no `REVISE_BUDGET` attempt and launches
 the `red-contradicted` red, its exit 3 keeps the attempt's main outcome, a verify-green REJECT, and its exit 2 is
