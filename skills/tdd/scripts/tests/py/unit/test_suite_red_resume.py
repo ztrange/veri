@@ -599,3 +599,42 @@ def test_insert_with_reds_outside_the_grade_suites_all_naming_one_listed_unit_wh
 
     assert code == 0
     assert ledger.read_text() == text
+
+
+def test_insert_with_reds_outside_the_grade_suites_not_naming_the_listed_unit_of_the_first_unchecked_skill_edit_step_adds_the_suite_repair_step_before_it_3107(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [unit])
+    ledger = tmp_path / "issue-7.md"
+    skill_edit = f"- [ ] fix the full-suite failure by editing `{unit}`: test_older.py — FAIL {unit} synopsis ⟦skill-edit⟧"
+    ledger.write_text(f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n{skill_edit}\n- [ ] c ⟦criterion 3⟧\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_other_a.py — FAIL parser broke\ntest_other_b.py — FAIL lexer broke\n")
+    step = "- [ ] fix the full-suite failure: test_other_a.py — FAIL parser broke; test_other_b.py — FAIL lexer broke ⟦suite-repair⟧"
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+
+
+def test_insert_with_a_red_mixing_a_grade_suite_with_an_outside_suite_both_naming_one_listed_unit_adds_the_suite_repair_step_and_no_skill_edit_step_3107(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [unit])
+    ledger = tmp_path / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_prd_015_prose_signed.py — FAIL `{unit}` synopsis\ntest_other_b.py — FAIL {unit} name\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
+    assert "⟦skill-edit⟧" not in ledger.read_text().replace("⟦suite-repair⟧", "")
