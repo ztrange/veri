@@ -240,8 +240,8 @@ def pytest_cases(sha):
     return cases
 
 
-def deleted_cases(branch_base, step_base):
-    before, middle, after = (pytest_cases(sha) for sha in (branch_base, step_base, "HEAD"))
+def deleted_cases(branch_base, step_base, tip="HEAD"):
+    before, middle, after = (pytest_cases(sha) for sha in (branch_base, step_base, tip))
     if None in (before, middle, after):
         return None
     kept = {case for _, case in after}
@@ -348,7 +348,10 @@ def main(argv):
     if code:
         return to_contract(code)
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
-        deleted = deleted_cases(words[2], words[3])
+        tip = "HEAD"
+        if options["--supersede-base"]:
+            tip = in_temp_index("write-tree")
+        deleted = deleted_cases(words[2], words[3], tip)
         if deleted is None:
             return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
         if deleted:
