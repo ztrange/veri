@@ -1362,3 +1362,33 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_stays_green_exits_1_the_live_
     assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
             "live.txt" in ran.stdout + ran.stderr, (tmp_path / "ran.witness").exists()) == (
         1, True, True, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that deletes one pin's test and leaves another pin red under its mutation")
+def test_3151_a_retired_pin_beside_a_live_pin_that_goes_red_exits_0_the_live_pin_deciding(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "live.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    record(tmp_path / ".tdd" / "issue-836-mutations.md", file="live.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' live.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / "live.txt").write_text("if guard\nmore\n")
+    git("rm", "-q", "tests/test_guard.py")
+    git("commit", "-q", "-am", "edit both files and delete one pin's test")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
+    assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
+            (tmp_path / "ran.witness").exists()) == (0, True, False), ran.stdout + ran.stderr
