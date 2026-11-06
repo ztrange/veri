@@ -224,10 +224,13 @@ def _open_after():
 
 def _criterion(spec, name):
     marker = re.search(r"⟦criterion (\d+)⟧", name)
+    if marker is None:
+        return None
     with open(spec, encoding="utf-8") as handle:
         body = handle.read().partition("## Acceptance criteria")[2]
     boxes = [m.group(2) for m in ledger_file.ledger_items(body) if m.group(1) == " "]
-    return boxes[int(marker.group(1)) - 1]
+    index = int(marker.group(1)) - 1
+    return boxes[index] if index < len(boxes) else None
 
 
 def _later(report, behaviour, spec=None):
@@ -241,7 +244,7 @@ def _later(report, behaviour, spec=None):
     wanted = behaviour.lower()
     for name in after:
         if spec:
-            text = _criterion(spec, name).lower()
+            text = (_criterion(spec, name) or "").lower()
         else:
             text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
         if text and (text in wanted or wanted in text):
