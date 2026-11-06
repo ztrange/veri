@@ -1044,11 +1044,26 @@ RECEIPT_SHA = "0123456789abcdef0123456789abcdef01234567"
 @pytest.fixture
 def leave_receipt(monkeypatch):
     """Leave a pin-recheck-ok receipt beside a ledger; in-process, git() answers that sha with no path changed."""
-    def faked_git(*args, **kwargs):
-        text = kwargs.get("text") or kwargs.get("universal_newlines")
-        out = RECEIPT_SHA + "\n" if args[:1] == ("rev-parse",) else ""
-        return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
+    return receipt_leaver(monkeypatch)
 
+
+def _receipt_git(*args, **kwargs):
+    """leave_receipt's git(): the receipt's sha with no path changed while it is set on a git module, else git.
+
+    It is set on the git modules themselves too, so a module first imported during a case (`from git import git`)
+    binds it, and monkeypatch never restores that binding. So it answers only while still set on a git module and
+    runs git like git.git once the case is undone: else such a module, `ledger` imported by an entry point under
+    the receipt, kept an empty `git show` for every later case in the process (#3053). One function for the whole
+    session, so the next receipt revives a binding an earlier case left."""
+    if all(importlib.import_module(name).git is not _receipt_git for name in ("veri.git", "git")):
+        return subprocess.run(["git", *args], **kwargs)
+    text = kwargs.get("text") or kwargs.get("universal_newlines")
+    out = RECEIPT_SHA + "\n" if args[:1] == ("rev-parse",) else ""
+    return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
+
+
+def receipt_leaver(monkeypatch):
+    """leave_receipt's leave(ledger, repo=None), its fake git() set through and undone with `monkeypatch`."""
     def leave(ledger, repo=None):
         sha = RECEIPT_SHA
         if repo is not None:
@@ -1057,7 +1072,7 @@ def leave_receipt(monkeypatch):
             reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
             for module in list(sys.modules.values()):
                 if getattr(module, "git", None) in reals:
-                    monkeypatch.setattr(module, "git", faked_git)
+                    monkeypatch.setattr(module, "git", _receipt_git)
         (pathlib.Path(ledger).parent / "pin-recheck-ok").write_text(sha + "\n")
 
     return leave
