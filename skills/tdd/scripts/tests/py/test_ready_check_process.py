@@ -146,3 +146,17 @@ def test_issue_3055_ready_check_reads_the_pull_request_workflow_at_the_branch_or
 
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess from a directory outside the repository it is pointed at")
+def test_issue_3055_ready_check_given_a_repo_root_from_outside_it_checks_that_repository(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    env = {**env, "GIT_CEILING_DIRECTORIES": str(tmp_path)}
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh"), str(repo)], cwd=elsewhere, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
