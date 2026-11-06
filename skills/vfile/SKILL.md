@@ -62,6 +62,11 @@ reads the plan out of these headings.
   **`### <path>` heading** (the bare path), or `### <path> (new)` only for a file that does not
   exist yet; a `##` heading is not read as a unit. For example: `### skills/vfile/SKILL.md`.
   Each ID cell is the **bare ID**; an amended row carries its **full new text**.
+- **A criterion that changes graded prose** (a unit some `REQUIREMENTS.md` has a `## <path>`
+  heading for) says it is **graded by the issue's `## Requirements` rows**, and **never asks for
+  a case pinning the prose's wording**. This overrides "pinned by a case" above for such a
+  criterion. A mechanical fact the prose names (a script exists, a heading a parser reads) may
+  still be pinned by a case.
 - **`Test command:`** appears **once, on the last line** of the body, naming the command that
   runs the repo's tests; nothing follows it.
 
