@@ -3389,3 +3389,34 @@ def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_abs
     assert (code, stdout) == (2, "")
     assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")
 
+
+def _bad_arity(run_cli, tmp_path, monkeypatch, extra):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n" % step)
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: cog never moves\nVERDICT: REJECT\n")
+    return run_cli(wrong_test_route, extra(report), cwd=tmp_path)
+
+
+def test_main_3135_exits_2_with_the_usage_for_four_arguments_when_the_first_is_not_spec(
+        run_cli, tmp_path, monkeypatch):
+    code, stdout, stderr = _bad_arity(
+        run_cli, tmp_path, monkeypatch,
+        lambda report: ["--other", str(tmp_path / "spec.md"), str(report), "test_a_wheel_turns"])
+
+    assert (code, stdout) == (2, "")
+    assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")
+
+
+def test_main_3135_exits_2_with_the_usage_for_three_arguments_naming_spec(
+        run_cli, tmp_path, monkeypatch):
+    code, stdout, stderr = _bad_arity(
+        run_cli, tmp_path, monkeypatch,
+        lambda report: ["--spec", str(report), "test_a_wheel_turns"])
+
+    assert (code, stdout) == (2, "")
+    assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")
