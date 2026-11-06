@@ -3312,3 +3312,38 @@ def test_main_3135_criterion_3_prints_later_for_a_later_step_line_naming_an_open
         wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def _spec_route(run_cli, tmp_path, monkeypatch, later, spec_body, behaviour):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text(spec_body)
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: %s\nVERDICT: REJECT\n" % behaviour)
+    return run_cli(wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+
+def test_main_3135_prints_missing_when_a_later_open_step_carries_no_criterion_marker(
+        run_cli, tmp_path, monkeypatch):
+    spec = "## Acceptance criteria\n\n- [ ] A wheel turns\n- [ ] A gear never slips\n"
+
+    code, stdout, stderr = _spec_route(
+        run_cli, tmp_path, monkeypatch, "a lever lifts ⟦added⟧", spec, "a lever lifts")
+
+    assert (code, stdout, stderr) == (0, "missing a lever lifts\n", "")
+
+
+def test_main_3135_prints_missing_when_a_later_open_step_names_a_criterion_past_the_specs_checkboxes(
+        run_cli, tmp_path, monkeypatch):
+    spec = "## Acceptance criteria\n\n- [ ] A wheel turns\n- [ ] A gear never slips\n"
+
+    code, stdout, stderr = _spec_route(
+        run_cli, tmp_path, monkeypatch, "a lever lifts ⟦criterion 5⟧", spec, "a lever lifts")
+
+    assert (code, stdout, stderr) == (0, "missing a lever lifts\n", "")
+
