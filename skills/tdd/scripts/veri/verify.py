@@ -18,6 +18,9 @@ import renamed_case
 import replaces_case_survivors
 import tunables
 
+from case_reader import is_js_test_file
+from js_tests import CALL
+
 from leaf_model import _env, resolve
 from entry import write
 from leaf_role import leaf_role
@@ -209,8 +212,8 @@ def no_verdict_budget(value):
 
 CASE_PATTERNS = (
     ("_test.go", r"^func[ \t]+(Test\w+)"),
-    (".test.js", r"^[ \t]*it\([ \t]*\"([^\"]+)"),
 )
+JS_CASE_PATTERN = r"^[ \t]*" + CALL + r"([\"'`])(.+?)\1"
 PY_CASE_PATTERN = r"^[ \t]*(?:async[ \t]+)?def[ \t]+(test_\w+)"
 
 
@@ -218,6 +221,8 @@ def case_pattern(name):
     for suffix, pattern in CASE_PATTERNS:
         if name.endswith(suffix):
             return pattern
+    if is_js_test_file(name):
+        return JS_CASE_PATTERN
     if name.startswith("test_") and name.endswith(".py"):
         return PY_CASE_PATTERN
     return None
@@ -235,8 +240,8 @@ def pytest_cases(sha):
         shown = git("show", "%s:%s" % (sha, path))
         if shown.returncode != 0:
             return None
-        for case in re.findall(pattern, shown.stdout.decode(), re.M):
-            cases.add((path, case))
+        for found in re.finditer(pattern, shown.stdout.decode(), re.M):
+            cases.add((path, found.group(found.lastindex)))
     return cases
 
 

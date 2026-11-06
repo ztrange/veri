@@ -3678,6 +3678,16 @@ def test_2897_verify_sh_diff_does_not_refuse_an_it_case_removed_from_a_plain_js_
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_3110_verify_sh_diff_refuses_a_single_quoted_it_case_removed_from_a_test_js_file(run_cli, tmp_path):
+    keep = "it('keeps', () => {\n});\n"
+    code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.test.js", keep,
+                                       keep + "\nit('dropped3110', () => {\n  expect(3).toBe(3);\n});\n", keep)
+
+    assert (code, out, started) == (
+        1, "step deleted pytest cases an earlier step added: web/start.test.js::dropped3110", False)
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file_with_its_body_unchanged(
         run_cli, tmp_path):
     keep = "package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n"
