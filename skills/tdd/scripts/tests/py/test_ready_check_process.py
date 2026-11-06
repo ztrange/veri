@@ -115,3 +115,34 @@ def test_issue_3055_ready_check_with_no_pull_request_workflow_exits_1_with_a_fai
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "pull_request" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess on a feature branch whose own tree has no pull_request workflow while the default branch's tip has one")
+def test_issue_3055_ready_check_reads_the_pull_request_workflow_at_the_default_branch_tip_not_head(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env.pop("VERI_CI_ON_PR", None)
+    _git(repo, "checkout", "-q", "-b", "feature")
+    (repo / ".github" / "workflows" / "ci.yml").write_text(
+        "name: ci\non:\n  push:\n    branches: [main]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n")
+    _git(repo, "commit", "-q", "-am", "feature drops the pull_request trigger")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository whose origin/HEAD names a default branch other than main")
+def test_issue_3055_ready_check_reads_the_pull_request_workflow_at_the_branch_origin_head_names(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env.pop("VERI_CI_ON_PR", None)
+    _git(repo, "update-ref", "refs/remotes/origin/trunk", "HEAD")
+    _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/trunk")
+    (repo / ".github" / "workflows" / "ci.yml").write_text(
+        "name: ci\non:\n  push:\n    branches: [main]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n")
+    _git(repo, "commit", "-q", "-am", "main drops the pull_request trigger")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
