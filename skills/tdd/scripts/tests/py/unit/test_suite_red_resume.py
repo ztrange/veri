@@ -531,3 +531,32 @@ def test_the_test_only_exit_0_branch_in_skill_md_ticks_the_step_with_a_ledger_an
     tick = re.search(r"\$S/tick-ledger\.sh([^\n]*)", branch).group(1)
 
     assert '.tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"' in tick, tick
+
+
+def test_insert_with_a_red_from_suites_outside_the_grade_suites_naming_one_listed_unit_adds_a_skill_edit_step_and_a_red_naming_none_keeps_the_suite_repair_step_3107(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [unit])
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "suite-red"}) + "\n")
+    named = tmp_path / "issue-7.md"
+    named.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
+    unnamed = tmp_path / "issue-8.md"
+    unnamed.write_text("# Plan for #8\n\n- [x] a ⟦criterion 1⟧\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_other_a.py — FAIL `{unit}` synopsis\ntest_other_b.py — FAIL {unit} name\n")
+    stray = tmp_path / "stray-red"
+    stray.write_text(f"test_other_a.py — FAIL {unit} synopsis\ntest_other_b.py — FAIL parser broke\n")
+
+    named_code, _, _ = run_cli(module, ["insert", str(named), str(branch)])
+    unnamed_code, _, _ = run_cli(module, ["insert", str(unnamed), str(stray)])
+
+    named_steps = [l for l in named.read_text().split("\n") if l.startswith("- [ ]")]
+    unnamed_steps = [l for l in unnamed.read_text().split("\n") if l.startswith("- [ ]")]
+    assert named_code == 0 and len(named_steps) == 1
+    assert named_steps[0].startswith(f"- [ ] fix the full-suite failure by editing `{unit}`: ")
+    assert "⟦skill-edit⟧" in named_steps[0] and "⟦suite-repair⟧" not in named.read_text()
+    assert unnamed_code == 0 and len(unnamed_steps) == 1 and "⟦suite-repair⟧" in unnamed_steps[0]
+    assert "⟦skill-edit⟧" not in unnamed.read_text()

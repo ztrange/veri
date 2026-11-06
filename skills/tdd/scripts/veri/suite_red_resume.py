@@ -7,13 +7,14 @@ import subprocess
 import sys
 
 try:
-    from . import add_ledger_step, event, prose_owed
+    from . import add_ledger_step, event, prose_owed, requirements
     from .case_reader import is_test_path
     from .ledger import STEP_RE, read_ledger
 except ImportError:
     import add_ledger_step
     import event
     import prose_owed
+    import requirements
     from case_reader import is_test_path
     from ledger import STEP_RE, read_ledger
 
@@ -81,6 +82,11 @@ def insert(ledger, branch_file):
         pinned = [unit for _, unit in owed if all(unit in red for red in reds)]
         if pinned:
             step = f"fix the full-suite failure by editing `{pinned[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
+    elif not set(suites(text)) & GRADE_SUITES and all(SEPARATOR in red for red in reds):
+        listed = [unit for path in requirements.lists() for unit in requirements.listed_units(path)]
+        named = [unit for unit in listed if all(unit in red for red in reds)]
+        if named:
+            step = f"fix the full-suite failure by editing `{named[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
     return add_ledger_step.main([ledger, where, anchor, step])
 
 
