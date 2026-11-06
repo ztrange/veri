@@ -44,7 +44,9 @@ Render one verdict on the settled result.
    anything the spec does not ask for. One finding per line.
 4. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
    and the REJECT names that assertion: the suite stays green while it loosens, so the diff
-   is the only place it shows.
+   is the only place it shows. A refactor that adds or changes an assertion line of a case
+   frozen at any earlier step, not only one removed or weakened, is likewise a REJECT, and
+   the REJECT names the case.
 5. **Cosmetic hunks.** A hunk that is only cosmetic (whitespace, reflowed prose, a rename
    with no other effect) is named in REASON: but is not a REJECT by itself, since a REJECT
    costs a revise leaf.
