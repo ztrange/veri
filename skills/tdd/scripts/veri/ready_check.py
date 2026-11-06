@@ -6,6 +6,8 @@ import subprocess
 import sys
 
 import launch_floor
+import tunables
+from github import gh_probe as gh
 from case_reader import is_test_path
 from wait_ci import trigger_lines
 
@@ -14,10 +16,6 @@ USAGE = "usage: ready-check.sh [repo-root]"
 
 def git(*argv):
     return subprocess.run(["git", *argv], capture_output=True, text=True)
-
-
-def gh(*argv):
-    return subprocess.run(["gh", *argv], capture_output=True, text=True)
 
 
 def default_tip():
@@ -58,7 +56,7 @@ def main(argv):
     for tier in ("fast", "all"):
         found = subprocess.run([detect, "--tier", tier], capture_output=True)
         row(f"{tier} tier", found.returncode != 3, f"add a `veri: {tier} tests:` line to CLAUDE.md")
-    row("pull_request", bool(os.environ.get("VERI_CI_ON_PR")) or triggers_on("pull_request"), "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
+    row("pull_request", bool(tunables.read("VERI_CI_ON_PR")) or triggers_on("pull_request"), "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
     row("push", triggers_on("push"), "add a workflow under .github/workflows/ that triggers on push to the default branch")
     row("test file", any(is_test_path(f) for f in git("ls-files").stdout.splitlines()), "track at least one test file")
     row(".tdd/", git("check-ignore", "-q", ".tdd/").returncode == 0, "add `.tdd/` to .gitignore")
@@ -69,7 +67,7 @@ def main(argv):
     except (ValueError, KeyError, TypeError):
         can_push = False
     row("push access", can_push, "ask for write access to the repository, or use an account that has it")
-    label = os.environ.get("VERI_LABEL", "")
+    label = tunables.read("VERI_LABEL")
     listed = gh("label", "list", "--json", "name")
     names = [entry["name"] for entry in json.loads(listed.stdout)]
     row(f"label {label}", label in names, f"create the `{label}` label in the repository")
