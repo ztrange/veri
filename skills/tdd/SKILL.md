@@ -1263,7 +1263,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
      answers `REJECT`, `Read` `<base directory>/REVISE.md`), and leave the refactor-pending mark
      in place. Exit 2, no answer, **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
      Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
-     owes, under `## Owed by a human`. Exit 3, no record touches the range, goes on. Exits 0 and 3 leave
+     owes, under `## Owed by a human`. Exit 3, no record touches the range or every selected pin is retired (a pin whose named `TESTS=` test file the range deletes, a before record included, prints `retired: <record file> <mutated file> <path>` on stdout and is not a REJECT), goes on. Exits 0 and 3 leave
      the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` refuses (exit 2) without it.
      **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases
      the refactor changed, an earlier step's included, with
@@ -1378,7 +1378,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
 
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
-  pin that stayed green being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+  pin that stayed green being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
   Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
