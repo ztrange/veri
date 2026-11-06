@@ -91,6 +91,10 @@ alone, and route:
 - **Last comment ✅ Done.** Review it, and on OK merge it through `vmerge`.
   A run that ended with an open question for the human is never merged.
 
+  **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
+  the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
+  merge subagent also says".
+
   **Caveats before any merge**, whether on your own OK or on a coordinator's merge
   instruction: send the coordinator every caveat your review found, of three kinds only:
   a test never watched failing; a change to a guard or other product code outside the
