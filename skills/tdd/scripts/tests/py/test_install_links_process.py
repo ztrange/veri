@@ -28,7 +28,7 @@ def _clone(tmp_path):
 
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_links_exactly_the_eight_skills_into_the_main_tree_and_is_a_documented_shim_over_its_module(
+def test_install_links_sh_links_exactly_the_nine_skills_into_the_main_tree_and_is_a_documented_shim_over_its_module(
         tmp_path):
     clone, shim = _clone(tmp_path)
     done = subprocess.run(["/bin/sh", str(shim), str(clone)], stdin=subprocess.DEVNULL,
@@ -297,7 +297,7 @@ def test_install_links_sh_run_from_outside_a_git_repository_exits_2_and_creates_
 
 @pytest.mark.process("git init --template= on a scratch project, then install-links.sh run against it")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_lists_the_eight_links_2830(tmp_path):
+def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_lists_the_nine_links_2830(tmp_path):
     _, shim = _clone(tmp_path)
     project = (tmp_path / "project").resolve()
     project.mkdir()
@@ -313,7 +313,7 @@ def test_install_links_sh_in_a_repo_with_no_git_info_directory_creates_it_and_li
         0, sorted("/.claude/skills/" + n for n in LINKED), sorted(LINKED))
 
 
-@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding none of the eight links")
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding none of the nine links")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
 def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_line_per_skill_name_and_exits_0(tmp_path):
     _, shim = _clone(tmp_path)
@@ -329,7 +329,7 @@ def test_install_links_sh_on_a_repo_with_none_of_the_links_prints_one_stdout_lin
 
 @pytest.mark.process("git init on a scratch project, then install-links.sh run twice against it")
 @pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
-def test_install_links_sh_second_run_on_a_repo_already_holding_all_eight_links_prints_nothing_on_stdout(tmp_path):
+def test_install_links_sh_second_run_on_a_repo_already_holding_all_nine_links_prints_nothing_on_stdout(tmp_path):
     _, shim = _clone(tmp_path)
     project = (tmp_path / "project").resolve()
     project.mkdir()
