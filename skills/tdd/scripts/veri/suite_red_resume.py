@@ -61,6 +61,10 @@ def suites(text):
     return [line.split(SEPARATOR)[0] for line in text.splitlines()]
 
 
+def skill_edit_step(unit, reds):
+    return f"fix the full-suite failure by editing `{unit}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
+
+
 def insert(ledger, branch_file):
     text, failed = attempt(lambda: read_nonempty(branch_file))
     if failed:
@@ -81,12 +85,12 @@ def insert(ledger, branch_file):
     if graded_only:
         pinned = [unit for _, unit in owed if all(unit in red for red in reds)]
         if pinned:
-            step = f"fix the full-suite failure by editing `{pinned[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
+            step = skill_edit_step(pinned[0], reds)
     elif not set(suites(text)) & GRADE_SUITES and all(SEPARATOR in red for red in reds):
         listed = [unit for path in requirements.lists() for unit in requirements.listed_units(path)]
         named = [unit for unit in listed if all(unit in red for red in reds)]
         if named:
-            step = f"fix the full-suite failure by editing `{named[0]}`: " + "; ".join(reds) + " ⟦skill-edit⟧"
+            step = skill_edit_step(named[0], reds)
     return add_ledger_step.main([ledger, where, anchor, step])
 
 
