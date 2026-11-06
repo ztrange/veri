@@ -190,3 +190,17 @@ def test_issue_3055_ready_check_with_no_pull_request_workflow_but_veri_ci_on_pr_
     assert not any(l.startswith("fail") and "pull_request" in l for l in lines), (ran.stdout, ran.stderr)
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository where no workflow triggers on push to the default branch")
+def test_issue_3055_ready_check_with_no_push_workflow_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    (repo / ".github" / "workflows" / "ci.yml").write_text(
+        "name: ci\non:\n  pull_request:\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n")
+    _git(repo, "commit", "-q", "-am", "ci on pull_request only")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and "push" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
