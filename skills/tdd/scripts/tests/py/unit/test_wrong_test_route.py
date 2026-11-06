@@ -3292,3 +3292,23 @@ def test_main_3135_criterion_2_prints_later_for_a_behaviour_containing_a_later_s
         wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def test_main_3135_criterion_3_prints_later_for_a_later_step_line_naming_an_open_step_whatever_the_spec_criterion_texts_say(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    later = "a lever lifts ⟦criterion 2⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text("## Problem\n\nA wheel.\n\n## Acceptance criteria\n\n- [ ] A wheel turns\n- [ ] A gear never slips\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a cog never moves alone\nLATER_STEP: %s\nVERDICT: REJECT\n" % later)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
