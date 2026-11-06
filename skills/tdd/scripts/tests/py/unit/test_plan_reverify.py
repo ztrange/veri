@@ -141,3 +141,24 @@ def test_main_exits_0_when_a_verify_plan_reject_is_newer_than_the_plan_commit(ru
     code, out, err = run_cli(plan_reverify, [str(ledger)])
 
     assert code == 0
+
+
+def test_main_exits_3_when_a_plan_commit_authored_before_the_pass_was_rebased_to_a_committer_date_after_it(run_cli, tmp_path, monkeypatch):
+    import json
+    import subprocess
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    (tmp_path / "events.jsonl").write_text(json.dumps(
+        {"ts": 2000, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"}) + "\n")
+
+    def fake_git(*args, **kwargs):
+        fmt = next((a for a in args if a.startswith("--format=") or a.startswith("--pretty=")), "")
+        stdout = "1000\n" if "%at" in fmt or "%ad" in fmt else "3000\n"
+        return subprocess.CompletedProcess(args, 0, stdout=stdout)
+
+    monkeypatch.setattr(plan_reverify, "git", fake_git, raising=False)
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 3
