@@ -297,6 +297,54 @@ def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fai
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where two rows fail at once")
+def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_line(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert sum(l.startswith("fail") for l in lines) == 2, (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 2 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where gh label list itself fails")
+def test_issue_3055_ready_check_with_a_failing_gh_label_list_fails_the_label_row_instead_of_crashing(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\'; echo "boom" >&2; exit 1 ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert "Traceback" not in ran.stderr, ran.stderr
+    assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess beside a detect-test-command.sh that exits 2")
+@pytest.mark.tree_audit("symlinks every entry of the scripts directory but detect-test-command.sh into a scratch copy")
+def test_issue_3055_ready_check_where_detect_test_command_exits_2_fails_the_tier_rows_saying_no_answer_was_obtained(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    fake = tmp_path / "scripts"
+    fake.mkdir()
+    for entry in SCRIPTS.iterdir():
+        if entry.name != "detect-test-command.sh":
+            (fake / entry.name).symlink_to(entry)
+    detect = fake / "detect-test-command.sh"
+    detect.write_text("#!/bin/sh\nexit 2\n")
+    detect.chmod(0o755)
+    ran = subprocess.run([str(fake / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    for tier in ("fast", "all"):
+        assert any(l.startswith("fail") and f"{tier} tier" in l and "no answer was obtained" in l and "exit 2 from detect-test-command.sh" in l for l in lines), (tier, ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 2 rows to fix", (ran.stdout, ran.stderr)
+
+
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where preflight's bash check finds a bash older than 5")
 def test_issue_3055_ready_check_with_bash_older_than_5_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
     repo, env = build_ready_repo(tmp_path)
