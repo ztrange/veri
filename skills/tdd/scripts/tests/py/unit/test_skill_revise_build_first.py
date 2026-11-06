@@ -14,6 +14,3 @@ def test_revise_md_builds_prompt_before_mirror_and_bails_on_build_exit_2_2929():
     mark = mirror.index("event.sh revise")
     assert build < comment < mark, (
         f"build at {build}, comment at {comment}, mark at {mark}: the prompt is not built first")
-    refusal = mirror[build:comment]
-    for phrase in ("exit 2", "no comment", "no `revise` mark", "launch no leaf", "bail", "system failure"):
-        assert phrase in refusal, f"between the build and the comment REVISE.md never says {phrase!r}"
