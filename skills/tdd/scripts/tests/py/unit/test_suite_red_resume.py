@@ -580,3 +580,22 @@ def test_insert_with_reds_outside_the_grade_suites_naming_two_different_listed_u
     steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
     assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
     assert "⟦skill-edit⟧" not in ledger.read_text()
+
+
+def test_insert_with_reds_outside_the_grade_suites_all_naming_one_listed_unit_while_the_first_unchecked_step_is_a_skill_edit_step_naming_it_adds_no_step_and_leaves_the_ledger_3107(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SCRIPTS.md"
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [unit])
+    ledger = tmp_path / "issue-7.md"
+    text = f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] fix the full-suite failure by editing `{unit}`: test_other_a.py — FAIL {unit} synopsis ⟦skill-edit⟧\n- [ ] c ⟦criterion 3⟧\n"
+    ledger.write_text(text)
+    branch = tmp_path / "branch-red"
+    branch.write_text(f"test_other_a.py — FAIL `{unit}` synopsis\ntest_other_b.py — FAIL {unit} name\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert ledger.read_text() == text
