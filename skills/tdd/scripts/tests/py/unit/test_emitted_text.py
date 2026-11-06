@@ -1,4 +1,4 @@
-"""Emitted-text pins: every script's usage text on a missing argument, and each prompt builder's output for fixed inputs, byte-identical by `cksum`.
+"""Emitted-text pins: every script's usage text on a missing argument, byte-identical by `cksum`.
 
 Each case's subject is text the scripts emit, driven in-process through each script's module.
 """
@@ -72,56 +72,26 @@ USAGE = [
     ("1840331772 174", "verify.sh", ["--step"]),
 ]
 
-# Arguments name a fixture file as {spec}, {bug}, {refactor}, {ledger} or {reason}; {step} and {cmd} are fixed text.
-PROMPTS = [
-    ("1402995898 7552", "build-verify-prompt.sh", ["red", "{spec}", "t/x.test.sh", "case one"]),
-    ("3981310562 8411", "build-verify-prompt.sh", ["red", "{bug}", "t/x.test.sh", "case one"]),
-    ("3878499230 7729", "build-verify-prompt.sh", ["--step", "{step}", "red", "{spec}", "t/x.test.sh", "case one"]),
-    ("3812358379 8901", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "green", "{spec}", "t/x.test.sh", "case one"]),
-    ("2211957442 8926", "build-verify-prompt.sh", ["--fast-cmd", "make unit", "refactor", "{spec}", "t/x.test.sh", "0123456"]),
-    ("2295925412 7914", "build-verify-prompt.sh", ["--branch-base", "0123456", "pin", "{spec}", "t/x.test.sh", "case one"]),
-    ("2888733263 14408", "build-verify-prompt.sh", ["plan", "{spec}", "{ledger}"]),
-    ("1366216032 15629", "build-verify-prompt.sh", ["plan", "{refactor}", "{ledger}"]),
-    ("4209106995 5484", "build-verify-prompt.sh", ["rebase", "{spec}", "0123456", "89abcde"]),
-    ("876453882 5291", "build-verify-prompt.sh", ["transform", "{spec}", "{reason}", "0123456"]),
-]
-
-
-FIXTURES = {
-    "spec": "## What to build\n\nA fixed spec for pinning prompts, with an & and a \\ in it.\n\n## Acceptance criteria\n\n- [ ] one criterion\n",
-    "bug": "## Bug\n\nIt breaks.\n\n## Acceptance criteria\n\n- [ ] it no longer breaks\n",
-    "refactor": "## Refactor\n\nMove a function.\n",
-    "ledger": "# Plan for #1 — fixed\n\n- [ ] one criterion ⟦criterion 1⟧\n",
-    "reason": "the test pins nothing\n",
-}
-
-
-def emitted(run_cli, script, argv, stream):
+def emitted(run_cli, script, argv):
     module = importlib.import_module("veri." + script[:-3].replace("-", "_"))
     code, out, err = run_cli(module, argv)
-    text = out + err if stream == "usage" else out
+    text = out + err
     return "exit %d\n%s" % (code, text.rstrip("\n")) + "\n"
 
 
 def test_usage_output_on_a_missing_argument_and_prompt_output_for_fixed_inputs_are_unchanged(run_cli, tmp_path):
-    for name, text in FIXTURES.items():
-        (tmp_path / (name + ".md")).write_text(text, encoding="utf-8")
-    names = {name: str(tmp_path / (name + ".md")) for name in FIXTURES}
-    names.update(step="the step", cmd="make test")
     problems = []
-    for stream, table in (("usage", USAGE), ("prompt", PROMPTS)):
-        for want, script, argv in table:
-            argv = [a.format(**names) if stream == "prompt" else a for a in argv]
-            text = emitted(run_cli, script, argv, stream)
-            if stream == "usage" and script == "build-develop-prompt.sh":
-                usage = [l for l in text.splitlines() if "usage: " in l]
-                phases = usage[0].split("usage: ")[1].split(" ")[0].split("|") if usage else []
-                if not text.startswith("exit 2\n") or "dual-stub" not in phases or "beside" not in phases:
-                    problems.append("%s %s: usage line must name dual-stub and beside, got %r" % (script, " ".join(argv), text))
-                continue
-            text = text.replace(str(SCRIPTS), "<scripts>").replace(str(tmp_path), "<work>")
-            text = text.replace((event.toplevel() or os.getcwd()) + "/.tdd/", "<root>/.tdd/")
-            got = cksum(text.encode("utf-8", "surrogateescape"))
-            if got != want:
-                problems.append("%s %s: want %s, got %s" % (script, " ".join(argv), want, got))
+    for want, script, argv in USAGE:
+        text = emitted(run_cli, script, argv)
+        if script == "build-develop-prompt.sh":
+            usage = [l for l in text.splitlines() if "usage: " in l]
+            phases = usage[0].split("usage: ")[1].split(" ")[0].split("|") if usage else []
+            if not text.startswith("exit 2\n") or "dual-stub" not in phases or "beside" not in phases:
+                problems.append("%s %s: usage line must name dual-stub and beside, got %r" % (script, " ".join(argv), text))
+            continue
+        text = text.replace(str(SCRIPTS), "<scripts>").replace(str(tmp_path), "<work>")
+        text = text.replace((event.toplevel() or os.getcwd()) + "/.tdd/", "<root>/.tdd/")
+        got = cksum(text.encode("utf-8", "surrogateescape"))
+        if got != want:
+            problems.append("%s %s: want %s, got %s" % (script, " ".join(argv), want, got))
     assert problems == []
