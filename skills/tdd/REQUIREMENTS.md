@@ -476,6 +476,7 @@
 | PN16 | REJECT (exit 1) bullet: on a recovered `PASS` from `pin` the conductor does the pin's tick-and-commit (PN6 to PN13), or the deletion path on a `⟦replaces-case⟧` step; from `red` it continues to Green. On budget-exhausted it bails as a process failure. | A recovered pin lands the same way a first-try one does, and an exhausted budget is a methodology failure, not a system one. |
 | PN17 | Malformed / killed-stuck (exit 2) bullet: the conductor bails as a system failure (`no-verdict`), see `<base directory>/BAIL.md`. | No answer from the verifier is a plumbing failure and is never read as a pass or a reject. |
 | PN18 | The pin paragraph says `verify-pin`'s probe is recorded in `.tdd/issue-<n>-mutations.md` by the probe itself, and that the file is committed with the pin's tick. | A later issue's run can only re-check a pin whose mutation survives its own run. |
+| PN19 | The verify-pin REJECT paragraph, after the `--unpinnable` call exits 1 on a step reached by a `missing` reroute, runs `$S/tick-ledger.sh --already-holds .tdd/verify-pin.reason` on the same ledger and step: exit 0 retires the step as the `--unpinnable` exit 0 does (committed ledger, no `revise` mark, no `REVISE_BUDGET` attempt, retirement posted), exit 1 enters the revise loop, exit 2 bails as a system failure; a rejection saying the mutation `stays green` uses `--unpinnable` alone. | Without a caller the flag is dead, and a step whose behaviour already holds burns revise attempts until the run bails. |
 
 ## skills/tdd/STRUCTURAL.md
 
