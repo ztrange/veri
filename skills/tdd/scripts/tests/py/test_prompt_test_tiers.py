@@ -105,6 +105,11 @@ def spec(tmp_path_factory):
     return str(path)
 
 
+@pytest.fixture(autouse=True)
+def runs_issue_number(monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "3123")
+
+
 @pytest.fixture
 def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")

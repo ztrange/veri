@@ -134,7 +134,7 @@ def test_a_reason_file_at_the_bound_builds_a_revise_prompt_run_leaf_launches_und
     spec = tmp_path / "spec.md"
     spec.write_text("## Problem\nA bug.\n")
     prompt_file = tmp_path / "revise.prompt"
-    env = {**os.environ, "CLAUDE_BIN": claude, "STUB_RAN": str(tmp_path / "ran")}
+    env = {**os.environ, "CLAUDE_BIN": claude, "STUB_RAN": str(tmp_path / "ran"), "VERI_ISSUE": "3123"}
 
     subprocess.run([CHECK, fast], cwd=tmp_path, capture_output=True)
     built = subprocess.run([str(SCRIPTS / "build-develop-prompt.sh"), "revise", "red", str(spec), "step", "make unit",
