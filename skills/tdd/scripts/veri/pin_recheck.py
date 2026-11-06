@@ -121,7 +121,7 @@ def recheck(argv):
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             continue
         base = run_captured(pin["command"])
-        if base.returncode == 127:
+        if base.returncode == 127 or "no makefile found" in base.stderr.lower():
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
             return 2
         if base.returncode != 0:
