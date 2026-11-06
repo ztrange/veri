@@ -137,6 +137,17 @@ Run `vmerge`, `vbail` and `vjudge` each through a subagent on the cheapest model
 the job, briefed to return at most 10 lines and to read the skill at
 `<resolved base dir>/../<skill>/SKILL.md`.
 
+**Every brief for a review, hand-fix or merge subagent also says:**
+
+- Mutations (edit a file, run the suite, restore it) run only in a scratch clone or the run's
+  own worktree, never in the primary clone.
+- Every `cd` in a chained command makes the whole command fail when the `cd` fails (`&&` or
+  `set -e`); a `;` never follows a `cd`, or a guard whose failure would change where the next
+  command runs.
+- Before reporting, check that `git -C <primary clone> status --porcelain` is empty, and report
+  any output as dirt.
+- No concurrent background jobs that share a scratch file.
+
 Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
 ## Parked issues
