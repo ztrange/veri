@@ -49,7 +49,7 @@ def main(argv):
         if found.returncode == 3:
             print(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
             failed += 1
-    if not triggers_on_pull_request():
+    if not os.environ.get("VERI_CI_ON_PR") and not triggers_on_pull_request():
         print("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
         failed += 1
     if failed:
