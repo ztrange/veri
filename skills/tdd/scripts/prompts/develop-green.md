@@ -73,8 +73,14 @@ or, when the test itself looks wrong, those two lines replaced by one:
 
 WRONG_TEST: <why the test looks wrong>
 
-Name in that line the existing test case the step's criterion contradicts.
+Only when the step's criterion contradicts an existing test case other than the step's own, add a
+separate line:
+
+CONTRADICTS: <case>
+
 Name the case by its own name as its test file spells it, with no describe, class or file prefix.
+A case cited only as evidence that the step's own test is wrong is named in the `WRONG_TEST:` text,
+never on a `CONTRADICTS:` line.
 
 or, when older cases fail only because the step supersedes what they pin, those lines replaced by
 one per such case:
@@ -87,4 +93,4 @@ REPORT-FORMAT green | keys IMPL_PATH: SUITE: | suite required
 
 REPORT-FORMAT green-split | keys SPLIT: | suite exempt: a too-big step changes no code and runs no suite
 
-REPORT-FORMAT green-wrong-test | keys WRONG_TEST: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran
+REPORT-FORMAT green-wrong-test | keys WRONG_TEST: CONTRADICTS: SUPERSEDED: | suite exempt: the test is wrong, so nothing was changed and no suite ran
