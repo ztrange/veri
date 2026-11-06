@@ -121,6 +121,9 @@ def recheck(argv):
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             continue
         base = run_captured(pin["command"])
+        if base.returncode == 127:
+            sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
+            return 2
         if base.returncode != 0:
             sys.stdout.write(f"needs a look: {pin['file']}\n")
             write_tail(base)
