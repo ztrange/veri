@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py — FAILED test_no_tracked_file_outside_specs_and_tdd_contains_veri_dash_a_renamed_skill_name: skills/vmerge/REQUIREMENTS.md and skills/vmerge/SKILL.md name the token file `veri-merge-<pr>.token`, which the renamed-skill-name guard flags ⟦suite-repair⟧ ⟦criterion 3⟧
