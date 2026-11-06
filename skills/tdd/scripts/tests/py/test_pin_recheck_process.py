@@ -1280,3 +1280,26 @@ def test_3124_a_record_whose_make_command_finds_no_makefile_exits_2_naming_the_p
 
     assert (ran.returncode, ran.stdout, "issue-3124-mutations.md" in ran.stderr, "make" in ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (2, "", True, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, make, and pin-recheck.sh run over a record whose make command has a makefile and a failing target")
+def test_3124_a_record_whose_make_command_has_a_makefile_but_a_failing_target_prints_needs_a_look_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "Makefile").write_text("test:\n\t@false\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3124-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="make test")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look" in ran.stdout and "guard.txt" in ran.stdout,
+            (tmp_path / "guard.txt").read_bytes()) == (0, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
