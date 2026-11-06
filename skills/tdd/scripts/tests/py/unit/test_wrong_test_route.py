@@ -3229,3 +3229,46 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_the_step_own_case_route
     code, stdout, stderr = run_cli(wrong_test_route, [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_3135_criterion_1_prints_missing_for_a_behaviour_inside_a_later_step_ledger_text_but_not_its_criterion_text(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    later = "a cog never moves alone ⟦criterion 2⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text("## Problem\n\nA wheel.\n\n## Acceptance criteria\n\n- [ ] A wheel turns\n- [ ] A gear never slips\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: cog never moves\nVERDICT: REJECT\n")
+    ledger_only = run_cli(wrong_test_route, [str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+    assert ledger_only[:2] == (0, "later %s\n" % later)
+    assert (code, stdout) == (0, "missing cog never moves\n")
+
+
+def test_main_3135_criterion_1_indexes_only_the_acceptance_criteria_checkboxes_ignoring_a_checkbox_line_under_problem(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a wheel turns ⟦criterion 1⟧"
+    later = "a gear holds ⟦criterion 2⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    spec = tmp_path / ".tdd" / "issue-77-spec.md"
+    spec.write_text(
+        "## Problem\n\n- [ ] a cog never moves\n\n## Acceptance criteria\n\n- [ ] A wheel turns\n- [ ] A gear never slips\n")
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: gear never slips\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, ["--spec", str(spec), str(report), "test_a_wheel_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
