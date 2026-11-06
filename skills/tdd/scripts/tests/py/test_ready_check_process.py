@@ -307,3 +307,15 @@ def test_issue_3055_ready_check_with_bash_older_than_5_exits_1_with_a_fail_row_n
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "bash" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where preflight's Python check finds a Python below the floor")
+def test_issue_3055_ready_check_with_python_below_the_floor_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env["VERI_PYTHON_VERSION"] = "3.8.0"
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and "Python" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
