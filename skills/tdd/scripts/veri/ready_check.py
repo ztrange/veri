@@ -33,6 +33,66 @@ def triggers_on(event):
     return False
 
 
+def tier_row(tier):
+    def check():
+        detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
+        found = subprocess.run([detect, "--tier", tier], capture_output=True)
+        return f"{tier} tier", None if found.returncode != 3 else f"add a `veri: {tier} tests:` line to CLAUDE.md"
+    return check
+
+
+def pull_request_row():
+    holds = bool(tunables.read("VERI_CI_ON_PR")) or triggers_on("pull_request")
+    return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR"
+
+
+def push_row():
+    return "push", None if triggers_on("push") else "add a workflow under .github/workflows/ that triggers on push to the default branch"
+
+
+def test_file_row():
+    holds = any(is_test_path(f) for f in git("ls-files").stdout.splitlines())
+    return "test file", None if holds else "track at least one test file"
+
+
+def tdd_ignored_row():
+    return ".tdd/", None if git("check-ignore", "-q", ".tdd/").returncode == 0 else "add `.tdd/` to .gitignore"
+
+
+def gh_auth_row():
+    return "gh auth", None if gh("auth", "status").returncode == 0 else "run `gh auth login`"
+
+
+def push_access_row():
+    pushed = gh("api", "repos/{owner}/{repo}")
+    try:
+        can_push = json.loads(pushed.stdout)["permissions"]["push"]
+    except (ValueError, KeyError, TypeError):
+        can_push = False
+    return "push access", None if can_push else "ask for write access to the repository, or use an account that has it"
+
+
+def label_row():
+    label = tunables.read("VERI_LABEL")
+    listed = gh("label", "list", "--json", "name")
+    names = [entry["name"] for entry in json.loads(listed.stdout)]
+    return f"label {label}", None if label in names else f"create the `{label}` label in the repository"
+
+
+def bash_row():
+    holds = launch_floor.bash_refusal("ready-check") == 0
+    return "bash", None if holds else "install bash 5 or newer (`brew install bash`) and put it first on PATH"
+
+
+def python_row():
+    holds = launch_floor.python_refusal("ready-check") == 0
+    return "Python", None if holds else f"install Python {launch_floor.python_floor()} or newer and put it first on PATH"
+
+
+CHECKS = (tier_row("fast"), tier_row("all"), pull_request_row, push_row, test_file_row, tdd_ignored_row,
+          gh_auth_row, push_access_row, label_row, bash_row, python_row)
+
+
 def main(argv):
     if len(argv) > 1 or any(a.startswith("-") for a in argv):
         print(USAGE, file=sys.stderr)
@@ -47,32 +107,7 @@ def main(argv):
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
-    detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
-    rows = []
-
-    def row(name, holds, fix):
-        rows.append(f"ok    {name}" if holds else f"fail  {name}: {fix}")
-
-    for tier in ("fast", "all"):
-        found = subprocess.run([detect, "--tier", tier], capture_output=True)
-        row(f"{tier} tier", found.returncode != 3, f"add a `veri: {tier} tests:` line to CLAUDE.md")
-    row("pull_request", bool(tunables.read("VERI_CI_ON_PR")) or triggers_on("pull_request"), "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
-    row("push", triggers_on("push"), "add a workflow under .github/workflows/ that triggers on push to the default branch")
-    row("test file", any(is_test_path(f) for f in git("ls-files").stdout.splitlines()), "track at least one test file")
-    row(".tdd/", git("check-ignore", "-q", ".tdd/").returncode == 0, "add `.tdd/` to .gitignore")
-    row("gh auth", gh("auth", "status").returncode == 0, "run `gh auth login`")
-    pushed = gh("api", "repos/{owner}/{repo}")
-    try:
-        can_push = json.loads(pushed.stdout)["permissions"]["push"]
-    except (ValueError, KeyError, TypeError):
-        can_push = False
-    row("push access", can_push, "ask for write access to the repository, or use an account that has it")
-    label = tunables.read("VERI_LABEL")
-    listed = gh("label", "list", "--json", "name")
-    names = [entry["name"] for entry in json.loads(listed.stdout)]
-    row(f"label {label}", label in names, f"create the `{label}` label in the repository")
-    row("bash", launch_floor.bash_refusal("ready-check") == 0, "install bash 5 or newer (`brew install bash`) and put it first on PATH")
-    row("Python", launch_floor.python_refusal("ready-check") == 0, f"install Python {launch_floor.python_floor()} or newer and put it first on PATH")
+    rows = [f"ok    {name}" if not fix else f"fail  {name}: {fix}" for name, fix in (check() for check in CHECKS)]
     failed = [r for r in rows if r.startswith("fail")]
     print(*rows, sep="\n")
     if failed:
