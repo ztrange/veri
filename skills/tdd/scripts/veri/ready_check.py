@@ -14,6 +14,7 @@ def main(argv):
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
+    print("ready")
     return 0
 
 
