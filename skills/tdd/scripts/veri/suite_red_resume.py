@@ -76,24 +76,19 @@ def insert(ledger, branch_file):
     if any("fix the full-suite failure by editing" in line for line, tick in zip(steps, ticks) if tick != " "):
         return 1
     graded_only = set(suites(text)) <= GRADE_SUITES
-    owed = prose_owed.owed_listed()[0] if graded_only else []
-    named = []
-    if not graded_only and not set(suites(text)) & GRADE_SUITES and all(SEPARATOR in red for red in reds):
+    candidates = []
+    if graded_only:
+        candidates = [unit for _, unit in prose_owed.owed_listed()[0]]
+    elif not set(suites(text)) & GRADE_SUITES and all(SEPARATOR in red for red in reds):
         listed = [unit for path in requirements.lists() for unit in requirements.listed_units(path)]
-        named = [unit for unit in listed if all(unit in red for red in reds)]
-    if unchecked and "⟦skill-edit⟧" in unchecked[0]:
-        if graded_only and any(unit in unchecked[0] for _, unit in owed):
-            return 0
-        if any(unit in unchecked[0] for unit in named):
-            return 0
+        candidates = [unit for unit in listed if all(unit in red for red in reds)]
+    pinned = [unit for unit in candidates if all(unit in red for red in reds)]
+    if unchecked and "⟦skill-edit⟧" in unchecked[0] and any(unit in unchecked[0] for unit in candidates):
+        return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
-    if graded_only:
-        pinned = [unit for _, unit in owed if all(unit in red for red in reds)]
-        if pinned:
-            step = skill_edit_step(pinned[0], reds)
-    elif named:
-        step = skill_edit_step(named[0], reds)
+    if pinned:
+        step = skill_edit_step(pinned[0], reds)
     return add_ledger_step.main([ledger, where, anchor, step])
 
 
