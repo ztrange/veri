@@ -228,7 +228,7 @@ def _criterion(spec, name):
         return None
     with open(spec, encoding="utf-8") as handle:
         body = handle.read().partition("## Acceptance criteria")[2]
-    boxes = [m.group(2) for m in ledger_file.ledger_items(body) if m.group(1) == " "]
+    boxes = [m.group(2) for m in ledger_file.ledger_items(body)]
     index = int(marker.group(1)) - 1
     return boxes[index] if index < len(boxes) else None
 

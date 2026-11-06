@@ -3362,14 +3362,14 @@ def test_main_3135_prints_missing_when_a_later_open_step_names_a_criterion_past_
     assert (code, stdout, stderr) == (0, "missing a lever lifts\n", "")
 
 
-def test_main_3135_counts_only_unchecked_criteria_when_a_checked_box_precedes_the_later_one(
+def test_main_3135_counts_a_checked_box_before_the_later_one_so_criterion_k_is_its_position_among_all_criteria(
         run_cli, tmp_path, monkeypatch):
     spec = "## Acceptance criteria\n\n- [x] A cog turns\n- [ ] A wheel turns\n- [ ] A gear never slips\n"
 
     code, stdout, stderr = _spec_route(
-        run_cli, tmp_path, monkeypatch, "a gear holds ⟦criterion 2⟧", spec, "gear never slips")
+        run_cli, tmp_path, monkeypatch, "a gear holds ⟦criterion 3⟧", spec, "gear never slips")
 
-    assert (code, stdout, stderr) == (0, "later a gear holds ⟦criterion 2⟧\n", "")
+    assert (code, stdout, stderr) == (0, "later a gear holds ⟦criterion 3⟧\n", "")
 
 
 def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_absent_even_if_a_ledger_step_matches(
@@ -3388,3 +3388,4 @@ def test_main_3135_exits_2_with_the_usage_and_nothing_on_stdout_when_spec_is_abs
 
     assert (code, stdout) == (2, "")
     assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")
+
