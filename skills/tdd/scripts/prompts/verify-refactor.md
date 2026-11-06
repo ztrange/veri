@@ -45,7 +45,8 @@ Render one verdict on the settled result.
 4. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
    and the REJECT names that assertion: the suite stays green while it loosens, so the diff
    is the only place it shows. Adding or changing an assertion line of a case frozen at
-   any earlier step is likewise a REJECT, and the REJECT names the case.
+   any earlier step is likewise a REJECT, and the REJECT names the case. An assertion line moved
+   into a helper unchanged (modulo whitespace) is not a change to an assertion line.
 5. **Cosmetic hunks.** A hunk that is only cosmetic (whitespace, reflowed prose, a rename
    with no other effect) is named in REASON: but is not a REJECT by itself, since a REJECT
    costs a revise leaf.
