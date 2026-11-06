@@ -50,6 +50,9 @@ budget, **bails** — preserving completed steps' commits and classifying the ca
   physically cannot reach it (see ADR-0003). No input may be added to `build-verify-prompt.sh`
   that could carry the developer's rationale.
 
+Verification is on unless the run's pinned `VERI_SKIP_VERIFY` names the phase; the `plan`
+phase is never skipped (ADR-0033).
+
 You — the conductor — must keep these roles distinct. Do **not** write the test or the
 implementation yourself, and do **not** pass a developer leaf's explanation into a
 verification.
@@ -1158,7 +1161,13 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`,
    post `### 🔎 verify-refactor — SKIPPED (nothing landed)`, and treat the step as on a
    verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
-   leaf's flags only. Otherwise:
+   leaf's flags only.
+   **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor
+   landed, launch **no** verify-refactor either. Record
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=switched-off`,
+   post `### 🔎 verify-refactor — SKIPPED (switched off)`, write `skipped` to
+   `.tdd/verdict-refactor.exit`, and take 6's PASS branch, `pin-recheck.sh` and the
+   pending-mark clear included. Otherwise:
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
@@ -1627,7 +1636,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    graded=1; [ "$ci" != 2 ] || [ "$conflict" != 0 ] || { $S/rebase-onto-default.sh --graded-only > .tdd/graded-rebase.out; graded=$?; }
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ "$graded" = 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human>"
+   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human; and, when .tdd/issue-<n>-skip-verify is non-empty, the line '⚠️ Unverified phases: <list>'>"
    ```
    **`add-ledger-step.sh` exit 2 → bail with cause `step-add-refused`** — see `<base directory>/BAIL.md`.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
@@ -1713,6 +1722,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
    under it, pasted verbatim from the file just committed — or, when `$metrics` is not 0,
    the PR body's failed-render line for `metrics.sh` and `$metrics` in place of that block.
+   When `.tdd/issue-<n>-skip-verify` is non-empty, add `⚠️ Unverified phases: <list>` to it.
    It mirrors the
    `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
    Before posting it, run `$S/stop-requested.sh`; on exit 0 or 2 run
