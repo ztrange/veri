@@ -26,7 +26,8 @@ from run_verdict import SCRIPTS, takes_a_value
 
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
              "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"]
-USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
+USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
+         " [--supersede-base <sha>] <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")
 
 

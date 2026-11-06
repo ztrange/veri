@@ -21,7 +21,7 @@ def no_ambient_leaf_args(monkeypatch):
     monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
 
 
-USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
+USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file>"
          b" <test-path> [<target-test-id>]")
 
 
@@ -52,7 +52,7 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
     code = verify.main(list(argv))
 
     captured = capfdbinary.readouterr()
-    assert len(USAGE) == 112
+    assert len(USAGE) == 137
     assert (code, captured.out, captured.err, calls) == (2, b"", USAGE + b"\n", [])
 
 

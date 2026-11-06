@@ -8,7 +8,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-USAGE = b"usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
+USAGE = b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 
 
 def scratch(tmp_path, name, drop=(), templates=None):

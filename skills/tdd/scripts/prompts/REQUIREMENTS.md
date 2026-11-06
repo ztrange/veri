@@ -812,6 +812,14 @@
 | VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
 | VD10 | The prompt says that when the step is a supersede edit, the rule rejecting a test added by the step's own commits does not apply to the step's own Red case, which is outside the diff under judgement. | The blind verifier must not reject the step's own pinned case on the supersede route. |
 
+## skills/tdd/scripts/prompts/_verify-diff-supersede.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VSD1 | The fragment opens by saying the step is a supersede edit, and tells the verifier to judge `git diff {{SUPERSEDE_BASE}}` instead of the range above: the working tree against the snapshot taken before the red-supersede edit, so only the edits to the named older cases. (First two sentences.) | The verifier judges the superseding edits, not the whole step. |
+| VSD2 | It says the step's own uncommitted implementation and its own recorded Red case are outside the diff under judgement and are no reason to REJECT, and that the rule rejecting a test added by the step's own commits does not apply to that Red case. (Third sentence.) | The step's own case and implementation belong to verify-green, not this diff. |
+| VSD3 | It says a production file touched in that diff, or an assertion removed in it, is still a REJECT. (Last sentence.) | The relaxation covers the step's own work only; weakening an older case still fails. |
+
 ## skills/tdd/scripts/prompts/_verify-green-replaces-case.md
 
 | ID | Requirement | Why |
