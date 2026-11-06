@@ -230,3 +230,16 @@ def test_issue_3055_ready_check_with_tdd_not_ignored_exits_1_with_a_fail_row_nam
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where gh auth status exits non-zero")
+def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 1 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and "gh auth login" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
