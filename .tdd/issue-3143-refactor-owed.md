@@ -2,3 +2,6 @@
 - test-only | hoist the function-local `import json` and `import subprocess` in the third test to module level in test_plan_reverify.py
 ### `plan-reverify.sh <ledger-file>` counts only commits whose subject starts `plan:`: a commit with another subject (`fix:`, `metrics:`) newer than the last verify-plan PASS does not make a plan owed, so it still exits 3; the minimum: the subject-prefix filter, no event filtering; unit-tier, faking git ⟦criterion 2⟧
 - test-only | the ledger and events setup repeated across the test_plan_reverify.py cases could move into a fixture, but that would touch frozen cases' lines
+### `plan-reverify.sh <ledger-file>` counts as a PASS only an `events.jsonl` line whose event is `verdict`, whose phase is `plan` and whose verdict is `PASS`: a PASS verdict of another phase, or a non-verdict event naming phase `plan`, is not a PASS, so with a `plan:` commit in history it still exits 0; the minimum: the event and phase and PASS match, the REJECT case left to a later step; unit-tier, faking git ⟦criterion 1⟧
+- invert `main`'s `if argv:` into a guard clause that returns the usage error first, which removes a level of nesting; I left it because it is not duplication removal
+- test-only | extract the repeated ledger and events.jsonl setup and the monkeypatched `git` stub in `test_plan_reverify.py` into helpers or fixtures
