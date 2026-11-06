@@ -9,6 +9,7 @@
 | DV5 | Redoing green only: when the objection can only be met by a test the step lacks, the leaf edits no test and reports `OUTCOME: IMPOSSIBLE` with one `MISSING_TEST: <behaviour>` line naming the behaviour to pin, before the `OUTCOME:` line. (The paragraph after the IMPOSSIBLE paragraph.) | Revise cannot touch a frozen test, so the missing test has to be reported, not faked. |
 | DV6 | Redoing red only, the report also asks for `FAIL_OUTPUT: <the failure line the run printed>` and, on DIVERGED, `PREDICTION_NOTE: <what actually happened and why it could not be reconciled>`, and the `REPORT-FORMAT revise` key list names both; a revise of green or refactor does not ask for them. (Report section.) | `red-divergence.sh` echoes those keys into `.tdd/verify-red.reason`; without them a revise divergence and its bail comment show an empty failing output (#2750 step 17). |
 | DV7 | Redoing red only, the `PREDICTION:` line is defined by the same rule as RP11: a message-text-only difference is `MATCHED`. (Report section.) | A red revise is held to its prediction exactly as the original red. |
+| DV8 | When the leaf is asked to confirm earlier frozen records still hold, the prompt gives the exact command `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <next-unchecked step>` with the run's own ledger path, and never `.tdd/plan-ledger.md`. | A leaf that improvises the ledger argument checks no earlier record and reports a false pass (clarion2 #5). |
 
 ## skills/tdd/scripts/prompts/develop-contract-a.md
 
