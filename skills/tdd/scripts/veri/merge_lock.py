@@ -145,7 +145,7 @@ def _gate(lock, record, args):
     head = args[:args.index("--")] if "--" in args else args
     value = head[head.index("--pid") + 1:][:1] if "--pid" in head else []
     if not (value and value[0].isdigit() and int(value[0]) > 0) or "--" not in args or args.index("--") == len(args) - 1:
-        print("usage: merge-lock.sh gate [--keep] --pid <pid> -- <cmd>", file=sys.stderr)
+        print("usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
     code = subprocess.run(args[args.index("--") + 1:]).returncode
     if code in (0, 3):
@@ -162,7 +162,7 @@ _HANDLERS = {"take": _take, "release": _release, "holder": _holder, "gate": _gat
 
 def main(argv):
     if not argv or argv[0] not in VERBS:
-        print("usage: merge-lock.sh take --pid <pid> | release --pid <pid> | release --force | holder | gate --pid <pid> -- <cmd>", file=sys.stderr)
+        print("usage: merge-lock.sh take --pid <pid> [--owner <token>] | release --pid <pid> [--owner <token>] | release --force | holder | gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
     common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
                             stdout=subprocess.PIPE, text=True, check=True).stdout.strip()

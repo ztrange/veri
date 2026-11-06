@@ -3,7 +3,7 @@ import subprocess
 
 from veri import merge_lock
 
-USAGE = "usage: merge-lock.sh gate [--keep] --pid <pid> -- <cmd>"
+USAGE = "usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>"
 
 
 def test_2414_gate_refuses_a_pid_that_is_not_a_positive_integer_without_running_the_command(
