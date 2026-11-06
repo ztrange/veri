@@ -71,7 +71,14 @@ Every other step takes the verdict as follows:
   On its exit **0** the step is retired as unpinnable: commit the retired ledger, write no
   `revise` mark, spend no `REVISE_BUDGET` attempt, post the step's retirement to the thread,
   and loop back to `next-unchecked.sh` for the next unchecked ledger step. On its exit **1**
-  enter the revise loop as follows; on its exit **2** **bail** as a **system** failure.
+  on a step reached by a `missing` reroute (the behaviour may already hold), run
+  `$S/tick-ledger.sh --already-holds .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`:
+  on its exit **0** retire the step exactly as the `--unpinnable` exit 0 does (commit the
+  retired ledger, write no `revise` mark, spend no `REVISE_BUDGET` attempt, post the
+  retirement to the thread); on its exit **1** enter the revise loop as follows; on its
+  exit **2** **bail** as a **system** failure. A rejection saying the mutation `stays green`
+  uses `--unpinnable` alone. On any other step, `--unpinnable` exit **1** enters the revise
+  loop as follows; on its exit **2** **bail** as a **system** failure.
   The revise loop: enter it for the **red** phase, building the prompt as
   `revise red … .tdd/verify-pin.reason` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). The phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
