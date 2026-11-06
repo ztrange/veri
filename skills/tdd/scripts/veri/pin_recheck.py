@@ -79,7 +79,7 @@ def replay_before(pin, ledger):
             if shown.returncode == 0:
                 Path(n).write_bytes(shown.stdout)
             else:
-                Path(n).unlink()
+                Path(n).unlink(missing_ok=True)
         ran = run_captured(current_wrapper(pin["command"]))
     finally:
         for n in names:
