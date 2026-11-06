@@ -37,3 +37,19 @@ new 0
 command 145
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_plan_reverify.py::test_main_exits_0_when_a_verify_plan_reject_is_newer_than_the_plan_commit
 
+before 40
+a042282fdb8a6c7a532a7bf9fc60320d742af21b
+keep 54
+skills/tdd/scripts/tests/py/unit/test_plan_reverify.py
+command 323
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpgp4gyzdq/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_plan_reverify.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_plan_reverify.py::test_main_exits_0_when_two_verify_plan_rejects_newer_than_the_plan_commit_follow_an_older_pass
+
+file 40
+skills/tdd/scripts/veri/plan_reverify.py
+old 26
+e.get("verdict") == "PASS"
+new 37
+e.get("verdict") in ("PASS","REJECT")
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_plan_reverify.py::test_main_exits_0_when_two_verify_plan_rejects_newer_than_the_plan_commit_follow_an_older_pass
+
