@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skills_are_skills.py — FAILED test_every_directory_directly_under_skills_contains_a_skill_md - AssertionError: directories under skills/ with no SKILL.md: vready ⟦suite-repair⟧ ⟦criterion 2⟧
