@@ -416,6 +416,8 @@ three times over branches its ledger pinned on later lines.
 
    For each criterion that changes a unit with a requirements list, or for each unit an issue's `## Requirements` section names, the plan holds one `⟦skill-edit⟧` step naming the unit. A change to a unit with a requirements list is planned as its `⟦skill-edit⟧` step whatever kind of step the change would otherwise be, `⟦diff-checked⟧` included; no other step kind (Red, Green, Refactor, `⟦diff-checked⟧`, pin or phased) edits such a unit. A run signs a requirements list only inside a `⟦skill-edit⟧` step: the conductor never runs `grade-prose.sh` and commits a `GRADED` line on its own, except the Draft PR step's regrade of a unit the run already signed. When a `⟦skill-edit⟧` step changes a sentence that cases outside the unit pin by checksum or verbatim, the plan names those test files on the step, and that step updates the pins and commits them in its one commit with the unit, its list and `GRADED`; the separate pin-update step above is not planned for that sentence.
 
+   **A criterion that changes a unit with a requirements list plans no Red/Green, pin or `⟦diff-checked⟧` step whose test asserts that unit's wording** — a sentence, a phrase, or a checksum of its text or of a render that includes it — even when the criterion asks for a case: the unit's `⟦skill-edit⟧` step carries the criterion. A step may still test a mechanical fact the unit states: a script it names exists, a heading a parser reads, a phase name the code accepts.
+
    On a `⟦skill-edit⟧` step, in place of Red, Green and Refactor, `Read` and run `<base directory>/SKILL-EDIT.md`.
 
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
