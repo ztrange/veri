@@ -222,7 +222,15 @@ def _open_after():
     return [step[6].strip() for step in steps[names.index(current) + 1:] if step[1] == "open"] if current in names else []
 
 
-def _later(report, behaviour):
+def _criterion(spec, name):
+    marker = re.search(r"⟦criterion (\d+)⟧", name)
+    with open(spec, encoding="utf-8") as handle:
+        body = handle.read().partition("## Acceptance criteria")[2]
+    boxes = re.findall(r"^- \[ \] (.*)$", body, re.M)
+    return boxes[int(marker.group(1)) - 1]
+
+
+def _later(report, behaviour, spec=None):
     for line in _lines_with(report, "LATER_STEP:"):
         named = line.partition(":")[2].strip()
         return named if named in _open_after() else None
@@ -233,12 +241,17 @@ def _later(report, behaviour):
     wanted = behaviour.lower()
     for name in after:
         text = re.sub(r"(\s*⟦[^⟧]*⟧)+\s*$", "", name).lower()
+        if spec:
+            text = _criterion(spec, name).lower()
         if text and (text in wanted or wanted in text):
             return name
     return None
 
 
 def main(argv):
+    spec = None
+    if len(argv) == 4 and argv[0] == "--spec":
+        spec, argv = argv[1], argv[2:]
     if len(argv) != 2 or not argv[0] or not argv[1]:
         write(sys.stderr, USAGE)
         return 2
@@ -246,7 +259,7 @@ def main(argv):
     rerouted = _rerouted(step)
     missing = _missing(argv[0])
     if missing:
-        later = _later(argv[0], missing)
+        later = _later(argv[0], missing, spec)
         if later:
             write(sys.stdout, "later " + later)
             return 0
