@@ -4547,3 +4547,18 @@ def test_main_runs_the_procedure_from_the_recorded_skill_commit_refuses_an_unres
         "unresolvable": (2, recorded + "\n", [], []),
         "re-pin": (0, head + "\n", [head], [head]),
     }
+
+
+def test_main_on_a_fresh_launch_seeds_a_gitignore_listing_issue_star_skip_verify(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    seed = tmp_path / ".tdd" / ".gitignore"
+    assert "issue-*-skip-verify" in (seed.read_text().splitlines() if seed.is_file() else [])
