@@ -46,3 +46,12 @@ _missing_reroutes(step) > int(budget)
 command 198
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3058_criterion_2_prints_missing_exhausted_for_a_missing_test_matching_no_open_later_step_once_the_budget_is_spent
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 21
+if step[1] == "open"]
+new 8
+if True]
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_only_a_checked_step_after_the_current_one
+
