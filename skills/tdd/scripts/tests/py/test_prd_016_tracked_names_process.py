@@ -8,6 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[5]
 NAMES = ["bail", "coord", "dev", "file", "groom", "handoff", "judge", "merge", "plan", "report", "status", "stop"]
 MERGE_TOKEN_FILE = "veri" + "-merge-<pr>.token"
+PATTERN = "veri" + "-(" + "|".join(NAMES) + ")([^[:alnum:]_]|$)"
 
 
 @pytest.mark.process("git grep over the repository this suite runs in")
@@ -16,14 +17,13 @@ def test_no_tracked_file_outside_specs_and_tdd_contains_veri_dash_a_renamed_skil
 
 
 def _sweep(root):
-    pattern = "veri" + "-(" + "|".join(NAMES) + ")([^[:alnum:]_]|$)"
     run = subprocess.run(
-        ["git", "-C", str(root), "grep", "-nIE", pattern, "--", ".", ":(exclude)specs", ":(exclude).tdd"],
+        ["git", "-C", str(root), "grep", "-nIE", PATTERN, "--", ".", ":(exclude)specs", ":(exclude).tdd"],
         capture_output=True,
         text=True,
     )
     assert run.returncode in (0, 1), run.stderr
-    long_name = re.compile("veri" + "-(" + "|".join(NAMES) + ")([^A-Za-z0-9_]|$)")
+    long_name = re.compile(PATTERN.replace("[:alnum:]", "A-Za-z0-9"))
     files = []
     for line in run.stdout.splitlines():
         path, _, text = line.split(":", 2)
