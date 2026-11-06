@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+from case_reader import is_test_path
 from wait_ci import trigger_lines
 
 USAGE = "usage: ready-check.sh [repo-root]"
@@ -52,6 +53,8 @@ def main(argv):
         failed.append("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
     if not triggers_on("push"):
         failed.append("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
+    if not any(is_test_path(f) for f in git("ls-files").stdout.splitlines()):
+        failed.append("fail  test file: track at least one test file")
     if failed:
         print(*failed, sep="\n")
         print(f"not ready — {len(failed)} rows to fix")
