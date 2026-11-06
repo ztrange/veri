@@ -28,3 +28,14 @@ skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py
 command 164
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3134_take_under_another_owner_token_of_the_same_pid_keeps_waiting_with_the_lock_held
 
+file 37
+skills/tdd/scripts/veri/merge_lock.py
+old 44
+    if "--force" not in args:
+        fields
+new 27
+    if True:
+        fields
+command 146
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3134_forced_release_frees_a_lock_taken_with_an_owner_by_a_dead_pid
+
