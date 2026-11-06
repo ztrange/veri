@@ -292,7 +292,7 @@
 | ID | Requirement | Why |
 |---|---|---|
 | WT1 | The fragment says that, when the green being redone has a test that looks wrong, the report lines are replaced by one `WRONG_TEST: <why the test looks wrong>` line. (First paragraph and the `WRONG_TEST:` line.) | A revise of green keeps green's wrong-test route. |
-| WT2 | The fragment tells the leaf to name in that line the existing test case the step's criterion contradicts, by its own name as its test file spells it, with no describe, class or file prefix. (The two sentences after the `WRONG_TEST:` line.) | The conductor routes a wrong test by the case it names. |
+| WT2 | The fragment tells the leaf to add, only when the step's criterion contradicts an existing test case other than the step's own, a `CONTRADICTS: <case>` line naming it by its own name as its test file spells it, with no describe, class or file prefix, and to name a case cited only as evidence in the `WRONG_TEST:` text, never on that line. (The sentences after the `WRONG_TEST:` line.) | The conductor routes a wrong test by the case on `CONTRADICTS:`; evidence is not a target (#2999). |
 | WT3 | The fragment says that, when older cases fail only because the step supersedes what they pin, the lines are replaced by one `SUPERSEDED:` line per such case, the older case's name written out in full as its test file spells it, without quotes. (The `SUPERSEDED:` paragraph and line.) | A superseded case is reported in its own shape. |
 | WT4 | The fragment says a case the step's change does not supersede is a `WRONG_TEST:` line, never a `SUPERSEDED:` one. (Last line.) | The two routes must not be confused. |
 
