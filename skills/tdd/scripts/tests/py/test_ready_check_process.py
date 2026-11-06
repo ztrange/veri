@@ -217,3 +217,16 @@ def test_issue_3055_ready_check_with_no_tracked_test_file_exits_1_with_a_fail_ro
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "test file" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository where .tdd/ is not ignored")
+def test_issue_3055_ready_check_with_tdd_not_ignored_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    (repo / ".gitignore").write_text("*.pyc\n")
+    _git(repo, "commit", "-q", "-am", "stop ignoring .tdd")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)

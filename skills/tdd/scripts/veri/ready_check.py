@@ -55,6 +55,8 @@ def main(argv):
         failed.append("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
     if not any(is_test_path(f) for f in git("ls-files").stdout.splitlines()):
         failed.append("fail  test file: track at least one test file")
+    if git("check-ignore", "-q", ".tdd/").returncode != 0:
+        failed.append("fail  .tdd/: add `.tdd/` to .gitignore")
     if failed:
         print(*failed, sep="\n")
         print(f"not ready — {len(failed)} rows to fix")
