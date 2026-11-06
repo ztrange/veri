@@ -1,3 +1,3 @@
 - [ ] `plan-reverify.sh` counts only events whose `issue` is the ledger's issue: a newer verify-plan PASS of another issue in the shared `events.jsonl` does not hide this plan's rewrite, so with a `plan:` commit newer than this issue's last PASS it still exits 0; unit-tier, faking git ⟦criterion 5⟧
 - [ ] `plan-reverify.sh` exits 0 when an `events.jsonl` beside the ledger exists but holds no verify-plan PASS for the ledger's issue (only other issues' PASS events, or none), as it does when the file is absent; unit-tier, faking git ⟦criterion 6⟧
-- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py — FAILED test_no_module_but_event_and_event_log_opens_events_jsonl ⟦suite-repair⟧ ⟦criterion 5⟧
+- [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py — FAILED test_no_module_but_event_and_event_log_opens_events_jsonl ⟦suite-repair⟧ ⟦criterion 5⟧
