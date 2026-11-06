@@ -1,6 +1,6 @@
 # Plan for #3107 — A full-suite red from a string-pinned prose test of one graded unit gets a skill-edit repair step
 
 - [x] suite-red-resume.sh insert, given a full-suite red from suites outside GRADE_SUITES whose every red line names the same one unit listed by requirements.listed_units over requirements.lists, appends one step `fix the full-suite failure by editing `<unit>`: <reds> ⟦skill-edit⟧` naming that unit backticked, with no ⟦suite-repair⟧ step, exit 0 and no bail; and in the same one case a red line naming no listed unit keeps the ⟦suite-repair⟧ step (unit-tier case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py, listed units faked in-process) ⟦criterion 1⟧
-- [ ] suite-red-resume.sh insert, given red lines outside GRADE_SUITES naming two different listed units across the reds, appends the ⟦suite-repair⟧ step and no ⟦skill-edit⟧ step
+- [x] suite-red-resume.sh insert, given red lines outside GRADE_SUITES naming two different listed units across the reds, appends the ⟦suite-repair⟧ step and no ⟦skill-edit⟧ step
 - [ ] suite-red-resume.sh insert, given red lines outside GRADE_SUITES all naming one listed unit while the ledger's first unchecked step is a ⟦skill-edit⟧ step naming that unit, adds no step, leaves the ledger as it is and exits 0
 - [ ] Go-red control: with the new route broken on purpose, the first criterion's case goes red; restored, it passes ⟦human-owed⟧ ⟦criterion 2⟧
