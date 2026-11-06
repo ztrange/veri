@@ -50,6 +50,12 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    - **failing on an incidental error** — its only observable is that something throws or
      exits non-zero, with no assertion on which error or on the behaviour, unless that
      specific error is what the criterion names, or
+   - **asserting a graded unit's wording** — it asserts the wording of a unit with a
+     requirements list, a unit some `REQUIREMENTS.md` has a `## <path>` heading for: a
+     sentence, a phrase, or a checksum of its text or of a render that includes it. REJECT
+     naming the case and the unit. A case testing a mechanical fact the unit states (a
+     script it names, a heading a parser reads, a phase name the code accepts, a launch
+     line run against a stub) is not a REJECT, or
    - **not lightweight** — it exercises a costly real dependency (network, a git remote,
      the `claude` binary, a real sleep/wait, a server) that a stub, fake or the injected
      clock could stand in for, and the behavior under test is not that dependency's real

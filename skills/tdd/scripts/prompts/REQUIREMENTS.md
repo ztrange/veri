@@ -654,6 +654,7 @@
 | VR17 | Check 3's **not self-contained** bullet: the test runs another test suite, whole or sliced, or re-runs the suite it lives in, instead of exercising the unit directly; the bullet ends in the `{{RED_FAST_CHECK}}` slot. (Check 3, last bullet.) | No suite runs another suite. |
 | VR18 | The closing paragraph says PASS only if the test fails for the right reason AND is a clean, behavior-level pin of the criterion. (Closing paragraph.) | Both the failure and the test's quality must hold. |
 | VR19 | Check 3's REJECT list has a bullet for a test failing on an incidental error: its only observable is that something throws or exits non-zero, with no assertion on which error or on the behaviour, unless that specific error is what the criterion names. | Any exception turns such a test red, and removing the exception turns it green with the behaviour still wrong. |
+| VR20 | The prompt says to REJECT a red case that asserts the wording of a unit with a requirements list (a unit some `REQUIREMENTS.md` has a `## <path>` heading for): a sentence, a phrase, or a checksum of its text or of a render that includes it, naming the case and the unit. A case testing a mechanical fact the unit states is not a REJECT. | The last check before a wording case is frozen into the run; the plan verifier can miss one a Red leaf writes on its own. |
 
 ## skills/tdd/scripts/prompts/verify-green.md
 
