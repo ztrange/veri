@@ -1,0 +1,7 @@
+before 40
+3837ac6020a296e0d6c4f72fc812b99c7d1bfd21
+keep 49
+skills/tdd/scripts/tests/py/test_run_conductor.py
+command 336
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpi46fl62s/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_run_conductor.py make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_main_on_a_resume_with_veri_new_skill_1_re_pins_the_skip_verify_file_from_veri_skip_verify_replacing_the_old_list
+
