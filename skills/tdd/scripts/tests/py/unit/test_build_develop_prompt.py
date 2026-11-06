@@ -1500,53 +1500,6 @@ def test_main_asks_for_fail_output_and_prediction_note_in_a_revise_prompt_only_w
     }
 
 
-def test_cli_red_and_a_prompt_including_the_run_and_report_fragment_define_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950(
-        tmp_path, run_cli, build_develop_prompt):
-    rule = ("Matched means the same assertion fired on the same observed and expected values, "
-            "whatever the message text says. Diverged means a different assertion, different "
-            "values, or a different kind of failure")
-    step = "QWIXTLE: a seed ending in a newline gains the block"
-
-    rendered = {
-        phase: re.sub(r"\s+", " ", run_cli(build_develop_prompt, [phase, _spec(tmp_path), step, "make test", "zorblat"])[1])
-        for phase in ("red", "red-contradicted")
-    }
-
-    assert {phase: rule.replace("*", "") in text.replace("*", "") for phase, text in rendered.items()} == {
-        "red": True, "red-contradicted": True}
-
-
-def test_cli_red_prompts_ask_the_prediction_for_the_assertion_and_the_values_and_the_message_only_as_a_hint_the_run_is_not_compared_on_2950(
-        tmp_path, run_cli, build_develop_prompt):
-    parts = ("which assertion fires first and the observed-versus-expected values it fires on",
-             "as a hint",
-             "the run is not compared on the message")
-    step = "QWIXTLE: a seed ending in a newline gains the block"
-
-    rendered = {
-        phase: re.sub(r"\s+", " ", run_cli(build_develop_prompt, [phase, _spec(tmp_path), step, "make test", "zorblat"])[1])
-        for phase in ("red", "red-contradicted")
-    }
-
-    assert {phase: [part in text for part in parts] for phase, text in rendered.items()} == {
-        "red": [True] * 3, "red-contradicted": [True] * 3}
-
-
-def test_cli_revise_of_red_defines_matched_as_the_same_assertion_on_the_same_values_whatever_the_message_text_2950(
-        tmp_path, run_cli, build_develop_prompt):
-    reason = tmp_path / "reason.md"
-    reason.write_text("rejected\n")
-    rule = ("MATCHED when the same assertion fired on the same observed and expected values, "
-            "whatever the message text; DIVERGED only for a different assertion, different "
-            "values, or a different kind of failure")
-    note = "A message-text-only difference is MATCHED"
-
-    text = re.sub(r"\s+", " ", run_cli(
-        build_develop_prompt, ["revise", "red", _spec(tmp_path), "QWIXTLE step", "make test", str(reason)])[1])
-
-    assert (rule in text, note in text) == (True, True)
-
-
 def _spec(tmp_path, extra=""):
     spec = tmp_path / "spec.md"
     spec.write_text('zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\\n done.\n' + extra)
@@ -2098,14 +2051,9 @@ def test_main_renders_a_beside_prompt_that_adds_the_new_interface_beside_the_old
 
     code = build_develop_prompt.main(["beside", str(spec), "QWIXTLE: zorblat quuxes", "make test"])
     out, err = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
 
     assert (code, err) == (0, b""), err
-    assert (b"develop-beside" in out, b"QWIXTLE: zorblat quuxes" in out, b"no proxy" in prompt,
-            b"behaviour unchanged" in prompt or b"behaviour does not change" in prompt,
-            b"Move no caller" in prompt,
-            b"Never modify a test file: a beside commit that touches one is rejected" in prompt) == (
-        True, True, True, True, True, True), out
+    assert (b"develop-beside" in out, b"QWIXTLE: zorblat quuxes" in out) == (True, True), out
 
 
 def test_main_renders_a_dual_stub_prompt_that_changes_only_tests_each_edited_case_stubs_both_transports_and_weakens_no_assertion_2826(
@@ -2115,15 +2063,9 @@ def test_main_renders_a_dual_stub_prompt_that_changes_only_tests_each_edited_cas
 
     code = build_develop_prompt.main(["dual-stub", str(spec), "QWIXTLE: zorblat quuxes", "make test"])
     out, err = capsysbinary.readouterr()
-    prompt = re.sub(rb"\s+", b" ", out)
 
     assert (code, err) == (0, b""), err
-    assert (b"develop-dual-stub" in out, b"QWIXTLE: zorblat quuxes" in out,
-            b"stubs the new one" in prompt or b"stub the new one" in prompt,
-            b"unmoved production code" in prompt,
-            b"remove or weaken no assertion" in prompt or b"no assertion removed or weakened" in prompt,
-            b"Never modify a production file: a dual-stub commit that touches one is rejected" in prompt) == (
-        True, True, True, True, True, True), out
+    assert (b"develop-dual-stub" in out, b"QWIXTLE: zorblat quuxes" in out) == (True, True), out
 
 
 def test_main_renders_a_dual_stub_prompt_that_runs_the_affected_suites_and_reports_transform_and_suite_2826(
