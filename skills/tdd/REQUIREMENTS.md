@@ -411,6 +411,7 @@
 | CY137 | The Refactor loop's step 5 says that with `refactor` in `.tdd/issue-<n>-skip-verify`, a landed refactor launches no verify-refactor. It records `verify-refactor-skipped reason=switched-off`, posts `SKIPPED (switched off)`, writes `skipped` to `.tdd/verdict-refactor.exit`, and takes the PASS branch with `pin-recheck.sh` and the pending-mark clear. | The skip must be in the procedure the conductor follows. |
 | CY138 | The Draft PR step's PR-body instruction and the ✅ Done comment instruction each say that a non-empty `.tdd/issue-<n>-skip-verify` adds `⚠️ Unverified phases: <list>`. | Visibility belongs at the two sites a reviewer reads. |
 | CY139 | "The two roles, and why the verifier is blind" says that verification is on unless the run's pinned `VERI_SKIP_VERIFY` names the phase, that `plan` is never skipped, and cites ADR-0033. | A reader of the blindness rule must meet its one exception there. |
+| SC76 | The call to `wrong-test-route.sh` supplies the spec file `.tdd/issue-<n>-spec.md`, so a MISSING_TEST routes `later` only when its behaviour matches a later open step's criterion text, never the step's ledger text alone. |
 
 ## skills/tdd/PREFLIGHT.md
 
