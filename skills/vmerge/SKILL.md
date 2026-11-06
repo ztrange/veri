@@ -29,7 +29,9 @@ An unticked ⟦human-owed⟧ line gets one read-only review subagent (it may rea
 
 ## The merge lock
 
-Take the merge lock with `$S/merge-lock.sh take --pid <driver> --owner <token>` before the first write and hold it to the last. `<driver>` is the long-lived process driving the merge: `$PPID` in an agent session's Bash call. `<token>` is an owner token of this merge's own, one per merge (a fresh random string); two merges driven from one session share `$PPID`, so only the token tells them apart: they exclude each other, and only the holder can release. Pass the same `--owner <token>` to every `gate` and `release` call. Release it with `$S/merge-lock.sh release --pid <driver> --owner <token>` on every exit path: success, refusal, failure and interruption alike. A lock left held blocks every other merge.
+Take the merge lock with `$S/merge-lock.sh take --pid <driver> --owner <token>` before the first write and hold it to the last. `<driver>` is the long-lived process driving the merge: `$PPID` in an agent session's Bash call. `<token>` is an owner token of this merge's own, one per merge (a fresh random string); two merges driven from one session share `$PPID`, so only the token tells them apart: they exclude each other, and only the holder can release.
+
+Keep the token in `$(git rev-parse --git-common-dir)/veri-merge-<pr>.token`: write it there when the lock is taken, read it back for every later `gate` and `release` call, and remove the file after the release. Never hold the token only in a shell variable, which a fresh Bash call loses. A lost or unreadable token stops the merge: report it to the human and never run `merge-lock.sh release --force` yourself. Pass the same `--owner <token>` to every `gate` and `release` call. Release it with `$S/merge-lock.sh release --pid <driver> --owner <token>` on every exit path: success, refusal, failure and interruption alike. A lock left held blocks every other merge.
 
 Run the steps that can refuse under `$S/merge-lock.sh gate --pid <driver> --owner <token> -- <cmd>`: a failing command (any exit but 0 or 3) releases the lock before the merge exits. So a red CI, a refused `make merge-gates` and a refused `prose-owed.sh` all release it. Run the rebase and the push under `$S/merge-lock.sh gate --keep --pid <driver> --owner <token> -- <cmd>`, which keeps the lock on failure.
 
@@ -43,8 +45,8 @@ The one exception: a merge that stops on a rebase conflict, a refused push, or a
 4. **Merge** the PR.
 5. **Read `state`.** Query the PR and continue only when `state == MERGED`. Deleting the branch, cutting the tag and removing the worktree each happen only after that read; deleting an open PR's head closes it (PR #74).
 6. **Tag.** Choose the next `vN.M` from `git tag --sort=-v:refname` (never plain `sort`: lexically `v0.9` outranks `v0.10`). Cut an annotated tag whose message is the capability, in the issue's words. Push it.
-7. **Clean up.** Delete the branch and remove the worktree.
-8. **Release the lock** with `$S/merge-lock.sh release --pid <driver> --owner <token>`.
+7. **Release the lock** with `$S/merge-lock.sh release --pid <driver> --owner <token>`, then remove the token file. Do this before the worktree is removed, so the release reads nothing from the worktree (the token file lives in the git common dir, not the worktree).
+8. **Clean up.** Delete the branch and remove the worktree.
 
 ## Report
 
