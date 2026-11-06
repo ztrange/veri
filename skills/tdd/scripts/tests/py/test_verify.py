@@ -3728,6 +3728,27 @@ def test_3110_verify_sh_diff_refuses_a_double_quoted_it_case_removed_from_a_spec
 
 
 @pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_3110_verify_sh_diff_does_not_refuse_a_single_quoted_test_case_kept_in_a_spec_js_file_that_is_otherwise_edited(
+        run_cli, tmp_path):
+    keep = 'it("keeps", () => {\n});\n'
+    case = "\ntest('kept3110', () => {\n  expect(3).toBe(3);\n});\n"
+    code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.spec.js", keep, keep + case,
+                                       keep.replace("keeps", "keeps edited") + case)
+
+    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
+def test_3110_verify_sh_diff_does_not_refuse_a_single_quoted_test_case_renamed_in_a_spec_js_file(run_cli, tmp_path):
+    keep = 'it("keeps", () => {\n});\n'
+    body = "', () => {\n  expect(3).toBe(3);\n});\n"
+    code, out, started = run_2897_diff(run_cli, tmp_path, "web/start.spec.js", keep,
+                                       keep + "\ntest('old3110" + body, keep + "\ntest('new3110" + body)
+
+    assert (code, "deleted pytest cases" in out, started) == (0, False, True), out
+
+
+@pytest.mark.process("a real git scratch repository whose history the diff check reads, and a stub claude that records any start")
 def test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file_with_its_body_unchanged(
         run_cli, tmp_path):
     keep = "package pkg\n\nfunc TestKeeps(t *testing.T) {\n}\n"
