@@ -17,7 +17,7 @@
 #   build-develop-prompt.sh diff      <issue-spec-file> <step-text> <test-cmd> <fast-cmd>
 #   build-develop-prompt.sh structural <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh predicate <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
-#   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
+#   VERI_ISSUE=<n> build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh revise diff <issue-spec-file> <step-text> <test-cmd> <reason-file> <fast-cmd>
 #   build-develop-prompt.sh red-missing <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh exhausted <issue-spec-file> <step-text> <test-cmd> <reason-file>

@@ -28,6 +28,11 @@ def _fragment(name, after_include=False):
     return re.sub(rb"\s+", b" ", text).strip()
 
 
+@pytest.fixture(autouse=True)
+def runs_issue_number(monkeypatch):
+    monkeypatch.setenv("VERI_ISSUE", "3123")
+
+
 @pytest.fixture
 def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")
@@ -2169,3 +2174,41 @@ def test_main_with_no_arguments_exits_2_and_prints_a_usage_line_naming_dual_stub
     phases = err.decode().splitlines()[0].split("usage: ")[1].split(" ")[0].split("|")
 
     assert (code, out, "dual-stub" in phases, "beside" in phases) == (2, b"", True, True)
+
+
+@pytest.mark.parametrize("revised", ["red", "green", "refactor"])
+def test_main_renders_the_revise_check_earlier_command_with_the_runs_issue_number_and_step_3123(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt, revised):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    monkeypatch.setenv("VERI_ISSUE", "3123")
+    argv = ["revise", revised, str(spec), "The prompt names the ledger", "make test", str(reason)]
+
+    code = build_develop_prompt.main(argv)
+
+    out, err = capsysbinary.readouterr()
+    text = re.sub(rb"\s+", b" ", out)
+    assert (code, err, b"<n>" in out, b"<next-unchecked step>" in out,
+            b"`tests-frozen.sh check-earlier .tdd/issue-3123.md --step 'The prompt names the ledger'`" in text,
+            b"the run's own ledger, `.tdd/issue-3123.md`," in text) == (0, b"", False, False, True, True)
+
+
+@pytest.mark.parametrize("issue", [None, "", "abc"])
+def test_main_refuses_a_revise_prompt_with_exit_2_and_one_stderr_line_when_the_issue_number_is_missing_3123(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt, issue):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    if issue is None:
+        monkeypatch.delenv("VERI_ISSUE")
+    else:
+        monkeypatch.setenv("VERI_ISSUE", issue)
+
+    code = build_develop_prompt.main(["revise", "red", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, out, err) == (
+        2, b"", b"build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number\n")

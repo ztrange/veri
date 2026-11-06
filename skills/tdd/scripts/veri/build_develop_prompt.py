@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import paths
 import re
+import shlex
 import sys
 
 import event
@@ -137,7 +138,7 @@ def main(argv):
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES"), b"")
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT"), b"")
     for name, value in zip(names[3:], args[3:]):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
@@ -158,6 +159,14 @@ def main(argv):
         def fragment(slot):
             return _expand(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
         replaces_red = "red" in (phase, revised_phase) and replaces_case
+        if b"{{ISSUE_NUMBER}}" in text:
+            issue = tunables.read("VERI_ISSUE") or ""
+            if not re.fullmatch(r"[0-9]+", issue):
+                write(sys.stderr, "build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number",
+                      before=False, after=False)
+                return 2
+            values["ISSUE_NUMBER"] = issue.encode()
+            values["STEP_ARGUMENT"] = os.fsencode(shlex.quote(step))
         if b"{{NODE_ID_RULE}}" in text:
             values["NODE_ID_RULE"] = fragment(b"node-id-rule")
         if b"{{RED_LEAD}}" in text:

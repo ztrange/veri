@@ -7,7 +7,8 @@ import pytest
 
 @pytest.mark.parametrize("marker", ["⟦suite-repair⟧", "⟦ci-repair⟧"])
 def test_a_repair_revise_green_prompt_has_no_empty_numbered_item_in_what_to_do(
-        tmp_path, capsysbinary, marker):
+        tmp_path, capsysbinary, monkeypatch, marker):
+    monkeypatch.setenv("VERI_ISSUE", "3123")
     build_develop_prompt = importlib.import_module("veri.build_develop_prompt")
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n")

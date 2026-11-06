@@ -49,8 +49,8 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 
    To confirm that earlier steps' frozen test records still hold, run exactly
-   `tests-frozen.sh check-earlier .tdd/issue-<n>.md --step <next-unchecked step>` — the
-   run's own ledger, `.tdd/issue-<n>.md`, and never `.tdd/plan-ledger.md`.
+   `tests-frozen.sh check-earlier .tdd/issue-{{ISSUE_NUMBER}}.md --step {{STEP_ARGUMENT}}` — the
+   run's own ledger, `.tdd/issue-{{ISSUE_NUMBER}}.md`, and never `.tdd/plan-ledger.md`.
 
    Run one suite through {{INCLUDE:_run-suite-lead.md}} suite,
    {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
