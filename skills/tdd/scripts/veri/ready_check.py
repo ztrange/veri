@@ -74,6 +74,7 @@ def main(argv):
     names = [entry["name"] for entry in json.loads(listed.stdout)]
     row(f"label {label}", label in names, f"create the `{label}` label in the repository")
     row("bash", launch_floor.bash_refusal("ready-check") == 0, "install bash 5 or newer (`brew install bash`) and put it first on PATH")
+    row("Python", launch_floor.python_refusal("ready-check") == 0, f"install Python {launch_floor.python_floor()} or newer and put it first on PATH")
     failed = [r for r in rows if r.startswith("fail")]
     print(*rows, sep="\n")
     if failed:
