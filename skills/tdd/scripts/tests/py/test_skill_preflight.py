@@ -153,8 +153,6 @@ MECHANICAL_READERS = (
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",
     "test_2220_sweep_flags_a_case_reading_a_phrase_only_the_preflight_section",
-    "test_2847_preflight_step_3_names_both_baseline_full_tier_modes",
-    "test_2847_skill_draft_pr_step_names_full_tier_time_sh",
 )
 NAMES_PREFLIGHT = re.compile(r"^PREFLIGHT$|#+ .*[Pp]reflight|#+ 0\.|Preflight —")
 
