@@ -84,3 +84,19 @@ def test_issue_3055_ready_check_with_no_fast_tier_exits_1_with_a_fail_row_naming
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "veri: fast tests:" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess inside a repository whose full tier resolves to nothing")
+def test_issue_3055_ready_check_with_no_full_tier_exits_1_with_a_fail_row_naming_the_claude_md_line_to_add(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    (repo / "CLAUDE.md").write_text("veri: fast tests: `make unit`\n")
+    _git(repo, "mv", "tests/test_one.py", "tests/one_test.py")
+    _git(repo, "commit", "-q", "-am", "drop the full tier line")
+    resolved = subprocess.run([str(SCRIPTS / "detect-test-command.sh"), "--tier", "all"], cwd=repo, capture_output=True, text=True, env=env)
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert resolved.returncode == 3, (resolved.returncode, resolved.stdout, resolved.stderr)
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and "veri: all tests:" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
