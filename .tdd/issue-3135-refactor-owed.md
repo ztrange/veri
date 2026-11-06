@@ -1,0 +1,3 @@
+### `wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id>`: a MISSING_TEST behaviour that is a substring of an unrelated later open step's ledger text but not of that step's criterion text (criterion k of the spec file's `## Acceptance criteria`, k from the step's `⟦criterion k⟧`) prints `missing <behaviour>`, exit 0 (a small in-process `run_cli` case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 1⟧
+- in `_later`, pick the criterion text or the ledger-stripped text with an if/else, so the stripped text isn't computed and then overwritten when `--spec` is given
+- test-only | the two new `test_main_3135_*` cases repeat the same ledger, spec and env setup; extract a shared helper
