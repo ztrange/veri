@@ -16,10 +16,14 @@ def main(argv):
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
     detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
-    fast = subprocess.run([detect, "--tier", "fast"], capture_output=True)
-    if fast.returncode == 3:
-        print("fail  fast tier: add a `veri: fast tests:` line to CLAUDE.md")
-        print("not ready — 1 rows to fix")
+    failed = 0
+    for tier in ("fast", "all"):
+        found = subprocess.run([detect, "--tier", tier], capture_output=True)
+        if found.returncode == 3:
+            print(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
+            failed += 1
+    if failed:
+        print(f"not ready — {failed} rows to fix")
         return 1
     print("ready")
     return 0
