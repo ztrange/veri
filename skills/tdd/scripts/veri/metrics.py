@@ -211,6 +211,7 @@ def render(issue, path, ledger):
     totals = {"total": dict.fromkeys(COST_COLUMNS, 0)}
 
     conductor_counted = False
+    switched_off = 0
 
     def row_in(table, key, columns):
         return table.setdefault(key, dict.fromkeys(columns, 0))
@@ -318,6 +319,8 @@ def render(issue, path, ledger):
             settle_pass(step, current)
         if event == "verify-refactor-skipped" and step:
             open_pass(step)["verdict"] = "skipped"
+            if line.get("reason") == "switched-off":
+                switched_off += 1
         if event == "revise" and step:
             per_phase = step_mark(step).setdefault("revise phases", {})
             per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
@@ -528,6 +531,8 @@ def render(issue, path, ledger):
             pinned = recorded.read().strip()
     if pinned:
         print("⚠️ Unverified phases: %s" % pinned)
+    if switched_off:
+        print("Verifiers switched off: refactor %d" % switched_off)
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))

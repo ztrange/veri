@@ -1906,3 +1906,16 @@ def test_the_report_prints_no_unverified_phases_line_for_a_whitespace_only_skip_
     padded = render(metrics, capsys)
 
     assert ("Unverified phases" in blank, "⚠️ Unverified phases: refactor\n" in padded) == (False, True)
+
+
+def test_the_report_counts_refactor_skips_with_reason_switched_off_apart_from_nothing_landed_skips(tmp_path, monkeypatch, capsys, metrics):
+    skip = lambda step, reason: {"event": "verify-refactor-skipped", "step": step, "reason": reason}
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("1", "switched-off"),
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200}, skip("2", "nothing-landed"),
+                         {"event": "step-done", "step": "2", "ts": 260},
+                         {"event": "step-start", "step": "3", "ts": 300}, skip("3", "switched-off"),
+                         {"event": "step-done", "step": "3", "ts": 360}])
+    monkeypatch.chdir(tmp_path)
+
+    assert "Verifiers switched off: refactor 2\n" in render(metrics, capsys)
