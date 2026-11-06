@@ -13,4 +13,4 @@
 - [x] `plan-reverify.sh` exits 0 when an `events.jsonl` beside the ledger exists but holds no verify-plan PASS for the ledger's issue (only other issues' PASS events, or none), as it does when the file is absent; unit-tier, faking git ⟦criterion 6⟧
 - [x] skills/tdd/SCRIPTS.md catalogues `plan-reverify.sh` (arguments, what it reads, exits 0 owed / 3 unchanged / 2 no answer) under an SC row of its own ⟦skill-edit⟧
 - [x] skills/tdd/RESUME.md: before the first step leaf the resume runs `plan-reverify.sh` and runs step 2c's verify-plan only on its exit 0, a REJECT following step 2c's revise-plan route (RS36) ⟦skill-edit⟧ ⟦criterion 4⟧
-- [ ] skills/tdd/SKILL.md: step 1.5 says a resume skips verify-plan only when the plan is unchanged since its last verify-plan PASS, and runs step 2c's verify-plan before the cycle loop when a `plan:` commit is newer (SC78) ⟦skill-edit⟧ ⟦criterion 4⟧
+- [x] skills/tdd/SKILL.md: step 1.5 says a resume skips verify-plan only when the plan is unchanged since its last verify-plan PASS, and runs step 2c's verify-plan before the cycle loop when a `plan:` commit is newer (SC78) ⟦skill-edit⟧ ⟦criterion 4⟧
