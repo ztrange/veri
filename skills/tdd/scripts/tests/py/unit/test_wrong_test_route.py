@@ -92,7 +92,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
     monkeypatch.chdir(ROOT)
     own_id = "test_parse_reads_each_declared_format_refuses_none_and_a_required_format_without_suite_and_never_reads_an_outcome_line"
     usage = ("usage: wrong-test-route.sh <green-report> <red-test-id> "
-             "(prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)\n")
+             "(prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise)\n")
     lines = ("WRONG_TEST: the criterion contradicts nothing I can name",
              "WRONG_TEST: %s asserts the opposite of the criterion" % own_id,
              "WRONG_TEST: test_1621_no_such_case_exists_anywhere_in_the_tree asserts the opposite")
