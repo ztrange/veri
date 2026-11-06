@@ -20,7 +20,7 @@ def main(argv):
         with open(events) as f:
             passes = [e["ts"] for e in map(json.loads, f)
                       if e.get("event") == "verdict" and e.get("phase") == "plan" and e.get("verdict") == "PASS"]
-        plan = git("log", "-1", "--format=%ct", "--grep=^plan:", "--",argv[0], capture_output=True, text=True)
+        plan = git("log", "-1", "--format=%at", "--grep=^plan:", "--",argv[0], capture_output=True, text=True)
         if int(plan.stdout) < max(passes):
             return 3
         return 0
