@@ -175,3 +175,18 @@ def test_issue_3055_ready_check_with_no_argument_from_a_linked_worktree_checks_t
 
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository where no workflow triggers on pull_request but VERI_CI_ON_PR is set")
+def test_issue_3055_ready_check_with_no_pull_request_workflow_but_veri_ci_on_pr_set_exits_0_with_the_row_ok(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env["VERI_CI_ON_PR"] = "1"
+    (repo / ".github" / "workflows" / "ci.yml").write_text(
+        "name: ci\non:\n  push:\n    branches: [main]\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: make test\n")
+    _git(repo, "commit", "-q", "-am", "ci on push only")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert not any(l.startswith("fail") and "pull_request" in l for l in lines), (ran.stdout, ran.stderr)
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
