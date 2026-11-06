@@ -1414,3 +1414,58 @@ def test_3151_a_pin_whose_named_test_is_missing_at_head_but_not_deleted_by_the_r
 
     assert (ran.returncode, "tests/test_guard.py" in ran.stderr, "retired:" in ran.stdout,
             (tmp_path / "ran.witness").exists()) == (2, True, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that deletes only some of the test files one pin names")
+def test_3151_a_pin_naming_several_test_files_some_deleted_by_the_range_is_replayed_on_the_rest_without_a_retired_line(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_gone.py").write_text("def test_g(): pass\n")
+    (tmp_path / "tests" / "test_kept.py").write_text("def test_k(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c 'echo result; echo \"$@\" > ran.args; grep -q \"if guard\" guard.txt' x "
+                   "TESTS=tests/test_gone.py TESTS=tests/test_kept.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("rm", "-q", "tests/test_gone.py")
+    git("commit", "-q", "-am", "edit the pinned file and delete one of its two tests")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    args = (tmp_path / "ran.args").read_text().strip() if (tmp_path / "ran.args").exists() else None
+    assert (ran.returncode, "retired:" in ran.stdout, args) == (0, False, "TESTS=tests/test_kept.py"), \
+        ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that deletes a test file whose path prefixes another named test file")
+def test_3151_a_deleted_test_path_that_prefixes_a_kept_one_leaves_the_kept_argument_intact_on_replay(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_a.py").write_text("def test_a(): pass\n")
+    (tmp_path / "tests" / "test_a.py2").write_text("def test_a2(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c 'echo result; echo \"$@\" > ran.args; grep -q \"if guard\" guard.txt' x "
+                   "TESTS=tests/test_a.py TESTS=tests/test_a.py2")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("rm", "-q", "tests/test_a.py")
+    git("commit", "-q", "-am", "edit the pinned file and delete the shorter-named test")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    args = (tmp_path / "ran.args").read_text().strip() if (tmp_path / "ran.args").exists() else None
+    assert (ran.returncode, args) == (0, "TESTS=tests/test_a.py2"), ran.stdout + ran.stderr
