@@ -112,6 +112,11 @@ def trailing_markers(step):
     return run.group(1) if run else ""
 
 
+def unphased(text):
+    """text without its refactor-pending mark and every ⟂ <phase> done mark."""
+    return re.sub(r" ⟂ \S+ done", "", text.removesuffix(PENDING_MARK))
+
+
 def carries_mark(text, name):
     """True when ⟦name⟧ occurs anywhere in text."""
     return f"⟦{name}⟧" in text
