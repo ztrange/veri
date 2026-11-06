@@ -2756,6 +2756,53 @@ def test_rerecord_rebased_exits_1_naming_the_latest_owning_step_and_not_the_olde
     assert (code, out.splitlines()) == (1, ["test_config_3150 (%s)" % later])
 
 
+@pytest.mark.process("a real git repository with an origin remote under tmp_path, asked to rerecord a case two steps recorded")
+def test_rerecord_rebased_re_records_the_latest_owners_record_and_leaves_the_older_steps_record_untouched_when_the_default_branch_changed_the_body_3150(
+        tmp_path, run_cli, tests_frozen):
+    repo = tmp_path / "repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / ".tdd").mkdir()
+    suite = repo / "tests/test_suite.py"
+    case = "def test_config_3150():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
+    suite.write_text(case % 1)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "base")
+    git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
+    git(repo, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    git(repo, "fetch", "-q", "origin")
+    git(repo, "remote", "set-head", "origin", "main")
+
+    older, later, current = "step one pins the config", "step two repins the config", "step three adds another"
+    git(repo, "checkout", "-q", "-b", "work")
+    suite.write_text(case % 2)
+    run_cli(tests_frozen, ["record", "--step", older, "tests/test_suite.py"], cwd=repo)
+    (older_record,) = (repo / ".tdd").glob("tests-frozen-*.record")
+    suite.write_text(case % 3)
+    run_cli(tests_frozen, ["record", "--step", later, "tests/test_suite.py"], cwd=repo)
+    (later_record,) = set((repo / ".tdd").glob("tests-frozen-*.record")) - {older_record}
+    git(repo, "add", "tests")
+    git(repo, "commit", "-q", "-m", "steps one and two")
+    ledger = repo / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (older, later, current))
+
+    git(repo, "checkout", "-q", "main")
+    suite.write_text((case % 3).replace("a = 1", "a = 9"))
+    git(repo, "commit", "-q", "-a", "-m", "upstream changes the body")
+    git(repo, "push", "-q", "origin", "main")
+    git(repo, "checkout", "-q", "work")
+    before = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True,
+                            text=True).stdout.strip()
+    git(repo, "rebase", "-q", "origin/main")
+    older_bytes, later_bytes = older_record.read_bytes(), later_record.read_bytes()
+
+    code, _, _ = run_cli(tests_frozen, ["rerecord-rebased", str(ledger), before], cwd=repo)
+    earlier_code, _, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=repo)
+
+    assert (code, older_record.read_bytes() == older_bytes, later_record.read_bytes() != later_bytes,
+            earlier_code) == (0, True, True, 0)
+
+
 @pytest.mark.process("a real git repository with an origin remote under tmp_path, asked to rerecord with a missing ledger")
 def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writes_no_record_2552(
         tmp_path, run_cli, tests_frozen):
