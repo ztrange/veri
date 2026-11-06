@@ -319,3 +319,31 @@ def test_issue_3055_ready_check_with_python_below_the_floor_exits_1_with_a_fail_
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "Python" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
+
+
+def _repo_state(repo):
+    def out(*argv):
+        return subprocess.run(["git", *argv], cwd=repo, check=True, capture_output=True, text=True).stdout
+    files = sorted(str(p.relative_to(repo)) for p in repo.rglob("*") if ".git" not in p.relative_to(repo).parts[:1])
+    contents = {f: (repo / f).read_bytes() for f in files if (repo / f).is_file()}
+    return {"status": out("status", "--porcelain", "--ignored"), "index": out("ls-files", "-s"),
+            "refs": out("for-each-ref"), "head": out("rev-parse", "HEAD"), "files": files, "contents": contents,
+            "config": (repo / ".git" / "config").read_bytes()}
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess with a recording gh stub inside a repository where every row holds")
+def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs_unchanged_and_makes_no_writing_gh_call(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    log = tmp_path / "gh.log"
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text('#!/bin/sh\necho "$*" >> "' + str(log) + '"\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[{"name":"veri"}]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    before = _repo_state(repo)
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    after = _repo_state(repo)
+    calls = log.read_text().splitlines() if log.exists() else []
+
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert calls, "ready-check made no gh call, so the recording stub saw nothing to judge"
+    assert after == before
+    writes = [c for c in calls if re.search(r"label (create|edit|delete|add|remove)|--method|(^| )-X( |$)|--add-label|--remove-label|(^| )-[fF]( |$)|--(raw-)?field|--input", c)]
+    assert writes == [], writes
