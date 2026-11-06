@@ -14,7 +14,8 @@ VERBS = ("take", "release", "holder", "gate")
 
 
 def _caller_pid(args):
-    return args[1] if args[:1] == ["--pid"] else str(os.getppid())
+    pid = _value(args, "--pid")
+    return pid if pid is not None else str(os.getppid())
 
 
 USAGE = ("usage: merge-lock.sh take --pid <pid> [--owner <token>] | release --pid <pid> [--owner <token>] "
@@ -35,13 +36,17 @@ def _usage_guarded(handler):
     return guarded
 
 
-def _owner(args):
-    if "--owner" not in args:
+def _value(args, flag):
+    if flag not in args:
         return None
-    i = args.index("--owner") + 1
+    i = args.index(flag) + 1
     if i >= len(args) or args[i].startswith("--"):
         raise _Usage
     return args[i]
+
+
+def _owner(args):
+    return _value(args, "--owner")
 
 
 def _start_time(pid):
@@ -142,9 +147,10 @@ def _take(lock, record, args):
 def _release(lock, record, args):
     if _needs_pid(args, True):
         return 2
+    pid = _caller_pid([a for a in args if a != "--force"])
+    _owner(args)
     if not os.path.isdir(lock):
         return 3
-    pid = _caller_pid([a for a in args if a != "--force"])
     if "--force" not in args:
         fields = _read(record).split()
         if fields[0] != pid:

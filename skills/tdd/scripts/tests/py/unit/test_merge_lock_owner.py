@@ -108,3 +108,44 @@ def test_3134_an_owner_flag_without_a_token_is_a_usage_error_that_changes_nothin
     assert outcomes == {v: (2, True) for v in ("release", "take", "gate")}
     assert open(record).read().split()[3:] == ["token-a"]
 
+
+
+ORDERS = {"pid-first": lambda me: ["--pid", me, "--owner", "token-a"],
+          "owner-first": lambda me: ["--owner", "token-a", "--pid", me]}
+
+
+def test_3134_take_and_release_use_the_given_pid_and_owner_in_either_option_order(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    outcomes = {}
+    for name, order in ORDERS.items():
+        lock = str(tmp_path / name / ".tdd" / "merge.lock")
+        record = os.path.join(lock, "holder")
+        taken = merge_lock._take(lock, record, order(me))
+        recorded = open(record).read().split()
+        released = merge_lock._release(lock, record, order(me))
+        outcomes[name] = (taken, recorded[0], recorded[3:], released, os.path.isdir(lock))
+    assert outcomes == {n: (0, me, ["token-a"], 0, False) for n in ORDERS}
+
+
+def test_3134_gate_uses_the_given_pid_and_owner_in_either_option_order(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    me = str(os.getpid())
+    outcomes = {}
+    for name, order in ORDERS.items():
+        lock = str(tmp_path / name / ".tdd" / "merge.lock")
+        record = os.path.join(lock, "holder")
+        merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+        code = merge_lock._gate(lock, record, order(me) + ["--", "false"])
+        outcomes[name] = (code, os.path.isdir(lock))
+    assert outcomes == {n: (1, False) for n in ORDERS}
+
+
+def test_3134_a_pid_flag_without_a_value_is_a_usage_error(tmp_path, capsys):
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    outcomes = {}
+    for verb in ("take", "release"):
+        code = merge_lock._HANDLERS[verb](lock, os.path.join(lock, "holder"), ["--pid"])
+        outcomes[verb] = (code, "usage: merge-lock.sh" in capsys.readouterr().err)
+    assert outcomes == {"take": (2, True), "release": (2, True)}
