@@ -40,8 +40,6 @@ ALLOWED = {
         "names the Green heading only to exclude it",
     "unit/test_skill_tests_frozen.py::test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_routes_its_refusal_to_verify_red_reason":
         "asserts the Green subsection's reroute re-record commands and their --red-case refusal routing (CY120)",
-    "unit/test_supersede_diff_route.py::test_issue_2868_supersede_diff_route_launches_the_diff_verifier_on_the_pre_reroute_commit_and_no_verify_pin":
-        "asserts the Green subsection's supersede-diff route paragraph (CY127)",
 }
 
 

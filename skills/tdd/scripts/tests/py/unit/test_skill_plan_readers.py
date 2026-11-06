@@ -17,8 +17,6 @@ HEADINGS = (
 )
 
 ALLOWED = {
-    "test_skill_timeout.py::test_2966_skill_md_step_1_6_places_the_claim_before_preflight_s_baseline_and_its_full_suite_lock_wait":
-        "no PL row yet",
     "test_skill_timeout.py::test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout_after_step_1_2_has_entered_the_issue_s_worktree_not_from_the_caller_s_checkout_where_preflight_runs":
         "the line order of two SKILL.md lines",
     "test_skill_leaf_launch.py": "whole-file launch-line audits, the verdict-plan line included",

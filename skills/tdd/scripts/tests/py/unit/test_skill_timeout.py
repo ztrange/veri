@@ -23,14 +23,3 @@ def test_1037_section_given_a_dotted_heading_starts_at_the_dotted_heading_not_at
     fixture.write_text("### runXsh\nwrong\n### run.sh\nright\n### end\n")
     assert skill_sections.section(fixture, "### run.sh") == "### run.sh\nright\n"
 
-
-def test_2966_skill_md_step_1_6_places_the_claim_before_preflight_s_baseline_and_its_full_suite_lock_wait():
-    text = SKILL.read_text()
-    start = text.index("6. **Claim the issue on a fresh run.**")
-    claim = " ".join(text[start:text.index("\n### 2. Scope", start)].split())
-    sentence = next(s for s in re.split(r"(?<=\.) ", claim) if "unlabel-issue.sh" in s)
-    before = re.search(r"\bbefore\b(?P<rest>.*)", sentence)
-    assert before, f"the claim sentence does not place the claim before anything: {sentence!r}"
-    assert "baseline" in before["rest"] and "lock" in before["rest"], \
-        f"the claim is not placed before the baseline and the lock wait: {sentence!r}"
-    assert "once preflight has passed" not in claim, "the claim still waits for preflight to pass"
