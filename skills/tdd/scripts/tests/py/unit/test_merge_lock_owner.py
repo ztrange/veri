@@ -1,5 +1,6 @@
 """take, release and holder of veri/merge_lock.py under an --owner token."""
 import os
+import types
 
 from veri import merge_lock
 
@@ -34,3 +35,14 @@ def test_3134_release_without_an_owner_of_a_lock_taken_under_one_is_refused(tmp_
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     refused = merge_lock._release(lock, record, ["--pid", me])
     assert (refused, os.path.isdir(lock)) == (1, True)
+
+
+def test_3134_failed_gate_under_another_owner_token_of_the_same_pid_leaves_the_lock_held(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    code = merge_lock._gate(lock, record, ["--pid", me, "--owner", "token-b", "--", "false"])
+    assert (code, os.path.isdir(lock), merge_lock._holder(lock, record, [])) == (1, True, 0)
