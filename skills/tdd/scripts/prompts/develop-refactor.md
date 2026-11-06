@@ -98,6 +98,9 @@ your words rather than its own judgement:
 7. If no structural candidate is left under those rules, change nothing and report
    "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
    worth a transform. That is a legitimate result, not a failure to find work.
+8. **Frozen cases stay frozen.** A refactor may not add or change an assertion line of a
+   frozen case of any step. Moving an assertion line into a helper is allowed only when it
+   arrives unchanged modulo whitespace.
 
 ### Report (last lines of your output)
 
