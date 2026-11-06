@@ -2,8 +2,11 @@
 import importlib
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
+
+from conftest import receipt_leaver
 
 
 @pytest.fixture
@@ -3009,6 +3012,30 @@ def test_rerecord_on_head_mid_step_keeps_a_case_the_current_unticked_step_commit
     code = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
 
     assert (code, _names(tmp_path, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"])
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked after an earlier case's receipt")
+def test_rerecord_on_head_walks_the_real_ledger_history_after_an_earlier_case_left_a_receipt_and_first_imported_ledger_3053(
+        tmp_path, run_cli, monkeypatch):
+    for name in ("ledger", "veri.tests_frozen"):
+        monkeypatch.delitem(sys.modules, name, raising=False)
+    (tmp_path / "earlier").mkdir()
+    with pytest.MonkeyPatch.context() as earlier_case:
+        receipt_leaver(earlier_case)(tmp_path / "earlier" / "ledger.md")
+        tests_frozen = importlib.import_module("veri.tests_frozen")
+    repo, step = tmp_path / "repo", STEPS[1]
+    repo.mkdir()
+    suite = repo / "test_suite.py"
+    _plan_repo(repo, monkeypatch)
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("one", 1))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=repo)
+    _commit(repo, "A red")
+    suite.write_text(suite.read_text() + "\n\n" + CASE % ("pin_committed", 5))
+    _commit(repo, "A pin, not ticked yet")
+
+    code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=repo)
+
+    assert (code, _names(repo, tests_frozen, step)) == (0, ["test_one", "test_pin_committed"]), err
 
 
 @pytest.mark.process("a real git repository under tmp_path, its committed ledger walked for the step's line")
