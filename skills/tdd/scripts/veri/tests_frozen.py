@@ -501,7 +501,7 @@ def rerecord_refactored(ledger, green):
     os.chdir(_toplevel())
     try:
         with open(".tdd/verdict-refactor.exit", encoding="utf-8") as handle:
-            if handle.read().strip() != "0":
+            if handle.read().strip() not in ("0", "skipped"):
                 return 3
     except FileNotFoundError:
         return 3

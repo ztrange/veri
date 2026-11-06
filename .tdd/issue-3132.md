@@ -7,7 +7,7 @@
 - [x] On a resume (a readable `.tdd/issue-<n>-skill-commit`, `VERI_NEW_SKILL` unset), `run-conductor.sh` leaves `.tdd/issue-<n>-skip-verify` holding what it held, whatever `VERI_SKIP_VERIFY` says ⟦criterion 3⟧ ⟂ retired unpinnable
 - [x] On a resume with `VERI_NEW_SKILL=1`, `run-conductor.sh` re-pins `.tdd/issue-<n>-skip-verify` from `VERI_SKIP_VERIFY` ⟦criterion 3⟧
 - [x] The `.tdd/.gitignore` seed `run-conductor.sh` writes lists `issue-*-skip-verify` ⟦criterion 3⟧
-- [ ] `tests-frozen.sh rerecord-refactored` re-records the refactored frozen cases when `.tdd/verdict-refactor.exit` holds `skipped`, exactly as when it holds `0` ⟦criterion 5⟧
+- [x] `tests-frozen.sh rerecord-refactored` re-records the refactored frozen cases when `.tdd/verdict-refactor.exit` holds `skipped`, exactly as when it holds `0` ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] `tests-frozen.sh rerecord-refactored` still returns 3 and re-records nothing when `.tdd/verdict-refactor.exit` holds a value other than `0` or `skipped` (such as `2`) ⟦criterion 5⟧
 - [ ] With `.tdd/verdict-refactor.exit` holding `skipped` and the `.tdd/pin-recheck-ok` receipt `pin-recheck.sh` leaves, `clear-refactor-pending.sh` removes the step's `⟂ refactor pending` mark, so `next-pending-refactor.sh` no longer hands the step over and a resumed run takes it as finished ⟦criterion 6⟧
 - [ ] `metrics.sh <n>` prints `⚠️ Unverified phases: refactor` when the run's pinned `.tdd/issue-<n>-skip-verify` (found beside the event log, else in the main checkout's `.tdd/`, as `main_checkout_file` finds files) holds `refactor`, so the metrics block the PR body and the ✅ Done comment carry shows it ⟦criterion 7⟧
