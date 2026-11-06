@@ -522,6 +522,12 @@ def render(issue, path, ledger):
               % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
                            for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]),
                  ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
+    pinned = ""
+    with contextlib.suppress(OSError):
+        with open(main_checkout_file(path, "issue-%s-skip-verify" % issue)) as recorded:
+            pinned = recorded.read().strip()
+    if pinned:
+        print("⚠️ Unverified phases: %s" % pinned)
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
