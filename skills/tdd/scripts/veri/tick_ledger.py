@@ -123,7 +123,8 @@ def main(argv):
         tick_added(argv[0], step_line)
     if left is None and reason_file:
         step = step_line
-        reason = next((l[7:].strip() for l in reason_text.splitlines() if l.startswith("REASON:")), "")
+        reason = next((l[7:].strip() for l in reason_text.splitlines()
+                       if l.startswith("REASON:") and l[7:].strip()), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
         return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])

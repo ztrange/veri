@@ -92,3 +92,21 @@ def test_main_already_holds_refuses_a_reason_file_with_text_but_no_reason_line_a
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
+
+
+def test_main_already_holds_event_records_the_first_reason_line_with_text_when_the_first_is_blank_3116(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON:   \nREASON: already holds; rerouted to pin step 4\n")
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events = [json.loads(line) for line in (ledger.parent / "events.jsonl").read_text().splitlines()]
+    event = next(e for e in events if e.get("event") == "already-holds-step")
+    assert code == 0, err
+    assert "- [x] a one" in ledger.read_text()
+    assert event["reason"] == "already holds; rerouted to pin step 4", event
