@@ -1378,7 +1378,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
 
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
-  pin that stayed green being a REJECT of this step that spends `REVISE_BUDGET`. The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+  pin that stayed green being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
   Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
