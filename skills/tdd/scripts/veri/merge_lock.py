@@ -17,6 +17,10 @@ def _caller_pid(args):
     return args[1] if args[:1] == ["--pid"] else str(os.getppid())
 
 
+def _owner(args):
+    return args[args.index("--owner") + 1] if "--owner" in args else None
+
+
 def _start_time(pid):
     out = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, text=True).stdout
     return "_".join(out.split())
@@ -70,7 +74,7 @@ def _take(lock, record, args):
     staged = tempfile.mkdtemp(prefix=".merge.lock.", dir=os.path.dirname(lock))
     try:
         with open(os.path.join(staged, "holder"), "w") as f:
-            f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}\n")
+            f.write(f"{pid} {socket.gethostname()} {_start_time(pid)}" + (f" {_owner(args)}" if _owner(args) else "") + "\n")
         reported = False
         missing = 0
         while True:
@@ -115,7 +119,10 @@ def _release(lock, record, args):
         return 3
     pid = _caller_pid([a for a in args if a != "--force"])
     if "--force" not in args:
-        if _read(record).split()[0] != pid:
+        fields = _read(record).split()
+        if fields[0] != pid:
+            return 1
+        if _owner(args) and fields[3:4] != [_owner(args)]:
             return 1
     shutil.rmtree(lock)
     return 0
