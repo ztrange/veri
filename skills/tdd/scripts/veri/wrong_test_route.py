@@ -226,7 +226,7 @@ def _criterion(spec, name):
     marker = re.search(r"⟦criterion (\d+)⟧", name)
     with open(spec, encoding="utf-8") as handle:
         body = handle.read().partition("## Acceptance criteria")[2]
-    boxes = re.findall(r"^- \[ \] (.*)$", body, re.M)
+    boxes = [m.group(2) for m in ledger_file.ledger_items(body) if m.group(1) == " "]
     return boxes[int(marker.group(1)) - 1]
 
 
