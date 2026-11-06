@@ -79,3 +79,15 @@ def test_3134_failed_gate_under_the_owner_token_that_took_the_lock_releases_it(t
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     code = merge_lock._gate(lock, record, ["--pid", me, "--owner", "token-a", "--", "false"])
     assert (code, os.path.isdir(lock)) == (1, False)
+
+
+def test_3134_forced_release_frees_a_lock_taken_with_an_owner_by_a_dead_pid(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    monkeypatch.setattr(merge_lock, "_alive", lambda pid: False)
+    stale = merge_lock._holder(lock, record, [])
+    released = merge_lock._release(lock, record, ["--force"])
+    assert (stale, released, os.path.isdir(lock), merge_lock._holder(lock, record, [])) == (1, 0, False, 3)
