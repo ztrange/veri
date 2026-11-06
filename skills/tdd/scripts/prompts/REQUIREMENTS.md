@@ -701,7 +701,7 @@
 | VF16 | Check 8 says a changed file outside that list is a REJECT, unless its hunk removes duplication between that file and code in the list, the one reason a transform was allowed to leave the list for. (Check 8, last sentence.) | A refactor confined to the cycle's files cannot drift into unrelated code. |
 | VF17 | Check 9 is assembled from the included `_verify-comments-lead.md`, the word "range", the included `_verify-comments-allowed.md`, the word "range", and the included `_verify-comments-never-reject.md`. (Check 9.) | The comment rule is shared with verify-green and stated once. |
 | VF18 | The closing paragraph says PASS if the suite is green and the code is up to standard, and REJECT, naming the specific weakness, if the tidy-up left the code below standard or altered behavior. (Closing paragraph.) | The verdict needs both behaviour preserved and the standard met. |
-| VF19 | Check 4 says a refactor that adds or changes an assertion line of a case frozen at any earlier step (not only one removed or weakened) is a REJECT naming the case. | `rerecord-refactored` skips such a case, and a later `check-earlier` refuses it where no revise can fix it (clarion2 #5). |
+| VF19 | Check 4 says a refactor that adds or changes an assertion line of a case frozen at any earlier step (not only one removed or weakened) is a REJECT naming the case, but an assertion line moved into a helper unchanged modulo whitespace is not such a change. | `rerecord-refactored` skips such a case, and a later `check-earlier` refuses it where no revise can fix it (clarion2 #5). |
 
 ## skills/tdd/scripts/prompts/verify-pin.md
 
