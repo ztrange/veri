@@ -68,3 +68,14 @@ def test_3134_take_under_another_owner_token_of_the_same_pid_keeps_waiting_with_
         code = "waiting"
     held = merge_lock._holder(lock, record, [])
     assert (code, held, open(record).read().split()[3:]) == ("waiting", 0, ["token-a"])
+
+
+def test_3134_failed_gate_under_the_owner_token_that_took_the_lock_releases_it(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    code = merge_lock._gate(lock, record, ["--pid", me, "--owner", "token-a", "--", "false"])
+    assert (code, os.path.isdir(lock)) == (1, False)

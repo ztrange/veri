@@ -153,7 +153,7 @@ def _gate(lock, record, args):
     if "--keep" in args:
         print(f"merge-lock.sh: command exited {code}; lock kept, clear it with merge-lock.sh release --force", file=sys.stderr)
         return code
-    _release(lock, record, args[:2])
+    _release(lock, record, head)
     return code
 
 
