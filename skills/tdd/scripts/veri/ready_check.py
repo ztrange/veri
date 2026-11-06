@@ -45,30 +45,28 @@ def main(argv):
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
     detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
-    failed = []
+    rows = []
+
+    def row(name, holds, fix):
+        rows.append(f"ok    {name}" if holds else f"fail  {name}: {fix}")
+
     for tier in ("fast", "all"):
         found = subprocess.run([detect, "--tier", tier], capture_output=True)
-        if found.returncode == 3:
-            failed.append(f"fail  {tier} tier: add a `veri: {tier} tests:` line to CLAUDE.md")
-    if not os.environ.get("VERI_CI_ON_PR") and not triggers_on("pull_request"):
-        failed.append("fail  pull_request: add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
-    if not triggers_on("push"):
-        failed.append("fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch")
-    if not any(is_test_path(f) for f in git("ls-files").stdout.splitlines()):
-        failed.append("fail  test file: track at least one test file")
-    if git("check-ignore", "-q", ".tdd/").returncode != 0:
-        failed.append("fail  .tdd/: add `.tdd/` to .gitignore")
-    if subprocess.run(["gh", "auth", "status"], capture_output=True).returncode != 0:
-        failed.append("fail  gh auth: run `gh auth login`")
+        row(f"{tier} tier", found.returncode != 3, f"add a `veri: {tier} tests:` line to CLAUDE.md")
+    row("pull_request", bool(os.environ.get("VERI_CI_ON_PR")) or triggers_on("pull_request"), "add a workflow under .github/workflows/ that triggers on pull_request, or set VERI_CI_ON_PR")
+    row("push", triggers_on("push"), "add a workflow under .github/workflows/ that triggers on push to the default branch")
+    row("test file", any(is_test_path(f) for f in git("ls-files").stdout.splitlines()), "track at least one test file")
+    row(".tdd/", git("check-ignore", "-q", ".tdd/").returncode == 0, "add `.tdd/` to .gitignore")
+    row("gh auth", subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0, "run `gh auth login`")
     pushed = subprocess.run(["gh", "api", "repos/{owner}/{repo}"], capture_output=True, text=True)
     try:
         can_push = json.loads(pushed.stdout)["permissions"]["push"]
     except (ValueError, KeyError, TypeError):
         can_push = False
-    if not can_push:
-        failed.append("fail  push access: ask for write access to the repository, or use an account that has it")
+    row("push access", can_push, "ask for write access to the repository, or use an account that has it")
+    failed = [r for r in rows if r.startswith("fail")]
+    print(*rows, sep="\n")
     if failed:
-        print(*failed, sep="\n")
         print(f"not ready — {len(failed)} rows to fix")
         return 1
     print("ready")

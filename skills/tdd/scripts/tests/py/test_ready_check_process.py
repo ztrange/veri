@@ -272,3 +272,13 @@ def test_issue_3055_ready_check_with_unusable_repo_api_output_fails_the_push_acc
         assert ran.returncode == 1, (body, ran.returncode, ran.stdout, ran.stderr)
         assert any(l.startswith("fail") and "push access" in l for l in lines), (body, ran.stdout, ran.stderr)
         assert lines and lines[-1] == "not ready — 1 rows to fix", (body, ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess inside a repository where every row holds")
+def test_issue_3055_ready_check_prints_an_ok_row_for_each_check_that_holds_before_the_last_line(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    rows = ran.stdout.splitlines()[:-1]
+
+    assert any(l.startswith("ok") for l in rows), (ran.stdout, ran.stderr)
+    assert all(l.startswith(("ok", "fail")) for l in rows), (ran.stdout, ran.stderr)
