@@ -9,18 +9,20 @@ from wait_ci import trigger_lines
 USAGE = "usage: ready-check.sh [repo-root]"
 
 
+def git(*argv):
+    return subprocess.run(["git", *argv], capture_output=True, text=True)
+
+
 def default_tip():
-    head = subprocess.run(["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
-                          capture_output=True, text=True)
+    head = git("symbolic-ref", "refs/remotes/origin/HEAD")
     return head.stdout.strip() if head.returncode == 0 else "main"
 
 
 def triggers_on_pull_request():
     tip = default_tip()
-    names = subprocess.run(["git", "ls-tree", "--name-only", tip, ".github/workflows/"],
-                           capture_output=True, text=True).stdout.split()
+    names = git("ls-tree", "--name-only", tip, ".github/workflows/").stdout.split()
     for name in names:
-        text = subprocess.run(["git", "show", tip + ":" + name], capture_output=True, text=True).stdout
+        text = git("show", tip + ":" + name).stdout
         if any("pull_request" in line for line in trigger_lines(text)):
             return True
     return False
