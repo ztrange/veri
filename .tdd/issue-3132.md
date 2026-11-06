@@ -1,7 +1,7 @@
 # Plan for #3132 — PRD 018.1: VERI_SKIP_VERIFY=refactor skips verify-refactor, pinned per run and shown on the PR
 
 - [x] With `VERI_SKIP_VERIFY=plan` (a word other than `red`, `pin`, `green`, `refactor` or `diff`), `run-conductor.sh` exits 2 before launching the conductor, so before its baseline, naming `plan` on stderr; a small case driving `run_conductor.main` in-process ⟦criterion 1⟧
-- [ ] With `VERI_SKIP_VERIFY=green` (a phase that cannot be skipped yet: any but `refactor`), `run-conductor.sh` exits 2 before launching the conductor, naming `green` on stderr; a small case driving `run_conductor.main` in-process ⟦criterion 2⟧
+- [x] With `VERI_SKIP_VERIFY=green` (a phase that cannot be skipped yet: any but `refactor`), `run-conductor.sh` exits 2 before launching the conductor, naming `green` on stderr; a small case driving `run_conductor.main` in-process ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] On a fresh launch (no readable `.tdd/issue-<n>-skill-commit`) with `VERI_SKIP_VERIFY=refactor`, `run-conductor.sh` writes the list `refactor` to `.tdd/issue-<n>-skip-verify`, beside the skill-commit pin ⟦criterion 3⟧
 - [ ] On a fresh launch with `VERI_SKIP_VERIFY` unset, `run-conductor.sh` writes an empty `.tdd/issue-<n>-skip-verify` ⟦criterion 3⟧
 - [ ] On a resume (a readable `.tdd/issue-<n>-skill-commit`, `VERI_NEW_SKILL` unset), `run-conductor.sh` leaves `.tdd/issue-<n>-skip-verify` holding what it held, whatever `VERI_SKIP_VERIFY` says ⟦criterion 3⟧
