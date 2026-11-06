@@ -28,3 +28,12 @@ wanted = behaviour
 command 193
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3058_criterion_1_prints_later_for_an_upper_case_missing_test_behaviour_matching_a_lower_case_open_later_step
 
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old 47
+if text and (text in wanted or wanted in text):
+new 8
+if text:
+command 187
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3058_criterion_2_prints_missing_for_a_missing_test_matching_no_open_later_step_with_no_later_step_line
+
