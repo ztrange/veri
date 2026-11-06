@@ -57,7 +57,8 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   developer's rationale, so it cannot leak; every input is checked against that, and none may be
   added that could. The `refactor` phase takes `<base-sha>` instead of the test id (#151),
   exit 2 unless it matches `^[0-9a-f]{7,40}$`, so it can carry only a hex commit name; the
-  verifier reads `git diff <base-sha>..HEAD`, not commit messages.
+  verifier reads `git diff <base-sha>..HEAD`, not commit messages. `VERI_SKIP_VERIFY` (pinned per
+  run, `plan` never) skips the named verifiers (ADR-0033).
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
