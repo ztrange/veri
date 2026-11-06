@@ -115,7 +115,7 @@ def main(argv):
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
-                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-conductor-model\nconductor-*.log\nwt/\n")
+                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-conductor-model\nconductor-*.log\nwt/\n")
         if resuming:
             try:
                 with open(record) as recorded_file:
@@ -131,6 +131,8 @@ def main(argv):
         else:
             with open(record, "w") as out:
                 out.write(commit + "\n")
+            with open(os.path.join(run_state, "issue-%s-skip-verify" % argv[0]), "w") as skip:
+                skip.write(tunables.read("VERI_SKIP_VERIFY", "") + "\n")
             if readable:
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)

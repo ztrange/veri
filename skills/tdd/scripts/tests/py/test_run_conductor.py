@@ -596,6 +596,22 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
     }
 
 
+def test_main_on_a_fresh_launch_with_skip_verify_refactor_writes_the_list_refactor_to_the_skip_verify_file_beside_the_skill_commit_pin(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_SKIP_VERIFY", "refactor")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    skip = tmp_path / ".tdd" / "issue-4242-skip-verify"
+    assert (skip.read_text() if skip.is_file() else None) == "refactor\n"
+
+
 def test_main_on_a_fresh_run_runs_update_veri_before_resolving_the_pin_so_the_recorded_commit_is_the_updated_one(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
