@@ -282,3 +282,16 @@ def test_issue_3055_ready_check_prints_an_ok_row_for_each_check_that_holds_befor
 
     assert any(l.startswith("ok") for l in rows), (ran.stdout, ran.stderr)
     assert all(l.startswith(("ok", "fail")) for l in rows), (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where the opt-in label is missing from the repository")
+def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fail_row_naming_its_fix(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text('#!/bin/sh\ncase "$*" in\n  "auth status"*) exit 0 ;;\n  *label*) echo \'[]\' ;;\n  *) echo \'{"permissions":{"push":true,"admin":true}}\' ;;\nesac\n')
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
+    assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)

@@ -64,6 +64,10 @@ def main(argv):
     except (ValueError, KeyError, TypeError):
         can_push = False
     row("push access", can_push, "ask for write access to the repository, or use an account that has it")
+    label = os.environ.get("VERI_LABEL", "")
+    listed = subprocess.run(["gh", "label", "list", "--json", "name"], capture_output=True, text=True)
+    names = [entry["name"] for entry in json.loads(listed.stdout)]
+    row(f"label {label}", label in names, f"create the `{label}` label in the repository")
     failed = [r for r in rows if r.startswith("fail")]
     print(*rows, sep="\n")
     if failed:
