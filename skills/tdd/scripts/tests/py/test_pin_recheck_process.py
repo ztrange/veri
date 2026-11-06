@@ -1392,3 +1392,25 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_goes_red_exits_0_the_live_pin
     retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
     assert (ran.returncode, len(retired) == 1 and "tests/test_guard.py" in retired[0],
             (tmp_path / "ran.witness").exists()) == (0, True, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that edits a pin's file while its named test is missing but not deleted by the range")
+def test_3151_a_pin_whose_named_test_is_missing_at_head_but_not_deleted_by_the_range_exits_2_naming_the_path(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; touch ran.witness; grep -q 'if guard' guard.txt\" TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "edit the pinned file; the named test never existed")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "tests/test_guard.py" in ran.stderr, "retired:" in ran.stdout,
+            (tmp_path / "ran.witness").exists()) == (2, True, False, False), ran.stdout + ran.stderr

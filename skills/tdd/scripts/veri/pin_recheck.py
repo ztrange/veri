@@ -124,6 +124,10 @@ def recheck(argv):
                 sys.stdout.write(f"retired: {ledger} {pin['file']} {n}\n")
             retired += 1
             continue
+        for n in named:
+            if not Path(n).exists():
+                sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
+                return 2
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
         original = path.read_bytes()
