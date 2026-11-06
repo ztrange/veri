@@ -10,7 +10,7 @@ import sys
 import tunables
 from entry import write
 
-USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, repair <case> <superseded>…, supersede <cases> or revise)"
+USAGE = "usage: wrong-test-route.sh <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise)"
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
