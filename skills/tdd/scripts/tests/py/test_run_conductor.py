@@ -648,6 +648,27 @@ def test_main_on_a_resume_with_veri_new_skill_1_re_pins_the_skip_verify_file_fro
     assert skip.read_text() == "refactor\n"
 
 
+def test_main_on_a_resume_with_a_bad_skip_verify_refuses_nothing_about_it_and_leaves_the_pinned_skip_verify_file_alone(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_SKIP_VERIFY", "plan")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-4242-skill-commit").write_text(commit + "\n")
+    skip = tmp_path / ".tdd" / "issue-4242-skip-verify"
+    skip.write_text("refactor\n")
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+
+    stderr = capfdbinary.readouterr().err.decode()
+    assert ("VERI_SKIP_VERIFY" in stderr, skip.read_text()) == (False, "refactor\n"), stderr
+
+
 def test_main_on_a_fresh_run_runs_update_veri_before_resolving_the_pin_so_the_recorded_commit_is_the_updated_one(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)

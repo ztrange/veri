@@ -42,13 +42,6 @@ def main(argv):
         if bad:
             sys.stderr.write("run-conductor: %s must be %s, got '%s'\n" % (name, bad[1], bad[0]))
             return 2
-    for word in tunables.read("VERI_SKIP_VERIFY", "").split(","):
-        if word and word not in ("red", "pin", "green", "refactor", "diff"):
-            sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which is not a phase that can be skipped\n" % word)
-            return 2
-        if word and word != "refactor":
-            sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped yet\n" % word)
-            return 2
     if launch_floor.bash_refusal("run-conductor") or launch_floor.python_refusal("run-conductor"):
         return 2
     if not argv or not argv[0]:
@@ -69,6 +62,11 @@ def main(argv):
     record = record_path(argv[0])
     readable = os.access(record, os.R_OK)
     resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1"
+    if not resuming:
+        for word in tunables.read("VERI_SKIP_VERIFY", "").split(","):
+            if word and word != "refactor":
+                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor can)\n" % word)
+                return 2
     if not resuming:
         try:
             subprocess.run([os.path.join(here, "update-veri.sh")])
