@@ -2926,6 +2926,75 @@ def test_main_2916_criterion_5_a_later_step_report_is_checked_against_the_ledger
     assert (code, stdout) == (0, "later %s\n" % later)
 
 
+def test_main_3058_criterion_1_prints_later_for_a_missing_test_matching_an_open_later_step_with_no_later_step_line(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a cog turns ⟦criterion 1⟧"
+    later = "A cog never moves alone ⟦criterion 3⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def test_main_3058_criterion_1_prints_later_for_a_behaviour_inside_a_longer_open_later_step_and_skips_a_later_step_with_only_markers(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a cog turns ⟦criterion 1⟧"
+    bare = "⟦criterion 2⟧"
+    later = "A cog never moves alone, nor quickly ⟦criterion 3⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n- [ ] %s\n" % (step, bare, later))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a cog never moves alone\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def test_main_3058_criterion_1_prints_later_for_a_longer_behaviour_containing_an_open_later_step_with_no_later_step_line(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a cog turns ⟦criterion 1⟧"
+    later = "A cog never moves ⟦criterion 3⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: a cog never moves alone, nor quickly\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
+
+
+def test_main_3058_criterion_1_prints_later_for_an_upper_case_missing_test_behaviour_matching_a_lower_case_open_later_step(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    step = "a cog turns ⟦criterion 1⟧"
+    later = "a cog never moves alone ⟦criterion 3⟧"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-77.md").write_text("# Plan for #77\n\n- [ ] %s\n- [ ] %s\n" % (step, later))
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_ISSUE", "77")
+    report = tmp_path / "verify-green.out"
+    report.write_text("MISSING_TEST: A COG NEVER MOVES ALONE\nVERDICT: REJECT\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [str(report), "test_a_cog_turns"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "later %s\n" % later)
+
+
 def test_main_3037_criterion_2_prints_fixture_with_the_own_file_when_the_helper_is_defined_there_and_in_another_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
