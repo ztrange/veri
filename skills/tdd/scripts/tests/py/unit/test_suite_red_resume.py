@@ -519,3 +519,15 @@ def test_usage_names_the_test_only_verb_beside_the_others_with_its_arguments_for
 
     assert (code, out) == (2, "")
     assert "suite-red-resume.sh test-only <base-sha> <alone-cmd> <suite>..." in err
+
+
+def test_the_test_only_exit_0_branch_in_skill_md_ticks_the_step_with_a_ledger_and_a_step_title_3113():
+    import pathlib
+    import re
+
+    skill = (pathlib.Path(__file__).resolve().parents[4] / "SKILL.md").read_text()
+    branch = skill.split("suite-red-resume.sh test-only", 1)[1].split("**Exit 1:**", 1)[0]
+
+    tick = re.search(r"\$S/tick-ledger\.sh([^\n]*)", branch).group(1)
+
+    assert '.tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"' in tick, tick

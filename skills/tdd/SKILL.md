@@ -716,7 +716,7 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
   - **Exit 1 (any file still red alone, or the output names no file):** the step proceeds to Red as below, the failing suites being its red evidence.
 
 **After a `⟦suite-repair⟧` step's Red leaf and before verify-red,** run `$S/suite-red-resume.sh test-only <step-base-sha> <alone-cmd> <suite>…`, `<step-base-sha>` being the commit the step started from (`git log -1 --format=%H -- .tdd/issue-<n>.md`), `<alone-cmd>` the repo's one-test-file runner and each `<suite>` a suite the step's text names. It asks whether the Red leaf changed test files only, with every named suite then passing, no case deleted and no assertion removed:
-- **Exit 0:** the repair needs no red bar. Tick the step with `$S/tick-ledger.sh` (no `--refactor-pending`, since no refactor loop follows) and commit the ledger with the test changes under a `test:` subject. Launch no verify-red and no revise leaf, and never bail `revise-impossible`; continue at *4. Draft PR*.
+- **Exit 0:** the repair needs no red bar. Tick the step with `$S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"` (no `--refactor-pending`, since no refactor loop follows) and commit the ledger with the test changes under a `test:` subject. Launch no verify-red and no revise leaf, and never bail `revise-impossible`; continue at *4. Draft PR*.
 - **Exit 1:** a production file is touched, or a suite is still red, or a case or assertion was removed: the ordinary Red, verify-red and revise path, unchanged.
 - **Exit 2:** no answer could be obtained: **bail** with cause `no-verdict`, a system failure (`Read` `<base directory>/BAIL.md`).
 
