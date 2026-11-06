@@ -67,6 +67,7 @@
 | CM76 | The pytest leg pins `TMPDIR` to `/tmp` before it starts (#2354), so its `veri-pytest-*` run dir, `--basetemp` and every case's `tmp_path` live under `/tmp` whatever `TMPDIR` the caller set, matching CI; the pycache prefix, the full-run lock and `~/.veri-pytest-legs` are unaffected. (`make test` on the development Mac, third bullet.) | A local run's scratch matches CI's. |
 | CM77 | macOS checks each new executable on its first run (~330 ms); the fix is `sudo spctl developer-mode enable-terminal`, enabling the terminal under Privacy & Security → Developer Tools and restarting it, and since a Claude desktop session is not covered, conductors are launched from the enabled terminal. (`make test` on the development Mac, fourth bullet.) | The per-executable check otherwise taxes every run. |
 | CM78 | A speed issue states its acceptance criteria as behaviours only and quotes `make profile` before and after in the PR body; CI's `timeout-minutes` is the only wall-clock gate. (`make test` on the development Mac, last bullet.) | Speed is measured and reported, never asserted by a suite. |
+| CM79 | The "Invariants worth not breaking" bullet on blind verification says that `VERI_SKIP_VERIFY` (pinned per run, `plan` never) skips named verifiers, and cites ADR-0033. | The invariant as written would otherwise be false. |
 
 ## README.md
 
