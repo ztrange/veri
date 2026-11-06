@@ -66,6 +66,10 @@ def main(argv):
             reason_text = handle.read()
         if event_name == "unpinnable-step" and "stays green" not in reason_text:
             return 1
+        if event_name == "already-holds-step" and not any(
+            l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()
+        ):
+            return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2
