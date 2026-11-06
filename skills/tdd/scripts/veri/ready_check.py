@@ -15,6 +15,10 @@ def git(*argv):
     return subprocess.run(["git", *argv], capture_output=True, text=True)
 
 
+def gh(*argv):
+    return subprocess.run(["gh", *argv], capture_output=True, text=True)
+
+
 def default_tip():
     head = git("symbolic-ref", "refs/remotes/origin/HEAD")
     return head.stdout.strip() if head.returncode == 0 else "main"
@@ -57,15 +61,15 @@ def main(argv):
     row("push", triggers_on("push"), "add a workflow under .github/workflows/ that triggers on push to the default branch")
     row("test file", any(is_test_path(f) for f in git("ls-files").stdout.splitlines()), "track at least one test file")
     row(".tdd/", git("check-ignore", "-q", ".tdd/").returncode == 0, "add `.tdd/` to .gitignore")
-    row("gh auth", subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0, "run `gh auth login`")
-    pushed = subprocess.run(["gh", "api", "repos/{owner}/{repo}"], capture_output=True, text=True)
+    row("gh auth", gh("auth", "status").returncode == 0, "run `gh auth login`")
+    pushed = gh("api", "repos/{owner}/{repo}")
     try:
         can_push = json.loads(pushed.stdout)["permissions"]["push"]
     except (ValueError, KeyError, TypeError):
         can_push = False
     row("push access", can_push, "ask for write access to the repository, or use an account that has it")
     label = os.environ.get("VERI_LABEL", "")
-    listed = subprocess.run(["gh", "label", "list", "--json", "name"], capture_output=True, text=True)
+    listed = gh("label", "list", "--json", "name")
     names = [entry["name"] for entry in json.loads(listed.stdout)]
     row(f"label {label}", label in names, f"create the `{label}` label in the repository")
     failed = [r for r in rows if r.startswith("fail")]
