@@ -1303,3 +1303,31 @@ def test_3124_a_record_whose_make_command_has_a_makefile_but_a_failing_target_pr
 
     assert (ran.returncode, "needs a look" in ran.stdout and "guard.txt" in ran.stdout,
             (tmp_path / "guard.txt").read_bytes()) == (0, True, b"if guard\nmore\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that edits a recorded file and deletes the test its command names")
+def test_3151_a_pin_whose_named_test_the_range_deletes_is_retired_exits_3_and_runs_nothing(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("rm", "-q", "tests/test_guard.py")
+    git("commit", "-q", "-am", "edit guard.txt and delete its test")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
+    assert (ran.returncode, len(retired) == 1 and all(
+        word in retired[0] for word in ("issue-835-mutations.md", "guard.txt", "tests/test_guard.py")),
+        (tmp_path / ".tdd" / "pin-recheck-ok").exists(), (tmp_path / "ran.witness").exists()) == (
+        3, True, True, False), ran.stderr

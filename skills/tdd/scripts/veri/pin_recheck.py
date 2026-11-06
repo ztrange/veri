@@ -1,6 +1,7 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -104,7 +105,10 @@ def recheck(argv):
     pins = [(f, r) for f, r in found if r.get("keep", r.get("file")) in touched]
     if not pins:
         return 3
+    deleted = set(subprocess.run(["git", "diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD"],
+                                 capture_output=True, text=True, check=True).stdout.split())
     status = 0
+    retired = 0
     for ledger, pin in pins:
         if "before" in pin:
             replayed = replay_before(pin, ledger)
@@ -113,6 +117,12 @@ def recheck(argv):
             if replayed == 0:
                 sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
                 status = 1
+            continue
+        named = re.findall(r"TESTS=(\S+)", pin["command"])
+        if named and all(n in deleted for n in named):
+            for n in named:
+                sys.stdout.write(f"retired: {ledger} {pin['file']} {n}\n")
+            retired += 1
             continue
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
@@ -145,6 +155,8 @@ def recheck(argv):
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
+    if retired == len(pins):
+        return 3
     return status
 
 
