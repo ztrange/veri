@@ -1200,8 +1200,8 @@ def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tm
     assert (ran.returncode, receipt.exists()) == (1, False), ran.stderr
 
 
-@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose before-state replay raises after files were swapped")
-def test_2967_a_before_replay_that_raises_mid_run_exits_2_and_leaves_every_file_byte_identical(tmp_path):
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose before-state replay swaps files, one added after before and deleted by HEAD")
+def test_2967_a_before_replay_that_swaps_files_leaves_every_file_byte_identical_and_answers_exit_1(tmp_path):
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
@@ -1235,7 +1235,7 @@ def test_2967_a_before_replay_that_raises_mid_run_exits_2_and_leaves_every_file_
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, tree()) == (2, before), ran.stderr
+    assert (ran.returncode, tree()) == (1, before), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a record whose command is not found")
@@ -1469,3 +1469,31 @@ def test_3151_a_deleted_test_path_that_prefixes_a_kept_one_leaves_the_kept_argum
 
     args = (tmp_path / "ran.args").read_text().strip() if (tmp_path / "ran.args").exists() else None
     assert (ran.returncode, args) == (0, "TESTS=tests/test_a.py2"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before record whose replay range names a file the checked range later deletes")
+def test_3151_a_before_replay_over_a_file_added_after_before_and_deleted_by_head_answers_and_does_not_exit_2(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "z_new.txt").write_text("added later\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix, pin and add")
+    green = git("rev-parse", "HEAD")
+    git("rm", "-q", "z_new.txt")
+    git("commit", "-q", "-m", "delete the added file")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3128-mutations.md", before=base, keep="pin.txt", green=green,
+           command="grep -q fixed src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "z_new.txt").exists()) == (0, False), ran.stdout + ran.stderr
