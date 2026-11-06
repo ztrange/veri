@@ -2,3 +2,4 @@
 
 - [x] skills/tdd/scripts/prompts/verify-refactor.md: check 4 says a refactor that adds or changes an assertion line of a case frozen at any earlier step (not only one removed or weakened) is a REJECT naming the case (VF19) ⟦skill-edit⟧ ⟦criterion 1⟧
 - [x] skills/tdd/scripts/prompts/develop-refactor.md: the prompt says a refactor may not add or change an assertion line of a frozen case of any step, while moving it into a helper unchanged modulo whitespace is allowed (RE26) ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] `skills/tdd/scripts/prompts/verify-refactor.md`: fix the full-suite failure in `skills/tdd/scripts/tests/py/unit/test_emitted_text.py` — FAILED test_usage_output_on_a_missing_argument_and_prompt_output_for_fixed_inputs_are_unchanged (the build-verify-prompt.sh refactor checksum): reword the VF19 sentence of check 4 more tightly and update its checksum pin in that test file ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
