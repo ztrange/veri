@@ -179,6 +179,11 @@ issue, not only in the conductor's log.
    `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH` or
    `VERI_SKILL_EDIT_BUDGET`.
 
+   Then `VERI_SKIP_VERIFY`: it is a comma-separated list of phases whose verify is skipped. Each
+   word must be a phase this release can skip, and `plan` is never one. Any other word is the same
+   **exit 2** as a bad `VERI_STEP_GROWTH`, before the baseline: stop and do not start, naming the
+   word verbatim.
+
    Then the two money budgets: run `$S/step-budget.sh` once, with no arguments. **Exit 2**
    means `VERI_STEP_BUDGET` or `VERI_RUN_BUDGET` is not a non-negative decimal number — the
    same preflight-class stop as a bad `VERI_REFACTOR_BUDGET`: report its stderr diagnostic
