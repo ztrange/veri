@@ -3347,3 +3347,12 @@ def test_main_3135_prints_missing_when_a_later_open_step_names_a_criterion_past_
 
     assert (code, stdout, stderr) == (0, "missing a lever lifts\n", "")
 
+
+def test_main_3135_counts_only_unchecked_criteria_when_a_checked_box_precedes_the_later_one(
+        run_cli, tmp_path, monkeypatch):
+    spec = "## Acceptance criteria\n\n- [x] A cog turns\n- [ ] A wheel turns\n- [ ] A gear never slips\n"
+
+    code, stdout, stderr = _spec_route(
+        run_cli, tmp_path, monkeypatch, "a gear holds ⟦criterion 2⟧", spec, "gear never slips")
+
+    assert (code, stdout, stderr) == (0, "later a gear holds ⟦criterion 2⟧\n", "")
