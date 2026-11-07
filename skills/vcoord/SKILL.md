@@ -23,14 +23,16 @@ project specific (labels, test commands, where PRDs live).
    handoff file for state only — what is running, awaiting merge, N, overrides,
    permissions and their expiry, pending decisions — never the parked set (below) — and take every rule from this skill and
    the principles. Then re-read that state live (below) before acting on any of it.
-2. Read the live state: `$S/status.sh --json` (every run, its step k/n, phase, cost),
-   `$S/parked-issues.sh` (the parked set, from GitHub; exit 3 means none parked),
-   `$S/solvable-issues.sh` (the queue in launch order), `gh pr list --state open` (PRs
-   awaiting merge) and the target repo's CLAUDE.md.
+2. Read the live state: `$S/parked-issues.sh` (the parked set, from GitHub; exit 3 means none
+   parked), `$S/solvable-issues.sh` (the queue in launch order), `gh pr list --state open` (PRs
+   awaiting merge) and the target repo's CLAUDE.md. While a dev session is attached, run no
+   `$S/status.sh`: ask the dev session which runs are live, their step k/n, phase and cost.
+   With no dev session attached, `$S/status.sh --json` gives them.
 3. Switch off every claude.ai connector loaded in this session, for this session only, with the
    desktop app's per-session connector tool; never change the account's settings. The
    coordinator needs none of them, and their tool definitions are re-read on every turn.
-4. Arm the watch (below) and stay in it.
+4. With a dev session attached, arm no watch: its messages are your watch (below). With none
+   attached, arm the watch (below) and stay in it.
 
 ## What you do and do not do
 
@@ -84,15 +86,20 @@ awaits your ruling or merge instruction (between batches), never in the middle o
 
 ## Watching
 
-Watch through the blocking watch of P3, `$S/watch-runs.sh`, which prints one line per
-conductor exit. Run `watch-runs.sh` itself
-under a Monitor (or as a background command), never a hand-written script. When the watch returns, re-read the state the line names
-(P1), act if it calls for it, and re-arm at once; a re-arm gets a single `.` (P4).
+**While a dev session is attached, you watch no run state yourself**: arm no Monitor on
+`watch-runs.sh` and run no `status.sh`. You learn of conductor exits, bails and merges from the
+dev session's messages, and a report that needs no action gets a single `.` (P4).
+
+**With no dev session attached**, watch through the blocking watch of P3, `$S/watch-runs.sh`,
+which prints one line per conductor exit. Run `watch-runs.sh` itself under a Monitor (or as a
+background command), never a hand-written script. When the watch returns, re-read the state the
+line names (P1), act if it calls for it, and re-arm at once; a re-arm gets a single `.` (P4).
 
 On each event:
 
 - **Conductor start** the dev session already announced, **merge** already reported, routine
-  dev-session message, watch expiry, a progress check you made yourself: a single `.`; re-arm. This
+  dev-session message, an ack, watch expiry, a progress check you made yourself: a single `.`; re-arm
+  if you armed a watch. This
   holds while a human decision is pending: it was asked once, and these events do not re-ask it.
 - **Bail or stall** the dev session has not handled: one line to the human, then whatever
   decision it needs, restated in full.
