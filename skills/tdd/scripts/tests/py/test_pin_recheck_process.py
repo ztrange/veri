@@ -1705,7 +1705,7 @@ def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_ba
     (repo / "pin.txt").write_text("pin v1\n")
     git("commit", "-q", "-am", "touch the pin file, leaving the pin as it was")
     (repo / ".tdd").mkdir()
-    record(repo / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+    record(repo / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="sh -c \"grep -q old src.txt\" TESTS=src.txt")
     before = (git("worktree", "list"), git("status", "--porcelain"))
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
@@ -1713,7 +1713,7 @@ def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_ba
 
     assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr, (repo / ".tdd" / "pin-recheck-ok").exists(),
             (git("worktree", "list"), git("status", "--porcelain")) == before, list(scratch.iterdir())) == (
-        0, "stale: .tdd/issue-3160-mutations.md pin.txt\n", False, True, True, []), ran.stderr
+        0, "stale: .tdd/issue-3160-mutations.md src.txt\n", False, True, True, []), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a pin this range disarmed beside a stale pin")
@@ -1733,7 +1733,7 @@ def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stal
     (tmp_path / "stale.txt").write_text("stale v1\n")
     git("commit", "-q", "-am", "touch both pin files")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-3160-a-mutations.md", before=base, keep="stale.txt", command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-3160-a-mutations.md", before=base, keep="stale.txt", command="sh -c \"grep -q old src.txt\" TESTS=src.txt")
     record(tmp_path / ".tdd" / "issue-3160-b-mutations.md", before=base, keep="pin.txt",
            command="grep -q old src.txt && test ! -e marker.txt")
 
@@ -1742,7 +1742,7 @@ def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stal
     assert (ran.returncode, "pin stayed green on the before-state: pin.txt" in ran.stderr,
             "stayed green on the before-state: stale.txt" in ran.stderr, ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
-        1, True, False, "stale: .tdd/issue-3160-a-mutations.md stale.txt\n", False), ran.stderr
+        1, True, False, "stale: .tdd/issue-3160-a-mutations.md src.txt\n", False), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a stale before-state pin beside an old-format pin that goes red under its mutation")
@@ -1762,7 +1762,7 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_goes_red_un
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch the pin file and guard")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="sh -c \"grep -q old src.txt\" TESTS=src.txt")
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
 
@@ -1770,7 +1770,7 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_goes_red_un
 
     assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
-        0, "stale: .tdd/issue-3160-mutations.md pin.txt\n", False, True), ran.stderr
+        0, "stale: .tdd/issue-3160-mutations.md src.txt\n", False, True), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a stale before-state pin beside an old-format pin that stays green under its mutation")
@@ -1790,13 +1790,13 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_stays_green
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "touch the pin file and disarm guard")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="sh -c \"grep -q old src.txt\" TESTS=src.txt")
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="grep -q throws guard.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, "stale: .tdd/issue-3160-mutations.md pin.txt\n" in ran.stdout,
+    assert (ran.returncode, "stale: .tdd/issue-3160-mutations.md src.txt\n" in ran.stdout,
             "pin stayed green" in ran.stderr and "pin.txt" in ran.stderr, "guard.txt" in ran.stdout + ran.stderr,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (1, True, False, True, False), ran.stderr
 
