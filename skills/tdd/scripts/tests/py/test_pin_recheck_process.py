@@ -1584,3 +1584,28 @@ def test_3168_a_pin_naming_a_pytest_node_id_whose_file_exists_is_rechecked_by_it
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode != 2, "named test missing" in ran.stderr) == (True, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that deletes the file part of a pytest node id a pin names")
+def test_3168_a_pin_naming_a_pytest_node_id_whose_file_the_range_deletes_is_retired_by_its_file_part_and_exits_3(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_a_case(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3168-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py::test_a_case")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("rm", "-q", "tests/test_guard.py")
+    git("commit", "-q", "-am", "edit guard.txt and delete its test file")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
+    assert (ran.returncode, len(retired), (tmp_path / "ran.witness").exists()) == (3, 1, False), ran.stdout + ran.stderr

@@ -111,8 +111,8 @@ def recheck(argv):
     retired = 0
     for ledger, pin in pins:
         named = re.findall(r"TESTS=(\S+)", pin["command"])
-        gone = [n for n in named if n in deleted]
-        named = [n for n in named if n not in deleted]
+        gone = [n for n in named if n.split("::")[0] in deleted]
+        named = [n for n in named if n.split("::")[0] not in deleted]
         mutated_file = pin.get("file", pin.get("keep"))
         if gone and not named:
             for n in gone:
