@@ -183,3 +183,9 @@ def test_the_structural_phased_and_refactor_kind_files_exist_and_skill_md_tells_
         if not ((SKILL.parent / name).is_file() and reads):
             missing.append(name)
     assert missing == []
+
+
+def test_draft_pr_md_exists_beside_skill_md_and_skill_md_names_it_3174():
+    """Subject is source text: DRAFT-PR.md is a file beside SKILL.md, and SKILL.md names it `<base directory>/DRAFT-PR.md`."""
+    assert DRAFT_PR.is_file()
+    assert "`<base directory>/DRAFT-PR.md`" in SKILL.read_text()
