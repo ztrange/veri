@@ -584,29 +584,25 @@ def render(issue, path, ledger):
             print("Inconsistent mark: %s" % inconsistent)
     if passes:
         by_step = {}
-        all_moved, all_reasons = [], {}
         for (step, _), (mark, _) in passes.items():
             by_step.setdefault(step, []).append(mark)
-        table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
-                   ["---:", "---:", "---:", "---"])
-        for step, marks in by_step.items():
+
+        def totals_row(label, marks):
+            moved = [mark["transforms"] for mark in marks]
             reasons = {}
             for mark in marks:
                 reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
-                all_reasons[mark["stopped"]] = all_reasons.get(mark["stopped"], 0) + 1
-            moved = [mark["transforms"] for mark in marks]
             known = all(count.isdigit() for count in moved)
-            all_moved.extend(moved)
-            row([step, str(len(marks)), str(sum(map(int, moved))) if known else "?",
+            row([label, str(len(marks)), str(sum(map(int, moved))) if known else "?",
                  str(moved.count("0")),
                  ", ".join("%s %d" % item for item in sorted(reasons.items()))])
-        if structural_marked:
-            all_moved.append(structural["transforms"])
-            all_reasons[structural["stopped"]] = all_reasons.get(structural["stopped"], 0) + 1
-        known = all(count.isdigit() for count in all_moved)
-        row(["issue", str(len(all_moved)), str(sum(map(int, all_moved))) if known else "?",
-             str(all_moved.count("0")),
-             ", ".join("%s %d" % item for item in sorted(all_reasons.items()))])
+
+        table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
+                   ["---:", "---:", "---:", "---"])
+        for step, marks in by_step.items():
+            totals_row(step, marks)
+        every = [mark for marks in by_step.values() for mark in marks]
+        totals_row("issue", every + [structural] if structural_marked else every)
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
 
