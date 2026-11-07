@@ -368,6 +368,10 @@ def conductor_alive(start):
     return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == start["started"]
 
 
+def sum_since(events, since, value=lambda e: 1):
+    return sum(value(e) for e in events if e["ts"] > since)
+
+
 def running_lines():
     blocks = []
     since = status_last_time()
@@ -382,7 +386,7 @@ def running_lines():
             if plans:
                 name += " %d/%s" % (len(of("step-done")), plans[-1]["steps"])
                 if since is not None:
-                    name += " +%d" % sum(1 for e in of("step-done") if e["ts"] > since)
+                    name += " +%d" % sum_since(of("step-done"), since)
             launches = of("launch")
             if launches:
                 phase = launches[-1]["phase"]
@@ -396,7 +400,7 @@ def running_lines():
             if dollars:
                 name += " | total | $%.2f" % dollars
                 if since is not None:
-                    name += " +$%.2f" % sum(e["total_cost_usd"] for e in usage if e["ts"] > since)
+                    name += " +$%.2f" % sum_since(usage, since, lambda e: e["total_cost_usd"])
             models = {}
             for e in launches:
                 if "model" in e:
