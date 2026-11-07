@@ -89,6 +89,8 @@ def main(argv):
                 asked = True
             sleep(5)
         if not asked or run_state(run) != "stopped":
+            if asked:
+                os.remove(_run_file(run, "restart-pending"))
             break
         detach_leaf(run)
         restarts += 1
