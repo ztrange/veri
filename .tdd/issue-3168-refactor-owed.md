@@ -1,0 +1,2 @@
+### A mutation record whose command names `TESTS=<file>::<case>`, with `<file>` present at HEAD and touched by the range, is rechecked by its file part: pin-recheck.sh does not exit 2 and writes no `named test missing` line, driven through the process boundary in skills/tdd/scripts/tests/py/test_pin_recheck_process.py (a medium case with a real process) ⟦criterion 1⟧
+- test-only | extract the repeated local `git` helper (3151 and 3168 cases) into a shared fixture, which touches frozen cases
