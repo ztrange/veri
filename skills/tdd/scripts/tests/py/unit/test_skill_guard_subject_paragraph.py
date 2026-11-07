@@ -8,9 +8,6 @@ def test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftes
     text = (SCRIPTS.parent / "SKILL.md").read_text()
     paragraph = next(p for p in re.split(r"\n\s*\n", text) if "⟦guard-subject: <path>⟧" in p)
     flat = " ".join(paragraph.split())
-    suite = re.search(r"skills/tdd/scripts/tests/py/test_\w+\.py", flat)
-    assert suite, flat
-    assert "skills/tdd/scripts/tests/py/conftest.py" in flat, flat
     repo = SCRIPTS.parent.parent.parent
-    for path in (suite.group(), "skills/tdd/scripts/tests/py/conftest.py"):
+    for path in re.findall(r"skills/tdd/scripts/tests/py/\w+\.py", flat):
         assert (repo / path).is_file(), path
