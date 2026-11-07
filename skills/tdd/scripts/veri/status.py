@@ -303,9 +303,13 @@ def queue_counts():
     return text
 
 
+def status_last_path():
+    return os.path.join(main_working_tree(), ".tdd", "status-last")
+
+
 def status_last():
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "status-last")) as f:
+        with open(status_last_path()) as f:
             return json.load(f)
     except OSError:
         return None
@@ -427,8 +431,8 @@ def main(argv):
             queue[label] = len(opted_in)
         except OSError:
             pass
-        os.makedirs(os.path.join(main_working_tree(), ".tdd"), exist_ok=True)
-        with open(os.path.join(main_working_tree(), ".tdd", "status-last"), "w") as f:
+        os.makedirs(os.path.dirname(status_last_path()), exist_ok=True)
+        with open(status_last_path(), "w") as f:
             json.dump({"time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "queue": queue}, f)
         return 0
     parsed = parse_args(argv)
