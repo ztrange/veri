@@ -7,4 +7,4 @@
 - [x] The `issue` row adds the run's `structural-pass` mark as one pass: passes plus 1, transforms plus its `transforms`, landed nothing plus 1 when its `transforms` is 0, and its `stopped` counted among the stop reasons ⟦criterion 2⟧
 - [x] A `structural-pass` mark carrying no `transforms` (e.g. `stopped=nothing-structural` alone) counts in the `issue` row's passes and stopped only, and the `issue` row's transforms and landed-nothing cells print `?` rather than an invented figure ⟦criterion 2⟧
 - [x] A `refactor` event without `transforms` counts in its step's passes only, and prints `?` in that step's transforms and landed-nothing cells and in the `issue` row's, without raising ⟦criterion 3⟧
-- [ ] A run with no `refactor` event and no `structural-pass` event prints no `#### Refactor totals` section ⟦criterion 3⟧
+- [x] A run with no `refactor` event and no `structural-pass` event prints no `#### Refactor totals` section ⟦criterion 3⟧ ⟂ retired unpinnable
