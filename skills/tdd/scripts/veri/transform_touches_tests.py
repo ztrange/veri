@@ -52,9 +52,10 @@ def main(argv):
             print(f"transform changed a file outside its bound: {outside}")
             return 1
     if "--touched" in argv:
-        if argv.index("--touched") + 1 >= len(argv):
+        value_at = argv.index("--touched") + 1
+        if value_at >= len(argv):
             return refuse()
-        raw = argv[argv.index("--touched") + 1]
+        raw = argv[value_at]
         if not raw:
             return refuse("transform-touches-tests.sh: --touched list is empty")
         touched_list = set(raw.encode().split(b","))
