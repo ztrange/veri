@@ -1301,11 +1301,11 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     unpinned.mkdir()
     monkeypatch.chdir(unpinned)
     launches = fake_claude_launch(monkeypatch)
-    codes = [run_conductor.main(["abc", "extra", "more"])]
+    codes = [run_conductor.main(["4242", "extra", "more"])]
     capfdbinary.readouterr()
     recorded = "".join(f.read_text() for f in sorted((unpinned / ".tdd").glob("*")) if f.is_file())
     answers["unpinned"] = ([launch["stdin"] for launch in after_update_veri(launches)],
-                           (str(scratch / "veri-run-abc-") in recorded, str(os.getpid()) in recorded))
+                           (str(scratch / "veri-run-4242-") in recorded, str(os.getpid()) in recorded))
 
     pinned = tmp_path / "pinned"
     pinned.mkdir()
@@ -1339,19 +1339,19 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     monkeypatch.setattr(subprocess, "Popen", tar_extracts_a_skill_md_with_trailing_newlines)
     monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
     monkeypatch.setattr(subprocess, "check_output", update_noted)
-    codes.append(run_conductor.main(["abc", "extra"]))
+    codes.append(run_conductor.main(["4242", "extra"]))
     capfdbinary.readouterr()
-    answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-abc-skill-commit").read_text())
+    answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-4242-skill-commit").read_text())
 
     assert (len(snapshots), codes, updates) == (1, [0, 0], [0])
     assert answers == {
         "unpinned": ([("# the procedure\n\nlast line"
                        "\n\nBase directory for this skill: %s\n"
-                       "\nSolve issue #abc by the procedure above.\n" % skill).encode()], (True, True)),
+                       "\nSolve issue #4242 by the procedure above.\n" % skill).encode()], (True, True)),
         "pinned": ([("# the committed procedure"
                      "\n\nBase directory for this skill: %s\n"
                      "\nPinned skill commit (name it in the plan comment): %s\n"
-                     "\nSolve issue #abc by the procedure above.\n" % (snapshots[0], commit)).encode()],
+                     "\nSolve issue #4242 by the procedure above.\n" % (snapshots[0], commit)).encode()],
                    commit + "\n"),
     }
 
@@ -2162,6 +2162,41 @@ def test_cli_a_launch_whose_run_worktree_does_not_exist_yet_records_the_conducto
     code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
+
+
+def test_cli_with_help_as_the_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, out, err = run_cli(run_conductor, ["--help"], cwd=cwd)
+
+    assert (code, out, err, (cwd / ".tdd" / "wt" / "--help").exists(), [args[:1] for args, _ in launches]) == (
+        2, "", "usage: run-conductor.sh <issue>\n", False, [])
+
+
+def test_cli_with_a_non_numeric_or_zero_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    results = {}
+    for issue in ("abc", "0"):
+        code, out, err = run_cli(run_conductor, [issue], cwd=cwd)
+        results[issue] = (code, out, err, (cwd / ".tdd" / "wt" / issue).exists(), [args[:1] for args, _ in launches])
+
+    refusal = (2, "", "usage: run-conductor.sh <issue>\n", False, [])
+    assert results == {"abc": refusal, "0": refusal}
 
 
 def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of_its_conductor_pid_file_issue_2537(
