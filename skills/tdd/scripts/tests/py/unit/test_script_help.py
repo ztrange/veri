@@ -13,3 +13,9 @@ def test_main_with_no_argument_exits_2_printing_the_usage_line_script_help_sh(ru
     code, out, err = run_cli(script_help, [])
 
     assert (code, out, err) == (2, "", "usage: script-help.sh <name>\n")
+
+
+def test_main_with_a_name_that_has_no_entry_in_scripts_md_exits_3_printing_nothing_on_stdout(run_cli, script_help):
+    code, out, err = run_cli(script_help, ["no-such-script.sh"])
+
+    assert (code, out) == (3, "")
