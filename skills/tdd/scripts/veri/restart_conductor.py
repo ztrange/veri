@@ -9,6 +9,9 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
+    if not (argv[0].isascii() and argv[0].isdigit() and int(argv[0]) >= 1):
+        print(USAGE, file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
