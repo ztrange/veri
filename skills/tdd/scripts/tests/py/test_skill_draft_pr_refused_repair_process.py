@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-SKILL = Path(__file__).resolve().parents[3] / "SKILL.md"
+SKILL = Path(__file__).resolve().parents[3] / "DRAFT-PR.md"
 ANCHOR = re.compile(r"^\$S/add-ledger-step\.sh .*⟦suite-repair⟧")
 
 
@@ -21,10 +21,10 @@ def _repair_block():
     return "\n".join(out).replace("<n>", "2730")
 
 
-@pytest.mark.process("SKILL.md's Draft PR repair block runs under bash -c against stub scripts")
+@pytest.mark.process("DRAFT-PR.md's Draft PR repair block runs under bash -c against stub scripts")
 def test_issue_2730_a_refused_repair_step_bails_step_add_refused_and_writes_no_step_added_or_step_start(tmp_path):
     block = _repair_block()
-    assert block.strip(), "no add-ledger-step.sh ⟦suite-repair⟧ block in SKILL.md — nothing could be run"
+    assert block.strip(), "no add-ledger-step.sh ⟦suite-repair⟧ block in DRAFT-PR.md — nothing could be run"
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     stubs = {"add-ledger-step.sh": "#!/bin/sh\nexit 2\n",

@@ -24,9 +24,9 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 """
 
 
-@pytest.mark.process("a real two-branch git repository with a bare origin, rebase-onto-default.sh, the SKILL.md regrade block and prose-owed.sh")
+@pytest.mark.process("a real two-branch git repository with a bare origin, rebase-onto-default.sh, the DRAFT-PR.md regrade block and prose-owed.sh")
 def test_2575_a_graded_conflict_resolved_with_the_branch_side_is_re_signed_by_the_regrade_block_and_leaves_prose_owed_exiting_0(tmp_path):
-    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "DRAFT-PR.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,

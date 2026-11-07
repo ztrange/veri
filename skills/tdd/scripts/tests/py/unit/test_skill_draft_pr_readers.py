@@ -1,4 +1,4 @@
-"""Cases for which suites still read SKILL.md's `### 4. Draft PR` section by its content."""
+"""Cases for which suites still read DRAFT-PR.md's `## 4. Draft PR` section by its content."""
 import pathlib
 import re
 
@@ -6,8 +6,9 @@ import pytest
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
-PREFIX = "### 4. Draft"
-HEADING = "### 4. Draft PR"
+DRAFT_PR_MD = SKILL_MD.with_name("DRAFT-PR.md")
+PREFIX = "## 4. Draft"
+HEADING = "## 4. Draft PR"
 
 MARKERS = (HEADING, "gh_pr_ready", "rebased-tip-red")
 
@@ -26,11 +27,8 @@ def _flat(text):
 
 
 def _section_and_rest():
-    text = SKILL_MD.read_text(encoding="utf-8")
-    start = text.index(HEADING)
-    following = re.search(r"^#{1,3} ", text[start + len(HEADING):], re.M)
-    stop = start + len(HEADING) + following.start() if following else len(text)
-    return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
+    section = DRAFT_PR_MD.read_text(encoding="utf-8")
+    return _flat(section), _flat(SKILL_MD.read_text(encoding="utf-8"))
 
 
 def _names_the_heading(literal):
@@ -44,7 +42,7 @@ def _only_in_section(literal, section, rest):
 
 def _readers(entry, section, rest):
     text = entry.text
-    if "SKILL" not in text:
+    if "SKILL" not in text and "DRAFT_PR_MD" not in text:
         return []
     definitions = entry.walk.definitions
     segments = {d.name: d.segment for d in definitions}
@@ -72,7 +70,7 @@ def _readers(entry, section, rest):
         name for name in segments
         if name.startswith("test_")
         and reads_the_section(reach(name))
-        and any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines", i) for n in reach(name) for i in reads[n])
+        and any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines|DRAFT_PR(?:_MD)?", i) for n in reach(name) for i in reads[n])
     )
 
 

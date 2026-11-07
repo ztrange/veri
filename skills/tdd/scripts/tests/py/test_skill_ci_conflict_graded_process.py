@@ -1,4 +1,4 @@
-"""Cases for SKILL.md's first CI-wait block against a real rebase-onto-default.sh and a real git repository."""
+"""Cases for DRAFT-PR.md's first CI-wait block against a real rebase-onto-default.sh and a real git repository."""
 import os
 import subprocess
 from pathlib import Path
@@ -11,7 +11,7 @@ from test_skill_ci_conflict import NO_STEP, _ci_step, _first_block
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.process("SKILL.md's first CI-wait block runs under bash -c in a git repo with a bare origin, the real rebase-onto-default.sh and stub scripts")
+@pytest.mark.process("DRAFT-PR.md's first CI-wait block runs under bash -c in a git repo with a bare origin, the real rebase-onto-default.sh and stub scripts")
 def test_issue_2706_a_graded_only_conflict_with_the_marker_already_present_rebases_and_records_no_bail(tmp_path):
     step = _ci_step()
     assert step.strip(), NO_STEP
@@ -72,7 +72,7 @@ def test_issue_2706_a_graded_only_conflict_with_the_marker_already_present_rebas
         f"a GRADED-only conflict after the run's rebase recorded [{got}] instead of rebasing onto {onto}")
 
 
-@pytest.mark.process("SKILL.md's first CI-wait block runs under bash -c in a git repo with a bare origin, the real rebase-onto-default.sh and stub scripts")
+@pytest.mark.process("DRAFT-PR.md's first CI-wait block runs under bash -c in a git repo with a bare origin, the real rebase-onto-default.sh and stub scripts")
 def test_issue_2706_a_conflict_beyond_graded_with_the_marker_already_present_records_the_ci_conflict_bail_and_leaves_head(tmp_path):
     step = _ci_step()
     assert step.strip(), NO_STEP
