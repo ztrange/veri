@@ -87,3 +87,23 @@ def test_growth_with_no_baseline_given_takes_the_first_usage_records_context_of_
         turn("m3", 31000),
     ]
     assert growth(records) == (2 + 31000 + 100) - (2 + 20000 + 100)
+
+
+def test_growth_with_no_baseline_given_takes_the_first_turn_of_the_last_session_as_the_baseline(growth):
+    def turn(msg_id, read):
+        usage = {
+            "input_tokens": 2,
+            "cache_read_input_tokens": read,
+            "cache_creation_input_tokens": 100,
+        }
+        return {"type": "assistant", "message": {"id": msg_id, "usage": usage}}
+
+    records = [
+        {"type": "system", "subtype": "init"},
+        turn("a1", 20000),
+        turn("a2", 50000),
+        {"type": "system", "subtype": "init"},
+        turn("b1", 60000),
+        turn("b2", 64000),
+    ]
+    assert growth(records) == 64000 - 60000
