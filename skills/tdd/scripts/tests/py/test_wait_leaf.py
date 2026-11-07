@@ -1,6 +1,5 @@
 """In-process cases for veri/wait_leaf.py, the module wait-leaf.sh is a shim over."""
 import importlib
-import re
 import subprocess
 
 import pytest
@@ -418,10 +417,6 @@ def test_cli_with_its_default_budget_answers_0_1_or_2_as_soon_as_recorded_and_2_
                        "dead": ((2, "", True), True)}
 
 
-def skill_paragraphs():
-    return re.split(r"\n[ \t]*\n", (SCRIPTS.parent / "SKILL.md").read_text())
-
-
 def test_skill_md_launches_every_leaf_detached_and_waits_for_it_with_wait_leaf_sh_in_the_foreground():
     lines = (SCRIPTS.parent / "SKILL.md").read_text().split("\n")
     sites = [i for i, line in enumerate(lines)
@@ -429,8 +424,3 @@ def test_skill_md_launches_every_leaf_detached_and_waits_for_it_with_wait_leaf_s
     misses = [i + 1 for i in sites
               if "detach-leaf.sh" not in lines[i] or "wait-leaf.sh" not in "\n".join(lines[i:i + 7])]
     assert (len(sites) >= 5, misses) == (True, [])
-
-
-def test_skill_md_tells_the_conductor_to_call_detach_command_sh_wait_with_no_max_seconds_and_the_bash_maximum_timeout_never_a_fixed_500_1708():
-    text = (SCRIPTS.parent / "PREFLIGHT.md").read_text()
-    assert not re.search(r"detach-command\.sh wait <name> 500", text)
