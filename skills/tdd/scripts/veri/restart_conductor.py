@@ -22,17 +22,20 @@ def _tdd_dir():
     return os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd")
 
 
+def _run_dir(run):
+    return os.path.join(_tdd_dir(), "wt", run)
+
+
 def conductor_alive(run):
     return False
 
 
 def stop_run(mode, run):
-    stop_run_module.stop_run(os.path.join(_tdd_dir(), "wt", run), mode)
+    stop_run_module.stop_run(_run_dir(run), mode)
 
 
 def run_state(run):
-    wt = os.path.join(_tdd_dir(), "wt", run)
-    return json.loads(status.run_activity(wt, as_json=True))["state"]
+    return json.loads(status.run_activity(_run_dir(run), as_json=True))["state"]
 
 
 def detach_leaf(run):
@@ -70,7 +73,7 @@ def main(argv):
     while conductor_alive(run):
         g = _growth(run)
         if g is not None and g >= 0.85 * int(knob):
-            pending = os.path.join(_tdd_dir(), "wt", run, ".tdd", "restart-pending")
+            pending = os.path.join(_run_dir(run), ".tdd", "restart-pending")
             os.makedirs(os.path.dirname(pending), exist_ok=True)
             with open(pending, "w") as f:
                 f.write(f"{os.getpid()}\n")
