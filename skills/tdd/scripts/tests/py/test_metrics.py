@@ -1919,3 +1919,44 @@ def test_the_report_counts_refactor_skips_with_reason_switched_off_apart_from_no
     monkeypatch.chdir(tmp_path)
 
     assert "Verifiers switched off: refactor 2\n" in render(metrics, capsys)
+
+
+def transcript(path, prompt, turns):
+    lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
+    for number, (usage) in enumerate(turns):
+        lines.append({"type": "assistant", "message": {"id": "msg_%s_%d" % (path.stem, number), "model": "claude-opus-4",
+                                                       "usage": usage}})
+    path.write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+
+def test_the_report_names_the_coordinator_sessions_turns_cache_tokens_read_and_dollars_from_the_session_transcripts(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    transcript(transcripts / "coord.jsonl", "/vcoord 3154",
+               [{"input_tokens": 1000, "cache_read_input_tokens": 100000, "cache_creation_input_tokens": 10000, "output_tokens": 500},
+                {"input_tokens": 2000, "cache_read_input_tokens": 200000, "cache_creation_input_tokens": 0, "output_tokens": 2000}])
+    transcript(transcripts / "dev.jsonl", "fix the flaky test",
+               [{"input_tokens": 1, "cache_read_input_tokens": 999999, "cache_creation_input_tokens": 0, "output_tokens": 1}] * 5)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
+
+    out = render(metrics, capsys)
+
+    assert "Coordinator session: 2 turns, 300000 cache tokens read, $0.87\n" in out
+
+
+def test_the_coordinator_session_is_the_transcript_whose_first_prompt_invokes_vcoord_not_one_sorting_before_it(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    transcript(transcripts / "a_dev.jsonl", "fix the flaky test",
+               [{"input_tokens": 1, "cache_read_input_tokens": 7, "cache_creation_input_tokens": 0, "output_tokens": 1}] * 3)
+    transcript(transcripts / "z_coord.jsonl", "/vcoord 3154",
+               [{"input_tokens": 1, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0, "output_tokens": 1}])
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
+
+    out = render(metrics, capsys)
+
+    assert "Coordinator session: 1 turns, 50000 cache tokens read, $" in out
