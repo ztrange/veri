@@ -16,12 +16,16 @@ def _positive_int(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
 
 
+def _tdd_dir():
+    return os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd")
+
+
 def conductor_alive(run):
     return False
 
 
 def stop_run(mode, run):
-    stop_run_module.stop_run(os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", "wt", run), mode)
+    stop_run_module.stop_run(os.path.join(_tdd_dir(), "wt", run), mode)
 
 
 def run_state(run):
@@ -34,7 +38,7 @@ def detach_leaf(run):
 
 def _growth(run):
     try:
-        with open(os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", f"conductor-{run}.log")) as f:
+        with open(os.path.join(_tdd_dir(), f"conductor-{run}.log")) as f:
             records = [json.loads(line) for line in f]
     except OSError:
         return None
@@ -59,7 +63,7 @@ def main(argv):
     while conductor_alive(run):
         g = _growth(run)
         if g is not None and g >= 0.85 * int(knob):
-            pending = os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", "wt", run, ".tdd", "restart-pending")
+            pending = os.path.join(_tdd_dir(), "wt", run, ".tdd", "restart-pending")
             os.makedirs(os.path.dirname(pending), exist_ok=True)
             with open(pending, "w") as f:
                 f.write(f"{os.getpid()}\n")
