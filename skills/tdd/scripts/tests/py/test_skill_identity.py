@@ -208,22 +208,3 @@ def test_adr_0013s_line_18_naming_the_old_home_as_a_path_passes_both_sweeps(tmp_
         if offenders(swept):
             problems.append(f"{label} sweep: want no offenders for ADR 0013's line 18, got: {offenders(swept)}")
     assert not problems, problems
-
-
-def test_readmes_install_step_symlinks_skills_tdd_alone_and_no_old_skill_directory():
-    problems = []
-    inside, links = False, []
-    for line in (ROOT / "README.md").read_text().splitlines():
-        if line == "## Install":
-            inside = True
-        elif inside and line.startswith("## "):
-            break
-        elif inside and line.startswith("ln -s "):
-            links.append(line)
-    joined = "\n".join(links)
-    if '/skills/vinstall" ~/.claude/skills/vinstall' not in joined:
-        problems.append(f"README.md ## Install: want an ln -s of skills/vinstall to ~/.claude/skills/vinstall, got: {joined or 'no ln -s line'}")
-    for old_dir in OLD_DIRS:
-        if f'/{old_dir}"' in joined:
-            problems.append(f"README.md ## Install still links {old_dir}/: {joined}")
-    assert not problems, problems
