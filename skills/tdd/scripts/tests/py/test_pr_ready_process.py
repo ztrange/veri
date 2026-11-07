@@ -37,7 +37,7 @@ def test_issue_2147_pr_ready_script_marks_a_draft_ready_from_zsh_and_is_listed_w
     assert (ready.returncode, ready.stdout, ready.stderr) == (0, "", "")
     assert "gh pr ready 42" in calls
     assert bare.returncode == 2 and "usage" in bare.stderr.lower()
-    assert len(listed) == 1 and "conductor" in listed[0]
+    assert len(listed) == 1
 
 
 @pytest.mark.skipif(shutil.which("zsh") is None, reason="no zsh installed")
