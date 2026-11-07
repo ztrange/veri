@@ -218,3 +218,28 @@ def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(
     except ValueError:
         written = None
     assert (code, written is not None and before - 2 <= written <= time.time() + 2) == (0, True), (stored, err)
+
+
+def test_3198_report_zone_line_keeps_the_minutes_of_a_non_zero_offset(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    monkeypatch.setattr(status.time, "time", lambda: 1768435200)
+
+    offsets = {}
+    try:
+        for zone in ("Asia/Kolkata", "Asia/Kathmandu"):
+            monkeypatch.setenv("TZ", zone)
+            time.tzset()
+            code, out, err = run_cli(status, ["--report"])
+            offsets[zone] = (code, out.splitlines()[0].rsplit("(", 1)[-1])
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+
+    assert offsets == {"Asia/Kolkata": (0, "UTC+5:30)"), "Asia/Kathmandu": (0, "UTC+5:45)")}
