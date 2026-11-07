@@ -9,6 +9,10 @@ from full_tier_time import main_tree
 USAGE = "usage: role-state.sh <coord|dev> set <field> <value> | show\n"
 
 
+def now():
+    return time.strftime("%Y-%m-%dT%H:%M:%S")
+
+
 def main(argv):
     if len(argv) < 2:
         sys.stderr.write(USAGE)
@@ -22,7 +26,7 @@ def main(argv):
         os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
         with open(path, "a") as f:
-            f.write("recovered-at=%s\nsession-id=%s\n" % (time.strftime("%Y-%m-%dT%H:%M:%S"), os.environ["CLAUDE_CODE_SESSION_ID"]))
+            f.write("recovered-at=%s\nsession-id=%s\n" % (now(), os.environ["CLAUDE_CODE_SESSION_ID"]))
         return 0
     if argv[1] == "set" and len(argv) == 4:
         with open(path, "a") as f:
@@ -35,7 +39,7 @@ def main(argv):
         except FileNotFoundError:
             item = "1"
         with open(path, "a") as f:
-            f.write("%s %s %s %s\n" % (argv[2], item, time.strftime("%Y-%m-%dT%H:%M:%S"), argv[3]))
+            f.write("%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
         print(item)
         return 0
     if argv[1] == "drop":
