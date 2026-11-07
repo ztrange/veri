@@ -372,7 +372,7 @@ def run_name(path):
 
 
 def conductor_alive(start):
-    pid = start["pid"]
+    pid = int(start["pid"])
     try:
         os.kill(pid, 0)
     except OSError:
@@ -390,8 +390,8 @@ def running_lines():
     for path, events in journals():
         def of(kind):
             return [e for e in events if e.get("event") == kind]
-        start = of("conductor-start")[-1]
-        if conductor_alive(start):
+        starts = of("conductor-start")
+        if starts and conductor_alive(starts[-1]):
             name = run_name(path)
             name += " %dm" % ((int(events[-1]["awake"]) - int(events[0]["awake"])) // 60)
             plans = of("plan")
@@ -408,11 +408,11 @@ def running_lines():
             if verdicts:
                 name += " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
             usage = of("usage")
-            dollars = sum(e["total_cost_usd"] for e in usage)
+            dollars = sum(float(e["total_cost_usd"]) for e in usage)
             if dollars:
                 name += " | total | $%.2f" % dollars
                 if since is not None:
-                    name += " +$%.2f" % sum_since(usage, since, lambda e: e["total_cost_usd"])
+                    name += " +$%.2f" % sum_since(usage, since, lambda e: float(e["total_cost_usd"]))
             models = {}
             for e in launches:
                 if "model" in e:
