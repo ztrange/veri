@@ -328,3 +328,29 @@ def test_check_prints_nothing_and_returns_0_when_the_candidate_names_a_file_the_
     result = run_cli(refactor_touched, ["--issue", base, "--candidate", "tidy src/zeta.sh and lib/gamma.sh",
                                         "--check"], cwd=repo)
     assert result == (0, "", "")
+
+
+@pytest.mark.process("git over a scratch repository with an issue range and a candidate naming only an untouched file")
+def test_check_returns_1_when_the_candidate_names_only_tracked_files_the_issue_never_touched(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "check-untouched")
+    base = commit_all(repo, "plan: scope #19", **{
+        ".tdd__issue-19.md": "- [ ] a step\n", "lib__gamma.sh": "gamma\n"})
+    commit_all(repo, "feat: a step (#19)", **{"src__zeta.sh": "zeta\n"})
+
+    code, out, _ = run_cli(refactor_touched, ["--issue", base, "--candidate", "tidy lib/gamma.sh",
+                                              "--check"], cwd=repo)
+    assert (code, out) == (1, "")
+
+
+@pytest.mark.process("git over a scratch repository with an issue range and a candidate naming no tracked file")
+def test_check_prints_nothing_and_returns_0_when_the_candidate_names_no_tracked_file(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "check-unnamed")
+    base = commit_all(repo, "plan: scope #19", **{
+        ".tdd__issue-19.md": "- [ ] a step\n", "lib__gamma.sh": "gamma\n"})
+    commit_all(repo, "feat: a step (#19)", **{"src__zeta.sh": "zeta\n"})
+
+    result = run_cli(refactor_touched, ["--issue", base, "--candidate", "tidy ghost.sh somehow",
+                                        "--check"], cwd=repo)
+    assert result == (0, "", "")
