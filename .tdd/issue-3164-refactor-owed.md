@@ -1,0 +1,2 @@
+### That legacy-accepting `check-earlier` names the case on stderr and says its helpers digest was re-recorded from the legacy formula; a process case in skills/tdd/scripts/tests/py/test_tests_frozen_process.py ⟦criterion 2⟧
+- test-only | extract the repeated legacy-record setup (init repo, record, swap in the legacy `helpers:` line, write the ledger) shared by the three #3164 process cases into a helper
