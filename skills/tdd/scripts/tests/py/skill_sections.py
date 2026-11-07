@@ -17,10 +17,6 @@ def plain_lower(text):
     return text.replace("*", "").replace("`", "").lower()
 
 
-def has_match(pattern, lines):
-    return any(re.search(pattern, line) for line in lines)
-
-
 def plain_lines(lines):
     return " ".join(plain_lower(line) for line in lines) + " "
 

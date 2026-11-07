@@ -16,14 +16,8 @@ ALLOWED = {
         "runs both CI blocks under bash against stubs",
     "test_skill_ci_conflict.py::test_the_block_run_after_the_metrics_push_bails_nothing_on_a_conflict_the_first_time_and_ci_conflict_once_the_marker_exists":
         "runs the post-metrics-push block under bash against stubs",
-    "unit/test_skill_criterion_finished.py::test_495_every_instruction_that_names_the_last_ticked_step_reads_it_from_ledger_steps_records_spelling_no_checkbox_pattern":
-        "whole-document audit of ledger reads",
     "unit/test_skill_draft_pr.py::test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no_push_of_its_own":
         "absence: no line of the unit runs git push",
-    "unit/test_skill_detach_test_command.py::test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh":
-        "whole-document ban on an undetached make test",
-    "unit/test_skill_draft_pr.py::test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr":
-        "whole-document ban on gh repo/issue/pr subcommands",
 }
 
 
