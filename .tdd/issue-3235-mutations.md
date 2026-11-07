@@ -30,3 +30,10 @@ new 12
 command 157
 make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_a_run_with_no_refactor_event_and_no_structural_pass_event_prints_no_refactor_totals_section
 
+before 40
+5fadec666852da23a84a67e9e4590ef5e847e5a4
+keep 43
+skills/tdd/scripts/tests/py/test_metrics.py
+command 314
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp_adhb5x0/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_metrics.py make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_a_run_with_a_structural_pass_mark_and_refactor_events_prints_refactor_totals_after_the_structural_pass
+
