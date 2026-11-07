@@ -9,4 +9,4 @@
 - [x] A `refactor` event without `transforms` counts in its step's passes only, and prints `?` in that step's transforms and landed-nothing cells and in the `issue` row's, without raising ⟦criterion 3⟧
 - [x] A run with no `refactor` event and no `structural-pass` event prints no `#### Refactor totals` section ⟦criterion 3⟧ ⟂ retired unpinnable
 - [ ] A run whose only refactor-related event is a `structural-pass` mark (no `refactor` event) prints the `#### Refactor totals` section with its `issue` row counting that mark: passes 1, its transforms, landed nothing per its `transforms`, and its `stopped` reason ⟦added⟧ ⟦criterion 3⟧
-- [ ] Test only: a run carrying both a `structural-pass` mark and `refactor` events prints `#### Refactor totals` after `#### Structural pass`, pinned by a case asserting their order; no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧
+- [ ] Pin: a run carrying both a `structural-pass` mark and `refactor` events prints `#### Refactor totals` after `#### Structural pass`, pinned by a case asserting their order; no production change ⟦added⟧ ⟦criterion 1⟧
