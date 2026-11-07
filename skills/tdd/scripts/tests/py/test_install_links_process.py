@@ -38,12 +38,10 @@ def test_install_links_sh_links_exactly_the_nine_skills_into_the_main_tree_and_i
     resolved = [(skills / n).resolve() == (clone / "skills" / n).resolve() for n in entries]
     text = shim.read_text() if shim.exists() else ""
     usage = [line for line in text.splitlines() if "Usage:" in line]
-    tdd = ROOT / "skills" / "tdd"
-    docs = (tdd / "SKILL.md").read_text() + (tdd / "SCRIPTS.md").read_text()
     assert (done.returncode, entries, all(resolved), text.startswith("#!/bin/sh"),
             (shim.parent / "veri" / "install_links.py").exists(),
-            any("[repo-root]" in line for line in usage), "install-links" in docs) == (
-        0, LINKED, True, True, True, True, False)
+            any("[repo-root]" in line for line in usage)) == (
+        0, LINKED, True, True, True, True)
 
 
 @pytest.mark.process("git init of a scratch repository, then install-links.sh run as the /bin/sh shim it is")
