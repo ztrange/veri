@@ -16,6 +16,7 @@ from conftest import ROOT, SCRIPTS
 SKILL = ROOT / "skills" / "tdd" / "SKILL.md"
 SKILL_MD = "skills/tdd/SKILL.md"
 REVISE_MD = SKILL.with_name("REVISE.md")
+DRAFT_PR = SKILL.with_name("DRAFT-PR.md")
 STOPPING = ROOT / "skills" / "tdd" / "STOPPING.md"
 BAIL = ROOT / "skills" / "tdd" / "BAIL.md"
 RECONCILE = ROOT / "skills" / "tdd" / "RECONCILE.md"
@@ -688,7 +689,7 @@ def check_prompt_step(probe, lineno, line, seen, title, err, what):
 
 def scan_rebase_verifier_last_done(probe, tag, by_env):
     title = EXPANDING_STEP
-    lineno, line = first_line(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh")
+    lineno, line = first_line(r"\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh", DRAFT_PR)
     if lineno is None:
         no_launch(probe, "verdict-rebase through supervise.sh into run-verdict.sh")
         return
@@ -1087,7 +1088,7 @@ def test_907_the_draft_pr_steps_verdict_rebase_launch_line_in_skill_md_run_with_
 @pytest.mark.tree_audit("the scripts directory the stage links every script of")
 @pytest.mark.timeout(300)
 def test_892_the_draft_pr_steps_develop_rebase_block_in_skill_md_run_with_every_ledger_step_ticked_passes_build_develop_prompt_sh_rebase_and_the_leafs_veri_step_the_last_done_steps_text_byte_identical(probe):
-    scan_develop_last_done(probe, "rebase")
+    scan_develop_last_done(probe, "rebase", DRAFT_PR)
 
     assert probe.problems == []
 
