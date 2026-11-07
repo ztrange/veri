@@ -420,9 +420,9 @@ def running_lines():
             name += "".join(" %s %s" % (r, m) for r, m in models.items())
             passes = of("refactor")
             if passes:
+                landed = [int(e["transforms"]) for e in passes]
                 name += " refactor %d passes %d transforms %d landed nothing" % (
-                    len(passes), sum(int(e["transforms"]) for e in passes),
-                    sum(1 for e in passes if int(e["transforms"]) == 0))
+                    len(passes), sum(landed), landed.count(0))
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
