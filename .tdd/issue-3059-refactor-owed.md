@@ -2,3 +2,5 @@
 - test-only | extract the report setup shared by the two zone cases (the repo, the `VERI_HOME` runs directory and the `subprocess.run` stub) into a helper or fixture in `test_status_report_zone.py`
 ### When `.tdd/status-last` exists, the report's first line opens with the window `<start> → <now>` in local `HH:MM`, ahead of the zone, its start converted from status-last's UTC `Z` timestamp to the local zone (a small case under a non-UTC `TZ`) ⟦criterion 2⟧
 - test-only | extract the repeated repo, TZ and clock setup in the three cases of `test_status_report_zone.py` into a shared fixture or helper
+### Each Landed line shows its tag's `creatordate`, converted from the tagger's offset to the local zone as `YYYY-MM-DD HH:MM`, between the tag name and its subject (a case with a tag whose tagger offset differs from the local `TZ`) ⟦criterion 2⟧
+- test-only | Extract the tag-fake `expand`/`run` closure, which `test_status_report.py` and `test_status_report_zone.py` both define, into one shared helper such as a `fake_tags_with_tagger_offset` in `conftest.py` or in `test_status_report.py`.
