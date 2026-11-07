@@ -21,6 +21,13 @@
    git rev-parse HEAD                      # → <base-sha>
    $S/refactor-touched.sh --issue <issue-base> --candidate '<candidate>'   # → <bound>
    ```
+   Then run the same command with `--check`; exit 1 means the candidate names only files the
+   issue's commits never touched, so launch no predicate, cover or transform leaf and record it
+   `out-of-bounds` (committed as below):
+   ```
+   $S/refactor-touched.sh --issue <issue-base> --candidate '<candidate>' --check   # exit 1 ⇒ out-of-bounds
+   $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' out-of-bounds
+   ```
    A candidate the budget stops is recorded, with every candidate after it:
    ```
    $S/refactor-owed.sh not-done .tdd/issue-<n>-refactor-owed.md '<candidate>' budget-spent
@@ -55,8 +62,8 @@
    An out-of-bounds skip — the leaf left the tree as it found it and said so — is exempt: it
    keeps its main outcome, a transform `REJECT` and the next candidate (a process outcome),
    never a `report-missing` bail. Its commits are checked with
-   `$S/transform-touches-tests.sh <base-sha> <bound>` — exit 1 rejects the transform (a test file,
-   or a file outside `<bound>`), exit 2 is no
+   `$S/transform-touches-tests.sh <base-sha> <bound> --touched "$($S/refactor-touched.sh --issue <issue-base>)"` — exit 1 rejects the transform (a test file,
+   or a file outside `<bound>`, or a range changing no issue-touched file), exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
    both before the next candidate's leaf is launched. A `REJECT`, or a transform `transform-touches-tests.sh` rejected, resets to `<base-sha>`, records the
@@ -75,7 +82,7 @@
    git commit -m "chore: record the structural pass's applied candidate (#<n>)"
    ```
    Every `refactor-owed.sh not-done` call above (`budget-spent`, `uncovered`, `no-predicate`,
-   `transform-rejected`) is followed at once, before the next candidate's leaf is launched, by
+   `transform-rejected`, `out-of-bounds`) is followed at once, before the next candidate's leaf is launched, by
    staging and committing the owed file, so a later candidate's `REJECT` reset to its `<base-sha>`
    keeps the row:
    ```
