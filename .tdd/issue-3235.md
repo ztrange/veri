@@ -1,0 +1,9 @@
+# Plan for #3235 — PRD 012.10a1: the metrics report totals refactor passes, transforms, passes that landed nothing and stop reasons, per step and per issue
+
+- [ ] metrics.sh prints a `#### Refactor totals` section, after `#### Structural pass`, with one row per step that has a `refactor` event, holding passes (the count of its `refactor` events), transforms (the sum of those events' `transforms`), landed nothing (its passes whose `transforms` is 0) and stopped (each `stopped` reason with its count, e.g. `nothing-left 2, budget 1`) ⟦criterion 1⟧
+- [ ] Guard: a run with two `refactor` passes on one step (transforms 2 then 0, stopped `budget` then `nothing-left`) shows passes 2, transforms 2, landed nothing 1 and stopped `budget 1, nothing-left 1` for that step, a case that fails against a report keeping only the last pass's figures ⟦criterion 4⟧
+- [ ] The `#### Refactor totals` section ends with one `issue` row whose passes, transforms, landed nothing and stopped are the sums over every step's figures, the stop reasons counted over all passes ⟦criterion 2⟧
+- [ ] The `issue` row adds the run's `structural-pass` mark as one pass: passes plus 1, transforms plus its `transforms`, landed nothing plus 1 when its `transforms` is 0, and its `stopped` counted among the stop reasons ⟦criterion 2⟧
+- [ ] A `structural-pass` mark carrying no `transforms` (e.g. `stopped=nothing-structural` alone) counts in the `issue` row's passes and stopped only, and the `issue` row's transforms and landed-nothing cells print `?` rather than an invented figure ⟦criterion 2⟧
+- [ ] A `refactor` event without `transforms` counts in its step's passes only, and prints `?` in that step's transforms and landed-nothing cells and in the `issue` row's, without raising ⟦criterion 3⟧
+- [ ] A run with no `refactor` event and no `structural-pass` event prints no `#### Refactor totals` section ⟦criterion 3⟧
