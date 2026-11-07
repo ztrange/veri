@@ -2017,3 +2017,101 @@ def test_3204_pins_sharing_a_file_and_a_reason_print_one_line_with_a_count_and_a
 
     assert (ran.returncode, sorted(ran.stdout.splitlines()), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, ["needs a look: guard.txt (base run failed)", "needs a look: guard.txt (old text gone) ×2"], True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose make command make rejects as a usage error")
+def test_3204_a_pin_whose_make_command_make_rejects_as_a_usage_error_exits_2_naming_the_pin_file_and_command_with_no_usage_or_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "x").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    command = "make test TESTS=./x -run TestFoo"
+    record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command=command)
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    bindir = tmp_path.parent / (tmp_path.name + "-bin")
+    bindir.mkdir()
+    (bindir / "make").write_text("#!/bin/sh\n"
+                                 "echo 'make: invalid option -- u' >&2\n"
+                                 "echo 'Usage: make [options] [target] ...' >&2\n"
+                                 "echo 'Options:' >&2\n"
+                                 "exit 2\n")
+    (bindir / "make").chmod(0o755)
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20,
+                         env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
+
+    assert (ran.returncode, "issue-3204-mutations.md" in ran.stderr, command in ran.stderr,
+            "Usage:" in ran.stderr, (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        2, True, True, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose make command exits 1 printing make's usage words")
+def test_3204_a_make_command_that_exits_1_printing_invalid_option_stays_a_base_run_failed_needs_a_look_and_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="make test")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    bindir = tmp_path.parent / (tmp_path.name + "-bin")
+    bindir.mkdir()
+    (bindir / "make").write_text("#!/bin/sh\n"
+                                 "echo 'invalid option -- u' >&2\n"
+                                 "echo 'Usage: make [options] [target] ...' >&2\n"
+                                 "exit 1\n")
+    (bindir / "make").chmod(0o755)
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20,
+                         env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
+
+    assert (ran.returncode, ran.stdout.splitlines(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, ["needs a look: guard.txt (base run failed)"], True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record whose make command exits 2 printing only one of make's usage-error signs")
+def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still_exits_2_naming_the_pin_file_and_command(tmp_path):
+    outcomes = {}
+    for name, stderr_line in (("invalid", "make: invalid option -- u"), ("usage", "Usage: make [options] [target] ...")):
+        repo = tmp_path / name
+        repo.mkdir()
+
+        def git(*words):
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
+                                  capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+        git("init", "-q")
+        (repo / "guard.txt").write_text("if guard\n")
+        (repo / "x").mkdir()
+        (repo / ".tdd").mkdir()
+        record(repo / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+               command="make test TESTS=./x -run TestFoo")
+        git("add", "-A")
+        git("commit", "-q", "-m", "base")
+        base = git("rev-parse", "HEAD")
+        (repo / "guard.txt").write_text("if guard\nmore\n")
+        git("commit", "-q", "-am", "touch guard.txt")
+        bindir = tmp_path / (name + "-bin")
+        bindir.mkdir()
+        (bindir / "make").write_text(f"#!/bin/sh\necho '{stderr_line}' >&2\nexit 2\n")
+        (bindir / "make").chmod(0o755)
+
+        ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+                             env={**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}"})
+        outcomes[name] = (ran.returncode, "issue-3204-mutations.md" in ran.stderr,
+                          "make test TESTS=./x -run TestFoo" in ran.stderr)
+
+    assert outcomes == {"invalid": (2, True, True), "usage": (2, True, True)}
