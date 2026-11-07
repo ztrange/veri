@@ -55,6 +55,10 @@ def is_go_test_failure(run):
     return any(line.startswith("--- FAIL: ") for line in lines)
 
 
+def needs_a_look(file, reason):
+    sys.stdout.write(f"needs a look: {file} ({reason})\n")
+
+
 def write_tail(run):
     sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
 
@@ -171,14 +175,14 @@ def recheck(argv):
         path = Path(pin["file"])
         original = path.read_bytes()
         if pin["old"].encode() not in original:
-            sys.stdout.write(f"needs a look: {pin['file']} (old text gone)\n")
+            needs_a_look(pin["file"], "old text gone")
             continue
         base = run_captured(pin["command"])
         if base.returncode == 127 or "no makefile found" in base.stderr.lower():
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
             return 2
         if base.returncode != 0:
-            sys.stdout.write(f"needs a look: {pin['file']} (base run failed)\n")
+            needs_a_look(pin["file"], "base run failed")
             write_tail(base)
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
@@ -187,14 +191,14 @@ def recheck(argv):
         green = mutated.returncode == 0
         base_lines = output_lines(base)
         if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated):
-            sys.stdout.write(f"needs a look: {pin['file']} (mutation did not build)\n")
+            needs_a_look(pin["file"], "mutation did not build")
             write_tail(mutated)
             status = 1
             continue
         if green:
             control = control_run(path, original, pin["command"])
             if control.returncode == 0:
-                sys.stdout.write(f"needs a look: {pin['file']} (mutation and control green)\n")
+                needs_a_look(pin["file"], "mutation and control green")
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
