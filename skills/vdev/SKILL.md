@@ -179,3 +179,6 @@ issue there.
 
 With a coordinator attached, each event P4 lets you speak about goes to the coordinator, not to
 the human, unless you stop and ask (above).
+
+You are the only role that watches run state; the coordinator watches none. When a coordinator is
+attached, send it one message per conductor exit, bail or merge (P4).
