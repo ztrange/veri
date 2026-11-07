@@ -48,3 +48,19 @@ new 0
 command 180
 make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_the_comment_family_table_prices_a_modelless_turn_as_opus_and_leaves_a_turn_of_an_unpriced_model_out_of_the_dollars
 
+before 40
+6b82c14c15027e3bd3618a806dd1679dc476fb32
+keep 43
+skills/tdd/scripts/tests/py/test_metrics.py
+command 321
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpm1mtw79v/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_metrics.py make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_the_comment_family_table_counts_turns_of_a_transcript_with_no_result_record_with_each_turns_own_output_tokens
+
+file 34
+skills/tdd/scripts/veri/metrics.py
+old 35
+own_tokens if result_output is None
+new 26
+0 if result_output is None
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_the_comment_family_table_counts_turns_of_a_transcript_with_no_result_record_with_each_turns_own_output_tokens
+
