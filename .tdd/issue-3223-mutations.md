@@ -60,3 +60,10 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 353
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpukohdusu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_restart_conductor.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3223_the_stop_wrapper_started_from_a_linked_worktree_writes_the_at_ledger_stop_file_under_the_main_working_tree
 
+before 40
+58855a40b58832d399de0a90ccf1ee2038ed676d
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 343
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpukohdusu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_restart_conductor.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3223_a_live_conductor_is_stopped_at_85_percent_of_a_knob_the_caller_sets_not_at_the_default_threshold
+
