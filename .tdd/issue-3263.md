@@ -2,3 +2,4 @@
 
 - [x] A `tree_audit` case in a new `skills/tdd/scripts/tests/py/test_journal_event_roster.py` collects every event name emitted under `skills/` (`event.sh` call sites and `event.mark` calls) and fails, naming the event, on one `skills/tdd/JOURNAL.md` does not document; its green adds `skills/tdd/JOURNAL.md` naming every such event ⟦criterion 2⟧
 - [x] `skills/tdd/JOURNAL.md` names, for every event veri emits, the keys it carries and what each key means, judged against the diff ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAIL - test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it and test_1641_a_real_exemption_keyed_relative_to_tests_py_is_not_reported_stale_by_any_case_that_reads_the_real_table: test_journal_event_roster.py: guard-clean, outside the tier ⟦suite-repair⟧ ⟦criterion 1⟧
