@@ -85,6 +85,16 @@ def _report_exit(issue, state, live=()):
     return 0
 
 
+def _restart_pending(issue):
+    try:
+        path = os.path.join(status.main_working_tree(), ".tdd", "wt", issue, ".tdd", "restart-pending")
+        with open(path) as f:
+            os.kill(int(f.read().strip()), 0)
+        return True
+    except Exception:
+        return False
+
+
 def _whole_number(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
 
@@ -152,6 +162,8 @@ def main(argv):
         missed &= set(started) - set(live)
         for issue in started:
             if issue not in live:
+                if _restart_pending(issue):
+                    continue
                 state = run_state(issue).split(" ")[0]
                 if not state:
                     if pid_file.recorded_started(os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):

@@ -1111,3 +1111,21 @@ def test_3186_main_reports_at_its_start_a_conductor_first_seen_live_during_an_ea
     second = watch_runs.main(["--max-wait", "5"])
 
     assert (first, second, capsys.readouterr().out) == (3, 0, "exited 7 bailed\n")
+
+
+def test_main_reports_no_exited_line_for_a_run_whose_restart_pending_names_a_pid_that_answers_kill_0(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    pending = tmp_path / ".tdd" / "wt" / "5" / ".tdd"
+    pending.mkdir(parents=True)
+    (pending / "restart-pending").write_text("%d\n" % os.getpid())
+    listings = iter([["5"]])
+    ticks = itertools.count(0, 10)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "stopped")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "25"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
