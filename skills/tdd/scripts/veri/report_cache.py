@@ -14,7 +14,7 @@ import tunables
 USAGE = "usage: report-cache.sh refresh\n"
 PAGE_SIZE = 100
 SEARCH_CAP = 1000
-FIELDS ="number,title,state,labels,closedAt,updatedAt,body,comments"
+FIELDS = "number,title,state,labels,closedAt,updatedAt,body"
 
 
 def main_tree():
@@ -68,6 +68,16 @@ def read_issue_page(size, *search):
             time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
 
 
+def fetch_comments():
+    week_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    by_number = {}
+    for search in ("PRD in:title", "closed:>=" + week_ago):
+        args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,comments", "--search", search)
+        for row in json.loads(github.gh_issue_list(*args)):
+            by_number[row["number"]] = row.get("comments", [])
+    return by_number
+
+
 def fetch_pages(since=None):
     bound = [since] if since else []
     first, size = read_issue_page(PAGE_SIZE, "--search", " ".join(bound + ["sort:updated-desc"]))
@@ -114,6 +124,7 @@ def refresh():
     fetched_at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         issues = fetch_pages(since)
+        comments_by_number = fetch_comments()
     except github.NoAnswer as failure:
         sys.stderr.write("report-cache.sh: gh issue list failed: %s\n" % failure.answer)
         return 2
@@ -123,7 +134,7 @@ def refresh():
         body = issue.pop("body", "")
         if re.match(r"PRD \d+", issue["title"]):
             issue["body"] = body
-        comments = issue.pop("comments", [])
+        comments = comments_by_number.get(issue["number"], [])
         issue["blockedBy"] = blocked_by(body)
         issue["links"] = links(issue["number"], body, comments)
         issue["wallSeconds"] = wall_seconds(comments)
