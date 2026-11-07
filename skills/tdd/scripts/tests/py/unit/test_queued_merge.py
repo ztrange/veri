@@ -664,3 +664,32 @@ def test_3022_queued_merge_whose_rebase_first_stops_on_a_phantom_would_be_overwr
 
     ran = [needle for c in calls for needle in ("update-index --really-refresh", "rebase --continue", "--force-with-lease") if needle in c]
     assert (code, ran) == (0, ["update-index --really-refresh", "rebase --continue", "--force-with-lease"])
+
+
+def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_event_per_refresh_and_continue_to_events_jsonl(fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/3022-phantom"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    events = worktree / ".tdd" / "events.jsonl"
+    phantom = "error: Your local changes to the following files would be overwritten by merge:\n"
+
+    def phantom_world(answer):
+        stops = []
+
+        def world(line, **kwargs):
+            line = line.replace(BRANCH, "feature")
+            if "status --porcelain" in line:
+                return 0, "", ""
+            if ("rebase origin/main" in line or "rebase --continue" in line) and len(stops) < 2:
+                stops.append(line)
+                return 1, "", phantom
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    scenario(phantom_world)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "-"])
+
+    rows = [json.loads(r) for r in events.read_text().splitlines()] if events.exists() else []
+    retries = [r for r in rows if r.get("event") != "merged"]
+    assert (code, len(retries)) == (0, 2)
