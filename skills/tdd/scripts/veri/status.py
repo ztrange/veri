@@ -461,7 +461,9 @@ def refresh_if_stale():
 
 def zone_line():
     now = time.localtime(time.time())
-    return "%s (UTC%s%d)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", abs(now.tm_gmtoff) // 3600)
+    since = status_last_time()
+    window = "" if since is None else "%s → %s " % (time.strftime("%H:%M", time.localtime(since)), time.strftime("%H:%M", now))
+    return window + "%s (UTC%s%d)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", abs(now.tm_gmtoff) // 3600)
 
 
 def main(argv):
