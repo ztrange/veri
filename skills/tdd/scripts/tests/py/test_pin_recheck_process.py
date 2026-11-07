@@ -1991,3 +1991,29 @@ def test_3204_a_pin_whose_mutated_and_control_runs_both_pass_names_that_reason_a
 
     assert (ran.returncode, ran.stdout, (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, "needs a look: guard.txt (mutation and control green)\n", True), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over three pins on one file, two sharing a reason and one holding another")
+def test_3204_pins_sharing_a_file_and_a_reason_print_one_line_with_a_count_and_a_lone_reason_prints_none(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3204-mutations.md", file="guard.txt", old="if gone", new="if (true)",
+           command="true")
+    record(tmp_path / ".tdd" / "issue-3204-more-mutations.md", file="guard.txt", old="if vanished", new="if (true)",
+           command="true")
+    record(tmp_path / ".tdd" / "issue-3204-third-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="false")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, sorted(ran.stdout.splitlines()), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, ["needs a look: guard.txt (base run failed)", "needs a look: guard.txt (old text gone) ×2"], True), ran.stderr
