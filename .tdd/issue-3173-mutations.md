@@ -1,0 +1,7 @@
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 55
+skills/tdd/scripts/tests/py/test_ready_check_process.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/test_ready_check_process.py::test_issue_3173_ready_check_with_veri_label_unset_and_ready_for_agent_missing_prints_a_fail_label_row_naming_it
+
