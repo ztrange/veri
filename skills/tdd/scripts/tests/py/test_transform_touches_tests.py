@@ -413,3 +413,13 @@ def test_3237_touched_option_exits_0_when_the_range_changed_a_file_in_the_list_i
 
     assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh", "--touched", "src/a.sh"], cwd=repo) == (
         0, "", "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changes a file in --touched, with no bound")
+def test_3280_touched_option_with_no_bound_is_the_flag_and_exits_0_when_the_range_changed_a_listed_file(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-unbound")
+    base = commit_all(repo, "feat: seed", **{"src__a.py": "a\n"})
+    commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
+
+    assert run_cli(transform_touches_tests, [base, "--touched", "src/a.py"], cwd=repo) == (0, "", "")

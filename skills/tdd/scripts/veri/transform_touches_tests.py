@@ -45,7 +45,7 @@ def main(argv):
     if touched:
         print(f"transform changed a test file: {touched}")
         return 1
-    bound = set(argv[1].encode().split(b",")) if len(argv) > 1 and argv[1] else None
+    bound = set(argv[1].encode().split(b",")) if len(argv) > 1 and argv[1] and argv[1] != "--touched" else None
     if bound is not None:
         outside = sorted_names(line for line in paths if line and line not in bound and not REFACTOR_OWED.fullmatch(line))
         if outside:
