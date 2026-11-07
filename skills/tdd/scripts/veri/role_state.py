@@ -34,6 +34,9 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     name = argv[0]
+    if name not in ("coord", "dev"):
+        sys.stderr.write(USAGE)
+        return 2
     if argv[1] == "--lane":
         name += "-" + argv[2]
         argv = [argv[0]] + argv[3:]
