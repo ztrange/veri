@@ -216,3 +216,13 @@ def test_coord_drop_whose_rename_over_the_state_file_fails_leaves_the_previous_f
     except OSError:
         code = "raised"
     assert (code != 0, state.read_bytes() == before) == (True, True)
+
+
+@pytest.mark.process("git")
+def test_coord_show_with_no_state_file_exits_3_and_prints_nothing(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    code, out, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    assert (code, out) == (3, "")
