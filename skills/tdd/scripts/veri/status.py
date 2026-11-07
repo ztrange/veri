@@ -388,9 +388,20 @@ def waiting_lines():
     return "\n".join(lines) or "none"
 
 
+def unjournaled_notes():
+    from pid_file import recorded_alive
+    seen = {os.path.basename(p)[:-len(".jsonl")] for p, _ in journals()}
+    notes = []
+    for wt in sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*"))):
+        n = os.path.basename(wt)
+        if n not in seen and recorded_alive(wt):
+            notes.append("\nNote: #%s is running with no journal" % n)
+    return "".join(notes)
+
+
 def main(argv):
     if list(argv) == ["--report"]:
-        print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()))
+        print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
         return 0
     parsed = parse_args(argv)
     if parsed is None:
