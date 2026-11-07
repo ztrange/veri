@@ -37,6 +37,8 @@ def main(argv):
         i = argv.index("--candidate")
         candidate = argv[i + 1] if i + 1 < len(argv) else ""
         argv = argv[:i] + argv[i + 2:]
+    if check_only and candidate is None:
+        return refuse()
     rev = argv[0] if argv else ""
     span = [f"{rev}^", rev]
     if rev == "--issue":
