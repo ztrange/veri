@@ -4,8 +4,9 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+DRAFT_PR_MD = SKILL.with_name("DRAFT-PR.md")
 
-DRAFT_PR = "### 4. Draft PR"
+DRAFT_PR = "## 4. Draft PR"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -15,7 +16,7 @@ def _lower(text):
 
 
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(DRAFT_PR_MD, heading)
     lines = section.splitlines()[1:]
     return lines
 
@@ -73,7 +74,7 @@ def draft_pr():
 
 def draft_pr_read():
     records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    assert records, "DRAFT-PR.md has no ## 4. Draft PR section to read"
     return records
 
 
@@ -83,7 +84,7 @@ def test_draft_prs_step_readies_the_pr_against_the_already_pushed_branch_with_no
 
 
 def test_skill_md_reaches_the_default_branch_the_issue_and_the_pr_through_the_helper_or_gh_api_never_gh_repo_issue_pr():
-    docs = (SKILL, SKILL.with_name("PREFLIGHT.md"))
+    docs = (SKILL, DRAFT_PR_MD, SKILL.with_name("PREFLIGHT.md"))
     text = "".join(doc.read_text() for doc in docs)
     problems = []
     for doc in docs:

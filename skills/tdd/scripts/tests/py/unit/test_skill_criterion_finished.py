@@ -5,6 +5,7 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 PIN_MD = SKILL.with_name("PIN.md")
+DRAFT_PR_MD = SKILL.with_name("DRAFT-PR.md")
 
 
 def records_of(text):
@@ -39,13 +40,13 @@ def reads_ledger_steps(anchor, box, lines, problems):
 
 
 def skill_lines():
-    return SKILL.read_text().splitlines() + PIN_MD.read_text().splitlines()
+    return SKILL.read_text().splitlines() + DRAFT_PR_MD.read_text().splitlines() + PIN_MD.read_text().splitlines()
 
 
 def test_495_every_instruction_that_ticks_criterion_k_in_the_issue_body_reads_its_text_from_ledger_steps_records_spelling_no_checkbox_pattern():
     problems = []
     anchor = 'tick-issue-criterion.sh <n> "$('
-    reads_ledger_steps(anchor, r"\[[ x]\]", [r for r in records_of(SKILL.read_text()) if anchor in r], problems)
+    reads_ledger_steps(anchor, r"\[[ x]\]", [r for r in records_of(SKILL.read_text() + "\n" + DRAFT_PR_MD.read_text()) if anchor in r], problems)
     assert not problems, "\n".join(problems)
 
 
