@@ -6,6 +6,8 @@ USAGE = "usage: script-help.sh <name>"
 
 
 def main(argv):
+    if argv:
+        return 3
     print(USAGE, file=sys.stderr)
     return 2
 
