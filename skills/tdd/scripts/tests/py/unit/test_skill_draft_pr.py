@@ -4,8 +4,9 @@ import pathlib
 import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
+DRAFT_PR_MD = SKILL.with_name("DRAFT-PR.md")
 
-DRAFT_PR = "### 4. Draft PR"
+DRAFT_PR = "## 4. Draft PR"
 
 _UPPER = {c: c + 32 for c in range(ord("A"), ord("Z") + 1)}
 
@@ -15,7 +16,7 @@ def _lower(text):
 
 
 def _lines(heading):
-    section = importlib.import_module("skill_sections").section(SKILL, heading)
+    section = importlib.import_module("skill_sections").section(DRAFT_PR_MD, heading)
     lines = section.splitlines()[1:]
     return lines
 
@@ -73,7 +74,7 @@ def draft_pr():
 
 def draft_pr_read():
     records = draft_pr()
-    assert records, "SKILL.md has no ### 4. Draft PR section to read"
+    assert records, "DRAFT-PR.md has no ## 4. Draft PR section to read"
     return records
 
 
