@@ -29,7 +29,7 @@
 - [x] When the conductor exits after restart-conductor.sh's own stop and the run's state is anything but stopped, it relaunches nothing, removes restart-pending, prints "restarts <n> 0" and exits 0 (unit-tier cases in tests/py/unit/test_restart_conductor.py, driven in-process with run_cli, faking only process boundaries (live-conductor check, stop-run, detach-leaf, run state, clock)) ⟦criterion 4⟧
 - [x] watch-runs.sh reports no exited line for a run whose .tdd/restart-pending names a pid that answers kill -0 (unit-tier case in tests/py/unit/test_watch_runs.py) ⟦criterion 6⟧
 - [x] watch-runs.sh reports a run's exit as today when its .tdd/restart-pending names a dead pid (unit-tier case in tests/py/unit/test_watch_runs.py) ⟦criterion 6⟧ ⟂ retired unpinnable
-- [ ] skills/vdev/SKILL.md says in *Launching* that every conductor launch, a resume included, is followed by the detached $S/detach-leaf.sh $S/restart-conductor.sh <n> >> .tdd/restart-<n>.log 2>&1 < /dev/null, which restarts the conductor at its next ledger commit once its growth reaches 0.85 × VERI_RESET_GROWTH_CONDUCTOR, and that a restart is not an exit to route, graded by row D30 ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] skills/vdev/SKILL.md says in *Launching* that every conductor launch, a resume included, is followed by the detached $S/detach-leaf.sh $S/restart-conductor.sh <n> >> .tdd/restart-<n>.log 2>&1 < /dev/null, which restarts the conductor at its next ledger commit once its growth reaches 0.85 × VERI_RESET_GROWTH_CONDUCTOR, and that a restart is not an exit to route, graded by row D30 ⟦skill-edit⟧ ⟦criterion 7⟧
 
 ## Owed steps
 
