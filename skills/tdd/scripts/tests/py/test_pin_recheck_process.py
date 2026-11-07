@@ -1846,3 +1846,27 @@ def test_3160_a_green_before_state_pin_whose_base_worktree_cannot_be_created_exi
     assert (ran.returncode, "worktree" in ran.stderr, "CalledProcessError" in ran.stderr, "stale:" in ran.stdout,
             "pin stayed green" in ran.stderr, (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         2, True, False, False, False, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that edits a pin's file while its named test is missing at HEAD and on the base")
+def test_3160_a_pin_whose_named_test_is_missing_at_head_and_on_the_base_and_not_deleted_is_stale_not_exit_2(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; touch ran.witness; grep -q 'if guard' guard.txt\" TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "edit the pinned file; the named test is missing everywhere")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout.startswith("stale: .tdd/issue-835-mutations.md"),
+            "named test missing" in ran.stderr, (tmp_path / "ran.witness").exists()) == (
+        0, True, False, False), ran.stdout + ran.stderr
