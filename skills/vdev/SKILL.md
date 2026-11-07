@@ -154,6 +154,11 @@ the job, briefed to return at most 10 lines and to read the skill at
 
 Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
+Once your own context passes 200k tokens, or the harness warns that context is nearly full,
+reset yourself with `/vhandoff dev` at the next point where no human decision is pending and no
+run awaits your ruling or merge instruction (between batches), never in the middle of an
+instruction.
+
 ## Parked issues
 
 On resume, read the parked set with `$S/parked-issues.sh` (exit 3: none parked), never from a
