@@ -69,3 +69,21 @@ def test_growth_reads_a_record_repeated_under_the_same_message_id_once_so_the_re
 
     records = [turn("m1", 20000), turn("m2", 30000), turn("m1", 90000)]
     assert growth(records, 10000) == 1 + 30000 - 10000
+
+
+def test_growth_with_no_baseline_given_takes_the_first_usage_records_context_of_a_single_session_as_the_baseline(growth):
+    def turn(msg_id, read):
+        usage = {
+            "input_tokens": 2,
+            "cache_read_input_tokens": read,
+            "cache_creation_input_tokens": 100,
+        }
+        return {"type": "assistant", "message": {"id": msg_id, "usage": usage}}
+
+    records = [
+        {"type": "system", "subtype": "init"},
+        turn("m1", 20000),
+        turn("m2", 26000),
+        turn("m3", 31000),
+    ]
+    assert growth(records) == (2 + 31000 + 100) - (2 + 20000 + 100)
