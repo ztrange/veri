@@ -422,8 +422,20 @@ def unjournaled_notes():
     return "".join(notes)
 
 
+def refresh_if_stale():
+    try:
+        fetched = read_snapshot()["fetched_at"]
+        age = time.time() - calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+    except OSError:
+        return
+    if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")):
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report-cache.sh")
+        subprocess.Popen([script, "refresh"])
+
+
 def main(argv):
     if list(argv) == ["--report"]:
+        refresh_if_stale()
         print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
         queue = {}
         try:
