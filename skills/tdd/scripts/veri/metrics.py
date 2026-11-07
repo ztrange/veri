@@ -581,6 +581,21 @@ def render(issue, path, ledger):
         if inconsistent is not None:
             print()
             print("Inconsistent mark: %s" % inconsistent)
+    if passes:
+        by_step = {}
+        for (step, _), (mark, _) in passes.items():
+            by_step.setdefault(step, []).append(mark)
+        table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
+                   ["---:", "---:", "---:", "---"])
+        for step, marks in by_step.items():
+            reasons = {}
+            for mark in marks:
+                reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
+            moved = [mark["transforms"] for mark in marks]
+            known = all(count.isdigit() for count in moved)
+            row([step, str(len(marks)), str(sum(map(int, moved))) if known else "?",
+                 str(moved.count("0")),
+                 ", ".join("%s %d" % item for item in sorted(reasons.items()))])
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
 
