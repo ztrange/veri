@@ -1079,3 +1079,35 @@ def test_main_with_target_waits_the_interval_before_the_next_queue_read_when_the
         watch_runs.main(["--target", "2", "--max-wait", "100000"])
 
     assert len(reads) >= 2 and all(b - a >= 60 for a, b in zip(reads, reads[1:]))
+
+
+def test_3186_main_reports_exited_for_a_conductor_first_seen_live_after_the_watch_started_and_gone_before_it_returns(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    listings = iter([["5"], ["5", "7"]])
+    ticks = iter([0, 1])
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: {"5": "running", "7": "bailed red tests-pass"}[issue])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks, 10))
+
+    code = watch_runs.main(["--max-wait", "5"])
+
+    assert (code, capsys.readouterr().out) == (0, "exited 7 bailed\n")
+
+
+def test_3186_main_reports_at_its_start_a_conductor_first_seen_live_during_an_earlier_watch_that_timed_out_and_is_gone_by_the_next_watch(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    listings = iter([["5"], ["5", "7"]])
+    ticks = itertools.count(0, 10)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: {"5": "running", "7": "bailed red tests-pass"}[issue])
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    first = watch_runs.main(["--max-wait", "5"])
+    capsys.readouterr()
+    second = watch_runs.main(["--max-wait", "5"])
+
+    assert (first, second, capsys.readouterr().out) == (3, 0, "exited 7 bailed\n")

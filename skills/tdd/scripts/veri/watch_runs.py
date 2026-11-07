@@ -123,6 +123,10 @@ def main(argv):
     while True:
         wait()
         live = live_conductors()
+        arrived = [issue for issue in live if issue not in started]
+        if arrived:
+            started += arrived
+            _remember(started)
         if target is not None and len(live) < target and time.time() >= resume_at:
             try:
                 solvable = solvable_issues()

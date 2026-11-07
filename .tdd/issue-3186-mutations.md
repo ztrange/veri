@@ -1,0 +1,7 @@
+before 40
+491fdf598bb822e05c372e6436a3e48cfbdb5e90
+keep 51
+skills/tdd/scripts/tests/py/unit/test_watch_runs.py
+command 355
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpp_u44owh/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_watch_runs.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_watch_runs.py::test_3186_main_reports_at_its_start_a_conductor_first_seen_live_during_an_earlier_watch_that_timed_out_and_is_gone_by_the_next_watch
+
