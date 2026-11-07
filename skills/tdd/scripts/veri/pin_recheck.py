@@ -194,7 +194,7 @@ def recheck(argv):
         if green:
             control = control_run(path, original, pin["command"])
             if control.returncode == 0:
-                sys.stdout.write(f"needs a look: {pin['file']}\n")
+                sys.stdout.write(f"needs a look: {pin['file']} (mutation and control green)\n")
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
