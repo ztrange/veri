@@ -104,7 +104,10 @@ def replay_on_base(pin, ledger):
                           check=True).stdout.strip()
     scratch = tempfile.mkdtemp()
     tree = Path(scratch) / "base"
-    subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, check=True)
+    added = subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, text=True)
+    if added.returncode != 0:
+        sys.stderr.write(f"cannot create the base worktree at {base}: {added.stderr.strip()}\n")
+        return None
     try:
         return replay_before(pin, ledger, tree)
     finally:
@@ -150,7 +153,10 @@ def recheck(argv):
             replayed = replay_before(pin, ledger)
             if replayed is None:
                 return 2
-            if replayed == 0 and replay_on_base(pin, ledger) == 0:
+            on_base = replay_on_base(pin, ledger) if replayed == 0 else None
+            if replayed == 0 and on_base is None:
+                return 2
+            if replayed == 0 and on_base == 0:
                 sys.stdout.write(f"stale: {ledger} {pin['keep']}\n")
             elif replayed == 0:
                 sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
