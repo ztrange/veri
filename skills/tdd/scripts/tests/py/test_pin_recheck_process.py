@@ -1729,3 +1729,31 @@ def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stal
             "stayed green on the before-state: stale.txt" in ran.stderr, ran.stdout,
             (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         1, True, False, "stale: .tdd/issue-3160-a-mutations.md stale.txt\n", False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a stale before-state pin beside an old-format pin that goes red under its mutation")
+def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_goes_red_under_its_mutation_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch the pin file and guard")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        0, "stale: .tdd/issue-3160-mutations.md pin.txt\n", False, True), ran.stderr
