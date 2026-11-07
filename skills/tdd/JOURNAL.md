@@ -4,7 +4,7 @@
 
 | Event | Keys | Meaning |
 |---|---|---|
-| `bail` | `cause`, `classification` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked. |
+| `bail` | `cause`, `classification`, `suites` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step. |
 | `conductor-start` | `pid`, `started` | A conductor began a run: its process id and start time. |
 | `criterion-unticked` | `issue`, `matcher` | An issue acceptance criterion was unticked: the issue number and the text that matched it. |
 | `done` | `pr`, `wall_seconds`, `awake_seconds`, `lane` | The run finished: the PR url, wall-clock seconds since the opening event (or last `resume`), awake-clock seconds over the same span (absent without both clocks), and the lane label. |
@@ -16,6 +16,7 @@
 | `pin` | — | The skill snapshot was pinned to a commit. |
 | `plan` | `steps` | The plan was written to the ledger: the number of steps. |
 | `prediction-diverged` | — | A step's predicted outcome differed from the observed one. |
+| `preflight-refused` | `check`, `cause`, `classification` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`). |
 | `push-failed` | `error`, `attempts` | Pushing the branch failed after `attempts` tries: the git error. |
 | `push-rejected` | `remote_sha`, `error` | The remote refused the push: the remote tip sha and the git error. |
 | `rebase-refresh-retry` | — | A merge rebase was retried after a ref refresh. |
