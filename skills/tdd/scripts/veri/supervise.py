@@ -18,6 +18,7 @@ import event_log
 import harvest_usage
 import preserve_attempt
 import tunables
+from case_reader import is_test_path
 from extract_result import extract
 from frozen_record import _work_tree_hash, pass_marker_current
 from leaf_log import result_records
@@ -262,6 +263,27 @@ def restore_mutation_records(before, role, env, name):
         else:
             os.remove(path)
         mark(role, env, "mutation-record-restored", f"name={name}", f"file={path}")
+
+
+def production_files():
+    ran = subprocess.run(["git", "ls-files", "-m", "-z"], capture_output=True)
+    out = {}
+    for raw in (ran.stdout or b"").split(b"\0") if ran.returncode == 0 else []:
+        path = os.fsdecode(raw)
+        if raw and not is_test_path(path) and os.path.isfile(path):
+            with open(path, "rb") as f:
+                out[path] = f.read()
+    return out
+
+
+def restore_production_files(before, role, env, name):
+    for path, content in sorted(before.items()):
+        with open(path, "rb") as f:
+            if f.read() == content:
+                continue
+        with open(path, "wb") as f:
+            f.write(content)
+        mark(role, env, "production-file-restored", f"name={name}", f"file={path}")
 
 
 def refuse_launch(role, env, name, reason):
@@ -510,6 +532,7 @@ def main(argv):
     tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
     discard(exitfile)
     records = mutation_records() if name.startswith(("develop-", "revise-")) else None
+    production = production_files() if name.startswith(("develop-red", "revise-red")) else None
     started = []
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
@@ -527,6 +550,8 @@ def main(argv):
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
     if records is not None:
         restore_mutation_records(records, role, leaf_env, name)
+    if production is not None:
+        restore_production_files(production, role, leaf_env, name)
     ec = {"success": 0, "failure": 1, "killed-stuck": 2, "killed-external": 2}[status]
     if rc == "2":
         ec = 2
