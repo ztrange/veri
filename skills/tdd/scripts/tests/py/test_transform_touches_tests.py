@@ -434,3 +434,14 @@ def test_3280_touched_option_with_no_bound_exits_1_when_the_range_changed_no_lis
 
     assert run_cli(transform_touches_tests, [base, "--touched", "src/a.py"], cwd=repo) == (
         1, "transform changed no file the issue touched\n", "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository, with --touched as the last argument and no value")
+def test_3280_touched_option_with_no_value_exits_2_with_the_usage_line_and_no_traceback(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-novalue")
+    base = commit_all(repo, "feat: seed", **{"src__a.py": "a\n"})
+    commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
+
+    assert run_cli(transform_touches_tests, [base, "", "--touched"], cwd=repo) == (
+        2, "", "usage: transform-touches-tests.sh <base-sha>\n")
