@@ -63,6 +63,8 @@ def main(argv):
                 f.write(f"{os.getpid()}\n")
             stop_run("at-ledger", run)
         sleep(5)
+    if run_state(run) == "stopped":
+        detach_leaf(run)
     print(f"restarts {run} 0")
     return 0
 
