@@ -2,6 +2,7 @@
 import datetime
 import importlib
 import json
+import os
 import subprocess
 
 
@@ -59,7 +60,13 @@ def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say
 def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    done = subprocess.CompletedProcess([], 0, stdout="v0.2 Second capability\nv0.1 First capability\n", stderr="")
+
+    def run_refusing_gh(args, *a, **k):
+        if os.path.basename(str(args[0])) == "gh":
+            raise AssertionError("--report started gh: %s" % (args,))
+        return done
+    monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
     fetched = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2, minutes=3)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
@@ -99,7 +106,13 @@ def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tm
 def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    done = subprocess.CompletedProcess([], 0, stdout="v0.2 Second capability\nv0.1 First capability\n", stderr="")
+
+    def run_refusing_gh(args, *a, **k):
+        if os.path.basename(str(args[0])) == "gh":
+            raise AssertionError("--report started gh: %s" % (args,))
+        return done
+    monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
     fetched = datetime.datetime.now(datetime.timezone.utc)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
