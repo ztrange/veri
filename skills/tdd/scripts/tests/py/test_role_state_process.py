@@ -226,3 +226,13 @@ def test_coord_show_with_no_state_file_exits_3_and_prints_nothing(tmp_path, run_
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
     code, out, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     assert (code, out) == (3, "")
+
+
+@pytest.mark.process("git")
+def test_a_role_other_than_coord_or_dev_exits_2_with_usage_and_writes_no_state_file(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    code, _, err = run_cli(role_state, ["admin", "set", "n", "3"], cwd=repo)
+    assert (code, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, True, False)
