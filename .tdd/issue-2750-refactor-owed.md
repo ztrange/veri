@@ -15,3 +15,4 @@
 - `running_lines` repeats the `sum(... if e["ts"] > since)` delta pattern for steps and cost; extract a small helper
 ### After a report printed, `.tdd/status-last` holds the report's time and its queue counts ⟦criterion 7⟧
 - the `%Y-%m-%dT%H:%M:%SZ` timestamp format is repeated in three places in `status.py`, two of them older code this cycle did not write. A shared constant would also change code outside this cycle.
+not-done | transform-rejected | merge the two `git tag --list` calls in `landed_lines` into one call, and update the `fake_tags` stub in `tests/py/unit/test_status_report.py` to the new `<unix-time> <name>  <subject>` output format
