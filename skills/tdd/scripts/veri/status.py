@@ -323,6 +323,10 @@ def journals():
             yield path, [json.loads(l) for l in f if l.strip()]
 
 
+def run_name(path):
+    return "#" + os.path.basename(path)[:-len(".jsonl")]
+
+
 def running_lines():
     blocks = []
     since = status_last_time()
@@ -336,7 +340,7 @@ def running_lines():
         except OSError:
             continue
         if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
-            name = "#" + os.path.basename(path)[:-len(".jsonl")]
+            name = run_name(path)
             name += " %dm" % ((int(events[-1]["awake"]) - int(events[0]["awake"])) // 60)
             plans = of("plan")
             if plans:
@@ -372,7 +376,7 @@ def waiting_lines():
     for path, events in journals():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
-                lines.append("#%s %s" % (os.path.basename(path)[:-len(".jsonl")], e["cause"]))
+                lines.append("%s %s" % (run_name(path), e["cause"]))
         pr = None
         for e in events:
             if e.get("event") == "done" and "pr" in e:
@@ -380,7 +384,7 @@ def waiting_lines():
             elif e.get("event") == "merged":
                 pr = None
         if pr is not None:
-            lines.append("#%s PR %s ready to merge" % (os.path.basename(path)[:-len(".jsonl")], pr))
+            lines.append("%s PR %s ready to merge" % (run_name(path), pr))
     return "\n".join(lines) or "none"
 
 
