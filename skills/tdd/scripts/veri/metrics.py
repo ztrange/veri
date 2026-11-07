@@ -531,9 +531,10 @@ def render(issue, path, ledger):
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
     transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
-    coordinator = coordinator_session(transcripts) if transcripts else None
-    if coordinator:
-        print("Coordinator session: %d turns, %d cache tokens read, $%.2f" % coordinator)
+    for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
+        spend = session_spend(transcripts, command) if transcripts else None
+        if spend:
+            print("%s session: %d turns, %d cache tokens read, $%.2f" % ((label,) + spend))
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
@@ -586,11 +587,11 @@ def usage_dollars(usage, prices):
             + sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items()))
 
 
-def coordinator_session(directory):
+def session_spend(directory, command):
     for name in sorted(os.listdir(directory)):
         with open(os.path.join(directory, name)) as lines:
             rows = [json.loads(line) for line in lines]
-        if not rows[0]["message"]["content"].startswith("/vcoord"):
+        if not rows[0]["message"]["content"].startswith(command):
             continue
         turns, cache_read, dollars = 0, 0, 0.0
         for row in rows:

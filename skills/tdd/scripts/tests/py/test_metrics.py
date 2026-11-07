@@ -1960,3 +1960,20 @@ def test_the_coordinator_session_is_the_transcript_whose_first_prompt_invokes_vc
     out = render(metrics, capsys)
 
     assert "Coordinator session: 1 turns, 50000 cache tokens read, $" in out
+
+
+def test_the_report_names_the_dev_sessions_turns_cache_tokens_read_and_dollars_beside_the_coordinators(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    transcript(transcripts / "coord.jsonl", "/vcoord 3154",
+               [{"input_tokens": 1, "cache_read_input_tokens": 50000, "cache_creation_input_tokens": 0, "output_tokens": 1}])
+    transcript(transcripts / "dev.jsonl", "/vdev 3154",
+               [{"input_tokens": 0, "cache_read_input_tokens": 1000000, "cache_creation_input_tokens": 0, "output_tokens": 20000},
+                {"input_tokens": 0, "cache_read_input_tokens": 2000000, "cache_creation_input_tokens": 0, "output_tokens": 0}])
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
+
+    out = render(metrics, capsys)
+
+    assert "Dev session: 2 turns, 3000000 cache tokens read, $6.00\n" in out
