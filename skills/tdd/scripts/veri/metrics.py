@@ -113,7 +113,7 @@ def conductor_sessions(issue, path):
     open_turns, open_cost, open_priced = 0, 0.0, True
     open_contexts = []
     turn_rows = TurnRows()
-    seen_ids = set()
+    seen_ids = {}
     open_turn_rows = []
 
     with contextlib.suppress(OSError):
@@ -144,17 +144,19 @@ def conductor_sessions(issue, path):
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
                         usage = message.get("usage") or {}
-                        if message.get("id") is not None:
-                            if message["id"] in seen_ids:
-                                continue
-                            seen_ids.add(message["id"])
-                        open_turns += 1
                         calls = json.dumps([block.get("input") for block in message.get("content") or []
                                             if isinstance(block, dict) and block.get("type") == "tool_use"],
                                            ensure_ascii=False)
+                        names = [name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)]
+                        if message.get("id") is not None:
+                            if message["id"] in seen_ids:
+                                seen_ids[message["id"]].extend(n for n in names if n not in seen_ids[message["id"]])
+                                continue
+                            seen_ids[message["id"]] = names
+                        open_turns += 1
                         model_name = message.get("model") or ""
                         model_family = family(model_name) or ("opus" if not model_name else None)
-                        open_turn_rows.append(([name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)],
+                        open_turn_rows.append((names,
                                                model_family, usage.get("output_tokens") or 0))
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)

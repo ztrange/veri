@@ -2323,3 +2323,25 @@ def test_the_comment_family_table_counts_turns_of_a_transcript_with_no_result_re
     rows = {row["family"]: (row["turns"], row["output tokens"])
             for row in table(out, "#### Conductor comments, by family")}
     assert (rows["🟢 Green"], rows["🔎 verify-green"]) == (("1", "7"), ("1", "5"))
+
+
+def test_the_comment_family_table_counts_a_comment_whose_tool_use_sits_only_in_a_later_record_of_its_message(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+
+    def record(content):
+        return {"type": "assistant", "message": {"id": "msg_a", "usage": {"input_tokens": 10, "output_tokens": 1},
+                                                 "content": content}}
+
+    records = [{"type": "system", "subtype": "init"},
+               record([{"type": "text", "text": "working"}]),
+               record([{"type": "tool_use", "name": "Bash",
+                        "input": {"command": "gh issue comment 108 --body '🟢 Green: step 1'"}}]),
+               {"type": "result", "total_cost_usd": 1.0, "num_turns": 1, "usage": {"output_tokens": 100}}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = {row["family"]: (row["turns"], row["output tokens"])
+            for row in table(out, "#### Conductor comments, by family")}
+    assert rows["🟢 Green"] == ("1", "100")
