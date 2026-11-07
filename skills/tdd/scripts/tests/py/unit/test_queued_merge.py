@@ -693,3 +693,26 @@ def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_
     rows = [json.loads(r) for r in events.read_text().splitlines()] if events.exists() else []
     retries = [r for r in rows if r.get("event") != "merged"]
     assert (code, len(retries)) == (0, 2)
+
+
+def test_3022_queued_merge_whose_phantom_would_be_overwritten_stop_recurs_past_the_retry_bound_fails_with_gits_code_keeps_the_lock_and_pushes_nothing(fake_processes, run_cli):
+    phantom = "error: Your local changes to the following files would be overwritten by merge:\n"
+
+    def phantom_world(answer):
+        stops = []
+
+        def world(line, **kwargs):
+            if "status --porcelain" in line:
+                return 0, "", ""
+            if ("rebase origin/main" in line or "rebase --continue" in line) and len(stops) < 50:
+                stops.append(line)
+                return 1, "", phantom
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    calls = scenario(phantom_world)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    ran = [c for c in calls if " push " in c or "--force-with-lease" in c or "merge-lock.sh release" in c]
+    assert (code, ran) == (1, [])
