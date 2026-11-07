@@ -7,6 +7,7 @@ import time
 
 import full_tier_time
 import growth
+import stop_run as stop_run_module
 
 USAGE = "usage: restart-conductor.sh <n>"
 
@@ -20,7 +21,7 @@ def conductor_alive(run):
 
 
 def stop_run(mode, run):
-    pass
+    stop_run_module.stop_run(os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", "wt", run), mode)
 
 
 def run_state(run):
