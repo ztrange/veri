@@ -1596,3 +1596,14 @@ def test_cli_run_leaf_sh_under_a_zsh_login_shell_hands_claude_a_shell_that_split
     read = lambda suffix: (out.parent / f"seen.{suffix}").read_text() if (out.parent / f"seen.{suffix}").exists() else None
 
     assert (code, read("count"), read("later")) == (0, "2\n", "later\n")
+
+
+def test_leaf_argv_with_veri_leaf_tools_unset_passes_a_default_tools_list_naming_the_tools_the_leaf_prompts_use_3180(
+        monkeypatch):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    monkeypatch.delenv("VERI_LEAF_TOOLS", raising=False)
+
+    argv = run_leaf.leaf_argv("claude", None, [])
+
+    tools = argv[argv.index("--tools") + 1].split(",") if "--tools" in argv else []
+    assert {"Bash", "Read", "Edit", "Write", "Grep", "Glob"} - set(tools) == set()
