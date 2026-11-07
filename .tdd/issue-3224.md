@@ -1,0 +1,28 @@
+# Plan for #3224 — PRD 012.4a: A role's state lives in a file, and one command prints everything a cleared role needs to resume
+
+- [ ] `skills/tdd/scripts/role-state.sh coord set n 3`, a new `/bin/sh` shim over `veri/role_state.py` following the `status.sh` port convention (with its no-argument usage line and exit 2 and a declared caller in this same step), run from the main working tree writes `n` into `.tdd/role-coord.state` there, which `role-state.sh coord show` then prints ⟦criterion 1⟧
+- [ ] `role-state.sh coord set lane <lane>` writes the `lane` field, which `show` then prints beside an earlier `n` ⟦criterion 1⟧
+- [ ] `role-state.sh coord set n 2` run from a linked worktree of the repository writes into `.tdd/role-coord.state` of the main working tree, not of the linked worktree ⟦criterion 1⟧
+- [ ] `role-state.sh coord --lane mu set n 1` writes `.tdd/role-coord-mu.state` in the main working tree and leaves the default lane's `.tdd/role-coord.state` unchanged ⟦criterion 1⟧
+- [ ] `role-state.sh <role> add <list> <text>`, for each of the lists `decision`, `message`, `override` and `timed-n`, appends an item carrying the text and its local add time, prints the new item's id, and `show` then lists the item ⟦criterion 2⟧
+- [ ] `role-state.sh <role> drop <list> <id>` removes the item with that id from the list, so `show` no longer lists it while other items stay ⟦criterion 2⟧
+- [ ] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` set records `recovered-at` (now) and `session-id` (that variable's value), which `show` then prints ⟦criterion 3⟧
+- [ ] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` unset or empty exits 2 and leaves the state file byte-for-byte unchanged (absent when it was absent) ⟦criterion 3⟧
+- [ ] Every write replaces the state file atomically through a temporary file renamed over it: a case that makes the write fail after the temporary file is written finds the previous state file byte-for-byte unchanged ⟦criterion 4⟧
+- [ ] `role-state.sh <role> show` with no state file for the role and lane exits 3 and prints nothing ⟦criterion 5⟧
+- [ ] `role-state.sh` given a role other than `coord` or `dev` exits 2 with its usage line on stderr and writes no state file ⟦criterion 5⟧
+- [ ] `role-state.sh <role>` given an unknown verb exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
+- [ ] `role-state.sh <role> set` with an unknown field, or `add`/`drop` with an unknown list, exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
+- [ ] `role-state.sh <role> set n <value>` with a value that is not a whole number ≥ 0 exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
+- [ ] `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
+- [ ] `skills/tdd/SCRIPTS.md` gains the `role-state.sh` entry (SC85) and the `status.sh` entry names `--recover` with its sections and exits (SC86), graded by the issue's `## Requirements` rows ⟦skill-edit⟧ ⟦criterion 8⟧
+- [ ] `status.sh --recover coord` with no taken run, no bailed run, no open PR, a free merge lock and no state file prints the headings `Runs`, `Bailed`, `PRs`, `Merge lock`, `State`, `Pending decisions`, `Pending messages` in that order, `none` under each empty one (`free` under `Merge lock`), and exits 0 ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `Runs` each taken run with its issue, its title and the live conductor's pid, or `dead` when no live conductor holds it ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `Bailed` each bailed run with its issue and its bail class ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `PRs` each open PR with its number, the issue it closes, draft or ready, and GitHub's `mergeable_state` ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid, or `stale`, as `merge-lock.sh holder` answers ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `State` the role's N, its lane, and each timed N change and each order override with its id and time, read from the role's state file (the named lane's file with `--lane <lane>`) ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `Pending decisions` and `Pending messages` each pending decision and each pending message in full with its id and time ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` exits 2 when GitHub refuses the open-PR read, its stderr naming that read ⟦criterion 6⟧
+- [ ] `status.sh --recover` given a role other than `coord` or `dev` exits 2 ⟦criterion 6⟧
+- [ ] Round trip (RC3): a case writes one item of every field and list with `role-state.sh`, takes `status.sh --recover`, finds each value verbatim in it, and a second report taken from the files on disk alone is identical to the first; removing any one list from the report turns the case red ⟦criterion 7⟧
