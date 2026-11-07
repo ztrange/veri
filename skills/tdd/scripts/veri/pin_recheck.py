@@ -178,7 +178,7 @@ def recheck(argv):
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
             return 2
         if base.returncode != 0:
-            sys.stdout.write(f"needs a look: {pin['file']}\n")
+            sys.stdout.write(f"needs a look: {pin['file']} (base run failed)\n")
             write_tail(base)
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
