@@ -458,3 +458,15 @@ def test_3280_touched_option_with_an_empty_list_exits_2_naming_the_empty_list(
 
     assert (code, out) == (2, "")
     assert "empty" in err
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changed a non-test file, with a --touched list ending in a comma")
+def test_3280_touched_option_with_a_trailing_comma_in_the_list_exits_2_like_the_empty_list(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-trailing-comma")
+    base = commit_all(repo, "feat: seed", **{"src__a.py": "a\n"})
+    commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
+
+    code, out, err = run_cli(transform_touches_tests, [base, "", "--touched", "nonexistent.py,"], cwd=repo)
+
+    assert (code, out) == (2, "")
