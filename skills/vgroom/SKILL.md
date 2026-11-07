@@ -36,6 +36,15 @@ where outcome is one of:
 - `duplicate` — another issue says the same (the line names it);
 - `needs-human` — a judgement the subagent cannot make.
 
+### Missing PRD parents
+
+During triage, also find every open issue titled `PRD <nnn>.<k>: …` that has no GitHub
+parent, and set its parent to the issue titled `PRD <nnn>: …` through the GitHub sub-issues
+API (`gh api`). Report each one set, in one line.
+
+- An issue whose parent is a different issue is **reported and left** as it is.
+- A PRD number with no issue titled `PRD <nnn>: …` is **reported**, and nothing is set.
+
 ## Before labelling ready
 
 Before labelling an issue ready, run `$S/stale-rows.sh <issue>` against it:
