@@ -315,14 +315,18 @@ def landed_lines():
     return "\n".join(lines) or "none"
 
 
-def running_lines():
+def journals():
     import event
     sample = event.journal_path(main_working_tree(), "0")
-    blocks = []
-    since = status_last_time()
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         with open(path) as f:
-            events = [json.loads(l) for l in f if l.strip()]
+            yield path, [json.loads(l) for l in f if l.strip()]
+
+
+def running_lines():
+    blocks = []
+    since = status_last_time()
+    for path, events in journals():
         def of(kind):
             return [e for e in events if e.get("event") == kind]
         first = of("conductor-start")[-1]
@@ -363,13 +367,9 @@ def running_lines():
 
 
 def waiting_lines():
-    import event
-    sample = event.journal_path(main_working_tree(), "0")
     since = status_last_time() or 0
     lines = []
-    for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
-        with open(path) as f:
-            events = [json.loads(l) for l in f if l.strip()]
+    for path, events in journals():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
                 lines.append("#%s %s" % (os.path.basename(path)[:-len(".jsonl")], e["cause"]))
