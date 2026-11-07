@@ -125,11 +125,8 @@ def conductor_sessions(issue, path):
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
                             continue
                         prices = PRICES[model_family]
-                        cache_write_dollars = sum(tokens * prices[rate] / 1e6
-                                                  for rate, tokens in cache_write_tokens(usage).items())
                         output_dollars = (usage.get("output_tokens") or 0) * prices["output"] / 1e6
-                        turn_dollars = sum((usage.get(key) or 0) * prices[rate] / 1e6
-                                           for key, rate in TURN_RATES.items()) + cache_write_dollars
+                        turn_dollars = usage_dollars(usage, prices)
                         open_cost += turn_dollars
                         base_dollars = turn_dollars - output_dollars
                         open_rows.append((len(turn_rows), base_dollars))
@@ -584,6 +581,11 @@ def render(issue, path, ledger):
     section("#### Total", "run", COST_COLUMNS, totals)
 
 
+def usage_dollars(usage, prices):
+    return (sum((usage.get(key) or 0) * prices[rate] / 1e6 for key, rate in TURN_RATES.items())
+            + sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items()))
+
+
 def coordinator_session(directory):
     for name in sorted(os.listdir(directory)):
         with open(os.path.join(directory, name)) as lines:
@@ -599,8 +601,7 @@ def coordinator_session(directory):
             prices = PRICES[family(message["model"])]
             turns += 1
             cache_read += usage["cache_read_input_tokens"]
-            dollars += sum(usage[key] * prices[rate] / 1e6 for key, rate in TURN_RATES.items())
-            dollars += sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items())
+            dollars += usage_dollars(usage, prices)
         return turns, cache_read, dollars
     return None
 
