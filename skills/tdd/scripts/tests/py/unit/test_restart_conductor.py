@@ -193,3 +193,32 @@ def test_3223_started_from_a_linked_worktree_it_reads_the_conductor_log_and_writ
     run_cli(restart_conductor, ["7"], cwd=start)
 
     assert seen == [True]
+
+
+def test_3223_the_stop_wrapper_requests_mode_at_ledger_leaving_the_run_stop_file_holding_at_ledger(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    restart_conductor.stop_run("at-ledger", "7")
+
+    stop = tdd / "stop"
+    assert (stop.read_text().strip() if stop.exists() else None) == "at-ledger"
+
+
+def test_3223_the_stop_wrapper_started_from_a_linked_worktree_writes_the_at_ledger_stop_file_under_the_main_working_tree(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    (start / ".tdd").mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    monkeypatch.chdir(start)
+
+    restart_conductor.stop_run("at-ledger", "7")
+
+    stop = main / ".tdd" / "wt" / "7" / ".tdd" / "stop"
+    assert (stop.read_text().strip() if stop.exists() else None) == "at-ledger"
