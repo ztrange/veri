@@ -97,30 +97,6 @@ def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_d
         "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
-def test_main_prints_the_emitted_text_check_for_a_partial_no_suite_names_1622(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/_shared.md"]))
-    monkeypatch.chdir(tmp_path)
-    tests = tmp_path / "skills/tdd/scripts/tests"
-    (tests / "unit").mkdir(parents=True)
-    (tests / "py/unit").mkdir(parents=True)
-    (tests / "py/unit/test_emitted_text.py").write_text("")
-    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/py/unit/test_emitted_text.py\n", "")
-
-
-def test_main_prints_the_emitted_text_check_for_a_prompt_no_suite_names_1024(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/unnamed.md"]))
-    monkeypatch.chdir(tmp_path)
-    tests = tmp_path / "skills/tdd/scripts/tests"
-    (tests / "unit").mkdir(parents=True)
-    (tests / "py/unit").mkdir(parents=True)
-    (tests / "py/unit/test_emitted_text.py").write_text("")
-    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0, "skills/tdd/scripts/tests/py/unit/test_emitted_text.py\n", "")
-
-
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
@@ -832,7 +808,6 @@ def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_p
     files.update({
         py + "unit/test_reads_skill.py": 'open("skills/tdd/SKILL.md")\n',
         py + "unit/test_reads_preflight.py": 'open("skills/tdd/PREFLIGHT.md")\n',
-        py + "unit/test_emitted_text.py": "def test_x(): pass\n",
         py + "test_alpha_tool.py": "def test_x(): pass\n",
         py + "unit/test_beta.py": "def test_x(): pass\n",
     })
@@ -841,7 +816,7 @@ def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_p
         files[SUITES + "unit/" + bash + ".test.sh"] = "#!/bin/bash\n"
     code, out, err = affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files)
     assert (code, out.splitlines(), err) == (0, sorted([
-        py + "test_alpha_tool.py", py + "unit/test_beta.py", py + "unit/test_emitted_text.py",
+        py + "test_alpha_tool.py", py + "unit/test_beta.py",
         py + "unit/test_reads_preflight.py", py + "unit/test_reads_skill.py"]), "")
 
 
