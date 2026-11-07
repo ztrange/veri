@@ -145,10 +145,15 @@ def recheck(argv):
             continue
         for n in gone:
             pin["command"] = re.sub(r"TESTS=[\"']?" + re.escape(n) + r"[\"']*(?=\s|$)", "", pin["command"])
-        for n in named:
-            if not Path(n.split("::")[0]).exists():
-                sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
-                return 2
+        missing = [n for n in named if not Path(n.split("::")[0]).exists()]
+        if missing:
+            for n in missing:
+                if subprocess.run(["git", "cat-file", "-e", f"origin/main:{n.split('::')[0]}"],
+                                  capture_output=True).returncode == 0:
+                    sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
+                    return 2
+            sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
+            continue
         if "before" in pin:
             replayed = replay_before(pin, ledger)
             if replayed is None:
