@@ -89,6 +89,19 @@ def test_main_appends_a_bug_section_naming_the_body_headings_for_a_bug_labelled_
     assert "\n## Bug\n" in captured.out[len(BUG_BODY) - 1:]
 
 
+def test_main_carries_each_bug_heading_text_once_in_the_body_and_names_the_headings_in_the_bug_section(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    fake_gh(monkeypatch, "bug\n", BUG_BODY)
+
+    code = capture_spec.main(["7"])
+    out = capsys.readouterr().out
+
+    bug_section = out[out.index("\n## Bug\n"):]
+    texts = ("ticked the same step twice.", "ticks a step once.", "twice against the same step text.", "bash 5.2 on macOS 15.6.")
+    headings = ("What happened", "Expected", "Steps to reproduce", "Environment")
+    assert (code, [out.count(t) for t in texts], [h in bug_section for h in headings]) == (0, [1, 1, 1, 1], [True] * 4)
+
+
 def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a_json_error_body(monkeypatch, capsys, capture_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = []

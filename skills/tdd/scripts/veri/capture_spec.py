@@ -28,9 +28,9 @@ def capture(n):
     body = gh_issue_view(n, "body").rstrip("\n")
     out = body + "\n"
     if "bug" in labels:
-        out += "\n## Bug\n"
+        out += "\n## Bug\n\n"
         for heading in BUG_HEADINGS:
-            out += "\n### %s\n\n" % heading + part(body, heading)
+            out += "- %s\n" % heading
     if "refactor" in labels:
         out += "\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n"
     return out
