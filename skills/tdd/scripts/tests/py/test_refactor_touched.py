@@ -354,3 +354,13 @@ def test_check_prints_nothing_and_returns_0_when_the_candidate_names_no_tracked_
     result = run_cli(refactor_touched, ["--issue", base, "--candidate", "tidy ghost.sh somehow",
                                         "--check"], cwd=repo)
     assert result == (0, "", "")
+
+
+@pytest.mark.process("git over a scratch repository with an issue range and --check given no candidate")
+def test_check_without_a_candidate_returns_2_and_prints_no_file_list(tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "check-no-candidate")
+    base = commit_all(repo, "plan: scope #19", **{".tdd__issue-19.md": "- [ ] a step\n"})
+    commit_all(repo, "feat: a step (#19)", **{"src__zeta.sh": "zeta\n"})
+
+    code, out, _ = run_cli(refactor_touched, ["--issue", base, "--check"], cwd=repo)
+    assert (code, out) == (2, "")
