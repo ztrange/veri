@@ -28,16 +28,50 @@ def landed(out):
 
 
 def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_order(tmp_path, monkeypatch, run_cli):
+    import re
+    import time
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    tagger = datetime.timezone(datetime.timedelta(hours=9))
+    tags = {"v0.2": (1768426200, "Second capability"), "v0.1": (1768339800, "First capability")}
 
-    code, out, _ = run_cli(status, ["--report"])
+    def expand(fmt, name):
+        unix, subject = tags[name]
+
+        def one(m):
+            field = m.group(1)
+            if field == "refname:short":
+                return name
+            if field == "contents:subject":
+                return subject
+            if field == "creatordate:unix":
+                return str(unix)
+            if field.startswith("creatordate:format-local:"):
+                return time.strftime(field[len("creatordate:format-local:"):], time.localtime(unix))
+            if field.startswith("creatordate:format:"):
+                return datetime.datetime.fromtimestamp(unix, tagger).strftime(field[len("creatordate:format:"):])
+            return datetime.datetime.fromtimestamp(unix, tagger).isoformat(" ")
+        return re.sub(r"%\(([^)]*)\)", one, fmt)
+
+    def run(args, *a, **k):
+        fmt = "".join(x[len("--format="):] for x in args if x.startswith("--format="))
+        out = "".join(expand(fmt, name) + "\n" for name in tags) if fmt else ""
+        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+    monkeypatch.setenv("TZ", "America/Chicago")
+    time.tzset()
+
+    try:
+        code, out, _ = run_cli(status, ["--report"])
+    finally:
+        monkeypatch.undo()
+        time.tzset()
 
     headings = [line.strip() for line in out.splitlines()
                 if line.strip() in ("Landed", "Running", "Queue", "Waiting")]
     assert (code, headings, landed(out)) == (
-        0, ["Landed", "Running", "Queue", "Waiting"], [("v0.2", "Second capability"), ("v0.1", "First capability")])
+        0, ["Landed", "Running", "Queue", "Waiting"],
+        [("v0.2", "2026-01-14 15:30  Second capability"), ("v0.1", "2026-01-13 15:30  First capability")])
 
 
 def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli):

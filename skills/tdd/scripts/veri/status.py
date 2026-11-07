@@ -343,7 +343,7 @@ def status_last_time():
 def landed_lines():
     root = main_working_tree()
     since = status_last_time()
-    lines = git_tags(root, "%(refname:short)  %(contents:subject)")
+    lines = git_tags(root, "%(refname:short)  %(creatordate:format-local:%Y-%m-%d %H:%M)  %(contents:subject)")
     if since is not None:
         cut = tags_created_since(root, since)
         lines = [l for l in lines if l.split()[0] in cut]
