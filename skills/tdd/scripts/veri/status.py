@@ -7,6 +7,7 @@ import io
 import json
 import os
 import re
+import statistics
 import subprocess
 import sys
 import time
@@ -265,6 +266,18 @@ def snapshot_line():
     return "snapshot %dh %dm old" % divmod(minutes, 60)
 
 
+def eta_range(count):
+    walls = []
+    for _path, events in journals():
+        done = [e for e in events if e.get("event") == "done"]
+        if done:
+            walls.append(int(done[-1]["awake"]) - int(events[0]["awake"]))
+    if len(walls) < 3:
+        return "no rate yet"
+    low, _mid, high = statistics.quantiles(walls, n=4, method="inclusive")
+    return "%s–%s" % tuple("%dh %dm" % divmod(int(w * count) // 60, 60) for w in (low, high))
+
+
 def queue_counts():
     label = tunables.read("VERI_LABEL", "ready-for-agent")
     try:
@@ -277,7 +290,8 @@ def queue_counts():
     last = status_last_queue()
     if label in last:
         text += " %+d" % (len(opted_in) - last[label])
-    text += "\nETA no rate yet" * bool(opted_in)
+    if opted_in:
+        text += "\nETA " + eta_range(len(opted_in))
     for i in opted_in:
         for b in i["blockedBy"]:
             if state.get(b) == "OPEN":
