@@ -2180,6 +2180,25 @@ def test_cli_with_help_as_the_issue_exits_2_with_the_usage_line_creates_no_run_w
         2, "", "usage: run-conductor.sh <issue>\n", False, [])
 
 
+def test_cli_with_a_non_numeric_or_zero_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    results = {}
+    for issue in ("abc", "0"):
+        code, out, err = run_cli(run_conductor, [issue], cwd=cwd)
+        results[issue] = (code, out, err, (cwd / ".tdd" / "wt" / issue).exists(), [args[:1] for args, _ in launches])
+
+    refusal = (2, "", "usage: run-conductor.sh <issue>\n", False, [])
+    assert results == {"abc": refusal, "0": refusal}
+
+
 def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of_its_conductor_pid_file_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
