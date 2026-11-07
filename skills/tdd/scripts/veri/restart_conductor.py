@@ -5,6 +5,7 @@ import os
 import sys
 import time
 
+import full_tier_time
 import growth
 
 USAGE = "usage: restart-conductor.sh <n>"
@@ -32,7 +33,7 @@ def detach_leaf(run):
 
 def _growth(run):
     try:
-        with open(f".tdd/conductor-{run}.log") as f:
+        with open(os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", f"conductor-{run}.log")) as f:
             records = [json.loads(line) for line in f]
     except OSError:
         return None
@@ -57,7 +58,7 @@ def main(argv):
     while conductor_alive(run):
         g = _growth(run)
         if g is not None and g >= 0.85 * int(knob):
-            pending = f".tdd/wt/{run}/.tdd/restart-pending"
+            pending = os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd", "wt", run, ".tdd", "restart-pending")
             os.makedirs(os.path.dirname(pending), exist_ok=True)
             with open(pending, "w") as f:
                 f.write(f"{os.getpid()}\n")

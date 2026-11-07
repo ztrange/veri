@@ -167,3 +167,29 @@ def test_3223_after_the_stop_once_the_conductor_has_exited_and_the_run_is_stoppe
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
+
+
+def test_3223_started_from_a_linked_worktree_it_reads_the_conductor_log_and_writes_restart_pending_under_the_main_working_tree(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (main / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    pending = main / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    alive = iter([True, True, False])
+    seen = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: seen.append(pending.exists()), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=start)
+
+    assert seen == [True]
