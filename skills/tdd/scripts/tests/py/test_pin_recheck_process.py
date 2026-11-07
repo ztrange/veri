@@ -1848,6 +1848,28 @@ def test_3160_a_green_before_state_pin_whose_base_worktree_cannot_be_created_exi
         2, True, False, False, False, False), ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a stale before-state pin whose command names no TESTS= value")
+def test_3160_a_stale_before_state_pin_whose_command_names_no_tests_value_names_its_keep_path(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "touch the pin file, leaving the pin as it was")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout) == (0, "stale: .tdd/issue-3160-mutations.md pin.txt\n"), ran.stderr
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that edits a pin's file while its named test is missing at HEAD and on the base")
 def test_3160_a_pin_whose_named_test_is_missing_at_head_and_on_the_base_and_not_deleted_is_stale_not_exit_2(tmp_path):
     def git(*words):
