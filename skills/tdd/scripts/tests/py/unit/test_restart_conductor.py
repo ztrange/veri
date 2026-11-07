@@ -222,3 +222,14 @@ def test_3223_the_stop_wrapper_started_from_a_linked_worktree_writes_the_at_ledg
 
     stop = main / ".tdd" / "wt" / "7" / ".tdd" / "stop"
     assert (stop.read_text().strip() if stop.exists() else None) == "at-ledger"
+
+
+def test_3223_the_run_state_of_a_run_whose_last_end_is_a_stop_reads_stopped(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    events = [{"ts": 1, "event": "launch", "issue": 7, "phase": "red"}, {"ts": 2, "event": "stop", "issue": 7, "mode": "at-ledger"}]
+    (tdd / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    monkeypatch.chdir(tmp_path)
+
+    assert restart_conductor.run_state("7") == "stopped"

@@ -7,6 +7,7 @@ import time
 
 import full_tier_time
 import growth
+import status
 import stop_run as stop_run_module
 
 USAGE = "usage: restart-conductor.sh <n>"
@@ -29,7 +30,8 @@ def stop_run(mode, run):
 
 
 def run_state(run):
-    return ""
+    wt = os.path.join(_tdd_dir(), "wt", run)
+    return json.loads(status.run_activity(wt, as_json=True))["state"]
 
 
 def detach_leaf(run):
