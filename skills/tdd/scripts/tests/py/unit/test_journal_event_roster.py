@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-SKILLS = pathlib.Path(__file__).resolve().parents[4]
+SKILLS = pathlib.Path(__file__).resolve().parents[5]
 JOURNAL = SKILLS / "tdd" / "JOURNAL.md"
 SH_CALL = re.compile(r"event\.sh +([a-z][a-z0-9-]*)")
 MARK_CALL = re.compile(r"""event\.mark\((?:[^"']|"[^"]*:"|"[A-Za-z_]+"(?=\s*:))*?,\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
