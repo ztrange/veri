@@ -139,3 +139,59 @@ def test_3236_report_running_block_counts_a_structural_pass_event_without_transf
     code, out, err = run_cli(status, ["--report"])
 
     assert (code, "refactor 2 passes 2 transforms 1 landed nothing" in out) == (0, True), (out, err)
+
+
+def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and_structural_pass_events_with_its_count(tmp_path, monkeypatch, run_cli):
+    import re
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    home = tmp_path / "home"
+    monkeypatch.setenv("VERI_HOME", str(home))
+    runs = home / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    started = "Mon Nov  2 10:00:00 2026"
+    events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": os.getpid(), "started": started},
+              {"ts": 1793613601, "awake": 1, "event": "plan", "steps": 3},
+              {"ts": 1793613602, "awake": 2, "event": "refactor", "step": "1", "transforms": 2, "stopped": "budget"},
+              {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 1, "stopped": "budget"},
+              {"ts": 1793613604, "awake": 4, "event": "structural-pass", "transforms": 0, "stopped": "clean"}]
+    (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
+    monkeypatch.setattr(status.subprocess, "run",
+                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    running = lines[lines.index("Running") + 1:lines.index("Queue")]
+    block = " ".join(x for x in running if x.startswith("#3236"))
+    assert (code, bool(re.search(r"budget\D{0,3}2\b", block)), bool(re.search(r"clean\D{0,3}1\b", block))) == (0, True, True), (block, err)
+
+
+def test_3236_report_running_block_adds_no_stop_reason_for_refactor_and_structural_pass_events_without_stopped(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    home = tmp_path / "home"
+    monkeypatch.setenv("VERI_HOME", str(home))
+    runs = home / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    started = "Mon Nov  2 10:00:00 2026"
+    events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": os.getpid(), "started": started},
+              {"ts": 1793613601, "awake": 1, "event": "plan", "steps": 3},
+              {"ts": 1793613602, "awake": 2, "event": "refactor", "step": "1", "transforms": 2},
+              {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 1, "stopped": "budget"},
+              {"ts": 1793613604, "awake": 4, "event": "structural-pass", "transforms": 0}]
+    (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
+    monkeypatch.setattr(status.subprocess, "run",
+                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    assert (code, "refactor 3 passes 3 transforms 1 landed nothing budget 1" in out, "None" in out) == (0, True, False), (out, err)
