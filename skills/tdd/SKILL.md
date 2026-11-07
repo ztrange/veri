@@ -74,8 +74,9 @@ the event log (`.tdd/events.jsonl`, key `skill_commit`), so a run that took a ne
 with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 
 The catalogue of every script (arguments, output, exit codes) is `<base directory>/SCRIPTS.md`.
-Read it before calling a script whose arguments, output or exit codes the step at hand does
-not spell out.
+Before calling a script whose arguments, output or exit codes the step at hand does
+not spell out, read its entry with `$S/script-help.sh <name>`, which prints just that entry;
+do not read or grep the whole file.
 
 ## Launching a leaf — detach, then wait in the foreground
 
