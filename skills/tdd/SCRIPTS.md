@@ -51,8 +51,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation. Runs
   `claude -p --output-format stream-json` so the leaf **streams events as it works** (that
   is the supervisor's heartbeat), then appends the clean final result. You always run it
-  *via* `supervise.sh`, not on its own. Tunable: `VERI_LEAF_TOOLS` — when set, passes
-  `--tools <value>` to `claude` (`grade-prose.sh` sets it empty, so its grader has no tools).
+  *via* `supervise.sh`, not on its own. Tunable: `VERI_LEAF_TOOLS` — unset passes
+  `--tools Bash,Read,Edit,Write,Grep,Glob` (`DEFAULT_TOOLS`) to `claude`; set non-empty passes
+  `--tools <value>`; set empty passes `--tools ""` (`grade-prose.sh` sets it empty, so its grader
+  has no tools). A `--tools` in the caller's own arguments wins over all three.
   It always sets `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` in `claude`'s environment, and sets
   `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` to the leaf's effective timeout, the one
   `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
