@@ -420,7 +420,7 @@ def running_lines():
             name += "".join(" %s %s" % (r, m) for r, m in models.items())
             passes = of("refactor") + of("structural-pass")
             if passes:
-                landed = [int(e["transforms"]) for e in passes]
+                landed = [int(e.get("transforms", 0)) for e in passes]
                 name += " refactor %d passes %d transforms %d landed nothing" % (
                     len(passes), sum(landed), landed.count(0))
             blocks.append(name)
