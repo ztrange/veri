@@ -277,6 +277,7 @@ def queue_counts():
     last = status_last_queue()
     if label in last:
         text += " %+d" % (len(opted_in) - last[label])
+    text += "\nETA no rate yet" * bool(opted_in)
     for i in opted_in:
         for b in i["blockedBy"]:
             if state.get(b) == "OPEN":
