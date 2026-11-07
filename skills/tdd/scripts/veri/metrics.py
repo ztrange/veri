@@ -606,7 +606,7 @@ def session_spend(directory, command, since, until=None):
             stamp = row.get("timestamp")
             if stamp:
                 moment = datetime.datetime.fromisoformat(stamp).timestamp()
-                if moment < since or (until is not None and moment > until):
+                if (since is not None and moment < since) or (until is not None and moment > until):
                     continue
             if message.get("id") is not None:
                 if message["id"] in seen:

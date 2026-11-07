@@ -2040,3 +2040,20 @@ def test_an_assistant_message_written_as_several_records_sharing_one_message_id_
     out = render(metrics, capsys)
 
     assert "Dev session: 2 turns, 3000000 cache tokens read, $" in out
+
+
+def test_a_timestamped_coordinator_transcript_is_counted_whole_when_no_event_carries_a_ts_issue_3201(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1"}, {"event": "step-done", "step": "1"}])
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    usage = {"input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": 0}
+    rows = [{"type": "user", "message": {"role": "user", "content": "/vcoord 3201"}},
+            {"type": "assistant", "timestamp": "2026-11-06T12:01:00.000Z",
+             "message": {"id": "msg_one", "model": "claude-opus-4", "usage": dict(usage, cache_read_input_tokens=2000000)}}]
+    (transcripts / "coord.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
+
+    out = render(metrics, capsys)
+
+    assert "Coordinator session: 1 turns, 2000000 cache tokens read, $" in out
