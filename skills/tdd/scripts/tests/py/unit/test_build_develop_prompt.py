@@ -1688,9 +1688,9 @@ def test_main_builds_the_ordinary_red_and_green_prompts_for_a_step_that_only_men
         "backticks": f"a step quoting `⟦replaces-case⟧` replaces 'zorblat frobs a nitz' {tail} ⟦criterion 2⟧",
         "marked": f"replaces 'zorblat frobs a nitz' {tail} ⟦replaces-case⟧ ⟦criterion 2⟧",
     }
-    red_ordinary = rb"Add exactly \*\*ONE\*\* new failing test case"
-    red_replaces = rb"Add the replacement test cases the step names"
-    green_replaces = rb"permitted, and it is required for the step to pass, to delete exactly the cases it names"
+    red_ordinary = _fragment("_develop-red-lead.md")
+    red_replaces = _fragment("_develop-red-lead-replaces-case.md")
+    green_replaces = _fragment("_develop-green-replaces-case.md", after_include=True)
 
     results = {}
     for name, step in steps.items():
@@ -1699,8 +1699,7 @@ def test_main_builds_the_ordinary_red_and_green_prompts_for_a_step_that_only_men
         build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
                                    "test_zorblat_frobs_a_nitz", "make unit"])
         green = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
-        results[name] = (re.search(red_ordinary, red) is not None, re.search(red_replaces, red) is not None,
-                         re.search(green_replaces, green) is not None)
+        results[name] = (red_ordinary in red, red_replaces in red, green_replaces in green)
 
     assert results == {"prose": (True, False, False), "backticks": (True, False, False),
                        "marked": (False, True, True)}
@@ -1718,8 +1717,8 @@ def test_main_builds_the_replaces_case_red_and_green_prompts_for_a_step_whose_te
                                "test_zorblat_frobs_a_nitz", "make unit"])
     green = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
 
-    assert ([b"Add the replacement test cases the step names" in red,
-             b"permitted, and it is required for the step to pass, to delete exactly the cases it names" in green]
+    assert ([_fragment("_develop-red-lead-replaces-case.md") in red,
+             _fragment("_develop-green-replaces-case.md", after_include=True) in green]
             == [True, True])
 
 
