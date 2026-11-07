@@ -186,6 +186,9 @@ def recheck(argv, looks):
         if base.returncode == 127 or "no makefile found" in base.stderr.lower():
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
             return 2
+        if base.returncode == 2 and ("invalid option" in base.stderr or "Usage: make" in base.stderr):
+            sys.stderr.write(f"command rejected by make: {pin['command']} (pin file {ledger})\n")
+            return 2
         if base.returncode != 0:
             needs_a_look(looks, pin["file"], "base run failed")
             write_tail(base)
