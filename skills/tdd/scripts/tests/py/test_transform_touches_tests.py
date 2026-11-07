@@ -402,3 +402,14 @@ def test_3237_touched_option_exits_1_when_the_range_changed_only_a_file_outside_
 
     assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh", "--touched", "src/a.sh"], cwd=repo) == (
         1, "transform changed no file the issue touched\n", "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changes a file in --touched")
+def test_3237_touched_option_exits_0_when_the_range_changed_a_file_in_the_list_inside_the_bound(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-ok")
+    base = commit_all(repo, "feat: seed", **{"src__a.sh": "a\n", "src__b.sh": "b\n"})
+    commit_all(repo, "refactor: a and b", **{"src__a.sh": "a2\n", "src__b.sh": "b2\n"})
+
+    assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh", "--touched", "src/a.sh"], cwd=repo) == (
+        0, "", "")

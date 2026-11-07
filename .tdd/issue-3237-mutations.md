@@ -21,3 +21,12 @@ if False
 command 148
 make test TESTS=skills/tdd/scripts/tests/py/test_refactor_owed.py::test_not_done_still_exits_2_and_writes_nothing_for_a_reason_outside_the_five_3237
 
+file 50
+skills/tdd/scripts/veri/transform_touches_tests.py
+old 33
+if not touched_list & set(paths):
+new 8
+if True:
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/test_transform_touches_tests.py::test_3237_touched_option_exits_0_when_the_range_changed_a_file_in_the_list_inside_the_bound
+
