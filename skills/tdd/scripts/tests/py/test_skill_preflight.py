@@ -107,17 +107,12 @@ def test_1420_skill_md_s_preflight_discard_never_loses_an_untracked_tdd_run_stat
 
 TESTS_DIR = pathlib.Path(__file__).resolve().parent
 MECHANICAL_READERS = (
-    "full_tier_measurement_in_the_worktree",
     "test_1420_skill_md_s_preflight_discard",
     "test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call",
     "skill_md_preflight_leaf_model_calls_name_a_leaf",
-    "test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor",
-    "test_987_preflight_step_3_runs_stop_requested_clear_beside_the_tdd_conductor_pid_write",
-    "test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout",
     "test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line",
     "test_issue_2375_a_resumed_run_with_a_marker_an_earlier_run_left",
     "test_issue_2375_a_second_conflict_after_the_runs_own_rebase",
-    "test_skill_md_runs_make_test_and_the_detected_test_command_only_through_detach_command_sh",
     "test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_without_widening",
     "test_every_remaining_case_that_reads_skill_md_s_preflight_section",
     "test_2220_sweep_flags_a_case_reading_the_preflight_section",

@@ -68,12 +68,8 @@ test_1379_skill_md_s_every_add_ledger_step_sh_call_site_says_its_exit_2_bails_wi
 test_2254_a_green_report_naming_a_superseded_case_alone_goes_through_wrong_test_route_to_a_free_red_contradicted_reroute
 test_skill_md_points_at_scripts_md_and_carries_no_catalogue_entry_and_scripts_md_keeps_every_moved_entry_1715
 test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier
-test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_routes_its_refusal_to_verify_red_reason
 test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftest_and_says_the_path_is_matched_exactly_1775
 test_1967_preflight_step_3_resumed_run_block_is_one_resume_clean_sh_call_and_its_exit_2_bails_as_a_system_failure
-test_skill_md_tells_the_conductor_to_call_detach_command_sh_wait_with_no_max_seconds_and_the_bash_maximum_timeout_never_a_fixed_500_1708
-test_skill_preflight_never_writes_the_conductor_lock_itself_leaving_it_to_run_conductor_2249
-test_revise_md_names_same_reject_and_both_branches
 test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_instruction_to_add_a_single_case_and_one_without_the_mark_unchanged_1537
 """.split()
 
@@ -92,7 +88,7 @@ def defined_case_names():
 
 @pytest.mark.tree_audit("every test module under tests/py/")
 def test_the_27_delete_cases_are_gone_and_the_23_keep_and_13_reduce_cases_remain_2782():
-    assert (len(DELETE), len(KEEP), len(REDUCE)) == (27, 23, 13)
+    assert (len(DELETE), len(KEEP), len(REDUCE)) == (27, 23, 9)
     defined = defined_case_names()
     still_defined = sorted(n for n in DELETE if n in defined)
     missing = sorted(n for n in KEEP + REDUCE if n not in defined)

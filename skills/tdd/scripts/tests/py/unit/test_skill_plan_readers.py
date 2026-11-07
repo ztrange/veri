@@ -17,12 +17,8 @@ HEADINGS = (
 )
 
 ALLOWED = {
-    "test_skill_timeout.py::test_954_skill_md_makes_the_leaf_timeout_sh_call_that_records_tdd_issue_n_timeout_after_step_1_2_has_entered_the_issue_s_worktree_not_from_the_caller_s_checkout_where_preflight_runs":
-        "the line order of two SKILL.md lines",
     "test_skill_leaf_launch.py": "whole-file launch-line audits, the verdict-plan line included",
     "test_skill_leaf_env.py": "runs every SKILL.md launch line through supervise.sh against a stub",
-    "test_skill_inline_ledger_reads.py::test_skill_md_spells_none_of_the_inline_current_step_last_done_and_criterion_k_pipelines_reading_each_through_ledger_steps_sh_current_last_done_and_criterion_k":
-        "a whole-file negative pattern audit",
     "test_skill_guard_subject_paragraph.py::test_skill_md_guard_subject_paragraph_names_a_pytest_guard_suite_and_conftest_and_says_the_path_is_matched_exactly_1775":
         "no PL row yet",
     "test_skill_suite_runs.py::test_1568_skill_md_runs_suite_reported_sh_develop_transform_after_the_refactor_kind_transform_leaf_and_before_its_blind_transform_verifier":
