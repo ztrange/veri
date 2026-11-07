@@ -380,6 +380,24 @@ def test_a_structural_pass_mark_with_neither_stopped_nor_transforms_prints_stopp
     assert "#### Structural pass\n\nStopped: ?\n" in render(metrics, capsys)
 
 
+def test_refactor_totals_sum_every_pass_of_a_step_not_just_the_last(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "refactor", "step": "1", "pass": "1", "transforms": "2", "budget": "3",
+                          "stopped": "budget"},
+                         {"event": "refactor", "step": "1", "pass": "2", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "1", "ts": 160}])
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    assert "#### Refactor totals" in out.split("\n")
+    assert out.index("#### Structural pass") < out.index("#### Refactor totals") if "#### Structural pass" in out else True
+    assert table(out, "#### Refactor totals") == [
+        {"step": "1", "passes": "2", "transforms": "2", "landed nothing": "1",
+         "stopped": "budget 1, nothing-left 1"}]
+
+
 def test_two_main_calls_in_one_process_render_independent_reports(tmp_path, monkeypatch, capsys, metrics):
     one, many = tmp_path / "one", tmp_path / "many"
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "5"}
