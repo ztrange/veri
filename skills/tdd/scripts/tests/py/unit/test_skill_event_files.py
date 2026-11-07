@@ -133,6 +133,7 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
     ]
     assert missing == []
+    assert re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", DRAFT_PR.read_text()).group(1) == "2"
 
 
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
