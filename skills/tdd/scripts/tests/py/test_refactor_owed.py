@@ -794,3 +794,10 @@ def test_not_done_records_an_out_of_bounds_candidate_and_render_shows_it_under_n
     lines = capsys.readouterr().out.splitlines()
     head = lines.index("### Not done") if "### Not done" in lines else len(lines)
     assert (code, rendered, f"- {candidate} — out-of-bounds" in lines[head + 1:]) == (0, 0, True)
+
+
+def test_not_done_still_exits_2_and_writes_nothing_for_a_reason_outside_the_five_3237(
+        tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    code = refactor_owed.main(["not-done", str(owed), "inline the one-use wrapper in lib", "out-of-bound"])
+    assert (code, owed.exists()) == (2, False)
