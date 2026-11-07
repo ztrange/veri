@@ -20,6 +20,7 @@ except ImportError:
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
+REFRESH_RETRIES = 10
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "veri/merge_lock.py",
@@ -39,7 +40,9 @@ def _gate(pid, *cmd, keep=False):
 
 def _rebase(pid, worktree, git_args):
     code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
-    while code and not _git(worktree, "status", "--porcelain").stdout.strip():
+    for _ in range(REFRESH_RETRIES):
+        if not code or _git(worktree, "status", "--porcelain").stdout.strip():
+            break
         _gate(pid, "git", "-C", worktree, "update-index", "--really-refresh", keep=True)
         event.mark(worktree, {}, "rebase-refresh-retry")
         code = _gate(pid, "git", "-C", worktree, "rebase", "--continue", keep=True)
