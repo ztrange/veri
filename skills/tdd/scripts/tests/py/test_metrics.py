@@ -1997,3 +1997,24 @@ def test_a_sessions_assistant_turn_timestamped_before_the_issues_first_event_is_
     out = render(metrics, capsys)
 
     assert "Dev session: 1 turns, 2000000 cache tokens read, $" in out
+
+
+def test_a_sessions_assistant_turn_timestamped_after_the_issues_done_event_is_left_out_of_its_reported_turns_cache_tokens_and_dollars(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 1793966400},
+                         {"event": "step-done", "step": "1", "ts": 1793966460},
+                         {"event": "done", "ts": 1793966520}])
+    transcripts = tmp_path / "transcripts"
+    transcripts.mkdir()
+    usage = {"input_tokens": 0, "cache_creation_input_tokens": 0, "output_tokens": 0}
+    rows = [{"type": "user", "message": {"role": "user", "content": "/vdev 3154"}},
+            {"type": "assistant", "timestamp": "2026-11-06T12:01:00.000Z",
+             "message": {"id": "msg_inside", "model": "claude-opus-4", "usage": dict(usage, cache_read_input_tokens=2000000)}},
+            {"type": "assistant", "timestamp": "2026-11-06T12:05:00.000Z",
+             "message": {"id": "msg_late", "model": "claude-opus-4", "usage": dict(usage, cache_read_input_tokens=1000000)}}]
+    (transcripts / "dev.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_SESSION_TRANSCRIPTS", str(transcripts))
+
+    out = render(metrics, capsys)
+
+    assert "Dev session: 1 turns, 2000000 cache tokens read, $" in out

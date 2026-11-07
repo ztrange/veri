@@ -533,8 +533,9 @@ def render(issue, path, ledger):
         print("Verifiers switched off: refactor %d" % switched_off)
     transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
     first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
+    done_at = max((mark["ts"] for mark in marks if mark.get("event") == "done" and "ts" in mark), default=None)
     for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
-        spend = session_spend(transcripts, command, first_event) if transcripts else None
+        spend = session_spend(transcripts, command, first_event, done_at) if transcripts else None
         if spend:
             print("%s session: %d turns, %d cache tokens read, $%.2f" % ((label,) + spend))
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
@@ -589,7 +590,7 @@ def usage_dollars(usage, prices):
             + sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items()))
 
 
-def session_spend(directory, command, since):
+def session_spend(directory, command, since, until=None):
     for name in sorted(os.listdir(directory)):
         with open(os.path.join(directory, name)) as lines:
             rows = [json.loads(line) for line in lines]
@@ -602,8 +603,10 @@ def session_spend(directory, command, since):
             if not usage:
                 continue
             stamp = row.get("timestamp")
-            if stamp and datetime.datetime.fromisoformat(stamp).timestamp() < since:
-                continue
+            if stamp:
+                moment = datetime.datetime.fromisoformat(stamp).timestamp()
+                if moment < since or (until is not None and moment > until):
+                    continue
             prices = PRICES[family(message["model"])]
             turns += 1
             cache_read += usage["cache_read_input_tokens"]
