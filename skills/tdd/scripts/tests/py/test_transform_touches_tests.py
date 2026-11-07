@@ -423,3 +423,14 @@ def test_3280_touched_option_with_no_bound_is_the_flag_and_exits_0_when_the_rang
     commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
 
     assert run_cli(transform_touches_tests, [base, "--touched", "src/a.py"], cwd=repo) == (0, "", "")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changes only a file outside --touched, with no bound")
+def test_3280_touched_option_with_no_bound_exits_1_when_the_range_changed_no_listed_file(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-unbound-miss")
+    base = commit_all(repo, "feat: seed", **{"src__a.py": "a\n", "src__b.py": "b\n"})
+    commit_all(repo, "refactor: b only", **{"src__b.py": "b2\n"})
+
+    assert run_cli(transform_touches_tests, [base, "--touched", "src/a.py"], cwd=repo) == (
+        1, "transform changed no file the issue touched\n", "")
