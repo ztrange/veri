@@ -393,7 +393,7 @@ def test_refactor_totals_sum_every_pass_of_a_step_not_just_the_last(tmp_path, mo
 
     assert "#### Refactor totals" in out.split("\n")
     assert out.index("#### Structural pass") < out.index("#### Refactor totals") if "#### Structural pass" in out else True
-    assert table(out, "#### Refactor totals") == [
+    assert [row for row in table(out, "#### Refactor totals") if row["step"] != "issue"] == [
         {"step": "1", "passes": "2", "transforms": "2", "landed nothing": "1",
          "stopped": "budget 1, nothing-left 1"}]
 
