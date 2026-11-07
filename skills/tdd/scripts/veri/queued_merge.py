@@ -27,25 +27,36 @@ RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "v
                  "veri/tunables.py", "veri/entry.py", "veri/pycache_prefix.py")
 
 
-def _script(name, *args, scripts=SCRIPTS, cwd=None):
+def _start(name, *args, scripts=SCRIPTS, cwd=None, capture=False):
     try:
-        return subprocess.run([os.path.join(scripts, name), *args], cwd=cwd).returncode
+        return subprocess.run([os.path.join(scripts, name), *args], cwd=cwd, capture_output=capture, text=True)
     except OSError:
-        return 2
+        return subprocess.CompletedProcess(name, 2, "", "")
+
+
+def _script(name, *args, scripts=SCRIPTS, cwd=None):
+    return _start(name, *args, scripts=scripts, cwd=cwd).returncode
 
 
 def _gate(pid, *cmd, keep=False):
     return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
 
 
+def _gate_output(pid, *cmd):
+    run = _start("merge-lock.sh", "gate", "--keep", "--pid", pid, "--", *cmd, capture=True)
+    sys.stdout.write(run.stdout or "")
+    sys.stderr.write(run.stderr or "")
+    return run.returncode, (run.stdout or "") + (run.stderr or "")
+
+
 def _rebase(pid, worktree, git_args):
-    code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
+    code, output = _gate_output(pid, "git", "-C", worktree, *git_args)
     for _ in range(REFRESH_RETRIES):
-        if not code or _git(worktree, "status", "--porcelain").stdout.strip():
+        if not code or "would be overwritten by merge" not in output or _git(worktree, "status", "--porcelain").stdout.strip():
             break
         _gate(pid, "git", "-C", worktree, "update-index", "--really-refresh", keep=True)
         event.mark(worktree, {}, "rebase-refresh-retry")
-        code = _gate(pid, "git", "-C", worktree, "rebase", "--continue", keep=True)
+        code, output = _gate_output(pid, "git", "-C", worktree, "rebase", "--continue")
     return code
 
 
