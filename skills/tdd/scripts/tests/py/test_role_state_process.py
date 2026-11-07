@@ -155,3 +155,18 @@ def test_coord_recovered_records_recovered_at_and_the_session_id_and_show_prints
     code, _, _ = run_cli(role_state, ["coord", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": "sess-4242"})
     _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     assert (code, "recovered-at" in shown, "sess-4242" in shown) == (0, True, True)
+
+
+@pytest.mark.process("git")
+def test_coord_recovered_without_a_session_id_exits_2_and_leaves_the_state_file_unchanged(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    state = repo / ".tdd" / "role-coord.state"
+    empty_code, _, _ = run_cli(role_state, ["coord", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": ""})
+    absent_after = state.exists()
+    run_cli(role_state, ["coord", "set", "n", "3"], cwd=repo)
+    before = state.read_bytes()
+    empty_present_code, _, _ = run_cli(role_state, ["coord", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": ""})
+    assert (empty_code, absent_after, empty_present_code, state.read_bytes() == before) == (2, False, 2, True)
