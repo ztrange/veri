@@ -1,6 +1,7 @@
 """In-process cases for veri/restart_conductor.py, the module restart-conductor.sh is a shim over."""
 import importlib
 import json
+import os
 
 
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
@@ -127,3 +128,23 @@ def test_3223_a_live_conductor_whose_growth_is_59499_with_the_default_knob_is_no
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert calls == []
+
+
+def test_3223_before_it_stops_the_conductor_it_writes_restart_pending_holding_its_own_pid(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    alive = iter([True, True, False])
+    seen = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: seen.append(pending.read_text().strip() if pending.exists() else None), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert seen == [str(os.getpid())]
