@@ -15,17 +15,18 @@ from session_env import strip_session_env
 import tunables
 
 GUARD = os.path.join(paths.scripts_of(__file__), "leaf-guard")
+DEFAULT_TOOLS = "Bash,Read,Edit,Write,Grep,Glob"
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
 def leaf_argv(binary, model, extra):
     argv = [binary or "claude", "-p",
             "--output-format", "stream-json", "--verbose"] + context_limits()
-    if model and "--model" not in extra:
-        argv += ["--model", model]
-    tools = tunables.read("VERI_LEAF_TOOLS", None)
+    tools = tunables.read("VERI_LEAF_TOOLS", DEFAULT_TOOLS)
     if tools is not None and "--tools" not in extra:
         argv += ["--tools", tools]
+    if model and "--model" not in extra:
+        argv += ["--model", model]
     return argv + extra
 
 
