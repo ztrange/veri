@@ -153,14 +153,15 @@ def recheck(argv):
             replayed = replay_before(pin, ledger)
             if replayed is None:
                 return 2
-            on_base = replay_on_base(pin, ledger) if replayed == 0 else None
-            if replayed == 0 and on_base is None:
-                return 2
-            if replayed == 0 and on_base == 0:
-                sys.stdout.write(f"stale: {ledger} {pin['keep']}\n")
-            elif replayed == 0:
-                sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
-                status = 1
+            if replayed == 0:
+                on_base = replay_on_base(pin, ledger)
+                if on_base is None:
+                    return 2
+                if on_base == 0:
+                    sys.stdout.write(f"stale: {ledger} {pin['keep']}\n")
+                else:
+                    sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
+                    status = 1
             continue
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
