@@ -452,7 +452,8 @@ def refresh_if_stale():
         return
     if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")) and not refresh_running():
         script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report-cache.sh")
-        subprocess.Popen([script, "refresh"])
+        subprocess.Popen([script, "refresh"], start_new_session=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def main(argv):
