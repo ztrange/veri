@@ -1,0 +1,2 @@
+### status.sh --report's zone line keeps a non-zero offset's minutes: with TZ=Asia/Kolkata it names UTC+5:30 and with TZ=Asia/Kathmandu UTC+5:45, while a whole-hour zone (TZ=America/Chicago in winter) still names UTC−6 as the existing case pins; a small in-process run_cli case, no real process ⟦criterion 1⟧
+- test-only | the new `test_3198_…` case repeats the repo, `VERI_HOME` and `subprocess.run` setup that the `test_3059_…` cases already repeat. A shared fixture would remove it, but it touches the frozen cases.
