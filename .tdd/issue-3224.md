@@ -3,7 +3,7 @@
 - [x] `skills/tdd/scripts/role-state.sh coord set n 3`, a new `/bin/sh` shim over `veri/role_state.py` following the `status.sh` port convention (with its no-argument usage line and exit 2 and a declared caller in this same step), run from the main working tree writes `n` into `.tdd/role-coord.state` there, which `role-state.sh coord show` then prints ⟦criterion 1⟧
 - [x] `role-state.sh coord set lane <lane>` writes the `lane` field, which `show` then prints beside an earlier `n` ⟦criterion 1⟧
 - [x] `role-state.sh coord set n 2` run from a linked worktree of the repository writes into `.tdd/role-coord.state` of the main working tree, not of the linked worktree ⟦criterion 1⟧
-- [x] `role-state.sh coord --lane mu set n 1` writes `.tdd/role-coord-mu.state` in the main working tree and leaves the default lane's `.tdd/role-coord.state` unchanged ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `role-state.sh coord --lane mu set n 1` writes `.tdd/role-coord-mu.state` in the main working tree and leaves the default lane's `.tdd/role-coord.state` unchanged ⟦criterion 1⟧
 - [ ] `role-state.sh <role> add <list> <text>`, for each of the lists `decision`, `message`, `override` and `timed-n`, appends an item carrying the text and its local add time, prints the new item's id, and `show` then lists the item ⟦criterion 2⟧
 - [ ] `role-state.sh <role> drop <list> <id>` removes the item with that id from the list, so `show` no longer lists it while other items stay ⟦criterion 2⟧
 - [ ] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` set records `recovered-at` (now) and `session-id` (that variable's value), which `show` then prints ⟦criterion 3⟧
