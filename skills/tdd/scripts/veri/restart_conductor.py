@@ -82,6 +82,8 @@ def main(argv):
         sleep(5)
     if run_state(run) == "stopped":
         detach_leaf(run)
+        with open(os.path.join(_run_dir(run), ".tdd", "events.jsonl"), "a") as f:
+            f.write(json.dumps({"event": "conductor-restart", "growth": str(g), "knob": knob}) + "\n")
     print(f"restarts {run} 0")
     return 0
 

@@ -283,3 +283,24 @@ def test_3223_a_run_is_live_when_pid_files_live_conductor_check_names_a_conducto
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.strip(), set(asked)) == (0, "restarts 7 0", {worktree})
+
+
+def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_growth_and_the_knob_in_the_runs_events_log(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    alive = iter([True, True, False])
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    lines = [json.loads(l) for l in events.read_text().splitlines()] if events.exists() else []
+    restarts = [(e.get("growth"), e.get("knob")) for e in lines if e.get("event") == "conductor-restart"]
+    assert restarts == [("59500", "70000")]
