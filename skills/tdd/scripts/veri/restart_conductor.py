@@ -8,6 +8,7 @@ import time
 
 import full_tier_time
 import growth
+import pid_file
 import status
 import stop_run as stop_run_module
 
@@ -27,7 +28,7 @@ def _run_dir(run):
 
 
 def conductor_alive(run):
-    return False
+    return pid_file.live_conductor(_run_dir(run)) is not None
 
 
 def stop_run(mode, run):

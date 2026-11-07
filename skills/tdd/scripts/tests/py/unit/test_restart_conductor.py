@@ -263,3 +263,23 @@ def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_r
     restart_conductor.detach_leaf("7")
 
     assert (launches, log.read_text()) == ([["detach-leaf.sh", "run-conductor.sh", "7"]], "earlier launch\nnew launch\n")
+
+
+def test_3223_a_run_is_live_when_pid_files_live_conductor_check_names_a_conductor_for_its_worktree_under_the_main_tree(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    worktree = str(tmp_path / ".tdd" / "wt" / "7")
+    asked = []
+    state = {"gone": False}
+
+    def live_conductor(path):
+        asked.append(path)
+        return None if state["gone"] else "4242"
+
+    monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: state.update(gone=True), raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), set(asked)) == (0, "restarts 7 0", {worktree})
