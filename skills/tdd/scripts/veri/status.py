@@ -423,6 +423,11 @@ def running_lines():
                 landed = [int(e.get("transforms", 0)) for e in passes]
                 name += " refactor %d passes %d transforms %d landed nothing" % (
                     len(passes), sum(landed), landed.count(0))
+                reasons = {}
+                for e in passes:
+                    if "stopped" in e:
+                        reasons[e["stopped"]] = reasons.get(e["stopped"], 0) + 1
+                name += "".join(" %s %d" % (r, n) for r, n in reasons.items())
             blocks.append(name)
     return "\n".join(blocks) or "none"
 
