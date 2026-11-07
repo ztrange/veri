@@ -41,6 +41,10 @@ def _read(path):
         return f.read().replace(b"\0", b"").rstrip(b"\n")
 
 
+def _without_test_command(spec):
+    return b"\n".join(line for line in spec.split(b"\n") if not line.startswith(b"Test command:")).rstrip(b"\n")
+
+
 def _bullets(cases):
     return "".join(f"\n- {case}" for case in cases)
 
@@ -202,7 +206,7 @@ def main(argv):
                                     "your target test id replaces.").encode()
     if phase == "green" and "REPLACES_CASE" in marked and len(args) > 6 and args[6]:
         values["REPLACES_CASE"] += b"\n\nStill owed for deletion: " + os.fsencode(args[6])
-    values.update(ISSUE_SPEC=_read(spec), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
+    values.update(ISSUE_SPEC=_without_test_command(_read(spec)), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
     lazy = {}
     if freeze:
