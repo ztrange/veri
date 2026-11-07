@@ -1,0 +1,1 @@
+- [ ] `transform-touches-tests.sh <base-sha> "" --touched "nonexistent.py,"`, a `--touched` list holding an empty entry (a trailing comma), in a range that changed a non-test file not in the list, exits 2 like the empty list, instead of exiting 0 because the empty entry matches ⟦added⟧ ⟦criterion 3⟧
