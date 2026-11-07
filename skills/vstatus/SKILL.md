@@ -40,8 +40,10 @@ Four sections, always all four and in this order. An empty one keeps its heading
 tag's message.
 
 **Running** — one block per live run, as `status.sh --report`'s **Running** section defines it:
-awake wall time, steps k/n, phase, cost and model split. This skill restates no liveness check
-of its own.
+awake wall time, steps k/n, phase, cost and model split. Each block ends with its refactor
+passes, transforms, passes that landed nothing and stop reasons, as `status.sh --report`'s
+**Running** section defines them; this skill restates no count of its own. It restates no
+liveness check of its own either.
 
 **Queue** — counts of open opted-in issues by label, the blockers, the **drain ETA** at the
 current N, and beside it the **PRD ETA** for each PRD the queue serves.
