@@ -533,6 +533,10 @@ def render(issue, path, ledger):
         print("⚠️ Unverified phases: %s" % pinned)
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
+    transcripts = os.environ.get("VERI_SESSION_TRANSCRIPTS")
+    coordinator = coordinator_session(transcripts) if transcripts else None
+    if coordinator:
+        print("Coordinator session: %d turns, %d cache tokens read, $%.2f" % coordinator)
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
@@ -578,6 +582,27 @@ def render(issue, path, ledger):
             print("Inconsistent mark: %s" % inconsistent)
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
+
+
+def coordinator_session(directory):
+    for name in sorted(os.listdir(directory)):
+        with open(os.path.join(directory, name)) as lines:
+            rows = [json.loads(line) for line in lines]
+        if not rows[0]["message"]["content"].startswith("/vcoord"):
+            continue
+        turns, cache_read, dollars = 0, 0, 0.0
+        for row in rows:
+            message = row["message"]
+            usage = message.get("usage")
+            if not usage:
+                continue
+            prices = PRICES[family(message["model"])]
+            turns += 1
+            cache_read += usage["cache_read_input_tokens"]
+            dollars += sum(usage[key] * prices[rate] / 1e6 for key, rate in TURN_RATES.items())
+            dollars += sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items())
+        return turns, cache_read, dollars
+    return None
 
 
 def report(issue, events_path, ledger_path, stream=None):
