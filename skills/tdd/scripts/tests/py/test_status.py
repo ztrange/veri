@@ -788,7 +788,10 @@ def test_status_exits_2_naming_the_failure_when_a_ledger_cannot_be_read_as_text(
 def test_status_given_a_bad_argument_names_it_on_stderr_and_exits_2(tmp_path, fake_processes, run_cli, status):
     fake_processes(git_answering(tmp_path))
 
-    assert run_cli(status, ["--bogus"]) == (2, "", "status.sh: unknown option '--bogus'\n")
+    code, out, err = run_cli(status, ["--bogus"])
+
+    assert (code, out, err.splitlines()[0], "--report" in err.splitlines()[1]) == (
+        2, "", "status.sh: unknown option '--bogus'", True)
 
 
 @pytest.mark.process("status.sh run as a child through a symlink to the skills directory, over a real git repository")
