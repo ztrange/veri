@@ -530,7 +530,7 @@ def render(issue, path, ledger):
         print("⚠️ Unverified phases: %s" % pinned)
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
-    transcripts = os.environ.get("VERI_SESSION_TRANSCRIPTS")
+    transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
     coordinator = coordinator_session(transcripts) if transcripts else None
     if coordinator:
         print("Coordinator session: %d turns, %d cache tokens read, $%.2f" % coordinator)

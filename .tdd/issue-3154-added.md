@@ -1,1 +1,1 @@
-- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment ⟦suite-repair⟧ ⟦criterion 1⟧
+- [x] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment ⟦suite-repair⟧ ⟦criterion 1⟧
