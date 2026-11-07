@@ -14,8 +14,15 @@ def now():
 
 
 def append(path, text):
-    with open(path, "a") as f:
+    try:
+        with open(path) as f:
+            text = f.read() + text
+    except FileNotFoundError:
+        pass
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
         f.write(text)
+    os.replace(tmp, path)
 
 
 def main(argv):
