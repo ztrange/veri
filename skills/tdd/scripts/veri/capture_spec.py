@@ -11,18 +11,6 @@ USAGE = "capture-spec: usage: capture-spec.sh <issue-number>"
 BUG_HEADINGS = ("What happened", "Expected", "Steps to reproduce", "Environment")
 
 
-def part(body, heading):
-    want = "## " + heading
-    inside = False
-    lines = []
-    for line in body.split("\n"):
-        if line.startswith("## "):
-            inside = line == want
-        elif inside:
-            lines.append(line + "\n")
-    return "".join(lines)
-
-
 def capture(n):
     labels = gh_issue_view(n, "labels").rstrip("\n").split("\n")
     body = gh_issue_view(n, "body").rstrip("\n")
