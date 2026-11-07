@@ -1870,3 +1870,36 @@ def test_3160_a_pin_whose_named_test_is_missing_at_head_and_on_the_base_and_not_
     assert (ran.returncode, ran.stdout.startswith("stale: .tdd/issue-835-mutations.md"),
             "named test missing" in ran.stderr, (tmp_path / "ran.witness").exists()) == (
         0, True, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a green before-state pin whose replay on the base fails")
+def test_3160_a_base_replay_that_fails_exits_2_and_still_removes_the_base_worktree(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "f.txt").write_text("a\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "before")
+    before = git("rev-parse", "HEAD")
+    git("rm", "-q", "-r", "sub")
+    git("commit", "-q", "-m", "main drops sub")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "f.txt").write_text("c\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "range restores sub and touches the pin file")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3160-mutations.md", before=before, keep="pin.txt", command="grep -q old src.txt")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    listed = git("worktree", "list")
+
+    ran = subprocess.run(["sh", RECHECK, git("merge-base", "origin/main", "HEAD")], cwd=tmp_path,
+                         capture_output=True, text=True, timeout=20, env={**os.environ, "TMPDIR": str(scratch)})
+
+    assert (ran.returncode, git("worktree", "list"), list(scratch.iterdir())) == (2, listed, []), ran.stderr
