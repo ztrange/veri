@@ -103,7 +103,7 @@ line names (P1), act if it calls for it, and re-arm at once; a re-arm gets a sin
 On each event:
 
 - **Conductor start** the dev session already announced, **merge** already reported, routine
-  dev-session message, an ack, watch expiry, a progress check you made yourself: a single `.`; re-arm
+  dev-session message, a pong, watch expiry, a progress check you made yourself: a single `.`; re-arm
   if you armed a watch. This
   holds while a human decision is pending: it was asked once, and these events do not re-ask it.
 - **Bail or stall** the dev session has not handled: one line to the human, then whatever
@@ -123,12 +123,12 @@ words, with what each costs, and wait.
 Send every instruction yourself with `SendMessage` to the dev session, self-contained (P13),
 and tell the human in one line that you did ("Sent the dev session: N=2."). When delivery is
 held, give the human the message as one fenced block, recipient named above it. An instruction
-is unconfirmed until the dev session's reply starting `ack` arrives.
+counts as confirmed when its effect shows in state (the launch, the merge, the ledger change),
+not by a reply from the dev session (P13).
 
-Answer every report the dev session sends (a run done, a review verdict, a merge, a bail, a
-resume) with a one-line reply starting `ack` — or with the ruling or instruction it prompts,
-which is then the `ack` (P13). The `ack` goes to the dev session only; a routine report still
-gets no text for the human (P4).
+Answer a dev-session report only when you have a ruling, an instruction or a correction for it;
+a report that needs none gets no reply (P13). A routine report still gets no text for the human
+(P4).
 
 **Unattended** — the human away, or `afk` given — send the dev session only the message kinds
 the human approved. With no approval stated, that is one kind: refill an empty slot. Everything
