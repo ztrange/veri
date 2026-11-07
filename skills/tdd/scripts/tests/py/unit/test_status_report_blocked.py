@@ -10,8 +10,10 @@ TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First c
 
 def fake_tags(monkeypatch, status, tags=TAGS):
     def run(args, *a, **k):
-        fmt = [x for x in args if x.startswith("--format=")][0]
-        if "creatordate" in fmt:
+        fmt = "".join(x for x in args if x.startswith("--format="))
+        if not fmt:
+            out = ""
+        elif "creatordate" in fmt:
             out = "".join("%d %s\n" % (unix, name) for name, unix, _ in tags)
         else:
             out = "".join("%s  %s\n" % (name, subject) for name, _, subject in tags)
