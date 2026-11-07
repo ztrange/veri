@@ -54,7 +54,10 @@ def main(argv):
     if not touched:
         return 3
     if candidate:
-        touched += [p for p in dict.fromkeys(named_files(candidate)) if p not in touched]
+        named = list(dict.fromkeys(named_files(candidate)))
+        if check_only and named and not any(p in touched for p in named):
+            return 1
+        touched += [p for p in named if p not in touched]
     if not check_only:
         print(",".join(touched))
     return 0
