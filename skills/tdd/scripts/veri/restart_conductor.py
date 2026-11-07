@@ -71,21 +71,27 @@ def main(argv):
     run = argv[0]
     if not conductor_alive(run):
         return 3
-    while conductor_alive(run):
-        g = _growth(run)
-        if g is not None and g >= 0.85 * int(knob):
-            pending = os.path.join(_run_dir(run), ".tdd", "restart-pending")
-            os.makedirs(os.path.dirname(pending), exist_ok=True)
-            with open(pending, "w") as f:
-                f.write(f"{os.getpid()}\n")
-            stop_run("at-ledger", run)
-        sleep(5)
-    if run_state(run) == "stopped":
+    restarts = 0
+    while True:
+        asked = False
+        while conductor_alive(run):
+            g = _growth(run)
+            if g is not None and g >= 0.85 * int(knob):
+                pending = os.path.join(_run_dir(run), ".tdd", "restart-pending")
+                os.makedirs(os.path.dirname(pending), exist_ok=True)
+                with open(pending, "w") as f:
+                    f.write(f"{os.getpid()}\n")
+                stop_run("at-ledger", run)
+                asked = True
+            sleep(5)
+        if not asked or run_state(run) != "stopped":
+            break
         detach_leaf(run)
+        restarts += 1
         with open(os.path.join(_run_dir(run), ".tdd", "events.jsonl"), "a") as f:
             f.write(json.dumps({"event": "conductor-restart", "growth": str(g), "knob": knob}) + "\n")
         os.remove(os.path.join(_run_dir(run), ".tdd", "restart-pending"))
-    print(f"restarts {run} 0")
+    print(f"restarts {run} {restarts}")
     return 0
 
 
