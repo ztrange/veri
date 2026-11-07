@@ -48,7 +48,7 @@ runs with their step k/n and phase.
 conductor exit:
 
 1. Apply any change the coordinator sent since the last decision — a new N (including a timed
-   one now due or expired) or an order override — and reply `ack` to it.
+   one now due or expired) or an order override — and send the coordinator no reply for it (P13).
 2. Count live conductors. While fewer than N are live, launch the next issue (below). When N
    went down, stop nothing: a live run finishes, and its slot is simply not refilled (P8).
 3. When `$S/solvable-issues.sh` exits 3 and no run is live, the queue is empty: say so and stop.
