@@ -2,7 +2,9 @@
 every worktree of this repository, so what you pop may be another agent's work — and theirs
 is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;
 to compare a whole tree against it, make a throwaway checkout with
-`git worktree add --detach <scratch> HEAD` and remove it afterwards. Never undo a probe with
+`git worktree add --detach <scratch> HEAD` and remove it afterwards. Use `git show`, `git checkout` and `git restore` only to read: never
+write a tracked production file from them (for example `git show HEAD:<path> > <path>`).
+Never undo a probe with
 `git checkout -- <file>` or `git restore`: both copy the file back from the index, so they also
 throw away the step's uncommitted work. {{INCLUDE:_probe-restore.md}}
 
