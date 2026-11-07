@@ -459,10 +459,15 @@ def refresh_if_stale():
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def zone_line():
+    now = time.localtime(time.time())
+    return "%s (UTC%s%d)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", abs(now.tm_gmtoff) // 3600)
+
+
 def main(argv):
     if list(argv) == ["--report"]:
         refresh_if_stale()
-        print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
+        print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
         queue = {}
         try:
             label, _issues, opted_in = opted_in_issues()
