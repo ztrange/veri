@@ -1,6 +1,6 @@
 ### What counts as a valid test
 
-A case must hold all four of these, or it is not a test you may write:
+A case must hold all five of these, or it is not a test you may write:
 
 1. **Behaviour, not mechanism.** It asserts the unit's output, exit code, the files or
    events it writes, or the error it names — never a process count, a fork count, or a
@@ -19,8 +19,14 @@ A case must hold all four of these, or it is not a test you may write:
 3. **Self-contained.** It never runs another test suite, whole or sliced, and never re-runs
    the suite it lives in.
 4. **On-target.** It fails for the reason the criterion names, not an unrelated error.
+5. **Not a wording pin.** It never asserts the wording of a unit with a requirements list
+   (a unit some `REQUIREMENTS.md` has a `## <path>` heading for): a sentence, a phrase, or
+   a checksum of its text or of a render that includes it, even when the step or the issue
+   asks for a case; that unit's requirements rows carry the criterion. A case may still
+   test a mechanical fact the unit states: a script it names exists, a heading a parser
+   reads, a phase name the code accepts.
 
-If the step's criterion can only be pinned by a test that breaks 1–3 — e.g. "the suite
+If the step's criterion can only be pinned by a test that breaks rule 1, 2, 3 or 5 — e.g. "the suite
 starts at most N processes" has no assertion that isn't a process count — **do not write
 that test.** Skip straight to the report below with `AGAINST_UNMODIFIED: UNTESTABLE` and a
 `WHY:` line naming which rule the only available test would break. Do not weaken the
