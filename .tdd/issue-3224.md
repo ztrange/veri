@@ -7,7 +7,7 @@
 - [x] `role-state.sh <role> add <list> <text>`, for each of the lists `decision`, `message`, `override` and `timed-n`, appends an item carrying the text and its local add time, prints the new item's id, and `show` then lists the item ⟦criterion 2⟧
 - [x] `role-state.sh <role> drop <list> <id>` removes the item with that id from the list, so `show` no longer lists it while other items stay ⟦criterion 2⟧
 - [x] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` set records `recovered-at` (now) and `session-id` (that variable's value), which `show` then prints ⟦criterion 3⟧
-- [x] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` unset or empty exits 2 and leaves the state file byte-for-byte unchanged (absent when it was absent) ⟦criterion 3⟧ ⟂ refactor pending
+- [x] `role-state.sh <role> recovered` with `CLAUDE_CODE_SESSION_ID` unset or empty exits 2 and leaves the state file byte-for-byte unchanged (absent when it was absent) ⟦criterion 3⟧
 - [ ] Every write replaces the state file atomically through a temporary file renamed over it: a case that makes the write fail after the temporary file is written finds the previous state file byte-for-byte unchanged ⟦criterion 4⟧
 - [ ] `role-state.sh <role> show` with no state file for the role and lane exits 3 and prints nothing ⟦criterion 5⟧
 - [ ] `role-state.sh` given a role other than `coord` or `dev` exits 2 with its usage line on stderr and writes no state file ⟦criterion 5⟧
