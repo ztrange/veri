@@ -52,6 +52,8 @@ def main(argv):
             print(f"transform changed a file outside its bound: {outside}")
             return 1
     if "--touched" in argv:
+        if argv.index("--touched") + 1 >= len(argv):
+            return refuse()
         touched_list = set(argv[argv.index("--touched") + 1].encode().split(b","))
         if not touched_list & set(paths):
             print("transform changed no file the issue touched")
