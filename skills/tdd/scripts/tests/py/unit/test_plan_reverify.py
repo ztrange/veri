@@ -217,3 +217,66 @@ def test_main_exits_0_when_the_events_file_holds_only_another_issues_verify_plan
     code, out, err = run_cli(plan_reverify, [str(ledger)])
 
     assert code == 0
+
+
+def _stub_git(plan_reverify, monkeypatch, stdout):
+    import subprocess
+    monkeypatch.setattr(plan_reverify, "git",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, stdout=stdout), raising=False)
+
+
+def _write_events(tmp_path, *timestamps):
+    import json
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(
+        {"ts": ts, "issue": 7, "actor": "verifier", "phase": "plan", "event": "verdict", "verdict": "PASS"}) + "\n"
+        for ts in timestamps))
+
+
+def test_main_exits_3_when_a_plan_commit_sits_between_two_verify_plan_passes(run_cli, tmp_path, monkeypatch):
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    _write_events(tmp_path, 1000, 2000)
+    _stub_git(plan_reverify, monkeypatch, "1500\n")
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 3
+
+
+def test_main_exits_0_when_a_plan_commit_lands_in_the_same_second_as_the_last_verify_plan_pass(run_cli, tmp_path, monkeypatch):
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    _write_events(tmp_path, 2000)
+    _stub_git(plan_reverify, monkeypatch, "2000\n")
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 0
+
+
+def test_main_exits_2_naming_the_ledger_when_history_holds_no_plan_commit(run_cli, tmp_path, monkeypatch):
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "issue-7-ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    _write_events(tmp_path, 2000)
+    _stub_git(plan_reverify, monkeypatch, "")
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 2
+    assert "plan:" in err and "Traceback" not in err
+
+
+def test_main_exits_2_with_a_message_when_the_ledger_name_does_not_match_issue_n(run_cli, tmp_path, monkeypatch):
+    plan_reverify = importlib.import_module("veri.plan_reverify")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] 1. a step\n")
+    _write_events(tmp_path, 2000)
+    _stub_git(plan_reverify, monkeypatch, "3000\n")
+
+    code, out, err = run_cli(plan_reverify, [str(ledger)])
+
+    assert code == 2
+    assert "issue-<n>" in err and "Traceback" not in err
