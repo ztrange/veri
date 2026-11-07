@@ -817,6 +817,11 @@ def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_mark
         "marked green": True, "unmarked green": False, "marked red": False, "marked refactor": False}
 
 
+def _fragment_line(name):
+    line = next(l for l in (SCRIPTS / "prompts" / name).read_bytes().splitlines() if l.strip() and b"{{" not in l)
+    return re.sub(rb"\s+", b" ", line).strip()
+
+
 def test_main_gives_a_green_prompt_the_replaces_case_paragraph_only_to_a_step_whose_trailing_marks_include_the_mark_not_one_that_mentions_it_in_prose_or_backticks_1538(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -829,13 +834,12 @@ def test_main_gives_a_green_prompt_the_replaces_case_paragraph_only_to_a_step_wh
         assert code == 0
         return re.sub(rb"\s+", b" ", out)
 
-    paragraph = (rb"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|a) case (it|the step|its text) does not name")
+    paragraph = _fragment_line("_verify-green-replaces-case.md")
     mention = "zorblat reads the ⟦replaces-case⟧ mark, quoted as `⟦replaces-case⟧` in prose"
     marked = rendered(f"{mention} ⟦replaces-case⟧ ⟦criterion 1⟧")
     mentioned = rendered(f"{mention} ⟦criterion 1⟧")
 
-    assert ([re.search(paragraph, marked, re.I) is not None, re.search(paragraph, mentioned, re.I) is not None]
-            == [True, False])
+    assert [paragraph in marked, paragraph in mentioned] == [True, False]
 
 
 def _green_paragraph_by_trailing_marker(tmp_path, capsysbinary, build_verify_prompt, mark, paragraph):
@@ -850,20 +854,20 @@ def _green_paragraph_by_trailing_marker(tmp_path, capsysbinary, build_verify_pro
         return re.sub(rb"\s+", b" ", out)
 
     mention = f"zorblat reads the ⟦{mark}⟧ mark mid-sentence"
-    return [re.search(paragraph, rendered(f"{mention} ⟦criterion 1⟧")) is not None,
-            re.search(paragraph, rendered(f"{mention} ⟦{mark}⟧ ⟦criterion 1⟧")) is not None]
+    return [paragraph in rendered(f"{mention} ⟦criterion 1⟧"),
+            paragraph in rendered(f"{mention} ⟦{mark}⟧ ⟦criterion 1⟧")]
 
 
 def test_main_renders_no_suite_repair_green_paragraph_for_a_step_naming_the_mark_mid_sentence_without_ending_in_it_1919(
         tmp_path, capsysbinary, build_verify_prompt):
     assert _green_paragraph_by_trailing_marker(
-        tmp_path, capsysbinary, build_verify_prompt, "suite-repair", rb"This step repairs the full run") == [False, True]
+        tmp_path, capsysbinary, build_verify_prompt, "suite-repair", _fragment_line("_verify-green-suite-repair.md")) == [False, True]
 
 
 def test_main_renders_no_ci_repair_green_paragraph_for_a_step_naming_the_mark_mid_sentence_without_ending_in_it_1919(
         tmp_path, capsysbinary, build_verify_prompt):
     assert _green_paragraph_by_trailing_marker(
-        tmp_path, capsysbinary, build_verify_prompt, "ci-repair", rb"repairs a failure that reproduces only on CI") == [False, True]
+        tmp_path, capsysbinary, build_verify_prompt, "ci-repair", _fragment_line("_verify-green-ci-repair.md")) == [False, True]
 
 
 def test_main_refuses_an_expand_or_a_migrate_call_without_fast_cmd_with_exit_2_and_its_message_then_the_usage_line(
