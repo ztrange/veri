@@ -1,6 +1,6 @@
 # Plan for #3223 — PRD 012.8: A conductor that has grown past VERI_RESET_GROWTH_CONDUCTOR is restarted at its next ledger commit
 
-- [x] A new module skills/tdd/scripts/veri/growth.py holds one growth function that returns None, never 0, when the given transcript records carry no usage record at all (unit-tier cases in tests/py/unit/test_growth.py) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A new module skills/tdd/scripts/veri/growth.py holds one growth function that returns None, never 0, when the given transcript records carry no usage record at all (unit-tier cases in tests/py/unit/test_growth.py) ⟦criterion 1⟧
 - [ ] The growth function, given stream-json records ("type":"assistant", message.usage) and a baseline, returns the last usage record's context (input_tokens + cache_read_input_tokens + cache_creation_input_tokens) minus that baseline ⟦criterion 1⟧
 - [ ] The growth function skips records with no usage: a record without usage after the last usage record leaves the current context at that usage record's ⟦criterion 1⟧
 - [ ] The growth function reads a session transcript row (a record carrying message.usage without "type":"assistant") as a usage record ⟦criterion 1⟧
