@@ -452,6 +452,24 @@ def test_issue_row_counts_a_structural_pass_without_transforms_in_passes_and_sto
          "stopped": "nothing-left 1, nothing-structural 1"}]
 
 
+def test_a_refactor_event_without_transforms_counts_as_a_pass_and_prints_question_marks_in_the_step_and_issue_rows(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "refactor", "step": "1", "pass": "1", "budget": "3", "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200},
+                         {"event": "refactor", "step": "2", "pass": "1", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "2", "ts": 260}])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Refactor totals")
+
+    assert rows == [
+        {"step": "1", "passes": "1", "transforms": "?", "landed nothing": "?", "stopped": "nothing-left 1"},
+        {"step": "2", "passes": "1", "transforms": "0", "landed nothing": "1", "stopped": "nothing-left 1"},
+        {"step": "issue", "passes": "2", "transforms": "?", "landed nothing": "?", "stopped": "nothing-left 2"}]
+
+
 def test_two_main_calls_in_one_process_render_independent_reports(tmp_path, monkeypatch, capsys, metrics):
     one, many = tmp_path / "one", tmp_path / "many"
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "5"}

@@ -387,7 +387,7 @@ def render(issue, path, ledger):
         return [figure(c, row_counts[c]) for c in columns]
 
     def refactor_spent(mark):
-        return "%s/%s" % (mark["transforms"], mark.get("budget", "?"))
+        return "%s/%s" % (mark.get("transforms", "?"), mark.get("budget", "?"))
 
     def step_wall(mark):
         return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
@@ -588,7 +588,7 @@ def render(issue, path, ledger):
             by_step.setdefault(step, []).append(mark)
 
         def totals_row(label, marks):
-            moved = [mark["transforms"] for mark in marks]
+            moved = [mark.get("transforms", "") for mark in marks]
             reasons = {}
             for mark in marks:
                 reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
