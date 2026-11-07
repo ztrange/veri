@@ -181,6 +181,17 @@ def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_c
         0, sorted("skills/tdd/scripts/tests/" + n for n in present))
 
 
+def test_a_prompts_md_change_does_not_select_test_emitted_text_3128(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "py/unit").mkdir(parents=True)
+    for name in ("py/unit/test_build_develop_prompt.py", "py/unit/test_emitted_text.py"):
+        (tests / name).write_text("")
+    assert (affected.main(["base..head"]),) + (capsys.readouterr().out.splitlines(),) == (
+        0, ["skills/tdd/scripts/tests/py/unit/test_build_develop_prompt.py"])
+
+
 def test_main_prints_the_pytest_files_that_read_the_edited_skill_section_through_the_helper_only(
         tmp_path, monkeypatch, capsys, affected):
     skill = "skills/tdd/SKILL.md"
