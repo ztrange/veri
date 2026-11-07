@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
+import time
 
 from full_tier_time import main_tree
 
@@ -21,6 +22,17 @@ def main(argv):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "a") as f:
             f.write("%s=%s\n" % (argv[2], argv[3]))
+        return 0
+    if argv[1] == "add" and len(argv) == 4:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        try:
+            with open(path) as f:
+                item = str(len(f.readlines()) + 1)
+        except FileNotFoundError:
+            item = "1"
+        with open(path, "a") as f:
+            f.write("%s %s %s %s\n" % (argv[2], item, time.strftime("%Y-%m-%dT%H:%M:%S"), argv[3]))
+        print(item)
         return 0
     if argv[1] == "show":
         with open(path) as f:
