@@ -38,6 +38,8 @@ def check_touched(argv, paths):
     if not raw:
         return refuse("transform-touches-tests.sh: --touched list is empty")
     touched_list = set(raw.encode().split(b","))
+    if b"" in touched_list:
+        return refuse("transform-touches-tests.sh: --touched list has an empty entry")
     if not touched_list & set(paths):
         print("transform changed no file the issue touched")
         return 1
