@@ -56,3 +56,16 @@ def test_growth_reads_a_session_transcript_row_without_type_assistant_as_a_usage
     }
     records = [{"message": {"id": "m1", "role": "assistant", "usage": usage}}]
     assert growth(records, 20000) == 4 + 50000 + 1000 - 20000
+
+
+def test_growth_reads_a_record_repeated_under_the_same_message_id_once_so_the_repeat_does_not_replace_its_first_context(growth):
+    def turn(msg_id, read):
+        usage = {
+            "input_tokens": 1,
+            "cache_read_input_tokens": read,
+            "cache_creation_input_tokens": 0,
+        }
+        return {"type": "assistant", "message": {"id": msg_id, "usage": usage}}
+
+    records = [turn("m1", 20000), turn("m2", 30000), turn("m1", 90000)]
+    assert growth(records, 10000) == 1 + 30000 - 10000
