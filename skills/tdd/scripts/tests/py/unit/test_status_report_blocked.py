@@ -5,9 +5,20 @@ import json
 import subprocess
 
 
-def fake_tags(monkeypatch, status, stdout="v0.2 Second capability\nv0.1 First capability\n"):
-    done = subprocess.CompletedProcess([], 0, stdout=stdout, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
+
+
+def fake_tags(monkeypatch, status, tags=TAGS):
+    def run(args, *a, **k):
+        fmt = [x for x in args if x.startswith("--format=")][0]
+        if "creatordate" in fmt:
+            out = "".join("%d %s
+" % (unix, name) for name, unix, _ in tags)
+        else:
+            out = "".join("%s  %s
+" % (name, subject) for name, _, subject in tags)
+        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
 
 
 def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_blocker(tmp_path, monkeypatch, run_cli):
