@@ -89,3 +89,19 @@ json.load(f)["queue"]
 command 172
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_queue_delta.py::test_2750_report_queue_with_status_last_holding_no_queue_key_prints_no_delta_and_exits_0
 
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 64
+skills/tdd/scripts/tests/py/unit/test_status_report_nojournal.py
+command 323
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_nojournal.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_nojournal.py::test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal
+
+file 33
+skills/tdd/scripts/veri/status.py
+old 39
+if n not in seen and recorded_alive(wt)
+new 21
+if recorded_alive(wt)
+command 156
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_nojournal.py::test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal
+
