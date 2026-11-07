@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 3235
 
-Wall time for the issue: 2026 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 7 of 8 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3270.
+Wall time for the issue: 114 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 7 of 11 planned.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
@@ -12,7 +12,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 26 | 21 | 2 | 4 | 2492 | 0 | 37669 | 0.12 |
+| plan | 5 | 2 | 3 | 0 | 72 | 61 | 6 | 12 | 7470 | 29563 | 85960 | 0.29 |
 | red | 20 | 8 | 1 | 0 | 599 | 348 | 111 | 200 | 39472 | 1720007 | 330649 | 1.69 |
 | green | 16 | 4 | 2 | 0 | 1159 | 306 | 111 | 194 | 34348 | 1755204 | 275560 | 1.48 |
 | refactor | 5 | 1 | 0 | 0 | 66 | 30 | 15 | 30 | 2845 | 206404 | 73971 | 0.23 |
@@ -26,7 +26,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 22 | 18 | 4 | 0 | 982 | 250 | 81 | 158 | 27096 | 1164047 | 291966 | 1.12 |
+| verifier | claude-sonnet-5-5 | 25 | 18 | 7 | 0 | 1028 | 290 | 85 | 166 | 32074 | 1193610 | 340257 | 1.29 |
 | developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 754 | 394 | 140 | 242 | 46565 | 2163297 | 407822 | 1.93 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 315 | 160 | 48 | 86 | 16124 | 774192 | 136951 | 0.97 |
 
@@ -84,4 +84,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 269 | 486 | 89785 | 4101536 | 836739 | 4.01 |
+| total | 273 | 494 | 94763 | 4131099 | 885030 | 4.19 |
