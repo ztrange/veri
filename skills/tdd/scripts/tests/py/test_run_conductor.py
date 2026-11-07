@@ -1301,11 +1301,11 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     unpinned.mkdir()
     monkeypatch.chdir(unpinned)
     launches = fake_claude_launch(monkeypatch)
-    codes = [run_conductor.main(["abc", "extra", "more"])]
+    codes = [run_conductor.main(["4242", "extra", "more"])]
     capfdbinary.readouterr()
     recorded = "".join(f.read_text() for f in sorted((unpinned / ".tdd").glob("*")) if f.is_file())
     answers["unpinned"] = ([launch["stdin"] for launch in after_update_veri(launches)],
-                           (str(scratch / "veri-run-abc-") in recorded, str(os.getpid()) in recorded))
+                           (str(scratch / "veri-run-4242-") in recorded, str(os.getpid()) in recorded))
 
     pinned = tmp_path / "pinned"
     pinned.mkdir()
@@ -1339,19 +1339,19 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     monkeypatch.setattr(subprocess, "Popen", tar_extracts_a_skill_md_with_trailing_newlines)
     monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
     monkeypatch.setattr(subprocess, "check_output", update_noted)
-    codes.append(run_conductor.main(["abc", "extra"]))
+    codes.append(run_conductor.main(["4242", "extra"]))
     capfdbinary.readouterr()
-    answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-abc-skill-commit").read_text())
+    answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-4242-skill-commit").read_text())
 
     assert (len(snapshots), codes, updates) == (1, [0, 0], [0])
     assert answers == {
         "unpinned": ([("# the procedure\n\nlast line"
                        "\n\nBase directory for this skill: %s\n"
-                       "\nSolve issue #abc by the procedure above.\n" % skill).encode()], (True, True)),
+                       "\nSolve issue #4242 by the procedure above.\n" % skill).encode()], (True, True)),
         "pinned": ([("# the committed procedure"
                      "\n\nBase directory for this skill: %s\n"
                      "\nPinned skill commit (name it in the plan comment): %s\n"
-                     "\nSolve issue #abc by the procedure above.\n" % (snapshots[0], commit)).encode()],
+                     "\nSolve issue #4242 by the procedure above.\n" % (snapshots[0], commit)).encode()],
                    commit + "\n"),
     }
 
