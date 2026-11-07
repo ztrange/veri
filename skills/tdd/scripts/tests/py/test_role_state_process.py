@@ -1,6 +1,7 @@
 """Cases for veri/role_state.py that start a real process."""
 import importlib
 import subprocess
+import time
 
 import pytest
 
@@ -74,3 +75,32 @@ def test_coord_lane_mu_set_n_writes_the_lane_file_and_leaves_the_default_lane_fi
     code, _, _ = run_cli(role_state, ["coord", "--lane", "mu", "set", "n", "1"], cwd=repo)
     lane = repo / ".tdd" / "role-coord-mu.state"
     assert (code, lane.is_file(), default.read_bytes() == before) == (0, True, True)
+
+
+@pytest.mark.process("git")
+def test_coord_add_to_each_list_prints_an_id_and_show_lists_the_text(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    lists = ["decision", "message", "override", "timed-n"]
+    added = [run_cli(role_state, ["coord", "add", name, "text-of-" + name], cwd=repo) for name in lists]
+    _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    codes = [code for code, _, _ in added]
+    printed_ids = [out.strip() != "" for _, out, _ in added]
+    listed = ["text-of-" + name in shown for name in lists]
+    assert (codes, printed_ids, listed) == ([0] * 4, [True] * 4, [True] * 4)
+
+
+@pytest.mark.process("git")
+def test_coord_add_records_the_local_add_time_and_show_lists_it_on_the_items_line(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    before = time.strftime("%Y-%m-%d")
+    run_cli(role_state, ["coord", "add", "decision", "pick-the-lane"], cwd=repo)
+    after = time.strftime("%Y-%m-%d")
+    _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    line = next(l for l in shown.splitlines() if "pick-the-lane" in l)
+    assert any(day in line for day in {before, after}), line
