@@ -3,6 +3,7 @@ import calendar
 import datetime
 import importlib
 import json
+import os
 import subprocess
 import time
 
@@ -98,6 +99,39 @@ def test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_ma
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
         {"cache_format": 2, "fetched_at": fresh.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": []}))
+
+    code, _out, err = run_cli(status, ["--report"])
+
+    assert (code, started) == (0, []), (started, err)
+
+
+def test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    started = []
+
+    def fake_run(argv, *a, **k):
+        name = os.path.basename(argv[0]) if argv else ""
+        if name == "pgrep":
+            return subprocess.CompletedProcess(argv, 0, stdout="4242\n", stderr="")
+        if name == "ps":
+            return subprocess.CompletedProcess(
+                argv, 0, stdout="  PID COMMAND\n 4242 /bin/sh /x/scripts/report-cache.sh refresh\n", stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", fake_run)
+
+    class Detached:
+        pass
+
+    def spy(argv, *a, **k):
+        started.append(list(argv))
+        return Detached()
+    monkeypatch.setattr(status.subprocess, "Popen", spy)
+    monkeypatch.setenv("VERI_SNAPSHOT_MAX_AGE", "60")
+    stale = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=600)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": stale.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": []}))
 
     code, _out, err = run_cli(status, ["--report"])
 
