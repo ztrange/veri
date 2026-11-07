@@ -1,0 +1,4 @@
+# Plan for #3159 — The operator skills read whole gh comment threads: bound every read
+
+- [ ] skill-edit step for the unit `skills/vdev/SKILL.md`: the author rewords the *Routing an exit* read of the issue's last comment, now the whole-thread `gh issue view <n> --json comments`, into a bounded read of the last comment only (`--jq '.comments[-1].body'`, a `[-1]` index, or a byte cap), until the grader PASSes it, and signs it in `skills/vdev/GRADED` ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] A unit case (small, no process) reads every Markdown file under `skills/vcoord` and `skills/vdev`, finds each `gh` command that reads issue or PR comments (`--json comments`, `/comments`, `--comments`), and fails naming the file and command when any such read carries neither a `[-1]` index nor a byte cap (`head -c`), so a whole-thread comment read can never return to either skill ⟦criterion 1⟧
