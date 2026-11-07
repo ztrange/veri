@@ -4,5 +4,5 @@
 - [x] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment ⟦suite-repair⟧ ⟦criterion 1⟧
 - [x] Beside the coordinator's, `metrics.sh <n>` reports the dev session's spend the same way — the transcript whose first user prompt invokes `/vdev` — as its turns, cache tokens read and $ ⟦criterion 1⟧
 - [x] A session's assistant turn timestamped before the issue's first event in the event log is left out of that session's reported turns, cache tokens and $ ⟦criterion 1⟧
-- [ ] A session's assistant turn timestamped after the issue's `done` event in the event log is left out of that session's reported turns, cache tokens and $ ⟦criterion 1⟧
+- [x] A session's assistant turn timestamped after the issue's `done` event in the event log is left out of that session's reported turns, cache tokens and $ ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] An assistant message written to a session transcript as several records sharing one message id counts as one turn, its usage counted once, in the reported spend ⟦criterion 1⟧
