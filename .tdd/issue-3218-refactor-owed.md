@@ -1,0 +1,2 @@
+### A non-numeric issue argument such as `abc`, and `0`, get the same refusal as `--help` (exit 2 with the usage line naming `<issue>` on stderr, no `.tdd/wt/<arg>` directory, no conductor launched): only a positive decimal number is accepted as the issue; pinned by a case in skills/tdd/scripts/tests/py/test_run_conductor.py that fails on the current code ⟦criterion 2⟧
+- test-only | the two new refusal cases repeat the same setup (guards, scratch tmpdir, fake claude, cwd); a shared helper would remove that, but it would only change files under tests/
