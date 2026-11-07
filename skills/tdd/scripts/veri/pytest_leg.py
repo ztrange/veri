@@ -277,6 +277,16 @@ def main(argv):
         sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
                          % (floor, sys.executable, version))
         return 2
+    path_python = shutil.which("python3")
+    try:
+        probe = subprocess.run([path_python, "--version"], capture_output=True, text=True)
+        found = re.search(r"Python ([0-9]+)\.([0-9]+)[0-9.]*", probe.stdout + probe.stderr)
+    except Exception:
+        found = None
+    if found and [int(found.group(1)), int(found.group(2))] < [int(part) for part in floor.split(".")[:2]]:
+        sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; PATH's python3 %s is version %s.\n"
+                         % (floor, path_python, found.group(0)[len("Python "):]))
+        return 2
     for package, module, tunable in (("pytest", "pytest", "VERI_PYTEST_IMPORTABLE"),
                                      ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE"),
                                      ("pytest-xdist", "xdist", "VERI_PYTEST_XDIST_IMPORTABLE")):

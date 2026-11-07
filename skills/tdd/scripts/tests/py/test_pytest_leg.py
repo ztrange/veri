@@ -30,6 +30,19 @@ def test_an_interpreter_below_the_floor_exits_2_naming_the_floor_the_interpreter
     )
 
 
+@pytest.mark.process("a stub python3 on PATH that the launcher asks for its version")
+def test_3191_a_path_python3_below_the_floor_beside_a_healthy_interpreter_exits_2_naming_it_and_its_version_before_pytest_runs(pytest_leg, run_cli, monkeypatch, tmp_path):
+    stub = tmp_path / "bin" / "python3"
+    stub.parent.mkdir()
+    stub.write_text("#!/bin/sh\necho 'Python 3.9.6'\n")
+    stub.chmod(0o755)
+    calls = []
+    monkeypatch.setattr(pytest, "main", lambda args: calls.append(list(args)) or pytest.ExitCode.OK)
+    code, out, err = run_cli(pytest_leg, ["-q"], env=leg_env(PATH=str(stub.parent), VERI_PYTEST_WORKERS="1"))
+    assert (code, out, calls) == (2, "", [])
+    assert str(stub) in err and "3.9.6" in err
+
+
 def test_an_interpreter_that_cannot_import_pytest_exits_2_naming_pytest_the_interpreter_and_make_install_dev(pytest_leg, run_cli):
     code, out, err = run_cli(pytest_leg, [], env={"VERI_PYTEST_IMPORTABLE": "0"})
     assert (code, out, err) == (
