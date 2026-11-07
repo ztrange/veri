@@ -1669,3 +1669,34 @@ def test_3181_a_quoted_deleted_test_beside_a_kept_one_is_dropped_from_the_replay
     witness = (tmp_path / "args.witness").read_text() if (tmp_path / "args.witness").exists() else None
     assert (ran.returncode != 2, witness is not None and "t_gone" not in witness and "t_keep" in witness) == (
         True, True), (ran.stdout, ran.stderr, witness)
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before-state pin that is green on its before-state at HEAD and on the base")
+def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_base_is_stale_exits_0_and_leaves_the_tree_as_found(
+        tmp_path):
+    repo, scratch = tmp_path / "repo", tmp_path / "scratch"
+    repo.mkdir()
+    scratch.mkdir()
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (repo / "src.txt").write_text("old behaviour\n")
+    (repo / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (repo / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "touch the pin file, leaving the pin as it was")
+    (repo / ".tdd").mkdir()
+    record(repo / ".tdd" / "issue-3160-mutations.md", before=base, keep="pin.txt", command="grep -q old src.txt")
+    before = (git("worktree", "list"), git("status", "--porcelain"))
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+                         env={**os.environ, "TMPDIR": str(scratch)})
+
+    assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr, (repo / ".tdd" / "pin-recheck-ok").exists(),
+            (git("worktree", "list"), git("status", "--porcelain")) == before, list(scratch.iterdir())) == (
+        0, "stale: .tdd/issue-3160-mutations.md pin.txt\n", False, True, True, []), ran.stderr

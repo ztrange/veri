@@ -1,6 +1,9 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
+import os
+import shutil
+import tempfile
 import re
 import subprocess
 import sys
@@ -62,7 +65,7 @@ def tick_commit(ledger):
                           capture_output=True, text=True).stdout.strip()
 
 
-def replay_before(pin, ledger):
+def replay_before(pin, ledger, root=Path(".")):
     green = tick_commit(ledger) or pin.get("green")
     names = subprocess.run(["git", "diff", "--name-only", pin["before"], *([green] if green else [])],
                            capture_output=True, text=True,
@@ -71,24 +74,42 @@ def replay_before(pin, ledger):
     if not names and green:
         sys.stderr.write(f"empty replay range: before {pin['before']} green {green}\n")
         return None
-    saved = {n: Path(n).read_bytes() for n in names if Path(n).exists()}
-    modes = {n: Path(n).stat().st_mode for n in saved}
+    here = os.getcwd()
+    os.chdir(root)
     try:
-        for n in names:
-            shown = subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True)
-            if shown.returncode == 0:
-                Path(n).write_bytes(shown.stdout)
-            else:
-                Path(n).unlink(missing_ok=True)
-        ran = run_captured(current_wrapper(pin["command"]))
+        saved = {n: Path(n).read_bytes() for n in names if Path(n).exists()}
+        modes = {n: Path(n).stat().st_mode for n in saved}
+        try:
+            for n in names:
+                shown = subprocess.run(["git", "show", f"{pin['before']}:{n}"], capture_output=True)
+                if shown.returncode == 0:
+                    Path(n).write_bytes(shown.stdout)
+                else:
+                    Path(n).unlink(missing_ok=True)
+            ran = run_captured(current_wrapper(pin["command"]))
+        finally:
+            for n in names:
+                if n in saved:
+                    Path(n).write_bytes(saved[n])
+                    Path(n).chmod(modes[n])
+                else:
+                    Path(n).unlink(missing_ok=True)
     finally:
-        for n in names:
-            if n in saved:
-                Path(n).write_bytes(saved[n])
-                Path(n).chmod(modes[n])
-            else:
-                Path(n).unlink(missing_ok=True)
+        os.chdir(here)
     return ran.returncode
+
+
+def replay_on_base(pin, ledger):
+    base = subprocess.run(["git", "merge-base", "origin/main", "HEAD"], capture_output=True, text=True,
+                          check=True).stdout.strip()
+    scratch = tempfile.mkdtemp()
+    tree = Path(scratch) / "base"
+    subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, check=True)
+    try:
+        return replay_before(pin, ledger, tree)
+    finally:
+        subprocess.run(["git", "worktree", "remove", str(tree)], capture_output=True)
+        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def recheck(argv):
@@ -129,7 +150,9 @@ def recheck(argv):
             replayed = replay_before(pin, ledger)
             if replayed is None:
                 return 2
-            if replayed == 0:
+            if replayed == 0 and replay_on_base(pin, ledger) == 0:
+                sys.stdout.write(f"stale: {ledger} {pin['keep']}\n")
+            elif replayed == 0:
                 sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
                 status = 1
             continue
