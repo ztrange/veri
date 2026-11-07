@@ -1,6 +1,6 @@
 # Plan for #3224 — PRD 012.4a: A role's state lives in a file, and one command prints everything a cleared role needs to resume
 
-- [ ] `skills/tdd/scripts/role-state.sh coord set n 3`, a new `/bin/sh` shim over `veri/role_state.py` following the `status.sh` port convention (with its no-argument usage line and exit 2 and a declared caller in this same step), run from the main working tree writes `n` into `.tdd/role-coord.state` there, which `role-state.sh coord show` then prints ⟦criterion 1⟧
+- [x] `skills/tdd/scripts/role-state.sh coord set n 3`, a new `/bin/sh` shim over `veri/role_state.py` following the `status.sh` port convention (with its no-argument usage line and exit 2 and a declared caller in this same step), run from the main working tree writes `n` into `.tdd/role-coord.state` there, which `role-state.sh coord show` then prints ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `role-state.sh coord set lane <lane>` writes the `lane` field, which `show` then prints beside an earlier `n` ⟦criterion 1⟧
 - [ ] `role-state.sh coord set n 2` run from a linked worktree of the repository writes into `.tdd/role-coord.state` of the main working tree, not of the linked worktree ⟦criterion 1⟧
 - [ ] `role-state.sh coord --lane mu set n 1` writes `.tdd/role-coord-mu.state` in the main working tree and leaves the default lane's `.tdd/role-coord.state` unchanged ⟦criterion 1⟧
