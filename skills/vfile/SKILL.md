@@ -101,7 +101,18 @@ reported, not made** (P11).
 
 File with `gh issue create`.
 
+## Parent
+
+After filing, set the GitHub parent through the sub-issues API
+(`gh api repos/<owner>/<repo>/issues/<parent>/sub_issues -X POST -F sub_issue_id=<id of the new issue>`,
+the id being the issue's REST `id`, not its number):
+
+- An issue titled `PRD <nnn>.<k>: …` goes under the **open** issue titled `PRD <nnn>: …`.
+- An issue the human names as a follow-up of another issue goes under that issue.
+
+When no parent is found, the issue is still filed; the report says it has no parent and why.
+
 ## Report
 
-Report the **url** of the issue and **whether it is now solvable** (open, opted in, unblocked,
+Report the **url** of the issue, **its parent** (or that it has none, and why), and **whether it is now solvable** (open, opted in, unblocked,
 unclaimed); if it is not, say which condition is missing. Do not start the run.
