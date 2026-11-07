@@ -13,6 +13,14 @@ def record(path, **fields):
     path.write_text("".join(f"{name} {len(value)}\n{value}\n" for name, value in fields.items()) + "\n")
 
 
+def main_disarmed_on_base(git, repo):
+    (repo / "marker.txt").write_text("main\n")
+    git("add", "marker.txt")
+    git("commit", "-q", "-m", "main marker")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (repo / "marker.txt").unlink()
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range that leaves the recorded file alone")
 def test_2506_a_record_naming_a_file_the_range_does_not_touch_exits_3_and_runs_nothing(tmp_path):
     def git(*words):
@@ -726,12 +734,13 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_current_keep_pa
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     (tmp_path / ".tdd" / "notes.md").write_text("ledger v1\n")
     git("commit", "-q", "-am", "fix, pin and ledger")
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
-           command="grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md")
+           command="grep -q 'pin v1' pin.txt && grep -q 'ledger v1' .tdd/notes.md && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -750,12 +759,13 @@ def test_2959_a_before_keep_record_whose_command_is_green_on_the_restored_files_
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     git("commit", "-q", "-am", "fix and pin")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
-           command="grep -q old src.txt")
+           command="grep -q old src.txt && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -775,13 +785,14 @@ def test_2959_a_green_before_keep_record_beside_an_old_format_record_is_reported
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "fix, pin and touch guard")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
-           command="grep -q old src.txt")
+           command="grep -q old src.txt && test ! -e marker.txt")
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
            command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
 
@@ -851,6 +862,7 @@ def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     (tmp_path / "z_new.txt").write_text("added later\n")
@@ -858,7 +870,7 @@ def test_2959_a_before_keep_replay_removes_a_file_absent_at_the_before_sha_while
     git("commit", "-q", "-m", "fix, pin and add")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
-           command="test ! -e z_new.txt")
+           command="test ! -e z_new.txt && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -878,6 +890,7 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     (tmp_path / "z_new.txt").write_bytes(b"added \x00 later\n")
@@ -885,7 +898,7 @@ def test_2959_a_green_before_keep_replay_leaves_every_restored_file_a_file_absen
     git("commit", "-q", "-m", "fix, pin and add")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2959-mutations.md", before=base, keep="pin.txt",
-           command="grep -q old src.txt")
+           command="grep -q old src.txt && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -905,12 +918,13 @@ def test_2974_a_before_keep_replay_restores_a_file_the_branch_deleted_and_exits_
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     git("rm", "-q", "gone.txt")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     git("add", "-A")
     git("commit", "-q", "-m", "delete gone.txt and pin")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", command="test -e gone.txt")
+    record(tmp_path / ".tdd" / "issue-2974-mutations.md", before=base, keep="pin.txt", command="test -e gone.txt && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -1090,11 +1104,12 @@ def test_3017_a_before_keep_record_whose_keep_file_the_range_touches_is_replayed
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "pin.txt").write_text("pin v1\n")
     git("commit", "-q", "-am", "touch the keep file")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-3017-mutations.md", before=base, keep="pin.txt",
-           command="grep -q old src.txt")
+           command="grep -q old src.txt && test ! -e marker.txt")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
@@ -1116,6 +1131,7 @@ def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_1
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts" / "x.sh").write_text("#!/bin/sh\necho x\n")
     (tmp_path / "scripts" / "x.sh").chmod(0o755)
@@ -1124,7 +1140,7 @@ def test_3046_a_before_replay_leaves_an_executable_file_100755_and_a_plain_one_1
     git("add", "-A")
     git("commit", "-q", "-m", "add scripts and pin")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-3046-mutations.md", before=base, keep="pin.txt", command="true")
+    record(tmp_path / ".tdd" / "issue-3046-mutations.md", before=base, keep="pin.txt", command="true && test ! -e marker.txt")
     before = state()
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
@@ -1215,6 +1231,7 @@ def test_2967_a_before_replay_that_swaps_files_leaves_every_file_byte_identical_
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
     (tmp_path / "a_mod.txt").write_text("a v1\n")
     (tmp_path / "b_recreated.txt").unlink()
     (tmp_path / "c_added.txt").write_text("c v1\n")
@@ -1230,7 +1247,7 @@ def test_2967_a_before_replay_that_swaps_files_leaves_every_file_byte_identical_
     git("add", "-A")
     git("commit", "-q", "-m", "later")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-2967-mutations.md", before=base, keep="pin.txt", green=green, command="true")
+    record(tmp_path / ".tdd" / "issue-2967-mutations.md", before=base, keep="pin.txt", green=green, command="true && test ! -e marker.txt")
     before = tree()
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
