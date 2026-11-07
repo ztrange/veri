@@ -169,16 +169,18 @@ def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_co
     (tmp_path / ".git").mkdir()
     issues = [
         {"number": 7, "title": "PRD 001 parent", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-10-20T10:00:00Z", "body": "prd prose #5", "comments": [{"body": "c"}]},
+         "updatedAt": "2026-10-20T10:00:00Z", "body": "prd prose #5"},
         {"number": 8, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-10-20T11:00:00Z", "body": "plain prose", "comments": [{"body": "c"}]},
+         "updatedAt": "2026-10-20T11:00:00Z", "body": "plain prose"},
     ]
+    comments = [{"number": 7, "comments": [{"body": "c"}]}, {"number": 8, "comments": [{"body": "c"}]}]
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        answer = comments if args[args.index("--json") + 1] == "number,comments" else issues
+        return subprocess.CompletedProcess(args, 0, json.dumps(answer), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
@@ -243,6 +245,8 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
+        if args[args.index("--json") + 1] == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         asked.append([term for i, arg in enumerate(args) if arg == "--search"
                       for term in args[i + 1].split() if term.startswith("updated:>=")])
         return subprocess.CompletedProcess(args, 0, json.dumps(received), "")
@@ -450,14 +454,17 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
@@ -476,14 +483,17 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     written = json.loads(cache.read_text())
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
@@ -503,14 +513,17 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     written = json.loads(cache.read_text())
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
@@ -530,14 +543,17 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     written = json.loads(cache.read_text())
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
@@ -557,14 +573,17 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     written = json.loads(cache.read_text())
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
@@ -690,14 +709,17 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
@@ -716,14 +738,17 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        searched.append("updated:>=" in " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [False])
+    assert (code, "report-cache.json" in err and "rebuilding" in err, searched) == (0, True, [(False, False)])
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
@@ -764,11 +789,16 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
         for n in range(1, 251)
     ]
     limits = []
+    asked = []
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        asked.append("comments" in fields.split(","))
         limit = int(args[args.index("--limit") + 1])
         limits.append(limit)
         if limit > 100:
@@ -788,7 +818,7 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
 
     written = tmp_path / ".tdd" / "report-cache.json"
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else []
-    assert (code, kept, max(limits)) == (0, list(range(1, 251)), 100)
+    assert (code, kept, max(limits), any(asked)) == (0, list(range(1, 251)), 100, False)
 
 
 def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still_writes_the_full_cache_2244(run_cli, monkeypatch, tmp_path):
@@ -905,11 +935,16 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
         for n in range(1, 121)
     ]
     limits = []
+    asked = []
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        asked.append("comments" in fields.split(","))
         limit = int(args[args.index("--limit") + 1])
         limits.append(limit)
         if len(limits) > 100:
@@ -931,7 +966,7 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
 
     written = tmp_path / ".tdd" / "report-cache.json"
     kept = sorted(i["number"] for i in json.loads(written.read_text())["issues"]) if written.exists() else []
-    assert (code, kept, limits[0]) == (0, list(range(1, 121)), 100)
+    assert (code, kept, limits[0], any(asked)) == (0, list(range(1, 121)), 100, False)
 
 
 def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with_the_gh_message_after_bounded_calls_and_writes_nothing_2279(run_cli, monkeypatch, tmp_path):
@@ -1299,15 +1334,20 @@ def test_refresh_whose_fetch_sees_an_issue_updated_after_it_read_it_leaves_a_win
         def now(cls, tz=None):
             return clock["now"]
 
-    monkeypatch.setattr(report_cache, "datetime", types.SimpleNamespace(datetime=FakeDatetime, timezone=real.timezone))
+    monkeypatch.setattr(report_cache, "datetime", types.SimpleNamespace(datetime=FakeDatetime, timezone=real.timezone, timedelta=real.timedelta))
     issues = [
         {"number": n, "title": "issue %d" % n, "state": "OPEN", "labels": [], "closedAt": None,
-         "updatedAt": "2026-10-05T00:00:00Z", "body": "", "comments": []}
+         "updatedAt": "2026-10-05T00:00:00Z", "body": ""}
         for n in range(1, 4)
     ]
     reads = []
+    asked = []
 
     def fake_gh_issue_list(*args):
+        fields = args[args.index("--json") + 1]
+        if fields == "number,comments":
+            return "[]"
+        asked.append("comments" in fields.split(","))
         terms = (args[args.index("--search") + 1] if "--search" in args else "").split()
         pool = list(issues)
         for term in terms:
@@ -1328,7 +1368,7 @@ def test_refresh_whose_fetch_sees_an_issue_updated_after_it_read_it_leaves_a_win
 
     cached = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]
     updated = {i["number"]: i["updatedAt"] for i in cached}
-    assert (first[0], second[0], updated[2]) == (0, 0, "2026-10-20T10:00:03Z")
+    assert (first[0], second[0], updated[2], any(asked)) == (0, 0, "2026-10-20T10:00:03Z", False)
 
 
 def test_refresh_with_a_cache_whose_cache_format_is_not_2_rebuilds_in_full_and_reads_an_issue_older_than_its_fetched_at_2709(run_cli, monkeypatch, tmp_path):
@@ -1461,3 +1501,33 @@ def test_incremental_refresh_replaces_the_links_of_a_refetched_issue_so_a_link_f
     windowed = [term for term in reads[0] if term.startswith("updated:>=")]
     assert (code, err, windowed, issues[900]["links"], issues[7]["links"]) == (
         0, "", ["updated:>=2026-10-01T00:00:00Z"], [5, 6], [3])
+
+
+def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_prd_titles_and_the_last_7_days_of_closures(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [{"number": 7, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-20T10:00:00Z"}]
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        fields = args[args.index("--json") + 1]
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        calls.append((fields, search))
+        answer = [] if fields == "number,comments" else issues
+        return subprocess.CompletedProcess(args, 0, json.dumps(answer), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    paged_asks_comments = [("comments" in fields.split(",")) for fields, _ in calls if fields != "number,comments"]
+    comment_searches = [search for fields, search in calls if fields == "number,comments"]
+    assert (code, paged_asks_comments, any("PRD" in s for s in comment_searches),
+            any("closed:>=" in s for s in comment_searches)) == (0, [False], True, True)
