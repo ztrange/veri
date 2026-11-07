@@ -34,6 +34,12 @@ def main(argv):
             f.write("%s %s %s %s\n" % (argv[2], item, time.strftime("%Y-%m-%dT%H:%M:%S"), argv[3]))
         print(item)
         return 0
+    if argv[1] == "drop":
+        with open(path) as f:
+            lines = f.readlines()
+        with open(path, "w") as f:
+            f.writelines(l for l in lines if l.split()[:2] != argv[2:4])
+        return 0
     if argv[1] == "show":
         with open(path) as f:
             sys.stdout.write(f.read())

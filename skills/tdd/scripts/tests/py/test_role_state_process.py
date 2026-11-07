@@ -104,3 +104,16 @@ def test_coord_add_records_the_local_add_time_and_show_lists_it_on_the_items_lin
     _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     line = next(l for l in shown.splitlines() if "pick-the-lane" in l)
     assert any(day in line for day in {before, after}), line
+
+
+@pytest.mark.process("git")
+def test_coord_drop_removes_the_item_with_that_id_from_show_and_keeps_the_other_items(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    _, first_id, _ = run_cli(role_state, ["coord", "add", "decision", "keep-alpha"], cwd=repo)
+    _, second_id, _ = run_cli(role_state, ["coord", "add", "decision", "drop-beta"], cwd=repo)
+    code, _, _ = run_cli(role_state, ["coord", "drop", "decision", second_id.strip()], cwd=repo)
+    _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    assert (code, "drop-beta" in shown, "keep-alpha" in shown) == (0, False, True)
