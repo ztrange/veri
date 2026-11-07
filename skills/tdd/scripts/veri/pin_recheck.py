@@ -171,7 +171,7 @@ def recheck(argv):
         path = Path(pin["file"])
         original = path.read_bytes()
         if pin["old"].encode() not in original:
-            sys.stdout.write(f"needs a look: {pin['file']}\n")
+            sys.stdout.write(f"needs a look: {pin['file']} (old text gone)\n")
             continue
         base = run_captured(pin["command"])
         if base.returncode == 127 or "no makefile found" in base.stderr.lower():
