@@ -2276,3 +2276,50 @@ def test_the_comment_family_table_prices_a_modelless_turn_as_opus_and_leaves_a_t
 
     rows = {row["family"]: (row["turns"], row["dollars"]) for row in table(out, "#### Conductor comments, by family")}
     assert (rows["🟢 Green"], rows["🔎 verify-green"]) == (("1", "$0.75"), ("1", "$0.00"))
+
+
+def test_the_comment_family_table_counts_a_message_written_as_several_records_once_with_output_tokens_split_from_the_result_total(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+
+    def record(message_id, body=None):
+        content = [{"type": "text", "text": "working"}]
+        if body is not None:
+            content.append({"type": "tool_use", "name": "Bash",
+                            "input": {"command": "gh issue comment 108 --body '%s'" % body}})
+        return {"type": "assistant", "message": {"id": message_id, "usage": {"input_tokens": 10, "output_tokens": 1},
+                                                 "content": content}}
+
+    records = [{"type": "system", "subtype": "init"},
+               record("msg_a", "🟢 Green: step 1"), record("msg_a", "🟢 Green: step 1"), record("msg_a", "🟢 Green: step 1"),
+               record("msg_b"),
+               record("msg_c", "🔎 verify-green: PASS"), record("msg_c", "🔎 verify-green: PASS"),
+               {"type": "result", "total_cost_usd": 1.0, "num_turns": 3, "usage": {"output_tokens": 300}}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = {row["family"]: (row["turns"], row["output tokens"])
+            for row in table(out, "#### Conductor comments, by family")}
+    assert (rows["🟢 Green"], rows["🔎 verify-green"]) == (("1", "100"), ("1", "100"))
+
+
+def test_the_comment_family_table_counts_turns_of_a_transcript_with_no_result_record_with_each_turns_own_output_tokens(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+
+    def record(message_id, output_tokens, body):
+        return {"type": "assistant", "message": {"id": message_id, "usage": {"input_tokens": 10, "output_tokens": output_tokens},
+                                                 "content": [{"type": "tool_use", "name": "Bash",
+                                                              "input": {"command": "gh issue comment 108 --body '%s'" % body}}]}}
+
+    records = [{"type": "system", "subtype": "init"},
+               record("msg_a", 7, "🟢 Green: step 1"),
+               record("msg_b", 5, "🔎 verify-green: PASS")]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = {row["family"]: (row["turns"], row["output tokens"])
+            for row in table(out, "#### Conductor comments, by family")}
+    assert (rows["🟢 Green"], rows["🔎 verify-green"]) == (("1", "7"), ("1", "5"))

@@ -103,6 +103,18 @@ def conductor_sessions(issue, path):
     open_contexts = []
     turn_rows = TurnRows()
     seen_ids = set()
+    open_turn_rows = []
+
+    def count_families(result_output):
+        for names, model_family, own_tokens in open_turn_rows:
+            output_tokens = own_tokens if result_output is None else result_output // len(open_turn_rows)
+            for name in names:
+                turn_rows.families[name][0] += 1
+                turn_rows.families[name][1] += output_tokens
+                if model_family:
+                    turn_rows.families[name][2] += output_tokens * PRICES[model_family]["output"] / 1e6
+        open_turn_rows.clear()
+
     with contextlib.suppress(OSError):
         with open(main_checkout_file(path, "conductor-%s.log" % issue)) as stream_log:
             for text in stream_log:
@@ -112,6 +124,7 @@ def conductor_sessions(issue, path):
                         continue
                     if record.get("type") == "result":
                         sessions.append(record)
+                        count_families((record.get("usage") or {}).get("output_tokens"))
                         total = record.get("total_cost_usd")
                         if open_rows and open_priced and total is not None:
                             share = (total - sum(base for _, base in open_rows)) / len(open_rows)
@@ -140,13 +153,8 @@ def conductor_sessions(issue, path):
                                            ensure_ascii=False)
                         model_name = message.get("model") or ""
                         model_family = family(model_name) or ("opus" if not model_name else None)
-                        for name, pattern in COMMENT_FAMILIES:
-                            if re.search(pattern, calls):
-                                output_tokens = usage.get("output_tokens") or 0
-                                turn_rows.families[name][0] += 1
-                                turn_rows.families[name][1] += output_tokens
-                                if model_family:
-                                    turn_rows.families[name][2] += output_tokens * PRICES[model_family]["output"] / 1e6
+                        open_turn_rows.append(([name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)],
+                                               model_family, usage.get("output_tokens") or 0))
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
                         if model_family is None:
@@ -160,6 +168,7 @@ def conductor_sessions(issue, path):
                         base_dollars = turn_dollars - output_dollars
                         open_rows.append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
+        count_families(None)
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
         if open_contexts:
