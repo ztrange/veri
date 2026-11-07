@@ -952,7 +952,7 @@ def convert_calls(calls):
 
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_one_unit_exits_0(tmp_path):
-    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "DRAFT-PR.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
@@ -1003,7 +1003,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with_the_first_rejected_exits_non_zero_after_grading_both(tmp_path):
-    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "DRAFT-PR.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
@@ -1061,7 +1061,7 @@ esac
 @pytest.mark.process("the SKILL.md regrade block run in a git repo with a stub claude through supervise.sh")
 def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_code_any_units_grading_returned(
         tmp_path, answers, expected):
-    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "SKILL.md").read_text()
+    skill = (SCRIPTS.parents[2] / "skills" / "tdd" / "DRAFT-PR.md").read_text()
     draft = skill[skill.index("regrades every unit the run signed"):]
     block = re.search(r"```\n(.*?)```", draft, re.S).group(1).replace("<default>", "main")
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
@@ -1405,7 +1405,7 @@ def test_2483_convert_resigns_a_unit_listed_only_in_a_per_directory_requirements
 
 @pytest.mark.process("the Draft PR regrade block's git diff line run by sh in a scratch git repo")
 def test_the_draft_pr_regrade_blocks_diff_line_selects_a_unit_signed_in_a_root_graded(tmp_path):
-    skill = (SCRIPTS.parent / "SKILL.md").read_text()
+    skill = (SCRIPTS.parent / "DRAFT-PR.md").read_text()
     line = next(l for l in skill.splitlines() if l.lstrip().startswith('git diff "$base" HEAD -U0 -- '))
     selecting = line.strip().split(" | { rc=0;")[0]
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path),
