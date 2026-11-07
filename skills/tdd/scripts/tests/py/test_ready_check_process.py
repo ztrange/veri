@@ -395,3 +395,19 @@ def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs
     assert after == before
     writes = [c for c in calls if re.search(r"label (create|edit|delete|add|remove)|--method|(^| )-X( |$)|--add-label|--remove-label|(^| )-[fF]( |$)|--(raw-)?field|--input", c)]
     assert writes == [], writes
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository whose .gitignore ignores .tdd/* and re-includes the ledger")
+def test_issue_3172_ready_check_with_tdd_contents_ignored_and_the_ledger_re_included_exits_0_with_the_tdd_row_ok(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    (repo / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n")
+    (repo / ".tdd").mkdir()
+    (repo / ".tdd" / "issue-1.md").write_text("- [ ] step\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "ignore the contents of .tdd, commit the ledger")
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
+    assert not any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
+    assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
