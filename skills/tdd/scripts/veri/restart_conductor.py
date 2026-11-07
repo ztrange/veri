@@ -57,6 +57,10 @@ def main(argv):
     while conductor_alive(run):
         g = _growth(run)
         if g is not None and g >= 0.85 * int(knob):
+            pending = f".tdd/wt/{run}/.tdd/restart-pending"
+            os.makedirs(os.path.dirname(pending), exist_ok=True)
+            with open(pending, "w") as f:
+                f.write(f"{os.getpid()}\n")
             stop_run("at-ledger", run)
         sleep(5)
     print(f"restarts {run} 0")
