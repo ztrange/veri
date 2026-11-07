@@ -1,2 +1,3 @@
 ### `transform-touches-tests.sh <base-sha> "" --touched ""`, an empty `--touched` list, in a range that changed a non-test file, exits 2 with a stderr message naming the empty `--touched` list (never 0, never 1); restoring the unguarded `set(...) & set(paths)` comparison makes the case go red ⟦criterion 3⟧
 - the `--touched` handling is now a block inside `main`, and could be extracted into a helper (left alone: moving behaviour is not allowed in this phase)
+applied | e78fad1dfba4f8696d2be5a70a96a5130d73116d | the `--touched` handling is now a block inside `main`, and could be extracted into a helper (left alone: moving behaviour is not allowed in this phase)	refactor: extract the --touched handling of main into check_touched (#3280)
