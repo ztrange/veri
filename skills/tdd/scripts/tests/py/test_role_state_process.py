@@ -1,5 +1,6 @@
 """Cases for veri/role_state.py that start a real process."""
 import importlib
+import os
 import subprocess
 import time
 
@@ -170,3 +171,25 @@ def test_coord_recovered_without_a_session_id_exits_2_and_leaves_the_state_file_
     before = state.read_bytes()
     empty_present_code, _, _ = run_cli(role_state, ["coord", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": ""})
     assert (empty_code, absent_after, empty_present_code, state.read_bytes() == before) == (2, False, 2, True)
+
+
+@pytest.mark.process("git")
+def test_coord_set_whose_rename_over_the_state_file_fails_leaves_the_previous_file_byte_for_byte_unchanged(tmp_path, run_cli, monkeypatch):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    run_cli(role_state, ["coord", "set", "n", "3"], cwd=repo)
+    state = repo / ".tdd" / "role-coord.state"
+    before = state.read_bytes()
+
+    def failing_replace(src, dst, *args, **kwargs):
+        raise OSError("rename refused")
+
+    monkeypatch.setattr(os, "replace", failing_replace)
+    monkeypatch.setattr(os, "rename", failing_replace)
+    try:
+        code, _, _ = run_cli(role_state, ["coord", "set", "n", "4"], cwd=repo)
+    except OSError:
+        code = "raised"
+    assert (code != 0, state.read_bytes() == before) == (True, True)
