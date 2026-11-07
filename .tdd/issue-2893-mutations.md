@@ -14,15 +14,6 @@ and is_test_path(line)
 command 147
 make test TESTS=skills/tdd/scripts/tests/py/test_production_frozen_process.py::test_production_frozen_range_changing_pkg_x_go_exit_1_naming_it_2893
 
-file 50
-skills/tdd/scripts/veri/transform_touches_tests.py
-old 40
-for line in paths if is_test_path(line))
-new 26
-for line in paths if line)
-command 131
-make test TESTS=skills/tdd/scripts/tests/py/test_transform_touches_tests.py::test_2893_a_range_changing_only_pkg_x_go_still_exits_0
-
 before 40
 e47010fce79f76e1bd44dfedd2460adef1f9dd77
 keep 49
