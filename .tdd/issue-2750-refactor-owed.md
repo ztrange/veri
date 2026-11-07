@@ -17,3 +17,4 @@
 - the `%Y-%m-%dT%H:%M:%SZ` timestamp format is repeated in three places in `status.py`, two of them older code this cycle did not write. A shared constant would also change code outside this cycle.
 not-done | transform-rejected | merge the two `git tag --list` calls in `landed_lines` into one call, and update the `fake_tags` stub in `tests/py/unit/test_status_report.py` to the new `<unix-time> <name>  <subject>` output format
 applied | 0e5004d8bfa0e1c48a47ca12672edfe315b94c62 | rename `first` in `running_lines` to `start`, since it holds the latest `conductor-start` and not the first	refactor: rename first to start in running_lines (#2750)
+applied | a587bdacfdacbeb2036e61cd471e0a81640da91e | extract the `since` parse in `landed_lines` and the pid/start-time liveness check in `running_lines` into named helpers	refactor: extract tags_created_since and conductor_alive helpers (#2750)
