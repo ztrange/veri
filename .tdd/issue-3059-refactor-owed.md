@@ -1,0 +1,2 @@
+### The first line of `status.sh --report` names the machine's local zone once, with its UTC offset, e.g. `CST (UTC−6)` under `TZ=America/Chicago` on a winter date (a small case, in-process, no git) ⟦criterion 1⟧
+- test-only | extract the report setup shared by the two zone cases (the repo, the `VERI_HOME` runs directory and the `subprocess.run` stub) into a helper or fixture in `test_status_report_zone.py`
