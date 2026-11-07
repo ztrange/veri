@@ -693,8 +693,8 @@ def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_
     code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "-"])
 
     rows = [json.loads(r) for r in events.read_text().splitlines()] if events.exists() else []
-    retries = [r for r in rows if r.get("event") != "merged"]
-    assert (code, len(retries)) == (0, 2)
+    retries = [r["event"] for r in rows if r.get("event") != "merged"]
+    assert (code, retries) == (0, ["rebase-refresh-retry"] * 2)
 
 
 def test_3022_queued_merge_whose_phantom_would_be_overwritten_stop_recurs_past_the_retry_bound_fails_with_gits_code_keeps_the_lock_and_pushes_nothing(fake_processes, run_cli):
