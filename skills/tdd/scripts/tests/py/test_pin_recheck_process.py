@@ -1700,3 +1700,32 @@ def test_3160_a_before_state_pin_green_on_its_before_state_at_head_and_on_the_ba
     assert (ran.returncode, ran.stdout, "pin stayed green" in ran.stderr, (repo / ".tdd" / "pin-recheck-ok").exists(),
             (git("worktree", "list"), git("status", "--porcelain")) == before, list(scratch.iterdir())) == (
         0, "stale: .tdd/issue-3160-mutations.md pin.txt\n", False, True, True, []), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a pin this range disarmed beside a stale pin")
+def test_3160_a_before_state_pin_red_on_the_base_and_green_at_head_beside_a_stale_pin_is_named_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "stale.txt").write_text("stale v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    main_disarmed_on_base(git, tmp_path)
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    (tmp_path / "stale.txt").write_text("stale v1\n")
+    git("commit", "-q", "-am", "touch both pin files")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3160-a-mutations.md", before=base, keep="stale.txt", command="grep -q old src.txt")
+    record(tmp_path / ".tdd" / "issue-3160-b-mutations.md", before=base, keep="pin.txt",
+           command="grep -q old src.txt && test ! -e marker.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green on the before-state: pin.txt" in ran.stderr,
+            "stayed green on the before-state: stale.txt" in ran.stderr, ran.stdout,
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        1, True, False, "stale: .tdd/issue-3160-a-mutations.md stale.txt\n", False), ran.stderr
