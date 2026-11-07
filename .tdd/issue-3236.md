@@ -2,7 +2,7 @@
 
 - [x] A live run whose journal holds neither a `refactor` nor a `structural-pass` event shows no refactor text in its `status.sh --report` Running block (a small in-process case, like the other `test_status_report_running_*` cases) ⟦criterion 3⟧
 - [x] A live run whose journal holds `refactor` events shows, in its Running block, `refactor <p> passes <t> transforms <z> landed nothing`: p the number of `refactor` events, t the sum of their `transforms`, z the number with `transforms` 0 ⟦criterion 1⟧
-- [ ] A `refactor` event whose `transforms` is the string `event.sh` writes (`"2"`, `"0"`), as every real journal records it, counts in the Running block by its number: `"2"` adds 2 to the transforms sum and `"0"` is a pass that landed nothing (a small in-process case) ⟦added⟧ ⟦criterion 1⟧
+- [x] A `refactor` event whose `transforms` is the string `event.sh` writes (`"2"`, `"0"`), as every real journal records it, counts in the Running block by its number: `"2"` adds 2 to the transforms sum and `"0"` is a pass that landed nothing (a small in-process case) ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] The journal's `structural-pass` event counts in the Running block's refactor figures as one pass, its `transforms` added to the transform sum and counted as landed nothing when 0 ⟦criterion 2⟧
 - [ ] A `structural-pass` event with no `transforms` field (the `stopped=nothing-structural` mark the Draft PR step writes) counts in the Running block's refactor figures as one pass with 0 transforms, which landed nothing, and the report does not fail on it
 - [ ] The Running block names each distinct `stopped` reason across the `refactor` and `structural-pass` events with the number of events that carried it ⟦criterion 2⟧
