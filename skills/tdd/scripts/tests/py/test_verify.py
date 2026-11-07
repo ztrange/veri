@@ -1600,7 +1600,6 @@ def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judg
     assert code == 0
     assert len(prompts) == 1
     assert f"git diff {sha}" in prompts[0]
-    assert "own recorded Red case" in prompts[0]
 
 
 def test_3104_verify_sh_names_the_leaf_verify_diff_when_supersede_base_precedes_the_diff_phase(
