@@ -1,5 +1,7 @@
 """Small cases for veri.status --report: the first line names the local zone once."""
+import calendar
 import datetime
+import json
 import importlib
 import subprocess
 import time
@@ -190,3 +192,29 @@ def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_i
     lines = out.splitlines()
     zoned = [l for l in lines[1:] if re.search(r"CST|UTC|\d{2}:\d{2}(:\d{2})?\s*(Z\b|[+\-−]\d{2}:?\d{2}\b)", l)]
     assert (code, "CST (UTC−6)" in lines[0], zoned) == (0, True, []), (out, err)
+
+
+def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    monkeypatch.setenv("VERI_LABEL", "agent-ok")
+    monkeypatch.setenv("TZ", "America/Chicago")
+    time.tzset()
+    before = time.time()
+    (tmp_path / ".tdd").mkdir()
+
+    try:
+        code, _out, err = run_cli(status, ["--report"])
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+
+    path = tmp_path / ".tdd" / "status-last"
+    stored = json.loads(path.read_text())["time"] if path.exists() else ""
+    try:
+        written = calendar.timegm(time.strptime(stored, "%Y-%m-%dT%H:%M:%SZ"))
+    except ValueError:
+        written = None
+    assert (code, written is not None and before - 2 <= written <= time.time() + 2) == (0, True), (stored, err)
