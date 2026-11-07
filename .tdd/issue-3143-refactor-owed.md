@@ -7,3 +7,4 @@
 - test-only | extract the repeated ledger and events.jsonl setup and the monkeypatched `git` stub in `test_plan_reverify.py` into helpers or fixtures
 ### `plan-reverify.sh` counts only events whose `issue` is the ledger's issue: a newer verify-plan PASS of another issue in the shared `events.jsonl` does not hide this plan's rewrite, so with a `plan:` commit newer than this issue's last PASS it still exits 0; unit-tier, faking git ⟦criterion 5⟧
 - test-only | extract the repeated ledger and events.jsonl setup and the constant-stdout `git` fake in `test_plan_reverify.py` into helpers
+applied | b7367d7a44a18a6f55acf169be0cdd3d5c71c23f | invert `main`'s `if argv:` into a guard clause that returns the usage error first, which removes a level of nesting; I left it because it is not duplication removal	refactor: guard-clause the usage error in plan_reverify main (#3143)
