@@ -1,0 +1,1 @@
+- [ ] `role-state.sh <role> drop <list> <id>` replaces the state file atomically too: a drop whose rename over the state file fails leaves the previous file byte-for-byte unchanged ⟦added⟧ ⟦criterion 4⟧
