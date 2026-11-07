@@ -23,7 +23,8 @@ PYTEST_DIRS = (SCRIPTS + "/tests/py", SCRIPTS + "/tests/py/unit")
 SKILL_DOCS = ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/RECONCILE.md",
               "skills/tdd/BAIL.md", "skills/tdd/PIN.md", "skills/tdd/RESUME.md",
               "skills/tdd/REVISE.md", "skills/tdd/SKILL-EDIT.md", "skills/tdd/STRUCTURAL.md",
-              "skills/tdd/PHASED.md", "skills/tdd/REFACTOR-KIND.md", "skills/tdd/PREFLIGHT.md")
+              "skills/tdd/PHASED.md", "skills/tdd/REFACTOR-KIND.md", "skills/tdd/PREFLIGHT.md",
+              "skills/tdd/DRAFT-PR.md")
 SPACE = rb"[ \t\n\v\f\r]"
 
 
