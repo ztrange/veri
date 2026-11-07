@@ -2,7 +2,7 @@
 
 - [x] A new module skills/tdd/scripts/veri/growth.py holds one growth function that returns None, never 0, when the given transcript records carry no usage record at all (unit-tier cases in tests/py/unit/test_growth.py) ⟦criterion 1⟧
 - [x] The growth function, given stream-json records ("type":"assistant", message.usage) and a baseline, returns the last usage record's context (input_tokens + cache_read_input_tokens + cache_creation_input_tokens) minus that baseline ⟦criterion 1⟧
-- [ ] The growth function skips records with no usage: a record without usage after the last usage record leaves the current context at that usage record's ⟦criterion 1⟧
+- [x] The growth function skips records with no usage: a record without usage after the last usage record leaves the current context at that usage record's ⟦criterion 1⟧
 - [ ] The growth function reads a session transcript row (a record carrying message.usage without "type":"assistant") as a usage record ⟦criterion 1⟧
 - [ ] The growth function reads a record repeated under the same message id once: a later repeat of a message id does not replace the context its first record gave ⟦criterion 1⟧
 - [ ] With no baseline given, the growth function's baseline is the context of the first usage record when the records hold one session ⟦criterion 2⟧
