@@ -139,6 +139,11 @@ profile:
 unreachable:
 	@skills/tdd/scripts/unreachable.sh "$(CURDIR)"
 
+# `make report` prints the /vreport figures through report.sh.
+.PHONY: report
+report:
+	@skills/tdd/scripts/report.sh --report
+
 # `make watch` reruns `make unit` when a tracked file changes (#340). A developer
 # convenience — not part of `test` or `unit`, and nothing gates on it.
 #
