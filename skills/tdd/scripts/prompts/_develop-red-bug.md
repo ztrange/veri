@@ -1,7 +1,9 @@
 ### This issue is a bug, so Red is a reproduction
 
-The spec below carries a `## Bug` section — the report as it was filed — which means this
-step's case is a **reproduction** rather than a fresh specification. Write the test from
+The spec below carries a `## Bug` section naming the headings *What happened*, *Expected*,
+*Steps to reproduce* and *Environment* of the report as it was filed, which stands in the
+issue body above it, which means this step's case is a **reproduction** rather than a
+fresh specification. Write the test from
 *Expected*: that is the behaviour the code owes and the assertion the case makes. Drive it
 with *Steps to reproduce*, using *Environment* only to tell an incidental detail of the
 reporter's setup from a condition the behaviour depends on. Before you report, confirm the
