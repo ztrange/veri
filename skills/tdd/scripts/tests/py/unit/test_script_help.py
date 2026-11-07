@@ -50,3 +50,11 @@ def test_main_with_only_a_prefix_of_a_catalogued_script_name_exits_3_printing_no
     code, out, err = run_cli(script_help, ["pin-recheck"])
 
     assert (code, out) == (3, "")
+
+
+def test_main_with_a_name_prints_one_column_0_bullet_naming_that_script_and_no_other_entry(run_cli, script_help):
+    code, out, err = run_cli(script_help, ["pin-recheck.sh"])
+
+    bullets = [line for line in out.splitlines() if line[:1] not in (" ", "")]
+    assert code == 0
+    assert len(bullets) == 1 and bullets[0].startswith("- `$S/pin-recheck.sh")
