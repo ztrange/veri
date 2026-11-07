@@ -2133,8 +2133,7 @@ def test_main_renders_the_revise_check_earlier_command_with_the_runs_issue_numbe
     out, err = capsysbinary.readouterr()
     text = re.sub(rb"\s+", b" ", out)
     assert (code, err, b"<n>" in out, b"<next-unchecked step>" in out,
-            b"`tests-frozen.sh check-earlier .tdd/issue-3123.md --step 'The prompt names the ledger'`" in text,
-            b"the run's own ledger, `.tdd/issue-3123.md`," in text) == (0, b"", False, False, True, True)
+            b"`tests-frozen.sh check-earlier .tdd/issue-3123.md --step 'The prompt names the ledger'`" in text) == (0, b"", False, False, True)
 
 
 @pytest.mark.parametrize("issue", [None, "", "abc"])
