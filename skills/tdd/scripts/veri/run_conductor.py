@@ -44,7 +44,7 @@ def main(argv):
             return 2
     if launch_floor.bash_refusal("run-conductor") or launch_floor.python_refusal("run-conductor"):
         return 2
-    if not argv or not re.fullmatch(r"[0-9]+", argv[0], re.ASCII):
+    if not argv or not re.fullmatch(r"[0-9]+", argv[0], re.ASCII) or int(argv[0]) == 0:
         sys.stderr.write(USAGE + "\n")
         return 2
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
