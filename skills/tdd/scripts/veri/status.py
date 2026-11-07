@@ -256,13 +256,17 @@ def read_snapshot():
         return json.load(f)
 
 
+def snapshot_age():
+    fetched = read_snapshot()["fetched_at"]
+    return time.time() - calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+
+
 def snapshot_line():
     try:
-        fetched = read_snapshot()["fetched_at"]
-        then = calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+        age = snapshot_age()
     except OSError:
         return "no snapshot"
-    minutes = int(time.time() - then) // 60
+    minutes = int(age) // 60
     return "snapshot %dh %dm old" % divmod(minutes, 60)
 
 
@@ -424,8 +428,7 @@ def unjournaled_notes():
 
 def refresh_if_stale():
     try:
-        fetched = read_snapshot()["fetched_at"]
-        age = time.time() - calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+        age = snapshot_age()
     except OSError:
         return
     if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")):
