@@ -272,7 +272,8 @@ def snapshot_line():
     except OSError:
         return "no snapshot"
     minutes = int(age) // 60
-    return "snapshot %dh %dm old" % divmod(minutes, 60)
+    fetched = time.strftime("%H:%M", time.localtime(calendar.timegm(time.strptime(read_snapshot()["fetched_at"], ISO_UTC))))
+    return "snapshot %dh %dm old, fetched %s" % (divmod(minutes, 60) + (fetched,))
 
 
 def eta_range(count):

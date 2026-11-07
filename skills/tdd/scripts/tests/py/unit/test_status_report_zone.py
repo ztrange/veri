@@ -70,3 +70,28 @@ def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_lo
         time.tzset()
 
     assert (code, out.splitlines()[0]) == (0, "16:30 → 18:00 CST (UTC−6)"), (out, err)
+
+
+def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("VERI_SNAPSHOT_MAX_AGE", "86400")
+    (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text('{"fetched_at": "2026-01-14T21:52:00Z", "issues": []}')
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    monkeypatch.setenv("TZ", "America/Chicago")
+    time.tzset()
+    monkeypatch.setattr(status.time, "time", lambda: 1768435200)
+
+    try:
+        code, out, err = run_cli(status, ["--report"])
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+
+    assert (code, "snapshot 2h 8m old, fetched 15:52" in out) == (0, True), (out, err)
