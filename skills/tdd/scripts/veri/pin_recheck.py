@@ -59,6 +59,10 @@ def write_tail(run):
     sys.stderr.write("".join(line + "\n" for line in (run.stdout.splitlines() + run.stderr.splitlines())[-40:]))
 
 
+def git_out(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
+
+
 def tick_commit(ledger):
     number = Path(ledger).name.removeprefix("issue-").removesuffix("-mutations.md")
     return subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger_path(".", number)],
@@ -67,9 +71,7 @@ def tick_commit(ledger):
 
 def replay_before(pin, ledger, root=Path(".")):
     green = tick_commit(ledger) or pin.get("green")
-    names = subprocess.run(["git", "diff", "--name-only", pin["before"], *([green] if green else [])],
-                           capture_output=True, text=True,
-                           check=True).stdout.split()
+    names = git_out("diff", "--name-only", pin["before"], *([green] if green else [])).split()
     names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
     if not names and green:
         sys.stderr.write(f"empty replay range: before {pin['before']} green {green}\n")
@@ -100,8 +102,7 @@ def replay_before(pin, ledger, root=Path(".")):
 
 
 def replay_on_base(pin, ledger):
-    base = subprocess.run(["git", "merge-base", "origin/main", "HEAD"], capture_output=True, text=True,
-                          check=True).stdout.strip()
+    base = git_out("merge-base", "origin/main", "HEAD").strip()
     scratch = tempfile.mkdtemp()
     tree = Path(scratch) / "base"
     added = subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, text=True)
@@ -119,8 +120,7 @@ def recheck(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
         return 2
-    touched = set(subprocess.run(["git", "diff", "--name-only", f"{argv[0]}..HEAD"], capture_output=True, text=True,
-                                 check=True).stdout.split())
+    touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
     found = [(f, r) for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())]
     for f, r in found:
         if "before" not in r and "file" not in r:
@@ -129,8 +129,7 @@ def recheck(argv):
     pins = [(f, r) for f, r in found if r.get("keep", r.get("file")) in touched]
     if not pins:
         return 3
-    deleted = set(subprocess.run(["git", "diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD"],
-                                 capture_output=True, text=True, check=True).stdout.split())
+    deleted = set(git_out("diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD").split())
     status = 0
     retired = 0
     for ledger, pin in pins:
@@ -211,7 +210,7 @@ def main(argv):
     RECEIPT.unlink(missing_ok=True)
     status = recheck(argv)
     if status in (0, 3):
-        head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+        head = git_out("rev-parse", "HEAD").strip()
         RECEIPT.write_text(head + "\n")
     return status
 
