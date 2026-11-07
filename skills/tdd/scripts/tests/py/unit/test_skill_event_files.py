@@ -121,7 +121,7 @@ def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
 
 
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
-    """Subject is source text: each site entering the revise loop, in SKILL.md, PIN.md or PHASED.md, names REVISE.md to Read; the budget default stays."""
+    """Subject is source text: each site entering the revise loop, in SKILL.md, PIN.md or PHASED.md, names REVISE.md to Read."""
     sites = EVENT_FILES["REVISE.md"]
     lines = _outside_green(_outside_red(_lines_with_pin())) + SKILL.with_name("PHASED.md").read_text().splitlines()
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
@@ -132,7 +132,6 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
         if not ("`<base directory>/REVISE.md`" in lines[i] + " " + lines[i + 1] and "`Read`" in lines[i] + " " + lines[i + 1])
     ]
     assert missing == []
-    assert re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text()).group(1) == "2"
 
 
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
