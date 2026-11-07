@@ -331,15 +331,20 @@ def status_last_time():
 def landed_lines():
     root = main_working_tree()
     since = status_last_time()
-
-    def tags(fmt):
-        return subprocess.run(["git", "-C", root, "tag", "--list", "--format=" + fmt],
-                              capture_output=True, text=True).stdout.splitlines()
-    lines = tags("%(refname:short)  %(contents:subject)")
+    lines = git_tags(root, "%(refname:short)  %(contents:subject)")
     if since is not None:
-        cut = {l.split()[1] for l in tags("%(creatordate:unix) %(refname:short)") if int(l.split()[0]) >= since}
+        cut = tags_created_since(root, since)
         lines = [l for l in lines if l.split()[0] in cut]
     return "\n".join(lines) or "none"
+
+
+def git_tags(root, fmt):
+    return subprocess.run(["git", "-C", root, "tag", "--list", "--format=" + fmt],
+                          capture_output=True, text=True).stdout.splitlines()
+
+
+def tags_created_since(root, since):
+    return {l.split()[1] for l in git_tags(root, "%(creatordate:unix) %(refname:short)") if int(l.split()[0]) >= since}
 
 
 def journals():
@@ -354,6 +359,15 @@ def run_name(path):
     return "#" + os.path.basename(path)[:-len(".jsonl")]
 
 
+def conductor_alive(start):
+    pid = start["pid"]
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == start["started"]
+
+
 def running_lines():
     blocks = []
     since = status_last_time()
@@ -361,12 +375,7 @@ def running_lines():
         def of(kind):
             return [e for e in events if e.get("event") == kind]
         start = of("conductor-start")[-1]
-        pid = start["pid"]
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            continue
-        if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == start["started"]:
+        if conductor_alive(start):
             name = run_name(path)
             name += " %dm" % ((int(events[-1]["awake"]) - int(events[0]["awake"])) // 60)
             plans = of("plan")
