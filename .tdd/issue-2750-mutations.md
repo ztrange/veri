@@ -139,3 +139,19 @@ new 171
 command 151
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_that_failed_to_print_leaves_status_last_as_it_was
 
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 67
+skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py
+command 336
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_max_age
+
+file 33
+skills/tdd/scripts/veri/status.py
+old 59
+if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")):
+new 8
+if True:
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_max_age
+
