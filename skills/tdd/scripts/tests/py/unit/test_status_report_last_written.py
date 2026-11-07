@@ -31,3 +31,23 @@ def test_2750_report_writes_status_last_holding_the_report_time_and_its_queue_co
     written = calendar.timegm(time.strptime(last["time"], "%Y-%m-%dT%H:%M:%SZ")) if last else None
     assert (code, last and last.get("queue"), written is not None and before - 2 <= written <= time.time() + 2) == (
         0, {"agent-ok": 2}, True), last
+
+
+def test_2750_report_that_failed_to_print_leaves_status_last_as_it_was(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    monkeypatch.setenv("VERI_LABEL", "agent-ok")
+
+    def broken():
+        raise OSError("journal unreadable")
+    monkeypatch.setattr(status, "waiting_lines", broken)
+    (tmp_path / ".tdd").mkdir()
+    path = tmp_path / ".tdd" / "status-last"
+    previous = json.dumps({"time": "2026-11-01T00:00:00Z", "queue": {"agent-ok": 7}})
+    path.write_text(previous)
+
+    code, out, _ = run_cli(status, ["--report"])
+
+    assert (code != 0, out, path.read_text()) == (True, "", previous)

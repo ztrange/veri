@@ -26,7 +26,7 @@
 - [x] Every ETA reads "no rate yet" when the journals hold fewer than three finished runs ⟦criterion 6⟧
 - [x] With three or more finished runs in the journals, the drain ETA and each PRD's ETA are ranges from the fastest to the slowest quartile of those runs' wall times ⟦criterion 6⟧
 - [x] After a report printed, `.tdd/status-last` holds the report's time and its queue counts ⟦criterion 7⟧
-- [ ] When the report failed to print, `.tdd/status-last` is left as it was ⟦criterion 7⟧
+- [x] When the report failed to print, `.tdd/status-last` is left as it was ⟦criterion 7⟧
 - [ ] `status.sh --report` starts one detached `report-cache.sh refresh`, without waiting for it, when the snapshot's `fetched_at` is older than `VERI_SNAPSHOT_MAX_AGE` seconds (default 60) ⟦criterion 4⟧
 - [ ] `status.sh --report` starts no refresh when the snapshot is no older than `VERI_SNAPSHOT_MAX_AGE` ⟦criterion 4⟧
 - [ ] `status.sh --report` starts no refresh when a `report-cache.sh refresh` is already running ⟦criterion 4⟧

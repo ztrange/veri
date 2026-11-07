@@ -119,3 +119,23 @@ skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py
 command 344
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py::test_2750_report_queue_eta_skips_journals_without_a_done_event_and_an_empty_queue_prints_no_eta
 
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 67
+skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py
+command 321
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_that_failed_to_print_leaves_status_last_as_it_was
+
+file 33
+skills/tdd/scripts/veri/status.py
+old 49
+    if list(argv) == ["--report"]:
+        print(
+new 171
+    if list(argv) == ["--report"]:
+        os.makedirs(os.path.dirname(status_last_path()), exist_ok=True)
+        open(status_last_path(), "w").write("{}")
+        print(
+command 151
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_that_failed_to_print_leaves_status_last_as_it_was
+
