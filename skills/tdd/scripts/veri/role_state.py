@@ -13,16 +13,20 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+def replace(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
 def append(path, text):
     try:
         with open(path) as f:
             text = f.read() + text
     except FileNotFoundError:
         pass
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        f.write(text)
-    os.replace(tmp, path)
+    replace(path, text)
 
 
 def main(argv):
@@ -57,8 +61,7 @@ def main(argv):
     if argv[1] == "drop":
         with open(path) as f:
             lines = f.readlines()
-        with open(path, "w") as f:
-            f.writelines(l for l in lines if l.split()[:2] != argv[2:4])
+        replace(path, "".join(l for l in lines if l.split()[:2] != argv[2:4]))
         return 0
     if argv[1] == "show":
         with open(path) as f:

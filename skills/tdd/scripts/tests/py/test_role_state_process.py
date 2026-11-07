@@ -193,3 +193,26 @@ def test_coord_set_whose_rename_over_the_state_file_fails_leaves_the_previous_fi
     except OSError:
         code = "raised"
     assert (code != 0, state.read_bytes() == before) == (True, True)
+
+
+@pytest.mark.process("git")
+def test_coord_drop_whose_rename_over_the_state_file_fails_leaves_the_previous_file_byte_for_byte_unchanged(tmp_path, run_cli, monkeypatch):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    run_cli(role_state, ["coord", "add", "decision", "keep-alpha"], cwd=repo)
+    _, second_id, _ = run_cli(role_state, ["coord", "add", "decision", "drop-beta"], cwd=repo)
+    state = repo / ".tdd" / "role-coord.state"
+    before = state.read_bytes()
+
+    def failing_replace(src, dst, *args, **kwargs):
+        raise OSError("rename refused")
+
+    monkeypatch.setattr(os, "replace", failing_replace)
+    monkeypatch.setattr(os, "rename", failing_replace)
+    try:
+        code, _, _ = run_cli(role_state, ["coord", "drop", "decision", second_id.strip()], cwd=repo)
+    except OSError:
+        code = "raised"
+    assert (code != 0, state.read_bytes() == before) == (True, True)
