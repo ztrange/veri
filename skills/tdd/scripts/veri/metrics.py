@@ -1,6 +1,7 @@
 """metrics.sh's report, rendered in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import datetime
 import io
 import json
 import os
@@ -531,8 +532,9 @@ def render(issue, path, ledger):
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
     transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
+    first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
     for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
-        spend = session_spend(transcripts, command) if transcripts else None
+        spend = session_spend(transcripts, command, first_event) if transcripts else None
         if spend:
             print("%s session: %d turns, %d cache tokens read, $%.2f" % ((label,) + spend))
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
@@ -587,7 +589,7 @@ def usage_dollars(usage, prices):
             + sum(tokens * prices[rate] / 1e6 for rate, tokens in cache_write_tokens(usage).items()))
 
 
-def session_spend(directory, command):
+def session_spend(directory, command, since):
     for name in sorted(os.listdir(directory)):
         with open(os.path.join(directory, name)) as lines:
             rows = [json.loads(line) for line in lines]
@@ -598,6 +600,9 @@ def session_spend(directory, command):
             message = row["message"]
             usage = message.get("usage")
             if not usage:
+                continue
+            stamp = row.get("timestamp")
+            if stamp and datetime.datetime.fromisoformat(stamp).timestamp() < since:
                 continue
             prices = PRICES[family(message["model"])]
             turns += 1
