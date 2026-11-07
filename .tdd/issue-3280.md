@@ -1,6 +1,6 @@
 # Plan for #3280 — transform-touches-tests.sh --touched: bound not optional, missing value traces, empty list passes, stale 2893 pin, undocumented
 
-- [x] `transform-touches-tests.sh <base-sha> --touched <list>` with no bound treats `--touched` as the flag, not as the bound: a range whose only change is a non-test file named in the list exits 0 ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `transform-touches-tests.sh <base-sha> --touched <list>` with no bound treats `--touched` as the flag, not as the bound: a range whose only change is a non-test file named in the list exits 0 ⟦criterion 1⟧
 - [ ] `transform-touches-tests.sh <base-sha> --touched <list>` with no bound, on a range changing only a non-test file absent from the list, exits 1 printing "transform changed no file the issue touched" (never "outside its bound") ⟦criterion 1⟧
 - [ ] `transform-touches-tests.sh <base-sha> "" --touched`, with `--touched` as the last argument and no value, exits 2 with the usage line on stderr and no traceback ⟦criterion 2⟧
 - [ ] `transform-touches-tests.sh <base-sha> "" --touched ""`, an empty `--touched` list, in a range that changed a non-test file, exits 2 with a stderr message naming the empty `--touched` list (never 0, never 1); restoring the unguarded `set(...) & set(paths)` comparison makes the case go red ⟦criterion 3⟧
