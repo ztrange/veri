@@ -30,6 +30,20 @@ def sorted_names(lines):
     return subprocess.run(["sort", "-u"], input=matched, stdout=subprocess.PIPE).stdout.rstrip(b"\n").decode()
 
 
+def check_touched(argv, paths):
+    value_at = argv.index("--touched") + 1
+    if value_at >= len(argv):
+        return refuse()
+    raw = argv[value_at]
+    if not raw:
+        return refuse("transform-touches-tests.sh: --touched list is empty")
+    touched_list = set(raw.encode().split(b","))
+    if not touched_list & set(paths):
+        print("transform changed no file the issue touched")
+        return 1
+    return 0
+
+
 def main(argv):
     base = argv[0] if argv else ""
     if not base:
@@ -52,16 +66,7 @@ def main(argv):
             print(f"transform changed a file outside its bound: {outside}")
             return 1
     if "--touched" in argv:
-        value_at = argv.index("--touched") + 1
-        if value_at >= len(argv):
-            return refuse()
-        raw = argv[value_at]
-        if not raw:
-            return refuse("transform-touches-tests.sh: --touched list is empty")
-        touched_list = set(raw.encode().split(b","))
-        if not touched_list & set(paths):
-            print("transform changed no file the issue touched")
-            return 1
+        return check_touched(argv, paths)
     return 0
 
 
