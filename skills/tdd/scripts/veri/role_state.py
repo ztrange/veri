@@ -15,7 +15,7 @@ def main(argv):
     path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % argv[0])
     if argv[1] == "set" and len(argv) == 4:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
+        with open(path, "a") as f:
             f.write("%s=%s\n" % (argv[2], argv[3]))
         return 0
     if argv[1] == "show":
