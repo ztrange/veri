@@ -27,27 +27,15 @@ landed, issues added to or taken from the queue.
 
 ## The reads
 
-Run `$S/report-cache.sh refresh` once, first, from the main working tree. Exit 2 means no
-fresh cache: report that and stop; never build the report from a stale `.tdd/report-cache.json`.
-Issue states, labels, blockers (from each issue's `blockedBy`) and wall times are read
-from that file (`{fetched_at, issues}`; each issue carries `number`, `title`, `state`, `labels`,
-`closedAt`, `updatedAt`, `links`, `blockedBy`, `wallSeconds`, `lane`, and `body` for a PRD only; no issue
-carries comments), the same file `/vreport`
-reads, never a full `gh issue list`. The other reads stay direct:
+Run `$S/status.sh --report` once, from the main working tree, and print its output verbatim.
+It is the only read: this skill names no other, and spawns no subagent. Never read a leaf log
+for this report.
 
-- `$S/status.sh --json` — every run: issue, title, step k/n, phase, attempts, elapsed seconds,
-  cost, state, PR; and the scope totals (attempted, done, bailed, wall seconds).
-- `$S/metrics.sh <n>`, run in `.tdd/wt/<n>` for each running issue — PASS and REJECT counts, the
-  `#### By model` table (role, model) and the `#### Total` row. A cost is read from its
-  `| total |` row only, never summed from phase rows (P7).
-- `git tag --sort=-v:refname --format='%(refname:short) %(creatordate:iso-strict) %(contents:subject)'`
-  — the tags cut since the last ask; each tag's message is its capability.
-- `gh`, for PRs only — merged PRs since the last ask (`gh pr list --state merged --search
-  "merged:>=<time>"`, where `<time>` is the UTC value from `.tdd/status-last`) and open PRs.
+Issue data comes from the snapshot `status.sh --report` reads, whose age the report's Queue
+section prints. This skill itself never runs `report-cache.sh refresh`; a stale snapshot is
+`status.sh --report`'s to refresh.
 
-Count the reads before making them. **More than three go to one subagent**, on the cheapest
-model that can run them, briefed with this list and returning only the figures — one line per
-landed PR, per run, per label and per waiting item. Never read a leaf log for this report.
+When `status.sh --report` exits 2, report that and stop, printing no figures of your own.
 
 ## The report
 
@@ -64,10 +52,8 @@ Four sections, always all four and in this order. An empty one keeps its heading
 **Landed** — one line per PR merged since the last ask: PR url, tag, and the capability in the
 tag's message.
 
-**Running** — one block per live run. A run is live when `.tdd/wt/<n>/.tdd/conductor.pid` names a
-pid that answers `kill -0` and whose start time matches the one recorded on the lock's second
-line, the definition `skills/tdd/SKILL.md` preflight step 1.2 uses. A lock whose pid is dead or
-reused is not a running run:
+**Running** — one block per live run, as `status.sh --report`'s **Running** section defines it.
+This skill restates no liveness check of its own:
 
 - `#<n> — <title>`;
 - **awake wall time**: elapsed time since launch, less any time the machine slept. No helper
