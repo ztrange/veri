@@ -1,4 +1,4 @@
-"""The Draft PR repair block of skills/tdd/SKILL.md, run through real bash against stub scripts."""
+"""The Draft PR repair block of skills/tdd/DRAFT-PR.md, run through real bash against stub scripts."""
 import re
 import subprocess
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Cases for what skills/tdd/SKILL.md tells the conductor about readying the draft PR, and where it pushes the branch."""
+"""Cases for what skills/tdd/DRAFT-PR.md tells the conductor about readying the draft PR, and where it pushes the branch."""
 import importlib
 import pathlib
 import re

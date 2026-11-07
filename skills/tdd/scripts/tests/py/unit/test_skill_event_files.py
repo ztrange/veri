@@ -189,3 +189,11 @@ def test_draft_pr_md_exists_beside_skill_md_and_skill_md_names_it_3174():
     """Subject is source text: DRAFT-PR.md is a file beside SKILL.md, and SKILL.md names it `<base directory>/DRAFT-PR.md`."""
     assert DRAFT_PR.is_file()
     assert "`<base directory>/DRAFT-PR.md`" in SKILL.read_text()
+
+
+SKILL_CEILING_3174 = 169_698 - 30_000
+
+
+def test_skill_md_is_at_least_30000_bytes_smaller_than_before_draft_pr_moved_3174():
+    """Subject is source text: #3174 criterion, SKILL.md loses at least 30,000 bytes of the 169,698 it had on main, so it stays at or under 139,698."""
+    assert SKILL.stat().st_size <= SKILL_CEILING_3174
