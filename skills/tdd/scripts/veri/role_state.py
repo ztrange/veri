@@ -64,8 +64,11 @@ def main(argv):
         replace(path, "".join(l for l in lines if l.split()[:2] != argv[2:4]))
         return 0
     if argv[1] == "show":
-        with open(path) as f:
-            sys.stdout.write(f.read())
+        try:
+            with open(path) as f:
+                sys.stdout.write(f.read())
+        except FileNotFoundError:
+            return 3
         return 0
     sys.stderr.write(USAGE)
     return 2
