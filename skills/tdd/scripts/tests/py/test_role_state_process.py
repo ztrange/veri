@@ -32,3 +32,15 @@ def test_no_arguments_and_wrong_set_argument_count_exit_2_with_usage_and_write_n
     second_code, _, _ = run_cli(role_state, ["coord", "set", "n", "4"], cwd=repo)
     _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     assert (codes, usages, wrote, second_code, "4" in shown) == ([2] * 4, [True] * 4, False, 0, True)
+
+
+@pytest.mark.process("git")
+def test_coord_set_lane_writes_the_lane_and_show_prints_it_beside_an_earlier_n(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    n_code, _, _ = run_cli(role_state, ["coord", "set", "n", "7"], cwd=repo)
+    lane_code, _, _ = run_cli(role_state, ["coord", "set", "lane", "mu"], cwd=repo)
+    show_code, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    assert (n_code, lane_code, show_code, "7" in shown, "mu" in shown) == (0, 0, 0, True, True)
