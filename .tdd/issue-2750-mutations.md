@@ -105,3 +105,17 @@ if recorded_alive(wt)
 command 156
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_nojournal.py::test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal
 
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 64
+skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py
+command 333
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py::test_2750_report_queue_eta_range_scales_each_quartile_by_the_number_of_queued_issues
+
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 64
+skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py
+command 344
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_eta_range.py::test_2750_report_queue_eta_skips_journals_without_a_done_event_and_an_empty_queue_prints_no_eta
+
