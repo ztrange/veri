@@ -84,9 +84,9 @@ silently.
 
 ## Routing an exit
 
-On each conductor exit, read the facts — the issue's last comment
-(`gh issue view <n> --json comments`), the committed ledger, the PR — never the exit code
-alone, and route:
+On each conductor exit, read the facts — the issue's last comment only
+(`gh issue view <n> --json comments --jq '.comments[-1].body'`, never the whole comment
+thread), the committed ledger, the PR — never the exit code alone, and route:
 
 - **Last comment ✅ Done.** Review it, and on OK merge it through `vmerge`.
   A run that ended with an open question for the human is never merged.
