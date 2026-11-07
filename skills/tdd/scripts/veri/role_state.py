@@ -27,7 +27,7 @@ def main(argv):
     if argv[1] == "add" and len(argv) == 4:
         try:
             with open(path) as f:
-                item = str(len(f.readlines()) + 1)
+                item = str(max([int(l.split()[1]) for l in f if " " in l] + [0]) + 1)
         except FileNotFoundError:
             item = "1"
         with open(path, "a") as f:

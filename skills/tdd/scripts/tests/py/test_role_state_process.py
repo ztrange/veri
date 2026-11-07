@@ -117,3 +117,30 @@ def test_coord_drop_removes_the_item_with_that_id_from_show_and_keeps_the_other_
     code, _, _ = run_cli(role_state, ["coord", "drop", "decision", second_id.strip()], cwd=repo)
     _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     assert (code, "drop-beta" in shown, "keep-alpha" in shown) == (0, False, True)
+
+
+@pytest.mark.process("git")
+def test_coord_drop_of_an_item_added_after_an_earlier_drop_removes_only_it_and_keeps_the_other(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    _, first_id, _ = run_cli(role_state, ["coord", "add", "decision", "gone-alpha"], cwd=repo)
+    run_cli(role_state, ["coord", "add", "decision", "stays-beta"], cwd=repo)
+    run_cli(role_state, ["coord", "drop", "decision", first_id.strip()], cwd=repo)
+    _, third_id, _ = run_cli(role_state, ["coord", "add", "decision", "fresh-gamma"], cwd=repo)
+    run_cli(role_state, ["coord", "drop", "decision", third_id.strip()], cwd=repo)
+    _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    assert ("stays-beta" in shown, "fresh-gamma" in shown) == (True, False)
+
+
+@pytest.mark.process("git")
+def test_coord_add_after_a_set_prints_the_next_id_and_show_lists_the_item(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    run_cli(role_state, ["coord", "set", "n", "3"], cwd=repo)
+    code, printed, _ = run_cli(role_state, ["coord", "add", "decision", "after-set-alpha"], cwd=repo)
+    _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
+    assert (code, printed.strip(), "after-set-alpha" in shown) == (0, "1", True)
