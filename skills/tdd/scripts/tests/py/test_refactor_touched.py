@@ -315,3 +315,16 @@ def test_issue_with_a_candidate_adds_each_tracked_file_it_names_by_path_or_uniqu
     files = out.strip().split(",")
     assert (len(files), sorted(files)) == (3, ["docs/delta.sh", "lib/gamma.sh", "src/zeta.sh"])
     assert run_cli(refactor_touched, ["--issue", base], cwd=repo) == (0, "src/zeta.sh\n", "")
+
+
+@pytest.mark.process("git over a scratch repository with an issue range and a candidate naming a touched file")
+def test_check_prints_nothing_and_returns_0_when_the_candidate_names_a_file_the_issue_touched(
+        tmp_path, refactor_touched, run_cli):
+    repo = new_repo(tmp_path / "check-touched")
+    base = commit_all(repo, "plan: scope #19", **{
+        ".tdd__issue-19.md": "- [ ] a step\n", "lib__gamma.sh": "gamma\n"})
+    commit_all(repo, "feat: a step (#19)", **{"src__zeta.sh": "zeta\n"})
+
+    result = run_cli(refactor_touched, ["--issue", base, "--candidate", "tidy src/zeta.sh and lib/gamma.sh",
+                                        "--check"], cwd=repo)
+    assert result == (0, "", "")
