@@ -615,7 +615,7 @@ def test_3022_queued_merge_whose_rebase_stops_with_would_be_overwritten_on_a_rea
             if "status --porcelain" in line:
                 return 0, " M skills/tdd/scripts/veri/queued_merge.py\n", ""
             if "rebase origin/main" in line:
-                return 1, "", "error: Your local changes to the following files would be overwritten by merge:\n"
+                return 1, "", PHANTOM
             return answer(line, **kwargs)
         return fake_processes(world)
 
@@ -645,6 +645,9 @@ def test_3022_queued_merge_whose_rebase_stops_on_a_real_conflict_fails_with_gits
     assert (code, ran) == (1, [])
 
 
+PHANTOM = "error: Your local changes to the following files would be overwritten by merge:\n"
+
+
 def test_3022_queued_merge_whose_rebase_first_stops_on_a_phantom_would_be_overwritten_with_a_clean_status_refreshes_the_index_continues_the_rebase_and_pushes(fake_processes, run_cli):
     def phantom_world(answer):
         stopped = []
@@ -654,7 +657,7 @@ def test_3022_queued_merge_whose_rebase_first_stops_on_a_phantom_would_be_overwr
                 return 0, "", ""
             if "rebase origin/main" in line and not stopped:
                 stopped.append(answer(line, **kwargs))
-                return 1, "", "error: Your local changes to the following files would be overwritten by merge:\n"
+                return 1, "", PHANTOM
             return answer(line, **kwargs)
         return fake_processes(world)
 
@@ -671,7 +674,6 @@ def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_
     worktree = tmp_path / "wt"
     worktree.mkdir()
     events = worktree / ".tdd" / "events.jsonl"
-    phantom = "error: Your local changes to the following files would be overwritten by merge:\n"
 
     def phantom_world(answer):
         stops = []
@@ -682,7 +684,7 @@ def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_
                 return 0, "", ""
             if ("rebase origin/main" in line or "rebase --continue" in line) and len(stops) < 2:
                 stops.append(line)
-                return 1, "", phantom
+                return 1, "", PHANTOM
             return answer(line, **kwargs)
         return fake_processes(world)
 
@@ -696,7 +698,6 @@ def test_3022_queued_merge_whose_rebase_stops_on_two_phantoms_appends_one_retry_
 
 
 def test_3022_queued_merge_whose_phantom_would_be_overwritten_stop_recurs_past_the_retry_bound_fails_with_gits_code_keeps_the_lock_and_pushes_nothing(fake_processes, run_cli):
-    phantom = "error: Your local changes to the following files would be overwritten by merge:\n"
 
     def phantom_world(answer):
         stops = []
@@ -706,7 +707,7 @@ def test_3022_queued_merge_whose_phantom_would_be_overwritten_stop_recurs_past_t
                 return 0, "", ""
             if ("rebase origin/main" in line or "rebase --continue" in line) and len(stops) < 50:
                 stops.append(line)
-                return 1, "", phantom
+                return 1, "", PHANTOM
             return answer(line, **kwargs)
         return fake_processes(world)
 
