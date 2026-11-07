@@ -57,3 +57,57 @@ def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_p
     lines = [line.strip() for line in out.splitlines()]
     waiting = lines[lines.index("Waiting") + 1:]
     assert (code, [l.split()[:2] for l in waiting if l]) == (0, [["#2750", "needs-user"], ["#2751", "stuck"]]), waiting
+
+
+def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+
+    def journal(number, pr, merged):
+        events = [{"ts": 1793600000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"},
+                  {"ts": 1793600050, "awake": 50, "event": "done", "pr": pr}]
+        if merged:
+            events.append({"ts": 1793600100, "awake": 100, "event": "merged"})
+        (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
+    journal(2750, 99, False)
+    journal(2751, 98, True)
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
+    assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
+
+
+def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips_done_without_pr(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    events = [{"event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"},
+              {"event": "done", "pr": 41},
+              {"event": "merged"},
+              {"event": "done", "pr": 42},
+              {"event": "done"}]
+    lines = [dict(e, ts=1793600000 + 10 * i, awake=10 * i) for i, e in enumerate(events)]
+    (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
+    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    out_lines = [line.strip() for line in out.splitlines()]
+    waiting = [l for l in out_lines[out_lines.index("Waiting") + 1:] if l.startswith("#")]
+    assert (code, [(l.split()[0], "42" in l, "41" in l) for l in waiting]) == (0, [("#2750", True, False)]), (waiting, err)

@@ -373,6 +373,14 @@ def waiting_lines():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
                 lines.append("#%s %s" % (os.path.basename(path)[:-len(".jsonl")], e["cause"]))
+        pr = None
+        for e in events:
+            if e.get("event") == "done" and "pr" in e:
+                pr = e["pr"]
+            elif e.get("event") == "merged":
+                pr = None
+        if pr is not None:
+            lines.append("#%s PR %s ready to merge" % (os.path.basename(path)[:-len(".jsonl")], pr))
     return "\n".join(lines) or "none"
 
 
