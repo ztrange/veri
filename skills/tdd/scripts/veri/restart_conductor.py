@@ -1,8 +1,11 @@
 """restart-conductor.sh's watch, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import sys
 import time
+
+import growth
 
 USAGE = "usage: restart-conductor.sh <n>"
 
@@ -13,6 +16,27 @@ def _positive_int(text):
 
 def conductor_alive(run):
     return False
+
+
+def stop_run(mode, run):
+    pass
+
+
+def run_state(run):
+    return ""
+
+
+def detach_leaf(run):
+    pass
+
+
+def _growth(run):
+    try:
+        with open(f".tdd/conductor-{run}.log") as f:
+            records = [json.loads(line) for line in f]
+    except OSError:
+        return None
+    return growth.growth(records)
 
 
 def sleep(seconds):
@@ -31,6 +55,9 @@ def main(argv):
     if not conductor_alive(run):
         return 3
     while conductor_alive(run):
+        g = _growth(run)
+        if g is not None and g >= 0.85 * int(knob):
+            stop_run("at-ledger", run)
         sleep(5)
     print(f"restarts {run} 0")
     return 0
