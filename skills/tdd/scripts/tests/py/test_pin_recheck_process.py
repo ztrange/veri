@@ -1947,3 +1947,25 @@ def test_3204_a_pin_whose_old_text_is_gone_prints_old_text_gone_as_its_reason_an
 
     assert (ran.returncode, ran.stdout.splitlines(), (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         0, ["needs a look: guard.txt (old text gone)"], True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range where the recorded command fails before any mutation")
+def test_3204_a_base_run_that_fails_prints_needs_a_look_with_its_reason_and_still_exits_0_with_the_receipt(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="grep -q throws guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "needs a look: guard.txt (base run failed)" in ran.stdout.splitlines(),
+            (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (0, True, True), ran.stdout + ran.stderr
