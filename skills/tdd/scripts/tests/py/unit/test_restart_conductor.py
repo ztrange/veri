@@ -148,3 +148,22 @@ def test_3223_before_it_stops_the_conductor_it_writes_restart_pending_holding_it
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert seen == [str(os.getpid())]
+
+
+def test_3223_after_the_stop_once_the_conductor_has_exited_and_the_run_is_stopped_it_relaunches_the_conductor_exactly_once(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    alive = iter([True, True, False])
+    calls = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
