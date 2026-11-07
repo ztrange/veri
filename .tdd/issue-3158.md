@@ -1,4 +1,4 @@
 # Plan for #3158 — The coordinator and dev session both watch the same runs: one watches, the other is told
 
 - [x] skill-edit of skills/vcoord/SKILL.md: while a dev session is attached the coordinator watches no run state itself — it arms no Monitor on `watch-runs.sh` and runs no `status.sh` of its own, and learns of conductor exits, bails and merges from the dev session's messages; the *Watching* instructions that have it run `watch-runs.sh` through the P3 script are reworded accordingly; with its REQUIREMENTS.md row C3 amended, C15 and C16 dropped and C20 added ⟦skill-edit⟧ ⟦criterion 1⟧
-- [ ] skill-edit of skills/vdev/SKILL.md: the dev session is the only role that watches run state, and when a coordinator is attached it sends the coordinator one message per conductor exit, bail or merge (P4); with its REQUIREMENTS.md row D28 added ⟦skill-edit⟧ ⟦criterion 1⟧
+- [x] skill-edit of skills/vdev/SKILL.md: the dev session is the only role that watches run state, and when a coordinator is attached it sends the coordinator one message per conductor exit, bail or merge (P4); with its REQUIREMENTS.md row D28 added ⟦skill-edit⟧ ⟦criterion 1⟧
