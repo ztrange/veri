@@ -27,6 +27,10 @@ def _run_dir(run):
     return os.path.join(_tdd_dir(), "wt", run)
 
 
+def _run_file(run, name):
+    return os.path.join(_run_dir(run), ".tdd", name)
+
+
 def conductor_alive(run):
     return pid_file.live_conductor(_run_dir(run)) is not None
 
@@ -77,7 +81,7 @@ def main(argv):
         while conductor_alive(run):
             g = _growth(run)
             if g is not None and g >= 0.85 * int(knob):
-                pending = os.path.join(_run_dir(run), ".tdd", "restart-pending")
+                pending = _run_file(run, "restart-pending")
                 os.makedirs(os.path.dirname(pending), exist_ok=True)
                 with open(pending, "w") as f:
                     f.write(f"{os.getpid()}\n")
@@ -88,9 +92,9 @@ def main(argv):
             break
         detach_leaf(run)
         restarts += 1
-        with open(os.path.join(_run_dir(run), ".tdd", "events.jsonl"), "a") as f:
+        with open(_run_file(run, "events.jsonl"), "a") as f:
             f.write(json.dumps({"event": "conductor-restart", "growth": str(g), "knob": knob}) + "\n")
-        os.remove(os.path.join(_run_dir(run), ".tdd", "restart-pending"))
+        os.remove(_run_file(run, "restart-pending"))
     print(f"restarts {run} {restarts}")
     return 0
 
