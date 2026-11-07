@@ -434,3 +434,13 @@ def test_issue_3173_ready_check_with_veri_label_unset_and_ready_for_agent_missin
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert any(l.startswith("fail") and "label ready-for-agent" in l and "`ready-for-agent`" in l for l in lines), (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess with VERI_LABEL set but empty")
+def test_issue_3173_ready_check_with_veri_label_set_but_empty_prints_a_fail_label_row_saying_to_name_a_label_or_unset_it(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env["VERI_LABEL"] = ""
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    label_rows = [l for l in ran.stdout.splitlines() if l.startswith("fail") and "label" in l]
+
+    assert label_rows and all("VERI_LABEL" in l and "create the ``" not in l for l in label_rows), (ran.returncode, ran.stdout, ran.stderr)
