@@ -155,3 +155,22 @@ if True:
 command 166
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report_last_written.py::test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_max_age
 
+before 40
+12c7e7930def08f9f0cb26d94579f6c7e23a0556
+keep 54
+skills/tdd/scripts/tests/py/unit/test_status_report.py
+command 318
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpclocydze/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report.py::test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available
+
+file 33
+skills/tdd/scripts/veri/status.py
+old 48
+        refresh_if_stale()
+        print("Landed
+new 95
+        refresh_if_stale()
+        github.gh_issue_list("--state", "all")
+        print("Landed
+command 161
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_report.py::test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available
+

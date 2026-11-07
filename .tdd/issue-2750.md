@@ -30,4 +30,4 @@
 - [x] `status.sh --report` starts one detached `report-cache.sh refresh`, without waiting for it, when the snapshot's `fetched_at` is older than `VERI_SNAPSHOT_MAX_AGE` seconds (default 60) ⟦criterion 4⟧
 - [x] `status.sh --report` starts no refresh when the snapshot is no older than `VERI_SNAPSHOT_MAX_AGE` ⟦criterion 4⟧
 - [x] `status.sh --report` starts no refresh when a `report-cache.sh refresh` is already running ⟦criterion 4⟧
-- [ ] With `gh` refusing, `status.sh --report` exits 0 and prints the same report as with `gh` available ⟦criterion 2⟧
+- [x] With `gh` refusing, `status.sh --report` exits 0 and prints the same report as with `gh` available ⟦criterion 2⟧

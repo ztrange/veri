@@ -94,3 +94,23 @@ def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tm
     lines = [line.strip() for line in out.splitlines()]
     queue = lines[lines.index("Queue") + 1:lines.index("Waiting")]
     assert (code, any("2 agent-ok" in line for line in queue)) == (0, True), queue
+
+
+def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    fake_tags(monkeypatch, status)
+    fetched = datetime.datetime.now(datetime.timezone.utc)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": []}))
+
+    def refusing(*args, **kwargs):
+        raise status.github.NoAnswer("gh refused")
+    monkeypatch.setattr(status.github, "gh_issue_list", lambda *a, **k: "[]")
+    available = run_cli(status, ["--report"])
+    (tmp_path / ".tdd" / "status-last").unlink()
+    monkeypatch.setattr(status.github, "gh_issue_list", refusing)
+    refused = run_cli(status, ["--report"])
+
+    assert (refused[0], refused[1]) == (0, available[1])
