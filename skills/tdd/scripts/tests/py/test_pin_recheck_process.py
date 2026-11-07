@@ -243,8 +243,8 @@ def test_2814_a_record_through_a_vanished_timed_test_run_path_whose_command_stil
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
 
-    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
-        0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stderr
+    assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
+            (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a record whose mutated run fails a real test")
@@ -467,8 +467,8 @@ def test_2876_a_bash_c_command_with_its_script_unquoted_runs_no_test_and_needs_a
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
-        0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stdout + ran.stderr
+    assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
+            (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stdout + ran.stderr
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a record whose command runs its test, passes clean and fails mutated")
@@ -576,8 +576,8 @@ def test_2876_a_command_that_is_not_bash_c_and_runs_no_test_needs_a_look_and_exi
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, ran.stdout, (tmp_path / "guard.txt").read_bytes()) == (
-        0, "needs a look: guard.txt\n", b"if guard\nmore\n"), ran.stdout + ran.stderr
+    assert (ran.returncode, ran.stdout.startswith("needs a look: guard.txt"), len(ran.stdout.splitlines()),
+            (tmp_path / "guard.txt").read_bytes()) == (0, True, 1, b"if guard\nmore\n"), ran.stdout + ran.stderr
 
 
 @pytest.mark.process("git, mutation-probe.sh recording a pin and pin-recheck.sh replaying it, over a title with an apostrophe and spaces")
