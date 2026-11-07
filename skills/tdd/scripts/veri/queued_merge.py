@@ -39,9 +39,10 @@ def _gate(pid, *cmd, keep=False):
 
 def _rebase(pid, worktree, git_args):
     code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
-    if code and not _git(worktree, "status", "--porcelain").stdout.strip():
+    while code and not _git(worktree, "status", "--porcelain").stdout.strip():
         _gate(pid, "git", "-C", worktree, "update-index", "--really-refresh", keep=True)
-        return _gate(pid, "git", "-C", worktree, "rebase", "--continue", keep=True)
+        event.mark(worktree, {}, "rebase-refresh-retry")
+        code = _gate(pid, "git", "-C", worktree, "rebase", "--continue", keep=True)
     return code
 
 
