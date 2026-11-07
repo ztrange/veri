@@ -2164,6 +2164,22 @@ def test_cli_a_launch_whose_run_worktree_does_not_exist_yet_records_the_conducto
     assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
 
 
+def test_cli_with_help_as_the_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    code, out, err = run_cli(run_conductor, ["--help"], cwd=cwd)
+
+    assert (code, out, err, (cwd / ".tdd" / "wt" / "--help").exists(), [args[:1] for args, _ in launches]) == (
+        2, "", "usage: run-conductor.sh <issue>\n", False, [])
+
+
 def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of_its_conductor_pid_file_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
