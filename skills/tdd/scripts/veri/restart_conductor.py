@@ -84,6 +84,7 @@ def main(argv):
         detach_leaf(run)
         with open(os.path.join(_run_dir(run), ".tdd", "events.jsonl"), "a") as f:
             f.write(json.dumps({"event": "conductor-restart", "growth": str(g), "knob": knob}) + "\n")
+        os.remove(os.path.join(_run_dir(run), ".tdd", "restart-pending"))
     print(f"restarts {run} 0")
     return 0
 
