@@ -250,8 +250,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   this check** — not the phase's verdict, not a retry, not a bail. A slow run is a remark, and
   a run that is not slow leaves you an empty capture and therefore nothing to paste.
 - `$S/capture-spec.sh <n>` — the **blind spec**, on stdout: the issue's body, plus a `## Bug`
-  section carrying its what-happened, expected, steps to reproduce and environment when the
-  issue carries the `bug` label (and nothing extra when it does not). Redirect it into
+  section when the issue carries the `bug` label (and nothing extra when it does not). That
+  section names the body's `What happened`, `Expected`, `Steps to reproduce` and `Environment`
+  headings rather than copying their text, so each heading's text appears once in the spec,
+  in the body. Redirect it into
   `.tdd/issue-<n>-spec.md` (step 3). Exit 2 on a missing issue number.
 - `$S/refresh-spec.sh <n> <spec-file>` — re-capture the blind spec as `capture-spec.sh <n>`
   would and compare it to `<spec-file>`. **Exit 3** identical, file untouched. **Exit 0**
