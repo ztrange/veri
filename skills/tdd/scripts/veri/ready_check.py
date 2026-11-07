@@ -75,7 +75,7 @@ def push_access_row():
 
 
 def label_row():
-    label = tunables.read("VERI_LABEL")
+    label = tunables.read("VERI_LABEL", "ready-for-agent")
     listed = gh("label", "list", "--json", "name")
     try:
         names = [entry["name"] for entry in json.loads(listed.stdout)] if listed.returncode == 0 else []
