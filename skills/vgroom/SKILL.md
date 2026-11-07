@@ -16,12 +16,34 @@ needed, and name none from memory.
 
 ## Invocation
 
-`/vgroom [<issue>...|--unlabelled|--refactor-owed]`
+`/vgroom [<issue>...|--refactor-owed]`
 
+- No argument — **the sweep** (below): every open issue that carries none of the triage labels,
+  except PRD trackers (titled `PRD <nnn>: …`).
 - `<issue>...` — groom exactly those issues.
-- `--unlabelled` — groom every open issue that carries none of the triage labels.
 - `--refactor-owed` — consolidate the refactor-owed items (see below).
-- No argument — groom the open issues of the triage label set that are not yet labelled ready.
+
+`/vgroom` typed with no argument is the human's "go" for the run, and their say-so to add the
+opt-in label to every issue the sweep ends ready.
+
+## The sweep
+
+Every issue in scope ends the run with exactly one outcome and one report line; none is skipped
+or left unlabelled without its reason.
+
+1. **Triage** each issue (below).
+2. **`needs-rewrite`**: a subagent rewrites the body into the issue body `../vfile/SKILL.md`
+   defines under `## The issue body`, keeping the issue's intent, every `#N` under
+   `## Blocked by` and every requirement row as written, then triages it once more. A second
+   `needs-rewrite` becomes `needs-human`.
+3. **`needs-split`**: file each deliverable as its own issue in that same body, label each as in
+   step 4, and close the original with a pointer to them.
+4. **`ready`**: run the check under `## Before labelling ready`, then add the opt-in label, plus
+   the kind label for a bug and the label `## Labelling bugs` proposes.
+5. **`gone`** and **`duplicate`**: close with the reason.
+6. **`needs-human`**: leave unlabelled; show the question in full.
+
+The report ends with the tally: labelled ready, rewritten, split, closed, left for the human.
 
 ## Triage
 
@@ -30,7 +52,11 @@ read. It reads each issue (body, comments, `## Blocked by`) and checks it agains
 default branch. It returns **one line per issue**: `#<n> <outcome> <proposed labels> — <reason>`,
 where outcome is one of:
 
-- `ready` — acceptance criteria are clear and the issue can be taken as it stands;
+- `ready` — the body already meets `../vfile/SKILL.md`'s `## The issue body` and the issue can
+  be taken as it stands;
+- `needs-rewrite` — one deliverable, but the body falls short of that format (criteria missing,
+  vague or untestable, no `## Blocked by`, no `Test command:` last line, no `## Requirements`
+  for graded prose); the line names what is missing;
 - `needs-split` — it holds more than one deliverable;
 - `gone` — the default branch already does what it asks, or it no longer applies;
 - `duplicate` — another issue says the same (the line names it);
@@ -97,7 +123,8 @@ is proposed, the options in words, what each costs (P4).
 - **Filing a new issue** is never mechanical: it is applied only on the human's yes (for a split or
   a criteria rewrite, a "go" for this run is that yes).
 - A **split** (new issues carved from one) and a **criteria rewrite** are shown to the human
-  first, unless the human has said "go" for this run — then they are applied and reported.
+  first, unless the human has said "go" for this run — then they are applied and reported. The
+  sweep (no argument) is a "go".
 - `needs-human` lines are shown as they are.
 
 ## `--refactor-owed`
