@@ -29,21 +29,23 @@ def append(path, text):
     replace(path, text)
 
 
+def usage():
+    sys.stderr.write(USAGE)
+    return 2
+
+
 def main(argv):
     if len(argv) < 2:
-        sys.stderr.write(USAGE)
-        return 2
+        return usage()
     name = argv[0]
     if name not in ("coord", "dev"):
-        sys.stderr.write(USAGE)
-        return 2
+        return usage()
     if argv[1] == "--lane":
         name += "-" + argv[2]
         argv = [argv[0]] + argv[3:]
     path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % name)
     if argv[1] == "recovered" and not os.environ.get("CLAUDE_CODE_SESSION_ID"):
-        sys.stderr.write(USAGE)
-        return 2
+        return usage()
     if argv[1] in ("set", "add") and len(argv) == 4 or argv[1] == "recovered":
         os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
@@ -73,8 +75,7 @@ def main(argv):
         except FileNotFoundError:
             return 3
         return 0
-    sys.stderr.write(USAGE)
-    return 2
+    return usage()
 
 
 if __name__ == "__main__":
