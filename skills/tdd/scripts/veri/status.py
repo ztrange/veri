@@ -360,13 +360,13 @@ def running_lines():
     for path, events in journals():
         def of(kind):
             return [e for e in events if e.get("event") == kind]
-        first = of("conductor-start")[-1]
-        pid = first["pid"]
+        start = of("conductor-start")[-1]
+        pid = start["pid"]
         try:
             os.kill(pid, 0)
         except OSError:
             continue
-        if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == first["started"]:
+        if subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == start["started"]:
             name = run_name(path)
             name += " %dm" % ((int(events[-1]["awake"]) - int(events[0]["awake"])) // 60)
             plans = of("plan")
