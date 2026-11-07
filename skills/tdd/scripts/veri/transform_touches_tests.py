@@ -54,7 +54,10 @@ def main(argv):
     if "--touched" in argv:
         if argv.index("--touched") + 1 >= len(argv):
             return refuse()
-        touched_list = set(argv[argv.index("--touched") + 1].encode().split(b","))
+        raw = argv[argv.index("--touched") + 1]
+        if not raw:
+            return refuse("transform-touches-tests.sh: --touched list is empty")
+        touched_list = set(raw.encode().split(b","))
         if not touched_list & set(paths):
             print("transform changed no file the issue touched")
             return 1

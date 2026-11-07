@@ -445,3 +445,16 @@ def test_3280_touched_option_with_no_value_exits_2_with_the_usage_line_and_no_tr
 
     assert run_cli(transform_touches_tests, [base, "", "--touched"], cwd=repo) == (
         2, "", "usage: transform-touches-tests.sh <base-sha>\n")
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changed a non-test file, with an empty --touched list")
+def test_3280_touched_option_with_an_empty_list_exits_2_naming_the_empty_list(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched-empty")
+    base = commit_all(repo, "feat: seed", **{"src__a.py": "a\n"})
+    commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
+
+    code, out, err = run_cli(transform_touches_tests, [base, "", "--touched", ""], cwd=repo)
+
+    assert (code, out) == (2, "")
+    assert "empty" in err
