@@ -36,7 +36,7 @@ creeps back in. So the size of the text follows the event. An important event ge
 fewer than ten words: a run started, as `Started #N — title`; a bail or a stall; red CI; a merge
 landed; a cost or plan surprise. Anything else a watch returns — a re-arm, a conductor start
 the dev session already announced, a merge already reported, a routine message from the dev
-session, an ack, a progress check, a watch expiry — gets a single `.` and nothing else, not
+session, a `pong`, a progress check, a watch expiry — gets a single `.` and nothing else, not
 "noted" or "still watching". A decision the human must make is the one exception to the size
 limit: it is written in full. **Ask a decision once**, when it arises, and in full: what is being decided,
 the options in words, what each costs. Later events do not repeat it; a new decision is its own
@@ -94,13 +94,15 @@ session — the coordinator, the dev session, another machine's coordinator — 
 refers to: no option letters, no "as above", no reference only you saw. You send it yourself
 with `SendMessage`. Only when delivery is held does the human get it instead: one fenced code
 block per recipient, with the recipient named on the line above it. A comm check is the
-message `ping`, answered `pong`. Every other message between operator sessions — an
-instruction, a ruling, a report (a run done, a review verdict, a merge, a bail, a resume) — is
-answered with a reply that starts `ack`, in both directions; an `ack` itself is not answered.
-When the receiver's answer carries a ruling or an instruction, that message is the `ack`. Until
-the `ack` arrives the message is unconfirmed — a successful send is not a reply, so say "sent,
-unconfirmed", never "delivered". The `ack` goes to the sender, not to the human: a routine
-report still gets no text for the human (P4).
+message `ping`, answered `pong`, and runs only when a role starts or recovers from a reset. No
+other message between operator sessions — an instruction, a ruling, a report (a run done, a
+review verdict, a merge, a bail, a resume) — is answered with an `ack`, in either direction. A
+message gets a reply only when the receiver has a ruling, an instruction or a correction to
+send. The one exception is a recovered role's `ack` to its resetter (PRD 012 RS3), kept by the
+operator on 2026-11-07. A sent message is confirmed by the effect it causes, read from state
+(P1) — the launch, the merge, the ledger change — never by a reply. Until that effect is
+observed, say "sent, unconfirmed", never "delivered"; a successful send is not a confirmation.
+A routine report still gets no text for the human (P4).
 
 **Never ask permission for what a run needs (P14).** A role never asks permission for an
 operation a run needs in order to continue, in the project repo: opening or updating a PR,
