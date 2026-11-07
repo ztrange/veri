@@ -1531,3 +1531,49 @@ def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_
     comment_searches = [search for fields, search in calls if fields == "number,comments"]
     assert (code, paged_asks_comments, any("PRD" in s for s in comment_searches),
             any("closed:>=" in s for s in comment_searches)) == (0, [False], True, True)
+
+
+def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_issues_and_every_other_field_for_all(run_cli, monkeypatch, tmp_path):
+    import datetime
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    recent = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    metrics = "### 📊 Metrics\n\nWall time for the issue: 120 s\nLane: mu\n"
+    paged = [
+        {"number": 900, "title": "PRD 014 parent", "state": "OPEN", "labels": [{"name": "prd"}], "closedAt": None,
+         "updatedAt": "2026-10-20T10:00:00Z", "body": "see #5\n\n## Blocked by\n\n- #3\n"},
+        {"number": 901, "title": "plain", "state": "CLOSED", "labels": [], "closedAt": recent,
+         "updatedAt": recent, "body": "fixes #8"},
+        {"number": 902, "title": "old one", "state": "CLOSED", "labels": [], "closedAt": "2026-01-02T00:00:00Z",
+         "updatedAt": "2026-01-02T00:00:00Z", "body": "old #9\n\n## Blocked by\n\n- #4\n"},
+    ]
+    commented = {"PRD": [{"number": 900, "comments": [{"body": "also #6"}]}],
+                 "closed:>=": [{"number": 901, "comments": [{"body": metrics}]}]}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        if args[args.index("--json") + 1] != "number,comments":
+            return subprocess.CompletedProcess(args, 0, json.dumps(paged), "")
+        search = args[args.index("--search") + 1]
+        rows = [row for term, found in commented.items() if term in search for row in found]
+        return subprocess.CompletedProcess(args, 0, json.dumps(rows), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    issues = {i["number"]: i for i in json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]}
+    assert (code, issues) == (0, {
+        900: {"number": 900, "title": "PRD 014 parent", "state": "OPEN", "labels": [{"name": "prd"}], "closedAt": None,
+              "updatedAt": "2026-10-20T10:00:00Z", "body": "see #5\n\n## Blocked by\n\n- #3\n",
+              "blockedBy": [3], "links": [3, 5, 6], "wallSeconds": None, "lane": None},
+        901: {"number": 901, "title": "plain", "state": "CLOSED", "labels": [], "closedAt": recent,
+              "updatedAt": recent, "blockedBy": [], "links": [8], "wallSeconds": 120, "lane": "mu"},
+        902: {"number": 902, "title": "old one", "state": "CLOSED", "labels": [], "closedAt": "2026-01-02T00:00:00Z",
+              "updatedAt": "2026-01-02T00:00:00Z", "blockedBy": [4], "links": [4, 9], "wallSeconds": None, "lane": None},
+    })
