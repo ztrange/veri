@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import subprocess
 import sys
 import time
 
@@ -35,7 +36,11 @@ def run_state(run):
 
 
 def detach_leaf(run):
-    pass
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(_tdd_dir(), f"conductor-{run}.log"), "a") as log:
+        subprocess.Popen(
+            [os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), run],
+            stdout=log)
 
 
 def _growth(run):

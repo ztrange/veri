@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import subprocess
 
 
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
@@ -233,3 +234,32 @@ def test_3223_the_run_state_of_a_run_whose_last_end_is_a_stop_reads_stopped(tmp_
     monkeypatch.chdir(tmp_path)
 
     assert restart_conductor.run_state("7") == "stopped"
+
+
+def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_run_appending_stdout_to_the_main_trees_conductor_log(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    log = main / ".tdd" / "conductor-7.log"
+    log.write_text("earlier launch\n")
+    launches = []
+
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, argv, stdin=None, stdout=None, stderr=None, **kwargs):
+            launches.append([os.path.basename(a) for a in argv])
+            stdout.write("new launch\n")
+            stdout.flush()
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.chdir(start)
+
+    restart_conductor.detach_leaf("7")
+
+    assert (launches, log.read_text()) == ([["detach-leaf.sh", "run-conductor.sh", "7"]], "earlier launch\nnew launch\n")
