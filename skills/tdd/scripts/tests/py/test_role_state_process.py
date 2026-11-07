@@ -60,3 +60,17 @@ def test_coord_set_n_from_a_linked_worktree_writes_into_the_main_working_tree(tm
     in_main = repo / ".tdd" / "role-coord.state"
     in_linked = linked / ".tdd" / "role-coord.state"
     assert (code, in_main.is_file(), in_linked.exists()) == (0, True, False)
+
+
+@pytest.mark.process("git")
+def test_coord_lane_mu_set_n_writes_the_lane_file_and_leaves_the_default_lane_file_unchanged(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    run_cli(role_state, ["coord", "set", "n", "5"], cwd=repo)
+    default = repo / ".tdd" / "role-coord.state"
+    before = default.read_bytes()
+    code, _, _ = run_cli(role_state, ["coord", "--lane", "mu", "set", "n", "1"], cwd=repo)
+    lane = repo / ".tdd" / "role-coord-mu.state"
+    assert (code, lane.is_file(), default.read_bytes() == before) == (0, True, True)

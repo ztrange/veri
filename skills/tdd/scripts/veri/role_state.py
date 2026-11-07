@@ -12,7 +12,11 @@ def main(argv):
     if len(argv) < 2:
         sys.stderr.write(USAGE)
         return 2
-    path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % argv[0])
+    name = argv[0]
+    if argv[1] == "--lane":
+        name += "-" + argv[2]
+        argv = [argv[0]] + argv[3:]
+    path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % name)
     if argv[1] == "set" and len(argv) == 4:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "a") as f:
