@@ -13,6 +13,11 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+def append(path, text):
+    with open(path, "a") as f:
+        f.write(text)
+
+
 def main(argv):
     if len(argv) < 2:
         sys.stderr.write(USAGE)
@@ -28,12 +33,10 @@ def main(argv):
     if argv[1] in ("set", "add") and len(argv) == 4 or argv[1] == "recovered":
         os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
-        with open(path, "a") as f:
-            f.write("recovered-at=%s\nsession-id=%s\n" % (now(), os.environ["CLAUDE_CODE_SESSION_ID"]))
+        append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), os.environ["CLAUDE_CODE_SESSION_ID"]))
         return 0
     if argv[1] == "set" and len(argv) == 4:
-        with open(path, "a") as f:
-            f.write("%s=%s\n" % (argv[2], argv[3]))
+        append(path, "%s=%s\n" % (argv[2], argv[3]))
         return 0
     if argv[1] == "add" and len(argv) == 4:
         try:
@@ -41,8 +44,7 @@ def main(argv):
                 item = str(max([int(l.split()[1]) for l in f if " " in l] + [0]) + 1)
         except FileNotFoundError:
             item = "1"
-        with open(path, "a") as f:
-            f.write("%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
+        append(path, "%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
         print(item)
         return 0
     if argv[1] == "drop":
