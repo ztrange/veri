@@ -1208,7 +1208,8 @@ When the unchecked step carries `⟦suite-repair⟧`, run the full suite once on
    (RF20) and not transformed. Its `<bound>` is `<touched-files>` plus the `<files>` that line
    names. When covered, its transform is bounded to `<touched-files>`
    plus the files the candidate names, is checked with `$S/transform-touches-tests.sh
-   <green-sha> <bound>` before verify-refactor runs, and counts against the step's budget.
+   <green-sha> <bound> --touched <touched-files>` before verify-refactor runs (its exit 1
+   rejects the transform), and counts against the step's budget.
    One that changes **no** file in `<touched-files>`, reported as a
    `CANDIDATES: out-of-bounds | <candidate>` line, is never done in the step: it is
    recorded with `refactor-owed.sh` as `out-of-bounds`, apart from the candidates left to
