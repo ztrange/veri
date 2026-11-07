@@ -96,7 +96,9 @@ fall back to the names below only where it names none.
 - `bug` on a bug (create it with `gh label create bug` if the repo lacks it); none of the kind
   label on a refactor or a feature beyond what the repo uses.
 - **The opt-in label** (`ready-for-agent`, narrowed to `ready-for-agent:<scope>` if a scope was
-  named) is added to every issue filed, unless the human said not to opt it in.
+  named) is added to every issue filed, unless the human said not to opt it in. A scope is named
+  by the human, or by the coordinator invoking you: it names its lane when a run in that lane
+  turned up the bug, and the issue is filed into that lane.
 - **A bug's cost label**, by what the bug costs each time it occurs: a repeat cost (money, time
   or tokens on every occurrence) gets the label for issues taken ahead of the rest (`priority`);
   no repeat cost and small harm gets the label for bugs that wait their number's turn

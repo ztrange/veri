@@ -64,6 +64,11 @@ You own, and only you change:
 File every issue through `/vfile`, and groom through `/vgroom`; show any split or
 criteria rewrite to the human first.
 
+**A bug found in your lane is filed into your lane.** When a run in your lane (or the dev
+session reporting on it) turns up the bug, name your lane as the scope to `/vfile`, so the issue
+carries `ready-for-agent:<lane>` and runs in the lane that found it; with no lane word, the plain
+`ready-for-agent`. A veri defect from a run on another repository stays never opted in.
+
 **Propose `priority`** for an issue whose landing makes future runs cheaper — a slower suite
 made faster, a leaf cost cut, a recurring bail cause removed — or gives the human something
 usable, or feedback on a plan, sooner (P16). Propose it to the human with the saving or the gain
