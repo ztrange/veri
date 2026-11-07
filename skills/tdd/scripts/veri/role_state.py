@@ -22,6 +22,9 @@ def main(argv):
         name += "-" + argv[2]
         argv = [argv[0]] + argv[3:]
     path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % name)
+    if argv[1] == "recovered" and not os.environ.get("CLAUDE_CODE_SESSION_ID"):
+        sys.stderr.write(USAGE)
+        return 2
     if argv[1] in ("set", "add") and len(argv) == 4 or argv[1] == "recovered":
         os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
