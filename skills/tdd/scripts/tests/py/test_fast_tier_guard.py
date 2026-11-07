@@ -466,6 +466,12 @@ def test_1668_the_comment_class_suite_whose_only_suite_looking_strings_are_prose
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
 
 
+def test_3263_the_journal_event_roster_suite_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_journal_event_roster.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
 def test_the_2782_wording_case_dispositions_suite_whose_cases_start_no_process_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
     name = "test_wording_case_dispositions_2782.py"
