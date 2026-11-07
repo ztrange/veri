@@ -18,8 +18,9 @@ needed, and name none from memory.
 
 `/vgroom [<issue>...|--refactor-owed]`
 
-- No argument — **the sweep** (below): every open issue that carries none of the triage labels,
-  except PRD trackers (titled `PRD <nnn>: …`).
+- No argument — **the sweep** (below): every open issue that does not carry the opt-in label
+  (bare or scoped), except PRD trackers (titled `PRD <nnn>: …`). Every other label, the bug
+  label included, leaves an issue in scope.
 - `<issue>...` — groom exactly those issues.
 - `--refactor-owed` — consolidate the refactor-owed items (see below).
 
@@ -41,7 +42,7 @@ or left unlabelled without its reason.
 4. **`ready`**: run the check under `## Before labelling ready`, then add the opt-in label, plus
    the kind label for a bug and the label `## Labelling bugs` proposes.
 5. **`gone`** and **`duplicate`**: close with the reason.
-6. **`needs-human`**: leave unlabelled; show the question in full.
+6. **`needs-human`**: leave without the opt-in label; show the question in full.
 
 The report ends with the tally: labelled ready, rewritten, split, closed, left for the human.
 
