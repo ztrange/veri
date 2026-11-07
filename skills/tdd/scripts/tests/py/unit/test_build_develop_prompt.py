@@ -2170,3 +2170,14 @@ def test_main_renders_the_revise_check_earlier_step_shell_quoted_so_a_quote_back
     out, _ = capsysbinary.readouterr()
     command = re.search(rb"`tests-frozen\.sh check-earlier (\S+) --step (.*?)` \xe2\x80\x94", re.sub(rb"\s+", b" ", out))
     assert (code, shlex.split(command.group(2).decode())) == (0, [step])
+
+
+def test_main_renders_a_red_prompt_naming_the_test_command_once_3179(tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"## Problem\n\nzorblat frobs.\n\nTest command: zorblat-suite --all\n")
+
+    code = build_develop_prompt.main(["red", str(spec), "zorblat frobs a nitz", "zorblat-suite --all"])
+
+    out, _ = capsysbinary.readouterr()
+    section = out.split(b"### The test command", 1)[1]
+    assert (code, out.count(b"zorblat-suite --all"), b"zorblat-suite --all" in section) == (0, 1, True)
