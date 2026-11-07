@@ -1609,3 +1609,46 @@ def test_3181_a_pin_whose_command_quotes_its_tests_node_id_is_rechecked_by_its_f
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode != 2, "named test missing" in ran.stderr) == (True, False), ran.stdout + ran.stderr
+
+
+def _repo_with_deleted_test(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "t_gone.py").write_text("test v0\n")
+    (tmp_path / "t_keep.py").write_text("test v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("rm", "-q", "t_gone.py")
+    git("commit", "-q", "-am", "pin and delete the test")
+    (tmp_path / ".tdd").mkdir()
+    return base
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose quoted named test the range deletes")
+def test_3181_a_record_quoting_a_deleted_tests_node_id_is_retired_and_not_exit_2(tmp_path):
+    base = _repo_with_deleted_test(tmp_path)
+    record(tmp_path / ".tdd" / "issue-3181-mutations.md", before=base, keep="pin.txt",
+           command="touch ran.witness; bash -c 'make test TESTS=\"t_gone.py::test_a_case\"'")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists()) == (
+        3, "retired: .tdd/issue-3181-mutations.md pin.txt t_gone.py::test_a_case\n", False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record naming a quoted deleted test beside a kept one")
+def test_3181_a_quoted_deleted_test_beside_a_kept_one_is_dropped_from_the_replayed_command(tmp_path):
+    base = _repo_with_deleted_test(tmp_path)
+    record(tmp_path / ".tdd" / "issue-3181-mutations.md", before=base, keep="pin.txt",
+           command="echo X TESTS=\"t_gone.py::test_a_case\" TESTS=\"t_keep.py::test_b_case\" > args.witness; false")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    witness = (tmp_path / "args.witness").read_text() if (tmp_path / "args.witness").exists() else None
+    assert (ran.returncode != 2, witness is not None and "t_gone" not in witness and "t_keep" in witness) == (
+        True, True), (ran.stdout, ran.stderr, witness)
