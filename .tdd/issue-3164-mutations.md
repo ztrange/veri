@@ -21,3 +21,10 @@ if False:
 command 201
 make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_the_case_and_leaves_the_record_untouched_when_the_helpers_digest_matches_neither_formula_3164
 
+before 40
+b33dd1070f426bea72e3e1cbc1659ff5ff37dd65
+keep 56
+skills/tdd/scripts/tests/py/test_tests_frozen_process.py
+command 352
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmph4w1cfxv/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_the_case_when_an_assertion_is_deleted_from_the_helper_after_the_legacy_re_record_3164
+
