@@ -1,2 +1,4 @@
 ### The first line of `status.sh --report` names the machine's local zone once, with its UTC offset, e.g. `CST (UTC−6)` under `TZ=America/Chicago` on a winter date (a small case, in-process, no git) ⟦criterion 1⟧
 - test-only | extract the report setup shared by the two zone cases (the repo, the `VERI_HOME` runs directory and the `subprocess.run` stub) into a helper or fixture in `test_status_report_zone.py`
+### When `.tdd/status-last` exists, the report's first line opens with the window `<start> → <now>` in local `HH:MM`, ahead of the zone, its start converted from status-last's UTC `Z` timestamp to the local zone (a small case under a non-UTC `TZ`) ⟦criterion 2⟧
+- test-only | extract the repeated repo, TZ and clock setup in the three cases of `test_status_report_zone.py` into a shared fixture or helper
