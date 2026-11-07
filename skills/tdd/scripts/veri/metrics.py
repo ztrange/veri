@@ -597,6 +597,7 @@ def session_spend(directory, command, since, until=None):
         if not rows[0]["message"]["content"].startswith(command):
             continue
         turns, cache_read, dollars = 0, 0, 0.0
+        seen = set()
         for row in rows:
             message = row["message"]
             usage = message.get("usage")
@@ -607,6 +608,10 @@ def session_spend(directory, command, since, until=None):
                 moment = datetime.datetime.fromisoformat(stamp).timestamp()
                 if moment < since or (until is not None and moment > until):
                     continue
+            if message.get("id") is not None:
+                if message["id"] in seen:
+                    continue
+                seen.add(message["id"])
             prices = PRICES[family(message["model"])]
             turns += 1
             cache_read += usage["cache_read_input_tokens"]
