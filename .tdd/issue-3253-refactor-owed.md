@@ -2,3 +2,4 @@
 - test-only | share one `turn` builder and the conductor-log writing between the two new comment-family cases in test_metrics.py
 ### The "Conductor comments, by family" table counts a message the transcript writes as several records sharing one message id (placeholder token counts) once: its turns once per message id, its output tokens taken from the result record's total split across that result's turns, pinned by a small unit case on a multi-record fixture transcript ⟦added⟧ ⟦criterion 1⟧
 - move the nested `count_families` closure out of `conductor_sessions` into a module-level helper (it moves behaviour and isn't duplication removal, so I left it)
+applied | 3c17cdb335c088e66fd36adb780f16e9a789f45a | move the nested `count_families` closure out of `conductor_sessions` into a module-level helper (it moves behaviour and isn't duplication removal, so I left it)	refactor: count_families is a module-level helper, not a closure in conductor_sessions (#3253)
