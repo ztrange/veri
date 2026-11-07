@@ -261,9 +261,16 @@ def read_snapshot():
         return json.load(f)
 
 
+def snapshot_time():
+    return calendar.timegm(time.strptime(read_snapshot()["fetched_at"], ISO_UTC))
+
+
 def snapshot_age():
-    fetched = read_snapshot()["fetched_at"]
-    return time.time() - calendar.timegm(time.strptime(fetched, ISO_UTC))
+    return time.time() - snapshot_time()
+
+
+def local_hhmm(epoch):
+    return time.strftime("%H:%M", time.localtime(epoch))
 
 
 def snapshot_line():
@@ -272,8 +279,7 @@ def snapshot_line():
     except OSError:
         return "no snapshot"
     minutes = int(age) // 60
-    fetched = time.strftime("%H:%M", time.localtime(calendar.timegm(time.strptime(read_snapshot()["fetched_at"], ISO_UTC))))
-    return "snapshot %dh %dm old, fetched %s" % (divmod(minutes, 60) + (fetched,))
+    return "snapshot %dh %dm old, fetched %s" % (divmod(minutes, 60) + (local_hhmm(snapshot_time()),))
 
 
 def eta_range(count):
@@ -463,7 +469,7 @@ def refresh_if_stale():
 def zone_line():
     now = time.localtime(time.time())
     since = status_last_time()
-    window = "" if since is None else "%s → %s " % (time.strftime("%H:%M", time.localtime(since)), time.strftime("%H:%M", now))
+    window = "" if since is None else "%s → %s " % (local_hhmm(since), local_hhmm(time.time()))
     return window + "%s (UTC%s%d)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", abs(now.tm_gmtoff) // 3600)
 
 
