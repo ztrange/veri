@@ -1,7 +1,7 @@
 # Plan for #3059 — status.sh --report shows every time in the machine's local zone, naming it once
 
 - [x] The first line of `status.sh --report` names the machine's local zone once, with its UTC offset, e.g. `CST (UTC−6)` under `TZ=America/Chicago` on a winter date (a small case, in-process, no git) ⟦criterion 1⟧
-- [ ] When `.tdd/status-last` exists, the report's first line opens with the window `<start> → <now>` in local `HH:MM`, ahead of the zone, its start converted from status-last's UTC `Z` timestamp to the local zone (a small case under a non-UTC `TZ`) ⟦criterion 2⟧
+- [x] When `.tdd/status-last` exists, the report's first line opens with the window `<start> → <now>` in local `HH:MM`, ahead of the zone, its start converted from status-last's UTC `Z` timestamp to the local zone (a small case under a non-UTC `TZ`) ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] Queue's snapshot line also shows the snapshot's `fetched_at` time, converted from UTC to local `HH:MM` (e.g. `snapshot 2h 3m old, fetched 09:52`) (a small case under a non-UTC `TZ`) ⟦criterion 2⟧
 - [ ] The unit fakes of `git tag` in `skills/tdd/scripts/tests/py/unit/test_status_report.py` and `skills/tdd/scripts/tests/py/unit/test_status_report_blocked.py` answer by the `--format` they are given, and the Landed pin in `test_status_report.py` asserts each line's tag name and subject, in order, rather than the exact line; no production change ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] Each Landed line shows its tag's `creatordate`, converted from the tagger's offset to the local zone as `YYYY-MM-DD HH:MM`, between the tag name and its subject (a case with a tag whose tagger offset differs from the local `TZ`) ⟦criterion 2⟧
