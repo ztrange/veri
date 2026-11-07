@@ -138,18 +138,17 @@ def conductor_sessions(issue, path):
                         calls = json.dumps([block.get("input") for block in message.get("content") or []
                                             if isinstance(block, dict) and block.get("type") == "tool_use"],
                                            ensure_ascii=False)
+                        model_name = message.get("model") or ""
+                        model_family = family(model_name) or ("opus" if not model_name else None)
                         for name, pattern in COMMENT_FAMILIES:
                             if re.search(pattern, calls):
                                 output_tokens = usage.get("output_tokens") or 0
                                 turn_rows.families[name][0] += 1
                                 turn_rows.families[name][1] += output_tokens
-                                priced_as = family(message.get("model") or "") or ("opus" if not message.get("model") else None)
-                                if priced_as:
-                                    turn_rows.families[name][2] += output_tokens * PRICES[priced_as]["output"] / 1e6
+                                if model_family:
+                                    turn_rows.families[name][2] += output_tokens * PRICES[model_family]["output"] / 1e6
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
-                        model_name = message.get("model") or ""
-                        model_family = family(model_name) or ("opus" if not model_name else None)
                         if model_family is None:
                             open_priced = False
                             turn_rows.append([str(len(turn_rows) + 1), "unpriced", str(context)])
