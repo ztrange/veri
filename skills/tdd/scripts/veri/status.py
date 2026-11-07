@@ -278,13 +278,17 @@ def eta_range(count):
     return "%s–%s" % tuple("%dh %dm" % divmod(int(w * count) // 60, 60) for w in (low, high))
 
 
-def queue_counts():
+def opted_in_issues():
     label = tunables.read("VERI_LABEL", "ready-for-agent")
+    issues = read_snapshot()["issues"]
+    return label, issues, [i for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]]
+
+
+def queue_counts():
     try:
-        issues = read_snapshot()["issues"]
+        label, issues, opted_in = opted_in_issues()
     except OSError:
         return ""
-    opted_in = [i for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]]
     state = {i["number"]: i["state"] for i in issues}
     text = "\n%d %s" % (len(opted_in), label)
     last = status_last_queue()
@@ -417,6 +421,15 @@ def unjournaled_notes():
 def main(argv):
     if list(argv) == ["--report"]:
         print("Landed\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
+        queue = {}
+        try:
+            label, _issues, opted_in = opted_in_issues()
+            queue[label] = len(opted_in)
+        except OSError:
+            pass
+        os.makedirs(os.path.join(main_working_tree(), ".tdd"), exist_ok=True)
+        with open(os.path.join(main_working_tree(), ".tdd", "status-last"), "w") as f:
+            json.dump({"time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "queue": queue}, f)
         return 0
     parsed = parse_args(argv)
     if parsed is None:
