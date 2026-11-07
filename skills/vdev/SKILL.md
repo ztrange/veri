@@ -68,6 +68,15 @@ $S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/
 Every launch, a resume included, appends with `>>` to that `.log`, the file `stop-reason.sh`
 and `metrics.sh` read; none truncates it.
 
+Every conductor launch, a resume included, is followed by:
+
+```bash
+$S/detach-leaf.sh $S/restart-conductor.sh <n> >> .tdd/restart-<n>.log 2>&1 < /dev/null
+```
+
+It restarts that run's conductor at its next ledger commit once its growth reaches
+0.85 × `VERI_RESET_GROWTH_CONDUCTOR`. A restart is not an exit to route.
+
 Announce it as `Started #<n> — <title>`, the title read from `gh issue view <n> --json title`.
 
 Launch the next issue only once the previous launch's ledger exists: wait for
