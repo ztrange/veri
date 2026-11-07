@@ -1804,7 +1804,7 @@ def test_main_renders_no_suite_repair_paragraph_in_a_green_prompt_for_a_step_nam
                                       "test_zorblat_frobs_a_nitz", "make unit"])
     prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
 
-    assert (code, b"This step repairs the full run.** Its text lists every suite" in prompt) == (0, False)
+    assert (code, _fragment("_develop-green-suite-repair.md") in prompt) == (0, False)
 
 
 def test_main_renders_no_fixture_repair_paragraph_in_a_green_prompt_for_a_step_naming_fixture_repair_mid_sentence_1989(
@@ -1817,7 +1817,7 @@ def test_main_renders_no_fixture_repair_paragraph_in_a_green_prompt_for_a_step_n
                                       "test_zorblat_frobs_a_nitz", "make unit"])
     prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
 
-    assert (code, b"This step repairs a fixture.**" in prompt) == (0, False)
+    assert (code, _fragment("_develop-green-fixture-repair.md") in prompt) == (0, False)
 
 
 def test_main_renders_the_fixture_repair_paragraph_in_a_green_prompt_for_a_step_ending_in_fixture_repair_1989(
@@ -1830,7 +1830,7 @@ def test_main_renders_the_fixture_repair_paragraph_in_a_green_prompt_for_a_step_
                                       "test_zorblat_frobs_a_nitz", "make unit"])
     prompt = re.sub(rb"\s+", b" ", capsysbinary.readouterr().out)
 
-    assert (code, b"This step repairs a fixture.**" in prompt) == (0, True)
+    assert (code, _fragment("_develop-green-fixture-repair.md") in prompt) == (0, True)
 
 
 def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_develop_prompt):
@@ -1849,11 +1849,11 @@ def test_mid_line_marks_render_todays_prompts(tmp_path, capsysbinary, build_deve
     verified = flat(verify, ["--step", step, "--fast-cmd", "make unit", "green", str(spec),
                              "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
 
-    ci_red = b"This step repairs a red CI run.**"
-    suite_develop = b"This step repairs the full run.** Its text lists every suite"
-    ci_verify = b"This step repairs a failure that reproduces only on CI.**"
+    ci_red = _fragment("_develop-red-ci-repair.md")
+    suite_develop = _fragment("_develop-green-suite-repair.md")
+    ci_verify = _fragment("_verify-green-ci-repair.md")
     assert ([ci_red in red, suite_develop in red, ci_red in green, suite_develop in green,
-             ci_verify in verified, suite_develop in verified]
+             ci_verify in verified, _fragment("_verify-green-suite-repair.md") in verified]
             == [False, False, False, False, False, False])
 
 
