@@ -89,10 +89,18 @@ reported, not made** (P11).
 
 ## Labels
 
+Every label that applies is set **by default**; a label is left off **only when the human said
+not to set it**. The target repo's CLAUDE.md names the label set; read each name from it, and
+fall back to the names below only where it names none.
+
 - `bug` on a bug (create it with `gh label create bug` if the repo lacks it); none of the kind
   label on a refactor or a feature beyond what the repo uses.
 - **The opt-in label** (`ready-for-agent`, narrowed to `ready-for-agent:<scope>` if a scope was
-  named) is added **only when the human said to take the issue**. Without that, file without it.
+  named) is added to every issue filed, unless the human said not to opt it in.
+- **A bug's cost label**, by what the bug costs each time it occurs: a repeat cost (money, time
+  or tokens on every occurrence) gets the label for issues taken ahead of the rest (`priority`);
+  no repeat cost and small harm gets the label for bugs that wait their number's turn
+  (`low-risk`); any other bug gets neither. A repeat-cost bug never gets `low-risk`.
 
 - **Veri defects found on another repository.** Every defect in veri that one run on another
   repository turns up is filed as **one issue for that run**, on veri's own repo, labelled `bug`

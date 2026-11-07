@@ -8,7 +8,7 @@
 | F4 | `## Blocked by` holds only blocker lines or `None.`. | Every `#N` in that section blocks. |
 | F5 | `Test command:` appears once, on the last line. | |
 | F6 | A sweep (the same fix at N sites) has one covering criterion plus its guard's go-red criterion, and the sites are listed under Problem. | #1037: per-site criteria took 17 steps to deliver one change. |
-| F7 | It adds the opt-in label only when the human said to take the issue. | The label alone opts an issue in. |
+| F7 | It sets every label that applies by default, leaving one off only when the human said not to set it: `bug` on a bug, the opt-in label (scoped when a scope was named) on every issue, and on a bug the cost label: `priority` for a repeat cost, `low-risk` for no repeat cost and small harm, neither otherwise, never `low-risk` on a repeat cost. Label names come from the target repo's CLAUDE.md where it names them. F16's never-opted-in issue is the one exception. | 2026-11-07 (Mario): filed issues sat unlabelled until a groom; the human opts out, not in. |
 | F8 | Before filing, it searches for duplicates and related issues, and names any follow-ups. | "why did you not include that in the initial filing". |
 | F9 | It checks that every input a criterion names exists, and that the criterion's literal rule meets its goal. | Three coordinator-written criteria missed their goal. |
 | F10 | It reports the url and whether the issue is now solvable. | |
