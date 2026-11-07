@@ -20,6 +20,8 @@ from run_dir import run_file
 import tunables
 from solvable_issues import priority_label, solvable
 
+ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
+
 try:
     from . import github
 except ImportError:
@@ -258,7 +260,7 @@ def read_snapshot():
 
 def snapshot_age():
     fetched = read_snapshot()["fetched_at"]
-    return time.time() - calendar.timegm(time.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ"))
+    return time.time() - calendar.timegm(time.strptime(fetched, ISO_UTC))
 
 
 def snapshot_line():
@@ -325,7 +327,7 @@ def status_last_queue():
 
 def status_last_time():
     last = status_last()
-    return None if last is None else calendar.timegm(time.strptime(last["time"], "%Y-%m-%dT%H:%M:%SZ"))
+    return None if last is None else calendar.timegm(time.strptime(last["time"], ISO_UTC))
 
 
 def landed_lines():
@@ -465,7 +467,7 @@ def main(argv):
             pass
         os.makedirs(os.path.dirname(status_last_path()), exist_ok=True)
         with open(status_last_path(), "w") as f:
-            json.dump({"time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "queue": queue}, f)
+            json.dump({"time": time.strftime(ISO_UTC, time.gmtime()), "queue": queue}, f)
         return 0
     parsed = parse_args(argv)
     if parsed is None:
