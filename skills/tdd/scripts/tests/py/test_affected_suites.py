@@ -809,6 +809,21 @@ def test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_wit
                                      pytest_file) == (0, SUITES + "py/unit/" + pytest_file + "\n", "")
 
 
+def test_an_edit_to_draft_pr_md_prints_the_two_pytest_files_naming_it_and_neither_unplaced_nor_every_suite(
+        monkeypatch, run_cli, affected, tmp_path):
+    doc = "skills/tdd/DRAFT-PR.md"
+    unit = SCRIPTS_REL + "tests/py/unit/"
+    code, out, err = affected_by(
+        monkeypatch, run_cli, affected, tmp_path, [doc],
+        {doc: "# doc\n\nstep 2\n",
+         unit + "test_reads_draft_pr_a.py": 'def test_a():\n    open("%s").read()\n' % doc,
+         unit + "test_reads_draft_pr_b.py": 'def test_b():\n    open("%s").read()\n' % doc,
+         unit + "test_decoy_one.py": "def test_c():\n    pass\n",
+         unit + "test_decoy_two.py": "def test_d():\n    pass\n"})
+    assert (code, set(out.splitlines()), err) == (
+        0, {unit + "test_reads_draft_pr_a.py", unit + "test_reads_draft_pr_b.py"}, "")
+
+
 def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_planted_bash_suites(
         monkeypatch, run_cli, affected, tmp_path):
     py = SCRIPTS_REL + "tests/py/"
