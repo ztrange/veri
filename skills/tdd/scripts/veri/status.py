@@ -418,7 +418,7 @@ def running_lines():
                 if "model" in e:
                     models["revise" if e["name"].startswith("revise") else e["actor"]] = e["model"]
             name += "".join(" %s %s" % (r, m) for r, m in models.items())
-            passes = of("refactor")
+            passes = of("refactor") + of("structural-pass")
             if passes:
                 landed = [int(e["transforms"]) for e in passes]
                 name += " refactor %d passes %d transforms %d landed nothing" % (
