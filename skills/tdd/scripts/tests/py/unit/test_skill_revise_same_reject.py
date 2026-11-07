@@ -5,11 +5,6 @@ import re
 REVISE = pathlib.Path(__file__).resolve().parents[4] / "REVISE.md"
 
 
-def test_revise_md_names_same_reject_and_both_branches():
-    text = REVISE.read_text()
-    assert "same-reject.sh" in text, "REVISE.md never names same-reject.sh"
-
-
 def _same_reject_previous_file(lines):
     """The line index of REVISE.md's same-reject.sh call and the first file it names."""
     for i, line in enumerate(lines):
