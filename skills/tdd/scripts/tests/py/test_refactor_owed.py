@@ -782,3 +782,15 @@ def test_append_2893_records_a_structural_transform_test_only_when_the_bounds_ar
     code = refactor_owed.main(["append", str(owed), "S", "pkg/x_test.go,src/foo.spec.ts"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- test-only | t\n")
+
+
+def test_not_done_records_an_out_of_bounds_candidate_and_render_shows_it_under_not_done_with_its_reason_3237(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    candidate = "inline the one-use wrapper in lib"
+    code = refactor_owed.main(["not-done", str(owed), candidate, "out-of-bounds"])
+    capsys.readouterr()
+    rendered = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    head = lines.index("### Not done") if "### Not done" in lines else len(lines)
+    assert (code, rendered, f"- {candidate} — out-of-bounds" in lines[head + 1:]) == (0, 0, True)

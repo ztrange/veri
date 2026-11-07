@@ -27,7 +27,7 @@ OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
 NOT_DONE_MARK = "not-done | "
 SUBJECT_SEP = "\t"
-NOT_DONE_REASONS = ("budget-spent", "no-predicate", "transform-rejected", "uncovered")
+NOT_DONE_REASONS = ("budget-spent", "no-predicate", "out-of-bounds", "transform-rejected", "uncovered")
 
 
 def all_tests(bounds):
