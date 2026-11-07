@@ -421,3 +421,58 @@ def test_2927_a_develop_leaf_that_truncates_two_mutations_records_gets_one_event
     assert (ran.returncode, first.read_bytes(), second.read_bytes(),
             [("develop-green-1" in l, "issue-41-mutations.md" in l, "issue-2927-mutations.md" in l) for l in restored]) == (
         0, b"mutation: a\n", b"mutation: b\n", [(True, False, True), (True, True, False)]), ran.stderr
+
+
+@pytest.mark.process("supervise.sh and git run for real: a red leaf's shell writes the committed copy over an uncommitted production file")
+def test_3277_a_red_leaf_that_overwrites_an_uncommitted_production_file_with_its_committed_copy_has_it_restored(tmp_path):
+    work = tmp_path / "work"
+    (work / "src").mkdir(parents=True)
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    prod = work / "src" / "app.py"
+    prod.write_bytes(b"VALUE = 1\n")
+    subprocess.run(git + ["add", "."], cwd=work, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "base"], cwd=work, check=True)
+    prod.write_bytes(b"VALUE = 2\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red-1", "sh", "-c", 'git show HEAD:src/app.py > src/app.py'],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "3277", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+
+    assert (ran.returncode, prod.read_bytes()) == (0, b"VALUE = 2\n"), ran.stderr
+
+
+@pytest.mark.process("supervise.sh and git run for real: a red leaf overwrites a production file and edits a test file, then a refactor leaf overwrites the production file")
+def test_3277_a_red_leafs_production_overwrite_alone_is_restored_not_its_test_edit_nor_an_untouched_file_nor_a_refactor_leafs_change(tmp_path):
+    work = tmp_path / "work"
+    (work / "src").mkdir(parents=True)
+    (work / "tests").mkdir()
+    (work / ".tdd").mkdir()
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    prod = work / "src" / "app.py"
+    untouched = work / "src" / "util.py"
+    case = work / "tests" / "test_app.py"
+    prod.write_bytes(b"VALUE = 1\n")
+    untouched.write_bytes(b"UTIL = 1\n")
+    case.write_bytes(b"def test_a(): pass\n")
+    subprocess.run(git + ["add", "."], cwd=work, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "base"], cwd=work, check=True)
+    prod.write_bytes(b"VALUE = 2\n")
+    untouched.write_bytes(b"UTIL = 2\n")
+    case.write_bytes(b"def test_a(): assert False\n")
+    env = {"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+           "VERI_POLL": "0.05", "VERI_ISSUE": "3277", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+
+    red = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red-1", "sh", "-c",
+                          "git show HEAD:src/app.py > src/app.py; echo 'def test_b(): pass' > tests/test_app.py"],
+                         cwd=work, capture_output=True, text=True, env=env)
+    after_red = (prod.read_bytes(), case.read_bytes(), untouched.read_bytes())
+    refactor = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-refactor-1", "sh", "-c", "git show HEAD:src/app.py > src/app.py"],
+                              cwd=work, capture_output=True, text=True, env=env)
+    restored = [l for l in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in l]
+
+    assert (red.returncode, after_red, refactor.returncode, prod.read_bytes(),
+            [("src/app.py" in l, "src/util.py" in l, "tests/test_app.py" in l) for l in restored]) == (
+        0, (b"VALUE = 2\n", b"def test_b(): pass\n", b"UTIL = 2\n"), 0, b"VALUE = 1\n", [(True, False, False)]), red.stderr + refactor.stderr
