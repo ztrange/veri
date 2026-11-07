@@ -96,6 +96,17 @@ def main_checkout_file(path, name):
     return found
 
 
+def count_families(turn_rows, open_turn_rows, result_output):
+    for names, model_family, own_tokens in open_turn_rows:
+        output_tokens = own_tokens if result_output is None else result_output // len(open_turn_rows)
+        for name in names:
+            turn_rows.families[name][0] += 1
+            turn_rows.families[name][1] += output_tokens
+            if model_family:
+                turn_rows.families[name][2] += output_tokens * PRICES[model_family]["output"] / 1e6
+    open_turn_rows.clear()
+
+
 def conductor_sessions(issue, path):
     sessions = []
     open_rows = []
@@ -104,16 +115,6 @@ def conductor_sessions(issue, path):
     turn_rows = TurnRows()
     seen_ids = set()
     open_turn_rows = []
-
-    def count_families(result_output):
-        for names, model_family, own_tokens in open_turn_rows:
-            output_tokens = own_tokens if result_output is None else result_output // len(open_turn_rows)
-            for name in names:
-                turn_rows.families[name][0] += 1
-                turn_rows.families[name][1] += output_tokens
-                if model_family:
-                    turn_rows.families[name][2] += output_tokens * PRICES[model_family]["output"] / 1e6
-        open_turn_rows.clear()
 
     with contextlib.suppress(OSError):
         with open(main_checkout_file(path, "conductor-%s.log" % issue)) as stream_log:
@@ -124,7 +125,7 @@ def conductor_sessions(issue, path):
                         continue
                     if record.get("type") == "result":
                         sessions.append(record)
-                        count_families((record.get("usage") or {}).get("output_tokens"))
+                        count_families(turn_rows, open_turn_rows, (record.get("usage") or {}).get("output_tokens"))
                         total = record.get("total_cost_usd")
                         if open_rows and open_priced and total is not None:
                             share = (total - sum(base for _, base in open_rows)) / len(open_rows)
@@ -168,7 +169,7 @@ def conductor_sessions(issue, path):
                         base_dollars = turn_dollars - output_dollars
                         open_rows.append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
-        count_families(None)
+        count_families(turn_rows, open_turn_rows, None)
         if open_turns:
             sessions.append({"total_cost_usd": open_cost if open_priced else None, "num_turns": open_turns, "open": True})
         if open_contexts:
