@@ -421,6 +421,21 @@ def test_refactor_totals_end_with_an_issue_row_summing_every_step_and_the_struct
          "stopped": "budget 1, nothing-left 2, nothing-structural 1"}]
 
 
+def test_a_run_with_a_structural_pass_mark_and_refactor_events_prints_refactor_totals_after_the_structural_pass(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "refactor", "step": "1", "pass": "1", "transforms": "1", "budget": "3",
+                          "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "structural-pass", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-structural"}])
+    monkeypatch.chdir(tmp_path)
+
+    lines = render(metrics, capsys).split("\n")
+
+    assert "#### Structural pass" in lines and "#### Refactor totals" in lines
+    assert lines.index("#### Structural pass") < lines.index("#### Refactor totals")
+
+
 def test_issue_row_counts_a_structural_pass_that_landed_transforms_as_a_pass_with_its_transforms_and_not_as_landing_nothing(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
                          {"event": "refactor", "step": "1", "pass": "1", "transforms": "1", "budget": "3",
