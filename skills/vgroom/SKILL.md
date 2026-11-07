@@ -38,7 +38,7 @@ where outcome is one of:
 
 ### Missing PRD parents
 
-During triage, also find every open issue titled `PRD <nnn>.<k>: …` that has no GitHub
+During triage, also find every issue titled `PRD <nnn>.<k>: …` that has no GitHub
 parent, and set its parent to the issue titled `PRD <nnn>: …` through the GitHub sub-issues
 API (`gh api`). Report each one set, in one line.
 
