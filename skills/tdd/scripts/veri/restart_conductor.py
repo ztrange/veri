@@ -2,12 +2,21 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import sys
+import time
 
 USAGE = "usage: restart-conductor.sh <n>"
 
 
 def _positive_int(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
+
+
+def conductor_alive(run):
+    return False
+
+
+def sleep(seconds):
+    time.sleep(seconds)
 
 
 def main(argv):
@@ -18,7 +27,13 @@ def main(argv):
     if not _positive_int(knob):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
-    return 3
+    run = argv[0]
+    if not conductor_alive(run):
+        return 3
+    while conductor_alive(run):
+        sleep(5)
+    print(f"restarts {run} 0")
+    return 0
 
 
 if __name__ == "__main__":

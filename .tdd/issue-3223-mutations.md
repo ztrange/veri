@@ -32,3 +32,17 @@ if usage and record.get("type") == "assistant":
 command 148
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_growth.py::test_growth_reads_a_session_transcript_row_without_type_assistant_as_a_usage_record
 
+before 40
+58855a40b58832d399de0a90ccf1ee2038ed676d
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 342
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpukohdusu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_restart_conductor.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3223_while_the_conductor_is_alive_the_watch_waits_through_the_sleep_wrapper_with_a_positive_interval
+
+before 40
+58855a40b58832d399de0a90ccf1ee2038ed676d
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 307
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpukohdusu/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_restart_conductor.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3223_the_sleep_wrapper_waits_by_handing_the_seconds_to_time_sleep
+
