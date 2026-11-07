@@ -11,7 +11,7 @@
 - [x] Every write replaces the state file atomically through a temporary file renamed over it: a case that makes the write fail after the temporary file is written finds the previous state file byte-for-byte unchanged ⟦criterion 4⟧
 - [x] `role-state.sh <role> drop <list> <id>` replaces the state file atomically too: a drop whose rename over the state file fails leaves the previous file byte-for-byte unchanged ⟦added⟧ ⟦criterion 4⟧
 - [x] `role-state.sh <role> show` with no state file for the role and lane exits 3 and prints nothing ⟦criterion 5⟧
-- [x] `role-state.sh` given a role other than `coord` or `dev` exits 2 with its usage line on stderr and writes no state file ⟦criterion 5⟧ ⟂ refactor pending
+- [x] `role-state.sh` given a role other than `coord` or `dev` exits 2 with its usage line on stderr and writes no state file ⟦criterion 5⟧
 - [ ] `role-state.sh <role>` given an unknown verb exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
 - [ ] `role-state.sh <role> set` with a field other than `n` or `lane` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
 - [ ] `role-state.sh <role> add` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
