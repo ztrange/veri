@@ -470,7 +470,9 @@ def zone_line():
     now = time.localtime(time.time())
     since = status_last_time()
     window = "" if since is None else "%s → %s " % (local_hhmm(since), local_hhmm(time.time()))
-    return window + "%s (UTC%s%d)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", abs(now.tm_gmtoff) // 3600)
+    minutes = abs(now.tm_gmtoff) // 60 % 60
+    offset = "%d%s" % (abs(now.tm_gmtoff) // 3600, ":%02d" % minutes if minutes else "")
+    return window + "%s (UTC%s%s)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", offset)
 
 
 def main(argv):
