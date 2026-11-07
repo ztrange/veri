@@ -13,11 +13,9 @@ def fake_tags(monkeypatch, status, tags=TAGS):
     def run(args, *a, **k):
         fmt = [x for x in args if x.startswith("--format=")][0]
         if "creatordate" in fmt:
-            out = "".join("%d %s
-" % (unix, name) for name, unix, _ in tags)
+            out = "".join("%d %s\n" % (unix, name) for name, unix, _ in tags)
         else:
-            out = "".join("%s  %s
-" % (name, subject) for name, _, subject in tags)
+            out = "".join("%s  %s\n" % (name, subject) for name, _, subject in tags)
         return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
     monkeypatch.setattr(status.subprocess, "run", run)
 
