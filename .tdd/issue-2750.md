@@ -21,7 +21,7 @@
 - [x] Running's cost carries its delta since the time in `.tdd/status-last`: the cost of the run's journal events after that time ⟦criterion 1⟧
 - [x] Queue's counts each carry their delta against the queue counts recorded in `.tdd/status-last` ⟦criterion 1⟧
 - [x] Waiting lists each bail since the time in `.tdd/status-last`, from the journals' `bail` events, with its cause ⟦criterion 1⟧
-- [ ] Waiting lists each PR ready to merge: a journal whose `done` event carries a `pr` and which holds no later `merged` event ⟦criterion 1⟧
+- [x] Waiting lists each PR ready to merge: a journal whose `done` event carries a `pr` and which holds no later `merged` event ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] When a live `.tdd/wt/<n>/.tdd/conductor.pid` names a run with no journal, `status.sh --report` prints a one-line note naming that run instead of leaving it out silently
 - [ ] Every ETA reads "no rate yet" when the journals hold fewer than three finished runs ⟦criterion 6⟧
 - [ ] With three or more finished runs in the journals, the drain ETA and each PRD's ETA are ranges from the fastest to the slowest quartile of those runs' wall times ⟦criterion 6⟧
