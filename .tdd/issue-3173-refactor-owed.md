@@ -1,0 +1,2 @@
+### With `VERI_LABEL` set but empty, `ready-check.sh` prints its label row as a `fail` line saying to name a label or leave `VERI_LABEL` unset, never ``create the `` label`` (a medium case with a real process, in `skills/tdd/scripts/tests/py/test_ready_check_process.py`) ⟦criterion 2⟧
+- test-only | the first test (`VERI_LABEL` unset, label present) and the second (label missing) both pop `VERI_LABEL` and run `ready-check.sh` through the same subprocess call. A shared helper could cover that. The saving is small, and a helper would have to move frozen assertion lines.
