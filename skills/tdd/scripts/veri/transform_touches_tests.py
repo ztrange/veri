@@ -46,13 +46,17 @@ def main(argv):
         print(f"transform changed a test file: {touched}")
         return 1
     bound = set(argv[1].encode().split(b",")) if len(argv) > 1 and argv[1] else None
-    if bound is None:
-        return 0
-    outside = sorted_names(line for line in paths if line and line not in bound and not REFACTOR_OWED.fullmatch(line))
-    if not outside:
-        return 0
-    print(f"transform changed a file outside its bound: {outside}")
-    return 1
+    if bound is not None:
+        outside = sorted_names(line for line in paths if line and line not in bound and not REFACTOR_OWED.fullmatch(line))
+        if outside:
+            print(f"transform changed a file outside its bound: {outside}")
+            return 1
+    if "--touched" in argv:
+        touched_list = set(argv[argv.index("--touched") + 1].encode().split(b","))
+        if not touched_list & set(paths):
+            print("transform changed no file the issue touched")
+            return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -391,3 +391,14 @@ def test_2893_a_go_file_is_a_test_file_only_when_named_with_the_test_go_suffix(
         "pkg/x.go": (0, "", ""),
         "pkg/x_test.go": (1, "transform changed a test file: pkg/x_test.go\n", ""),
     }
+
+
+@pytest.mark.process("git rev-parse and git log over a scratch repository whose range changes only a file outside --touched")
+def test_3237_touched_option_exits_1_when_the_range_changed_only_a_file_outside_the_list_but_inside_the_bound(
+        tmp_path, transform_touches_tests, run_cli):
+    repo = new_repo(tmp_path / "touched")
+    base = commit_all(repo, "feat: seed", **{"src__a.sh": "a\n", "src__b.sh": "b\n"})
+    commit_all(repo, "refactor: b only", **{"src__b.sh": "b2\n"})
+
+    assert run_cli(transform_touches_tests, [base, "src/a.sh,src/b.sh", "--touched", "src/a.sh"], cwd=repo) == (
+        1, "transform changed no file the issue touched\n", "")
