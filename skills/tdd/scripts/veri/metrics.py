@@ -86,7 +86,7 @@ class TurnRows(list):
     def __init__(self):
         super().__init__()
         self.session_contexts = []
-        self.families = {name: [0, 0] for name, _ in COMMENT_FAMILIES}
+        self.families = {name: [0, 0, 0.0] for name, _ in COMMENT_FAMILIES}
 
 
 def main_checkout_file(path, name):
@@ -140,8 +140,12 @@ def conductor_sessions(issue, path):
                                            ensure_ascii=False)
                         for name, pattern in COMMENT_FAMILIES:
                             if re.search(pattern, calls):
+                                output_tokens = usage.get("output_tokens") or 0
                                 turn_rows.families[name][0] += 1
-                                turn_rows.families[name][1] += usage.get("output_tokens") or 0
+                                turn_rows.families[name][1] += output_tokens
+                                priced_as = family(message.get("model") or "") or ("opus" if not message.get("model") else None)
+                                if priced_as:
+                                    turn_rows.families[name][2] += output_tokens * PRICES[priced_as]["output"] / 1e6
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
                         model_name = message.get("model") or ""
@@ -544,9 +548,9 @@ def render(issue, path, ledger):
         for turn_row in turn_rows:
             row(turn_row)
     if turn_rows:
-        table_head("#### Conductor comments, by family", "family", ["turns", "output tokens"], ["---:", "---:"])
-        for name, (turns, tokens) in turn_rows.families.items():
-            row([name, str(turns), str(tokens)])
+        table_head("#### Conductor comments, by family", "family", ["turns", "output tokens", "dollars"], ["---:", "---:", "---:"])
+        for name, (turns, tokens, dollars) in turn_rows.families.items():
+            row([name, str(turns), str(tokens), "$%.2f" % dollars])
     if models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
