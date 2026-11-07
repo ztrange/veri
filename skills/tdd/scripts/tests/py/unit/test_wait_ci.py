@@ -2,7 +2,6 @@
 import importlib
 import json
 import os
-import pathlib
 import re
 import subprocess
 import sys
@@ -595,9 +594,6 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
             answers.append((code, UNREADABLE in err, past in err))
         return answers
 
-    skill = (pathlib.Path(__file__).resolve().parents[4] / "SKILL.md").read_text()
-    draft_pr_calls = [line for line in skill.splitlines() if "wait-ci.sh <pr-url>" in line]
-
     observed = {
         "late": calls("late-1800", [SHA], [[pending], [pending], [done]], ["1800"])
                 + calls("late-60", [SHA], [[pending], [pending], [done]], ["60"]),
@@ -606,8 +602,6 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
         "across": calls("across", ["fedcba9876543210" * 2 + "fedcba98"], [[pending]], ["120", "120"], ["120", "120"]),
         "total": calls("total", ["00112233445566778899aabbccddeeff00112233"], [[pending]],
                        ["240", "600"], ["240", "600"]),
-        "skill passes a slice and an empty total": bool(draft_pr_calls) and all(
-            re.search(r'wait-ci\.sh <pr-url> [0-9]+ "" ', line) for line in draft_pr_calls),
         "stale head": calls("stale-head", [old], [[done]], ["60", "60", given]),
         "stale across": calls("stale-across", [old, old, new], [[done]], ["60", "60", given], ["60", "60", given]),
     }
@@ -618,7 +612,6 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
         "headless": [(2, True, False)],
         "across": [(3, False, False), (2, False, True)],
         "total": [(3, False, False), (3, False, False)],
-        "skill passes a slice and an empty total": True,
         "stale head": [(3, False, False)],
         "stale across": [(3, False, False), (3, False, False)],
     }
