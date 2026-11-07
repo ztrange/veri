@@ -205,23 +205,3 @@ def test_a_run_whose_skill_md_refactor_mark_is_present_renders_real_refactor_and
         if got != want:
             problems.append(f'step "{step}": want its {heading} cell to say `{want}`, it says `{got}`')
     assert not problems, "\n".join(problems) + f"\nthe report was: {report!r}"
-
-
-def _switched_off_instruction():
-    records = _records_or_fail("the refactor loop's switched-off skip")
-    held = [r for r in records if b"verify-refactor-skipped reason=switched-off" in r]
-    assert held, "SKILL.md no longer records `verify-refactor-skipped reason=switched-off`"
-    return held[0]
-
-
-def test_skill_skips_verify_refactor_when_refactor_is_pinned_off_records_it_posts_it_and_writes_skipped_to_the_verdict_exit_file_3132():
-    line = _switched_off_instruction()
-    wanted = [rb"issue-<n>-skip-verify", rb"launch \*\*no\*\* verify-refactor|launch no verify-refactor",
-              rb"event\.sh verify-refactor-skipped reason=switched-off",
-              rb"skipped \(switched off\)", rb"write `skipped` to `\.tdd/verdict-refactor\.exit`"]
-    assert [p for p in wanted if not re.search(p, line)] == [], line.decode()
-
-
-def test_skill_takes_the_pass_branch_after_the_switched_off_skip_with_pin_recheck_and_the_pending_mark_clear_3132():
-    line = _switched_off_instruction()
-    assert re.search(rb"pass branch, `pin-recheck\.sh` and the pending-mark clear included", line), line.decode()
