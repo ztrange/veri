@@ -426,12 +426,16 @@ def unjournaled_notes():
     return "".join(notes)
 
 
+def refresh_running():
+    return bool(subprocess.run(["pgrep", "-f", "report-cache.sh refresh"], capture_output=True, text=True).stdout.split())
+
+
 def refresh_if_stale():
     try:
         age = snapshot_age()
     except OSError:
         return
-    if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")):
+    if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")) and not refresh_running():
         script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report-cache.sh")
         subprocess.Popen([script, "refresh"])
 
