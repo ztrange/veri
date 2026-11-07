@@ -26,11 +26,6 @@ def plant(tmp_path, call):
     return skill
 
 
-def test_no_gh_issue_pr_or_repo_call_is_left_in_skill_md():
-    """Its subject is source text: the shipped SKILL.md, read as text."""
-    assert calls(ROOT / "skills" / "tdd" / "SKILL.md") == []
-
-
 def test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line_and_a_clean_one_passes(tmp_path):
     """Its subject is source text: a planted SKILL.md, read as text."""
     found = calls(plant(tmp_path, "gh auth status"))

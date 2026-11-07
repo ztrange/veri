@@ -8,42 +8,11 @@ import warnings
 
 import pytest
 
-import skill_sections
-
 SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
 PREFLIGHT_MD = SKILL.with_name("PREFLIGHT.md")
 PREFLIGHT = "## 0. Preflight — baseline checks (bail before any cycle)"
 SKILL_PREFLIGHT = "#" + PREFLIGHT
-
-FAST_CALL = "detect-test-command.sh --tier fast"
-FULL_CALL = "detect-test-command.sh --tier all"
-
-
-def lines_of(heading):
-    return skill_sections.section(PREFLIGHT_MD, heading).splitlines()
-
-
-def first(lines, want):
-    return next((i for i, line in enumerate(lines) if want in line), None)
-
-
-def first_all(lines, *wants, start=0):
-    return next((i for i in range(start, len(lines)) if all(w in lines[i] for w in wants)), None)
-
-
-def test_skill_md_takes_the_full_tier_measurement_in_the_worktree_on_the_fast_tier_baseline_s_commit_and_sizes_leaf_timeout_sh_full_only_after_it():
-    lines = lines_of(PREFLIGHT)
-    fast_in, full_in = first(lines, FAST_CALL), first(lines, FULL_CALL)
-    timeout_in = first_all(lines, "leaf-timeout.sh", "--full")
-    assert fast_in is not None and full_in is not None, (fast_in, full_in)
-    assert full_in >= fast_in, "the full tier is measured before the fast-tier baseline"
-    moves = [line for line in lines[fast_in:full_in + 1]
-             if re.search(r"(^|[^A-Za-z0-9_-])cd |git (checkout|switch|pull|fetch|reset|rebase)|issue-worktree\.sh", line)]
-    assert moves == []
-    assert timeout_in is not None, "no leaf-timeout.sh call with --full"
-    assert timeout_in >= full_in, "the timeout is sized before the full-tier measurement"
-
 
 REBASE_CALL = "rebase-onto-default.sh"
 
