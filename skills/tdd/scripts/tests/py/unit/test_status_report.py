@@ -6,14 +6,25 @@ import os
 import subprocess
 
 
-def fake_tags(monkeypatch, status, stdout="v0.2 Second capability\nv0.1 First capability\n"):
-    done = subprocess.CompletedProcess([], 0, stdout=stdout, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
+
+
+def fake_tags(monkeypatch, status, tags=TAGS):
+    def run(args, *a, **k):
+        fmt = [x for x in args if x.startswith("--format=")][0]
+        if "creatordate" in fmt:
+            out = "".join("%d %s
+" % (unix, name) for name, unix, _ in tags)
+        else:
+            out = "".join("%s  %s
+" % (name, subject) for name, _, subject in tags)
+        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
 
 
 def landed(out):
     lines = [line.strip() for line in out.splitlines() if line.strip()]
-    return lines[lines.index("Landed") + 1:lines.index("Running")]
+    return [tuple(line.split("  ", 1)) for line in lines[lines.index("Landed") + 1:lines.index("Running")]]
 
 
 def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_order(tmp_path, monkeypatch, run_cli):
@@ -26,7 +37,7 @@ def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_ord
     headings = [line.strip() for line in out.splitlines()
                 if line.strip() in ("Landed", "Running", "Queue", "Waiting")]
     assert (code, headings, landed(out)) == (
-        0, ["Landed", "Running", "Queue", "Waiting"], ["v0.2 Second capability", "v0.1 First capability"])
+        0, ["Landed", "Running", "Queue", "Waiting"], [("v0.2", "Second capability"), ("v0.1", "First capability")])
 
 
 def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli):
@@ -47,7 +58,7 @@ def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_o
 def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    fake_tags(monkeypatch, status, stdout="")
+    fake_tags(monkeypatch, status, tags=())
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -60,12 +71,13 @@ def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say
 def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="v0.2 Second capability\nv0.1 First capability\n", stderr="")
+    fake_tags(monkeypatch, status)
+    tag_run = status.subprocess.run
 
     def run_refusing_gh(args, *a, **k):
         if os.path.basename(str(args[0])) == "gh":
             raise AssertionError("--report started gh: %s" % (args,))
-        return done
+        return tag_run(args, *a, **k)
     monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
     fetched = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2, minutes=3)
     (tmp_path / ".tdd").mkdir()
@@ -106,12 +118,13 @@ def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tm
 def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="v0.2 Second capability\nv0.1 First capability\n", stderr="")
+    fake_tags(monkeypatch, status)
+    tag_run = status.subprocess.run
 
     def run_refusing_gh(args, *a, **k):
         if os.path.basename(str(args[0])) == "gh":
             raise AssertionError("--report started gh: %s" % (args,))
-        return done
+        return tag_run(args, *a, **k)
     monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
     fetched = datetime.datetime.now(datetime.timezone.utc)
     (tmp_path / ".tdd").mkdir()
