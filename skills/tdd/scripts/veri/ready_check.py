@@ -58,7 +58,7 @@ def test_file_row():
 
 
 def tdd_ignored_row():
-    return ".tdd/", None if git("check-ignore", "-q", ".tdd/").returncode == 0 else "add `.tdd/` to .gitignore"
+    return ".tdd/", None if git("check-ignore", "-q", ".tdd/issue-0-spec.md").returncode == 0 else "add `.tdd/` to .gitignore"
 
 
 def gh_auth_row():
