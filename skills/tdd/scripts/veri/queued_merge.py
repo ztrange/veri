@@ -219,14 +219,13 @@ def main(argv):
         _release(pid)
         return 2
     before = _rev(worktree, "HEAD")
-    for git_args in (("rebase", "origin/main"),
-                     ("push", "--force-with-lease=%s:%s" % (branch, lease), "origin", branch)):
-        if git_args[0] == "rebase":
-            code = _rebase(pid, worktree, git_args)
-        else:
-            code = _gate(pid, "git", "-C", worktree, *git_args, keep=True)
-        if code:
-            return code
+    code = _rebase(pid, worktree, ("rebase", "origin/main"))
+    if code:
+        return code
+    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                 "origin", branch, keep=True)
+    if code:
+        return code
     head = _rev(worktree, "HEAD")
     if not head:
         _say("the pushed head does not resolve")
