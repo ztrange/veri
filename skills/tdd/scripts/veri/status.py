@@ -155,6 +155,9 @@ def solvable_count(name):
     return "?"
 
 
+USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report"
+
+
 def parse_args(argv):
     """(json, scope, watch seconds or None), or None for an unknown option."""
     scope, as_json, watch = tunables.read("VERI_LABEL"), False, None
@@ -170,7 +173,7 @@ def parse_args(argv):
         elif arg == "--scope":
             scope = args.pop(0) if args else ""
         else:
-            sys.stderr.write("status.sh: unknown option '%s'\n" % arg)
+            sys.stderr.write("status.sh: unknown option '%s'\n%s\n" % (arg, USAGE))
             return None
     return as_json, scope, watch
 

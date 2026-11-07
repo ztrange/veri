@@ -876,6 +876,7 @@
 | SC75 | The tick-ledger entry says `--already-holds` exits 1, touching neither ledger nor events, when its reason file is empty or has no `REASON:` line with non-blank text. | A retirement must carry the reason it was retired for. |
 | SC79 | SCRIPTS.md catalogues `plan-reverify.sh <ledger-file>`: exit 0 when a `plan:` commit is at or after the issue's last verify-plan PASS (or there is none), 3 when that PASS is newer than every `plan:` commit, 2 on a usage error, a ledger not named `issue-<n>`, or no `plan:` commit in history. | The resume calls it; an uncatalogued script is invisible to the next reader. |
 | SC80 | The `tests-frozen.sh` entry says `check-earlier` accepts a case whose recorded body digest matches and whose recorded `helpers:` digest equals the digest the pre-#2888 helper pattern (stopping only at `func`) gives on the same file, re-records that `helpers:` line under the current pattern and names the case on stderr, while a helpers digest matching neither pattern still exits 1. | A run pinned to an older skill can resume on a newer one without every earlier Python case reading as edited. |
+| SC81 | The `status.sh` entry says `--report`, given alone, prints the report from local files only with no `gh` call, and that a stale snapshot starts a detached cache refresh, so a caller capturing the report never waits for it. | A `/vstatus` caller reads the entry to know the report needs no network and returns without waiting on a refresh. |
 
 ## skills/tdd/SKILL-EDIT.md
 
