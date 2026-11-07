@@ -1,0 +1,4 @@
+# Plan for #3177 — PREFLIGHT.md carries its failure branches into every run: move them to a file read only on a failure
+
+- [ ] skills/tdd/PREFLIGHT-FAILURES.md is created holding every preflight failure branch (each sentence of PREFLIGHT.md that stops or bails the run), signed against its new `## skills/tdd/PREFLIGHT-FAILURES.md` requirements list (PF20, PF21, PF30, PF32, PF36, CY117, PF40–PF58) ⟦skill-edit⟧ ⟦criterion 1⟧
+- [ ] skills/tdd/PREFLIGHT.md carries only what a preflight that passes needs, its failure branches removed and replaced by a pointer sentence sending a refused check to `<base directory>/PREFLIGHT-FAILURES.md`, read then and not before (PF59), its list losing the moved rows; pins updated in skills/tdd/scripts/tests/py/test_prose_owed_process.py, skills/tdd/scripts/tests/py/unit/test_skill_resume_pointers.py, skills/tdd/scripts/tests/py/test_skill_preflight.py ⟦skill-edit⟧ ⟦criterion 1⟧
