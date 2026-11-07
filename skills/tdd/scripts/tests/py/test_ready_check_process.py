@@ -411,3 +411,15 @@ def test_issue_3172_ready_check_with_tdd_contents_ignored_and_the_ledger_re_incl
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
     assert not any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
+
+
+@pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess in a repository labelled ready-for-agent with VERI_LABEL unset")
+def test_issue_3173_ready_check_with_veri_label_unset_prints_an_ok_label_row_naming_ready_for_agent(tmp_path):
+    repo, env = build_ready_repo(tmp_path)
+    env.pop("VERI_LABEL")
+    gh = tmp_path / "bin" / "gh"
+    gh.write_text(gh.read_text().replace('"name":"veri"', '"name":"ready-for-agent"'))
+    ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
+    lines = ran.stdout.splitlines()
+
+    assert "ok    label ready-for-agent" in lines, (ran.returncode, ran.stdout, ran.stderr)
