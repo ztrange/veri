@@ -31,6 +31,8 @@ def named_files(candidate):
 
 def main(argv):
     candidate = None
+    check_only = "--check" in argv
+    argv = [a for a in argv if a != "--check"]
     if "--candidate" in argv:
         i = argv.index("--candidate")
         candidate = argv[i + 1] if i + 1 < len(argv) else ""
@@ -53,7 +55,8 @@ def main(argv):
         return 3
     if candidate:
         touched += [p for p in dict.fromkeys(named_files(candidate)) if p not in touched]
-    print(",".join(touched))
+    if not check_only:
+        print(",".join(touched))
     return 0
 
 
