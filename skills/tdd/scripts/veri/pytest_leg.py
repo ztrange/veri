@@ -269,13 +269,19 @@ def split_marks(argv):
     return rest, selected
 
 
+def refuse_below_floor(floor, numbers, subject, version):
+    if numbers >= [int(part) for part in floor.split(".")[:2]]:
+        return False
+    sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
+                     % (floor, subject, version))
+    return True
+
+
 def main(argv):
     floor = launch_floor.python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
     numbers = [int(part) for part in re.findall("[0-9]+", version)[:2]]
-    if numbers < [int(part) for part in floor.split(".")[:2]]:
-        sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
-                         % (floor, sys.executable, version))
+    if refuse_below_floor(floor, numbers, sys.executable, version):
         return 2
     path_python = shutil.which("python3")
     try:
@@ -283,9 +289,7 @@ def main(argv):
         found = re.search(r"Python ([0-9]+)\.([0-9]+)[0-9.]*", probe.stdout + probe.stderr)
     except Exception:
         found = None
-    if found and [int(found.group(1)), int(found.group(2))] < [int(part) for part in floor.split(".")[:2]]:
-        sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; PATH's python3 %s is version %s.\n"
-                         % (floor, path_python, found.group(0)[len("Python "):]))
+    if found and refuse_below_floor(floor, [int(found.group(1)), int(found.group(2))], "PATH's python3 " + path_python, found.group(0)[len("Python "):]):
         return 2
     for package, module, tunable in (("pytest", "pytest", "VERI_PYTEST_IMPORTABLE"),
                                      ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE"),
