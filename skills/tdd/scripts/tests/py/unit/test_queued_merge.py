@@ -717,3 +717,27 @@ def test_3022_queued_merge_whose_phantom_would_be_overwritten_stop_recurs_past_t
 
     ran = [c for c in calls if " push " in c or "--force-with-lease" in c or "merge-lock.sh release" in c]
     assert (code, ran) == (1, [])
+
+
+def test_3022_queued_merge_whose_rebase_stops_non_zero_on_a_clean_status_with_other_output_fails_with_gits_code_keeps_the_lock_and_neither_refreshes_the_index_nor_records_a_retry(fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/3022-other-stop"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    events = worktree / ".tdd" / "events.jsonl"
+
+    def other_stop_world(answer):
+        def world(line, **kwargs):
+            line = line.replace(BRANCH, "feature")
+            if "status --porcelain" in line:
+                return 0, "", ""
+            if "rebase origin/main" in line:
+                return 1, "", "error: could not apply 1234567... some commit\n"
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    calls = scenario(other_stop_world)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "-"])
+
+    ran = [c for c in calls if "update-index" in c or "rebase --continue" in c or " push " in c or "merge-lock.sh release" in c]
+    assert (code, ran, events.exists()) == (1, [], False)
