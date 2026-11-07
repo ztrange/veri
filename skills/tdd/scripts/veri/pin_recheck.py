@@ -162,7 +162,7 @@ def recheck(argv):
                 if on_base is None:
                     return 2
                 if on_base == 0:
-                    sys.stdout.write(f"stale: {ledger} {pin['keep']}\n")
+                    sys.stdout.write(f"stale: {ledger} {(named[0].split('::')[0] if named else pin['keep'])}\n")
                 else:
                     sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
                     status = 1
