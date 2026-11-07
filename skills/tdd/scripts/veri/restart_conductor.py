@@ -18,6 +18,7 @@ def main(argv):
     if not _positive_int(knob):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
+    return 3
 
 
 if __name__ == "__main__":

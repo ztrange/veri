@@ -38,3 +38,11 @@ def test_3223_a_growth_knob_that_is_not_a_whole_number_of_at_least_1_exits_2_nam
         [("VERI_RESET_GROWTH_CONDUCTOR" in err, repr(v) in err) for (_, _, err), v in zip(results, values)],
         list(tmp_path.iterdir()),
     ) == ([2] * 5, [""] * 5, [(True, True)] * 5, [])
+
+
+def test_3223_a_run_with_no_live_conductor_when_it_starts_exits_3_printing_nothing(tmp_path, run_cli):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out, err, list(tmp_path.iterdir())) == (3, "", "", [])
