@@ -4,7 +4,7 @@
 - [x] The growth function, given stream-json records ("type":"assistant", message.usage) and a baseline, returns the last usage record's context (input_tokens + cache_read_input_tokens + cache_creation_input_tokens) minus that baseline ⟦criterion 1⟧
 - [x] The growth function skips records with no usage: a record without usage after the last usage record leaves the current context at that usage record's ⟦criterion 1⟧
 - [x] The growth function reads a session transcript row (a record carrying message.usage without "type":"assistant") as a usage record ⟦criterion 1⟧
-- [ ] The growth function reads a record repeated under the same message id once: a later repeat of a message id does not replace the context its first record gave ⟦criterion 1⟧
+- [x] The growth function reads a record repeated under the same message id once: a later repeat of a message id does not replace the context its first record gave ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] With no baseline given, the growth function's baseline is the context of the first usage record when the records hold one session ⟦criterion 2⟧
 - [ ] With no baseline given and several "type":"system" "subtype":"init" records, the growth function's baseline is the first turn of the last session, so a conductor log appended by several launches measures only the current launch's growth ⟦criterion 2⟧
 - [ ] skills/tdd/SCRIPTS.md gains the $S/restart-conductor.sh <n> entry and its watch-runs.sh entry names the restart-pending exception — ahead of the step that adds the script, so the script has its declared caller (the unreachable audit reaches scripts through SCRIPTS.md) the moment it lands — graded by rows SC83, SC84 ⟦skill-edit⟧ ⟦criterion 8⟧
