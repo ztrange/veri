@@ -91,6 +91,10 @@ def replay_before(pin, ledger):
     return ran.returncode
 
 
+def _file_part(node_id):
+    return node_id.split("::")[0]
+
+
 def recheck(argv):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -111,8 +115,8 @@ def recheck(argv):
     retired = 0
     for ledger, pin in pins:
         named = re.findall(r"TESTS=(\S+)", pin["command"])
-        gone = [n for n in named if n.split("::")[0] in deleted]
-        named = [n for n in named if n.split("::")[0] not in deleted]
+        gone = [n for n in named if _file_part(n) in deleted]
+        named = [n for n in named if _file_part(n) not in deleted]
         mutated_file = pin.get("file", pin.get("keep"))
         if gone and not named:
             for n in gone:
@@ -122,7 +126,7 @@ def recheck(argv):
         for n in gone:
             pin["command"] = re.sub(r"TESTS=" + re.escape(n) + r"(?=\s|$)", "", pin["command"])
         for n in named:
-            if not Path(n.split("::")[0]).exists():
+            if not Path(_file_part(n)).exists():
                 sys.stderr.write(f"named test missing at HEAD: {n} (pin file {ledger})\n")
                 return 2
         if "before" in pin:
