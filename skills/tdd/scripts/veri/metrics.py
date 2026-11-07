@@ -5,6 +5,7 @@ import datetime
 import io
 import json
 import os
+import re
 import sys
 import run_end
 import tunables
@@ -12,6 +13,22 @@ import tunables
 from event_log import read_events
 from ledger import decode_ledger, ledger_path, ledger_steps
 from prices import PRICES, cache_write_tokens, family
+
+COMMENT_FAMILIES = [
+    ("✅ Step done", "✅ Step done"),
+    ("✅ Done", "✅ Done"),
+    ("🔴 Red", "🔴 Red|🔎 verify-red"),
+    ("🟢 Green", "🟢 Green"),
+    ("🛠️ Refactor", "🛠️ Refactor"),
+    ("🔎 verify-green", "🔎 verify-green(?! \\(revised\\))"),
+    ("🔎 verify-refactor", "🔎 verify-refactor(?! \\(revised\\))"),
+    ("🔎 verify-<phase> (revised)", "🔎 verify-[\\w-]+ \\(revised\\)"),
+    ("🗺️ Plan", "🗺️ Plan"),
+    ("🗺️ verify-plan", "🗺️ verify-plan"),
+    ("▶️ Resuming", "▶️ Resuming"),
+    ("⛔ Bailed", "⛔ Bailed"),
+    ("⏹️ Stopped", "⏹️ Stopped"),
+]
 
 USAGE = "usage: metrics.sh <issue-number>"
 
@@ -69,6 +86,7 @@ class TurnRows(list):
     def __init__(self):
         super().__init__()
         self.session_contexts = []
+        self.families = {name: [0, 0] for name, _ in COMMENT_FAMILIES}
 
 
 def main_checkout_file(path, name):
@@ -117,6 +135,13 @@ def conductor_sessions(issue, path):
                                 continue
                             seen_ids.add(message["id"])
                         open_turns += 1
+                        calls = json.dumps([block.get("input") for block in message.get("content") or []
+                                            if isinstance(block, dict) and block.get("type") == "tool_use"],
+                                           ensure_ascii=False)
+                        for name, pattern in COMMENT_FAMILIES:
+                            if re.search(pattern, calls):
+                                turn_rows.families[name][0] += 1
+                                turn_rows.families[name][1] += usage.get("output_tokens") or 0
                         context = sum((usage.get(key) or 0) for key in CONTEXT_KEYS)
                         open_contexts.append(context)
                         model_name = message.get("model") or ""
@@ -518,6 +543,10 @@ def render(issue, path, ledger):
         table_head("#### Conductor per turn", "turn", ["dollars", "context"], ["---:", "---:"])
         for turn_row in turn_rows:
             row(turn_row)
+    if turn_rows:
+        table_head("#### Conductor comments, by family", "family", ["turns", "output tokens"], ["---:", "---:"])
+        for name, (turns, tokens) in turn_rows.families.items():
+            row([name, str(turns), str(tokens)])
     if models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
