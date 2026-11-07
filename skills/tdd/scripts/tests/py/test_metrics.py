@@ -2147,3 +2147,17 @@ def test_a_timestamped_coordinator_transcript_is_counted_whole_when_no_event_car
     out = render(metrics, capsys)
 
     assert "Coordinator session: 1 turns, 2000000 cache tokens read, $" in out
+
+
+def test_a_run_with_only_a_structural_pass_mark_prints_refactor_totals_with_an_issue_row_counting_that_pass(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "structural-pass", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-structural"}])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Refactor totals")
+
+    assert rows == [
+        {"step": "issue", "passes": "1", "transforms": "0", "landed nothing": "1",
+         "stopped": "nothing-structural 1"}]

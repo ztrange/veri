@@ -582,7 +582,7 @@ def render(issue, path, ledger):
         if inconsistent is not None:
             print()
             print("Inconsistent mark: %s" % inconsistent)
-    if passes:
+    if passes or structural_marked:
         by_step = {}
         for (step, _), (mark, _) in passes.items():
             by_step.setdefault(step, []).append(mark)
