@@ -296,7 +296,7 @@ def test_2782_the_twelve_wording_rows_sit_under_their_units_and_the_six_units_ow
     repo = SCRIPTS.parents[2]
     owed = {
         "skills/tdd/SKILL.md": ("skills/tdd/REQUIREMENTS.md", ["SS1", "SS2", "SS3", "PL63", "CY129"]),
-        "skills/tdd/PREFLIGHT.md": ("skills/tdd/REQUIREMENTS.md", ["PF36", "PF37", "PF38"]),
+        "skills/tdd/PREFLIGHT.md": ("skills/tdd/REQUIREMENTS.md", ["PF37", "PF38"]),
         "skills/tdd/REFACTOR-KIND.md": ("skills/tdd/REQUIREMENTS.md", ["PL64"]),
         "skills/tdd/scripts/prompts/develop-revise.md": ("skills/tdd/scripts/prompts/REQUIREMENTS.md", ["DV5"]),
         "skills/vdev/SKILL.md": ("skills/vdev/REQUIREMENTS.md", ["D22"]),
