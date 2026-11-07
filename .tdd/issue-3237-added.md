@@ -1,0 +1,1 @@
+- [ ] Test only: a case pins that `transform-touches-tests.sh <base-sha> <bound> --touched <list>` exits 0 when the range changes a file in `<list>` (inside `<bound>`, no test file), so a `--touched` check that always fails goes red; no production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 4⟧
