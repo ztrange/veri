@@ -398,6 +398,29 @@ def test_refactor_totals_sum_every_pass_of_a_step_not_just_the_last(tmp_path, mo
          "stopped": "budget 1, nothing-left 1"}]
 
 
+def test_refactor_totals_end_with_an_issue_row_summing_every_step_and_the_structural_pass(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100},
+                         {"event": "refactor", "step": "1", "pass": "1", "transforms": "2", "budget": "3",
+                          "stopped": "budget"},
+                         {"event": "refactor", "step": "1", "pass": "2", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200},
+                         {"event": "refactor", "step": "2", "pass": "1", "transforms": "1", "budget": "3",
+                          "stopped": "nothing-left"},
+                         {"event": "step-done", "step": "2", "ts": 260},
+                         {"event": "structural-pass", "transforms": "0", "budget": "3",
+                          "stopped": "nothing-structural"}])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Refactor totals")
+
+    assert [row["step"] for row in rows][-1:] == ["issue"]
+    assert [row for row in rows if row["step"] == "issue"] == [
+        {"step": "issue", "passes": "4", "transforms": "3", "landed nothing": "2",
+         "stopped": "budget 1, nothing-left 2, nothing-structural 1"}]
+
+
 def test_two_main_calls_in_one_process_render_independent_reports(tmp_path, monkeypatch, capsys, metrics):
     one, many = tmp_path / "one", tmp_path / "many"
     attempt = {"step": "1", "phase": "red", "attempt": "1", "secs": "5"}

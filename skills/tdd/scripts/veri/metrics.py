@@ -556,6 +556,7 @@ def render(issue, path, ledger):
         for (step, index), (mark, spent_by) in passes.items():
             row([step, index, refactor_spent(mark), mark["stopped"],
                  spent_by["verdict"], str(spent_by["revise"])] + figures(spent_by, [WALL, DOLLARS]))
+    structural_marked = structural is not None and "transforms" in structural and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
     if structural is not None:
@@ -583,6 +584,7 @@ def render(issue, path, ledger):
             print("Inconsistent mark: %s" % inconsistent)
     if passes:
         by_step = {}
+        all_moved, all_reasons = [], {}
         for (step, _), (mark, _) in passes.items():
             by_step.setdefault(step, []).append(mark)
         table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
@@ -591,11 +593,20 @@ def render(issue, path, ledger):
             reasons = {}
             for mark in marks:
                 reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
+                all_reasons[mark["stopped"]] = all_reasons.get(mark["stopped"], 0) + 1
             moved = [mark["transforms"] for mark in marks]
             known = all(count.isdigit() for count in moved)
+            all_moved.extend(moved)
             row([step, str(len(marks)), str(sum(map(int, moved))) if known else "?",
                  str(moved.count("0")),
                  ", ".join("%s %d" % item for item in sorted(reasons.items()))])
+        if structural_marked:
+            all_moved.append(structural["transforms"])
+            all_reasons[structural["stopped"]] = all_reasons.get(structural["stopped"], 0) + 1
+        known = all(count.isdigit() for count in all_moved)
+        row(["issue", str(len(all_moved)), str(sum(map(int, all_moved))) if known else "?",
+             str(all_moved.count("0")),
+             ", ".join("%s %d" % item for item in sorted(all_reasons.items()))])
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
 
