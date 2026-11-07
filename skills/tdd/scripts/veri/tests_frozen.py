@@ -374,6 +374,9 @@ def _check_earlier(ledger, step, exempt=()):
             return record
         if not _rewrite_records(_earlier_records(lines, step), rewrite):
             return 2
+        for name, case in releg:
+            write(sys.stderr, "tests-frozen.sh: %s (%s): its helpers digest was re-recorded from the legacy formula"
+                  % (case, name))
     if not changed:
         tree = _work_tree_hash()
         if not tree:

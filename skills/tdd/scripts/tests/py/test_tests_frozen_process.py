@@ -6300,3 +6300,30 @@ def test_check_earlier_exits_1_and_leaves_a_legacy_helpers_line_as_recorded_when
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, "test_b" in out, "test_a" in out, record.read_text()) == (1, True, False, before)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which tracked test files differ from HEAD")
+def test_check_earlier_names_the_case_on_stderr_saying_its_helpers_digest_was_re_recorded_from_the_legacy_formula_3164(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    text = ("def helper():\n    assert 1 == 1\n\n\ndef test_a():\n    helper()\n\n\n"
+            "def other():\n    assert 2 == 2\n")
+    suite = tmp_path / "tests/test_suite.py"
+    suite.write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds nothing"
+    suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+    record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    code, _, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, "test_a" in err, "re-recorded" in err, "legacy" in err) == (0, True, True, True)
