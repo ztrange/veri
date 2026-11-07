@@ -556,7 +556,7 @@ def render(issue, path, ledger):
         for (step, index), (mark, spent_by) in passes.items():
             row([step, index, refactor_spent(mark), mark["stopped"],
                  spent_by["verdict"], str(spent_by["revise"])] + figures(spent_by, [WALL, DOLLARS]))
-    structural_marked = structural is not None and "transforms" in structural and "stopped" in structural
+    structural_marked = structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
     if structural is not None:
@@ -594,7 +594,7 @@ def render(issue, path, ledger):
                 reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
             known = all(count.isdigit() for count in moved)
             row([label, str(len(marks)), str(sum(map(int, moved))) if known else "?",
-                 str(moved.count("0")),
+                 str(moved.count("0")) if known else "?",
                  ", ".join("%s %d" % item for item in sorted(reasons.items()))])
 
         table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
@@ -602,7 +602,7 @@ def render(issue, path, ledger):
         for step, marks in by_step.items():
             totals_row(step, marks)
         every = [mark for marks in by_step.values() for mark in marks]
-        totals_row("issue", every + [structural] if structural_marked else every)
+        totals_row("issue", every + [dict(structural, transforms=structural.get("transforms", ""))] if structural_marked else every)
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
 
