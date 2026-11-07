@@ -46,3 +46,13 @@ def test_growth_skips_records_with_no_usage_so_a_later_one_leaves_the_context_at
         {"type": "system", "subtype": "note"},
     ]
     assert growth(records, 10000) == 3 + 40000 + 2000 - 10000
+
+
+def test_growth_reads_a_session_transcript_row_without_type_assistant_as_a_usage_record(growth):
+    usage = {
+        "input_tokens": 4,
+        "cache_read_input_tokens": 50000,
+        "cache_creation_input_tokens": 1000,
+    }
+    records = [{"message": {"id": "m1", "role": "assistant", "usage": usage}}]
+    assert growth(records, 20000) == 4 + 50000 + 1000 - 20000
