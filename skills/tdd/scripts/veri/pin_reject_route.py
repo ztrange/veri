@@ -29,7 +29,7 @@ def main(argv):
             tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[1])))
             event.append(tdd_parent, event.context(os.environ), "unpinnable-missing", ["step=" + step])
             return 2
-    code = tick_ledger.main(["--unpinnable", argv[0], argv[1], argv[2]])
+    code = tick_ledger.main(["--unpinnable", argv[0], "--case", argv[3], argv[1], argv[2]])
     if code == 1 and missing:
         code = tick_ledger.main(["--already-holds", argv[0], argv[1], argv[2]])
     if code == 0:
