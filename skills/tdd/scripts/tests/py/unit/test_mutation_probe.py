@@ -257,3 +257,28 @@ def test_main_accepts_and_records_an_outside_address_when_the_address_domain_is_
     assert calls == ["x@outside.invalid\n"]
     assert target.read_text() == "alpha\n"
     assert "x@outside.invalid" in record.read_text()
+
+
+@pytest.mark.parametrize("new", ["x@corp.invalid", "plain"], ids=["on-domain", "no-address"])
+def test_main_accepts_and_records_an_on_domain_or_addressless_new_when_the_address_domain_is_set_3330(
+    run_cli, mutation_probe, monkeypatch, tmp_path, new
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    calls = []
+
+    def fake_run(*a, **k):
+        calls.append(target.read_text())
+        return mutation_probe.subprocess.CompletedProcess(a, 1)
+
+    monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "alpha", new, "--", "false"],
+        env={"VERI_MUTATION_RECORD": str(record), "VERI_MUTATION_ADDRESS_DOMAIN": "corp.invalid"},
+    )
+    assert code == 0
+    assert calls == [new + "\n"]
+    assert target.read_text() == "alpha\n"
+    assert new in record.read_text()
