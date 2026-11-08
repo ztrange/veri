@@ -298,6 +298,10 @@ def gh_issue_add_label(number, label):
         raise NoAnswer("")
 
 
+def gh_issue_remove_label(number, label):
+    gh_api_delete(_issue(number) + "/labels/" + label)
+
+
 def gh_label_ensure(label):
     run = _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label, stderr=subprocess.PIPE)
     if run.returncode != 0 and "HTTP 422" not in run.stderr and "already_exists" not in run.stderr:
