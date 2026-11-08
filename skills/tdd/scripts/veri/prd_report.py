@@ -66,6 +66,10 @@ def main(argv):
             print("left: solvable now %d, waiting %d on %s, held by no lane %d" % (
                 solvable, len({n for n, _ in waiting}),
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
+            lanes = {o["lane"] for o in open_children if o["lane"]}
+            rate = sum(1 for o in snapshot["issues"] if o["state"] == "CLOSED"
+                       and o["lane"] in lanes and _utc(o["closedAt"]) >= week)
+            print("ETA: no rate yet" if rate < 3 else "ETA:")
         return 0
     print(USAGE, file=sys.stderr)
     return 2

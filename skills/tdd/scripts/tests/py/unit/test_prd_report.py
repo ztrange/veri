@@ -276,3 +276,48 @@ def test_report_left_line_counts_as_held_by_no_lane_the_open_children_with_no_op
     left = [line for line in lines[start:end] if line.lower().startswith("left")]
     assert code == 0
     assert len(left) == 1 and re.search(r"held by no lane\D*\b1\b", left[0], re.I), left
+
+
+
+def test_report_eta_line_says_no_rate_yet_only_when_the_holding_lanes_have_fewer_than_three_issues_closed_in_the_last_7_days(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def stamp(days):
+        return (now - datetime.timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def issue(number, title, state="OPEN", label=None, closed=None, lane=None):
+        return {"number": number, "title": title, "state": state, "labels": [{"name": label}] if label else [],
+                "closedAt": closed, "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": 3600 if closed else 0, "lane": lane}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(7, "PRD 014: open child", label="ready-for-agent:mu", lane="mu"),
+              issue(20, "PRD 014: first closed", "CLOSED", closed=stamp(1), lane="mu"),
+              issue(21, "PRD 014: second closed", "CLOSED", closed=stamp(2), lane="mu"),
+              issue(22, "PRD 014: third closed", "CLOSED", closed=stamp(3), lane="mu"),
+              issue(6, "PRD 015: other"),
+              issue(8, "PRD 015: open child", label="ready-for-agent:zz", lane="zz"),
+              issue(30, "PRD 015: first closed", "CLOSED", closed=stamp(1), lane="zz"),
+              issue(31, "PRD 015: second closed", "CLOSED", closed=stamp(2), lane="zz"),
+              issue(32, "PRD 015: closed too long ago", "CLOSED", closed=stamp(9), lane="zz")]
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": stamp(0), "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    lines = out.splitlines()
+    first = next(i for i, line in enumerate(lines) if line.startswith("PRD 014"))
+    second = next(i for i, line in enumerate(lines) if line.startswith("PRD 015"))
+    eta_014 = [line for line in lines[first:second] if line.lower().startswith("eta")]
+    eta_015 = [line for line in lines[second:] if line.lower().startswith("eta")]
+    assert code == 0
+    assert len(eta_014) == 1 and "no rate yet" not in eta_014[0], out
+    assert len(eta_015) == 1 and "no rate yet" in eta_015[0], out
