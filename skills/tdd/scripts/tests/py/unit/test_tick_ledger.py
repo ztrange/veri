@@ -1023,7 +1023,7 @@ def test_cli_ticking_an_added_step_ticks_only_the_first_of_two_still_open_added_
 
 
 def test_main_unpinnable_retire_keeps_a_mutation_record_whose_tests_names_a_class_qualified_case_that_exists_3289(
-        tmp_path, tick_ledger):
+        tmp_path, tick_ledger, monkeypatch):
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_a.py").write_text(
         "class TestK:\n    def test_b(self):\n        pass\n")
@@ -1038,13 +1038,15 @@ def test_main_unpinnable_retire_keeps_a_mutation_record_whose_tests_names_a_clas
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text(record)
 
-    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, mutations.read_text()) == (0, record)
 
 
 def test_main_unpinnable_retire_drops_a_mutation_record_whose_tests_names_a_file_that_does_not_exist_3289(
-        tmp_path, tick_ledger):
+        tmp_path, tick_ledger, monkeypatch):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1055,13 +1057,15 @@ def test_main_unpinnable_retire_drops_a_mutation_record_whose_tests_names_a_file
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text(f"command {len(command)}\n{command}\n\n")
 
-    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, mutations.read_text()) == (0, "")
 
 
 def test_main_unpinnable_retire_over_a_malformed_mutation_record_returns_2_naming_that_record_on_stderr_3289(
-        tmp_path, capsys, tick_ledger):
+        tmp_path, capsys, tick_ledger, monkeypatch):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1071,13 +1075,15 @@ def test_main_unpinnable_retire_over_a_malformed_mutation_record_returns_2_namin
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text("garbled\n\n")
 
-    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, "garbled" in capsys.readouterr().err) == (2, True)
 
 
 def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_returns_2_naming_that_record_on_stderr_3289(
-        tmp_path, capsys, tick_ledger):
+        tmp_path, capsys, tick_ledger, monkeypatch):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1087,6 +1093,8 @@ def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_r
     mutations = tdd / "issue-7-mutations.md"
     mutations.write_text("name abc\n\n")
 
-    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, "name abc" in capsys.readouterr().err) == (2, True)
