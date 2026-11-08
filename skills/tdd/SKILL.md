@@ -683,6 +683,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
+  The two events are written before `add-ledger-step.sh` because the marks read the step's
+  title from the ledger, which the insertion rewrites.
   The `at=over-budget` is what tells this split apart from the other two causes that grow a
   plan: a Green leaf volunteering one (no `at=`) and a spent revise budget (`at=exhausted`).
   The call passes no `--criterion`: a split keeps its anchor's criterion, because it is the
@@ -1251,7 +1253,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      `$S/pin-recheck.sh "$(git rev-parse <green-sha>~1)"`**, the commit before the step's green
      commit, so the range holds the step's code: a step can disarm an earlier pin and still
      pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
-     green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and changes no exit): treat it as a verify-refactor REJECT naming that pin,
+     green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and so is a mutation pin green under its mutation on the base too, printed `stale: <record file> <mutated file>`; neither changes the exit): treat it as a verify-refactor REJECT naming that pin,
      write its reason to `.tdd/verify-refactor.reason`, spend `REVISE_BUDGET` (when a verifier
      answers `REJECT`, `Read` `<base directory>/REVISE.md`), and leave the refactor-pending mark
      in place. Exit 2, no answer (a base that cannot be resolved or replayed included, and the other cases the `pin-recheck.sh` header lists), **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
@@ -1371,7 +1373,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
 
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
-  pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>` and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+  pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
   Green does, post `### ✅ Step done` by running `$S/comment.sh <n> step-done`, composing none of it, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
