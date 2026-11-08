@@ -36,3 +36,4 @@ applied | 0b8a15befe79dcabc5b761556bfa10251f91a783 | in `main`, the ETA loop in 
 applied | dc8cca7c26bbe0323e3499af18724c9de3cb37c8 | extract the per-PRD ETA computation (lanes, rate, range) from `main` in prd_report.py into a helper function	chore: record the structural pass's applied candidate (#3261)
 not-done | transform-rejected | `chain` is redefined on every PRD loop iteration. Lift it to a module-level function that takes `by_number`. This isn't duplication removal, so I didn't apply it.
 applied | bbc0e9e7cc2835b0466bb3fd16d2900ea1eb87a7 | Split the long `main` report branch into per-block helpers. This isn't duplication removal, so I didn't apply it.	chore: record the structural pass's not-done candidate (#3261)
+not-done | transform-rejected | split `main` in prd_report.py into per-block helpers (children, left, owed, ETA). It is a move of behaviour, not duplication removal.
