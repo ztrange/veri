@@ -102,7 +102,8 @@ def _unparseable_claim(report):
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
             return True
-    return False
+    with open(report, encoding="utf-8", errors="replace") as handle:
+        return any("WRONG_TEST" in l and not l.startswith("WRONG_TEST:") and not any(True for _ in _spellings(l)) for l in handle.read().splitlines())
 
 
 def _case_name(test_id):
