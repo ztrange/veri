@@ -266,3 +266,16 @@ def test_add_with_a_list_other_than_the_four_exits_2_with_usage_and_writes_no_st
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
     code, out, err = run_cli(role_state, ["coord", "add", "gossip", "hello"], cwd=repo)
     assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
+
+
+@pytest.mark.process("git")
+def test_drop_with_a_list_other_than_the_four_exits_2_with_usage_and_leaves_the_state_file_unchanged(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    _, item, _ = run_cli(role_state, ["coord", "add", "decision", "keep-alpha"], cwd=repo)
+    state = repo / ".tdd" / "role-coord.state"
+    before = state.read_bytes()
+    code, out, err = run_cli(role_state, ["coord", "drop", "gossip", item.strip()], cwd=repo)
+    assert (code, out, "usage: role-state.sh" in err, state.read_bytes()) == (2, "", True, before)

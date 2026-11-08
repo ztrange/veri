@@ -49,7 +49,7 @@ def main(argv):
         return usage()
     if argv[1] == "set" and len(argv) == 4 and argv[2] not in ("n", "lane"):
         return usage()
-    if argv[1] == "add" and argv[2] not in ("decision", "message", "override", "timed-n"):
+    if argv[1] in ("add", "drop") and argv[2] not in ("decision", "message", "override", "timed-n"):
         return usage()
     if argv[1] == "recovered":
         append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), os.environ["CLAUDE_CODE_SESSION_ID"]))
