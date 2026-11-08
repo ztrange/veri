@@ -16,7 +16,7 @@
 - [x] A line appended to a running run's journal shows on the already-open page without a reload (the page fetches fresh Running data from the server and re-renders it) ⟦criterion 4⟧
 - [x] veri's own `make test`, run for real, collects no case under `projects/dashboard/` and never calls the dashboard runner, whatever text the root Makefile's recipe prints for `make -n test` ⟦added⟧ ⟦criterion 1⟧ ⟂ retired unpinnable
 - [x] `serve.py`'s source opens files only under `$VERI_HOME/runs/` and at `<repo>/.tdd/report-cache.json`; pinned by a case that checks its source ⟦criterion 3⟧
-- [ ] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
+- [x] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source starts no process: no `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*` or `os.fork`; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source imports nothing under `skills/` and adds no `skills/` path to `sys.path`; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] The branch changes no file outside `projects/dashboard/`, veri's own run state under `.tdd/` aside ⟦diff-checked⟧
