@@ -52,3 +52,10 @@ def test_a_zombie_leaf_that_a_nonblocking_reap_answers_reads_as_gone_3293(monkey
 
     monkeypatch.setattr("os.waitpid", fake_waitpid)
     assert leaf_left(4242, lambda _pid: True, clock.sleep, clock) is False
+
+
+def test_a_running_leaf_that_a_nonblocking_reap_has_nothing_for_reads_as_left_3293(monkeypatch):
+    clock = FakeClock()
+
+    monkeypatch.setattr("os.waitpid", lambda pid, flags: (0, 0))
+    assert leaf_left(4242, lambda _pid: True, clock.sleep, clock) is True
