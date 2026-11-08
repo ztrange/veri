@@ -4,7 +4,7 @@ import sys
 
 import tick_ledger
 
-USAGE = "usage: pin-reject-route.sh <reason-file> <ledger-file> <matcher>"
+USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher>"
 
 
 def main(argv):
