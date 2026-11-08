@@ -1554,3 +1554,12 @@ def test_3314_a_text_holding_the_refactor_pending_delimiter_exits_2_naming_it_le
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "a ⟂ b"], cwd=tmp_path)
 
     assert (code, out, " ⟂ " in err, ledger.read_bytes()) == (2, "", True, LEDGER), err
+
+
+def test_3314_a_batch_with_one_text_holding_the_refactor_pending_delimiter_exits_2_inserting_none_of_it(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    for texts in (["fine step", "a ⟂ b", "other step"], ["a ⟂ b", "fine step"], ["fine step", "a ⟂ b"]):
+        code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", *texts], cwd=tmp_path)
+        assert (texts, code, out, " ⟂ " in err, ledger.read_bytes()) == (texts, 2, "", True, LEDGER), err
