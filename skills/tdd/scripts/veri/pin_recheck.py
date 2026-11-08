@@ -170,10 +170,10 @@ def recheck(argv, looks):
     status = 0
     retired = 0
     for ledger, pin in pins:
-        mutated = pin.get("file", pin.get("keep"))
-        reason = declared.get((ledger, mutated))
+        mutated_file = pin.get("file", pin.get("keep"))
+        reason = declared.get((ledger, mutated_file))
         if reason:
-            sys.stdout.write(f"retired: {ledger} {mutated} {reason}\n")
+            sys.stdout.write(f"retired: {ledger} {mutated_file} {reason}\n")
             retired += 1
             pin["retired"] = reason
             Path(ledger).write_text("".join(
@@ -182,7 +182,6 @@ def recheck(argv, looks):
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
         gone = [n for n in named if n.split("::")[0] in deleted]
         named = [n for n in named if n.split("::")[0] not in deleted]
-        mutated_file = pin.get("file", pin.get("keep"))
         if gone and not named:
             for n in gone:
                 sys.stdout.write(f"retired: {ledger} {mutated_file} {n}\n")
