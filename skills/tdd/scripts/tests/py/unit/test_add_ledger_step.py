@@ -1563,3 +1563,19 @@ def test_3314_a_batch_with_one_text_holding_the_refactor_pending_delimiter_exits
     for texts in (["fine step", "a ⟂ b", "other step"], ["a ⟂ b", "fine step"], ["fine step", "a ⟂ b"]):
         code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", *texts], cwd=tmp_path)
         assert (texts, code, out, " ⟂ " in err, ledger.read_bytes()) == (texts, 2, "", True, LEDGER), err
+
+
+def test_3314_texts_without_the_refactor_pending_delimiter_are_inserted_with_exit_0_each_marked_added_and_counted_by_ledger_growth(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    plan = tmp_path / "plan.md"
+    ledger.write_bytes(LEDGER)
+    plan.write_bytes(LEDGER)
+    growth = importlib.import_module("veri.ledger_growth")
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "do X", "do Y⟂Z"], cwd=tmp_path)
+    lines = ledger.read_bytes().decode().split("\n")
+    within = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": "2"}, cwd=tmp_path)
+    beyond = run_cli(growth, [str(plan), str(ledger)], env={"VERI_STEP_GROWTH": "1"}, cwd=tmp_path)
+
+    assert (code, lines[4:6], within[0], beyond[0]) == (
+        0, ["- [ ] do X ⟦added⟧ ⟦criterion 2⟧", "- [ ] do Y⟂Z ⟦added⟧ ⟦criterion 2⟧"], 0, 1), (err, within, beyond)
