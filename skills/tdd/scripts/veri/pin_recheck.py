@@ -162,9 +162,19 @@ def recheck(argv, looks):
     if not pins:
         return 3
     deleted = set(git_out("diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD").split())
+    declared = {}
+    for line in git_out("diff", "-U0", f"{argv[0]}..HEAD", "--", ".tdd").splitlines():
+        m = re.match(r"\+\s*retire-pin: (\S+) (\S+) -- (.+)$", line)
+        if m:
+            declared[(m[1], m[2])] = m[3].strip()
     status = 0
     retired = 0
     for ledger, pin in pins:
+        reason = declared.get((ledger, pin.get("file", pin.get("keep"))))
+        if reason:
+            sys.stdout.write(f"retired: {ledger} {pin.get('file', pin.get('keep'))} {reason}\n")
+            retired += 1
+            continue
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
         gone = [n for n in named if n.split("::")[0] in deleted]
         named = [n for n in named if n.split("::")[0] not in deleted]
