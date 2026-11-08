@@ -713,3 +713,38 @@ def test_main_prints_nothing_and_keeps_looping_when_a_vanished_queued_merge_url_
 
     captured = capsys.readouterr()
     assert (captured.out, captured.err, len(waits)) == ("", "", 3)
+
+
+def test_main_prints_merge_failed_and_exits_0_when_a_vanished_queued_merge_url_answers_a_200_body_closed_not_merged_through_gh_api_issue_3356(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import json
+    import types
+
+    (tmp_path / ".tdd").mkdir()
+    url = "https://github.com/o/r/pull/9"
+    listings = [[url], []]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges",
+                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
+    monkeypatch.setattr(
+        dispatch.github, "gh_api",
+        lambda path, *a, **kw: types.SimpleNamespace(stdout=json.dumps({"merged": False, "state": "closed"})),
+        raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (0, f"merge-failed {url}\n")
