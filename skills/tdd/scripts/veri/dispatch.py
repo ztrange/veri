@@ -26,6 +26,10 @@ def tdd_dir():
     return os.path.join(status.main_working_tree(), ".tdd")
 
 
+def run_dir(issue):
+    return os.path.join(tdd_dir(), "wt", issue)
+
+
 def launch(issue):
     scripts = paths.scripts_of(__file__)
     log = os.path.join(tdd_dir(), f"conductor-{issue}.log")
@@ -60,13 +64,13 @@ def main(argv):
         live = live_conductors()
         for issue in seen:
             if issue not in live:
-                if not os.path.isdir(os.path.join(tdd_dir(), "wt", issue)):
+                if not os.path.isdir(run_dir(issue)):
                     sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
                     return 2
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
         seen = live
-        ledger = previous and ledger_path(os.path.join(tdd_dir(), "wt", previous), previous)
+        ledger = previous and ledger_path(run_dir(previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)):
             previous = solvable_issues()[0]
             launch(previous)
