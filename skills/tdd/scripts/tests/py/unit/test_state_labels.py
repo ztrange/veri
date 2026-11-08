@@ -5,6 +5,8 @@ import subprocess
 import pytest
 
 DELETE_BAILED = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/bailed")
+DELETE_PR_READY = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/pr-ready")
+ADD_BAILED = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=bailed")
 
 
 def fake_gh(monkeypatch, answer):
@@ -47,3 +49,23 @@ def test_gh_issue_remove_label_returns_when_the_issue_does_not_carry_the_label(g
     github.gh_issue_remove_label("42", "bailed")
 
     assert calls == [DELETE_BAILED]
+
+
+@pytest.fixture
+def event():
+    return importlib.import_module("veri.event")
+
+
+def clone(tmp_path):
+    (tmp_path / "clone" / ".git").mkdir(parents=True)
+    (tmp_path / "clone" / ".git" / "config").write_text("[core]\n\tbare = false\n")
+    return str(tmp_path / "clone")
+
+
+def test_a_bail_event_labels_the_state_label_issue_bailed_and_takes_its_pr_ready_label_off(event, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    calls = fake_gh(monkeypatch, lambda args: (0, "", ""))
+
+    code = event.append(clone(tmp_path), {"issue": "42"}, "bail", ["cause=revise-exhausted"], ts=1700000000)
+
+    assert (code, calls) == (0, [ADD_BAILED, DELETE_PR_READY])

@@ -9,6 +9,7 @@ import sys
 import time
 
 import entry
+import github
 import tunables
 
 USAGE = "usage: event.sh <event> [key=value …]\n".encode()
@@ -223,7 +224,15 @@ def append(directory, context, event, fields=(), ts=None):
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
     write_journal(top, context, text)
+    state_labels(args[0])
     return 0
+
+
+def state_labels(event):
+    issue = tunables.read("VERI_STATE_LABEL_ISSUE")
+    if issue and event == b"bail":
+        github.gh_issue_add_label(issue, "bailed")
+        github.gh_issue_remove_label(issue, "pr-ready")
 
 
 def context(environ):
