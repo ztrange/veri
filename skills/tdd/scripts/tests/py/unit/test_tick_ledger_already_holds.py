@@ -110,3 +110,25 @@ def test_main_already_holds_event_records_the_first_reason_line_with_text_when_t
     assert code == 0, err
     assert "- [x] a one" in ledger.read_text()
     assert event["reason"] == "already holds; rerouted to pin step 4", event
+
+
+def test_main_already_holds_drops_the_mutation_record_whose_tests_case_does_not_exist_3289(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    suite = tmp_path / "tests" / "test_thing.py"
+    suite.parent.mkdir()
+    suite.write_text("def test_other():\n    pass\n")
+    command = "make test TESTS=tests/test_thing.py::test_never_written"
+    record = ledger.parent / "issue-42-mutations.md"
+    record.write_text(
+        "file 8\nthing.py\nold 3\nold\nnew 3\nnew\n"
+        f"command {len(command)}\n{command}\n\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds; rerouted to pin step 4\n")
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, "test_never_written" in record.read_text()) == (0, False), err
