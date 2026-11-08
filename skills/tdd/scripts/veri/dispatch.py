@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 
 import paths
@@ -16,6 +17,9 @@ USAGE = "usage: dispatch.sh --target <N>\n"
 solvable_issues = watch_runs.solvable_issues
 wait = watch_runs.wait
 live_conductors = watch_runs.live_conductors
+
+
+clock = time.time
 
 
 def now():
@@ -91,6 +95,12 @@ def main(argv):
                     sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
                     return 2
                 sys.stdout.write(exit_line(issue) + "\n")
+                return 0
+        stall = int(os.environ.get("VERI_DISPATCH_STALL", "3600"))
+        for issue in seen:
+            events = os.path.join(run_dir(issue), ".tdd", "events.jsonl")
+            if os.path.exists(events) and clock() - os.path.getmtime(events) >= stall:
+                sys.stdout.write(f"stalled {issue}\n")
                 return 0
         seen = live
         ledger = previous and ledger_path(run_dir(previous), previous)
