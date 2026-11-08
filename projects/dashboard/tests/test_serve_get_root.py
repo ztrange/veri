@@ -392,3 +392,73 @@ def test_page_shows_a_running_runs_cost_in_dollars_summed_from_usage_events(veri
 
     entry = [l for l in body.splitlines() if "1212" in l]
     assert any("| total | $0.73" in l for l in entry)
+
+
+@pytest.mark.process("serve.py")
+def test_page_shows_a_running_runs_model_split_per_role(veri_home):
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "1313", "event": event, **extra}) + "\n"
+
+    (veri_home / "runs" / "1313.jsonl").write_text(
+        ev(0, "conductor-start")
+        + ev(10, "launch", phase="red", actor="developer", name="develop-red", model="sonnet")
+        + ev(20, "launch", phase="red", actor="verifier", name="verify-red", model="haiku")
+        + ev(30, "launch", phase="red", actor="developer", name="revise-red", model="opus")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    entry = [l for l in body.splitlines() if "1313" in l]
+    assert any("developer sonnet verifier haiku revise opus" in l for l in entry)
+
+
+@pytest.mark.process("serve.py")
+def test_page_shows_only_the_roles_with_a_model_in_a_running_runs_model_split(veri_home):
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "1414", "event": event, **extra}) + "\n"
+
+    (veri_home / "runs" / "1414.jsonl").write_text(
+        ev(0, "conductor-start")
+        + ev(10, "launch", phase="red", actor="developer", name="develop-red", model="sonnet")
+        + ev(20, "launch", phase="red", actor="verifier", name="verify-red")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    entry = [l for l in body.splitlines() if "1414" in l]
+    assert any("developer sonnet" in l for l in entry)
+    assert not any("verifier" in l or "revise" in l or "None" in l for l in entry)

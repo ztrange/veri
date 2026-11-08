@@ -33,7 +33,16 @@ def running_lines():
         cost = ""
         if usage:
             cost = " | total | $%.2f" % sum(usage)
-        lines.append("<p>%s %dm%s%s%s%s</p>" % (path.stem, minutes, steps, phase, counts, cost))
+        models = {}
+        for e in events:
+            if e.get("model"):
+                models[e["name"].split("-")[0]] = e["model"]
+        split = ""
+        if models:
+            split = " " + " ".join("%s %s" % (r, models[k]) for k, r in
+                                   (("develop", "developer"), ("verify", "verifier"), ("revise", "revise"))
+                                   if k in models)
+        lines.append("<p>%s %dm%s%s%s%s%s</p>" % (path.stem, minutes, steps, phase, counts, cost, split))
     return lines
 
 
