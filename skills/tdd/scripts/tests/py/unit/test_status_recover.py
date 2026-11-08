@@ -413,3 +413,20 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
     assert code == 0 and len(first) == 1 and len(second) == 1, (code, pending)
     assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
+
+
+def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_naming_that_read(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        if args and args[0] == "gh":
+            return subprocess.CompletedProcess(args, 1, stdout="", stderr="gh: HTTP 403: rate limit exceeded")
+        return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, _out, err = run_cli(status, ["--recover", "coord"])
+
+    assert code == 2, (code, err)
+    assert "pull" in err.lower() or "PR" in err, err
