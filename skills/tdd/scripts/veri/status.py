@@ -529,11 +529,11 @@ def recover_lock():
     return [out or "free"]
 
 
-def recover_state(role):
+def recover_state(role, lane=None):
     fields = {}
     timed = []
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % role)) as f:
+        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % (role if lane is None else "%s-%s" % (role, lane)))) as f:
             for line in f:
                 if line.startswith(("timed-n ", "override ")):
                     timed.append(line.rstrip("\n"))
@@ -544,9 +544,9 @@ def recover_state(role):
     return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + timed
 
 
-def recover(role):
+def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
-              "State": lambda: recover_state(role)}
+              "State": lambda: recover_state(role, lane)}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
@@ -556,6 +556,8 @@ def recover(role):
 def main(argv):
     if len(argv) == 2 and argv[0] == "--recover":
         return recover(argv[1])
+    if len(argv) == 4 and argv[0] == "--recover" and argv[2] == "--lane":
+        return recover(argv[1], argv[3])
     if list(argv) == ["--report"]:
         refresh_if_stale()
         print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
