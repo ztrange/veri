@@ -8,11 +8,26 @@ import event
 USAGE = "usage: diff-leaf-deviation.sh <leaf> <step-base-sha> <ledger>"
 
 
+class GitFailure(Exception):
+    pass
+
+
 def _git(*args):
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
+    try:
+        return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout.strip()
+    except subprocess.CalledProcessError as exc:
+        raise GitFailure("diff-leaf-deviation.sh: git " + " ".join(args) + " failed: " + exc.stderr.strip()) from None
 
 
 def main(argv):
+    try:
+        return _main(argv)
+    except GitFailure as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
+
+def _main(argv):
     if len(argv) == 3:
         leaf, base, ledger = argv
         count = int(_git("rev-list", "--count", base + "..HEAD"))
