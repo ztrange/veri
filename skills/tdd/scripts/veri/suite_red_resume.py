@@ -83,7 +83,12 @@ def insert(ledger, branch_file):
         listed = [unit for path in requirements.lists() for unit in requirements.listed_units(path)]
         candidates = [unit for unit in listed if all(unit in red for red in reds)]
     pinned = [unit for unit in candidates if all(unit in red for red in reds)]
-    if unchecked and "⟦skill-edit⟧" in unchecked[0] and any(unit in unchecked[0] for unit in candidates):
+    pending = []
+    for line in unchecked:
+        if "⟦skill-edit⟧" not in line:
+            break
+        pending.append(line)
+    if candidates and all(any(unit in line for line in pending) for unit in candidates):
         return 0
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
