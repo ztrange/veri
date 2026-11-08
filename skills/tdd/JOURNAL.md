@@ -2,6 +2,8 @@
 
 `event.sh <event> [key=value …]` (or `event.mark` from a Python module) appends one JSON line to `.tdd/events.jsonl`. Every line carries `ts` (epoch seconds), `awake` (awake-clock reading), `issue`, `actor`, `phase`, `step`, `event` (the name), `attempt` and `skill_commit` (the run context, empty when unset), then the keys below, in the order the emitter gives them. Every value is a string.
 
+Keys and events are append-only: a key or event is never removed or renamed, only added. No event carries a schema version key.
+
 | Event | Keys | Meaning |
 |---|---|---|
 | `bail` | `cause`, `classification`, `suites` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step. |
