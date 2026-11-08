@@ -21,3 +21,7 @@ def emitted_events():
             for found in pattern.finditer(text):
                 names.setdefault(found.group(1), path.relative_to(SKILLS))
     return names
+
+
+def documented_events(text):
+    return set(re.findall(r"^\|\s*`([a-z][a-z0-9-]*)`\s*\|", text, re.M))
