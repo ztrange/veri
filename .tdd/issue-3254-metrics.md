@@ -1,17 +1,19 @@
 ### 📊 Metrics — issue 3254
 
-Wall time for the issue: 3820 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3394 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 8 planned.
+Steps done: 12 of 12 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3326.
 Lane: ready-for-agent:mu
+Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.38 over 230 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $15.74 over 306 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78717 tokens, largest 139446 tokens
 Conductor context: first turn 78688 tokens, largest 167126 tokens
 Conductor context: first turn 78711 tokens, largest 118881 tokens
-Conductor context: first turn 78713 tokens, largest 191800 tokens
+Conductor context: first turn 78713 tokens, largest 198940 tokens
+Conductor context: first turn 78729 tokens, largest 168193 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -153,153 +155,228 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 133 | $0.07 | 115996 |
 | 134 | $0.05 | 117331 |
 | 135 | $0.05 | 118881 |
-| 136 | $0.49 | 78713 |
-| 137 | $0.06 | 84513 |
-| 138 | $0.03 | 86729 |
-| 139 | $0.04 | 89618 |
-| 140 | $0.02 | 90215 |
-| 141 | $0.05 | 94651 |
-| 142 | $0.02 | 95071 |
-| 143 | $0.02 | 95416 |
-| 144 | $0.02 | 95748 |
-| 145 | $0.02 | 96152 |
-| 146 | $0.02 | 96503 |
+| 136 | $0.50 | 78713 |
+| 137 | $0.07 | 84513 |
+| 138 | $0.05 | 86729 |
+| 139 | $0.05 | 89618 |
+| 140 | $0.03 | 90215 |
+| 141 | $0.07 | 94651 |
+| 142 | $0.03 | 95071 |
+| 143 | $0.03 | 95416 |
+| 144 | $0.03 | 95748 |
+| 145 | $0.04 | 96152 |
+| 146 | $0.03 | 96503 |
 | 147 | $0.03 | 97236 |
-| 148 | $0.03 | 98108 |
-| 149 | $0.05 | 101739 |
-| 150 | $0.04 | 103701 |
-| 151 | $0.03 | 104512 |
+| 148 | $0.04 | 98108 |
+| 149 | $0.06 | 101739 |
+| 150 | $0.05 | 103701 |
+| 151 | $0.04 | 104512 |
 | 152 | $0.03 | 105259 |
-| 153 | $0.02 | 105685 |
-| 154 | $0.02 | 105993 |
-| 155 | $0.07 | 111831 |
-| 156 | $0.03 | 112639 |
-| 157 | $0.03 | 113130 |
-| 158 | $0.03 | 114213 |
-| 159 | $0.03 | 114706 |
+| 153 | $0.04 | 105685 |
+| 154 | $0.03 | 105993 |
+| 155 | $0.08 | 111831 |
+| 156 | $0.04 | 112639 |
+| 157 | $0.04 | 113130 |
+| 158 | $0.04 | 114213 |
+| 159 | $0.04 | 114706 |
 | 160 | $0.03 | 114998 |
-| 161 | $0.03 | 115840 |
-| 162 | $0.03 | 116300 |
-| 163 | $0.03 | 117188 |
-| 164 | $0.03 | 117778 |
-| 165 | $0.03 | 118860 |
-| 166 | $0.03 | 119374 |
-| 167 | $0.03 | 119757 |
-| 168 | $0.03 | 120415 |
-| 169 | $0.03 | 121295 |
-| 170 | $0.03 | 121902 |
-| 171 | $0.03 | 122647 |
-| 172 | $0.03 | 123398 |
-| 173 | $0.03 | 123865 |
-| 174 | $0.03 | 124376 |
-| 175 | $0.03 | 125615 |
-| 176 | $0.03 | 126646 |
-| 177 | $0.04 | 128286 |
+| 161 | $0.04 | 115840 |
+| 162 | $0.04 | 116300 |
+| 163 | $0.04 | 117188 |
+| 164 | $0.04 | 117778 |
+| 165 | $0.04 | 118860 |
+| 166 | $0.04 | 119374 |
+| 167 | $0.04 | 119757 |
+| 168 | $0.04 | 120415 |
+| 169 | $0.04 | 121295 |
+| 170 | $0.04 | 121902 |
+| 171 | $0.04 | 122647 |
+| 172 | $0.04 | 123398 |
+| 173 | $0.04 | 123865 |
+| 174 | $0.04 | 124376 |
+| 175 | $0.04 | 125615 |
+| 176 | $0.05 | 126646 |
+| 177 | $0.05 | 128286 |
 | 178 | $0.04 | 129462 |
-| 179 | $0.03 | 130067 |
-| 180 | $0.03 | 130511 |
-| 181 | $0.03 | 131594 |
-| 182 | $0.04 | 132874 |
-| 183 | $0.03 | 133869 |
-| 184 | $0.03 | 134362 |
-| 185 | $0.04 | 135608 |
-| 186 | $0.03 | 136307 |
-| 187 | $0.04 | 137318 |
-| 188 | $0.03 | 138152 |
-| 189 | $0.04 | 139131 |
-| 190 | $0.03 | 139625 |
-| 191 | $0.04 | 140552 |
-| 192 | $0.03 | 141126 |
-| 193 | $0.03 | 141821 |
+| 179 | $0.04 | 130067 |
+| 180 | $0.04 | 130511 |
+| 181 | $0.05 | 131594 |
+| 182 | $0.05 | 132874 |
+| 183 | $0.04 | 133869 |
+| 184 | $0.04 | 134362 |
+| 185 | $0.05 | 135608 |
+| 186 | $0.04 | 136307 |
+| 187 | $0.05 | 137318 |
+| 188 | $0.04 | 138152 |
+| 189 | $0.05 | 139131 |
+| 190 | $0.04 | 139625 |
+| 191 | $0.05 | 140552 |
+| 192 | $0.04 | 141126 |
+| 193 | $0.05 | 141821 |
 | 194 | $0.04 | 142818 |
-| 195 | $0.04 | 144003 |
-| 196 | $0.05 | 146133 |
-| 197 | $0.03 | 146394 |
-| 198 | $0.04 | 147440 |
-| 199 | $0.04 | 148711 |
-| 200 | $0.04 | 149766 |
+| 195 | $0.05 | 144003 |
+| 196 | $0.06 | 146133 |
+| 197 | $0.04 | 146394 |
+| 198 | $0.05 | 147440 |
+| 199 | $0.05 | 148711 |
+| 200 | $0.05 | 149766 |
 | 201 | $0.04 | 150581 |
-| 202 | $0.03 | 150892 |
-| 203 | $0.04 | 151998 |
+| 202 | $0.05 | 150892 |
+| 203 | $0.05 | 151998 |
 | 204 | $0.04 | 152820 |
-| 205 | $0.04 | 153646 |
-| 206 | $0.03 | 154103 |
-| 207 | $0.03 | 154571 |
-| 208 | $0.03 | 155073 |
-| 209 | $0.04 | 156079 |
+| 205 | $0.05 | 153646 |
+| 206 | $0.05 | 154103 |
+| 207 | $0.04 | 154571 |
+| 208 | $0.05 | 155073 |
+| 209 | $0.05 | 156079 |
 | 210 | $0.04 | 156741 |
-| 211 | $0.04 | 157324 |
-| 212 | $0.04 | 158817 |
-| 213 | $0.04 | 159759 |
-| 214 | $0.15 | 174838 |
-| 215 | $0.04 | 175185 |
-| 216 | $0.04 | 176358 |
-| 217 | $0.04 | 176681 |
-| 218 | $0.04 | 177423 |
-| 219 | $0.04 | 178259 |
-| 220 | $0.04 | 178861 |
-| 221 | $0.04 | 179429 |
-| 222 | $0.04 | 179934 |
-| 223 | $0.04 | 180823 |
-| 224 | $0.05 | 182161 |
-| 225 | $0.05 | 183807 |
+| 211 | $0.05 | 157324 |
+| 212 | $0.05 | 158817 |
+| 213 | $0.05 | 159759 |
+| 214 | $0.17 | 174838 |
+| 215 | $0.05 | 175185 |
+| 216 | $0.05 | 176358 |
+| 217 | $0.05 | 176681 |
+| 218 | $0.05 | 177423 |
+| 219 | $0.05 | 178259 |
+| 220 | $0.05 | 178861 |
+| 221 | $0.05 | 179429 |
+| 222 | $0.06 | 179934 |
+| 223 | $0.05 | 180823 |
+| 224 | $0.06 | 182161 |
+| 225 | $0.06 | 183807 |
 | 226 | $0.06 | 186365 |
-| 227 | $0.05 | 187683 |
-| 228 | $0.05 | 189096 |
-| 229 | $0.04 | 189668 |
-| 230 | $0.04 | 190181 |
-| 231 | $0.04 | 190810 |
-| 232 | $0.04 | 191335 |
-| 233 | $0.04 | 191800 |
+| 227 | $0.06 | 187683 |
+| 228 | $0.06 | 189096 |
+| 229 | $0.06 | 189668 |
+| 230 | $0.05 | 190181 |
+| 231 | $0.05 | 190810 |
+| 232 | $0.05 | 191335 |
+| 233 | $0.06 | 191800 |
+| 234 | $0.05 | 192856 |
+| 235 | $0.06 | 193216 |
+| 236 | $0.05 | 193782 |
+| 237 | $0.06 | 194548 |
+| 238 | $0.06 | 196145 |
+| 239 | $0.05 | 196725 |
+| 240 | $0.05 | 197109 |
+| 241 | $0.07 | 198558 |
+| 242 | $0.05 | 198940 |
+| 243 | $0.49 | 78729 |
+| 244 | $0.06 | 84732 |
+| 245 | $0.04 | 87033 |
+| 246 | $0.02 | 87544 |
+| 247 | $0.04 | 90880 |
+| 248 | $0.05 | 95241 |
+| 249 | $0.02 | 95894 |
+| 250 | $0.02 | 96345 |
+| 251 | $0.02 | 96667 |
+| 252 | $0.02 | 97083 |
+| 253 | $0.02 | 97528 |
+| 254 | $0.02 | 98117 |
+| 255 | $0.02 | 98776 |
+| 256 | $0.03 | 99616 |
+| 257 | $0.02 | 100181 |
+| 258 | $0.04 | 103237 |
+| 259 | $0.03 | 103833 |
+| 260 | $0.03 | 105189 |
+| 261 | $0.03 | 106423 |
+| 262 | $0.04 | 108401 |
+| 263 | $0.03 | 109223 |
+| 264 | $0.02 | 109514 |
+| 265 | $0.03 | 110092 |
+| 266 | $0.03 | 110626 |
+| 267 | $0.03 | 111789 |
+| 268 | $0.03 | 112755 |
+| 269 | $0.03 | 113451 |
+| 270 | $0.09 | 121796 |
+| 271 | $0.03 | 122491 |
+| 272 | $0.04 | 123940 |
+| 273 | $0.04 | 125442 |
+| 274 | $0.03 | 126167 |
+| 275 | $0.03 | 126645 |
+| 276 | $0.03 | 127770 |
+| 277 | $0.03 | 128586 |
+| 278 | $0.03 | 129359 |
+| 279 | $0.04 | 130514 |
+| 280 | $0.03 | 131213 |
+| 281 | $0.03 | 131815 |
+| 282 | $0.03 | 132615 |
+| 283 | $0.03 | 133234 |
+| 284 | $0.04 | 134857 |
+| 285 | $0.03 | 135605 |
+| 286 | $0.03 | 136386 |
+| 287 | $0.04 | 138119 |
+| 288 | $0.03 | 138993 |
+| 289 | $0.04 | 140463 |
+| 290 | $0.03 | 141272 |
+| 291 | $0.04 | 142243 |
+| 292 | $0.03 | 142989 |
+| 293 | $0.04 | 143968 |
+| 294 | $0.03 | 144686 |
+| 295 | $0.15 | 159741 |
+| 296 | $0.04 | 160417 |
+| 297 | $0.04 | 161206 |
+| 298 | $0.04 | 161958 |
+| 299 | $0.04 | 162676 |
+| 300 | $0.04 | 164119 |
+| 301 | $0.04 | 164746 |
+| 302 | $0.04 | 165359 |
+| 303 | $0.04 | 166134 |
+| 304 | $0.04 | 166492 |
+| 305 | $0.04 | 167109 |
+| 306 | $0.04 | 167434 |
+| 307 | $0.04 | 167863 |
+| 308 | $0.04 | 168193 |
 
 #### Conductor comments, by family
 
 | family | turns | output tokens | dollars |
 | --- | ---: | ---: | ---: |
-| ✅ Step done | 15 | 4675 | $0.09 |
-| ✅ Done | 4 | 1696 | $0.03 |
-| 🔴 Red | 5 | 1996 | $0.04 |
-| 🟢 Green | 6 | 1517 | $0.03 |
-| 🛠️ Refactor | 5 | 1522 | $0.03 |
-| 🔎 verify-green | 6 | 1517 | $0.03 |
-| 🔎 verify-refactor | 4 | 1028 | $0.02 |
-| 🔎 verify-<phase> (revised) | 3 | 996 | $0.02 |
+| ✅ Step done | 18 | 7809 | $0.16 |
+| ✅ Done | 5 | 2222 | $0.04 |
+| 🔴 Red | 8 | 2544 | $0.05 |
+| 🟢 Green | 8 | 3100 | $0.06 |
+| 🛠️ Refactor | 7 | 2597 | $0.05 |
+| 🔎 verify-green | 8 | 3100 | $0.06 |
+| 🔎 verify-refactor | 6 | 2103 | $0.04 |
+| 🔎 verify-<phase> (revised) | 4 | 1516 | $0.03 |
 | 🗺️ Plan | 1 | 424 | $0.01 |
-| 🗺️ verify-plan | 4 | 1358 | $0.03 |
-| ▶️ Resuming | 2 | 510 | $0.01 |
+| 🗺️ verify-plan | 5 | 1884 | $0.04 |
+| ▶️ Resuming | 3 | 1028 | $0.02 |
 | ⛔ Bailed | 3 | 1480 | $0.03 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 35 | 11120 | $0.22 |
+| Total | 46 | 18473 | $0.37 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 2 | 3 | 0 | 80 | 66 | 14 | 28 | 8406 | 202500 | 95680 | 0.34 |
-| red | 13 | 4 | 1 | 0 | 378 | 201 | 67 | 132 | 22677 | 1231326 | 239337 | 1.01 |
-| green | 16 | 4 | 4 | 0 | 2910 | 273 | 91 | 174 | 28128 | 1590269 | 283773 | 1.35 |
-| refactor | 5 | 0 | 0 | 0 | 30 | 16 | 11 | 20 | 1354 | 109459 | 80429 | 0.23 |
+| plan | 6 | 3 | 3 | 0 | 93 | 77 | 15 | 30 | 9585 | 202500 | 116053 | 0.41 |
+| red | 21 | 6 | 2 | 0 | 610 | 346 | 108 | 210 | 37463 | 1929548 | 395669 | 1.75 |
+| green | 20 | 6 | 4 | 0 | 3081 | 313 | 111 | 208 | 32496 | 1861232 | 343337 | 1.57 |
+| refactor | 7 | 0 | 0 | 0 | 42 | 24 | 16 | 30 | 1834 | 178887 | 109226 | 0.31 |
 | red-missing | 2 | 0 | 0 | 0 | 48 | 36 | 9 | 18 | 4799 | 158923 | 34340 | 0.15 |
-| pin | 4 | 4 | 0 | 0 | 93 | 64 | 23 | 44 | 7203 | 366219 | 64450 | 0.27 |
-| prose | 10 | 0 | 0 | 0 | 364 | 349 | 10 | 20 | 55028 | 109691 | 567150 | 1.98 |
+| pin | 6 | 6 | 0 | 0 | 131 | 93 | 32 | 62 | 10130 | 507984 | 94084 | 0.39 |
+| prose | 14 | 0 | 0 | 0 | 606 | 584 | 14 | 28 | 92255 | 114021 | 882162 | 3.14 |
 | skill-edit | 2 | 0 | 0 | 0 | 22 | 16 | 8 | 14 | 1691 | 448932 | 157180 | 0.45 |
-| rebase | 4 | 1 | 1 | 0 | 1115 | 69 | 25 | 48 | 7169 | 421860 | 97815 | 0.49 |
+| rebase | 6 | 2 | 1 | 0 | 2091 | 115 | 40 | 78 | 11766 | 639222 | 184675 | 0.77 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 15 | 9 | 0 | 3026 | 344 | 113 | 216 | 38342 | 1746945 | 415056 | 1.60 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 401 | 199 | 71 | 140 | 23078 | 1293575 | 278023 | 1.06 |
-| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 1227 | 182 | 56 | 108 | 18316 | 1040036 | 202745 | 1.18 |
+| verifier | claude-sonnet-5-5 | 33 | 23 | 10 | 0 | 4154 | 463 | 151 | 290 | 50134 | 2268815 | 604283 | 2.24 |
+| developer | claude-sonnet-5-5 | 24 | 0 | 0 | 0 | 645 | 298 | 110 | 212 | 33667 | 1894956 | 418760 | 1.57 |
+| developer | claude-opus-5-5 | 11 | 0 | 0 | 0 | 1297 | 243 | 70 | 134 | 24272 | 1314525 | 254341 | 1.52 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 136 | 0.35 | 0 | 0.00 |
+| red | 275 | 0.81 | 0 | 0.00 |
 | green | 3142 | 1.50 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
@@ -320,6 +397,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | The heading line of the comment `comment.sh <issue> step-done` posts is byte for byte `### ✅ Step done`, the string `skills/tdd/SKILL.md` prescribes for a hand-composed step-done comment today, and the `✅ Step done` family of `metrics.py`'s `COMMENT_FAMILIES` matches it exactly as it matches a hand-composed one; a pin, no production change expected ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 13 | 26 | 4424 | 244642 | 36376 | 0.16 | unknown | unknown | unknown | unknown |  |  | pin |
 | skills/tdd/SCRIPTS.md passes SC95 of this issue's `## Requirements` (a `$S/comment.sh <issue> <kind> [--note-file <path>]` entry), regraded ⟦skill-edit⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 80 | 7 | 14 | 12217 | 176642 | 214941 | 0.68 | 111 | unknown | unknown | unknown |  |  | full |
 | skills/tdd/SKILL.md passes CY95 and RF36 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 6⟧ | 9 | 1 | 1 | 0 | 0 | 0 | 239 | 34 | 64 | 33467 | 801676 | 449085 | 1.66 | 206 | 1/2 | unknown | unknown |  |  | full |
+| pin: `comment.sh <n>` with no kind is a bad argument — usage line, exit 2, no post, no event; this already holds at the tip, so the case passes there and goes red under the mutant `len(argv) < 2` → `len(argv) < 1` at skills/tdd/scripts/veri/comment.py:15 ⟦added⟧ ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 36 | 12 | 22 | 3745 | 188145 | 40777 | 0.16 | unknown | unknown | unknown | unknown |  |  | pin |
+| the `comment` event's url is the posted comment's .html_url with its trailing newline stripped; pinned by a case that goes red when the newline is kept, and by one that goes red when `-q .html_url` is dropped from github.py RestAdapter.issue_comment ⟦added⟧ ⟦criterion 1⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 115 | 37 | 66 | 11411 | 588921 | 129350 | 0.63 | 426 | 1/2 | 0/5 | nothing-left |  |  | full |
+| pin: the note from --note-file follows the heading after a blank line; this already holds at the tip, so the case passes there and goes red under the mutant `f"\n{f.read()}"` → `f.read()` in comment.py ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 29 | 8 | 16 | 3124 | 129836 | 30983 | 0.12 | unknown | unknown | unknown | unknown |  |  | pin |
+| an unknown <kind> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event ⟦added⟧ ⟦criterion 7⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 88 | 33 | 66 | 8878 | 490838 | 160077 | 0.54 | 278 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -331,6 +412,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `comment.sh <issue> step-done` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### ✅ Step done` and which names the step just finished, the last done step of the run's ledger `.tdd/issue-<issue>.md`, and appends one `comment` event with `kind=step-done` and `url=<the posted comment's url>` to the run's `.tdd/events.jsonl`; JOURNAL.md's event table gains a `comment` row (the event roster guard requires it); its cases fake only the GitHub boundary, no real `gh` ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.05 |
 | `comment.sh <issue> step-done --note-file <path>` posts the rendered `### ✅ Step done` comment with that file's text appended under it ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 13 | 0.09 |
 | An argument after <kind> that is not --note-file <path> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event (the triangulating red already on disk serves it) ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.04 |
+| the `comment` event's url is the posted comment's .html_url with its trailing newline stripped; pinned by a case that goes red when the newline is kept, and by one that goes red when `-q .html_url` is dropped from github.py RestAdapter.issue_comment ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.05 |
+| an unknown <kind> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event ⟦added⟧ ⟦criterion 7⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.04 |
 
 #### Structural pass
 
@@ -344,19 +427,21 @@ Stopped: nothing-structural
 | `comment.sh <issue> step-done` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### ✅ Step done` and which names the step just finished, the last done step of the run's ledger `.tdd/issue-<issue>.md`, and appends one `comment` event with `kind=step-done` and `url=<the posted comment's url>` to the run's `.tdd/events.jsonl`; JOURNAL.md's event table gains a `comment` row (the event roster guard requires it); its cases fake only the GitHub boundary, no real `gh` ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `comment.sh <issue> step-done --note-file <path>` posts the rendered `### ✅ Step done` comment with that file's text appended under it ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | An argument after <kind> that is not --note-file <path> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event (the triangulating red already on disk serves it) ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 5 | ? | ? | nothing-left 4, nothing-structural 1 |
+| the `comment` event's url is the posted comment's .html_url with its trailing newline stripped; pinned by a case that goes red when the newline is kept, and by one that goes red when `-q .html_url` is dropped from github.py RestAdapter.issue_comment ⟦added⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| an unknown <kind> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event ⟦added⟧ ⟦criterion 7⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 7 | ? | ? | nothing-left 6, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 0 | 1 | 2 | 1 | 2 | 2 | 2 | 10 | 1 | 1062 | 213 | 229 | 299 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 265 |
-| fast | 36 | 22 | 25 | 34 | 22 | 24 | 21 | 20 | 28 | 20 | 22 | 19 | 21 | 23 | 32 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 2 | 3 | 2 | 2 | 2 | 2 | 3 | 1 | 2 | 3 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 2 |  |  |  |  |  |
-| all | 35 | 20 | 256 | 265 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 0 | 1 | 2 | 1 | 2 | 2 | 2 | 10 | 1 | 1062 | 213 | 229 | 299 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 265 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 2 |
+| fast | 36 | 22 | 25 | 34 | 22 | 24 | 21 | 20 | 28 | 20 | 22 | 19 | 21 | 23 | 32 | 15 | 19 | 20 | 17 | 18 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 2 | 3 | 2 | 2 | 2 | 2 | 3 | 1 | 2 | 3 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 3 | 4 |  |  |  |  |
+| all | 35 | 20 | 256 | 265 | 48 | 27 | 456 | 385 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 258 | 498 | 136455 | 4639179 | 1620154 | 17.64 (estimate) |
+| total | 353 | 678 | 202019 | 6041249 | 2316726 | 24.67 (estimate) |
