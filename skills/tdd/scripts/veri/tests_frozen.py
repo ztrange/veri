@@ -276,6 +276,17 @@ def _moved_path(name, case):
             with open(path, encoding="utf-8", errors="replace") as handle:
                 if case in dict(_cases(handle.read())):
                     return path
+    return _renamed_path(name, case)
+
+
+def _renamed_path(name, case):
+    for top, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for file in files:
+            path = os.path.join(top, file)
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                if case in dict(_cases(handle.read())):
+                    return path
     return name
 
 
