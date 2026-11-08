@@ -551,6 +551,9 @@ def recover_state(role, lane=None):
 
 
 def recover(role, lane=None):
+    if role not in ("coord", "dev"):
+        print("usage: status.sh --recover <coord|dev> [--lane <lane>]", file=sys.stderr)
+        return 2
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision "),
