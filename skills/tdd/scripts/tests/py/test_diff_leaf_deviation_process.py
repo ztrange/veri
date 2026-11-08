@@ -100,3 +100,20 @@ def test_issue_3351_no_commit_since_the_step_base_exits_3_and_appends_no_event(t
 
     events = repo / ".tdd" / "events.jsonl"
     assert (code, events.read_text() if events.exists() else "") == (3, "")
+
+
+@pytest.mark.process("git")
+def test_issue_3351_a_nonexistent_base_sha_exits_2_naming_the_git_failure_and_appends_no_event(tmp_path, run_cli):
+    diff_leaf_deviation = importlib.import_module("veri.diff_leaf_deviation")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".tdd" / "issue-42.md").write_text("# Plan for #42\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+
+    code, out, err = run_cli(diff_leaf_deviation, ["develop-diff", "deadbeef" * 5, ".tdd/issue-42.md"], cwd=repo)
+
+    events = repo / ".tdd" / "events.jsonl"
+    assert (code, out, events.exists(), "git rev-list" in err, "Traceback" in err, "ValueError" in err) == (
+        2, "", False, True, False, False)
