@@ -574,6 +574,37 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_la
     assert code == 3, (code, out, err)
 
 
+def test_a_step_whose_issue_row_id_cell_is_id_reword_naming_a_listed_row_with_different_text_rewords_it_under_its_bare_id_and_exits_as_a_reword_does_3320(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
+    launched = []
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
+
+    listed = (tmp_path / "REQUIREMENTS.md").read_text()
+    assert launched == [], launched
+    assert "| A1 | The widget is blue. | because |" in listed and "The widget is red." not in listed, listed
+    assert "<reword>" not in listed, listed
+    assert code == 3, (code, out, err)
+
+
 def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, monkeypatch, run_cli):
     monkeypatch.chdir(tmp_path)
     import subprocess
