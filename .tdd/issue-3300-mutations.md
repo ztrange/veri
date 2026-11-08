@@ -23,3 +23,12 @@ rb"^REASON:"
 command 181
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py::test_revise_red_for_a_verify_pin_reason_not_saying_stays_green_still_builds_the_prompt_3300
 
+file 47
+skills/tdd/scripts/veri/build_develop_prompt.py
+old 51
+phase == "revise" and revised_phase == "red" and os
+new 24
+phase == "revise" and os
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py::test_revise_green_for_a_verify_pin_reason_saying_stays_green_still_builds_the_prompt_3300
+

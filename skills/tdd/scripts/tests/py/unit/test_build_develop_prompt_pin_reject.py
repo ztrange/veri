@@ -49,3 +49,17 @@ def test_revise_red_for_a_verify_pin_reason_not_saying_stays_green_still_builds_
 
     out, err = capsysbinary.readouterr()
     assert (code, bool(out), b"pin-reject-route.sh" in err) == (0, True, False)
+
+
+def test_revise_green_for_a_verify_pin_reason_saying_stays_green_still_builds_the_prompt_3300(
+        tmp_path, capsysbinary):
+    build_develop_prompt = importlib.import_module("veri.build_develop_prompt")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "verify-pin.reason"
+    reason.write_bytes(b"VERDICT: REJECT\nREASON: the mutation `< 2` to `< 1` stays green\n")
+
+    code = build_develop_prompt.main(["revise", "green", str(spec), "9", "make unit", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, bool(out), b"pin-reject-route.sh" in err) == (0, True, False)
