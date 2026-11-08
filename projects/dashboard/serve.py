@@ -16,7 +16,12 @@ def running_lines():
         if not events or any(e.get("event") in ENDING for e in events):
             continue
         minutes = (int(events[-1]["awake"]) - int(events[0]["awake"])) // 60
-        lines.append("<p>%s %dm</p>" % (path.stem, minutes))
+        plans = [e for e in events if e.get("event") == "plan"]
+        steps = ""
+        if plans:
+            done = sum(1 for e in events if e.get("event") == "step-done")
+            steps = " %d/%d" % (done, int(plans[-1]["steps"]))
+        lines.append("<p>%s %dm%s</p>" % (path.stem, minutes, steps))
     return lines
 
 
