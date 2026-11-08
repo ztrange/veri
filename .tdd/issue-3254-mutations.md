@@ -30,3 +30,22 @@ len(argv) != 4
 command 163
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_four_arguments_whose_third_is_not_note_file_exit_2_with_usage_posting_and_journaling_nothing
 
+before 40
+ce97239c8367c40279c8a815989f7b70641a23f3
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 309
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpwqfdtybf/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_comment.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github_gives_no_answer
+
+file 34
+skills/tdd/scripts/veri/comment.py
+old 46
+    url = github.gh_issue_comment(issue, body)
+new 104
+    try:
+        url = github.gh_issue_comment(issue, body)
+    except github.NoAnswer:
+        url = ""
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github_gives_no_answer
+

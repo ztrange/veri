@@ -116,3 +116,24 @@ def test_four_arguments_whose_third_is_not_note_file_exit_2_with_usage_posting_a
     assert (code, out, err) == (2, "", USAGE)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github_gives_no_answer(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+
+    def no_answer(number, body):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_comment", no_answer)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
