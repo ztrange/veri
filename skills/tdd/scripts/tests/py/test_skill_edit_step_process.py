@@ -901,6 +901,10 @@ def test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_223
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 
+    signed = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    assert signed.returncode in (0, 3), (signed.stdout, signed.stderr)
+    assert "GRADED" in git(repo, "ls-files"), git(repo, "ls-files")
+
     ran = subprocess.run([str(STEP), "--added", "reword the widget", "issue.md", "unit.md"], cwd=repo,
                          capture_output=True, text=True, env=env)
 
