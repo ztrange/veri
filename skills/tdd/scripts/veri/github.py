@@ -299,7 +299,8 @@ def gh_issue_add_label(number, label):
 
 
 def gh_issue_remove_label(number, label):
-    gh_api_delete(_issue(number) + "/labels/" + label)
+    if gh_api_delete(_issue(number) + "/labels/" + label).returncode != 0:
+        raise NoAnswer("")
 
 
 def gh_label_ensure(label):
