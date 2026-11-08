@@ -700,3 +700,24 @@ def test_store_owed_preserves_every_other_prds_entry_already_in_the_owed_file(ru
     assert code == 0
     stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
     assert stored == {"016": other, "014": {"updatedAt": "2026-11-02T10:00:00Z", "answer": answer}}
+
+
+def test_store_owed_for_a_prd_absent_from_the_cache_exits_2_and_leaves_the_owed_file_untouched(
+        run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    prd = {"number": 5, "title": "PRD 014: some owed", "state": "OPEN", "labels": [], "closedAt": None,
+           "updatedAt": "2026-11-02T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+           "wallSeconds": 0, "lane": None}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
+    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7}}
+    (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({"016": other}))
+    (tmp_path / "answer.json").write_text(json.dumps({"count": 2}))
+
+    code, _, err = run_cli(prd_report, ["--store-owed", "099", "answer.json"], cwd=tmp_path)
+
+    assert code == 2
+    assert "KeyError" not in err, err
+    assert json.loads((tmp_path / ".tdd" / "report-owed.json").read_text()) == {"016": other}
