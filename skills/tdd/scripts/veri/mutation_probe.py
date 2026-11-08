@@ -87,6 +87,12 @@ def main(argv):
     if len(argv) < 5 or argv[3] != "--":
         sys.stderr.write(USAGE + "\n")
         return 2
+    domain = tunables.read("VERI_MUTATION_ADDRESS_DOMAIN")
+    if domain:
+        for address in re.findall(r"[^\s@]+@[^\s@]+", argv[2]):
+            if address.rsplit("@", 1)[1] != domain:
+                sys.stderr.write(f"mutation-probe.sh: {address} is outside the allowed address domain {domain}\n")
+                return 2
     path = Path(argv[0])
     saved = path.read_bytes()
     mutated = saved.replace(argv[1].encode(), argv[2].encode())
