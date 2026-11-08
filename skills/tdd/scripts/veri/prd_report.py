@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import datetime
 import json
 import os
+import re
 import sys
 
 USAGE = "usage: report.sh --report"
@@ -15,10 +16,18 @@ def main(argv):
             print("no snapshot: %s is missing" % CACHE, file=sys.stderr)
             return 2
         with open(CACHE) as f:
-            fetched = json.load(f)["fetched_at"]
+            snapshot = json.load(f)
+        fetched = snapshot["fetched_at"]
         then = datetime.datetime.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
         hours = int((datetime.datetime.now(datetime.timezone.utc) - then).total_seconds() // 3600)
         print("snapshot age: %d hours" % hours)
+        prds = []
+        for issue in snapshot["issues"]:
+            match = re.match(r"PRD (\d+)", issue["title"])
+            if match and issue["state"] == "OPEN":
+                prds.append((int(match.group(1)), match.group(1), issue))
+        for _, nnn, issue in sorted(prds, key=lambda p: p[0]):
+            print("PRD %s (#%d) — %s" % (nnn, issue["number"], issue["title"]))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
