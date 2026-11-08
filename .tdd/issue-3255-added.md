@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py — FAILED test_no_module_but_event_and_event_log_opens_events_jsonl - AssertionError: assert ['comment.py'] == [] (comment.py reads .tdd/events.jsonl itself; it must read the done event through event.py or event_log.py) ⟦suite-repair⟧ ⟦criterion 4⟧
