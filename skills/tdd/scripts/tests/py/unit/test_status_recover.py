@@ -473,3 +473,13 @@ def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_a
     for value in list(values.values()) + list(items.values()):
         assert value in first, (value, first)
     assert second == first
+
+
+def test_3224_usage_strings_name_every_verb_and_flag(run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    status = importlib.import_module("veri.status")
+    code, _, err = run_cli(role_state, [])
+    for word in ["--lane", "set", "add", "drop", "show", "recovered", "decision", "message", "override", "timed-n"]:
+        assert word in err, word
+    assert code == 2
+    assert "--recover <coord|dev> [--lane <lane>]" in status.USAGE

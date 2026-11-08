@@ -6,7 +6,9 @@ import time
 
 from full_tier_time import main_tree
 
-USAGE = "usage: role-state.sh <coord|dev> set <field> <value> | show\n"
+USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane> <value>"
+         " | add <decision|message|override|timed-n> <text>"
+         " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
 
 
 def state_path(tree, role, lane=None):
