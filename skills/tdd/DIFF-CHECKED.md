@@ -24,9 +24,9 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
 
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
-  pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>` and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+  pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
-  Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
+  Green does, post `### ✅ Step done` by running `$S/comment.sh <n> step-done`, composing none of it, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
   PASS does.
 - **REJECT (exit 1):** a revise of the `⟦diff-checked⟧` step's `develop-diff` work under
