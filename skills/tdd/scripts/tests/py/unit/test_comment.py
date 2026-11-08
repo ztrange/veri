@@ -191,3 +191,20 @@ def test_the_comment_event_url_is_the_posted_html_url_with_its_trailing_newline_
     assert code == 0
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [e["url"] for e in events] == [url]
+
+
+def test_step_done_note_file_text_follows_the_rendered_comment_after_a_blank_line(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the operator note zulu\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert "second step bravo\n\nthe operator note zulu" in posted[0]
