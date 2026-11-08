@@ -1,7 +1,10 @@
 """refactor-candidates.sh's one candidates issue per run, filed in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
+import os
 import re
 import sys
+import tempfile
 
 try:
     from veri import github
@@ -46,10 +49,22 @@ def main(argv):
     if not any(rows(owed)):
         return 3
     body = grouped(owed) + "\n"
-    url = github.gh_issue_create("Refactor candidates left by #" + issue, body)
-    number = re.search(r"([0-9]+)\s*$", url).group(1)
-    for label in LABELS:
-        github.gh_issue_add_label(number, label)
+    title = "Refactor candidates left by #" + issue
+    found = json.loads(github.gh_issue_list("--state", "open", "--search", title + " in:title", "--json", "number,title,url"))
+    existing = [row for row in found if row["title"] == title]
+    if existing:
+        number = str(existing[0]["number"])
+        with tempfile.TemporaryDirectory() as scratch:
+            body_file = os.path.join(scratch, "body.md")
+            with open(body_file, "w") as handle:
+                handle.write(body)
+            github.gh_issue_edit(number, body_file)
+        url = existing[0].get("url") or "/issues/" + number
+    else:
+        url = github.gh_issue_create(title, body)
+        number = re.search(r"([0-9]+)\s*$", url).group(1)
+        for label in LABELS:
+            github.gh_issue_add_label(number, label)
     sys.stdout.write(url)
     return 0
 
