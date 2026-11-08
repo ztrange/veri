@@ -165,3 +165,21 @@ def test_main_missing_reroute_stays_green_records_one_unpinnable_missing_event_a
     assert (names.count("unpinnable-missing"), [e.get("step") for e in missing],
             [n for n in names if n in ("unpinnable-step", "already-holds-step", "revise")],
             ledger.read_bytes()) == (1, ["a one ⟦criterion 1⟧"], [], ledger_bytes), (code, out, err, names)
+
+
+def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leaves_line_unticked_3305(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 1)
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ran, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
+        1, "revise", [TARGET], body, False), err
