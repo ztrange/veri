@@ -16,6 +16,6 @@
 - [x] `pin-reject-route.sh` given only `<reason-file> <ledger-file> <matcher>` (the `<target-test>` missing) exits 2 with its usage line on stderr naming `<target-test>`, printing nothing on stdout and leaving the ledger untouched ⟦criterion 4⟧
 - [x] `tick-ledger.sh --unpinnable <reason-file> --case` with nothing after `--case` (no id, ledger or matcher) is bad arguments: exit 2 with the usage line on stderr, ledger and events untouched — exit 2 stays bad arguments only, while a refused retirement (no case, failing case) is exit 1 ⟦criterion 5⟧
 - [x] `skills/tdd/PIN.md`: its requirements rows PN19, PN20 and PN21 ⟦skill-edit⟧ ⟦criterion 6⟧
-- [ ] `skills/tdd/SKILL.md`: its requirements row CY42 ⟦skill-edit⟧ ⟦criterion 6⟧
+- [x] `skills/tdd/SKILL.md`: its requirements row CY42 ⟦skill-edit⟧ ⟦criterion 6⟧
 - [ ] `skills/tdd/REVISE.md`: its requirements rows RV59 and RV60 ⟦skill-edit⟧ ⟦criterion 7⟧
 - [ ] Go-red: with the case-run check removed from `tick_ledger.py`, the failing-case criterion's case fails (the retirement exits 0); restored, it passes ⟦human-owed⟧ ⟦criterion 8⟧
