@@ -473,3 +473,22 @@ def test_main_prints_nothing_and_keeps_waiting_when_solvable_issues_exits_3_whil
         code = None
 
     assert (code, capsys.readouterr().out, launches, waits) == (None, "", [], [1])
+
+
+def test_main_writes_the_stderr_of_an_unreadable_queue_and_exits_2_when_solvable_issues_fails_without_a_rate_limit(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="gh: boom\n"))
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out, err, launches) == (2, "", "gh: boom\n", [])
