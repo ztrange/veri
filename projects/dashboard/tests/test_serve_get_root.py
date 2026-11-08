@@ -79,3 +79,36 @@ def test_serve_listens_on_loopback_only(veri_home):
         proc.wait(timeout=5)
 
     assert (loopback, reachable_elsewhere) == (True, [])
+
+
+def _listening_ports(pid):
+    out = subprocess.run(
+        ["lsof", "-a", "-p", str(pid), "-iTCP", "-sTCP:LISTEN", "-Fn"],
+        capture_output=True,
+        text=True,
+    ).stdout
+    return [int(line.rsplit(":", 1)[1]) for line in out.splitlines() if line.startswith("n")]
+
+
+def test_serve_without_port_still_serves_the_page(veri_home):
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        status = None
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None and status is None:
+            for port in _listening_ports(proc.pid):
+                try:
+                    with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                        status = r.status
+                except OSError:
+                    pass
+            time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert status == 200
