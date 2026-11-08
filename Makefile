@@ -21,7 +21,7 @@ DASH_TESTS := $(filter $(DASH_PATH),$(TESTS))
 py_refused = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),,$(t))))
 unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_UNIT))
 PY_REFUSED = $(call py_refused,$(TESTS_NAMED),$(TESTS))
-PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL))
+PY_TESTS := $(strip $(call py_tests,$(TESTS_NAMED),$(TESTS),$(PY_ALL)))
 unit: PY_SELECT = -m "not process and not tree_audit"
 # The fast tier's default worker count: each xdist worker pays its own start-up and collection, so
 # one per core is slower than 4 on `make unit` (16.1 s against 11.4 s on the 16-core development
