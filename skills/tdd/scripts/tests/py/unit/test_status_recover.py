@@ -148,3 +148,24 @@ def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_a
     assert code == 0, out
     assert [l.split()[0] for l in bailed] == ["#3500", "#3502"], bailed
     assert bailed[0].split()[-1] == "moon-phase-wrong", bailed
+
+
+def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue_it_closes_draft_and_its_mergeable_state(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    pulls = [{"number": 4721, "draft": True, "state": "open", "mergeable_state": "blocked",
+              "title": "Teach the widget to sing", "body": "Closes #3600\n",
+              "head": {"ref": "tdd/3600-teach-the-widget"}}]
+
+    def run(args, *a, **k):
+        out = json.dumps(pulls) if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
+    words = " ".join(prs).replace("#", "").split()
+    assert code == 0 and all(w in words for w in ("4721", "3600", "draft", "blocked")), (code, prs)
