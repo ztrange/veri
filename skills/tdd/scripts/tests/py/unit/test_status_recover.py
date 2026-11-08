@@ -209,3 +209,28 @@ def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lo
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     lock = lines[lines.index("Merge lock") + 1:lines.index("State")]
     assert code == 0 and lock == ["48213"], (code, lock)
+
+
+def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_issue_and_exits_0(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    pulls = [{"number": 4723, "draft": True, "state": "open", "mergeable_state": "unstable",
+              "title": "No body", "body": None, "head": {"ref": "feature/no-body"}},
+             {"number": 4724, "draft": False, "state": "open", "mergeable_state": "clean",
+              "title": "No issue", "body": "Just a tidy-up.\n", "head": {"ref": "feature/tidy"}}]
+
+    def run(args, *a, **k):
+        out = json.dumps(pulls) if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    assert code == 0, (code, out, _)
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
+    words = [" ".join(l.replace("#", "").split()) for l in prs]
+    assert code == 0 and len(prs) == 2, (code, prs)
+    assert all(w in words[0].split() for w in ("4723", "draft", "unstable")), prs
+    assert all(w in words[1].split() for w in ("4724", "ready", "clean")), prs

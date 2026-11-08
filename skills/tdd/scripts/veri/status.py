@@ -515,9 +515,9 @@ def recover_prs():
                          capture_output=True, text=True).stdout
     lines = []
     for pr in json.loads(out):
-        closes = re.search(r"[Cc]loses #(\d+)", pr["body"])
+        closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
         state = "draft" if pr["draft"] else "ready"
-        lines.append("#%d #%s %s %s" % (pr["number"], closes.group(1), state, pr["mergeable_state"]))
+        lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, pr["mergeable_state"]))
     return lines
 
 
