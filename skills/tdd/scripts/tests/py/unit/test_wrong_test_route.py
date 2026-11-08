@@ -125,6 +125,14 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
     assert results == [(0, "repair %s\n" % own_id), (3, "revise\n"), (3, "revise\n")] + [(2, "", usage)] * 9
 
 
+def test_main_3292_usage_on_a_bad_argument_list_names_repair_exhausted_and_exit_1(run_cli):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [])
+
+    assert (code, stdout, "repair-exhausted" in stderr, "exit 1" in stderr) == (2, "", True, True)
+
+
 def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_a_red_over_the_contradicted_case(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
