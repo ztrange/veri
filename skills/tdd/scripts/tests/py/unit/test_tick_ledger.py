@@ -1041,3 +1041,20 @@ def test_main_unpinnable_retire_keeps_a_mutation_record_whose_tests_names_a_clas
     code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
 
     assert (code, mutations.read_text()) == (0, record)
+
+
+def test_main_unpinnable_retire_drops_a_mutation_record_whose_tests_names_a_file_that_does_not_exist_3289(
+        tmp_path, tick_ledger):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    command = "pytest TESTS=tests/test_gone.py::test_never_written"
+    mutations = tdd / "issue-7-mutations.md"
+    mutations.write_text(f"command {len(command)}\n{command}\n\n")
+
+    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+
+    assert (code, mutations.read_text()) == (0, "")
