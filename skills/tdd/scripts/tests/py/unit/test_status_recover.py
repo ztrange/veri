@@ -66,3 +66,23 @@ def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_headi
     runs = lines[lines.index("Runs") + 1:lines.index("Bailed")]
     assert code == 0 and len(runs) == 1, runs
     assert "Plan for" not in runs[0] and "—" not in runs[0] and "Teach the widget to sing" in runs[0], runs
+
+
+def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_issue_title_and_dead_in_place_of_a_pid(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    state = tmp_path / ".tdd" / "wt" / "3302" / ".tdd"
+    state.mkdir(parents=True)
+    (state / "issue-3302.md").write_text("# Plan for #3302 — Teach the widget to dance\n\n- [ ] one\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    runs = lines[lines.index("Runs") + 1:lines.index("Bailed")]
+    assert code == 0 and len(runs) == 1, runs
+    assert all(word in runs[0] for word in ("3302", "Teach the widget to dance", "dead")), runs

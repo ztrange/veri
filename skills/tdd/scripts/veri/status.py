@@ -496,7 +496,7 @@ def recover_runs():
         with open(ledger_path(run, n)) as f:
             heading = f.readline().rstrip("\n")
         title = heading.split(" — ", 1)[-1]
-        lines.append("#%s %s %s" % (n, title, recorded_alive(run)))
+        lines.append("#%s %s %s" % (n, title, recorded_alive(run) or "dead"))
     return lines
 
 
