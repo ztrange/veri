@@ -67,9 +67,13 @@ def _fixture(report, own_id):
     return None
 
 
-def _lines_with(report, prefix):
+def _report_lines(report):
     with open(report, encoding="utf-8", errors="replace") as handle:
-        return [l for l in handle.read().splitlines() if l.startswith(prefix)]
+        return handle.read().splitlines()
+
+
+def _lines_with(report, prefix):
+    return [l for l in _report_lines(report) if l.startswith(prefix)]
 
 
 def _spellings(line):
@@ -102,8 +106,7 @@ def _unparseable_claim(report):
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
             return True
-    with open(report, encoding="utf-8", errors="replace") as handle:
-        return any("WRONG_TEST" in l and not l.startswith("WRONG_TEST:") and not any(True for _ in _spellings(l)) for l in handle.read().splitlines())
+    return any("WRONG_TEST" in l and not l.startswith("WRONG_TEST:") and not any(True for _ in _spellings(l)) for l in _report_lines(report))
 
 
 def _case_name(test_id):
