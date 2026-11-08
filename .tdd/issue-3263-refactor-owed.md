@@ -2,3 +2,5 @@
 - test-only | extract the shared fixture setup (mkdir, write_text, monkeypatch SKILLS) of the three cases in test_event_roster.py into a helper
 ### `veri/event_roster.py`'s `emitted_events` also collects an event emitted through the module wrapper `supervise.mark`: a case in `skills/tdd/scripts/tests/py/unit/test_event_roster.py` (not the roster file) gives it a fixture tree emitting an undocumented name that way and asserts `emitted_events` returns that name ⟦added⟧ ⟦criterion 2⟧
 - test-only | extract a shared helper (write fixture file, monkeypatch SKILLS, return the roster) for the five repeated setup blocks in test_event_roster.py
+### Pin: `veri/event_roster.py`'s `emitted_events` also collects an event emitted through a bare in-module `record(...)` call, as in `push_branch.py`: a case in `skills/tdd/scripts/tests/py/unit/test_event_roster.py` over a fixture tree whose only event is emitted by a bare `record("<name>", …)` call asserts `emitted_events` returns that name ⟦added⟧ ⟦criterion 2⟧
+- test-only | extract the repeated tmp_path/mkdir/write/monkeypatch setup in test_event_roster.py into a helper fixture
