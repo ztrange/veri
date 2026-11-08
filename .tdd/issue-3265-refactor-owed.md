@@ -4,3 +4,5 @@
 - test-only | extract the duplicated `subprocess.Popen([sys.executable, SERVE, ...])` launch and terminate/wait teardown in `test_serve_answers_get_root_with_200_html` and `test_serve_listens_on_loopback_only` into one helper
 ### `serve.py --repo <path>` with no `--port` still serves the page, on a default port ⟦criterion 2⟧
 - test-only | extract the repeated `subprocess.Popen([... SERVE ...])` launch and terminate/wait teardown in `test_serve_get_root.py` into one helper
+### The page's Running entry for a run shows its current phase (the last `launch` event's phase) and that phase's attempt count, as `status.sh --report` prints them ⟦criterion 4⟧
+- extract the per-run parsing in `running_lines` (minutes, steps, phase) into helper functions
