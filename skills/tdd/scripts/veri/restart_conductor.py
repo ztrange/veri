@@ -57,7 +57,12 @@ def detach_leaf(run):
 def _growth(run):
     try:
         with open(os.path.join(_tdd_dir(), f"conductor-{run}.log")) as f:
-            records = [json.loads(line) for line in f]
+            records = []
+            for line in f:
+                try:
+                    records.append(json.loads(line))
+                except ValueError:
+                    continue
     except OSError:
         return None
     return growth.growth(records)
