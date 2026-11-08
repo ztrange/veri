@@ -88,6 +88,7 @@ def main(argv):
     previous = None
     seen = []
     merges = []
+    resume_at = 0
     while True:
         live = live_conductors()
         running = queued_merges()
@@ -111,14 +112,17 @@ def main(argv):
                 return 0
         seen = live
         ledger = previous and ledger_path(run_dir(previous), previous)
-        if len(live) < target and (previous is None or os.path.exists(ledger)):
+        if len(live) < target and (previous is None or os.path.exists(ledger)) \
+            and time.time() >= resume_at:
             try:
                 previous = solvable_issues()[0]
             except watch_runs.QueueUnreadable as failure:
-                if str(failure):
+                if "rate limit" in str(failure):
+                    resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
+                elif str(failure):
                     sys.stderr.write(str(failure))
                     return 2
-                if not live:
+                elif not live:
                     sys.stdout.write("queue-empty\n")
                     return 3
             else:
