@@ -235,7 +235,7 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         return [
             ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
             ["gh", "api", prefix + "/issues?state=open&per_page=100"],
-            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state", *scope],
+            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName", *scope],
             ["gh", "api", prefix + "/pulls?state=open&per_page=100"],
         ]
 
@@ -345,6 +345,26 @@ def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an
     (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), state=None)]))
     with pytest.raises(AttributeError):
         solvable_issues.main([])
+
+
+def test_main_lists_a_released_issue_whose_only_open_pr_is_its_own_run_branch(tmp_path, monkeypatch, capsys, solvable_issues):
+    # A bailed or parked run keeps its draft PR open (BL36); release-issue.sh restores the opt-in
+    # label and drops the claim, and the resume continues that same branch and PR, so a PR on the
+    # issue's own tdd/<n>- branch is no claim. Any other branch's PR still is.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (20, 21, 22, 23, 24)]))
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"state": "OPEN", "body": "Closes #20", "headRefName": "tdd/20-check-earlier"},
+        {"state": "OPEN", "body": "Closes #21", "head": {"ref": "tdd/21-from-rest"}},
+        {"state": "OPEN", "body": "Closes #22", "headRefName": "fix/22-by-hand"},
+        {"state": "OPEN", "body": "Closes #23", "headRefName": "tdd/230-another-issue"},
+        {"state": "OPEN", "body": "Closes #24"}]))
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "20\n21\n")
 
 
 def blocked_by(number, *refs):

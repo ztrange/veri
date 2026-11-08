@@ -59,5 +59,7 @@ Two signals, two jobs, never merged:
   body with the ledger's done/total count, and the final step retitles it, writes the metrics
   into it and marks it ready for review rather than creating anything.
 - A resumed run edits the PR its branch already has; it never opens a second one.
+- Narrowed by ADR-0036: once a human restores the opt-in label, the issue's own run branch's
+  PR claims nothing.
 - ADR-0008's "draft PR on completion" is narrowed: the PR is still a draft until the run ends
   and the human still merges, but it is opened at the start.
