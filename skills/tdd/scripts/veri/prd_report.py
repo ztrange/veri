@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
 import json
+import os
 import sys
 
 USAGE = "usage: report.sh --report"
@@ -9,6 +10,9 @@ USAGE = "usage: report.sh --report"
 
 def main(argv):
     if argv == ["--report"]:
+        if not os.path.exists(".tdd/report-cache.json"):
+            print("no snapshot: .tdd/report-cache.json is missing", file=sys.stderr)
+            return 2
         with open(".tdd/report-cache.json") as f:
             fetched = json.load(f)["fetched_at"]
         then = datetime.datetime.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)

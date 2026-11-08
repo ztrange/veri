@@ -21,3 +21,14 @@ def test_report_with_a_snapshot_states_the_snapshots_age_on_its_first_line(run_c
     first = out.splitlines()[0] if out else ""
     assert code == 0
     assert re.search(r"\b3 ?(h|hours?)\b", first), first
+
+
+def test_report_without_a_snapshot_says_there_is_no_snapshot_and_exits_2(run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+
+    code, out, err = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    assert code == 2
+    assert "no snapshot" in (out + err).lower()
