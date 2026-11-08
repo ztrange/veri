@@ -389,3 +389,27 @@ def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_
     pending = lines[lines.index("Pending decisions") + 1:lines.index("Pending messages")]
     assert code == 0 and len(pending) == 1, (code, pending)
     assert "hold the release for review?" in pending[0], pending
+
+
+def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text(
+        "n=2\nmessage 1 2026-11-08T14:30:00 told the dev of 4721 to rebase; confirmed by a force-push\n"
+        "message 2 2026-11-08T18:45:10 asked the reviewer to look at 4722\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    pending = lines[lines.index("Pending messages") + 1:]
+    first = [l for l in pending if "told the dev of 4721 to rebase; confirmed by a force-push" in l]
+    second = [l for l in pending if "asked the reviewer to look at 4722" in l]
+    assert code == 0 and len(first) == 1 and len(second) == 1, (code, pending)
+    assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
+    assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
