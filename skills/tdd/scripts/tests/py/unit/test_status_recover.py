@@ -272,3 +272,26 @@ def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_stat
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
     words = " ".join(state).split()
     assert code == 0 and "7" in words and "default" in words, (code, state)
+
+
+def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text(
+        "n=2\ntimed-n 1 2026-11-08T14:30:00 raise N to 4\ntimed-n 2 2026-11-08T18:45:10 drop N to 1\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
+    first = [l for l in state if "raise N to 4" in l]
+    second = [l for l in state if "drop N to 1" in l]
+    assert code == 0 and len(first) == 1 and len(second) == 1, (code, state)
+    assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
+    assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
