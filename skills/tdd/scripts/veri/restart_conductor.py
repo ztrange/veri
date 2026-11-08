@@ -6,11 +6,13 @@ import subprocess
 import sys
 import time
 
+import event
 import full_tier_time
 import growth
 import pid_file
 import status
 import stop_run as stop_run_module
+import tunables
 
 USAGE = "usage: restart-conductor.sh <n>"
 
@@ -68,7 +70,7 @@ def main(argv):
     if not argv or not _positive_int(argv[0]):
         print(USAGE, file=sys.stderr)
         return 2
-    knob = os.environ.get("VERI_RESET_GROWTH_CONDUCTOR", "70000")
+    knob = tunables.read("VERI_RESET_GROWTH_CONDUCTOR", "70000")
     if not _positive_int(knob):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
@@ -94,8 +96,8 @@ def main(argv):
             break
         detach_leaf(run)
         restarts += 1
-        with open(_run_file(run, "events.jsonl"), "a") as f:
-            f.write(json.dumps({"event": "conductor-restart", "growth": str(g), "knob": knob}) + "\n")
+        event.mark(_run_dir(run), event.context(tunables.environment()), "conductor-restart",
+                   [f"growth={g}", f"knob={knob}"])
         os.remove(_run_file(run, "restart-pending"))
     print(f"restarts {run} {restarts}")
     return 0
