@@ -108,14 +108,13 @@ def _print_owed(stored, nnn, issue):
 
 
 def _lane_rates(closed):
-    fastest = 0
-    slowest = None
+    fast_rates = []
+    slow_rates = []
     for lane in {o["lane"] for o in closed}:
         walls = sorted(o["wallSeconds"] for o in closed if o["lane"] == lane)
-        fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
-        rate = 86400 / walls[-1 - (len(walls) - 1) // 4]
-        slowest = rate if slowest is None else min(slowest, rate)
-    return fastest, slowest
+        fast_rates.append(86400 / walls[(len(walls) - 1) // 4])
+        slow_rates.append(86400 / walls[-1 - (len(walls) - 1) // 4])
+    return max(fast_rates), min(slow_rates)
 
 
 def _print_eta(snapshot, opened, open_children, now):
