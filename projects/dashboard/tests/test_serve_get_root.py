@@ -6,6 +6,8 @@ import sys
 import time
 import urllib.request
 
+import pytest
+
 SERVE = pathlib.Path(__file__).resolve().parents[1] / "serve.py"
 
 
@@ -245,3 +247,40 @@ def test_page_leaves_out_runs_whose_journal_has_a_done_ending_event(veri_home):
 
     shown = [l for l in body.splitlines() if l.startswith("<p>666")]
     assert shown == ["<p>6662 5m</p>"]
+
+
+@pytest.mark.process("serve.py")
+def test_page_shows_a_running_runs_steps_done_of_the_last_plans_steps(veri_home):
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "7771", "event": event, **extra}) + "\n"
+
+    (veri_home / "runs" / "7771.jsonl").write_text(
+        ev(0, "conductor-start")
+        + ev(10, "plan", steps=3)
+        + ev(20, "step-done")
+        + ev(30, "plan", steps=5)
+        + ev(40, "step-done")
+        + ev(50, "step-done")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    entry = [l for l in body.splitlines() if "7771" in l]
+    assert any("3/5" in l for l in entry)
