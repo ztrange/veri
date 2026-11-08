@@ -44,6 +44,22 @@ def last_comment(issue):
     return out.stdout
 
 
+def queued_merges():
+    out = subprocess.run(["ps", "-axo", "args="], capture_output=True, text=True, check=True)
+    urls = []
+    for line in out.stdout.splitlines():
+        words = line.split()
+        if len(words) > 2 and words[1].endswith("queued-merge.sh"):
+            urls.append(words[2])
+    return urls
+
+
+def pr_state(pr_url):
+    out = subprocess.run(["gh", "pr", "view", pr_url, "--json", "state", "--jq", ".state"],
+                         capture_output=True, text=True, check=True)
+    return out.stdout.strip()
+
+
 def exit_line(issue):
     heading = last_comment(issue).splitlines()[0]
     if heading.startswith("### ⛔ Bailed"):
@@ -60,8 +76,15 @@ def main(argv):
     target = int(argv[1])
     previous = None
     seen = []
+    merges = []
     while True:
         live = live_conductors()
+        running = queued_merges()
+        for pr_url in merges:
+            if pr_url not in running and pr_state(pr_url) != "MERGED":
+                sys.stdout.write(f"merge-failed {pr_url}\n")
+                return 0
+        merges = running
         for issue in seen:
             if issue not in live:
                 if not os.path.isdir(run_dir(issue)):
