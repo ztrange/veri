@@ -87,15 +87,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/report":
             body = ("<!doctype html><title>veri report</title>\n" + report_blocks(self.server.repo)).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html")
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        running = "\n".join(running_lines())
-        if self.path == "/running":
-            body = running.encode()
+        elif self.path == "/running":
+            body = "\n".join(running_lines()).encode()
         else:
+            running = "\n".join(running_lines())
             body = ("<!doctype html><title>veri dashboard</title>\n<h2>Running</h2>\n<div id=running>\n"
                     + running + "\n</div>\n" + SCRIPT).encode()
         self.send_response(200)
