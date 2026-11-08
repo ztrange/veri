@@ -15,6 +15,7 @@ import stop_run as stop_run_module
 import tunables
 
 USAGE = "usage: restart-conductor.sh <n>"
+LAUNCH_WAIT = 60
 
 
 def _positive_int(text):
@@ -66,6 +67,15 @@ def sleep(seconds):
     time.sleep(seconds)
 
 
+def _new_conductor_appears(run):
+    """The old conductor is dead, so any live one is the new launch; its pid file may lag the launch."""
+    for _ in range(LAUNCH_WAIT):
+        if conductor_alive(run):
+            return True
+        sleep(1)
+    return conductor_alive(run)
+
+
 def main(argv):
     if not argv or not _positive_int(argv[0]):
         print(USAGE, file=sys.stderr)
@@ -98,7 +108,12 @@ def main(argv):
         restarts += 1
         event.mark(_run_dir(run), event.context(tunables.environment()), "conductor-restart",
                    [f"growth={g}", f"knob={knob}"])
+        appeared = _new_conductor_appears(run)
         os.remove(_run_file(run, "restart-pending"))
+        if not appeared:
+            print(f"restart-conductor.sh: no conductor was recorded for run {run} within {LAUNCH_WAIT}s of its relaunch",
+                  file=sys.stderr)
+            return 2
     print(f"restarts {run} {restarts}")
     return 0
 
