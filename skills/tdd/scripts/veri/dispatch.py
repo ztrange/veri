@@ -48,6 +48,9 @@ def main(argv):
         for issue in seen:
             if issue not in live:
                 heading = last_comment(issue).splitlines()[0]
+                if heading.startswith("### ⛔ Bailed"):
+                    sys.stdout.write(f"bail {issue}\n")
+                    return 0
                 sys.stdout.write(f"done {issue} {heading.split()[-1]}\n")
                 return 0
         seen = live
