@@ -9,3 +9,5 @@
 ### The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧
 - extract the repeated "if events of kind X: build a field string" blocks in `running_lines` (steps, phase, verdict counts) into small per-field helpers
 - test-only | factor the repeated Popen/serve-start and wait-for-ready loop in `tests/test_serve_get_root.py` into a helper
+### The page's Running entry for a run shows its model split (the model per role: developer, verifier, revise), as `status.sh --report` prints it ⟦criterion 4⟧
+- extract the per-run body of `running_lines` in `projects/dashboard/serve.py` into a function, with a small helper for the repeated "empty string unless the events exist" field pattern
