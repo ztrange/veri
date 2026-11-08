@@ -174,3 +174,20 @@ def test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing
     assert (code, out, err) == (2, "", USAGE)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_the_comment_event_url_is_the_posted_html_url_with_its_trailing_newline_stripped(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-99"
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: url + "\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 0
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [e["url"] for e in events] == [url]
