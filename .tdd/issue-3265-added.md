@@ -1,1 +1,2 @@
 - [x] fix the full-suite failure: projects/dashboard/tests/test_veri_make_test_scope.py — FAILED test_veri_make_test_collects_nothing_under_projects_dashboard: assert (0, True) == (0, False) ⟦suite-repair⟧ ⟦criterion 4⟧
+- [ ] veri's own `make test`, run for real, collects no case under `projects/dashboard/` and never calls the dashboard runner, whatever text the root Makefile's recipe prints for `make -n test` ⟦added⟧ ⟦criterion 1⟧
