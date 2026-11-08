@@ -89,3 +89,21 @@ def test_body_groups_rows_under_their_module_else_unsorted(tmp_path, monkeypatch
     for needle, module in expected.items():
         (row,) = [r for r in heading_of if needle in r]
         assert heading_of[row] is not None and module in heading_of[row], (row, heading_of[row])
+
+
+def test_never_labels_with_the_opt_in_label_or_ready_for_agent(tmp_path, monkeypatch, github, run_cli):
+    labelled, ensured = [], []
+    monkeypatch.setattr(github, "gh_issue_create", lambda title, body: "https://github.com/o/r/issues/9\n")
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: labelled.append(label))
+    monkeypatch.setattr(github, "gh_label_ensure", lambda label: ensured.append(label))
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: "[]")
+    monkeypatch.setattr(github, "gh_rest_list", lambda *args, **kwargs: "[]")
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, _, _ = run_cli(refactor_candidates, ["42", str(owed)], env={"VERI_LABEL": "ready-for-agent"})
+
+    assert code == 0
+    assert sorted(labelled) == ["refactor", "refactor-owed"]
+    assert "ready-for-agent" not in labelled + ensured
