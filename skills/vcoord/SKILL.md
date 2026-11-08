@@ -61,8 +61,10 @@ You own, and only you change:
   `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
   memory. To un-park, run `gh issue edit <n> --remove-label parked`.
 
-File every issue through `/vfile`, and groom through `/vgroom`; show any split or
-criteria rewrite to the human first.
+File every issue through `/vfile`, and groom through `/vgroom`. A split or criteria rewrite
+passes `vjudge` like any other decision, and is not shown to the human first; one that weakens a
+criterion surfaces (`vjudge`'s always-surface list). A clear-cut `vjudge` decision counts as the
+human's "go" for a `vgroom` run.
 
 **A bug found in your lane is filed into your lane.** When a run in your lane (or the dev
 session reporting on it) turns up the bug, name your lane as the scope to `/vfile`, so the issue
@@ -113,8 +115,11 @@ On each event:
 
 The dev session receives **facts and instructions**: "N is now 2", "take #N next, override
 asked by the human", "resume #N once with a raised budget", "#N is parked, do not relaunch".
-It never receives a decision to make. **Decisions go to the human**: you lay out the options in
-words, with what each costs, and wait.
+It never receives a decision to make. **Every question you would put to the human passes
+`vjudge` first** (run through a subagent, above). A clear-cut one you decide, act on and state in
+one line naming the principle and the alternative not taken. Only `vjudge`'s surface outcomes
+reach the human: for those you lay out the options in words, with what each costs, and wait.
+Applying `priority` stays the human's yes, whatever `vjudge` says.
 
 Send every instruction yourself with `SendMessage` to the dev session, self-contained (P13),
 and tell the human in one line that you did ("Sent the dev session: N=2."). When delivery is
