@@ -510,6 +510,17 @@ def test_verify_sh_pin_whose_appended_record_has_a_repo_relative_command_is_acce
 
 
 @pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that appends a mutation record whose command names only system paths before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_appended_record_has_a_command_under_system_prefixes_is_accepted_and_keeps_the_append_3357(tmp_path):
+    command = '/usr/bin/env bash -c "make test TESTS=skills/tdd/scripts/tests/py/test_x.py 2>/dev/null"'
+    entry = "file 8\nsrc.txt\nold 3\nfoo\nnew 3\nbar\ncommand %d\n%s\n" % (len(command), command)
+    done, record = run_verify_writing(tmp_path, "pin", [], recorded="",
+                                      then="printf '%%s' '%s' >> %s\n" % (entry, tmp_path / ".tdd" / "issue-2741-mutations.md"))
+
+    assert (done.returncode, record.read_text()) == (0, entry), done.stdout + done.stderr
+
+
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
                      " claude that appends a mutation record whose command has a ../ word escaping the repo before answering VERDICT: PASS")
 def test_verify_sh_pin_whose_appended_record_has_a_command_escaping_the_repo_with_dotdot_is_refused_3357(tmp_path):
     command = "make test TESTS=../x"

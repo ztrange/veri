@@ -151,17 +151,23 @@ def appended(before, after):
     return after is not None and after.startswith(before or b"")
 
 
+SYSTEM_PREFIXES = ("/bin/", "/usr/", "/dev/")
+
+
 def outside_commands(added, root):
     lines = added.decode("utf-8", "replace").split("\n")
     root = os.path.realpath(root)
 
     def escapes(word):
+        word = re.sub(r"^\d*[<>]+&?", "", word).strip("\"'")
         if "=" in word and not word.startswith(("/", "~")) and escapes(word.split("=", 1)[1]):
             return True
         if word.startswith("~"):
             return True
         if "/" not in word:
             return False
+        if os.path.isabs(word) and os.path.normpath(word).startswith(SYSTEM_PREFIXES):
+            return False  # /bin/sh, /usr/bin/env, /dev/null replay on every machine
         resolved = os.path.realpath(os.path.join(root, word))
         return os.path.commonpath([root, resolved]) != root
 
