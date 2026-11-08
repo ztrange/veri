@@ -556,7 +556,7 @@ def recover(role, lane=None):
               "Pending decisions": lambda: recover_items(role, lane, "decision "),
               "Pending messages": lambda: recover_items(role, lane, "message ")}
     try:
-        sections = [(heading, bodies.get(heading, list)()) for heading in RECOVER_HEADINGS]
+        sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:
         print(refused, file=sys.stderr)
         return 2
