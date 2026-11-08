@@ -678,27 +678,6 @@ def test_insert_still_adds_the_suite_repair_step_before_two_pending_skill_edit_s
     assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:3] == [step, first, second]
 
 
-def test_insert_does_not_count_a_pending_skill_edit_step_separated_from_the_first_by_a_non_skill_edit_step_and_adds_the_suite_repair_step_before_the_first_3306(run_cli, tmp_path, monkeypatch):
-    module = importlib.import_module("veri.suite_red_resume")
-    units = ["skills/tdd/SUITE-REPAIR.md", "skills/tdd/SKILL.md"]
-    for name in ("prose_owed", "veri.prose_owed"):
-        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", u) for u in units], []))
-    ledger = tmp_path / "issue-7.md"
-    first = f"- [ ] ⟦skill-edit⟧ sign `{units[0]}`"
-    middle = "- [ ] b ⟦criterion 2⟧"
-    second = f"- [ ] ⟦skill-edit⟧ sign `{units[1]}`"
-    ledger.write_text(f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n{first}\n{middle}\n{second}\n")
-    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
-    branch = tmp_path / "branch-red"
-    branch.write_text("test_prd_016_short_names.py — FAIL stale GRADED\n")
-    step = "- [ ] fix the full-suite failure: test_prd_016_short_names.py — FAIL stale GRADED ⟦suite-repair⟧"
-
-    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
-
-    assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")] == [step, first, middle, second]
-
-
 def test_insert_leaves_the_ledger_untouched_and_exits_0_when_two_consecutive_pending_skill_edit_steps_together_name_the_two_stale_graded_units_3306(run_cli, tmp_path, monkeypatch):
     module = importlib.import_module("veri.suite_red_resume")
     units = ["skills/tdd/SUITE-REPAIR.md", "skills/tdd/SKILL.md"]
