@@ -21,13 +21,25 @@ def rows(owed):
             yield "- %s | %s" % (reason, candidate)
 
 
+def module_of(row):
+    path = re.search(r"[\w.-]+/[\w./-]+", row)
+    return path.group(0).split("/")[0] if path else "unsorted"
+
+
+def grouped(owed):
+    modules = {}
+    for row in rows(owed):
+        modules.setdefault(module_of(row), []).append(row)
+    return "\n\n".join("## %s\n%s" % (name, "\n".join(group)) for name, group in modules.items())
+
+
 def main(argv):
     if len(argv) != 2:
         sys.stderr.write(USAGE)
         return 2
     issue, owed_file = argv
     with open(owed_file) as handle:
-        body = "\n".join(rows(handle.read())) + "\n"
+        body = grouped(handle.read()) + "\n"
     url = github.gh_issue_create("Refactor candidates left by #" + issue, body)
     number = re.search(r"([0-9]+)\s*$", url).group(1)
     for label in LABELS:
