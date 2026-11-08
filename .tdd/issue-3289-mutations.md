@@ -21,3 +21,10 @@ skills/tdd/scripts/tests/py/test_pin_recheck_process.py
 command 313
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpck8heb07/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_pin_recheck_process.py make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_failed
 
+before 40
+9d9a0cdce26ee5e406512ed504ab518d2d7ebcfb
+keep 63
+skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py
+command 348
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpayocn29s/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py::test_main_unpinnable_retire_that_drops_a_mutation_record_still_appends_its_unpinnable_step_event_3289
+
