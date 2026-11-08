@@ -1,0 +1,7 @@
+before 40
+b787028bca573b5a46fc09b2f13e7c8bae40cc0d
+keep 66
+skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_with_a_failing_case_exits_1_leaves_ledger_and_events_and_names_step_and_case_3305
+
