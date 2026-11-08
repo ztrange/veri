@@ -4636,3 +4636,15 @@ def test_cli_hands_the_conductor_veri_state_label_issue_naming_the_issue_it_runs
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
     assert (code, seen) == (0, ["4242"]), stderr
+
+
+def test_cli_a_needs_user_bail_labels_the_issue_bailed(tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["phase-start"],
+                                     result_record("Options A, B or C.\n\nWhich option do you want?"))
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, ["api", "repos/{owner}/{repo}/issues/4242/labels", "-f", "labels[]=bailed"] in gh_calls) == (0, True), stderr
