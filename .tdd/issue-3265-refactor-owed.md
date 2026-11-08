@@ -1,0 +1,2 @@
+### Every case under `projects/dashboard/tests/` runs with `VERI_HOME` pointing at a copy of `fixtures/journal/` inside its own `tmp_path` (the copy holds `3277.jsonl` under `runs/`), never the real `~/.veri`; pinned by a case in a test file other than `projects/dashboard/tests/conftest.py`, which supplies the copy ⟦guard-subject: projects/dashboard/tests/conftest.py⟧ ⟦criterion 5⟧
+- test-only | Remove the duplicated `FIXTURE` path constant by having `conftest.py` expose it as a fixture that `test_veri_home_fixture.py` takes.
