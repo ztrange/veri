@@ -531,14 +531,17 @@ def recover_lock():
 
 def recover_state(role):
     fields = {}
+    timed = []
     try:
         with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % role)) as f:
             for line in f:
+                if line.startswith("timed-n "):
+                    timed.append(line[8:].rstrip("\n"))
                 key, _, value = line.rstrip("\n").partition("=")
                 fields[key] = value
     except FileNotFoundError:
         pass
-    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields]
+    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + timed
 
 
 def recover(role):
