@@ -197,3 +197,26 @@ open("/tmp/x","w")
 command 73
 python3 -m pytest -q projects/dashboard/tests/test_serve_source_writes.py
 
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 55
+projects/dashboard/tests/test_serve_source_processes.py
+command 266
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp2ddnc37g/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_source_processes.py make test TESTS=projects/dashboard/tests/test_serve_source_processes.py::test_serve_source_starts_no_process
+
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 55
+projects/dashboard/tests/test_serve_source_processes.py
+command 231
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp2ddnc37g/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_source_processes.py python3 -m pytest projects/dashboard/tests/test_serve_source_processes.py
+
+file 27
+projects/dashboard/serve.py
+old 7
+import 
+new 19
+import subprocess, 
+command 73
+python3 -m pytest projects/dashboard/tests/test_serve_source_processes.py
+
