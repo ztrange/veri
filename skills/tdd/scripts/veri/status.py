@@ -485,7 +485,19 @@ def zone_line():
     return window + "%s (UTC%s%s)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", offset)
 
 
+RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
+
+
+def recover(role):
+    for heading in RECOVER_HEADINGS:
+        print(heading)
+        print("free" if heading == "Merge lock" else "none")
+    return 0
+
+
 def main(argv):
+    if len(argv) == 2 and argv[0] == "--recover":
+        return recover(argv[1])
     if list(argv) == ["--report"]:
         refresh_if_stale()
         print("%s\nLanded\n%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), running_lines(), snapshot_line(), queue_counts(), waiting_lines()) + unjournaled_notes())
