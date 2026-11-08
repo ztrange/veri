@@ -4,7 +4,7 @@ import re
 
 SKILLS = pathlib.Path(__file__).resolve().parents[3]
 SH_CALL = re.compile(r"event\.sh +([a-z][a-z0-9-]*)")
-MARK_CALL = re.compile(r"""event\.mark\((?:[^"']|""|"[^"]*:"|"[A-Za-z_]+"(?=\s*:))*?,\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
+MARK_CALL = re.compile(r"""(?:event|verify)\.mark\((?:[^"']|""|"[^"]*:"|"[A-Za-z_]+"(?=\s*:))*?,\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
 
 
 def emitted_events():
