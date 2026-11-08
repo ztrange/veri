@@ -11,6 +11,7 @@ import solvable_issues
 
 USAGE = "usage: report.sh --report"
 CACHE = ".tdd/report-cache.json"
+OWED = ".tdd/report-owed.json"
 
 
 def _utc(stamp):
@@ -34,6 +35,10 @@ def main(argv):
         print("snapshot age: %d hours" % hours)
         opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
         open_numbers = {o["number"] for o in opened}
+        stored = {}
+        if os.path.exists(OWED):
+            with open(OWED) as f:
+                stored = json.load(f)
         heads = {}
         for issue in opened:
             number = _prd_number(issue["title"])
@@ -66,6 +71,8 @@ def main(argv):
             print("left: solvable now %d, waiting %d on %s, held by no lane %d" % (
                 solvable, len({n for n, _ in waiting}),
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
+            if stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]:
+                print("owed: stale")
             lanes = {o["lane"] for o in open_children if o["lane"]}
             if not lanes:
                 print("ETA: no lane: no ETA")
