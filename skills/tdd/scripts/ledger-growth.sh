@@ -4,6 +4,7 @@
 # usage: ledger-growth.sh <plan-ledger-file> <ledger-file>
 #        ledger-growth.sh plan-sha    (stdin: the git log, one "<sha> <subject>" line per commit)
 #
+# diff-leaf-deviation.sh is the sibling check on a diff-checked leaf's commits.
 # plan-sha prints the newest `plan: scope` or `plan: rewrite` commit, the baseline whose ledger is
 # <plan-ledger-file>, so a rewrite after a verify-plan REJECT replaces the first plan commit.
 # Records: every step line the plan did not hold must equal a line add-ledger-step.sh wrote to the
