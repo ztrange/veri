@@ -10,6 +10,10 @@ USAGE = "usage: report.sh --report"
 CACHE = ".tdd/report-cache.json"
 
 
+def _utc(stamp):
+    return datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+
+
 def main(argv):
     if argv == ["--report"]:
         if not os.path.exists(CACHE):
@@ -17,9 +21,8 @@ def main(argv):
             return 2
         with open(CACHE) as f:
             snapshot = json.load(f)
-        fetched = snapshot["fetched_at"]
-        then = datetime.datetime.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
-        hours = int((datetime.datetime.now(datetime.timezone.utc) - then).total_seconds() // 3600)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        hours = int((now - _utc(snapshot["fetched_at"])).total_seconds() // 3600)
         print("snapshot age: %d hours" % hours)
         heads = {}
         for issue in snapshot["issues"]:
@@ -37,9 +40,8 @@ def main(argv):
                 title = re.match(r"PRD (\d+)", other["title"])
                 if title and title.group(1) == nnn or other["number"] in issue["links"] and not title:
                     children.append(other)
-            week = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
-            recent = [c for c in children if datetime.datetime.strptime(
-                c["closedAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) >= week]
+            week = now - datetime.timedelta(days=7)
+            recent = [c for c in children if _utc(c["closedAt"]) >= week]
             print("solved: %d (%d in the last 7 days)" % (len(children), len(recent)))
         return 0
     print(USAGE, file=sys.stderr)
