@@ -13,3 +13,5 @@
 - test-only | extract the repeated `run` stub and the tmp-tree setup in `test_status_recover.py` into a shared helper or fixture
 ### `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧
 - test-only | the `monkeypatch` setup and the stub `run` function are repeated across the `test_status_recover.py` cases; a shared fixture could replace them, but the cases are frozen, so I left it.
+### `status.sh --recover <role> --lane <lane>` reads the named lane's state file `.tdd/role-<role>-<lane>.state`, not the default lane's ⟦criterion 6⟧
+- out-of-scope | share the `.tdd/role-<role>[-<lane>].state` path building between `status.py` and `role_state.py` once the latter gains `--lane`
