@@ -4,6 +4,7 @@ import re
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 DRAFT_PR = SKILL.with_name("DRAFT-PR.md")
+SUITE_REPAIR = SKILL.with_name("SUITE-REPAIR.md")
 
 
 EVENT_FILES = {
@@ -138,7 +139,7 @@ def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_185
 
 def test_the_guard_reports_no_unpointed_send_in_the_real_skill_md_2075():
     """Subject is source text: the event-pointer guard run over SKILL.md reports no place, for every row of its table."""
-    assert unpointed_sends(SKILL.read_text() + "\n" + DRAFT_PR.read_text()) == []
+    assert unpointed_sends(SKILL.read_text() + "\n" + DRAFT_PR.read_text() + "\n" + SUITE_REPAIR.read_text()) == []
 
 
 def test_the_guard_reports_a_bolded_bails_and_a_bolded_bail_with_cause_without_a_pointer_2075():
@@ -163,12 +164,12 @@ def test_the_guard_ignores_a_bail_script_or_hyphenated_name_after_a_colon_2075()
 
 def test_the_guard_reports_no_misplaced_bail_pointer_in_the_real_skill_md_2075():
     """Subject is source text: the pointer-placement check run over SKILL.md reports no pointer that fails to end its sentence."""
-    assert [place for place in misplaced_pointers(SKILL.read_text() + "\n" + DRAFT_PR.read_text()) if place[0] == "BAIL.md"] == []
+    assert [place for place in misplaced_pointers(SKILL.read_text() + "\n" + DRAFT_PR.read_text() + "\n" + SUITE_REPAIR.read_text()) if place[0] == "BAIL.md"] == []
 
 
 def test_the_send_scoped_placement_check_finds_no_misplaced_pointer_in_skill_md_or_any_event_file_2339():
     """Subject is source text: the send-scoped placement check over SKILL.md and every file a pointer names reports no misplaced pointer."""
-    files = [SKILL, DRAFT_PR] + [SKILL.parent / name for name in EVENT_FILES]
+    files = [SKILL, DRAFT_PR, SUITE_REPAIR] + [SKILL.parent / name for name in EVENT_FILES]
     assert {f.name: misplaced_send_pointers(f.read_text()) for f in files} == {f.name: [] for f in files}
 
 
