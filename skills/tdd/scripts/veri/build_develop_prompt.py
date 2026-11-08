@@ -102,7 +102,7 @@ def main(argv):
         return _refuse("build-develop-prompt: a verify-pin rejection saying 'stays green' is routed "
                        "by pin-reject-route.sh, not revised")
     prompts = f"{HERE}/prompts"
-    template ="revise-diff" if revised_phase == "diff" else phase
+    template = "revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
     paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
     optional = {}
