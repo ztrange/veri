@@ -32,3 +32,11 @@ def test_a_name_emitted_by_a_verify_mark_call_is_in_the_roster(tmp_path, monkeyp
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-verify-event"}
+
+
+def test_a_name_emitted_by_a_supervise_mark_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('supervise.mark(role, env, "lone-supervise-event", "k=1")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-supervise-event"}
