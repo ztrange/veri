@@ -288,3 +288,22 @@ def test_done_posts_the_failed_render_line_in_place_of_a_metrics_file_whose_firs
 
     assert code == 0
     assert posted == [("7", f"### ✅ Done — {pr}\n\nmetrics could not be rendered: metrics.sh exited 3")]
+
+
+def test_done_leaves_the_journal_with_its_one_done_event_plus_the_one_comment_event(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-8"
+    pr = "https://github.com/o/r/pull/12"
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment", lambda number, body: url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    done = json.dumps({"event": "done", "pr": pr})
+    (tmp_path / ".tdd" / "events.jsonl").write_text(done + "\n")
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n\n| phase | cost |\n|---|---|\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [e["event"] for e in events] == ["done", "comment"]
+    assert events[0] == json.loads(done)
