@@ -357,3 +357,38 @@ def test_page_shows_a_running_runs_pass_and_reject_verdict_counts(veri_home):
 
     entry = [l for l in body.splitlines() if "9991" in l]
     assert any("PASS 3 REJECT 1" in l for l in entry)
+
+
+@pytest.mark.process("serve.py")
+def test_page_shows_a_running_runs_cost_in_dollars_summed_from_usage_events(veri_home):
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "1212", "event": event, **extra}) + "\n"
+
+    (veri_home / "runs" / "1212.jsonl").write_text(
+        ev(0, "conductor-start")
+        + ev(10, "usage", total_cost_usd="0.126")
+        + ev(20, "usage", total_cost_usd="0.2")
+        + ev(30, "usage", total_cost_usd="0.4")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    entry = [l for l in body.splitlines() if "1212" in l]
+    assert any("| total | $0.73" in l for l in entry)
