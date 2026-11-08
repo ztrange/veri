@@ -373,3 +373,61 @@ def test_done_still_posts_the_pr_url_when_the_journal_holds_a_torn_line_before_t
 
     assert code == 0
     assert posted == [("7", f"### ✅ Done — {pr}\n\n{metrics}")]
+
+
+def _done_setup(monkeypatch, tmp_path, events):
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-9")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    return posted
+
+
+def test_done_carries_the_block_metrics_renders_when_the_committed_file_is_absent_and_the_render_succeeds(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    pr = "https://github.com/o/r/pull/12"
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "done", "pr": pr}])
+    block = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n"
+
+    def render(argv):
+        print(block, end="")
+        return 0
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", render)
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert posted == [("7", f"### ✅ Done — {pr}\n\n{block}")]
+    assert "Metrics" not in out
+
+
+def test_done_exits_2_with_one_stderr_line_posting_and_journaling_nothing_when_the_journal_has_no_done_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "start"}])
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 2
+    assert len(err.splitlines()) == 1
+    assert posted == []
+    assert "comment" not in (tmp_path / ".tdd" / "events.jsonl").read_text()
+
+
+def test_done_adds_the_stop_arrived_line_when_a_stop_request_is_pending_and_none_otherwise(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    pr = "https://github.com/o/r/pull/12"
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "done", "pr": pr}])
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n")
+
+    run_cli(comment, ["7", "done"], cwd=tmp_path)
+    (tmp_path / ".tdd" / "stop").write_text("at-leaf\n")
+    run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert "stop" not in posted[0][1].lower()
+    assert "A stop arrived after the last step, so the run finished rather than pausing." in posted[1][1].splitlines()
