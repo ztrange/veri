@@ -222,3 +222,20 @@ def test_a_github_failure_exits_2_and_files_nothing(tmp_path, monkeypatch, githu
     code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
 
     assert (code, out, writes) == (2, "", [])
+
+
+@pytest.mark.parametrize("issue", ["abc", "4x", "#42", ""])
+def test_a_non_numeric_issue_number_prints_usage_and_exits_2_making_no_github_call(
+        issue, tmp_path, monkeypatch, github, run_cli):
+    calls = []
+    for name in ("gh_issue_list", "gh_rest_list", "gh_issue_create", "gh_issue_add_label",
+                 "gh_label_ensure", "gh_issue_edit"):
+        monkeypatch.setattr(github, name, lambda *args, **kwargs: calls.append(args) or "[]", raising=False)
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, [issue, str(owed)])
+
+    assert (code, out, calls) == (2, "", [])
+    assert err.startswith("usage:") and "refactor-candidates.sh" in err

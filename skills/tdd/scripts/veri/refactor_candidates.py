@@ -41,6 +41,9 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     issue, owed_file = argv
+    if not re.fullmatch(r"[0-9]+", issue):
+        sys.stderr.write(USAGE)
+        return 2
     try:
         with open(owed_file) as handle:
             owed = handle.read()
