@@ -6,3 +6,6 @@
 - test-only | extract the repeated `subprocess.Popen([... SERVE ...])` launch and terminate/wait teardown in `test_serve_get_root.py` into one helper
 ### The page's Running entry for a run shows its current phase (the last `launch` event's phase) and that phase's attempt count, as `status.sh --report` prints them ⟦criterion 4⟧
 - extract the per-run parsing in `running_lines` (minutes, steps, phase) into helper functions
+### The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧
+- extract the repeated "if events of kind X: build a field string" blocks in `running_lines` (steps, phase, verdict counts) into small per-field helpers
+- test-only | factor the repeated Popen/serve-start and wait-for-ready loop in `tests/test_serve_get_root.py` into a helper
