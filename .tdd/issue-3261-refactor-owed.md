@@ -30,3 +30,4 @@
 not-done | transform-rejected | split `main` into load-snapshot, age-line and PRD-selection helpers (not duplication removal, so not applied here)
 not-done | transform-rejected | split `main` in prd_report.py into helpers (snapshot loading, children and solved counting, left-line rendering) — a larger restructuring than this leaf's duplication-only rule allows
 applied | 1cb53f1e3d0d1088e30c795e89c4d6e052e6d7b6 | split `main` into per-PRD helper functions (solved, left); this is not duplication removal, so it is not applied here	refactor: split prd_report.main into per-PRD helper functions (#3261)
+applied | cffb3f5bb49b0df3d0ac1e3c25af0edfc3207430 | split the `main` function in prd_report.py into per-section helpers (head selection, solved, left, ETA), which is a restructuring beyond this cycle's duplication-only remit	chore: record the structural pass's applied candidate (#3261)
