@@ -7,7 +7,7 @@ leaves never share context, so each revise leaf is told explicitly what to fix.
 
 A revise of red, green or refactor is built from a prompt that asks for no `SUITE:` line, so its wait
 exits 0 straight into its verifier and nothing checks for the line. The `diff` revise does ask for one:
-its check is stated under *A `⟦diff-checked⟧` step*.
+its check is stated in DIFF-CHECKED.md (`Read` `<base directory>/DIFF-CHECKED.md`).
 
 The phases sent to `build-develop-prompt.sh revise <phase>` are red, green, refactor, transform, diff, rebase and the interface phases expand, beside, cover-new, dual-stub, migrate, contract-a, contract-b; a rejected transform is revised as `revise transform`, never mapped to `refactor`; a rebase rejection (the Draft PR step's rebase verifier) is revised as `revise rebase`.
 
@@ -137,7 +137,7 @@ the original verify-diff verdict ran against — the run's branch point, and the
 recorded before the step's develop-diff leaf ran, not one recorded before the revise leaf — so
 the revised work is judged against the diff the rejection was about. A
 recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
-bullet in *A `⟦diff-checked⟧` step* describes.
+bullet in DIFF-CHECKED.md describes.
 
 A `diff` REJECT whose reason names a pytest, Go or JS case as renamed and changed (#2594) launches no revise
 leaf and spends no `REVISE_BUDGET` attempt. The conductor replaces the step with two steps through
