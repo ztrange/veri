@@ -15,6 +15,7 @@ rwildcard = $(foreach d,$(wildcard $(1)/*),$(call rwildcard,$(d),$(2))$(if $(fil
 PY_ALL := $(sort $(call rwildcard,skills/tdd/scripts/tests/py,test_%.py))
 PY_UNIT := $(sort $(wildcard skills/tdd/scripts/tests/py/unit/test_*.py))
 DASH_PATH := projects/dashboard/%
+DASH_RUN = $(MAKE) -C projects/dashboard test
 py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(if $(filter $(DASH_PATH),$(t)),,$(t)))),$(3))
 DASH_TESTS := $(filter $(DASH_PATH),$(TESTS))
 py_refused = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),,$(t))))
@@ -109,7 +110,7 @@ test unit:
 	  printf '== pytest\n'; \
 	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
-	if [ -n "$(DASH_TESTS)" ]; then printf '== dashboard\n'; $(MAKE) -C projects/dashboard test < /dev/null || fail=1; fi; \
+	if [ -n "$(DASH_TESTS)" ]; then printf '== dashboard\n'; $(DASH_RUN) < /dev/null || fail=1; fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 

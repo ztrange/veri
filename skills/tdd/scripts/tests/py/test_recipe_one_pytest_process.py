@@ -410,3 +410,19 @@ def test_3340_criterion_3_a_failing_dashboard_case_named_alone_in_tests_makes_ma
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert ran.returncode != 0, ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make -n test started for real over a planted tree whose cases log when they run")
+def test_3340_make_n_test_prints_the_recipe_and_runs_no_case(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+
+    ran = subprocess.run(["make", "-n", "-C", str(tree), "test"], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, log.read_text().splitlines()) == (0, []), ran.stdout + ran.stderr
