@@ -204,3 +204,8 @@ SKILL_CEILING_3174 = 169_698 - 30_000
 def test_skill_md_is_at_least_30000_bytes_smaller_than_before_draft_pr_moved_3174():
     """Subject is source text: #3174 criterion, SKILL.md loses at least 30,000 bytes of the 169,698 it had on main, so it stays at or under 139,698."""
     assert SKILL.stat().st_size <= SKILL_CEILING_3174
+
+
+def test_skill_md_names_diff_checked_md_under_base_directory_3202():
+    """Subject is source text: SKILL.md names the file `<base directory>/DIFF-CHECKED.md`."""
+    assert "<base directory>/DIFF-CHECKED.md" in SKILL.read_text()
