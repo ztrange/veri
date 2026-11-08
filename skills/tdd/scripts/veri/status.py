@@ -511,8 +511,7 @@ def recover_bailed():
 
 
 def recover_prs():
-    answer = subprocess.run(["gh", "api", "repos/{owner}/{repo}/pulls?state=open"],
-                            capture_output=True, text=True)
+    answer = github.gh_probe("api", "repos/{owner}/{repo}/pulls?state=open")
     if answer.returncode != 0:
         raise OSError("status.sh --recover: GitHub refused the open pull request read: %s" % answer.stderr.strip())
     lines = []

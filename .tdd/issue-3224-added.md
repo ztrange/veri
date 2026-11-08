@@ -1,2 +1,2 @@
 - [x] `role-state.sh <role> drop <list> <id>` replaces the state file atomically too: a drop whose rename over the state file fails leaves the previous file byte-for-byte unchanged ⟦added⟧ ⟦criterion 4⟧
-- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_no_graphql_gh_calls.py — FAILED test_no_module_but_github_py_starts_a_gh_process_1974 - status.py:514 starts a gh process outside the GitHub port ⟦suite-repair⟧ ⟦criterion 7⟧
+- [x] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_no_graphql_gh_calls.py — FAILED test_no_module_but_github_py_starts_a_gh_process_1974 - status.py:514 starts a gh process outside the GitHub port ⟦suite-repair⟧ ⟦criterion 7⟧
