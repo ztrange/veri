@@ -341,3 +341,51 @@ def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default
     text = " ".join(state)
     assert code == 0 and "mu-lane-order" in text and "8" in text.split(), (code, state)
     assert "default-lane-order" not in text, state
+
+
+def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text(
+        "n=2\ndecision 1 2026-11-08T14:30:00 merge 4721 before 4722 or hold both for review?\n"
+        "decision 2 2026-11-08T18:45:10 park the flaky issue 3300 until Monday\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    pending = lines[lines.index("Pending decisions") + 1:lines.index("Pending messages")]
+    first = [l for l in pending if "merge 4721 before 4722 or hold both for review?" in l]
+    second = [l for l in pending if "park the flaky issue 3300 until Monday" in l]
+    assert code == 0 and len(first) == 1 and len(second) == 1, (code, pending)
+    assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
+    assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
+
+
+def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text(
+        "n=6\nlane=mu\n"
+        "timed-n 1 2026-11-08T09:00:00 drop to 2 at nightfall\n"
+        "override 2 2026-11-08T10:00:00 run 5150 first\n"
+        "decision 3 2026-11-08T11:00:00 hold the release for review?\n"
+        "message 4 2026-11-08T12:00:00 told the dev to rebase\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    pending = lines[lines.index("Pending decisions") + 1:lines.index("Pending messages")]
+    assert code == 0 and len(pending) == 1, (code, pending)
+    assert "hold the release for review?" in pending[0], pending
