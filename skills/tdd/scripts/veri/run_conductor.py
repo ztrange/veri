@@ -37,9 +37,6 @@ HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
 def main(argv):
-    if argv == ["--help"]:
-        print(USAGE)
-        return 0
     for name in ("REVISE_BUDGET", "VERI_REBASED_TIP_SUITE", "VERI_BASELINE_FULL_TIER"):
         _, bad = tunables.resolve(name)
         if bad:

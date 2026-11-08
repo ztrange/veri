@@ -102,9 +102,6 @@ def _whole_number(text):
 
 
 def main(argv):
-    if argv == ["--help"]:
-        print(USAGE)
-        return 0
     given = {}
     for i in range(0, len(argv), 2):
         flag, value = argv[i], argv[i + 1:i + 2]

@@ -21,9 +21,6 @@ def killed_external(events):
 
 
 def main(argv):
-    if argv == ["--help"]:
-        sys.stdout.write(USAGE)
-        return 0
     if len(argv) != 1:
         sys.stderr.write(USAGE)
         return 2

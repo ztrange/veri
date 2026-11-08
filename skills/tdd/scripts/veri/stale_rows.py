@@ -75,9 +75,6 @@ def cached_grade(unit, rows):
 
 
 def main(argv):
-    if argv == ["--help"]:
-        print(USAGE)
-        return 0
     if len(argv) != 1:
         print(USAGE, file=sys.stderr)
         return 2
