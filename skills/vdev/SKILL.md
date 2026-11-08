@@ -184,7 +184,8 @@ instruction.
 
 On resume, read the parked set with `$S/parked-issues.sh` (exit 3: none parked), never from a
 handoff or memory: GitHub holds it and each park's cause. Un-parking an issue removes its
-`parked` label: `gh issue edit <n> --remove-label parked`.
+`parked` label and puts it back on the queue in one call: `$S/release-issue.sh <n>`, never a bare
+label removal, which leaves the issue claimed (`taken:<lane>`) with nothing that takes it back.
 
 ## When to stop and ask
 
