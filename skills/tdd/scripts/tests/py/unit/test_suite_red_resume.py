@@ -757,3 +757,23 @@ def test_insert_leaves_the_ledger_untouched_and_exits_0_when_two_adjacent_pendin
     assert code == 0
     assert ledger.read_text() == text
     assert not list(tmp_path.glob("*-added.md"))
+
+
+def test_rebased_tip_returns_insert_exit_2_unchanged_and_writes_no_rebase_lease_when_a_plain_step_separates_the_two_stale_graded_units_steps_3378(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    units = ["skills/tdd/SUITE-REPAIR.md", "skills/tdd/SKILL.md"]
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", u) for u in units], []))
+    ledger = tmp_path / "issue-7.md"
+    text = f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] ⟦skill-edit⟧ sign `{units[0]}`\n- [ ] b ⟦criterion 2⟧\n- [ ] ⟦skill-edit⟧ sign `{units[1]}`\n"
+    ledger.write_text(text)
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_015_prose_signed.py\ntest_prd_016_short_names.py — FAIL stale GRADED\n")
+
+    code, _, err = run_cli(module, ["rebased-tip", str(ledger), str(branch), "abc1234"])
+
+    assert code == 2
+    assert "reorder-ledger-steps.sh" in err
+    assert ledger.read_text() == text
+    assert not (tmp_path / "rebase-lease").exists()
