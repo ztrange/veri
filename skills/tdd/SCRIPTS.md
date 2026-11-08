@@ -30,7 +30,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   timeout. When a `develop-*` or `revise-*` leaf exits, any change it made to a committed
   `.tdd/issue-*-mutations.md` record (an edit, a deletion, a new file) is undone and one
   `mutation-record-restored` event (`name=`, `file=`) goes to `events.jsonl` per record —
-  only `mutation-probe` writes that record.
+  only `mutation-probe` writes that record. When a `develop-red…` or `revise-red-…` leaf exits,
+  any tracked production file it changed from the step's uncommitted state is written back and
+  one `production-file-restored` event (`name=`, `file=`) goes to `events.jsonl` per file.
   A refused launch exits 2, writes one `launch-refused` event (`name=`, `reason=`) naming the leaf
   and starts no leaf. Causes: a `run-leaf.sh` launch whose prompt file is missing or empty, a
   `run-leaf.sh` launch with no prompt argument, `VERI_STEP` set but empty, an empty `--step`
