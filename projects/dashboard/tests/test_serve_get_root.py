@@ -284,3 +284,40 @@ def test_page_shows_a_running_runs_steps_done_of_the_last_plans_steps(veri_home)
 
     entry = [l for l in body.splitlines() if "7771" in l]
     assert any("3/5" in l for l in entry)
+
+
+@pytest.mark.process("serve.py")
+def test_page_shows_a_running_runs_current_phase_and_its_attempt_count(veri_home):
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "8881", "event": event, **extra}) + "\n"
+
+    (veri_home / "runs" / "8881.jsonl").write_text(
+        ev(0, "conductor-start")
+        + ev(10, "launch", phase="red")
+        + ev(20, "launch", phase="green")
+        + ev(30, "launch", phase="red")
+        + ev(40, "launch", phase="green")
+        + ev(50, "launch", phase="green")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    entry = [l for l in body.splitlines() if "8881" in l]
+    assert any("green attempt 3" in l for l in entry)

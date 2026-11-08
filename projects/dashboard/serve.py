@@ -21,7 +21,11 @@ def running_lines():
         if plans:
             done = sum(1 for e in events if e.get("event") == "step-done")
             steps = " %d/%d" % (done, int(plans[-1]["steps"]))
-        lines.append("<p>%s %dm%s</p>" % (path.stem, minutes, steps))
+        launches = [e["phase"] for e in events if e.get("event") == "launch"]
+        phase = ""
+        if launches:
+            phase = " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
+        lines.append("<p>%s %dm%s%s</p>" % (path.stem, minutes, steps, phase))
     return lines
 
 
