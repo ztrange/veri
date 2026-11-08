@@ -1,3 +1,4 @@
+import json
 import pathlib
 import socket
 import subprocess
@@ -112,3 +113,135 @@ def test_serve_without_port_still_serves_the_page(veri_home):
         proc.wait(timeout=5)
 
     assert status == 200
+
+
+def test_page_names_a_run_without_an_ending_event_with_its_awake_minutes(veri_home):
+    first = {"ts": 1794089519, "awake": 1000, "issue": "4242", "event": "conductor-start"}
+    last = {"ts": 1794090239, "awake": 1720, "issue": "4242", "event": "test-run"}
+    (veri_home / "runs" / "4242.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in (first, last))
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    running = [line for line in body.splitlines() if "4242" in line]
+    assert (any("12m" in line for line in running), "3277" in body) == (True, False)
+
+
+def test_page_lists_running_runs_in_sorted_order_skipping_blank_lines_and_empty_journals(veri_home):
+    def line(issue, awake, event):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": issue, "event": event}) + "\n"
+
+    runs = veri_home / "runs"
+    (runs / "3333.jsonl").write_text(line("3333", 0, "conductor-start") + line("3333", 600, "test-run"))
+    (runs / "2222.jsonl").write_text("")
+    (runs / "1111.jsonl").write_text(
+        line("1111", 0, "conductor-start") + "\n" + line("1111", 300, "test-run")
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert [l for l in body.splitlines() if l.startswith("<p>")] == [
+        "<p>1111 5m</p>",
+        "<p>3333 10m</p>",
+    ]
+
+
+def test_page_leaves_out_runs_whose_journal_has_a_bail_or_merged_ending_event(veri_home):
+    def line(issue, awake, event):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": issue, "event": event}) + "\n"
+
+    runs = veri_home / "runs"
+    (runs / "5551.jsonl").write_text(line("5551", 0, "conductor-start") + line("5551", 600, "bail"))
+    (runs / "5552.jsonl").write_text(line("5552", 0, "conductor-start") + line("5552", 600, "merged"))
+    (runs / "5553.jsonl").write_text(line("5553", 0, "conductor-start") + line("5553", 600, "test-run"))
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    shown = [l for l in body.splitlines() if l.startswith("<p>555")]
+    assert shown == ["<p>5553 10m</p>"]
+
+
+def test_page_leaves_out_runs_whose_journal_has_a_done_ending_event(veri_home):
+    def line(issue, awake, event):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": issue, "event": event}) + "\n"
+
+    runs = veri_home / "runs"
+    (runs / "6661.jsonl").write_text(line("6661", 0, "conductor-start") + line("6661", 600, "done"))
+    (runs / "6662.jsonl").write_text(
+        line("6662", 0, "conductor-start")
+        + json.dumps({"ts": 1794089519, "awake": 300, "issue": "6662"}) + "\n"
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    shown = [l for l in body.splitlines() if l.startswith("<p>666")]
+    assert shown == ["<p>6662 5m</p>"]
