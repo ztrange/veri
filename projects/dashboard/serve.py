@@ -29,7 +29,11 @@ def running_lines():
         counts = ""
         if verdicts:
             counts = " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
-        lines.append("<p>%s %dm%s%s%s</p>" % (path.stem, minutes, steps, phase, counts))
+        usage = [float(e["total_cost_usd"]) for e in events if e.get("event") == "usage"]
+        cost = ""
+        if usage:
+            cost = " | total | $%.2f" % sum(usage)
+        lines.append("<p>%s %dm%s%s%s%s</p>" % (path.stem, minutes, steps, phase, counts, cost))
     return lines
 
 
