@@ -32,7 +32,7 @@
 - [x] `status.sh --recover <role>` prints under `State` each order override from the role's state file with its id and time ⟦criterion 6⟧
 - [x] `status.sh --recover <role> --lane <lane>` reads the named lane's state file `.tdd/role-<role>-<lane>.state`, not the default lane's ⟦criterion 6⟧
 - [x] `status.sh --recover <role>` prints under `Pending decisions` each pending decision in full with its id and time ⟦criterion 6⟧
-- [x] `status.sh --recover <role>` prints under `Pending messages` each pending message in full with its id and time ⟦criterion 6⟧ ⟂ refactor pending
+- [x] `status.sh --recover <role>` prints under `Pending messages` each pending message in full with its id and time ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` exits 2 when GitHub refuses the open-PR read, its stderr naming that read ⟦criterion 6⟧
 - [ ] `status.sh --recover` given a role other than `coord` or `dev` exits 2 ⟦criterion 6⟧
 - [ ] Round trip (RC3): a case writes one item of every field and list with `role-state.sh`, takes `status.sh --recover`, finds each value verbatim in it, and a second report taken from the files on disk alone is identical to the first; removing any one list from the report turns the case red ⟦criterion 7⟧
