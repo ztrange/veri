@@ -1,4 +1,6 @@
 """In-process cases for veri/event_roster.py, the scanner of every event name emitted under skills/."""
+import pytest
+
 from veri import event_roster
 
 
@@ -98,3 +100,19 @@ def test_a_name_emitted_by_a_bare_record_call_is_in_the_roster(tmp_path, monkeyp
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-bare-record-event"}
+
+
+@pytest.mark.tree_audit("runs the roster guard, which reads every file under skills/")
+def test_the_journal_guard_goes_red_on_an_event_left_only_in_another_rows_prose(tmp_path, monkeypatch):
+    import test_journal_event_roster as guard
+
+    rows = guard.JOURNAL.read_text(encoding="utf-8").splitlines(keepends=True)
+    kept = [line for line in rows if not line.startswith("| `resume` |")]
+    assert len(kept) == len(rows) - 1
+    copy = tmp_path / "JOURNAL.md"
+    copy.write_text("".join(kept), encoding="utf-8")
+    monkeypatch.setattr(guard, "JOURNAL", copy)
+
+    with pytest.raises(AssertionError) as red:
+        guard.test_every_event_emitted_under_skills_is_documented_in_journal_md()
+    assert "resume (emitted in" in str(red.value)
