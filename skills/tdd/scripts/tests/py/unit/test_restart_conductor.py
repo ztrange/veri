@@ -132,6 +132,24 @@ def test_3346_a_conductor_log_with_a_leading_plain_text_line_is_measured_from_it
     assert (code, calls) == (0, [("stop", "at-ledger", "7")])
 
 
+def test_3346_a_conductor_log_whose_every_line_is_plain_text_measures_no_growth_and_keeps_watching_stopping_nothing(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(
+        "update-veri.sh: already current\nc0b101862952205cdffbd5a839c271fe1e72044b -> 57b4449cfe552641\n")
+    alive = iter([True, True, False])
+    calls = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), calls) == (0, "restarts 7 0", [])
+
+
 def test_3223_a_live_conductor_whose_growth_is_59499_with_the_default_knob_is_not_stopped(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
