@@ -178,7 +178,8 @@ def test_page_names_a_run_without_an_ending_event_with_its_awake_minutes(veri_ho
         proc.wait(timeout=5)
 
     running = [line for line in body.splitlines() if "4242" in line]
-    assert (any("12m" in line for line in running), "3277" in body) == (True, False)
+    running_div = body.split("<div id=running>", 1)[1].split("</div>", 1)[0]
+    assert (any("12m" in line for line in running), "3277" in running_div) == (True, False)
 
 
 def test_page_lists_running_runs_in_sorted_order_skipping_blank_lines_and_empty_journals(veri_home):
