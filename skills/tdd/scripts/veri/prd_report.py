@@ -39,6 +39,10 @@ def _load(path):
         return json.load(f)
 
 
+def _owed():
+    return _load(OWED) if os.path.exists(OWED) else {}
+
+
 def _stale(stored, nnn, issue):
     return stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]
 
@@ -54,7 +58,7 @@ def main(argv):
         return 0
     if argv[0] == "--store-owed":
         heads = _heads(_load(CACHE)["issues"])
-        stored = _load(OWED) if os.path.exists(OWED) else {}
+        stored = _owed()
         stored[argv[1]] = {"updatedAt": heads[argv[1]]["updatedAt"], "answer": _load(argv[2])}
         with open(OWED, "w") as f:
             json.dump(stored, f)
@@ -70,10 +74,7 @@ def main(argv):
         print("snapshot age: %d hours" % hours)
         opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
         open_numbers = {o["number"] for o in opened}
-        stored = {}
-        if os.path.exists(OWED):
-            with open(OWED) as f:
-                stored = json.load(f)
+        stored = _owed()
         heads = _heads(opened)
         for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
             print("PRD %s (#%d) — %s" % (nnn, issue["number"], issue["title"]))
