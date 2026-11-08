@@ -1,0 +1,7 @@
+before 40
+abff088bc7a81b83db60b5468f4ffa6a3baaa51e
+keep 61
+skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py
+command 360
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpfc6y63ke/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py make test TESTS=skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3340_criterion_2_a_tests_list_mixing_a_dashboard_case_and_a_veri_case_runs_each_under_its_own_runner_and_exits_0
+

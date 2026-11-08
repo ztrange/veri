@@ -322,3 +322,25 @@ def test_3340_criterion_1_a_dashboard_case_that_starts_a_real_process_with_no_ma
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, log.read_text().splitlines()) == (0, ["dashboard served"]), ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make test started for real over a planted tree holding a dashboard project and a veri suite, both named in one TESTS list")
+def test_3340_criterion_2_a_tests_list_mixing_a_dashboard_case_and_a_veri_case_runs_each_under_its_own_runner_and_exits_0(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    dashboard = tree / "projects" / "dashboard"
+    (dashboard / "tests").mkdir(parents=True)
+    (dashboard / "Makefile").write_text(DASHBOARD_MAKEFILE)
+    (dashboard / "tests" / "test_serve.py").write_text(DASHBOARD_CASE)
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    env["PATH"] = os.path.dirname(sys.executable) + os.pathsep + env["PATH"]
+    named = "TESTS=projects/dashboard/tests/test_serve.py skills/tdd/scripts/tests/py/unit/test_planted_small.py"
+
+    ran = subprocess.run(["make", "-C", str(tree), "test", named], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, sorted(log.read_text().splitlines())) == (0, ["dashboard served", "pytest small"]), ran.stdout + ran.stderr
