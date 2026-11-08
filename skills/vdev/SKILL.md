@@ -136,7 +136,9 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   `$S/park-issue.sh <n> <cause> <unblock> [<pr>]`: it labels the issue `parked` and posts the
   cause and what would unblock it. Budget raises come only from the coordinator or the human.
 - **No closing comment.** Check for a usage limit or sleep first (P10). Either one is not a
-  bail: resume the run once usage is back. Neither one: route it as a bail.
+  bail: resume the run once usage is back, from the target repository's main working tree:
+  `$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null`
+  (then the restart line from *Launching*). Neither one: route it as a bail.
 
 Then take the slot decision.
 
@@ -172,7 +174,7 @@ instruction.
 
 On resume, read the parked set with `$S/parked-issues.sh` (exit 3: none parked), never from a
 handoff or memory: GitHub holds it and each park's cause. Un-parking an issue removes its
-`parked` label.
+`parked` label: `gh issue edit <n> --remove-label parked`.
 
 ## When to stop and ask
 
