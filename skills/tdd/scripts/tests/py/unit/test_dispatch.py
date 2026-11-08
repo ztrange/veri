@@ -173,3 +173,29 @@ def test_main_prints_done_with_the_pr_url_from_the_last_comment_heading_and_exit
         code = None
 
     assert (code, capsys.readouterr().out) == (0, "done 7 https://github.com/o/r/pull/9\n")
+
+
+def test_main_prints_bail_and_exits_0_when_a_live_conductor_exits_and_its_last_comment_is_a_bail(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    lives = [["7"], []]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 2:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### ⛔ Bailed\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (0, "bail 7\n")
