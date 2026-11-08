@@ -9,7 +9,7 @@
 - [x] The page's Running section names each run whose journal under `$VERI_HOME/runs/` has no ending event, with its awake wall time (minutes between its first and last journal line's `awake`), as `status.sh --report` prints it for that run ⟦criterion 4⟧
 - [x] The page's Running entry for a run shows its steps done of planned (`step-done` events of the last `plan` event's `steps`), as `status.sh --report` prints them ⟦criterion 4⟧
 - [x] The page's Running entry for a run shows its current phase (the last `launch` event's phase) and that phase's attempt count, as `status.sh --report` prints them ⟦criterion 4⟧
-- [ ] The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧
+- [x] The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] The page's Running entry for a run shows its cost in dollars (summed `usage` `total_cost_usd`), as `status.sh --report` prints it ⟦criterion 4⟧
 - [ ] The page's Running entry for a run shows its model split (the model per role: developer, verifier, revise), as `status.sh --report` prints it ⟦criterion 4⟧
 - [ ] A line appended to a running run's journal shows on the already-open page without a reload (the page fetches fresh Running data from the server and re-renders it) ⟦criterion 4⟧
