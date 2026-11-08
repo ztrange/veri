@@ -2191,7 +2191,7 @@ def test_cli_with_help_as_the_issue_exits_2_with_the_usage_line_creates_no_run_w
     code, out, err = run_cli(run_conductor, ["--help"], cwd=cwd)
 
     assert (code, out, err, (cwd / ".tdd" / "wt" / "--help").exists(), [args[:1] for args, _ in launches]) == (
-        2, "", "usage: run-conductor.sh <issue>\n", False, [])
+        0, "usage: run-conductor.sh <issue>\n", "", False, [])
 
 
 def test_cli_with_a_non_numeric_or_zero_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(

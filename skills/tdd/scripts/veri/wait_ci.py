@@ -193,6 +193,9 @@ def record(mark, deadline):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        print(USAGE)
+        return 0
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
