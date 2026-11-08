@@ -10,3 +10,5 @@
 - extract the fastest-lane-rate loop in `main` of `prd_report.py` into a named helper (moves logic, removes no duplication)
 ### A PRD block whose holding lanes have three or more issues closed in the last 7 days prints its ETA's upper bound as its left count ÷ the slowest rate (issues per day at the slowest quartile of `wallSeconds`), after the lower bound as a range; the red case's fixture holds two or more open children, so the bound changes when the left count does ⟦added⟧ ⟦criterion 1⟧
 - in `main`, the ETA loop in `prd_report.py` computes fastest and slowest rates inline. Collecting the per-lane `86400 / wall` rates and taking `max` and `min` would drop the `slowest = None` sentinel. It removes no duplication against code this cycle wrote, so I did not apply it.
+### A PRD block whose open children no lane holds prints `ETA: no lane: no ETA` ⟦criterion 1⟧
+- extract the per-PRD ETA computation (lanes, rate, range) from `main` in prd_report.py into a helper function
