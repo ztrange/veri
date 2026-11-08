@@ -60,6 +60,9 @@ def main(argv):
         live = live_conductors()
         for issue in seen:
             if issue not in live:
+                if not os.path.isdir(os.path.join(tdd_dir(), "wt", issue)):
+                    sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
+                    return 2
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
         seen = live
