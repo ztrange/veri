@@ -12,6 +12,7 @@
 - [x] The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧
 - [x] The page's Running entry for a run shows its cost in dollars (summed `usage` `total_cost_usd`), as `status.sh --report` prints it ⟦criterion 4⟧
 - [x] The page's Running entry for a run shows its model split (the model per role: developer, verifier, revise), as `status.sh --report` prints it ⟦criterion 4⟧
+- [ ] fix the full-suite failure: projects/dashboard/tests/test_veri_make_test_scope.py — FAILED test_veri_make_test_collects_nothing_under_projects_dashboard: assert (0, True) == (0, False) ⟦suite-repair⟧ ⟦criterion 4⟧
 - [ ] A line appended to a running run's journal shows on the already-open page without a reload (the page fetches fresh Running data from the server and re-renders it) ⟦criterion 4⟧
 - [ ] `serve.py`'s source opens files only under `$VERI_HOME/runs/` and at `<repo>/.tdd/report-cache.json`; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
