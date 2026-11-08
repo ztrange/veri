@@ -3398,3 +3398,24 @@ def test_main_3135_exits_2_with_the_usage_for_three_arguments_naming_spec(
 
     assert (code, stdout) == (2, "")
     assert stderr.startswith("usage: wrong-test-route.sh --spec <spec-file> ")
+
+
+def test_main_3292_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_no_case_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh repairs an unnamed wrong test after the free reroute"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "reroute", "step": "%s"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the red case omits the required environment stub and asserts a payload field the upstream never sends\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
