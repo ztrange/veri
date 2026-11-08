@@ -34,6 +34,10 @@ def _run_file(run, name):
     return os.path.join(_run_dir(run), ".tdd", name)
 
 
+def _log_path(run):
+    return os.path.join(_tdd_dir(), f"conductor-{run}.log")
+
+
 def conductor_alive(run):
     return pid_file.live_conductor(_run_dir(run)) is not None
 
@@ -48,19 +52,19 @@ def run_state(run):
 
 def detach_leaf(run):
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    with open(os.path.join(_tdd_dir(), f"conductor-{run}.log"), "a") as log:
+    with open(_log_path(run), "a") as log:
         subprocess.Popen(
             [os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), run],
             stdout=log)
 
 
 def _log_size(run):
-    return os.path.getsize(os.path.join(_tdd_dir(), f"conductor-{run}.log"))
+    return os.path.getsize(_log_path(run))
 
 
 def _growth(run, offset=0):
     try:
-        with open(os.path.join(_tdd_dir(), f"conductor-{run}.log")) as f:
+        with open(_log_path(run)) as f:
             f.seek(offset)
             records = []
             for line in f:
