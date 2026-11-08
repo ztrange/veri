@@ -55,6 +55,10 @@ def is_go_test_failure(run):
     return any(line.startswith("--- FAIL: ") for line in lines)
 
 
+def is_pytest_failure(run):
+    return any(line.startswith("FAILED ") for line in output_lines(run))
+
+
 def needs_a_look(looks, file, reason):
     looks[(file, reason)] = looks.get((file, reason), 0) + 1
 
@@ -198,7 +202,7 @@ def recheck(argv, looks):
         path.write_bytes(original)
         green = mutated.returncode == 0
         base_lines = output_lines(base)
-        if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated):
+        if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated) and not is_pytest_failure(mutated):
             needs_a_look(looks, pin["file"], "mutation did not build")
             write_tail(mutated)
             status = 1
