@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 3202
 
-Wall time for the issue: 41 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4212 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 2 of 10 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Steps done: 9 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3294.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.46 over 163 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $13.88 over 258 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78736 tokens, largest 96051 tokens
 Conductor context: first turn 78731 tokens, largest 153429 tokens
 Conductor context: first turn 78735 tokens, largest 141331 tokens
 Conductor context: first turn 77765 tokens, largest 144904 tokens
-Conductor context: first turn 77723 tokens, largest 123204 tokens
+Conductor context: first turn 77723 tokens, largest 125486 tokens
+Conductor context: first turn 78258 tokens, largest 196670 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -158,29 +159,124 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 137 | $0.07 | 142798 |
 | 138 | $0.04 | 143753 |
 | 139 | $0.05 | 144904 |
-| 140 | $0.48 | 77723 |
-| 141 | $0.06 | 83518 |
-| 142 | $0.04 | 87016 |
-| 143 | $0.02 | 87663 |
-| 144 | $0.03 | 89129 |
-| 145 | $0.02 | 89956 |
-| 146 | $0.08 | 97390 |
-| 147 | $0.02 | 97944 |
-| 148 | $0.02 | 98465 |
-| 149 | $0.02 | 98841 |
-| 150 | $0.03 | 100236 |
-| 151 | $0.04 | 102413 |
-| 152 | $0.03 | 103318 |
-| 153 | $0.03 | 104879 |
-| 154 | $0.03 | 105717 |
-| 155 | $0.02 | 106140 |
-| 156 | $0.03 | 106936 |
-| 157 | $0.03 | 107806 |
+| 140 | $0.49 | 77723 |
+| 141 | $0.07 | 83518 |
+| 142 | $0.06 | 87016 |
+| 143 | $0.03 | 87663 |
+| 144 | $0.04 | 89129 |
+| 145 | $0.03 | 89956 |
+| 146 | $0.09 | 97390 |
+| 147 | $0.03 | 97944 |
+| 148 | $0.04 | 98465 |
+| 149 | $0.03 | 98841 |
+| 150 | $0.04 | 100236 |
+| 151 | $0.05 | 102413 |
+| 152 | $0.04 | 103318 |
+| 153 | $0.04 | 104879 |
+| 154 | $0.04 | 105717 |
+| 155 | $0.03 | 106140 |
+| 156 | $0.04 | 106936 |
+| 157 | $0.04 | 107806 |
 | 158 | $0.03 | 108294 |
-| 159 | $0.06 | 113459 |
-| 160 | $0.04 | 115684 |
-| 161 | $0.04 | 117735 |
+| 159 | $0.08 | 113459 |
+| 160 | $0.05 | 115684 |
+| 161 | $0.05 | 117735 |
 | 162 | $0.07 | 123204 |
+| 163 | $0.04 | 124070 |
+| 164 | $0.05 | 125486 |
+| 165 | $0.49 | 78258 |
+| 166 | $0.06 | 84187 |
+| 167 | $0.05 | 87709 |
+| 168 | $0.02 | 88137 |
+| 169 | $0.03 | 89918 |
+| 170 | $0.04 | 93056 |
+| 171 | $0.04 | 95620 |
+| 172 | $0.02 | 96122 |
+| 173 | $0.02 | 96494 |
+| 174 | $0.02 | 96859 |
+| 175 | $0.03 | 98268 |
+| 176 | $0.07 | 104514 |
+| 177 | $0.03 | 105158 |
+| 178 | $0.02 | 105478 |
+| 179 | $0.03 | 106216 |
+| 180 | $0.03 | 107003 |
+| 181 | $0.02 | 107419 |
+| 182 | $0.06 | 112551 |
+| 183 | $0.04 | 114162 |
+| 184 | $0.03 | 114738 |
+| 185 | $0.03 | 115053 |
+| 186 | $0.03 | 116437 |
+| 187 | $0.03 | 117590 |
+| 188 | $0.03 | 118022 |
+| 189 | $0.03 | 118650 |
+| 190 | $0.03 | 119231 |
+| 191 | $0.03 | 120123 |
+| 192 | $0.03 | 121189 |
+| 193 | $0.03 | 121690 |
+| 194 | $0.03 | 122181 |
+| 195 | $0.03 | 122678 |
+| 196 | $0.03 | 123903 |
+| 197 | $0.03 | 124994 |
+| 198 | $0.03 | 125904 |
+| 199 | $0.04 | 128012 |
+| 200 | $0.04 | 130184 |
+| 201 | $0.03 | 130622 |
+| 202 | $0.03 | 130909 |
+| 203 | $0.03 | 131363 |
+| 204 | $0.05 | 133840 |
+| 205 | $0.04 | 135231 |
+| 206 | $0.05 | 137581 |
+| 207 | $0.03 | 138216 |
+| 208 | $0.11 | 147917 |
+| 209 | $0.03 | 148325 |
+| 210 | $0.04 | 149407 |
+| 211 | $0.04 | 150605 |
+| 212 | $0.06 | 154290 |
+| 213 | $0.04 | 155004 |
+| 214 | $0.03 | 155227 |
+| 215 | $0.04 | 156178 |
+| 216 | $0.03 | 156435 |
+| 217 | $0.04 | 157138 |
+| 218 | $0.04 | 158509 |
+| 219 | $0.04 | 159503 |
+| 220 | $0.03 | 159699 |
+| 221 | $0.04 | 160103 |
+| 222 | $0.04 | 160811 |
+| 223 | $0.04 | 161907 |
+| 224 | $0.05 | 164381 |
+| 225 | $0.04 | 165024 |
+| 226 | $0.04 | 165511 |
+| 227 | $0.04 | 166576 |
+| 228 | $0.04 | 167229 |
+| 229 | $0.04 | 167988 |
+| 230 | $0.04 | 168392 |
+| 231 | $0.04 | 168976 |
+| 232 | $0.04 | 169692 |
+| 233 | $0.04 | 170729 |
+| 234 | $0.04 | 171565 |
+| 235 | $0.04 | 172448 |
+| 236 | $0.04 | 173502 |
+| 237 | $0.04 | 174145 |
+| 238 | $0.04 | 174444 |
+| 239 | $0.04 | 175371 |
+| 240 | $0.04 | 175904 |
+| 241 | $0.12 | 185981 |
+| 242 | $0.04 | 186353 |
+| 243 | $0.04 | 186950 |
+| 244 | $0.04 | 187621 |
+| 245 | $0.04 | 188224 |
+| 246 | $0.04 | 188764 |
+| 247 | $0.04 | 189252 |
+| 248 | $0.05 | 190164 |
+| 249 | $0.04 | 190816 |
+| 250 | $0.04 | 191450 |
+| 251 | $0.04 | 191896 |
+| 252 | $0.04 | 192334 |
+| 253 | $0.04 | 192898 |
+| 254 | $0.04 | 193103 |
+| 255 | $0.06 | 196076 |
+| 256 | $0.04 | 196385 |
+| 257 | $0.04 | 196670 |
 
 #### Conductor comments, by family
 
@@ -188,48 +284,55 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 2 | 1068 | $0.02 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 3 | 1499 | $0.03 |
-| 🟢 Green | 1 | 534 | $0.01 |
-| 🛠️ Refactor | 2 | 1068 | $0.02 |
-| 🔎 verify-green | 1 | 534 | $0.01 |
-| 🔎 verify-refactor | 2 | 1068 | $0.02 |
+| 🔴 Red | 4 | 1507 | $0.03 |
+| 🟢 Green | 2 | 540 | $0.01 |
+| 🛠️ Refactor | 3 | 1076 | $0.02 |
+| 🔎 verify-green | 2 | 540 | $0.01 |
+| 🔎 verify-refactor | 3 | 1076 | $0.02 |
 | 🔎 verify-<phase> (revised) | 1 | 534 | $0.01 |
 | 🗺️ Plan | 1 | 534 | $0.01 |
-| 🗺️ verify-plan | 4 | 2033 | $0.04 |
-| ▶️ Resuming | 2 | 965 | $0.02 |
-| ⛔ Bailed | 3 | 1499 | $0.03 |
+| 🗺️ verify-plan | 5 | 2053 | $0.04 |
+| ▶️ Resuming | 3 | 968 | $0.02 |
+| ⛔ Bailed | 4 | 1992 | $0.04 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 16 | 8132 | $0.16 |
+| Total | 22 | 8670 | $0.17 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 3 | 1 | 0 | 62 | 52 | 4 | 8 | 7119 | 5231 | 83581 | 0.28 |
-| red | 5 | 2 | 0 | 0 | 158 | 84 | 26 | 44 | 9068 | 385345 | 119430 | 0.53 |
-| green | 4 | 1 | 0 | 0 | 166 | 52 | 19 | 34 | 5153 | 298229 | 77184 | 0.35 |
-| refactor | 3 | 0 | 0 | 0 | 42 | 31 | 8 | 16 | 2693 | 110531 | 60780 | 0.28 |
-| diff | 5 | 1 | 1 | 0 | 2365 | 133 | 42 | 82 | 13297 | 769290 | 171567 | 0.74 |
+| plan | 5 | 4 | 1 | 0 | 76 | 64 | 5 | 10 | 8721 | 5231 | 106308 | 0.35 |
+| red | 9 | 3 | 0 | 0 | 262 | 141 | 42 | 76 | 15562 | 647731 | 210651 | 0.85 |
+| green | 6 | 2 | 0 | 0 | 747 | 97 | 31 | 56 | 8161 | 501205 | 111995 | 0.49 |
+| refactor | 4 | 0 | 0 | 0 | 48 | 35 | 10 | 20 | 2853 | 130360 | 81475 | 0.33 |
+| diff | 7 | 2 | 1 | 0 | 2910 | 182 | 56 | 110 | 17012 | 1067599 | 222393 | 0.94 |
+| prose | 8 | 0 | 0 | 0 | 332 | 312 | 8 | 16 | 50225 | 70925 | 424890 | 1.57 |
+| skill-edit | 1 | 0 | 0 | 0 | 64 | 22 | 7 | 14 | 2491 | 617702 | 107541 | 0.36 |
+| pin | 1 | 1 | 0 | 0 | 19 | 15 | 3 | 6 | 1102 | 37865 | 20400 | 0.07 |
+| rebase | 2 | 1 | 0 | 0 | 342 | 61 | 25 | 48 | 6856 | 631983 | 57844 | 0.28 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 9 | 7 | 2 | 0 | 1374 | 131 | 31 | 60 | 14867 | 483497 | 229777 | 0.77 |
+| verifier | claude-sonnet-5-5 | 15 | 13 | 2 | 0 | 2265 | 217 | 53 | 104 | 23653 | 823573 | 364268 | 1.23 |
 | developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 1275 | 152 | 44 | 78 | 15580 | 722081 | 167876 | 0.93 |
-| developer | claude-sonnet-5-5 | 6 | 0 | 0 | 0 | 144 | 69 | 24 | 46 | 6883 | 363048 | 114889 | 0.48 |
+| developer | claude-sonnet-5-5 | 13 | 0 | 0 | 0 | 864 | 226 | 75 | 144 | 21034 | 1476320 | 278922 | 1.14 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 58 | 0.16 |
-| green | 0 | 0.00 | 41 | 0.23 |
+| red | 0 | 0.00 | 0 | 0.00 |
+| green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 2283 | 0.62 |
-| preflight | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 15 | 0.05 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -238,7 +341,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `affected-suites.sh` places an edit to `skills/tdd/DIFF-CHECKED.md` on the suites that read that file (the pytest files that mention it), never raising Unplaced and never widening to every suite, because `SKILL_DOCS` in `veri/affected_suites.py` names the file; pinned by a small case over a fixture tree holding exactly two suites that name DIFF-CHECKED.md, compared as a set ⟦criterion 1⟧ | 8 | 2 | 0 | 0 | 0 | 0 | 111 | 35 | 60 | 10757 | 505913 | 166596 | 0.77 | 3297 | red 1/2, refactor 1/2 | 0/5 | nothing-left |  |  | full |
 | A new file `skills/tdd/DIFF-CHECKED.md` holds SKILL.md's ``#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)`` subsection verbatim: its first line is that heading at level two (``## A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)``), followed by every line of the subsection's body exactly as SKILL.md holds it, from the line after the heading through the line before ``#### A `⟦phases: …⟧` step`` (the closing `⟦fixture-repair⟧` paragraph included); SKILL.md itself unchanged and no other file changes ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 31 | 12 | 24 | 3033 | 196781 | 27885 | 0.12 | 125 | n/a | n/a | n/a |  |  | full |
 | The 16 rows the issue's `### skills/tdd/DIFF-CHECKED.md (new)` table lists (CY83-CY89, CY91-CY99) move out of the `## skills/tdd/SKILL.md` section of `skills/tdd/REQUIREMENTS.md` into a new `## skills/tdd/DIFF-CHECKED.md` section placed directly after it, under the same `| ID | Requirement | Why |` table head, in the order REQUIREMENTS.md holds them, IDs and text kept as the issue states them; CY123, SC67, PL9, PL10, PL18, PL21, PL35, PL66 and CY136 stay where they are; every other row and section left as it was; no other file changes ⟦diff-checked⟧ ⟦criterion 1⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 102 | 30 | 58 | 10264 | 572509 | 143682 | 0.62 | unknown | 1/2 | unknown | unknown |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py ⟦suite-repair⟧ ⟦criterion 1⟧ | 4 | 1 | 0 | 0 | 0 | 0 | 56 | 18 | 34 | 6157 | 288192 | 90798 | 0.39 | unknown | 1/2 | unknown | unknown |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py ⟦suite-repair⟧ ⟦criterion 1⟧ | 5 | 1 | 0 | 0 | 0 | 0 | 72 | 22 | 42 | 7991 | 352225 | 113830 | 0.47 | 293 | 1/2 | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/DIFF-CHECKED.md`: the 16 rows the issue's `### skills/tdd/DIFF-CHECKED.md (new)` table lists (CY83-CY89, CY91-CY99) stand in a `## skills/tdd/DIFF-CHECKED.md` section of `skills/tdd/REQUIREMENTS.md` placed directly after the `## skills/tdd/SKILL.md` section, under the same `| ID | Requirement | Why |` table head, in the order REQUIREMENTS.md held them, IDs and text kept as the issue states them, and are gone from the SKILL.md section (commit 8640e2f040 already moved them; keep that move); CY123, SC67, PL9, PL10, PL18, PL21, PL35, PL66 and CY136 stay where they are; `skill-edit-step.sh` grades the unit PASS against its whole list in that section and signs it in `skills/tdd/GRADED` ⟦skill-edit⟧ ⟦criterion 1⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 12 | 1 | 2 | 2019 | 1516 | 10551 | 0.05 | unknown | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SKILL.md`: `skill-edit-step.sh` adds DC1 to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SKILL.md` exactly as the issue states it, and the body of SKILL.md's ``#### A `⟦diff-checked⟧` step`` subsection is replaced by a pointer sentence in the established form sending the run, when `next-unchecked.sh` hands over a step carrying `⟦diff-checked⟧`, to `<base directory>/DIFF-CHECKED.md`, which it `Read`s then and not before and runs in place of Red, Green and Refactor, the heading staying where it stands; in the same attempt every suite that read the subsection's text out of SKILL.md reads it from `skills/tdd/DIFF-CHECKED.md` instead and keeps its outcome, none passing by finding nothing to check: `unit/test_skill_diff_checked_readers.py` (reads the subsection from DIFF-CHECKED.md by its level-two heading, its allow-list kept), `unit/test_skill_event_files.py` (the revise-loop site list of case 1855 and the misplaced-pointer file list take in DIFF-CHECKED.md), `test_skill_leaf_env.py`, `test_suite_reported_process.py`, `test_prompt_test_tiers.py` and `test_prose_owed_process.py`, test files only beside the unit and its list; it grades PASS against its whole remaining list and is signed in `skills/tdd/GRADED`; pin files skills/tdd/scripts/tests/py/unit/test_skill_diff_checked_readers.py, skills/tdd/scripts/tests/py/unit/test_skill_event_files.py, skills/tdd/scripts/tests/py/test_skill_leaf_env.py, skills/tdd/scripts/tests/py/test_suite_reported_process.py, skills/tdd/scripts/tests/py/test_prompt_test_tiers.py, skills/tdd/scripts/tests/py/test_prose_owed_process.py ⟦skill-edit⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 180 | 11 | 22 | 27630 | 683430 | 353823 | 1.23 | 292 | unknown | unknown | unknown |  |  | full |
+| A small case in skills/tdd/scripts/tests/py/unit/test_skill_event_files.py, reading SKILL.md as text, asserts the one mechanical fact that SKILL.md names the file `<base directory>/DIFF-CHECKED.md` (a substring check on that path, no check on the sentence's wording); test files only, no production change ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 28 | 7 | 14 | 2814 | 108987 | 38381 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
+| `git diff "$(git merge-base HEAD origin/main)" HEAD` shows every line removed from SKILL.md's diff-checked subsection added unchanged in `skills/tdd/DIFF-CHECKED.md`, apart from the heading's depth, and every row removed from REQUIREMENTS.md's SKILL.md section added unchanged in its DIFF-CHECKED.md section ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 49 | 14 | 28 | 3715 | 298309 | 50826 | 0.19 | 607 | n/a | n/a | n/a |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_green_readers.py — FAILED test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list: cases read the Green subsection by content and are neither mechanical nor allow-listed: unit/test_skill_diff_checked_readers.py::test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list ⟦suite-repair⟧ ⟦criterion 1⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 138 | 47 | 90 | 12972 | 982019 | 163558 | 0.64 | 1017 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -247,24 +355,31 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | `affected-suites.sh` places an edit to `skills/tdd/DIFF-CHECKED.md` on the suites that read that file (the pytest files that mention it), never raising Unplaced and never widening to every suite, because `SKILL_DOCS` in `veri/affected_suites.py` names the file; pinned by a small case over a fixture tree holding exactly two suites that name DIFF-CHECKED.md, compared as a set ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 1 | 42 | 0.28 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_green_readers.py — FAILED test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list: cases read the Green subsection by content and are neither mechanical nor allow-listed: unit/test_skill_diff_checked_readers.py::test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.06 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | `affected-suites.sh` places an edit to `skills/tdd/DIFF-CHECKED.md` on the suites that read that file (the pytest files that mention it), never raising Unplaced and never widening to every suite, because `SKILL_DOCS` in `veri/affected_suites.py` names the file; pinned by a small case over a fixture tree holding exactly two suites that name DIFF-CHECKED.md, compared as a set ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 1 | 0 | 1 | nothing-left 1 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_green_readers.py — FAILED test_every_remaining_case_reading_the_green_subsection_by_its_content_is_on_the_mechanical_allow_list: cases read the Green subsection by content and are neither mechanical nor allow-listed: unit/test_skill_diff_checked_readers.py::test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 3 | ? | ? | nothing-left 2, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 5 | 1 | 2 | 3 | 6 | 2 | 2 | 206 | 862 | 878 | 182 | 3 | 3 |
-| fast | 21 | 32 | 22 | 21 | 20 | 19 |  |  |  |  |  |  |  |
-| target | 2 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 5 | 1 | 2 | 3 | 6 | 2 | 2 | 206 | 862 | 878 | 182 | 3 | 3 | 1 | 196 | 248 | 3 | 3 | 2 | 4 |
+| fast | 21 | 32 | 22 | 21 | 20 | 19 | 21 | 24 | 20 |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 1 | 1 | 2 | 0 | 1 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 20 | 20 | 234 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 99 | 184 | 37330 | 1568626 | 512542 | 11.64 (estimate) |
+| total | 187 | 356 | 112983 | 3710601 | 1343497 | 19.12 (estimate) |
