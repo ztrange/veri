@@ -2295,3 +2295,32 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_base_worktree_cannot
 
     assert (ran.returncode, "worktree" in ran.stderr, "pin stayed green" in ran.stderr, "stale:" in ran.stdout,
             "Traceback" in ran.stderr) == (2, True, False, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, tick-ledger.sh --unpinnable, then pin-recheck.sh over a range touching the pinned file")
+def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_failed(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_thing.py").write_text("def test_other():\n    pass\n")
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    record(tmp_path / ".tdd" / "issue-42-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="false TESTS=tests/test_thing.py::test_never_written")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    retired = subprocess.run(["sh", str(SCRIPTS / "tick-ledger.sh"), "--unpinnable", str(reason), str(ledger), "a one"],
+                             cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_ISSUE": "42"})
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (retired.returncode, "base run failed" in ran.stdout + ran.stderr) == (0, False), retired.stderr + ran.stderr
