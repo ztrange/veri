@@ -1,0 +1,2 @@
+### `pin-reject-route.sh <reason-file> <ledger-file> <matcher>` given a verify-pin reason file whose `REASON:` line does not say `stays green` (trivial, over-coupled, wrong test) prints `revise` on stdout and exits 1, leaving the ledger and `.tdd/events.jsonl` byte-identical, so the revise loop is entered as today; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py` ⟦criterion 2⟧
+- test-only | Extract the repeated ledger/reason file setup in the three tests into a shared helper or fixture (the cases are frozen and setup differs slightly)
