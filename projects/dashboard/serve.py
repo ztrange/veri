@@ -27,6 +27,32 @@ def _phase(events):
     return " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
 
 
+def _counts(events):
+    verdicts = [e.get("verdict") for e in events if e.get("event") == "verdict"]
+    if not verdicts:
+        return ""
+    return " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
+
+
+def _cost(events):
+    usage = [float(e["total_cost_usd"]) for e in events if e.get("event") == "usage"]
+    if not usage:
+        return ""
+    return " | total | $%.2f" % sum(usage)
+
+
+def _split(events):
+    models = {}
+    for e in events:
+        if e.get("model"):
+            models[e["name"].split("-")[0]] = e["model"]
+    if not models:
+        return ""
+    return " " + " ".join("%s %s" % (r, models[k]) for k, r in
+                          (("develop", "developer"), ("verify", "verifier"), ("revise", "revise"))
+                          if k in models)
+
+
 def running_lines():
     lines = []
     runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
@@ -37,23 +63,9 @@ def running_lines():
         minutes = _minutes(events)
         steps = _steps(events)
         phase = _phase(events)
-        verdicts = [e.get("verdict") for e in events if e.get("event") == "verdict"]
-        counts = ""
-        if verdicts:
-            counts = " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
-        usage = [float(e["total_cost_usd"]) for e in events if e.get("event") == "usage"]
-        cost = ""
-        if usage:
-            cost = " | total | $%.2f" % sum(usage)
-        models = {}
-        for e in events:
-            if e.get("model"):
-                models[e["name"].split("-")[0]] = e["model"]
-        split = ""
-        if models:
-            split = " " + " ".join("%s %s" % (r, models[k]) for k, r in
-                                   (("develop", "developer"), ("verify", "verifier"), ("revise", "revise"))
-                                   if k in models)
+        counts = _counts(events)
+        cost = _cost(events)
+        split = _split(events)
         lines.append("<p>%s %dm%s%s%s%s%s</p>" % (path.stem, minutes, steps, phase, counts, cost, split))
     return lines
 
