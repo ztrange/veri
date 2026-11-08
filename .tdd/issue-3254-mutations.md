@@ -81,3 +81,12 @@ len(argv) < 1
 command 142
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing
 
+file 34
+skills/tdd/scripts/veri/comment.py
+old 15
+f"\n{f.read()}"
+new 8
+f.read()
+command 143
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_note_file_text_follows_the_rendered_comment_after_a_blank_line
+
