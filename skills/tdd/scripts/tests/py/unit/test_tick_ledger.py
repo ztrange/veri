@@ -1020,3 +1020,24 @@ def test_cli_ticking_an_added_step_ticks_only_the_first_of_two_still_open_added_
     code = run_cli(tick_ledger, [str(ledger), "reject a blank slug"])[0]
 
     assert (code, added.read_text()) == (0, open_line.replace("- [ ]", "- [x]") + open_line)
+
+
+def test_main_unpinnable_retire_keeps_a_mutation_record_whose_tests_names_a_class_qualified_case_that_exists_3289(
+        tmp_path, tick_ledger):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_a.py").write_text(
+        "class TestK:\n    def test_b(self):\n        pass\n")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    command = "pytest TESTS=tests/test_a.py::TestK::test_b"
+    record = f"command {len(command)}\n{command}\n\n"
+    mutations = tdd / "issue-7-mutations.md"
+    mutations.write_text(record)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+
+    assert (code, mutations.read_text()) == (0, record)

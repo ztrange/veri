@@ -56,7 +56,7 @@ def drop_missing_cases(record, root):
             i = end + 2 + int(size)
         while i < len(text) and text[i] == "\n":
             i += 1
-        target = re.search(r"TESTS=(\S+?)::(\w+)", fields.get("command", ""))
+        target = re.search(r"TESTS=(\S+?)::(?:\w+::)*(\w+)", fields.get("command", ""))
         if target:
             with open(os.path.join(root, target.group(1)), encoding="utf-8") as handle:
                 if not re.search(rf"def {target.group(2)}\b", handle.read()):
