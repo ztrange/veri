@@ -39,3 +39,4 @@ applied | bbc0e9e7cc2835b0466bb3fd16d2900ea1eb87a7 | Split the long `main` repor
 not-done | transform-rejected | split `main` in prd_report.py into per-block helpers (children, left, owed, ETA). It is a move of behaviour, not duplication removal.
 applied | 80790e7cc812f161a33a32359686a47df02d301f | `--stale` loads the cache with `_load`, but `--report` reopens it inline with `open`/`json.load`, and it also loads the owed file inline. Using `_load` in both places would remove the duplication.	chore: record the structural pass's not-done candidate (#3261)
 not-done | transform-rejected | Both modes repeat the sort of `heads.items()` by integer PRD number. A shared helper could do that sort.
+applied | ac65a75718428d6938dad7050a9f860afd26bbcc | replace the inline `open`/`json.load` of the cache and owed files in `--report` with `_load`, which an earlier cycle wrote	chore: record the structural pass's not-done candidate (#3261)
