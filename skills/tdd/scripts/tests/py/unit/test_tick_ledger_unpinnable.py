@@ -66,3 +66,26 @@ def test_main_unpinnable_drops_the_mutation_record_whose_tests_case_does_not_exi
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, "test_never_written" in record.read_text()) == (0, False), err
+
+
+def test_main_unpinnable_keeps_the_mutation_record_whose_tests_case_exists_3289(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    suite = tmp_path / "tests" / "test_thing.py"
+    suite.parent.mkdir()
+    suite.write_text("def test_written():\n    pass\n")
+    command = "make test TESTS=tests/test_thing.py::test_written"
+    record = ledger.parent / "issue-42-mutations.md"
+    content = (
+        "file 8\nthing.py\nold 3\nold\nnew 3\nnew\n"
+        f"command {len(command)}\n{command}\n\n")
+    record.write_text(content)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, record.read_text()) == (0, content), err
