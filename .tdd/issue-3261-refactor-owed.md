@@ -22,3 +22,6 @@
 - Both modes repeat the sort of `heads.items()` by integer PRD number. A shared helper could do that sort.
 ### `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
 - out-of-scope | replace the inline `open`/`json.load` of the cache and owed files in `--report` with `_load`, which an earlier cycle wrote
+### `report.sh --store-owed <prd> <file>` preserves every other PRD's entry already in `.tdd/report-owed.json` ⟦criterion 4⟧
+- `--report` reads the cache with an inline `open`/`json.load` and an existence check where `--stale` and `--store-owed` use `_load`; reuse `_load` there
+- `main` dispatches `--stale`, `--store-owed` and `--report` in one long function; split it into one function per option
