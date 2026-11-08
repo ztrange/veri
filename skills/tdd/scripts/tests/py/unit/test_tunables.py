@@ -6,6 +6,7 @@ import pytest
 
 ENTRY_POINTS = {
     "VERI_CONDUCTOR_CTX_BUDGET": ("veri.orchestrate", [], {}),
+    "VERI_RESET_GROWTH_CONDUCTOR": ("veri.restart_conductor", ["7"], {}),
     "VERI_CONDUCTOR_STOP_TIMEOUT": ("veri.orchestrate", [], {}),
     "REVISE_BUDGET": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
     "VERI_REBASED_TIP_SUITE": ("veri.run_conductor", ["1"], {"VERI_BASH_MAJOR": "5"}),
@@ -130,3 +131,13 @@ def test_2847_baseline_full_tier_set_empty_resolves_to_the_default_run(monkeypat
     monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "")
 
     assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)
+
+
+def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_70000_and_refusing_zero():
+    tunables = importlib.import_module("veri.tunables")
+
+    entry = tunables.TABLE["VERI_RESET_GROWTH_CONDUCTOR"]
+
+    assert (entry.default, entry("1"), entry("70000")) == ("70000", 1, 70000)
+    with pytest.raises(ValueError):
+        entry("0")

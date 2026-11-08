@@ -50,6 +50,12 @@ def tokens(raw):
     return int(raw)
 
 
+def positive_tokens(raw):
+    if tokens(raw) < 1:
+        raise ValueError
+    return int(raw)
+
+
 def kill_poll(raw):
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", raw):
         raise ValueError
@@ -79,6 +85,7 @@ class Tunable:
 
 TABLE = {
     "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
+    "VERI_RESET_GROWTH_CONDUCTOR": Tunable(positive_tokens, "70000", "a whole number of tokens >= 1"),
     "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
