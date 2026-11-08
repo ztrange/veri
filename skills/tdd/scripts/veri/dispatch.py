@@ -1,13 +1,16 @@
 """dispatch.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import subprocess
 import sys
 import time
 from datetime import datetime
 
+import github
 import paths
 import status
+import tunables
 import watch_runs
 from ledger import ledger_path
 
@@ -23,7 +26,7 @@ clock = time.time
 
 
 def stall_window():
-    return os.environ.get("VERI_DISPATCH_STALL", "3600")
+    return tunables.read("VERI_DISPATCH_STALL", "3600")
 
 
 def now():
@@ -47,9 +50,14 @@ def launch(issue):
 
 
 def last_comment(issue):
-    out = subprocess.run(["gh", "issue", "view", issue, "--json", "comments", "--jq", ".comments[-1].body"],
-                         capture_output=True, text=True, check=True)
-    return out.stdout
+    pages = github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100")
+    decoder = json.JSONDecoder()
+    comments = []
+    while pages:
+        page, end = decoder.raw_decode(pages)
+        comments = page or comments
+        pages = pages[end:].lstrip()
+    return comments[-1]["body"]
 
 
 def queued_merges():
@@ -63,9 +71,9 @@ def queued_merges():
 
 
 def pr_state(pr_url):
-    out = subprocess.run(["gh", "pr", "view", pr_url, "--json", "state", "--jq", ".state"],
-                         capture_output=True, text=True, check=True)
-    return out.stdout.strip()
+    owner, repo, number = pr_url.split("/")[-4], pr_url.split("/")[-3], pr_url.split("/")[-1]
+    pull = json.loads(github.gh_api(f"repos/{owner}/{repo}/pulls/{number}").stdout)
+    return "MERGED" if pull["merged"] else pull["state"].upper()
 
 
 def exit_line(issue):

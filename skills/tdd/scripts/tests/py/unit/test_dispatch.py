@@ -600,3 +600,40 @@ def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing
     code, out, err = run_cli(dispatch, ["--help"])
 
     assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh --target <N>\n", "", [], [])
+
+
+def test_last_comment_returns_the_body_of_the_issues_last_comment_read_through_the_github_port_without_starting_a_gh_process(
+        monkeypatch, dispatch):
+    import json
+
+    paths = []
+
+    def gh_rest_list(path, *args):
+        paths.append(path)
+        return json.dumps([{"body": "### 🔧 first"}, {"body": "### ✅ Done https://x/pull/9"}])
+
+    def no_process(*args, **kw):
+        raise AssertionError("dispatch started a process of its own: %r" % (args,))
+
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", gh_rest_list, raising=False)
+    monkeypatch.setattr(dispatch.subprocess, "run", no_process)
+
+    assert dispatch.last_comment("12").strip() == "### ✅ Done https://x/pull/9"
+    assert paths == ["repos/{owner}/{repo}/issues/12/comments?per_page=100"]
+
+
+def test_pr_state_reads_a_merged_pull_request_as_merged_and_last_comment_ignores_a_trailing_empty_page(
+        monkeypatch, dispatch):
+    import json
+    import types
+
+    monkeypatch.setattr(
+        dispatch.github, "gh_api",
+        lambda path, *a, **kw: types.SimpleNamespace(stdout=json.dumps({"merged": True, "state": "closed"})),
+        raising=False)
+    monkeypatch.setattr(
+        dispatch.github, "gh_rest_list",
+        lambda path, *a, **kw: json.dumps([{"body": "first"}, {"body": "last"}]) + json.dumps([]),
+        raising=False)
+
+    assert (dispatch.pr_state("https://github.com/o/r/pull/7"), dispatch.last_comment("12")) == ("MERGED", "last")
