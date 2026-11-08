@@ -492,3 +492,41 @@ def test_main_writes_the_stderr_of_an_unreadable_queue_and_exits_2_when_solvable
     code, out, err = run_cli(dispatch, ["--target", "1"])
 
     assert (code, out, err, launches) == (2, "", "gh: boom\n", [])
+
+
+def test_main_with_a_rate_limited_queue_read_waits_for_the_reported_reset_making_no_queue_read_meanwhile_then_reads_again(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    now = [1000]
+    reset = 1025
+    reads = []
+    launches = []
+
+    def solvable():
+        reads.append(now[0])
+        if now[0] < reset:
+            raise dispatch.watch_runs.QueueUnreadable("gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+        return ["12"]
+
+    def wait():
+        if launches:
+            raise _StopWaiting
+        now[0] += 10
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "clock", lambda: now[0])
+    monkeypatch.setattr(dispatch.watch_runs.time, "time", lambda: now[0])
+    monkeypatch.setattr(dispatch.watch_runs.github, "rate_limit_reset", lambda run: reset)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "2"])
+    except _StopWaiting:
+        code = None
+
+    assert (reads, launches, code) == ([1000, 1030], ["12"], None)
