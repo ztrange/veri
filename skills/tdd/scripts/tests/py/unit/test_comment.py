@@ -158,3 +158,19 @@ def test_step_done_heading_line_is_byte_for_byte_the_hand_composed_one_and_match
     assert heading == b"### \xe2\x9c\x85 Step done"
     pattern = dict(metrics.COMMENT_FAMILIES)["\u2705 Step done"]
     assert re.search(pattern, heading.decode())
+
+
+def test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7"], cwd=tmp_path)
+
+    assert (code, out, err) == (2, "", USAGE)
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()

@@ -65,3 +65,19 @@ new 13
 command 163
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_heading_line_is_byte_for_byte_the_hand_composed_one_and_matches_its_metrics_family
 
+before 40
+e612e300d949a7be059fbf792b11bce00f480e6b
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 142
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing
+
+file 34
+skills/tdd/scripts/veri/comment.py
+old 13
+len(argv) < 2
+new 13
+len(argv) < 1
+command 142
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing
+
