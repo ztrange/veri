@@ -73,10 +73,13 @@ def main(argv):
                 print("ETA: no rate yet")
                 continue
             fastest = 0
+            slowest = None
             for lane in {o["lane"] for o in closed}:
                 walls = sorted(o["wallSeconds"] for o in closed if o["lane"] == lane)
                 fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
-            print("ETA: %.2f days" % (len(open_children) / fastest))
+                rate = 86400 / walls[-1 - (len(walls) - 1) // 4]
+                slowest = rate if slowest is None else min(slowest, rate)
+            print("ETA: %.2f to %.2f days" % (len(open_children) / fastest, len(open_children) / slowest))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
