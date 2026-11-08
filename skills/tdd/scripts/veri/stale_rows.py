@@ -74,6 +74,9 @@ def cached_grade(unit, rows):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        print("usage: stale-rows.sh <issue>")
+        return 0
     if len(argv) != 1:
         print("usage: stale-rows.sh <issue>", file=sys.stderr)
         return 2
