@@ -65,6 +65,8 @@ def drop_missing_cases(record, root):
             except FileNotFoundError:
                 continue
         kept.append(text[start:i])
+    if "".join(kept) == text:
+        return
     with open(record, "w", encoding="utf-8") as handle:
         handle.write("".join(kept))
 
