@@ -1,0 +1,2 @@
+### `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where exactly one commit lies in `<step-base-sha>..HEAD` and that commit touches `.tdd/issue-<n>.md`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf`, `base`, `head` and `commits=1`; a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 3⟧
+- test-only | extract the repeated repo setup and the events-reading code in `test_diff_leaf_deviation_process.py` into helpers, moving the assertion lines unchanged
