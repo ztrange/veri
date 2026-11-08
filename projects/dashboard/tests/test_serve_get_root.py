@@ -615,3 +615,82 @@ def test_page_script_fetches_a_data_only_endpoint_holding_running_lines_and_no_p
         proc.wait(timeout=5)
 
     assert ("1515" in data and "PASS 1 REJECT 0" in data, "<script" in data, "<h2" in data) == (True, False, False)
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_has_one_headed_block_per_open_prd_in_ascending_prd_order(report_repo):
+    import re
+
+    def issue(number, title, state="OPEN"):
+        return {"number": number, "title": title, "state": state, "updatedAt": "2026-11-01T00:00:00Z"}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            issue(50, "PRD 14 later duplicate"),
+            issue(40, "PRD 14 dashboard"),
+            issue(30, "PRD 9 collector"),
+            issue(20, "PRD 3 finished", state="CLOSED"),
+            issue(60, "not a prd"),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        status = content_type = None
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    status, content_type = r.status, r.headers.get_content_type()
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    headings = re.findall(r"PRD \d+ \(#\d+\) — [^<\n]*", body)
+    assert (status, content_type, headings) == (
+        200,
+        "text/html",
+        ["PRD 9 (#30) — PRD 9 collector", "PRD 14 (#40) — PRD 14 dashboard"],
+    )
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_orders_blocks_by_prd_number_not_by_issue_number(report_repo):
+    import re
+
+    def issue(number, title):
+        return {"number": number, "title": title, "state": "OPEN", "updatedAt": "2026-11-01T00:00:00Z"}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [issue(10, "PRD 14 dashboard"), issue(20, "PRD 9 collector")]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert re.findall(r"PRD \d+ \(#\d+\)", body) == ["PRD 9 (#20)", "PRD 14 (#10)"]

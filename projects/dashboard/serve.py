@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import pathlib
+import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ENDING = {"done", "bail", "merged"}
@@ -71,8 +72,26 @@ setInterval(() => fetch("/running").then(r => r.text()).then(t => {
 </script>"""
 
 
+def report_blocks(repo):
+    cache = json.loads((pathlib.Path(repo) / ".tdd" / "report-cache.json").read_text())
+    first = {}
+    for i in sorted(cache["issues"], key=lambda i: i["number"]):
+        m = re.match(r"PRD (\d+)", i["title"])
+        if m and i["state"] == "OPEN":
+            first.setdefault(int(m.group(1)), i)
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>" % (n, i["number"], i["title"])
+                     for n, i in sorted(first.items()))
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/report":
+            body = ("<!doctype html><title>veri report</title>\n" + report_blocks(self.server.repo)).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         running = "\n".join(running_lines())
         if self.path == "/running":
             body = running.encode()
@@ -90,7 +109,9 @@ def main():
     parser.add_argument("--repo")
     parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args()
-    HTTPServer(("127.0.0.1",args.port), Handler).serve_forever()
+    server = HTTPServer(("127.0.0.1", args.port), Handler)
+    server.repo = args.repo
+    server.serve_forever()
 
 
 if __name__ == "__main__":
