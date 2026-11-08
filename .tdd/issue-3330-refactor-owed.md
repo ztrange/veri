@@ -1,0 +1,2 @@
+### With `VERI_MUTATION_ADDRESS_DOMAIN=corp.invalid`, a probe whose `<old>` holds `x@outside.invalid` (and whose `<new>` holds no address) gets the same refusal: exit 2, record and file untouched, no command run, stderr naming `x@outside.invalid` and `corp.invalid`; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 2⟧
+- test-only | the `fake_run` stub and the `VERI_MUTATION_RECORD`/`VERI_MUTATION_ADDRESS_DOMAIN` env setup repeat across the 3330 cases, and could become a shared fixture or helper
