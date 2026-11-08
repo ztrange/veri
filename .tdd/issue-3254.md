@@ -9,6 +9,6 @@
 - [x] skills/tdd/SCRIPTS.md passes SC95 of this issue's `## Requirements` (a `$S/comment.sh <issue> <kind> [--note-file <path>]` entry), regraded ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] skills/tdd/SKILL.md passes CY95 and RF36 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] pin: `comment.sh <n>` with no kind is a bad argument — usage line, exit 2, no post, no event; this already holds at the tip, so the case passes there and goes red under the mutant `len(argv) < 2` → `len(argv) < 1` at skills/tdd/scripts/veri/comment.py:15 ⟦added⟧ ⟦criterion 7⟧
-- [ ] the `comment` event's url is the posted comment's .html_url with its trailing newline stripped; pinned by a case that goes red when the newline is kept, and by one that goes red when `-q .html_url` is dropped from github.py RestAdapter.issue_comment ⟦added⟧ ⟦criterion 1⟧
+- [x] the `comment` event's url is the posted comment's .html_url with its trailing newline stripped; pinned by a case that goes red when the newline is kept, and by one that goes red when `-q .html_url` is dropped from github.py RestAdapter.issue_comment ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] pin: the note from --note-file follows the heading after a blank line; this already holds at the tip, so the case passes there and goes red under the mutant `f"\n{f.read()}"` → `f.read()` in comment.py ⟦added⟧ ⟦criterion 2⟧
 - [ ] an unknown <kind> is a bad argument: comment.sh exits 2 with a usage line on stderr, posts nothing, and appends no comment event ⟦added⟧ ⟦criterion 7⟧

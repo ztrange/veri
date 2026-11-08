@@ -20,7 +20,7 @@ def main(argv):
     if len(argv) > 3:
         with open(argv[3]) as f:
             body += f"\n{f.read()}"
-    url = github.gh_issue_comment(issue, body)
+    url = github.gh_issue_comment(issue, body).rstrip("\n")
     return event.append("", {}, "comment", ["kind=step-done", f"url={url}"])
 
 

@@ -555,6 +555,19 @@ def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(m
     assert calls == [list(create)]
 
 
+def test_gh_issue_comment_asks_gh_for_the_html_url_alone_and_answers_it_not_the_whole_comment_json(monkeypatch, github):
+    url = "https://github.com/o/r/issues/7#issuecomment-99"
+    post = ("gh", "api", "repos/{owner}/{repo}/issues/7/comments", "-f", "body=B")
+    fake_gh(monkeypatch, {
+        post + ("-q", ".html_url"): (0, url + "\n", ""),
+        post: (0, '{"id":99,"html_url":"%s","body":"B"}\n' % url, ""),
+    })
+
+    answer = github.gh_issue_comment("7", "B")
+
+    assert answer == url + "\n"
+
+
 def test_gh_issue_create_is_a_no_answer_with_gh_stderr_passed_through_when_the_create_fails(monkeypatch, capsys, github):
     create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url")
     refusal = "gh: HTTP 422: Validation Failed (https://api.github.com/repos/o/r/issues)\n"
