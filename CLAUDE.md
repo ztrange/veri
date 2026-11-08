@@ -99,7 +99,7 @@ Every suite is pytest, under `skills/tdd/scripts/tests/py/`; `make test` and `ma
 one `pytest` invocation, and nothing under `tests/` ends in `.test.sh`. pytest's own exit code is
 trusted: 0 only when every collected test passed, 5 when none were collected. The autouse
 `hermetic_environment` fixture in `tests/py/conftest.py` makes a case hermetic from ambient `VERI_*`.
-`make test TESTS="<pytest file or node id> …"` runs only those, in the same one invocation.
+`make test TESTS="<pytest file or node id> …"` runs only those, in the same one invocation. A `projects/dashboard/…` path in `TESTS` is split out and run under the dashboard's own runner (`make -C projects/dashboard test` semantics) instead, after the pytest leg; veri paths keep `pytest_leg.py` and every rule here, and a mixed list runs both. A failing dashboard case fails `make test` (GNU make exits 2).
 
 **`skills/tdd/scripts/tests/py/unit/` is the fast tier**, run by `make unit` and by `make test`.
 Admission bar: about 100 ms per case, no git, network, servers, real waits (`sleep`), nested
