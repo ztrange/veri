@@ -27,3 +27,4 @@
 - `main` dispatches `--stale`, `--store-owed` and `--report` in one long function; split it into one function per option
 ### `report.sh --store-owed <prd> <file>` for a PRD number absent from `.tdd/report-cache.json` exits 2 instead of raising a KeyError ⟦added⟧ ⟦criterion 4⟧
 - the `sorted(heads.items(), key=lambda p: int(p[0]))` loop is repeated in `--stale` and `--report`; extract a shared helper
+not-done | transform-rejected | split `main` into load-snapshot, age-line and PRD-selection helpers (not duplication removal, so not applied here)
