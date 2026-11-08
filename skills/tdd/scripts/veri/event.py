@@ -229,7 +229,7 @@ def append(directory, context, event, fields=(), ts=None):
 
 
 def state_labels(event, issue):
-    """Mirror a bail or a resume onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
+    """Mirror a bail, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
     if not issue:
         return
     try:
@@ -238,6 +238,9 @@ def state_labels(event, issue):
             github.gh_issue_remove_label(issue, "pr-ready")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
+        elif event == b"start":
+            github.gh_issue_remove_label(issue, "bailed")
+            github.gh_issue_remove_label(issue, "pr-ready")
     except github.NoAnswer:
         sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % issue)
 
