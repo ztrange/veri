@@ -67,6 +67,9 @@ def main(argv):
                 solvable, len({n for n, _ in waiting}),
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
             lanes = {o["lane"] for o in open_children if o["lane"]}
+            if not lanes:
+                print("ETA: no lane: no ETA")
+                continue
             closed = [o for o in snapshot["issues"] if o["state"] == "CLOSED"
                       and o["lane"] in lanes and _utc(o["closedAt"]) >= week]
             if len(closed) < 3:
