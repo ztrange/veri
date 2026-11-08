@@ -1,0 +1,2 @@
+### Retiring a declared pin writes exactly one `pin-retired` event carrying `reason=<the declaration's reason>` to `.tdd/events.jsonl` (a medium case in `skills/tdd/scripts/tests/py/test_pin_recheck_process.py`, real git and a real `pin-recheck.sh` run) ⟦criterion 2⟧
+- test-only | The new `test_3323_*` cases in `test_pin_recheck_process.py` repeat the nested `git(...)` helper and the base-commit-then-declare-retire setup. A shared fixture or helper would remove that.
