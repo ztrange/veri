@@ -89,3 +89,18 @@ def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_name
 
     lines = open(run + "/.tdd/events.jsonl").read().count("\n")
     assert (code, lines, capsys.readouterr().err) == (0, 1, "event: no answer from gh labelling #42's run state\n")
+
+
+SHA = "b" * 40
+HEAD_READ = ("gh", "api", "repos/{owner}/{repo}/pulls/7", "--jq", ".head.sha")
+PORCELAIN = ("gh", "pr", "ready", "7")
+ADD_PR_READY = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=pr-ready")
+
+
+def test_pr_ready_labels_the_state_label_issue_pr_ready_once_github_marked_the_pr_ready(run_cli, monkeypatch):
+    pr_ready = importlib.import_module("veri.pr_ready")
+    calls = fake_gh(monkeypatch, lambda args: (0, SHA + "\n", "") if args == HEAD_READ else (0, "", ""))
+
+    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
+
+    assert (result, calls) == ((0, "", ""), [HEAD_READ, PORCELAIN, ADD_PR_READY])
