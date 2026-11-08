@@ -15,3 +15,6 @@
 - test-only | the `monkeypatch` setup and the stub `run` function are repeated across the `test_status_recover.py` cases; a shared fixture could replace them, but the cases are frozen, so I left it.
 ### `status.sh --recover <role> --lane <lane>` reads the named lane's state file `.tdd/role-<role>-<lane>.state`, not the default lane's ⟦criterion 6⟧
 - out-of-scope | share the `.tdd/role-<role>[-<lane>].state` path building between `status.py` and `role_state.py` once the latter gains `--lane`
+not-done | transform-rejected | extract a `read(path)` helper that returns the file's text or None, replacing the repeated open/FileNotFoundError reads in `append`, `add` and `show`. Most of that duplication is older code, so I did not apply it.
+not-done | transform-rejected | the "read file, parse the next id" logic in the `add` branch and the `append` read-modify-write both open the state file separately; a shared read helper would remove that duplication
+not-done | uncovered | `drop` opens the file directly instead of using `read()`; routing it through `read()` would change how a missing file behaves, so it needs a test that demands it
