@@ -6,7 +6,7 @@ The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the nam
 - [x] `report.sh --report` with a snapshot `.tdd/report-cache.json` present states the snapshot's age on its first line ⟦criterion 2⟧
 - [x] `report.sh --report` with no `.tdd/report-cache.json` says there is no snapshot and exits 2 ⟦criterion 2⟧
 - [x] `report.sh --report` prints one block per open issue whose title starts `PRD <nnn>`, ordered by PRD number, each headed `PRD <nnn> (#<n>) — <title>`; closed PRDs and non-PRD issues get no block ⟦criterion 1⟧
-- [x] Each PRD block's solved line counts the PRD's closed children (cached issues whose title starts with its `PRD <nnn>`, plus the issues in its `links`, minus the PRD itself and links to other PRDs) and how many of them closed in the last 7 days ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Each PRD block's solved line counts the PRD's closed children (cached issues whose title starts with its `PRD <nnn>`, plus the issues in its `links`, minus the PRD itself and links to other PRDs) and how many of them closed in the last 7 days ⟦criterion 1⟧
 - [ ] Each PRD block's left line counts as solvable now the open children that `VERI_LABEL=<their opt-in label> solvable-issues.sh` lists ⟦criterion 1⟧
 - [ ] Each PRD block's left line counts as waiting the open children with an open blocker in their cached `blockedBy`, naming each blocker ⟦criterion 1⟧
 - [ ] Each PRD block's left line counts as held by no lane the open children with no opt-in label (`ready-for-agent` or `ready-for-agent:<lane>`) and no `tdd/<n>-*` branch on origin ⟦criterion 1⟧
