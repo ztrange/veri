@@ -69,3 +69,12 @@ def test_a_bail_event_labels_the_state_label_issue_bailed_and_takes_its_pr_ready
     code = event.append(clone(tmp_path), {"issue": "42"}, "bail", ["cause=revise-exhausted"], ts=1700000000)
 
     assert (code, calls) == (0, [ADD_BAILED, DELETE_PR_READY])
+
+
+def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue(event, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    calls = fake_gh(monkeypatch, lambda args: (0, "", ""))
+
+    code = event.append(clone(tmp_path), {"issue": "42"}, "resume", [], ts=1700000000)
+
+    assert (code, calls) == (0, [DELETE_BAILED])
