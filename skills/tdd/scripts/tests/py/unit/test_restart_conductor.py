@@ -476,3 +476,16 @@ def test_3223_when_no_conductor_is_recorded_within_the_bound_after_the_relaunch_
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out, "7" in err and "conductor" in err, pending.exists()) == (2, "", True, False)
+
+
+def test_3369_a_relaunched_conductor_whose_init_record_is_not_yet_written_is_not_stopped_for_the_growth_its_predecessor_accrued(tmp_path, run_cli, monkeypatch):
+    restart_conductor, alive = _relaunch_setup(
+        tmp_path, monkeypatch, [True, True, False, True, True, False], ["stopped", "✅ Done"])
+    pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    calls = []
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run, pending.exists())), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, calls) == (0, [("stop", "at-ledger", "7", True), ("launch", "7")])

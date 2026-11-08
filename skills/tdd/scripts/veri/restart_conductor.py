@@ -54,9 +54,14 @@ def detach_leaf(run):
             stdout=log)
 
 
-def _growth(run):
+def _log_size(run):
+    return os.path.getsize(os.path.join(_tdd_dir(), f"conductor-{run}.log"))
+
+
+def _growth(run, offset=0):
     try:
         with open(os.path.join(_tdd_dir(), f"conductor-{run}.log")) as f:
+            f.seek(offset)
             records = []
             for line in f:
                 try:
@@ -93,11 +98,12 @@ def main(argv):
     if not conductor_alive(run):
         return 3
     restarts = 0
+    offset = 0
     while True:
         asked = False
         while conductor_alive(run):
             try:
-                g = _growth(run)
+                g = _growth(run, offset)
             except OSError as e:
                 print(f"restart-conductor.sh: cannot read conductor-{run}.log: {e}", file=sys.stderr)
                 return 2
@@ -113,6 +119,7 @@ def main(argv):
             if asked:
                 os.remove(_run_file(run, "restart-pending"))
             break
+        offset = _log_size(run)
         detach_leaf(run)
         restarts += 1
         event.mark(_run_dir(run), event.context(tunables.environment()), "conductor-restart",
