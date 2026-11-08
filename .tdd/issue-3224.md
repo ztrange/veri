@@ -14,7 +14,7 @@
 - [x] `role-state.sh` given a role other than `coord` or `dev` exits 2 with its usage line on stderr and writes no state file ⟦criterion 5⟧
 - [x] `role-state.sh <role>` given an unknown verb exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
 - [x] `role-state.sh <role> set` with a field other than `n` or `lane` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
-- [ ] `role-state.sh <role> add` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
+- [x] `role-state.sh <role> add` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] `role-state.sh <role> drop` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
 - [ ] `role-state.sh <role> set n <value>` with a value that is not a whole number ≥ 0 exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
 - [ ] `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
