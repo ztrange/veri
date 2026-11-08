@@ -2349,3 +2349,68 @@ def test_3323_a_pin_whose_test_survives_and_a_ledger_step_declares_retired_is_no
     assert (ran.returncode, retired, (tmp_path / ".tdd" / "pin-recheck-ok").exists(),
             (tmp_path / "ran.witness").exists()) == (
         3, ["retired: .tdd/issue-835-mutations.md guard.txt a later design adds it on purpose"], True, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired while its test file survives")
+def test_3323_a_retired_pin_gains_a_retired_line_with_the_reason_that_the_record_readers_still_parse(tmp_path):
+    from veri.pin_recheck import records
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    fields = dict(file="guard.txt", old="if guard", new="if (true)", command="touch ran.witness TESTS=tests/test_guard.py")
+    mutations = tmp_path / ".tdd" / "issue-835-mutations.md"
+    record(mutations, **fields)
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, records(mutations.read_text())) == (
+        3, [{**fields, "retired": "a later design adds it on purpose"}]), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired in one of two record files")
+def test_3323_retiring_a_pin_in_one_record_file_leaves_the_other_record_file_untouched(tmp_path):
+    from veri.pin_recheck import records
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "other.txt").write_text("if other\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    mine = dict(file="guard.txt", old="if guard", new="if (true)", command="touch ran.witness TESTS=tests/test_guard.py")
+    theirs = dict(file="other.txt", old="if other", new="if (true)", command="touch ran.witness TESTS=tests/test_guard.py")
+    first = tmp_path / ".tdd" / "issue-835-mutations.md"
+    second = tmp_path / ".tdd" / "issue-836-mutations.md"
+    record(first, **mine)
+    record(second, **theirs)
+    untouched = second.read_text()
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, records(first.read_text()), second.read_text()) == (
+        3, [{**mine, "retired": "a later design adds it on purpose"}], untouched), ran.stderr

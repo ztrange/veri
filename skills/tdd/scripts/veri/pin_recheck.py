@@ -175,6 +175,9 @@ def recheck(argv, looks):
         if reason:
             sys.stdout.write(f"retired: {ledger} {mutated} {reason}\n")
             retired += 1
+            pin["retired"] = reason
+            Path(ledger).write_text("".join(
+                "".join(f"{k} {len(v)}\n{v}\n" for k, v in r.items()) + "\n" for f, r in found if f == ledger))
             continue
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
         gone = [n for n in named if n.split("::")[0] in deleted]
