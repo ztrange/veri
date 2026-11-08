@@ -748,3 +748,19 @@ def test_main_prints_merge_failed_and_exits_0_when_a_vanished_queued_merge_url_a
         code = None
 
     assert (code, capsys.readouterr().out) == (0, f"merge-failed {url}\n")
+
+
+def test_queued_merges_still_returns_the_pr_url_of_a_queued_merge_sh_launched_from_this_clones_scripts_issue_3364(
+        monkeypatch, dispatch):
+    import subprocess
+
+    url = "https://github.com/o/r/pull/7"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = f"sh {mine}/queued-merge.sh {url}\n"
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == [url]
