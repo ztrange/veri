@@ -21,15 +21,6 @@ every + [dict(structural, transforms="0")] if structural_marked else every
 command 180
 make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_issue_row_counts_a_structural_pass_that_landed_transforms_as_a_pass_with_its_transforms_and_not_as_landing_nothing
 
-file 34
-skills/tdd/scripts/veri/metrics.py
-old 35
-    if passes or structural_marked:
-new 12
-    if True:
-command 157
-make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_a_run_with_no_refactor_event_and_no_structural_pass_event_prints_no_refactor_totals_section
-
 before 40
 5fadec666852da23a84a67e9e4590ef5e847e5a4
 keep 43
