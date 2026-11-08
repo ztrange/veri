@@ -7,6 +7,8 @@ import event_log
 import run_end
 import tunables
 
+USAGE = "usage: stop-reason.sh <issue>\n"
+
 
 def killed_external(events):
     exits = [i for i, e in enumerate(events) if e.get("event") == "exit"]
@@ -20,10 +22,10 @@ def killed_external(events):
 
 def main(argv):
     if argv == ["--help"]:
-        sys.stdout.write("usage: stop-reason.sh <issue>\n")
+        sys.stdout.write(USAGE)
         return 0
     if len(argv) != 1:
-        sys.stderr.write("usage: stop-reason.sh <issue>\n")
+        sys.stderr.write(USAGE)
         return 2
     if not os.path.isdir(os.path.join(".tdd", "wt", argv[0])):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
