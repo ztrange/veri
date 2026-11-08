@@ -6,6 +6,8 @@ USAGE = "usage: diff-leaf-deviation.sh <leaf> <step-base-sha> <ledger>"
 
 
 def main(argv):
+    if len(argv) == 3:
+        return 3
     print(USAGE, file=sys.stderr)
     return 2
 
