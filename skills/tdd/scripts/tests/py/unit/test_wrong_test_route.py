@@ -3436,3 +3436,53 @@ def test_main_3292_prints_repair_of_the_step_own_case_for_a_green_report_saying_
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_3292_prints_repair_exhausted_and_exits_1_for_a_wrong_test_naming_no_case_once_the_log_holds_a_repair_reroute_after_the_first(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh bounds an unnamed wrong test repair"
+    monkeypatch.setenv("VERI_STEP", step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: the red case asserts a count the fixture cannot give\n")
+    events = tmp_path / ".tdd" / "events.jsonl"
+    first = '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step
+    results = []
+    for log in (first, first + '{"event": "reroute", "step": "%s", "kind": "repair"}\n' % step):
+        events.write_text(log)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+        results.append((code, stdout))
+
+    assert results == [(0, "repair %s\n" % own), (1, "repair-exhausted %s\n" % own)]
+
+
+def test_main_3292_keeps_repair_for_a_log_holding_only_a_repair_reroute_and_revise_for_a_wrong_test_naming_a_case_after_a_later_repair(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    other = "test_main_prints_nothing"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n\n\ndef %s():\n    pass\n" % (own, other))
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh bounds an unnamed wrong test repair only"
+    monkeypatch.setenv("VERI_STEP", step)
+    unnamed = tmp_path / "unnamed-report.txt"
+    unnamed.write_text("SUITE: make test\nWRONG_TEST: the red case asserts a count the fixture cannot give\n")
+    named = tmp_path / "named-report.txt"
+    named.write_text("SUITE: make test\nWRONG_TEST: %s asserts a count the fixture cannot give\n" % other)
+    events = tmp_path / ".tdd" / "events.jsonl"
+    repair = '{"event": "reroute", "step": "%s", "kind": "repair"}\n' % step
+    first = '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step
+    results = []
+    for report, log in ((unnamed, repair), (named, first + repair)):
+        events.write_text(log)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+        results.append((code, stdout))
+
+    assert results == [(0, "repair %s\n" % own), (3, "revise\n")]
