@@ -82,7 +82,11 @@ run it. A preflight that passes never reads it.
    `<alone-cmd>` is the repo's own runner for one test file, with the file as `$1` (`make test TESTS="$1"` on veri, named here with `detach-command.sh`). With `--alone`, a command that finished red has each test file its output names re-run alone once through the shared `rerun_alone` helper: when every one passes alone, `detach-command.sh wait` answers 0 and has itself written the one `suite-flake` event naming the files, so preflight goes on as on a green baseline.
    `detach-command.sh wait` answers 0 the command passed (or every red file passed alone), 3 still running (call again).
    A resume whose baseline is red only in suites that are red on the branch head but green on the
-   default branch is the exception, checked with `suite-red-resume.sh check` (`Read` `<base directory>/RESUME.md`). Reading the body **here**, before the baseline runs, is what
+   default branch is the exception, checked with `suite-red-resume.sh check` (`Read` `<base directory>/RESUME.md`).
+   On such a resume `suite-red-resume.sh insert` inserts no `⟦suite-repair⟧` step when the union of
+   the units of the consecutive pending `⟦skill-edit⟧` steps from the first unchecked step explains
+   the whole red (a skill-edit step separated from the first by a non-skill-edit unchecked step does
+   not count), so the first such step runs first; the `insert` exit codes are unchanged. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
    long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
