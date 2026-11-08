@@ -56,3 +56,27 @@ def test_3333_a_single_case_pytest_run_that_fails_is_red_not_did_not_build(
     status = pin_recheck.recheck(["base"], looks)
 
     assert (status, looks) == (0, {})
+
+
+def test_3333_a_build_error_with_failed_mid_line_is_still_did_not_build(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1-mutations.md").write_text(record(
+        file="guard.txt", old="if guard", new="if not guard",
+        command="python3 -m pytest -q t.py::case"))
+    target = tmp_path / "guard.txt"
+    target.write_text("if guard\n")
+
+    def fake_run(command):
+        if "if not guard" in target.read_text():
+            return SimpleNamespace(returncode=2, stdout="", stderr="error: compile FAILED in guard.txt\n")
+        return SimpleNamespace(returncode=0, stdout="1 passed in 0.19s\n", stderr="")
+
+    monkeypatch.setattr(pin_recheck, "run_captured", fake_run)
+    monkeypatch.setattr(pin_recheck, "git_out", lambda *a: "guard.txt\n" if "--diff-filter=D" not in a else "")
+    looks = {}
+
+    status = pin_recheck.recheck(["base"], looks)
+
+    assert (status, looks) == (1, {("guard.txt", "mutation did not build"): 1})
