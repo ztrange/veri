@@ -25,7 +25,11 @@ def running_lines():
         phase = ""
         if launches:
             phase = " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
-        lines.append("<p>%s %dm%s%s</p>" % (path.stem, minutes, steps, phase))
+        verdicts = [e.get("verdict") for e in events if e.get("event") == "verdict"]
+        counts = ""
+        if verdicts:
+            counts = " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
+        lines.append("<p>%s %dm%s%s%s</p>" % (path.stem, minutes, steps, phase, counts))
     return lines
 
 
