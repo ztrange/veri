@@ -479,6 +479,8 @@ three times over branches its ledger pinned on later lines.
    that the reproducing case passes against the unchanged script under test; Green may edit only
    the named fixture.
 
+   A step which deletes a committed `.tdd/issue-<n>-mutations.md` record names that record in its step text with the directive `mutation-record: .tdd/issue-<n>-mutations.md`, written outside backticks and quotes, since without it the supervisor restores the deletion.
+
    An issue whose work changes only tests (extracting a repeated helper, sharing a fixture,
    production untouched) is planned as `⟦diff-checked⟧` steps, whatever its label, refactor-kind or not.
 
