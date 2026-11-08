@@ -30,15 +30,29 @@ def launch(issue):
                          stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
+def last_comment(issue):
+    out = subprocess.run(["gh", "issue", "view", issue, "--json", "comments", "--jq", ".comments[-1].body"],
+                         capture_output=True, text=True, check=True)
+    return out.stdout
+
+
 def main(argv):
     if not argv:
         sys.stderr.write(USAGE)
         return 2
     target = int(argv[1])
     previous = None
+    seen = []
     while True:
+        live = live_conductors()
+        for issue in seen:
+            if issue not in live:
+                heading = last_comment(issue).splitlines()[0]
+                sys.stdout.write(f"done {issue} {heading.split()[-1]}\n")
+                return 0
+        seen = live
         ledger = previous and ledger_path(os.path.join(status.main_working_tree(), ".tdd", "wt", previous), previous)
-        if len(live_conductors()) < target and (previous is None or os.path.exists(ledger)):
+        if len(live) < target and (previous is None or os.path.exists(ledger)):
             previous = solvable_issues()[0]
             launch(previous)
             with open(os.path.join(status.main_working_tree(), ".tdd", "dispatch.log"), "a") as log:
