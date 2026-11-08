@@ -121,6 +121,31 @@ def test_2506_a_record_whose_command_stays_green_under_its_mutation_exits_1_nami
         1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a range with an origin/main base where the pin goes red under its mutation")
+def test_3290_a_mutation_pin_green_under_its_mutation_at_head_but_red_at_the_base_names_the_pin_on_stderr_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"grep -q 'if guard' guard.txt || grep -q safe guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nsafe\n")
+    git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation: guard.txt\n" in ran.stderr, "stale:" in ran.stdout) == (
+        1, True, False), ran.stdout + ran.stderr
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range whose later commit removes the recorded old text")
 def test_2506_a_record_whose_old_text_is_gone_prints_the_pin_as_needing_a_look_and_exits_0(tmp_path):
     def git(*words):
