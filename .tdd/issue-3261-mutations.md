@@ -71,3 +71,19 @@ new 11
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_at_its_fastest_wall_quartile
 
+before 40
+81559b0229e2826274094d04deedfa63eccce9d3
+keep 51
+skills/tdd/scripts/tests/py/unit/test_prd_report.py
+command 322
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpljn1ti6p/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_upper_bound_uses_the_slowest_lane_at_its_slowest_wall_quartile_not_its_maximum_wall
+
+file 37
+skills/tdd/scripts/veri/prd_report.py
+old 33
+walls[-1 - (len(walls) - 1) // 4]
+new 9
+walls[-1]
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_upper_bound_uses_the_slowest_lane_at_its_slowest_wall_quartile_not_its_maximum_wall
+

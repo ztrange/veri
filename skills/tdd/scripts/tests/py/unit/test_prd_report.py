@@ -395,3 +395,75 @@ def test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_
     eta = [line for line in out.splitlines() if line.startswith("ETA")]
     assert code == 0
     assert len(eta) == 1 and eta[0].startswith("ETA: 0.93"), out
+
+
+def test_report_eta_upper_bound_divides_the_left_count_by_the_lowest_lane_rate_at_its_slowest_wall_quartile_after_the_lower_bound(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    closed_at = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def issue(number, title, state="OPEN", lane=None, wall=0):
+        return {"number": number, "title": title, "state": state, "labels": [],
+                "closedAt": closed_at if state == "CLOSED" else None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": wall, "lane": lane}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(10, "PRD 014: open a1", lane="a"), issue(11, "PRD 014: open a2", lane="a"),
+              issue(12, "PRD 014: open b", lane="b")]
+    issues += [issue(20 + i, "lane a closed %d" % i, "CLOSED", lane="a", wall=w)
+               for i, w in enumerate([10000, 20000, 30000, 40000, 40000])]
+    issues.append(issue(30, "lane b closed", "CLOSED", lane="b", wall=40000))
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    eta = [line for line in out.splitlines() if line.startswith("ETA")]
+    assert code == 0
+    assert len(eta) == 1 and "0.93" in eta[0] and "1.85" in eta[0], out
+    assert eta[0].index("0.93") < eta[0].index("1.85"), eta
+
+
+def test_report_eta_upper_bound_uses_the_slowest_lane_at_its_slowest_wall_quartile_not_its_maximum_wall(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    closed_at = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def issue(number, title, state="OPEN", lane=None, wall=0):
+        return {"number": number, "title": title, "state": state, "labels": [],
+                "closedAt": closed_at if state == "CLOSED" else None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": wall, "lane": lane}
+
+    issues = [issue(5, "PRD 014: reports")]
+    issues += [issue(10 + i, "PRD 014: open %d" % i, lane="abc"[i]) for i in range(3)]
+    number = 20
+    for lane, walls in (("a", [10000, 20000, 30000, 40000, 100000]),
+                        ("b", [50000, 50000, 50000]),
+                        ("c", [45000, 45000, 45000])):
+        for w in walls:
+            issues.append(issue(number, "closed %d" % number, "CLOSED", lane=lane, wall=w))
+            number += 1
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    eta = [line for line in out.splitlines() if line.startswith("ETA")]
+    assert code == 0
+    assert eta == ["ETA: 0.93 to 2.31 days"], out
