@@ -11,6 +11,14 @@ from ledger import ledger_path, ledger_steps
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]"
 
 
+def read_or_empty(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""
+
+
 def post_done(issue):
     pr = None
     with open(".tdd/events.jsonl") as f:
@@ -18,19 +26,11 @@ def post_done(issue):
             e = json.loads(line)
             if e.get("event") == "done":
                 pr = e["pr"]
-    try:
-        with open(f".tdd/issue-{issue}-metrics.md") as f:
-            metrics = f.read()
-    except FileNotFoundError:
-        metrics = ""
+    metrics = read_or_empty(f".tdd/issue-{issue}-metrics.md")
     if not metrics.startswith("### 📊 Metrics"):
         code = metrics_module.main([issue])
         metrics = f"metrics could not be rendered: metrics.sh exited {code}"
-    try:
-        with open(f".tdd/issue-{issue}-skip-verify") as f:
-            pinned = f.read().strip()
-    except FileNotFoundError:
-        pinned = ""
+    pinned = read_or_empty(f".tdd/issue-{issue}-skip-verify").strip()
     if pinned:
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
     url = github.gh_issue_comment(issue, f"### ✅ Done — {pr}\n\n{metrics}")
