@@ -476,3 +476,26 @@ def test_3277_a_red_leafs_production_overwrite_alone_is_restored_not_its_test_ed
     assert (red.returncode, after_red, refactor.returncode, prod.read_bytes(),
             [("src/app.py" in l, "src/util.py" in l, "tests/test_app.py" in l) for l in restored]) == (
         0, (b"VALUE = 2\n", b"def test_b(): pass\n", b"UTIL = 2\n"), 0, b"VALUE = 1\n", [(True, False, False)]), red.stderr + refactor.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real develop leaf whose shell commits the deletion of the mutation record its step names")
+def test_3283_a_develop_leaf_that_commits_the_deletion_of_the_mutations_record_its_step_names_leaves_it_deleted_with_no_restore_event(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    record = work / ".tdd" / "issue-3283-mutations.md"
+    record.write_bytes(b"mutation: flip the sign\nwatched: FAILED\n")
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    subprocess.run(git + ["add", "-A"], cwd=work, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "pin"], cwd=work, check=True)
+    step = "retire the stale pin. mutation-record: .tdd/issue-3283-mutations.md"
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-green-1", "sh", "-c",
+                          'git -c user.name=t -c user.email=t@example.com rm -q "$1" && '
+                          'git -c user.name=t -c user.email=t@example.com commit -q -m drop', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "3283", "VERI_STEP": step, "PYTHONDONTWRITEBYTECODE": "1"})
+    events = (work / ".tdd" / "events.jsonl").read_text()
+
+    assert (ran.returncode, record.exists(), "mutation-record-restored" in events) == (0, False, False), ran.stderr
