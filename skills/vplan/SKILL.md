@@ -32,7 +32,7 @@ Before you ask the human anything, find out:
 - the next free PRD number;
 - the open PRDs the idea overlaps.
 
-Raw reads (sweeps of issues, specs, logs, diffs) go to a subagent. Every brief you write for one:
+Investigation (reading source, grepping for how a script works, git archaeology, sweeps of issues, specs, logs, diffs) goes to a subagent. Every brief you write for one:
 
 - asks for a return of **at most 10 lines**;
 - says that all writes stay in the project repo, and that a fix belonging in another
