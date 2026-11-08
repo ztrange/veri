@@ -129,6 +129,20 @@ def replay_on_base(pin, ledger):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
+def mutation_green_on_base(pin):
+    base = git_out("merge-base", "origin/main", "HEAD").strip()
+    scratch = tempfile.mkdtemp()
+    tree = Path(scratch) / "base"
+    try:
+        subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True)
+        target = tree / pin["file"]
+        target.write_bytes(target.read_bytes().replace(pin["old"].encode(), pin["new"].encode()))
+        return subprocess.run(pin["command"], shell=True, cwd=tree, capture_output=True).returncode == 0
+    finally:
+        subprocess.run(["git", "worktree", "remove", "--force", str(tree)], capture_output=True)
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
 def recheck(argv, looks):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -211,6 +225,9 @@ def recheck(argv, looks):
             control = control_run(path, original, pin["command"])
             if control.returncode == 0:
                 needs_a_look(looks, pin["file"], "mutation and control green")
+                continue
+            if mutation_green_on_base(pin):
+                sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1

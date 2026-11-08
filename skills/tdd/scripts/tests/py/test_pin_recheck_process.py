@@ -146,6 +146,34 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_but_red_at_the_bas
         1, True, False), ran.stdout + ran.stderr
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a range with an origin/main base where the pin is green under its mutation")
+def test_3290_a_mutation_pin_green_under_its_mutation_at_head_and_at_the_base_prints_the_stale_line_and_does_not_exit_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    main = git("rev-parse", "HEAD")
+    witness = tmp_path.parent / f"{tmp_path.name}.witness"
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command=f"sh -c \"grep -q 'if (true)' guard.txt && git rev-parse HEAD >> '{witness}'; grep -q throws guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    mutated_at = witness.read_text().split() if witness.exists() else []
+    assert (ran.returncode != 1, "stale: .tdd/issue-835-mutations.md guard.txt\n" in ran.stdout, main in mutated_at) == (
+        True, True, True), (ran.returncode, ran.stdout, ran.stderr, mutated_at)
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range whose later commit removes the recorded old text")
 def test_2506_a_record_whose_old_text_is_gone_prints_the_pin_as_needing_a_look_and_exits_0(tmp_path):
     def git(*words):
