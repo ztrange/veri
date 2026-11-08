@@ -14,6 +14,7 @@ from event_log import read_events
 from ledger import decode_ledger, ledger_path, ledger_steps
 from prices import PRICES, cache_write_tokens, family
 
+FAMILIES_TOTAL = "Total"
 COMMENT_FAMILIES = [
     ("✅ Step done", "✅ Step done"),
     ("✅ Done", "✅ Done"),
@@ -86,7 +87,7 @@ class TurnRows(list):
     def __init__(self):
         super().__init__()
         self.session_contexts = []
-        self.families = {name: [0, 0, 0.0] for name in [n for n, _ in COMMENT_FAMILIES] + ["Total"]}
+        self.families = {name: [0, 0, 0.0] for name in [n for n, _ in COMMENT_FAMILIES] + [FAMILIES_TOTAL]}
 
 
 def main_checkout_file(path, name):
@@ -99,7 +100,7 @@ def main_checkout_file(path, name):
 def count_families(turn_rows, open_turn_rows, result_output):
     for names, model_family, own_tokens in open_turn_rows:
         output_tokens = own_tokens if result_output is None else result_output // len(open_turn_rows)
-        for name in names + (["Total"] if names else []):
+        for name in names + ([FAMILIES_TOTAL] if names else []):
             turn_rows.families[name][0] += 1
             turn_rows.families[name][1] += output_tokens
             if model_family:
