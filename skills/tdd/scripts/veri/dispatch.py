@@ -22,6 +22,10 @@ live_conductors = watch_runs.live_conductors
 clock = time.time
 
 
+def stall_window():
+    return os.environ.get("VERI_DISPATCH_STALL", "3600")
+
+
 def now():
     return datetime.now().isoformat(timespec="seconds")
 
@@ -77,7 +81,7 @@ def main(argv):
     if not argv:
         sys.stderr.write(USAGE)
         return 2
-    if not os.environ.get("VERI_DISPATCH_STALL", "3600").isdigit():
+    if not stall_window().isdigit():
         sys.stderr.write(USAGE)
         return 2
     target = int(argv[1])
@@ -99,7 +103,7 @@ def main(argv):
                     return 2
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
-        stall = int(os.environ.get("VERI_DISPATCH_STALL", "3600"))
+        stall = int(stall_window())
         for issue in seen:
             events = os.path.join(run_dir(issue), ".tdd", "events.jsonl")
             if os.path.exists(events) and clock() - os.path.getmtime(events) >= stall:
