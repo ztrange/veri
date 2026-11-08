@@ -90,6 +90,11 @@ def insert(ledger, branch_file):
         pending.append(line)
     if candidates and all(any(unit in line for line in pending) for unit in candidates):
         return 0
+    every = [line for line in unchecked if "⟦skill-edit⟧" in line]
+    if candidates and all(any(unit in line for line in every) for unit in candidates):
+        named = [line for line in every if any(unit in line for unit in candidates)]
+        complain("a non-skill-edit step separates the pending skill-edit steps " + "; ".join(named) + ": reorder them with reorder-ledger-steps.sh")
+        return 2
     where, anchor = ("before", unchecked[0]) if unchecked else ("after", steps[-1])
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
     if pinned:
