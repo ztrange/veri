@@ -6531,3 +6531,58 @@ def test_check_earlier_exits_1_naming_a_case_whose_test_file_was_git_mv_ed_with_
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
     assert (code, out) == (1, "test_pinned_3284 (%s)\n" % earlier)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which revisions held a moved test file")
+def test_check_earlier_exits_0_for_a_case_whose_test_file_was_git_mv_ed_with_its_body_identical_3284(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests/unit").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds a case", "step two adds another"
+    body = "def test_older_case():\n    assert True\n\n\ndef test_pinned_3284():\n    assert 1 == 1\n"
+    (tmp_path / "tests/test_suite.py").write_text(body)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    git(tmp_path, "mv", "tests/test_suite.py", "tests/unit/test_suite.py")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "move")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which revisions held a moved test file")
+def test_check_earlier_matches_a_moved_file_only_to_a_visible_copy_holding_the_case_3284(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests/unit").mkdir(parents=True)
+    (tmp_path / ".hidden").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    moved = "def test_moved_3284():\n    assert 1 == 1\n"
+    gone = "def test_gone_3284():\n    assert 2 == 2\n"
+    (tmp_path / "tests/test_older.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one adds two cases", "step two adds another"
+    (tmp_path / "tests/test_moved.py").write_text(moved)
+    (tmp_path / "tests/test_gone.py").write_text(gone)
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_moved.py", "tests/test_gone.py"], cwd=tmp_path)
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "freeze")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    git(tmp_path, "mv", "tests/test_moved.py", "tests/unit/test_moved.py")
+    git(tmp_path, "rm", "-q", "tests/test_gone.py")
+    git(tmp_path, "commit", "-q", "-m", "move and delete")
+    (tmp_path / "test_moved.py").write_text("def test_unrelated():\n    assert True\n")
+    (tmp_path / ".hidden/test_gone.py").write_text(gone)
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_gone_3284 (%s)\n" % earlier)
