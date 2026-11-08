@@ -179,6 +179,8 @@ def main(argv):
     for text in texts:
         if CRITERION_TAG in text:
             return refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
+        if " ⟂ " in text:
+            return refuse("add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text)
     try:
         lines = read_ledger(path).split("\n")
     except OSError as error:

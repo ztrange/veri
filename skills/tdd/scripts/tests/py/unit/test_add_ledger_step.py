@@ -1545,3 +1545,12 @@ def test_2937_a_skill_edit_step_naming_no_backticked_unit_path_exits_2_with_one_
 
     lines = err.splitlines()
     assert (code, out, len(lines), "backtick" in err, "TypeError" in err or "Traceback" in err, ledger.read_bytes()) == (2, "", 1, True, False, LEDGER), err
+
+
+def test_3314_a_text_holding_the_refactor_pending_delimiter_exits_2_naming_it_leaving_the_ledger_byte_identical(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "a ⟂ b"], cwd=tmp_path)
+
+    assert (code, out, " ⟂ " in err, ledger.read_bytes()) == (2, "", True, LEDGER), err
