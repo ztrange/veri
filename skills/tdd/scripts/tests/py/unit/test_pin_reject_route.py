@@ -101,3 +101,9 @@ def test_main_missing_reroute_reject_saying_stays_green_still_retires_unpinnable
         0, "retired",
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n",
         1, 0, False), err
+
+
+def test_main_no_argument_usage_line_names_the_missing_reroute_flag_3300(run_cli, pin_reject_route):
+    code, out, err = run_cli(pin_reject_route, [])
+
+    assert (code, out, "[--missing-reroute]" in err) == (2, "", True), err
