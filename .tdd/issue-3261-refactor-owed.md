@@ -25,3 +25,5 @@
 ### `report.sh --store-owed <prd> <file>` preserves every other PRD's entry already in `.tdd/report-owed.json` ⟦criterion 4⟧
 - `--report` reads the cache with an inline `open`/`json.load` and an existence check where `--stale` and `--store-owed` use `_load`; reuse `_load` there
 - `main` dispatches `--stale`, `--store-owed` and `--report` in one long function; split it into one function per option
+### `report.sh --store-owed <prd> <file>` for a PRD number absent from `.tdd/report-cache.json` exits 2 instead of raising a KeyError ⟦added⟧ ⟦criterion 4⟧
+- the `sorted(heads.items(), key=lambda p: int(p[0]))` loop is repeated in `--stale` and `--report`; extract a shared helper
