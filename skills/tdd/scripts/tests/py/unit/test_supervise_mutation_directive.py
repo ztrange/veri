@@ -47,3 +47,11 @@ def test_3352_a_step_only_quoting_the_marker_in_single_quotes_still_restores_the
         True,
         [("mutation-record-restored", "name=develop-red-1", f"file={record}")],
     )
+
+
+def test_3352_apostrophes_in_prose_are_not_quotes_so_a_real_directive_between_them_still_counts(tmp_path, monkeypatch):
+    record = ".tdd/issue-3352-mutations.md"
+    step = f"the leaf shouldn't delete mutation-record: {record} , it isn't a directive's job"
+    events = delete_record_under_step(tmp_path, monkeypatch, record, step)
+
+    assert ((tmp_path / record).exists(), events) == (False, [])
