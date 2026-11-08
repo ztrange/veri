@@ -78,13 +78,13 @@ def exit_line(issue):
 
 
 def main(argv):
-    if not argv:
-        sys.stderr.write(USAGE)
-        return 2
-    if not stall_window().isdigit():
-        sys.stderr.write(USAGE)
-        return 2
-    if len(argv) < 2 or not argv[1].isdigit() or int(argv[1]) == 0:
+    if (
+        not argv
+        or not stall_window().isdigit()
+        or len(argv) < 2
+        or not argv[1].isdigit()
+        or int(argv[1]) == 0
+    ):
         sys.stderr.write(USAGE)
         return 2
     target = int(argv[1])
