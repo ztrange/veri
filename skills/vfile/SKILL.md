@@ -107,6 +107,14 @@ fall back to the names below only where it names none.
   no repeat cost and small harm gets the label for bugs that wait their number's turn
   (`low-risk`); any other bug gets neither. A repeat-cost bug never gets `low-risk`.
 
+- **The filer's lane** (`filed-by:<lane>`) is set on every issue filed, F16's included, and is
+  never left off: `<lane>` is the lane of the session that invoked you — the lane word its
+  `/vcoord` or `/vdev` was started with, `main` when it had none — or `human` when the human
+  invoked you outside any such session. Create it with `gh label create` if the repo lacks it.
+  Unlike the opt-in label, which unlabelling replaces with `taken:<lane>` and grooming may move
+  to another lane, it never changes after filing, so `label:filed-by:<lane>` always finds what
+  a lane filed.
+
 - **Veri defects found on another repository.** Every defect in veri that one run on another
   repository turns up is filed as **one issue for that run**, on veri's own repo, labelled `bug`
   and `candidate` and **never opted in** (no `ready-for-agent`). It lists each defect; grooming
