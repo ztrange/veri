@@ -140,3 +140,21 @@ if False:
 command 170
 sh -c 'cd projects/dashboard && python3 -m pytest -q tests/test_serve_get_root.py::test_page_script_fetches_a_data_only_endpoint_holding_running_lines_and_no_page_markup'
 
+file 8
+Makefile
+old 38
+if [ -n "$(DASH_TESTS)" ]; then printf
+new 20
+if true; then printf
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3265_a_plain_make_test_collects_no_dashboard_case_and_never_calls_the_dashboard_runner
+
+file 8
+Makefile
+old 38
+if [ -n "$(DASH_TESTS)" ]; then printf
+new 20
+if true; then printf
+command 237
+/Users/marioferreira/.veri-tools/venv/bin/python3 -m pytest -q -p no:cacheprovider skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3265_a_plain_make_test_collects_no_dashboard_case_and_never_calls_the_dashboard_runner
+
