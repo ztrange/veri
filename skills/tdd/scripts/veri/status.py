@@ -535,8 +535,8 @@ def recover_state(role):
     try:
         with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % role)) as f:
             for line in f:
-                if line.startswith("timed-n "):
-                    timed.append(line[8:].rstrip("\n"))
+                if line.startswith(("timed-n ", "override ")):
+                    timed.append(line.rstrip("\n"))
                 key, _, value = line.rstrip("\n").partition("=")
                 fields[key] = value
     except FileNotFoundError:
