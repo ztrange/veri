@@ -733,7 +733,7 @@ def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2
             "repeated" in err and "A2" in err) == (2, False, True), (code, err)
 
 
-def test_a_grades_block_naming_an_id_the_requirements_list_does_not_hold_makes_grade_prose_exit_2_naming_it_as_unknown_and_append_no_grading_event_2208(
+def test_a_grades_block_grading_every_wanted_id_and_an_id_outside_the_list_exits_0_with_the_on_list_verdict_naming_the_off_list_id_on_stderr_3295(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
@@ -743,13 +743,16 @@ def test_a_grades_block_naming_an_id_the_requirements_list_does_not_hold_makes_g
         "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
         "| A3 | The widget is small. | because |\n")
     (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "grade-prose.log").write_text(
-        '{"type":"result","subtype":"success","is_error":false,"result":'
-        '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
 
     def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return subprocess.CompletedProcess(argv, 0)
 
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setattr(subprocess, "run", launch)
@@ -757,8 +760,8 @@ def test_a_grades_block_naming_an_id_the_requirements_list_does_not_hold_makes_g
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    assert (code, "grading" in (events.read_text() if events.exists() else ""),
-            "unknown" in err and "A9" in err) == (2, False, True), (code, err)
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 1), (code, err)
 
 
 def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_grader_launch_for_that_row_only_and_the_merged_passes_exit_0_2215(
@@ -838,7 +841,7 @@ def test_a_follow_up_reply_leaving_the_missing_requirement_id_out_again_makes_gr
     assert (code, "missing" in err and "A2" in err, events.exists()) == (2, True, False), (code, err)
 
 
-def test_a_follow_up_reply_naming_an_id_it_was_not_asked_for_makes_grade_prose_exit_2_naming_it_as_unknown_and_append_no_grading_event_2215(
+def test_a_follow_up_reply_grading_the_missing_id_and_an_id_outside_its_list_keeps_the_merged_on_list_verdict_naming_the_off_list_id_3295(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
@@ -851,9 +854,11 @@ def test_a_follow_up_reply_naming_an_id_it_was_not_asked_for_makes_grade_prose_e
     replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
                     '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
+                    '"BEGIN GRADES\\nA2: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
 
     def launch(argv, *a, **k):
+        launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return subprocess.CompletedProcess(argv, 0)
 
@@ -865,7 +870,72 @@ def test_a_follow_up_reply_naming_an_id_it_was_not_asked_for_makes_grade_prose_e
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    assert (code, "unknown" in err and "A9" in err, events.exists()) == (2, True, False), (code, err)
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 2), (code, err)
+
+
+def test_an_off_list_row_graded_fail_beside_wanted_rows_all_graded_pass_leaves_the_verdict_pass_and_exits_0_3295(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
+        "| A3 | The widget is small. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: FAIL - bad\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 1), (code, err)
+
+
+def test_a_grades_block_missing_a_wanted_id_while_grading_an_off_list_id_exits_2_naming_the_missing_id_and_appends_no_grading_event_3295(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | because |\n"
+        "| A3 | The widget is small. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n',
+                    '{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n'])
+    launched = []
+
+    def launch(argv, *a, **k):
+        launched.append(argv)
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    events = tmp_path / ".tdd" / "events.jsonl"
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, "missing requirement IDs A2" in err, verdicts) == (2, True, []), (code, err)
 
 
 def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_that_row_printed_and_no_graded_line_2215(
@@ -977,7 +1047,7 @@ def test_a_first_reply_whose_grades_block_names_one_requirement_id_twice_relaunc
     assert (code, len(launched)) == (0, 2), (code, len(launched), err)
 
 
-def test_a_first_reply_whose_grades_block_names_an_id_the_requirements_list_does_not_hold_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(
+def test_a_first_reply_whose_grades_block_grades_every_wanted_id_plus_an_off_list_id_is_accepted_with_exactly_one_grader_launch_3295(
         tmp_path, monkeypatch, run_cli, grade_prose):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
@@ -986,9 +1056,7 @@ def test_a_first_reply_whose_grades_block_names_an_id_the_requirements_list_does
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / ".tdd").mkdir()
     replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: PASS - blue\\nZ9: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n',
-                    '{"type":"result","subtype":"success","is_error":false,"result":'
-                    '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
+                    '"BEGIN GRADES\\nA1: PASS - blue\\nZ9: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
     def launch(argv, *a, **k):
@@ -1003,7 +1071,9 @@ def test_a_first_reply_whose_grades_block_names_an_id_the_requirements_list_does
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    assert (code, len(launched)) == (0, 2), (code, len(launched), err)
+    events = tmp_path / ".tdd" / "events.jsonl"
+    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    assert (code, len(launched), verdicts) == (0, 1, ["PASS"]), (code, len(launched), err)
 
 
 def test_a_first_reply_whose_grades_block_carries_a_grade_word_other_than_pass_or_fail_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(

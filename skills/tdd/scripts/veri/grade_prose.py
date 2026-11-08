@@ -141,6 +141,20 @@ def graded_ids(text):
     return re.findall(r"^(?!VERDICT)(\S+): (?:PASS|FAIL)\b", text, re.M)
 
 
+def drop_off_list(lines, allowed):
+    kept, dropped = [], []
+    for line in lines:
+        m = re.match(r"(?!VERDICT)(\S+): (?:PASS|FAIL)\b", line)
+        if m and m.group(1) not in allowed:
+            dropped.append(m.group(1))
+        else:
+            kept.append(line)
+    if dropped:
+        print("grade-prose.sh: ignoring graded IDs outside the prompt's list: %s"
+              % ", ".join(sorted(set(dropped))), file=sys.stderr)
+    return kept
+
+
 def no_verdict(detail):
     print("grade-prose.sh: no verdict obtained: %s" % detail, file=sys.stderr)
     return 2
@@ -149,7 +163,7 @@ def no_verdict(detail):
 def keeps_protocol(reply, wanted):
     block = reply[reply.rindex("BEGIN GRADES"):]
     ids = graded_ids(block)
-    return (len(set(ids)) == len(ids) and set(ids) <= set(wanted)
+    return (len(set(ids)) == len(ids)
             and not BAD_GRADE.search(block) and not reply.partition("END GRADES")[2].strip())
 
 
@@ -247,7 +261,7 @@ def main(argv):
     cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
-    reply = reply[reply.rindex("BEGIN GRADES"):]
+    reply = "\n".join(drop_off_list(reply[reply.rindex("BEGIN GRADES"):].split("\n"), wanted))
     seen = graded_ids(reply)
     missing = [i for i in wanted if i not in seen]
     if missing and "END GRADES" in reply and keeps_protocol(reply, wanted):
@@ -257,11 +271,7 @@ def main(argv):
         follow = extract(more)
         if "BEGIN GRADES" in follow:
             follow = follow[follow.rindex("BEGIN GRADES"):].partition("END GRADES")[0]
-            added = [l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")]
-            ids = graded_ids("\n".join(added))
-            unknown = sorted({i for i in ids if i not in missing})
-            if unknown:
-                return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
+            added = drop_off_list([l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")], missing)
             kept = [l for l in reply.partition("END GRADES")[0].splitlines() if not l.startswith("VERDICT")]
             lines = kept + added
             verdict = "REJECT" if any(": FAIL" in l for l in lines) else "PASS"
@@ -285,9 +295,6 @@ def main(argv):
         repeated = sorted({i for i in got if got.count(i) > 1})
         if repeated:
             return no_verdict("GRADES block names requirement IDs repeated: %s" % ", ".join(repeated))
-        unknown = sorted({i for i in got if i not in wanted})
-        if unknown:
-            return no_verdict("GRADES block names requirement IDs unknown: %s" % ", ".join(unknown))
         return no_verdict("GRADES block IDs %s do not match requirement IDs %s"
                           % (", ".join(got), ", ".join(wanted)))
     failed = re.findall(r"^(?!VERDICT)\S+: FAIL\b.*$", reply, re.M)
