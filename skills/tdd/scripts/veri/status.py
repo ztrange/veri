@@ -18,6 +18,7 @@ from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
 from run_dir import run_file
 import tunables
+from role_state import state_path
 from solvable_issues import priority_label, solvable
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
@@ -531,9 +532,8 @@ def recover_lock():
 
 
 def read_role_state(role, lane=None):
-    name = role if lane is None else "%s-%s" % (role, lane)
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % name)) as f:
+        with open(state_path(main_working_tree(), role, lane)) as f:
             return f.read().splitlines()
     except FileNotFoundError:
         return []

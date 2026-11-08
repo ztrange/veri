@@ -9,6 +9,11 @@ from full_tier_time import main_tree
 USAGE = "usage: role-state.sh <coord|dev> set <field> <value> | show\n"
 
 
+def state_path(tree, role, lane=None):
+    name = role if lane is None else "%s-%s" % (role, lane)
+    return os.path.join(tree, ".tdd", "role-%s.state" % name)
+
+
 def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -44,10 +49,11 @@ def main(argv):
     name = argv[0]
     if name not in ("coord", "dev"):
         return usage()
+    lane = None
     if argv[1] == "--lane":
-        name += "-" + argv[2]
+        lane = argv[2]
         argv = [argv[0]] + argv[3:]
-    path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % name)
+    path = state_path(main_tree(os.getcwd()), name, lane)
     verb = VERBS.get(argv[1])
     return verb(path, argv) if verb else usage()
 
