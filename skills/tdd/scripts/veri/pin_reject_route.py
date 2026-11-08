@@ -31,7 +31,7 @@ def main(argv):
             return 2
     code = tick_ledger.main(["--unpinnable", argv[0], "--case", argv[3], argv[1], argv[2]])
     if code == 1 and missing:
-        code = tick_ledger.main(["--already-holds", argv[0], argv[1], argv[2]])
+        code = tick_ledger.main(["--already-holds", argv[0], "--case", argv[3], argv[1], argv[2]])
     if code == 0:
         print("retired")
     elif code == 1:
