@@ -488,10 +488,25 @@ def zone_line():
 RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
 
 
+def recover_runs():
+    from pid_file import recorded_alive
+    lines = []
+    for run in glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")):
+        n = os.path.basename(run)
+        with open(ledger_path(run, n)) as f:
+            heading = f.readline().rstrip("\n")
+        title = heading.split(" — ", 1)[-1]
+        lines.append("#%s %s %s" % (n, title, recorded_alive(run)))
+    return lines
+
+
 def recover(role):
     for heading in RECOVER_HEADINGS:
         print(heading)
-        print("free" if heading == "Merge lock" else "none")
+        body = recover_runs() if heading == "Runs" else []
+        if heading == "Merge lock":
+            body = ["free"]
+        print("\n".join(body) or "none")
     return 0
 
 
