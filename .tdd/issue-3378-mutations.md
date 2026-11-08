@@ -18,3 +18,10 @@ new 30
 command 225
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_leaves_the_ledger_untouched_and_exits_0_when_two_adjacent_pending_skill_edit_steps_together_explain_a_red_of_both_stale_graded_suites_3378
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 57
+skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py
+command 216
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_rebased_tip_returns_insert_exit_2_unchanged_and_writes_no_rebase_lease_when_a_plain_step_separates_the_two_stale_graded_units_steps_3378
+
