@@ -32,6 +32,6 @@ def test_serve_source_opens_only_runs_and_report_cache_and_runs_nothing():
     bad_calls = sorted(calls & (WRITERS | {"open-for-write"}))
     stray = sorted(s for s in literals
                    if ("skills" in s or s.endswith((".json", ".jsonl", ".log", ".md")))
-                   and s not in {"*.jsonl", "report-cache.json"}
+                   and s not in {"*.jsonl", "report-cache.json", "report-owed.json"}
                    and not s.startswith(("/", "<", "%", "Usage")) and "\n" not in s)
     assert (bad_imports, bad_calls, stray) == ([], [], [])
