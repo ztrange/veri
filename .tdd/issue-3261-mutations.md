@@ -110,3 +110,10 @@ skills/tdd/scripts/tests/py/unit/test_prd_report.py
 command 313
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpljn1ti6p/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_store_owed_for_a_prd_absent_from_the_cache_exits_2_and_leaves_the_owed_file_untouched
 
+before 40
+81559b0229e2826274094d04deedfa63eccce9d3
+keep 50
+skills/tdd/scripts/tests/py/test_report_process.py
+command 302
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpljn1ti6p/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_report_process.py make test TESTS=skills/tdd/scripts/tests/py/test_report_process.py::test_report_with_gh_refusing_and_a_snapshot_present_exits_0_and_prints_the_report
+

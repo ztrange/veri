@@ -22,4 +22,4 @@ The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the nam
 - [x] `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
 - [x] `report.sh --store-owed <prd> <file>` preserves every other PRD's entry already in `.tdd/report-owed.json` ⟦criterion 4⟧
 - [x] `report.sh --store-owed <prd> <file>` for a PRD number absent from `.tdd/report-cache.json` exits 2 instead of raising a KeyError ⟦added⟧ ⟦criterion 4⟧
-- [ ] With `gh` refusing and a snapshot present, `report.sh --report` exits 0 and prints the same report as with `gh` answering (a medium case at the process boundary, `gh` and `solvable-issues.sh`'s GitHub reads refused) ⟦criterion 2⟧
+- [x] With `gh` refusing and a snapshot present, `report.sh --report` exits 0 and prints the same report as with `gh` answering (a medium case at the process boundary, `gh` and `solvable-issues.sh`'s GitHub reads refused) ⟦criterion 2⟧
