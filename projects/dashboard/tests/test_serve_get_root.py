@@ -844,3 +844,38 @@ def test_report_page_does_not_show_owed_none_when_the_current_entry_has_a_non_ze
 
     block = body.split("<h2>")[1]
     assert "owed: none" not in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_owed_count_and_sections_when_the_current_entry_has_a_non_zero_count(report_repo):
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z"},
+        ]})
+    )
+    (report_repo / ".tdd" / "report-owed.json").write_text(
+        json.dumps({"014": {"updatedAt": "2026-11-02T10:00:00Z",
+                            "answer": {"count": 3, "sections": ["Goals", "Risks"]}}})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = body.split("<h2>")[1]
+    assert "owed: 3 (Goals, Risks)" in block
