@@ -1,4 +1,4 @@
 # Plan for #3232 — PRD 012.16a: An operator role sends every multi-command lookup to a subagent, and runs independent single commands in parallel
 
 - [x] skill-edit step for the unit `operator/PRINCIPLES.md`: P6's paragraph says an operator role does no investigation in its own context — every lookup that takes more than one command (reading source, grepping for how a script works, git archaeology, a log, a diff, an issue sweep) goes to one subagent on the cheapest adequate model briefed to return at most 10 lines, and a leaf `.out` is never printed — meeting the issue's `## Requirements` row P6 ⟦skill-edit⟧ ⟦criterion 1⟧
-- [ ] skill-edit step for the unit `operator/PRINCIPLES.md`: P6's paragraph says independent single commands go out as parallel calls in one message, not one per turn, meeting the issue's `## Requirements` row P20 ⟦skill-edit⟧ ⟦criterion 2⟧
+- [x] skill-edit step for the unit `operator/PRINCIPLES.md`: P6's paragraph says independent single commands go out as parallel calls in one message, not one per turn, meeting the issue's `## Requirements` row P20 ⟦skill-edit⟧ ⟦criterion 2⟧
