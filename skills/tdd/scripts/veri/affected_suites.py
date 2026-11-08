@@ -24,7 +24,8 @@ SKILL_DOCS = ("skills/tdd/SCRIPTS.md", "skills/tdd/STOPPING.md", "skills/tdd/REC
               "skills/tdd/BAIL.md", "skills/tdd/PIN.md", "skills/tdd/RESUME.md",
               "skills/tdd/REVISE.md", "skills/tdd/SKILL-EDIT.md", "skills/tdd/STRUCTURAL.md",
               "skills/tdd/PHASED.md", "skills/tdd/REFACTOR-KIND.md", "skills/tdd/PREFLIGHT.md",
-              "skills/tdd/DRAFT-PR.md", "skills/tdd/SUITE-REPAIR.md")
+              "skills/tdd/DRAFT-PR.md", "skills/tdd/SUITE-REPAIR.md",
+              "skills/tdd/DIFF-CHECKED.md")
 SPACE = rb"[ \t\n\v\f\r]"
 
 
