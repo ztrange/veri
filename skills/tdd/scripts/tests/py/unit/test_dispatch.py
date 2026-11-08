@@ -307,3 +307,38 @@ def test_main_prints_nothing_while_a_queued_merge_is_still_listed_on_the_next_pa
         dispatch.main(["--target", "1"])
 
     assert capsys.readouterr().out == ""
+
+
+def test_main_prints_nothing_and_takes_the_slot_decision_again_when_a_running_queued_merge_ends_with_the_pr_merged(
+        monkeypatch, capsys, tmp_path, dispatch):
+    url = "https://github.com/o/r/pull/9"
+    ledger = tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md"
+    ledger.parent.mkdir(parents=True)
+    listings = [[url], []]
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 1:
+            ledger.write_text("- [ ] step\n")
+        if len(waits) == 2:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges",
+                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
+    monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "MERGED", raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "2"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches, waits) == (None, "", ["12", "15"], [1, 1])
