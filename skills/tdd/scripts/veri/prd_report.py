@@ -56,7 +56,12 @@ def main(argv):
             for label in sorted({l["name"] for o in open_children for l in o["labels"]}):
                 listed = solvable_issues.solvable(label)[1]
                 solvable += sum(1 for o in open_children if o["number"] in listed)
-            print("left: solvable now %d" % solvable)
+            open_numbers = {o["number"] for o in snapshot["issues"] if o["state"] == "OPEN"}
+            waiting = [(o["number"], b) for o in open_children
+                       for b in o["blockedBy"] if b in open_numbers]
+            print("left: solvable now %d, waiting %d on %s" % (
+                solvable, len({n for n, _ in waiting}),
+                ", ".join("#%d" % b for b in sorted({b for _, b in waiting}))))
         return 0
     print(USAGE, file=sys.stderr)
     return 2

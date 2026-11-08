@@ -124,3 +124,100 @@ def test_report_left_line_counts_as_solvable_now_the_open_children_the_opt_in_la
     left = [line for line in lines[start:end] if line.lower().startswith("left")]
     assert code == 0
     assert len(left) == 1 and re.search(r"solvable now\D*\b1\b", left[0], re.I), left
+
+
+def test_report_left_line_counts_as_waiting_the_open_children_with_an_open_blocker_and_names_each_blocker(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+
+    def issue(number, title, state="OPEN", blocked=()):
+        return {"number": number, "title": title, "state": state, "labels": [], "closedAt": None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": list(blocked), "links": [],
+                "wallSeconds": 0, "lane": None}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(22, "PRD 014: waits on an open blocker", blocked=[50]),
+              issue(23, "PRD 014: blocker already closed", blocked=[51]),
+              issue(24, "PRD 014: unblocked"),
+              issue(50, "the open blocker"),
+              issue(51, "the closed blocker", "CLOSED"),
+              issue(99, "PRD 015: other prd head"),
+              issue(100, "PRD 015: other child", blocked=[52]),
+              issue(52, "another open blocker")]
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    lines = out.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("PRD 014"))
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("PRD ")), len(lines))
+    left = [line for line in lines[start:end] if line.lower().startswith("left")]
+    assert code == 0
+    assert len(left) == 1 and re.search(r"waiting\D*\b1\b", left[0], re.I), left
+    assert "#50" in left[0] and "#51" not in left[0] and "#52" not in left[0], left
+
+
+def test_report_left_line_waiting_count_is_the_distinct_open_children_with_an_open_blocker(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+
+    def issue(number, title, blocked=()):
+        return {"number": number, "title": title, "state": "OPEN", "labels": [], "closedAt": None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": list(blocked), "links": [],
+                "wallSeconds": 0, "lane": None}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(22, "PRD 014: first waiter", blocked=[50]),
+              issue(23, "PRD 014: second waiter, same blocker", blocked=[50]),
+              issue(24, "PRD 014: third waiter, two blockers", blocked=[50, 52]),
+              issue(25, "PRD 014: unblocked"),
+              issue(50, "shared blocker"),
+              issue(52, "second blocker")]
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    left = [line for line in out.splitlines() if line.lower().startswith("left")]
+    assert code == 0
+    assert len(left) == 1 and re.search(r"waiting\D*\b3\b", left[0], re.I), left
+    assert "#50" in left[0] and "#52" in left[0], left
+
+
+def test_report_left_line_names_a_blocker_shared_by_several_waiting_children_once(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+
+    def issue(number, title, blocked=()):
+        return {"number": number, "title": title, "state": "OPEN", "labels": [], "closedAt": None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": list(blocked), "links": [],
+                "wallSeconds": 0, "lane": None}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(22, "PRD 014: first waiter", blocked=[50]),
+              issue(23, "PRD 014: second waiter, same blocker", blocked=[50]),
+              issue(50, "shared blocker")]
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    left = [line for line in out.splitlines() if line.lower().startswith("left")]
+    assert code == 0
+    assert len(left) == 1 and left[0].count("#50") == 1, left
