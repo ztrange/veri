@@ -224,20 +224,23 @@ def append(directory, context, event, fields=(), ts=None):
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
     write_journal(top, context, text)
-    try:
-        state_labels(args[0])
-    except github.NoAnswer:
-        sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % tunables.read("VERI_STATE_LABEL_ISSUE"))
+    state_labels(args[0])
     return 0
 
 
 def state_labels(event):
+    """Mirror a bail or a resume onto issue $VERI_STATE_LABEL_ISSUE's labels; a refusal is named, never fatal."""
     issue = tunables.read("VERI_STATE_LABEL_ISSUE")
-    if issue and event == b"bail":
-        github.gh_issue_add_label(issue, "bailed")
-        github.gh_issue_remove_label(issue, "pr-ready")
-    if issue and event == b"resume":
-        github.gh_issue_remove_label(issue, "bailed")
+    if not issue:
+        return
+    try:
+        if event == b"bail":
+            github.gh_issue_add_label(issue, "bailed")
+            github.gh_issue_remove_label(issue, "pr-ready")
+        elif event == b"resume":
+            github.gh_issue_remove_label(issue, "bailed")
+    except github.NoAnswer:
+        sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % issue)
 
 
 def context(environ):
