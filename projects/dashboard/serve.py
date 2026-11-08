@@ -79,7 +79,7 @@ def report_blocks(repo):
         m = re.match(r"PRD (\d+)", i["title"])
         if m and i["state"] == "OPEN":
             first.setdefault(int(m.group(1)), i)
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>" % (n, i["number"], i["title"])
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>\n<p>owed: stale</p>" % (n, i["number"], i["title"])
                      for n, i in sorted(first.items()))
 
 
