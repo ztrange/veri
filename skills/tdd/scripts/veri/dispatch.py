@@ -68,6 +68,8 @@ def queued_merges():
 def pr_state(pr_url):
     owner, repo, number = pr_url.split("/")[-4], pr_url.split("/")[-3], pr_url.split("/")[-1]
     pull = json.loads(github.gh_api(f"repos/{owner}/{repo}/pulls/{number}").stdout)
+    if "merged" not in pull:
+        return "UNRESOLVED"
     return "MERGED" if pull["merged"] else pull["state"].upper()
 
 
@@ -106,7 +108,7 @@ def main(argv):
         live = live_conductors()
         running = queued_merges()
         for pr_url in merges:
-            if pr_url not in running and pr_state(pr_url) != "MERGED":
+            if pr_url not in running and pr_state(pr_url) not in ("MERGED", "UNRESOLVED"):
                 sys.stdout.write(f"merge-failed {pr_url}\n")
                 return 0
         merges = running
