@@ -3,7 +3,7 @@
 The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the name `veri/report.py` is already taken by the leaf-report reader four modules import), behind a new `/bin/sh` shim `skills/tdd/scripts/report.sh` per the `status.sh` convention; unit cases in `skills/tdd/scripts/tests/py/unit/test_prd_report.py`, entry-point cases in `skills/tdd/scripts/tests/py/test_prd_report_process.py`. Every case builds its own `.tdd/report-cache.json` and `.tdd/report-owed.json` under `tmp_path` and fakes `solvable-issues.sh` and `gh` at the process boundary.
 
 - [x] `report.sh` run with no argument prints its usage line on stderr and exits 2; the step adds `report.sh` (a `/bin/sh` shim over `veri/prd_report.py`) and its declared caller (a `report` recipe in the `Makefile` running `report.sh --report`, so `unreachable.sh` reaches it; `SCRIPTS.md` is a graded unit and is not edited)
-- [ ] `report.sh --report` with a snapshot `.tdd/report-cache.json` present states the snapshot's age on its first line ⟦criterion 2⟧
+- [x] `report.sh --report` with a snapshot `.tdd/report-cache.json` present states the snapshot's age on its first line ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] `report.sh --report` with no `.tdd/report-cache.json` says there is no snapshot and exits 2 ⟦criterion 2⟧
 - [ ] `report.sh --report` prints one block per open issue whose title starts `PRD <nnn>`, ordered by PRD number, each headed `PRD <nnn> (#<n>) — <title>`; closed PRDs and non-PRD issues get no block ⟦criterion 1⟧
 - [ ] Each PRD block's solved line counts the PRD's closed children (cached issues whose title starts with its `PRD <nnn>`, plus the issues in its `links`, minus the PRD itself and links to other PRDs) and how many of them closed in the last 7 days ⟦criterion 1⟧
