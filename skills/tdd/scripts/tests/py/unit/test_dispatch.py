@@ -404,3 +404,20 @@ def test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_se
         code = None
 
     assert (code, capsys.readouterr().out, len(waits)) == (0, "stalled 7\n", 2)
+
+
+def test_main_with_a_non_integer_stall_window_prints_the_usage_on_stderr_and_exits_2_before_any_launch(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "abc")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh --target <N>\n", [])

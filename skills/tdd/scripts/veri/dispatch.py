@@ -77,6 +77,9 @@ def main(argv):
     if not argv:
         sys.stderr.write(USAGE)
         return 2
+    if not os.environ.get("VERI_DISPATCH_STALL", "3600").isdigit():
+        sys.stderr.write(USAGE)
+        return 2
     target = int(argv[1])
     previous = None
     seen = []
