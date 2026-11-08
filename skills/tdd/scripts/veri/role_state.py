@@ -68,8 +68,7 @@ def main(argv):
         print(item)
         return 0
     if argv[1] == "drop":
-        with open(path) as f:
-            lines = f.readlines()
+        lines = (read(path) or "").splitlines(True)
         kept = [l for l in lines if l.split()[:2] != argv[2:4]]
         if kept == lines:
             return 3
