@@ -1,0 +1,7 @@
+before 40
+4d3e354e862ecbfd27c419aafec0f8ff06a2fbf2
+keep 56
+skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_3314_a_batch_with_one_text_holding_the_refactor_pending_delimiter_exits_2_inserting_none_of_it
+
