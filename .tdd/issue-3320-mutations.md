@@ -14,3 +14,14 @@ new 44
 command 208
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_a_step_whose_issue_row_is_identical_to_the_listed_row_of_the_same_bare_id_refuses_nothing_and_leaves_the_list_byte_identical_3320
 
+file 42
+skills/tdd/scripts/veri/skill_edit_step.py
+old 32
+    if clashes:
+        return 2
+new 144
+    if clashes or any(_row_id(r).endswith("<next>") and any(i.startswith(_row_id(r)[:-6]) for i in texts) for r in issue_rows):
+        return 2
+command 220
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_a_step_whose_issue_row_is_prefix_next_for_a_list_holding_rows_of_that_prefix_refuses_nothing_and_adds_the_row_under_the_next_free_number_3320
+

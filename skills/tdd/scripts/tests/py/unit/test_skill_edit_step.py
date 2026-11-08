@@ -2122,3 +2122,31 @@ def test_a_step_whose_issue_row_is_identical_to_the_listed_row_of_the_same_bare_
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code, "A1" in err, (tmp_path / "REQUIREMENTS.md").read_text()) == (3, False, original), (code, err)
+
+
+def test_a_step_whose_issue_row_is_prefix_next_for_a_list_holding_rows_of_that_prefix_refuses_nothing_and_adds_the_row_under_the_next_free_number_3320(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n| A2 | The widget is round. | shape |\n")
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A<next> | The widget is shiny. | gloss |\n")
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    listed = (tmp_path / "REQUIREMENTS.md").read_text()
+    assert (code != 2, "| A3 | The widget is shiny. | gloss |" in listed) == (True, True), (code, err, listed)
