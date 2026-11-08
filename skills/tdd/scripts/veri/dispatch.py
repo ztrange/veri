@@ -82,6 +82,7 @@ def main(argv):
         not argv
         or not stall_window().isdigit()
         or len(argv) != 2
+        or argv[0] != "--target"
         or not argv[1].isdigit()
         or int(argv[1]) == 0
     ):
