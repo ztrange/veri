@@ -254,3 +254,19 @@ sys.path.insert(0, 'skills/tdd')
 command 111
 bash -c 'cd projects/dashboard && env -u PYTEST_PLUGINS python3 -m pytest -q tests/test_serve_source_skills.py'
 
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 53
+projects/dashboard/tests/test_veri_make_test_scope.py
+command 225
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp2ddnc37g/scripts/timed-test-run.sh target projects/dashboard/tests/test_veri_make_test_scope.py make test TESTS=projects/dashboard/tests/test_veri_make_test_scope.py
+
+file 8
+Makefile
+old 113
+py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(if $(filter $(DASH_PATH),$(t)),,$(t)))),$(3))
+new 126
+py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(t))),$(3))  $(wildcard projects/dashboard/tests/test_*.py)
+command 74
+python3 -m pytest -q projects/dashboard/tests/test_veri_make_test_scope.py
+
