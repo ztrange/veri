@@ -123,9 +123,9 @@ def test_every_line_sending_the_run_into_the_pin_points_at_pin_md_1852():
 
 
 def test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855():
-    """Subject is source text: each site entering the revise loop, in SKILL.md, PIN.md or PHASED.md, names REVISE.md to Read."""
+    """Subject is source text: each site entering the revise loop, in SKILL.md, PIN.md, PHASED.md or DIFF-CHECKED.md, names REVISE.md to Read."""
     sites = EVENT_FILES["REVISE.md"]
-    lines = _outside_green(_outside_red(_lines_with_pin())) + SKILL.with_name("PHASED.md").read_text().splitlines() + DRAFT_PR.read_text().splitlines()
+    lines = _outside_green(_outside_red(_lines_with_pin())) + SKILL.with_name("PHASED.md").read_text().splitlines() + SKILL.with_name("DIFF-CHECKED.md").read_text().splitlines() + DRAFT_PR.read_text().splitlines()
     entering = [i for i, line in enumerate(lines) if re.search(sites, line)]
 
     assert len(entering) >= 6
