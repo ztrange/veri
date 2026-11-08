@@ -114,7 +114,10 @@ def main(argv):
         if len(live) < target and (previous is None or os.path.exists(ledger)):
             try:
                 previous = solvable_issues()[0]
-            except watch_runs.QueueUnreadable:
+            except watch_runs.QueueUnreadable as failure:
+                if str(failure):
+                    sys.stderr.write(str(failure))
+                    return 2
                 if not live:
                     sys.stdout.write("queue-empty\n")
                     return 3
