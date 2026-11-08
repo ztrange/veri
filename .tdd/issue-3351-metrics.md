@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3351
 
-Wall time for the issue: 548 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 5 of 8 planned.
-Outcome: the run bailed — needs-user, a process failure.
-Lane: ready-for-agent
+Wall time for the issue: 3314 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 7 of 8 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3379.
+Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $5.05 over 107 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $7.93 over 160 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77010 tokens, largest 151238 tokens
-Conductor context: first turn 76992 tokens, largest 139375 tokens
+Conductor context: first turn 76992 tokens, largest 142811 tokens
+Conductor context: first turn 76985 tokens, largest 153395 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -89,56 +90,109 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 71 | $0.04 | 149515 |
 | 72 | $0.03 | 150625 |
 | 73 | $0.03 | 151238 |
-| 74 | $0.48 | 76992 |
-| 75 | $0.06 | 83156 |
-| 76 | $0.03 | 84668 |
-| 77 | $0.02 | 85261 |
-| 78 | $0.03 | 86982 |
-| 79 | $0.03 | 88066 |
-| 80 | $0.03 | 89719 |
-| 81 | $0.02 | 90119 |
-| 82 | $0.02 | 90576 |
-| 83 | $0.02 | 91157 |
-| 84 | $0.02 | 91466 |
-| 85 | $0.02 | 91798 |
-| 86 | $0.02 | 92147 |
-| 87 | $0.02 | 92476 |
-| 88 | $0.02 | 92824 |
-| 89 | $0.02 | 93381 |
-| 90 | $0.02 | 93803 |
-| 91 | $0.05 | 98205 |
-| 92 | $0.03 | 99284 |
-| 93 | $0.03 | 99988 |
+| 74 | $0.49 | 76992 |
+| 75 | $0.07 | 83156 |
+| 76 | $0.04 | 84668 |
+| 77 | $0.03 | 85261 |
+| 78 | $0.04 | 86982 |
+| 79 | $0.04 | 88066 |
+| 80 | $0.04 | 89719 |
+| 81 | $0.03 | 90119 |
+| 82 | $0.03 | 90576 |
+| 83 | $0.03 | 91157 |
+| 84 | $0.03 | 91466 |
+| 85 | $0.03 | 91798 |
+| 86 | $0.03 | 92147 |
+| 87 | $0.03 | 92476 |
+| 88 | $0.04 | 92824 |
+| 89 | $0.03 | 93381 |
+| 90 | $0.03 | 93803 |
+| 91 | $0.06 | 98205 |
+| 92 | $0.04 | 99284 |
+| 93 | $0.04 | 99988 |
 | 94 | $0.03 | 100668 |
-| 95 | $0.02 | 101262 |
-| 96 | $0.02 | 101583 |
-| 97 | $0.02 | 101924 |
-| 98 | $0.02 | 102132 |
-| 99 | $0.02 | 102692 |
+| 95 | $0.04 | 101262 |
+| 96 | $0.03 | 101583 |
+| 97 | $0.03 | 101924 |
+| 98 | $0.03 | 102132 |
+| 99 | $0.04 | 102692 |
 | 100 | $0.03 | 103468 |
-| 101 | $0.02 | 103900 |
+| 101 | $0.04 | 103900 |
 | 102 | $0.03 | 104457 |
-| 103 | $0.03 | 105338 |
-| 104 | $0.03 | 105919 |
+| 103 | $0.04 | 105338 |
+| 104 | $0.04 | 105919 |
 | 105 | $0.03 | 106663 |
-| 106 | $0.03 | 107680 |
-| 107 | $0.04 | 109893 |
-| 108 | $0.03 | 110756 |
-| 109 | $0.03 | 111427 |
-| 110 | $0.03 | 112767 |
-| 111 | $0.03 | 113457 |
+| 106 | $0.04 | 107680 |
+| 107 | $0.05 | 109893 |
+| 108 | $0.04 | 110756 |
+| 109 | $0.04 | 111427 |
+| 110 | $0.04 | 112767 |
+| 111 | $0.04 | 113457 |
 | 112 | $0.03 | 113888 |
-| 113 | $0.03 | 115033 |
-| 114 | $0.03 | 116500 |
-| 115 | $0.05 | 119808 |
-| 116 | $0.03 | 120508 |
+| 113 | $0.05 | 115033 |
+| 114 | $0.04 | 116500 |
+| 115 | $0.06 | 119808 |
+| 116 | $0.04 | 120508 |
 | 117 | $0.03 | 120802 |
-| 118 | $0.03 | 121704 |
+| 118 | $0.05 | 121704 |
 | 119 | $0.04 | 123042 |
-| 120 | $0.03 | 124167 |
-| 121 | $0.04 | 125964 |
-| 122 | $0.09 | 134601 |
+| 120 | $0.04 | 124167 |
+| 121 | $0.05 | 125964 |
+| 122 | $0.11 | 134601 |
 | 123 | $0.07 | 139375 |
+| 124 | $0.05 | 140328 |
+| 125 | $0.04 | 141527 |
+| 126 | $0.05 | 142292 |
+| 127 | $0.04 | 142811 |
+| 128 | $0.48 | 76985 |
+| 129 | $0.06 | 82906 |
+| 130 | $0.03 | 84867 |
+| 131 | $0.02 | 85379 |
+| 132 | $0.04 | 88483 |
+| 133 | $0.06 | 94193 |
+| 134 | $0.02 | 94503 |
+| 135 | $0.02 | 95020 |
+| 136 | $0.02 | 95348 |
+| 137 | $0.02 | 95900 |
+| 138 | $0.02 | 96256 |
+| 139 | $0.02 | 96934 |
+| 140 | $0.03 | 97787 |
+| 141 | $0.03 | 98612 |
+| 142 | $0.02 | 99264 |
+| 143 | $0.03 | 100223 |
+| 144 | $0.03 | 101270 |
+| 145 | $0.03 | 102138 |
+| 146 | $0.03 | 102797 |
+| 147 | $0.03 | 103504 |
+| 148 | $0.03 | 104654 |
+| 149 | $0.03 | 105397 |
+| 150 | $0.03 | 106026 |
+| 151 | $0.02 | 106387 |
+| 152 | $0.03 | 107066 |
+| 153 | $0.04 | 109702 |
+| 154 | $0.03 | 110458 |
+| 155 | $0.03 | 111587 |
+| 156 | $0.15 | 127136 |
+| 157 | $0.03 | 127470 |
+| 158 | $0.03 | 127985 |
+| 159 | $0.03 | 128741 |
+| 160 | $0.11 | 139195 |
+| 161 | $0.04 | 140661 |
+| 162 | $0.04 | 141549 |
+| 163 | $0.03 | 142286 |
+| 164 | $0.04 | 143949 |
+| 165 | $0.03 | 144430 |
+| 166 | $0.03 | 144755 |
+| 167 | $0.04 | 145666 |
+| 168 | $0.03 | 146299 |
+| 169 | $0.03 | 146753 |
+| 170 | $0.04 | 147730 |
+| 171 | $0.04 | 148959 |
+| 172 | $0.04 | 150553 |
+| 173 | $0.04 | 151979 |
+| 174 | $0.04 | 152678 |
+| 175 | $0.03 | 152957 |
+| 176 | $0.03 | 153395 |
 
 #### Conductor comments, by family
 
@@ -146,36 +200,39 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 4 | 1408 | $0.03 |
-| 🟢 Green | 4 | 1408 | $0.03 |
-| 🛠️ Refactor | 4 | 960 | $0.02 |
-| 🔎 verify-green | 4 | 1408 | $0.03 |
-| 🔎 verify-refactor | 4 | 960 | $0.02 |
+| 🔴 Red | 4 | 1877 | $0.04 |
+| 🟢 Green | 4 | 1877 | $0.04 |
+| 🛠️ Refactor | 4 | 1898 | $0.04 |
+| 🔎 verify-green | 4 | 1877 | $0.04 |
+| 🔎 verify-refactor | 4 | 1898 | $0.04 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
 | 🗺️ Plan | 1 | 464 | $0.01 |
-| 🗺️ verify-plan | 2 | 480 | $0.01 |
-| ▶️ Resuming | 1 | 51 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 3 | 969 | $0.02 |
+| ▶️ Resuming | 2 | 493 | $0.01 |
+| ⛔ Bailed | 2 | 970 | $0.02 |
 | ⏹️ Stopped | 1 | 464 | $0.01 |
-| Total | 17 | 5235 | $0.10 |
+| Total | 21 | 9012 | $0.18 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 25 | 20 | 3 | 6 | 2416 | 20087 | 41415 | 0.13 |
+| plan | 3 | 3 | 0 | 0 | 37 | 30 | 4 | 8 | 3695 | 20087 | 62031 | 0.19 |
 | red | 9 | 4 | 0 | 0 | 235 | 112 | 44 | 84 | 13970 | 713430 | 153784 | 0.60 |
 | green | 8 | 4 | 0 | 0 | 1368 | 129 | 48 | 94 | 14572 | 842069 | 160132 | 0.63 |
 | refactor | 6 | 1 | 0 | 0 | 70 | 30 | 19 | 30 | 3333 | 191778 | 96508 | 0.29 |
 | pin | 1 | 1 | 0 | 0 | 26 | 19 | 7 | 14 | 1962 | 119183 | 15918 | 0.07 |
+| prose | 13 | 0 | 0 | 0 | 233 | 205 | 13 | 26 | 33773 | 66655 | 373629 | 1.28 |
+| skill-edit | 2 | 0 | 0 | 0 | 24 | 19 | 7 | 14 | 2101 | 201598 | 77698 | 0.24 |
+| rebase | 4 | 2 | 0 | 0 | 1071 | 60 | 26 | 48 | 6636 | 354960 | 120730 | 0.40 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 12 | 12 | 0 | 0 | 1373 | 148 | 47 | 94 | 16157 | 706363 | 218249 | 0.78 |
-| developer | claude-sonnet-5-5 | 14 | 0 | 0 | 0 | 351 | 162 | 74 | 134 | 20096 | 1180184 | 249508 | 0.94 |
+| verifier | claude-sonnet-5-5 | 15 | 15 | 0 | 0 | 2303 | 181 | 57 | 110 | 19917 | 760282 | 312519 | 1.06 |
+| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 504 | 199 | 91 | 168 | 24251 | 1481225 | 296584 | 1.13 |
 
 #### Rework and waste, by phase
 
@@ -186,7 +243,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -197,6 +256,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where two commits lie in `<step-base-sha>..HEAD`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf=<leaf>`, `base=<step-base-sha>`, `head=<HEAD sha>` and `commits=2`, leaving both commits in place; `skills/tdd/JOURNAL.md`'s event table gains a `diff-leaf-deviation` row (the event roster guard requires it); a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 2⟧ | 6 | 2 | 0 | 0 | 0 | 0 | 79 | 32 | 58 | 8558 | 477956 | 134053 | 0.47 | 2087 | unknown | 0/5 | nothing-left |  |  | full |
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where exactly one commit lies in `<step-base-sha>..HEAD` and that commit touches `.tdd/issue-<n>.md`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf`, `base`, `head` and `commits=1`; a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 59 | 26 | 48 | 7422 | 390275 | 94205 | 0.35 | 319 | unknown | 1/5 | nothing-structural |  |  | full |
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where no commit lies in `<step-base-sha>..HEAD` (a criterion that something stays unchanged), exits 3 and appends no `diff-leaf-deviation` event; a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 11 | 22 | 3918 | 188112 | 33222 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
+| skill-edit step for the unit `skills/tdd/SCRIPTS.md`: a `$S/diff-leaf-deviation.sh <leaf> <step-base-sha> <ledger>` entry (arguments, the `diff-leaf-deviation` event and its keys, exits 0, 2 and 3) with its SC row in `skills/tdd/REQUIREMENTS.md`, graded PASS and signed ⟦skill-edit⟧ ⟦criterion 2⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 60 | 26 | 48 | 6636 | 354960 | 120730 | 0.40 | 111 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -209,6 +269,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where two commits lie in `<step-base-sha>..HEAD`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf=<leaf>`, `base=<step-base-sha>`, `head=<HEAD sha>` and `commits=2`, leaving both commits in place; `skills/tdd/JOURNAL.md`'s event table gains a `diff-leaf-deviation` row (the event roster guard requires it); a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.11 |
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where exactly one commit lies in `<step-base-sha>..HEAD` and that commit touches `.tdd/issue-<n>.md`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf`, `base`, `head` and `commits=1`; a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 3⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 50 | 0.11 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
@@ -217,7 +281,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run in a repository where exactly one commit not touching the ledger lies in `<step-base-sha>..HEAD`, exits 3, appends no `diff-leaf-deviation` event to the run's `.tdd/events.jsonl`, and leaves that commit as `HEAD` (no reset, no squash); a `process("git")` case in a new `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` over a real temporary git repository ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where two commits lie in `<step-base-sha>..HEAD`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf=<leaf>`, `base=<step-base-sha>`, `head=<HEAD sha>` and `commits=2`, leaving both commits in place; `skills/tdd/JOURNAL.md`'s event table gains a `diff-leaf-deviation` row (the event roster guard requires it); a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`, run where exactly one commit lies in `<step-base-sha>..HEAD` and that commit touches `.tdd/issue-<n>.md`, exits 0 and appends one `diff-leaf-deviation` event carrying `leaf`, `base`, `head` and `commits=1`; a `process("git")` case in `skills/tdd/scripts/tests/py/test_diff_leaf_deviation_process.py` that fails on the current code ⟦criterion 3⟧ | 1 | 1 | 0 | nothing-structural 1 |
-| issue | 4 | 1 | 3 | nothing-left 3, nothing-structural 1 |
+| issue | 5 | ? | ? | nothing-left 3, nothing-structural 2 |
 
 #### Test-command seconds, by tier
 
@@ -226,9 +290,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | affected | 0 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 2 | 0 | 882 | 1 | 1 | 1 | 1 | 1 | 0 | 2 |
 | fast | 22 | 31 | 37 | 21 | 29 | 28 | 25 | 23 | 25 |  |  |  |  |  |  |  |  |  |  |  |  |
 | target | 1 | 1 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 32 | 30 | 367 | 23 | 24 | 526 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 121 | 228 | 36253 | 1886547 | 467757 | 6.77 (estimate) |
+| total | 168 | 318 | 80042 | 2509760 | 1060430 | 11.63 (estimate) |
