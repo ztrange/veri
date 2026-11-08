@@ -14,6 +14,10 @@ def main(argv):
     if len(argv) < 3:
         print(USAGE, file=sys.stderr)
         return 2
+    if missing:
+        with open(argv[0], encoding="utf-8") as handle:
+            if "stays green" in handle.read():
+                return 2
     code = tick_ledger.main(["--unpinnable", argv[0], argv[1], argv[2]])
     if code == 1 and missing:
         code = tick_ledger.main(["--already-holds", argv[0], argv[1], argv[2]])
