@@ -75,6 +75,10 @@ def drop_missing_cases(record, root):
         handle.write("".join(kept))
 
 
+def mutations_path(ledger_path):
+    return re.sub(r"\.md$", "", ledger_path) + "-mutations.md"
+
+
 def main(argv):
     pending, phase, owed, reason_file = False, None, False, None
     retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
@@ -139,7 +143,7 @@ def main(argv):
     before = re.search(r"mutation-probe\.sh --before ([0-9a-f]{7,40})", step_line)
     control = re.search(r"the go-red control is (\S+) at ([0-9a-f]+)", step_line)
     if before or control:
-        record = re.sub(r"\.md$", "", argv[0]) + "-mutations.md"
+        record = mutations_path(argv[0])
         named = [before.group(1)] if before else [control.group(1), control.group(2)]
         if not os.path.exists(record) or not re.search(
                 "^(?:" + "|".join(map(re.escape, named)) + ")$", open(record, encoding="utf-8").read(), re.M):
@@ -158,7 +162,7 @@ def main(argv):
         reason = next((l[7:].strip() for l in reason_text.splitlines()
                        if l.startswith("REASON:") and l[7:].strip()), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
-        mutations = re.sub(r"\.md$", "", os.path.abspath(argv[0])) + "-mutations.md"
+        mutations = mutations_path(os.path.abspath(argv[0]))
         if os.path.exists(mutations):
             try:
                 drop_missing_cases(mutations, tdd_parent)
