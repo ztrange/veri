@@ -6,6 +6,6 @@
 - [x] A `TESTS` list mixing a passing `projects/dashboard/` case and a failing veri case exits non-zero ⟦criterion 2⟧
 - [x] A failing dashboard case run through `make test TESTS=projects/dashboard/...` exits 1 ⟦criterion 3⟧ ⟂ retired unpinnable
 - [x] pin: a failing dashboard case makes `make test TESTS=<dashboard path>` exit nonzero; this already holds on the before-state (the small-case guard fails it), so the case passes there and goes red under the mutant that drops `|| fail=1` from the dashboard invocation in the Makefile ⟦added⟧ ⟦criterion 3⟧
-- [ ] `make test TESTS=projects/dashboard/...` exits 2 when the dashboard's runner cannot start (the dashboard Makefile or its interpreter missing) ⟦criterion 3⟧
+- [x] `make test TESTS=projects/dashboard/...` exits 2 when the dashboard's runner cannot start (the dashboard Makefile or its interpreter missing) ⟦criterion 3⟧ ⟂ retired unpinnable
 - [ ] Veri paths keep veri's rules: under `make test TESTS=<veri path>`, an unmarked veri case that spawns `git` or `python3` still refuses ⟦criterion 4⟧
 - [ ] Go-red: with the dashboard delegation removed, the first criterion's case goes red ⟦human-owed⟧ ⟦criterion 5⟧
