@@ -56,6 +56,9 @@ def main(argv):
             if _stale(stored, nnn, issue):
                 print(nnn)
         return 0
+    if not argv:
+        print("usage: report.sh --report | --stale | --store-owed <prd> <file>", file=sys.stderr)
+        return 2
     if argv[0] == "--store-owed":
         heads = _heads(_load(CACHE)["issues"])
         if argv[1] not in heads:
