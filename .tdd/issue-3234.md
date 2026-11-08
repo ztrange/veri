@@ -4,4 +4,4 @@
 - [x] skills/vbail/SKILL.md: *A second bail: park* parks through `$S/park-issue.sh`, graded by row B5 ⟦skill-edit⟧ ⟦criterion 2⟧
 - [x] skills/vcoord/SKILL.md: the parking bullet names `gh issue edit <n> --remove-label parked` for un-parking, graded by row C13 ⟦skill-edit⟧ ⟦criterion 3⟧
 - [x] skills/vdev/SKILL.md: *Parked issues* names `gh issue edit <n> --remove-label parked` for un-parking, graded by row D13 ⟦skill-edit⟧ ⟦criterion 3⟧
-- [ ] skills/vdev/SKILL.md: the **No closing comment** bullet names the run-conductor.sh resume command line, graded by row D40 ⟦skill-edit⟧ ⟦criterion 4⟧
+- [x] skills/vdev/SKILL.md: the **No closing comment** bullet names the run-conductor.sh resume command line, graded by row D40 ⟦skill-edit⟧ ⟦criterion 4⟧
