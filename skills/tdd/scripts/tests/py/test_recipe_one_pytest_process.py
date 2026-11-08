@@ -2,6 +2,7 @@
 import os
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -287,3 +288,37 @@ def test_a_helper_module_rewritten_within_the_second_of_the_first_runs_compile_i
     second = run()
     assert (first[0], first[1], second[0], second[1]) == (0, "1", 0, "2"), first[3] + second[3]
     assert first[2] is not None and second[2] == first[2], "unchanged helper's .pyc: %s then %s" % (first[2], second[2])
+
+
+DASHBOARD_MAKEFILE = ".PHONY: test\ntest:\n\tpython3 -m pytest -q tests\n"
+DASHBOARD_CASE = '''import os
+import subprocess
+import sys
+
+
+def test_a_case_that_starts_a_real_process_and_carries_no_mark():
+    started = subprocess.run([sys.executable, "-c", "print('served')"], capture_output=True, text=True)
+    with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
+        log.write("dashboard %s\\n" % started.stdout.strip())
+'''
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make test started for real over a planted tree holding a dashboard project whose unmarked case starts a real process")
+def test_3340_criterion_1_a_dashboard_case_that_starts_a_real_process_with_no_mark_passes_under_make_test_tests(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    dashboard = tree / "projects" / "dashboard"
+    (dashboard / "tests").mkdir(parents=True)
+    (dashboard / "Makefile").write_text(DASHBOARD_MAKEFILE)
+    (dashboard / "tests" / "test_serve.py").write_text(DASHBOARD_CASE)
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    env["PATH"] = os.path.dirname(sys.executable) + os.pathsep + env["PATH"]
+
+    ran = subprocess.run(["make", "-C", str(tree), "test", "TESTS=projects/dashboard/tests/test_serve.py"], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, log.read_text().splitlines()) == (0, ["dashboard served"]), ran.stdout + ran.stderr
