@@ -529,27 +529,30 @@ def recover_lock():
     return [out or "free"]
 
 
-def recover_state(role, lane=None, prefixes=("timed-n ", "override ")):
-    fields = {}
-    timed = []
+def read_role_state(role, lane=None):
+    name = role if lane is None else "%s-%s" % (role, lane)
     try:
-        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % (role if lane is None else "%s-%s" % (role, lane)))) as f:
-            for line in f:
-                if line.startswith(prefixes):
-                    timed.append(line.rstrip("\n"))
-                key, _, value = line.rstrip("\n").partition("=")
-                fields[key] = value
+        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % name)) as f:
+            return f.read().splitlines()
     except FileNotFoundError:
-        pass
-    if prefixes != ("timed-n ", "override "):
-        return timed
-    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + timed
+        return []
+
+
+def recover_state(role, lane=None):
+    lines = read_role_state(role, lane)
+    fields = dict(line.partition("=")[::2] for line in lines)
+    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + [
+        line for line in lines if line.startswith(("timed-n ", "override "))]
+
+
+def recover_pending(role, lane, prefix):
+    return [line for line in read_role_state(role, lane) if line.startswith(prefix)]
 
 
 def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
-              "Pending decisions": lambda: recover_state(role, lane, ("decision ",))}
+              "Pending decisions": lambda: recover_pending(role, lane, "decision ")}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
