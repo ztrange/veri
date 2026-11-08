@@ -1,9 +1,9 @@
 """comment.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import json
 import sys
 
 import event
+import event_log
 import github
 import metrics as metrics_module
 from ledger import ledger_path, ledger_steps
@@ -21,11 +21,9 @@ def read_or_empty(path):
 
 def post_done(issue):
     pr = None
-    with open(".tdd/events.jsonl") as f:
-        for line in f:
-            e = json.loads(line)
-            if e.get("event") == "done":
-                pr = e["pr"]
+    for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
+        if e.get("event") == "done":
+            pr = e["pr"]
     metrics = read_or_empty(f".tdd/issue-{issue}-metrics.md")
     if not metrics.startswith("### 📊 Metrics"):
         code = metrics_module.main([issue])
