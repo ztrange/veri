@@ -10,7 +10,7 @@ USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]"
 
 
 def main(argv):
-    if len(argv) < 2:
+    if len(argv) < 2 or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
         print(USAGE, file=sys.stderr)
         return 2
     issue = argv[0]
