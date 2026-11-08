@@ -5,3 +5,12 @@ skills/tdd/scripts/tests/py/test_supervise_process.py
 command 335
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpiz8gmewl/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_supervise_process.py make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_3283_a_develop_leaf_that_edits_the_mutations_record_its_step_names_keeps_the_edit_with_no_restore_event
 
+file 36
+skills/tdd/scripts/veri/supervise.py
+old 17
+or path in named:
+new 8
+or True:
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/test_supervise_process.py::test_3283_a_develop_leaf_that_edits_a_mutations_record_its_step_does_not_name_has_it_restored_with_one_event
+
