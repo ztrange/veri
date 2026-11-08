@@ -84,7 +84,9 @@ def report_blocks(repo):
 
     def owed_line(n, i):
         entry = owed.get("%03d" % n)
-        return "" if entry and entry.get("updatedAt") == i["updatedAt"] else "\n<p>owed: stale</p>"
+        if not (entry and entry.get("updatedAt") == i["updatedAt"]):
+            return "\n<p>owed: stale</p>"
+        return "\n<p>owed: none</p>" if entry["answer"]["count"] == 0 else ""
 
     return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s" % (n, i["number"], i["title"], owed_line(n, i))
                      for n, i in sorted(first.items()))
