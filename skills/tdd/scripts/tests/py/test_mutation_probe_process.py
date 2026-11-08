@@ -397,6 +397,29 @@ def test_issue_2974_before_state_probe_exiting_0_records_the_green_commit_head_n
         result.stderr, text)
 
 
+@pytest.mark.process("git, mutation-probe.sh --before, timed-test-run.sh and the sh command it runs against a scratch repo")
+def test_issue_3357_before_state_probe_records_the_command_without_the_timed_test_run_wrapper_and_its_path(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout
+    git("init", "-q")
+    (tmp_path / "quote.txt").write_text("0\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD").strip()
+    (tmp_path / "quote.txt").write_text("10\n")
+    (tmp_path / "test.sh").write_text("exit 1\n")
+    git("add", ".")
+    git("commit", "-q", "-m", "feature")
+    record = tmp_path.parent / (tmp_path.name + "-mutations.md")
+    wrapper = PROBE.parent / "timed-test-run.sh"
+    result = subprocess.run([str(PROBE), "--before", base, "--keep", "test.sh", "--", str(wrapper), "target", "test.sh", "sh", "test.sh"],
+                            cwd=tmp_path, capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    text = record.read_text() if record.exists() else ""
+    assert (result.returncode, "command 10\nsh test.sh\n" in text) == (0, True), (result.stderr, text)
+
+
 @pytest.mark.process("git, mutation-probe.sh --before and python running a test that stubs the quote, against a scratch repo")
 def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and_leaves_the_working_tree_unchanged(tmp_path):
     def git(*words):
