@@ -82,3 +82,21 @@ def test_issue_3351_one_commit_touching_the_ledger_exits_0_and_appends_one_event
     lines = [json.loads(line) for line in events.read_text().splitlines()] if events.exists() else []
     found = [(e.get("event"), e.get("leaf"), e.get("base"), e.get("head"), str(e.get("commits"))) for e in lines]
     assert (code, found) == (0, [("diff-leaf-deviation", "develop-diff", base, head, "1")])
+
+
+@pytest.mark.process("git")
+def test_issue_3351_no_commit_since_the_step_base_exits_3_and_appends_no_event(tmp_path, run_cli):
+    diff_leaf_deviation = importlib.import_module("veri.diff_leaf_deviation")
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    ledger = repo / ".tdd" / "issue-42.md"
+    ledger.write_text("# Plan for #42\n\n- [ ] a cog stays unchanged ⟦diff-checked⟧ ⟦criterion 1⟧\n")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "plan: scope #42 (#42)")
+    base = git(repo, "rev-parse", "HEAD").strip()
+
+    code, out, err = run_cli(diff_leaf_deviation, ["develop-diff", base, ".tdd/issue-42.md"], cwd=repo)
+
+    events = repo / ".tdd" / "events.jsonl"
+    assert (code, events.read_text() if events.exists() else "") == (3, "")
