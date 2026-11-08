@@ -5,4 +5,4 @@
 - [x] `--added`, unit grades PASS, no `GRADED` line for the unit, issue states no new row: `GRADED` gains the unit's signature in a commit, no author runs, exit 3 (a small in-process case in tests/py/unit/test_skill_edit_step.py) ⟦criterion 1⟧
 - [x] `--added`, unit grades PASS, `GRADED` line for the unit stale for its current prose or list, issue states no new row: the line is refreshed in a commit, no author runs, exit 3 (a small in-process case in tests/py/unit/test_skill_edit_step.py) ⟦criterion 2⟧
 - [ ] Go-red: with the signature-commit branch removed, the missing-line and stale-line cases go red (exit 2 instead of 3) ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] The SC42 row and the `skills/tdd/SCRIPTS.md` entry for `skill-edit-step.sh` state the new rule, graded by this issue's `## Requirements` rows; no case pins their wording ⟦skill-edit⟧ skills/tdd/SCRIPTS.md ⟦criterion 5⟧
+- [x] The SC42 row and the `skills/tdd/SCRIPTS.md` entry for `skill-edit-step.sh` state the new rule, graded by this issue's `## Requirements` rows; no case pins their wording ⟦skill-edit⟧ skills/tdd/SCRIPTS.md ⟦criterion 5⟧
