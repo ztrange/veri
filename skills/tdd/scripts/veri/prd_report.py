@@ -54,8 +54,10 @@ def main(argv):
         return 0
     if argv[0] == "--store-owed":
         heads = _heads(_load(CACHE)["issues"])
+        stored = _load(OWED) if os.path.exists(OWED) else {}
+        stored[argv[1]] = {"updatedAt": heads[argv[1]]["updatedAt"], "answer": _load(argv[2])}
         with open(OWED, "w") as f:
-            json.dump({argv[1]: {"updatedAt": heads[argv[1]]["updatedAt"], "answer": _load(argv[2])}}, f)
+            json.dump(stored, f)
         return 0
     if argv == ["--report"]:
         if not os.path.exists(CACHE):
