@@ -12,3 +12,6 @@
 - in `main`, the ETA loop in `prd_report.py` computes fastest and slowest rates inline. Collecting the per-lane `86400 / wall` rates and taking `max` and `min` would drop the `slowest = None` sentinel. It removes no duplication against code this cycle wrote, so I did not apply it.
 ### A PRD block whose open children no lane holds prints `ETA: no lane: no ETA` ⟦criterion 1⟧
 - extract the per-PRD ETA computation (lanes, rate, range) from `main` in prd_report.py into a helper function
+### A PRD block whose open children are chained by `blockedBy` bounds its ETA by the slowest chain ⟦criterion 1⟧
+- `chain` is redefined on every PRD loop iteration. Lift it to a module-level function that takes `by_number`. This isn't duplication removal, so I didn't apply it.
+- Split the long `main` report branch into per-block helpers. This isn't duplication removal, so I didn't apply it.
