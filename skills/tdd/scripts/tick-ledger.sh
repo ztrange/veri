@@ -7,7 +7,7 @@
 # Ticking an ⟦added⟧ step also ticks the first still-open line of equal step text (cut at ' ⟂ ') in
 # issue-<n>-added.md, skipped when that file is missing.
 #
-# usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)
+# usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)
 # Exit:    0 a step ticked; 2 no <ledger-file>, it is a directory, the ledger could not be read, or the
 #          ticked ledger could not be written — the file is left untouched — or the step names a go-red
 #          control (a before-state mutation probe of <sha>, or `the go-red control is <file> at <sha>`) and
