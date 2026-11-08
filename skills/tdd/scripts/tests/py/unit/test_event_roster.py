@@ -48,3 +48,21 @@ def test_a_name_emitted_by_a_push_branch_record_call_is_in_the_roster(tmp_path, 
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-push-event"}
+
+
+def test_a_name_emitted_through_a_cause_constant_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('CAUSE = "lone-cause-event"\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-cause-event"}
+
+
+def test_a_cause_constant_on_a_later_line_is_in_the_roster_but_one_not_starting_a_line_is_not(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text(
+        'import os\n\nX_CAUSE = "prefixed-event"\n    CAUSE = "indented-event"\nCAUSE = "later-line-event"\n'
+    )
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"later-line-event"}
