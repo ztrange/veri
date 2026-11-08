@@ -344,6 +344,8 @@
 | CY97 | On the `diff` verifier's REJECT (exit 1), the conductor runs a revise of the `⟦diff-checked⟧` step's `develop-diff` work under `REVISE_BUDGET`, `Read`ing `<base directory>/REVISE.md`: on a recovered PASS it ticks as above, on budget-exhausted it **bails**. | A rejected diff gets a bounded number of revisions, then ends the run. |
 | CY98 | A malformed or killed-stuck verifier (exit 2) means no verdict on the `⟦diff-checked⟧` step could be obtained, so the conductor **bails** as a system failure (`no-verdict`), see `<base directory>/BAIL.md`. | No verdict is not a verdict, and the bail is labelled a system failure. |
 | CY99 | A `⟦fixture-repair⟧` step's verify-green PASS closes it the same way as a `⟦diff-checked⟧` PASS: ticked with `tick-ledger.sh` without `--refactor-pending`, committed with a `test:` subject, no Refactor loop run, and its criterion ticked with `tick-issue-criterion.sh` on `criterion-finished.sh` exit 0, ticking nothing on exit 3. | A fixture repair is finished at its green and carries a test commit subject. |
+| CY140 | The `develop-diff` leaf's commit, and the `revise-diff-<k>` leaf's, are the step's work: the conductor leaves each as made and runs no `git reset --soft`, squash or re-commit on it. | Rewriting a leaf's commit hid history the verifier judges and the run's log records. |
+| CY141 | After a verify-diff PASS the ledger tick is committed as its own commit on top of the leaf's commit, so a step that changed something leaves the leaf's commit and the tick commit in that order. | The tick marks the step finished; the change it finished is a commit of its own. |
 
 ## skills/tdd/DRAFT-PR.md
 

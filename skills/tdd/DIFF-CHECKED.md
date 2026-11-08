@@ -20,7 +20,14 @@ leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the ver
 exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
 failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`). The `diff` revise leaf asks for the line too, so after its wait
 exits 0 the same check, `$S/suite-reported.sh revise-diff-<k>` for the `revise-diff-<k>` leaf, runs
-before the re-verify with the same exit 2 outcome. The verifier's verdict closes the `⟦diff-checked⟧` step:
+before the re-verify with the same exit 2 outcome.
+
+The `develop-diff` leaf's commit, and each `revise-diff-<k>` leaf's, are the step's work: leave
+each as made, and run no `git reset --soft`, squash or re-commit on it. After a PASS the
+ledger tick is committed as its own commit on top of the leaf's commit, so a step that
+changed something leaves the leaf's commit and then the tick commit, in that order.
+
+The verifier's verdict closes the `⟦diff-checked⟧` step:
 
 - **PASS (exit 0):** first run `$S/pin-recheck.sh <step-base-sha>` against the step base sha,
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
