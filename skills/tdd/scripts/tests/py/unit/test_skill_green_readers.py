@@ -40,6 +40,8 @@ ALLOWED = {
         "names the Green heading only to exclude it",
     "unit/test_skill_tests_frozen.py::test_every_reroute_re_record_in_green_passes_the_steps_own_red_case_and_routes_its_refusal_to_verify_red_reason":
         "asserts the Green subsection's reroute re-record commands and their --red-case refusal routing (CY120)",
+    "unit/test_skill_diff_checked_readers.py::test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list":
+        "mechanical: the sibling audit's own MARKERS and heading literals, asserting nothing about Green's text",
 }
 
 
