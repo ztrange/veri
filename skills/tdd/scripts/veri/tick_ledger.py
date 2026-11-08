@@ -104,8 +104,8 @@ def main(argv):
         else:
             break
     reason_text = ""
-    if case and run_case(case):
-        complain(f"{(argv[1:] or [''])[0]}: case {case} fails")
+    if reason_file and not case:
+        complain(f"{(argv[1:] or [''])[0]}: no case is named")
         return 1
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
@@ -116,6 +116,9 @@ def main(argv):
             l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()
         ):
             return 1
+    if case and run_case(case):
+        complain(f"{(argv[1:] or [''])[0]}: case {case} fails")
+        return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2
