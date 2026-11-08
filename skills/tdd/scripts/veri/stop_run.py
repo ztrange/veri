@@ -96,6 +96,9 @@ def stop_leaves(run):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        sys.stdout.buffer.write(usage())
+        return 0
     mode = "at-ledger"
     issue = ""
     every = False

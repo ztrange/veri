@@ -100,6 +100,9 @@ def _whole_number(text):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)")
+        return 0
     given = {}
     for i in range(0, len(argv), 2):
         flag, value = argv[i], argv[i + 1:i + 2]

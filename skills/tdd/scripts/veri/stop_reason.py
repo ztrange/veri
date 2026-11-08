@@ -19,6 +19,9 @@ def killed_external(events):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        sys.stdout.write("usage: stop-reason.sh <issue>\n")
+        return 0
     if len(argv) != 1:
         sys.stderr.write("usage: stop-reason.sh <issue>\n")
         return 2
