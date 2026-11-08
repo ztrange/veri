@@ -8,3 +8,11 @@ def test_a_name_emitted_by_an_event_sh_call_site_is_in_the_roster(tmp_path, monk
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-fixture-event"}
+
+
+def test_a_name_emitted_by_an_event_mark_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('event.mark(tdd, event.context(env), "lone-mark-event", ["k=1"])\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-mark-event"}
