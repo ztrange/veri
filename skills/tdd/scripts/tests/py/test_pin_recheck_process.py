@@ -2445,3 +2445,39 @@ def test_3323_retiring_a_declared_pin_writes_exactly_one_pin_retired_event_carry
     events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
     retired = [e.get("reason") for e in events if e.get("event") == "pin-retired"]
     assert (ran.returncode, retired) == (3, ["a later design adds it on purpose"]), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run twice over a range whose ledger step declares a pin retired while its test file survives")
+def test_3323_a_second_run_after_a_pin_was_retired_neither_replays_it_nor_writes_a_second_pin_retired_event(tmp_path):
+    import json
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    mutations = tmp_path / ".tdd" / "issue-835-mutations.md"
+    record(mutations, file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
+
+    first = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    after_first = mutations.read_text()
+    second = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    log = tmp_path / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
+    retired = [e.get("reason") for e in events if e.get("event") == "pin-retired"]
+    assert (first.returncode, second.returncode, retired, mutations.read_text() == after_first,
+            (tmp_path / "ran.witness").exists()) == (
+        3, 3, ["a later design adds it on purpose"], True, False), first.stderr + second.stderr
