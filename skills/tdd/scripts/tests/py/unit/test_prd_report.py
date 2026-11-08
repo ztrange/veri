@@ -467,3 +467,34 @@ def test_report_eta_upper_bound_uses_the_slowest_lane_at_its_slowest_wall_quarti
     eta = [line for line in out.splitlines() if line.startswith("ETA")]
     assert code == 0
     assert eta == ["ETA: 0.93 to 2.31 days"], out
+
+
+def test_report_eta_line_says_no_lane_no_eta_for_a_prd_whose_open_children_no_lane_holds(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    closed_at = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def issue(number, title, state="OPEN", lane=None, wall=0):
+        return {"number": number, "title": title, "state": state, "labels": [],
+                "closedAt": closed_at if state == "CLOSED" else None,
+                "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": wall, "lane": lane}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(10, "PRD 014: open, no lane"), issue(11, "PRD 014: open, no lane either")]
+    issues += [issue(20 + i, "lane a closed %d" % i, "CLOSED", lane="a", wall=3600) for i in range(4)]
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    eta = [line for line in out.splitlines() if line.startswith("ETA")]
+    assert code == 0
+    assert eta == ["ETA: no lane: no ETA"], out
