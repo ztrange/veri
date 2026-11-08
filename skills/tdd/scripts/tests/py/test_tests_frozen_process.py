@@ -3530,6 +3530,35 @@ def test_rerecord_refactored_then_check_earlier_exits_0_for_a_go_case_whose_refa
 
 
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_two_go_cases_whose_refactor_moved_the_same_checks_verbatim_into_one_new_shared_helper_3332(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    suite = tmp_path / "suite_test.go"
+    _plan_repo(tmp_path, monkeypatch)
+    checks = '\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n'
+    inline = ''.join('func %s(t *testing.T) {\n\tx := 1\n%s}\n\n' % (n, checks) for n in ("TestOne", "TestTwo"))
+    extracted = (''.join('func %s(t *testing.T) {\n\tx := 1\n\tcheckShort(t, x)\n}\n\n' % n for n in ("TestOne", "TestTwo"))
+                 + 'func checkShort(t *testing.T, x int) {\n%s}\n' % checks)
+    suite.write_text(inline)
+    git(tmp_path, "add", "suite_test.go")
+    run_cli(tests_frozen, ["record", "--step", step, "suite_test.go"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    _ledger(tmp_path, A="done")
+    _commit(tmp_path, "A green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    suite.write_text(extracted)
+    _commit(tmp_path, "A refactor")
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+    ledger = ".tdd/issue-9.md"
+
+    rerecorded = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (rerecorded, checked) == ((0, "", ""), (0, ""))
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_check_earlier_exits_1_for_a_go_case_whose_unchanged_named_asserting_helper_gained_an_assertion_in_the_same_refactor_3077(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     step = STEPS[1]
