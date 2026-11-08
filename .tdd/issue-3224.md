@@ -36,3 +36,4 @@
 - [x] `status.sh --recover <role>` exits 2 when GitHub refuses the open-PR read, its stderr naming that read ⟦criterion 6⟧
 - [x] `status.sh --recover` given a role other than `coord` or `dev` exits 2 ⟦criterion 6⟧
 - [x] Round trip (RC3): a case writes one item of every field and list with `role-state.sh`, takes `status.sh --recover`, finds each value verbatim in it, and a second report taken from the files on disk alone is identical to the first; removing any one list from the report turns the case red ⟦criterion 7⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_no_graphql_gh_calls.py — FAILED test_no_module_but_github_py_starts_a_gh_process_1974 - status.py:514 starts a gh process outside the GitHub port ⟦suite-repair⟧ ⟦criterion 7⟧
