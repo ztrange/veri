@@ -66,3 +66,27 @@ def test_a_cause_constant_on_a_later_line_is_in_the_roster_but_one_not_starting_
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"later-line-event"}
+
+
+def test_a_name_emitted_by_a_bare_mark_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('    mark(role, env, "lone-bare-mark-event", "k=1")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-bare-mark-event"}
+
+
+def test_a_bare_mark_call_whose_second_argument_is_a_ledger_state_is_not_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('    mark(phase, "owed")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == set()
+
+
+def test_a_name_emitted_by_a_bare_mark_call_with_the_role_first_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('    marked = mark(role, "lone-role-first-event", "cause=x")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-role-first-event"}
