@@ -232,3 +232,28 @@ def test_main_before_refuses_a_malformed_call_with_the_usage_line_and_exit_2_wit
     assert out == ""
     assert "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>" in err
     assert calls == []
+
+
+@pytest.mark.parametrize("env", [{}, {"VERI_MUTATION_ADDRESS_DOMAIN": ""}], ids=["unset", "empty"])
+def test_main_accepts_and_records_an_outside_address_when_the_address_domain_is_unset_or_empty_3330(
+    run_cli, mutation_probe, monkeypatch, tmp_path, env
+):
+    target = tmp_path / "target.txt"
+    target.write_text("alpha\n")
+    record = tmp_path / "mutations.md"
+    calls = []
+
+    def fake_run(*a, **k):
+        calls.append(target.read_text())
+        return mutation_probe.subprocess.CompletedProcess(a, 1)
+
+    monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "alpha", "x@outside.invalid", "--", "false"],
+        env={"VERI_MUTATION_RECORD": str(record), **env},
+    )
+    assert code == 0
+    assert calls == ["x@outside.invalid\n"]
+    assert target.read_text() == "alpha\n"
+    assert "x@outside.invalid" in record.read_text()
