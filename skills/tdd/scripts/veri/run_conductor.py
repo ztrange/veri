@@ -247,6 +247,7 @@ def conduct(text, issue, env):
     env.pop("FORCE_PROMPT_CACHING_5M", None)
     env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
     binary = os.environ.get("CLAUDE_BIN") or "claude"
+    event.state_labels(b"start", env.get("VERI_STATE_LABEL_ISSUE"))
     unread = []
     result = None
     terminated = []

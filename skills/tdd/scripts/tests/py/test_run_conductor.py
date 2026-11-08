@@ -39,6 +39,20 @@ def issue_body_fetch_answers_empty(request, monkeypatch):
     monkeypatch.setattr(github, "gh_issue_view", view)
 
 
+@pytest.fixture
+def reaches_state_label_boundary():
+    """Named by a case that exercises the launch's state-label clearing itself: it gets the real gh boundary."""
+
+
+@pytest.fixture(autouse=True)
+def state_label_clearing_answers_removed(request, monkeypatch):
+    """The launch's gh calls taking bailed and pr-ready off the issue answered as removed."""
+    if "reaches_state_label_boundary" in request.fixturenames:
+        return
+    import github
+    monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: None)
+
+
 def past_the_guards(monkeypatch):
     """The bash and Python floors met, and claude named fake-claude."""
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
@@ -4648,3 +4662,22 @@ def test_cli_a_needs_user_bail_labels_the_issue_bailed(tmp_path, monkeypatch, ru
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
     assert (code, ["api", "repos/{owner}/{repo}/issues/4242/labels", "-f", "labels[]=bailed"] in gh_calls) == (0, True), stderr
+
+
+def test_cli_takes_the_bailed_and_pr_ready_labels_off_the_issue_before_the_conductor_starts(
+        tmp_path, monkeypatch, run_cli, reaches_state_label_boundary):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done"], result_record("Done."))
+    started, order = subprocess.run, []
+
+    def spy(args, *a, **kwargs):
+        order.append("conductor" if list(args)[:1] == ["fake-claude"] else list(args)[1:])
+        return started(args, *a, **kwargs)
+    monkeypatch.setattr(subprocess, "run", spy)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    deletes = [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/4242/labels/" + name] for name in ("bailed", "pr-ready")]
+    assert (code, [call for call in order if call in deletes or call == "conductor"]) == (0, deletes + ["conductor"]), stderr
