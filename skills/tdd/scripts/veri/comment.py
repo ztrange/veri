@@ -2,12 +2,23 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import event
+import github
+from ledger import ledger_path, ledger_steps
+
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]"
 
 
 def main(argv):
-    print(USAGE, file=sys.stderr)
-    return 2
+    if len(argv) < 2:
+        print(USAGE, file=sys.stderr)
+        return 2
+    issue = argv[0]
+    with open(ledger_path(".", issue)) as f:
+        done = [r for r in ledger_steps(f.read()) if r[1] == "done"]
+    body = f"### ✅ Step done\n\n{done[-1][6]}\n"
+    url = github.gh_issue_comment(issue, body)
+    return event.append("", {}, "comment", ["kind=step-done", f"url={url}"])
 
 
 if __name__ == "__main__":
