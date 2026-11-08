@@ -8,6 +8,25 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 ENDING = {"done", "bail", "merged"}
 
 
+def _minutes(events):
+    return (int(events[-1]["awake"]) - int(events[0]["awake"])) // 60
+
+
+def _steps(events):
+    plans = [e for e in events if e.get("event") == "plan"]
+    if not plans:
+        return ""
+    done = sum(1 for e in events if e.get("event") == "step-done")
+    return " %d/%d" % (done, int(plans[-1]["steps"]))
+
+
+def _phase(events):
+    launches = [e["phase"] for e in events if e.get("event") == "launch"]
+    if not launches:
+        return ""
+    return " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
+
+
 def running_lines():
     lines = []
     runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
@@ -15,16 +34,9 @@ def running_lines():
         events = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
         if not events or any(e.get("event") in ENDING for e in events):
             continue
-        minutes = (int(events[-1]["awake"]) - int(events[0]["awake"])) // 60
-        plans = [e for e in events if e.get("event") == "plan"]
-        steps = ""
-        if plans:
-            done = sum(1 for e in events if e.get("event") == "step-done")
-            steps = " %d/%d" % (done, int(plans[-1]["steps"]))
-        launches = [e["phase"] for e in events if e.get("event") == "launch"]
-        phase = ""
-        if launches:
-            phase = " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
+        minutes = _minutes(events)
+        steps = _steps(events)
+        phase = _phase(events)
         verdicts = [e.get("verdict") for e in events if e.get("event") == "verdict"]
         counts = ""
         if verdicts:
