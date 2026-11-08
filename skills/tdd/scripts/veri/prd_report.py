@@ -107,6 +107,17 @@ def _print_owed(stored, nnn, issue):
             answer["count"], ", ".join(answer["sections"])))
 
 
+def _lane_rates(closed):
+    fastest = 0
+    slowest = None
+    for lane in {o["lane"] for o in closed}:
+        walls = sorted(o["wallSeconds"] for o in closed if o["lane"] == lane)
+        fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
+        rate = 86400 / walls[-1 - (len(walls) - 1) // 4]
+        slowest = rate if slowest is None else min(slowest, rate)
+    return fastest, slowest
+
+
 def _print_eta(snapshot, opened, open_children, now):
     week = now - datetime.timedelta(days=7)
     lanes = {o["lane"] for o in open_children if o["lane"]}
@@ -118,13 +129,7 @@ def _print_eta(snapshot, opened, open_children, now):
     if len(closed) < 3:
         print("ETA: no rate yet")
         return
-    fastest = 0
-    slowest = None
-    for lane in {o["lane"] for o in closed}:
-        walls = sorted(o["wallSeconds"] for o in closed if o["lane"] == lane)
-        fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
-        rate = 86400 / walls[-1 - (len(walls) - 1) // 4]
-        slowest = rate if slowest is None else min(slowest, rate)
+    fastest, slowest = _lane_rates(closed)
     by_number = {o["number"]: o for o in opened}
 
     def chain(number):
