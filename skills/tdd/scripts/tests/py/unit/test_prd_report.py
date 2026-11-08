@@ -85,3 +85,42 @@ def test_report_solved_line_counts_closed_children_and_those_closed_in_the_last_
     solved = [line for line in out.splitlines() if "solved" in line.lower()]
     assert code == 0
     assert len(solved) == 1 and re.search(r"solved\D*3\D+2\b", solved[0], re.I), solved
+
+
+def test_report_left_line_counts_as_solvable_now_the_open_children_the_opt_in_label_lists_within_its_own_prd_block(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    listed = {"ready-for-agent:mu": [22, 100, 101]}
+
+    def solvable(label, priority="priority", repo=None):
+        return 0, listed.get(label, [])
+
+    monkeypatch.setattr(solvable_issues, "solvable", solvable)
+
+    def issue(number, title, state="OPEN", label=None):
+        return {"number": number, "title": title, "state": state, "labels": [{"name": label}] if label else [],
+                "closedAt": None, "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": 0, "lane": None}
+
+    issues = [issue(5, "PRD 014: reports"),
+              issue(22, "PRD 014: listed child", label="ready-for-agent:mu"),
+              issue(23, "PRD 014: unlisted child", label="ready-for-agent:mu"),
+              issue(24, "PRD 014: unlabelled child"),
+              issue(99, "PRD 015: other prd child"),
+              issue(100, "PRD 015: first listed", label="ready-for-agent:mu"),
+              issue(101, "PRD 015: second listed", label="ready-for-agent:mu")]
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    lines = out.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("PRD 014"))
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("PRD ")), len(lines))
+    left = [line for line in lines[start:end] if line.lower().startswith("left")]
+    assert code == 0
+    assert len(left) == 1 and re.search(r"solvable now\D*\b1\b", left[0], re.I), left

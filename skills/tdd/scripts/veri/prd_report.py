@@ -6,6 +6,8 @@ import os
 import re
 import sys
 
+import solvable_issues
+
 USAGE = "usage: report.sh --report"
 CACHE = ".tdd/report-cache.json"
 
@@ -43,6 +45,14 @@ def main(argv):
             week = now - datetime.timedelta(days=7)
             recent = [c for c in children if _utc(c["closedAt"]) >= week]
             print("solved: %d (%d in the last 7 days)" % (len(children), len(recent)))
+            open_children = [o for o in snapshot["issues"] if o["state"] == "OPEN"
+                             and re.match(r"PRD (\d+)", o["title"])
+                             and re.match(r"PRD (\d+)", o["title"]).group(1) == nnn]
+            solvable = 0
+            for label in sorted({l["name"] for o in open_children for l in o["labels"]}):
+                listed = solvable_issues.solvable(label)[1]
+                solvable += sum(1 for o in open_children if o["number"] in listed)
+            print("left: solvable now %d" % solvable)
         return 0
     print(USAGE, file=sys.stderr)
     return 2
