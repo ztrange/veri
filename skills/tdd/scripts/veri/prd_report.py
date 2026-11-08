@@ -82,7 +82,14 @@ def main(argv):
                 fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
                 rate = 86400 / walls[-1 - (len(walls) - 1) // 4]
                 slowest = rate if slowest is None else min(slowest, rate)
-            print("ETA: %.2f to %.2f days" % (len(open_children) / fastest, len(open_children) / slowest))
+            by_number = {o["number"]: o for o in opened}
+
+            def chain(number):
+                return 1 + max([chain(b) for b in by_number[number]["blockedBy"] if b in by_number],
+                               default=0)
+
+            longest = max([len(open_children)] + [chain(o["number"]) for o in open_children])
+            print("ETA: %.2f to %.2f days" % (len(open_children) / fastest, longest / slowest))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
