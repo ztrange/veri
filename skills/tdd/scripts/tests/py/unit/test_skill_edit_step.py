@@ -1930,3 +1930,39 @@ def test_an_as_is_marker_under_a_unit_heading_changes_neither_the_rows_nor_the_u
         skill_edit_step.apply(str(tmp_path / name), "unit.md")
         lists.append(((tmp_path / "REQUIREMENTS.md").read_text(), (tmp_path / "unit.md").read_text()))
     assert lists[0] == lists[1], lists
+
+
+def test_an_added_step_on_a_unit_graded_pass_with_no_graded_line_and_no_new_row_commits_the_signature_launches_no_author_and_exits_3_3310(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    def grade(path, unit):
+        grade_prose.record_graded(unit, grade_prose.signature(path, unit), "g1")
+        return 0, ""
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "sign the blue unit", str(tmp_path / "issue.md"), "unit.md"])
+
+    adds = [c[2:] for c in commands if c[:2] == ["git", "add"]]
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert (code, launched) == (3, []), (code, err, launched)
+    assert len(commits) == 1 and len(adds) == 1 and "GRADED" in adds[0] and "unit.md" in (tmp_path / "GRADED").read_text(), (adds, commits)
+
