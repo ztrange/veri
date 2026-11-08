@@ -1,6 +1,7 @@
 """In-process cases for veri/comment.py, the module comment.sh is a shim over."""
 import importlib
 import json
+import re
 
 from conftest import SCRIPTS
 
@@ -137,3 +138,23 @@ def test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github
     assert out == ""
     assert len(err.splitlines()) == 1
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_step_done_heading_line_is_byte_for_byte_the_hand_composed_one_and_matches_its_metrics_family(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    metrics = importlib.import_module("metrics")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 0
+    heading = posted[0].splitlines()[0].encode()
+    assert heading == b"### \xe2\x9c\x85 Step done"
+    pattern = dict(metrics.COMMENT_FAMILIES)["\u2705 Step done"]
+    assert re.search(pattern, heading.decode())

@@ -49,3 +49,19 @@ new 104
 command 158
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github_gives_no_answer
 
+before 40
+ce97239c8367c40279c8a815989f7b70641a23f3
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_heading_line_is_byte_for_byte_the_hand_composed_one_and_matches_its_metrics_family
+
+file 34
+skills/tdd/scripts/veri/comment.py
+old 15
+### ✅ Step done
+new 13
+### Step done
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_step_done_heading_line_is_byte_for_byte_the_hand_composed_one_and_matches_its_metrics_family
+
