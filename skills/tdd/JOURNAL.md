@@ -17,6 +17,7 @@
 | `plan` | `steps` | The plan was written to the ledger: the number of steps. |
 | `prediction-diverged` | — | A step's predicted outcome differed from the observed one. |
 | `preflight-refused` | `check`, `cause`, `classification` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`). |
+| `production-file-restored` | `name`, `file` | A production file a leaf changed was put back as it was before the leaf ran: `name` is the leaf, `file` the restored path. |
 | `push-failed` | `error`, `attempts` | Pushing the branch failed after `attempts` tries: the git error. |
 | `push-rejected` | `remote_sha`, `error` | The remote refused the push: the remote tip sha and the git error. |
 | `rebase-refresh-retry` | — | A merge rebase was retried after a ref refresh. |
