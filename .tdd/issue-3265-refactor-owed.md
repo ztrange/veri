@@ -11,3 +11,4 @@
 - test-only | factor the repeated Popen/serve-start and wait-for-ready loop in `tests/test_serve_get_root.py` into a helper
 ### The page's Running entry for a run shows its model split (the model per role: developer, verifier, revise), as `status.sh --report` prints it ⟦criterion 4⟧
 - extract the per-run body of `running_lines` in `projects/dashboard/serve.py` into a function, with a small helper for the repeated "empty string unless the events exist" field pattern
+applied | bcbf90cdf0c2043a6ec332787964bf0272bf47a0 | extract the per-run parsing in `running_lines` (minutes, steps, phase) into helper functions	refactor: extract per-run minutes, steps and phase parsing in running_lines into helpers (#3265)
