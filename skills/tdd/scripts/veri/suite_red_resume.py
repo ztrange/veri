@@ -75,7 +75,7 @@ def insert(ledger, branch_file):
     unchecked = [line for line, tick in zip(steps, ticks) if tick == " "]
     if any("fix the full-suite failure by editing" in line for line, tick in zip(steps, ticks) if tick != " "):
         return 1
-    graded_only = set(suites(text)) <= GRADE_SUITES
+    graded_only = {os.path.basename(name) for name in suites(text)} <= GRADE_SUITES
     candidates = []
     if graded_only:
         candidates = [unit for _, unit in prose_owed.owed_listed()[0]]
