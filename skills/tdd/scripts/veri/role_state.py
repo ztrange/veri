@@ -52,6 +52,8 @@ def main(argv):
         return usage()
     if argv[1] == "set" and len(argv) == 4 and argv[2] not in ("n", "lane"):
         return usage()
+    if argv[1] == "set" and len(argv) == 4 and argv[2] == "n" and not argv[3].isdigit():
+        return usage()
     if argv[1] in ("add", "drop") and argv[2] not in ("decision", "message", "override", "timed-n"):
         return usage()
     if argv[1] == "recovered":
