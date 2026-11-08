@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 
 import github
+import json_documents
 import paths
 import status
 import tunables
@@ -50,13 +51,7 @@ def launch(issue):
 
 
 def last_comment(issue):
-    pages = github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100")
-    decoder = json.JSONDecoder()
-    comments = []
-    while pages:
-        page, end = decoder.raw_decode(pages)
-        comments = page or comments
-        pages = pages[end:].lstrip()
+    comments = json_documents.items(github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"))
     return comments[-1]["body"]
 
 
