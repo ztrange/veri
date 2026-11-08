@@ -10,6 +10,14 @@ def pin_reject_route():
     return importlib.import_module("veri.pin_reject_route")
 
 
+TARGET = "tests/py/test_x.py::test_holds"
+
+
+@pytest.fixture(autouse=True)
+def passing_case(pin_reject_route, monkeypatch):
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: 0)
+
+
 def test_main_stays_green_reject_retires_the_step_unpinnable_with_no_revise_event_3300(
         tmp_path, run_cli, pin_reject_route):
     ledger = tmp_path / ".tdd" / "issue-42.md"
@@ -18,7 +26,7 @@ def test_main_stays_green_reject_retires_the_step_unpinnable_with_no_revise_even
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
 
-    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
@@ -39,7 +47,7 @@ def test_main_usage_on_too_few_arguments_and_nonzero_unpinnable_exit_passes_thro
     reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
 
     few = run_cli(pin_reject_route, [str(reason), str(ledger)], env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-    none = run_cli(pin_reject_route, [str(reason), str(ledger), "no such step"],
+    none = run_cli(pin_reject_route, [str(reason), str(ledger), "no such step", TARGET],
                    env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (few[0], few[1], "usage" in few[2].lower(), none[0], "retired" in none[1]) == (
@@ -55,7 +63,7 @@ def test_main_reject_not_saying_stays_green_prints_revise_and_leaves_ledger_and_
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the test is over-coupled to the implementation\n")
 
-    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out.strip(), ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
@@ -70,7 +78,7 @@ def test_main_missing_reroute_reject_not_saying_stays_green_retires_the_step_alr
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the behaviour is already covered by an earlier step\n")
 
-    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
@@ -90,7 +98,7 @@ def test_main_missing_reroute_reject_saying_stays_green_exits_2_and_ticks_nothin
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
 
-    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, "retired" in out, ledger.read_text()) == (
@@ -107,7 +115,7 @@ def test_main_missing_reroute_stays_green_matching_no_open_step_exits_3_and_writ
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the mutation stays green\n")
 
-    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "no such step"],
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "no such step", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, out, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (3, "", body, False), err
@@ -123,7 +131,7 @@ def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_33
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 2)
 
-    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
+    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one", TARGET])
 
     assert (code, "revise" in out) == (2, False), (out, err)
 
@@ -132,7 +140,7 @@ def test_main_unpinnable_no_step_matched_exit_3_passes_through_and_prints_no_rev
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 3)
 
-    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
+    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one", TARGET])
 
     assert (code, "revise" in out) == (3, False), (out, err)
 
@@ -147,7 +155,7 @@ def test_main_missing_reroute_stays_green_records_one_unpinnable_missing_event_a
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
 
-    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one"],
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
