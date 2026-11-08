@@ -1,5 +1,6 @@
 """Small cases for veri.status --recover: the recovery report."""
 import importlib
+import json
 import os
 import subprocess
 
@@ -86,3 +87,64 @@ def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_
     runs = lines[lines.index("Runs") + 1:lines.index("Bailed")]
     assert code == 0 and len(runs) == 1, runs
     assert all(word in runs[0] for word in ("3302", "Teach the widget to dance", "dead")), runs
+
+
+def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_bail_class(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+
+    def journal(number, cause):
+        events = [{"ts": 1793700000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"},
+                  {"ts": 1793700050, "awake": 50, "event": "bail", "cause": cause}]
+        (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
+    journal(3400, "killed-stuck")
+    journal(3401, "ci-red")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")]
+    assert code == 0, out
+    assert [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed] == [["3400", "system"], ["3401", "process"]], bailed
+
+
+def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+
+    def journal(number, bail):
+        events = [{"ts": 1793700000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"}, bail]
+        (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
+    journal(3500, {"ts": 1793700050, "awake": 50, "event": "bail", "cause": "moon-phase-wrong"})
+    (runs / "3501.jsonl").write_text("")
+    journal(3502, {"ts": 1793700050, "awake": 50, "event": "bail"})
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")]
+    assert code == 0, out
+    assert [l.split()[0] for l in bailed] == ["#3500", "#3502"], bailed
+    assert bailed[0].split()[-1] == "moon-phase-wrong", bailed

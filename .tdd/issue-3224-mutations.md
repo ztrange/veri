@@ -44,3 +44,10 @@ heading
 command 158
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_heading_prefix
 
+before 40
+4618a6f4a6801a18633de2bb0084a310f4ccaaa0
+keep 55
+skills/tdd/scripts/tests/py/unit/test_status_recover.py
+command 336
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpx44bkfbz/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_recover.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause
+
