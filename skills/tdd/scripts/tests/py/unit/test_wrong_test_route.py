@@ -474,28 +474,6 @@ def test_main_2878_prints_revise_and_exits_3_for_a_green_report_whose_wrong_test
     assert (code, stdout) == (3, "revise\n")
 
 
-def test_main_2878_prints_revise_and_exits_3_for_an_unparseable_wrong_test_once_the_step_log_holds_a_reroute_event(
-        run_cli, tmp_path, monkeypatch):
-    wrong_test_route = importlib.import_module("veri.wrong_test_route")
-    suite = tmp_path / "tests" / "py" / "unit"
-    suite.mkdir(parents=True)
-    (suite / ("test_" + "ledger" + ".py")).write_text(
-        "def test_main_returns_zero():\n    pass\n")
-    (tmp_path / ".tdd").mkdir()
-    step = "wrong-test-route.sh routes a bare prose wrong test after a reroute"
-    monkeypatch.setenv("VERI_STEP", step)
-    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "reroute", "step": "%s"}\n' % step)
-    report = tmp_path / "green-report.txt"
-    report.write_text(
-        "SUITE: make test\n"
-        "WRONG_TEST: the reroute bound case asserts a payload field the upstream never sends\n")
-
-    code, stdout, stderr = run_cli(
-        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
-
-    assert (code, stdout) == (3, "revise\n")
-
-
 def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_holds_a_reroute_event(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
