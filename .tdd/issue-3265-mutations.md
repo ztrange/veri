@@ -220,3 +220,37 @@ import subprocess,
 command 73
 python3 -m pytest projects/dashboard/tests/test_serve_source_processes.py
 
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 52
+projects/dashboard/tests/test_serve_source_skills.py
+command 226
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp2ddnc37g/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_source_skills.py make -C projects/dashboard test TESTS=tests/test_serve_source_skills.py
+
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 52
+projects/dashboard/tests/test_serve_source_skills.py
+command 111
+bash -c 'cd projects/dashboard && env -u PYTEST_PLUGINS python3 -m pytest -q tests/test_serve_source_skills.py'
+
+file 27
+projects/dashboard/serve.py
+old 15
+import argparse
+new 38
+import argparse
+from skills.x import y
+command 111
+bash -c 'cd projects/dashboard && env -u PYTEST_PLUGINS python3 -m pytest -q tests/test_serve_source_skills.py'
+
+file 27
+projects/dashboard/serve.py
+old 15
+import argparse
+new 53
+import argparse, sys
+sys.path.insert(0, 'skills/tdd')
+command 111
+bash -c 'cd projects/dashboard && env -u PYTEST_PLUGINS python3 -m pytest -q tests/test_serve_source_skills.py'
+
