@@ -39,3 +39,11 @@ def test_gh_issue_remove_label_raises_no_answer_when_gh_refuses_the_delete(githu
 
     with pytest.raises(github.NoAnswer):
         github.gh_issue_remove_label("42", "bailed")
+
+
+def test_gh_issue_remove_label_returns_when_the_issue_does_not_carry_the_label(github, monkeypatch):
+    calls = fake_gh(monkeypatch, lambda args: (1, "", "gh: Label does not exist (HTTP 404)\n"))
+
+    github.gh_issue_remove_label("42", "bailed")
+
+    assert calls == [DELETE_BAILED]

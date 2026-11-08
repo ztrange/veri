@@ -299,7 +299,8 @@ def gh_issue_add_label(number, label):
 
 
 def gh_issue_remove_label(number, label):
-    if gh_api_delete(_issue(number) + "/labels/" + label).returncode != 0:
+    run = gh_api_delete(_issue(number) + "/labels/" + label)
+    if run.returncode != 0 and "HTTP 404" not in run.stderr:
         raise NoAnswer("")
 
 
