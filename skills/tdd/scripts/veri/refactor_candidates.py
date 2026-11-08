@@ -38,8 +38,14 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     issue, owed_file = argv
-    with open(owed_file) as handle:
-        body = grouped(handle.read()) + "\n"
+    try:
+        with open(owed_file) as handle:
+            owed = handle.read()
+    except FileNotFoundError:
+        return 3
+    if not any(rows(owed)):
+        return 3
+    body = grouped(owed) + "\n"
     url = github.gh_issue_create("Refactor candidates left by #" + issue, body)
     number = re.search(r"([0-9]+)\s*$", url).group(1)
     for label in LABELS:

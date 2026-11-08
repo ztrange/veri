@@ -107,3 +107,25 @@ def test_never_labels_with_the_opt_in_label_or_ready_for_agent(tmp_path, monkeyp
     assert code == 0
     assert sorted(labelled) == ["refactor", "refactor-owed"]
     assert "ready-for-agent" not in labelled + ensured
+
+
+@pytest.mark.parametrize("content", [
+    "- test-only | tidy the fixture in tests/a.py\napplied | abc1234 | extract-function\tsubject\n",
+    None,
+    "",
+], ids=["applied-and-test-only", "missing", "empty"])
+def test_an_owed_file_with_nothing_out_of_bounds_or_not_done_files_nothing_and_exits_3(
+        content, tmp_path, monkeypatch, github, run_cli):
+    writes = []
+    for name in ("gh_issue_create", "gh_issue_add_label", "gh_label_ensure", "gh_issue_edit"):
+        monkeypatch.setattr(github, name, lambda *args, **kwargs: writes.append(args) or "", raising=False)
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: "[]")
+    monkeypatch.setattr(github, "gh_rest_list", lambda *args, **kwargs: "[]")
+    owed = tmp_path / "owed.md"
+    if content is not None:
+        owed.write_text(content)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert (code, out, writes) == (3, "", [])
