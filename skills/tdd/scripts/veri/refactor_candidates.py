@@ -15,7 +15,7 @@ LABELS = ("refactor", "refactor-owed")
 def rows(owed):
     for line in owed.split("\n"):
         if line.startswith("- out-of-bounds | "):
-            yield "- out-of-bounds | " + line[len("- out-of-bounds | "):]
+            yield line
         elif line.startswith("not-done | "):
             _, reason, candidate = line.split(" | ", 2)
             yield "- %s | %s" % (reason, candidate)
