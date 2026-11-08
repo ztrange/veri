@@ -1,0 +1,1 @@
+- [ ] pin: a failing dashboard case makes `make test TESTS=<dashboard path>` exit nonzero; this already holds on the before-state (the small-case guard fails it), so the case passes there and goes red under the mutant that drops `|| fail=1` from the dashboard invocation in the Makefile ⟦added⟧ ⟦criterion 3⟧
