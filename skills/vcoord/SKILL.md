@@ -59,7 +59,7 @@ You own, and only you change:
 - **parking** issues, only through `$S/park-issue.sh <issue> <cause> <unblock> [<pr>]`, which
   labels the issue `parked` and posts the comment. Read the parked set only through
   `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
-  memory. To un-park, remove the `parked` label from the issue.
+  memory. To un-park, run `gh issue edit <n> --remove-label parked`.
 
 File every issue through `/vfile`, and groom through `/vgroom`; show any split or
 criteria rewrite to the human first.
