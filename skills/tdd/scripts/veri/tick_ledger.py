@@ -51,7 +51,11 @@ def drop_missing_cases(record, root):
         start, fields = i, {}
         while i < len(text) and text[i] != "\n":
             end = text.index("\n", i)
-            name, size = text[i:end].split()
+            try:
+                name, size = text[i:end].split()
+                int(size)
+            except ValueError:
+                raise ValueError(f"{record}: malformed mutation record {text[i:end]!r}")
             fields[name] = text[end + 1:end + 1 + int(size)]
             i = end + 2 + int(size)
         while i < len(text) and text[i] == "\n":
@@ -156,7 +160,11 @@ def main(argv):
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
         mutations = re.sub(r"\.md$", "", os.path.abspath(argv[0])) + "-mutations.md"
         if os.path.exists(mutations):
-            drop_missing_cases(mutations, tdd_parent)
+            try:
+                drop_missing_cases(mutations, tdd_parent)
+            except ValueError as error:
+                complain(str(error))
+                return 2
         return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:

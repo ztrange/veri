@@ -1058,3 +1058,35 @@ def test_main_unpinnable_retire_drops_a_mutation_record_whose_tests_names_a_file
     code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
 
     assert (code, mutations.read_text()) == (0, "")
+
+
+def test_main_unpinnable_retire_over_a_malformed_mutation_record_returns_2_naming_that_record_on_stderr_3289(
+        tmp_path, capsys, tick_ledger):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    mutations = tdd / "issue-7-mutations.md"
+    mutations.write_text("garbled\n\n")
+
+    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+
+    assert (code, "garbled" in capsys.readouterr().err) == (2, True)
+
+
+def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_returns_2_naming_that_record_on_stderr_3289(
+        tmp_path, capsys, tick_ledger):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    mutations = tdd / "issue-7-mutations.md"
+    mutations.write_text("name abc\n\n")
+
+    code = tick_ledger.main(["--unpinnable", str(reason), str(ledger), "Pin the thing"])
+
+    assert (code, "name abc" in capsys.readouterr().err) == (2, True)
