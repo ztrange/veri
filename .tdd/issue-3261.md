@@ -16,7 +16,7 @@ The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the nam
 - [x] A PRD block whose holding lanes have three or more issues closed in the last 7 days prints its ETA's upper bound as its left count ÷ the slowest rate (issues per day at the slowest quartile of `wallSeconds`), after the lower bound as a range; the red case's fixture holds two or more open children, so the bound changes when the left count does ⟦added⟧ ⟦criterion 1⟧
 - [x] A PRD block whose open children no lane holds prints `ETA: no lane: no ETA` ⟦criterion 1⟧
 - [x] A PRD block whose open children are chained by `blockedBy` bounds its ETA by the slowest chain ⟦criterion 1⟧
-- [x] A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧ ⟂ refactor pending
+- [x] A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧
 - [ ] A PRD whose cached `updatedAt` equals the one stored for it in `.tdd/report-owed.json` prints the stored owed answer (how many issues, with the sections they come from, or `none`) on its owed line ⟦criterion 1⟧
 - [ ] `report.sh --stale` prints the numbers of the PRDs whose owed answer is stale, one per line ⟦criterion 3⟧
 - [ ] `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
