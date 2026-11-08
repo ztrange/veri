@@ -499,3 +499,22 @@ def test_3283_a_develop_leaf_that_commits_the_deletion_of_the_mutations_record_i
     events = (work / ".tdd" / "events.jsonl").read_text()
 
     assert (ran.returncode, record.exists(), "mutation-record-restored" in events) == (0, False, False), ran.stderr
+
+
+@pytest.mark.process("supervise.sh runs a real develop leaf whose shell edits the mutation record its step names")
+def test_3283_a_develop_leaf_that_edits_the_mutations_record_its_step_names_keeps_the_edit_with_no_restore_event(tmp_path):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    record = work / ".tdd" / "issue-3283-mutations.md"
+    record.write_bytes(b"mutation: flip the sign\nwatched: FAILED\n")
+    step = "retire the stale pin. mutation-record: .tdd/issue-3283-mutations.md"
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-green-1", "sh", "-c", 'echo edited >> "$1"', "sh", str(record)],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "3283", "VERI_STEP": step, "PYTHONDONTWRITEBYTECODE": "1"})
+    events = (work / ".tdd" / "events.jsonl").read_text()
+
+    assert (ran.returncode, record.read_bytes(), "mutation-record-restored" in events) == (
+        0, b"mutation: flip the sign\nwatched: FAILED\nedited\n", False), ran.stderr
