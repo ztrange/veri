@@ -170,9 +170,10 @@ def recheck(argv, looks):
     status = 0
     retired = 0
     for ledger, pin in pins:
-        reason = declared.get((ledger, pin.get("file", pin.get("keep"))))
+        mutated = pin.get("file", pin.get("keep"))
+        reason = declared.get((ledger, mutated))
         if reason:
-            sys.stdout.write(f"retired: {ledger} {pin.get('file', pin.get('keep'))} {reason}\n")
+            sys.stdout.write(f"retired: {ledger} {mutated} {reason}\n")
             retired += 1
             continue
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
