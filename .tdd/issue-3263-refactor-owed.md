@@ -1,0 +1,2 @@
+### `veri/event_roster.py`'s `emitted_events` also collects an event emitted through an `event.mark("", …)` call (the event name in a later argument): a case in `skills/tdd/scripts/tests/py/unit/test_event_roster.py` (not the roster file) gives it a fixture tree emitting an undocumented name that way and asserts `emitted_events` returns that name ⟦added⟧ ⟦criterion 2⟧
+- test-only | extract the shared fixture setup (mkdir, write_text, monkeypatch SKILLS) of the three cases in test_event_roster.py into a helper
