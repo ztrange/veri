@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3289
 
-Wall time for the issue: 457 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1603 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 12 of 15 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 15 of 15 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3303.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.54 over 232 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $14.34 over 285 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78727 tokens, largest 166922 tokens
 Conductor context: first turn 77040 tokens, largest 119683 tokens
 Conductor context: first turn 77039 tokens, largest 176457 tokens
-Conductor context: first turn 77013 tokens, largest 134357 tokens
+Conductor context: first turn 77013 tokens, largest 136200 tokens
+Conductor context: first turn 76987 tokens, largest 157289 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -208,46 +209,99 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 188 | $0.08 | 174590 |
 | 189 | $0.06 | 175436 |
 | 190 | $0.05 | 176457 |
-| 191 | $0.48 | 77013 |
-| 192 | $0.06 | 82946 |
-| 193 | $0.03 | 84862 |
-| 194 | $0.03 | 86799 |
-| 195 | $0.04 | 90067 |
+| 191 | $0.49 | 77013 |
+| 192 | $0.07 | 82946 |
+| 193 | $0.04 | 84862 |
+| 194 | $0.04 | 86799 |
+| 195 | $0.06 | 90067 |
 | 196 | $0.07 | 96331 |
-| 197 | $0.02 | 97017 |
-| 198 | $0.02 | 97636 |
-| 199 | $0.02 | 97983 |
-| 200 | $0.02 | 98536 |
-| 201 | $0.02 | 98911 |
-| 202 | $0.02 | 99488 |
-| 203 | $0.02 | 99890 |
-| 204 | $0.03 | 101122 |
+| 197 | $0.04 | 97017 |
+| 198 | $0.03 | 97636 |
+| 199 | $0.03 | 97983 |
+| 200 | $0.04 | 98536 |
+| 201 | $0.03 | 98911 |
+| 202 | $0.03 | 99488 |
+| 203 | $0.04 | 99890 |
+| 204 | $0.04 | 101122 |
 | 205 | $0.03 | 101835 |
-| 206 | $0.03 | 102684 |
-| 207 | $0.03 | 103466 |
-| 208 | $0.02 | 103983 |
-| 209 | $0.03 | 104755 |
-| 210 | $0.09 | 113637 |
-| 211 | $0.03 | 114033 |
+| 206 | $0.04 | 102684 |
+| 207 | $0.04 | 103466 |
+| 208 | $0.03 | 103983 |
+| 209 | $0.04 | 104755 |
+| 210 | $0.10 | 113637 |
+| 211 | $0.04 | 114033 |
 | 212 | $0.03 | 114772 |
-| 213 | $0.03 | 115517 |
-| 214 | $0.04 | 117013 |
-| 215 | $0.03 | 118450 |
-| 216 | $0.03 | 119165 |
-| 217 | $0.03 | 119399 |
-| 218 | $0.03 | 120029 |
-| 219 | $0.03 | 121093 |
-| 220 | $0.03 | 121601 |
+| 213 | $0.04 | 115517 |
+| 214 | $0.05 | 117013 |
+| 215 | $0.04 | 118450 |
+| 216 | $0.04 | 119165 |
+| 217 | $0.04 | 119399 |
+| 218 | $0.04 | 120029 |
+| 219 | $0.04 | 121093 |
+| 220 | $0.04 | 121601 |
 | 221 | $0.04 | 122965 |
-| 222 | $0.03 | 123517 |
-| 223 | $0.03 | 124054 |
-| 224 | $0.03 | 124903 |
-| 225 | $0.03 | 125730 |
-| 226 | $0.03 | 126870 |
-| 227 | $0.04 | 128706 |
-| 228 | $0.03 | 129211 |
-| 229 | $0.03 | 129636 |
-| 230 | $0.06 | 134357 |
+| 222 | $0.04 | 123517 |
+| 223 | $0.04 | 124054 |
+| 224 | $0.04 | 124903 |
+| 225 | $0.04 | 125730 |
+| 226 | $0.04 | 126870 |
+| 227 | $0.05 | 128706 |
+| 228 | $0.04 | 129211 |
+| 229 | $0.04 | 129636 |
+| 230 | $0.08 | 134357 |
+| 231 | $0.04 | 135042 |
+| 232 | $0.05 | 136200 |
+| 233 | $0.48 | 76987 |
+| 234 | $0.06 | 82920 |
+| 235 | $0.03 | 84958 |
+| 236 | $0.03 | 86871 |
+| 237 | $0.06 | 92036 |
+| 238 | $0.03 | 93906 |
+| 239 | $0.02 | 94439 |
+| 240 | $0.02 | 94963 |
+| 241 | $0.02 | 95341 |
+| 242 | $0.02 | 95890 |
+| 243 | $0.02 | 96219 |
+| 244 | $0.02 | 96599 |
+| 245 | $0.03 | 97463 |
+| 246 | $0.06 | 101970 |
+| 247 | $0.03 | 102697 |
+| 248 | $0.03 | 103265 |
+| 249 | $0.03 | 103823 |
+| 250 | $0.03 | 104754 |
+| 251 | $0.04 | 107085 |
+| 252 | $0.05 | 110489 |
+| 253 | $0.04 | 112723 |
+| 254 | $0.03 | 113583 |
+| 255 | $0.03 | 114260 |
+| 256 | $0.03 | 115363 |
+| 257 | $0.03 | 116096 |
+| 258 | $0.03 | 116836 |
+| 259 | $0.03 | 117490 |
+| 260 | $0.03 | 118423 |
+| 261 | $0.04 | 120712 |
+| 262 | $0.03 | 121479 |
+| 263 | $0.03 | 122002 |
+| 264 | $0.07 | 127557 |
+| 265 | $0.03 | 128239 |
+| 266 | $0.03 | 128800 |
+| 267 | $0.03 | 129447 |
+| 268 | $0.03 | 130427 |
+| 269 | $0.15 | 145920 |
+| 270 | $0.03 | 146226 |
+| 271 | $0.03 | 146673 |
+| 272 | $0.03 | 146873 |
+| 273 | $0.04 | 147586 |
+| 274 | $0.04 | 148624 |
+| 275 | $0.03 | 149036 |
+| 276 | $0.06 | 152398 |
+| 277 | $0.04 | 153127 |
+| 278 | $0.04 | 153887 |
+| 279 | $0.04 | 154907 |
+| 280 | $0.04 | 155642 |
+| 281 | $0.04 | 156225 |
+| 282 | $0.04 | 156711 |
+| 283 | $0.04 | 157289 |
 
 #### Conductor comments, by family
 
@@ -255,38 +309,44 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 2 | 840 | $0.02 |
 | ✅ Done | 1 | 420 | $0.01 |
-| 🔴 Red | 7 | 3521 | $0.07 |
-| 🟢 Green | 7 | 3541 | $0.07 |
-| 🛠️ Refactor | 6 | 2904 | $0.06 |
-| 🔎 verify-green | 7 | 3541 | $0.07 |
-| 🔎 verify-refactor | 6 | 2904 | $0.06 |
+| 🔴 Red | 7 | 3993 | $0.08 |
+| 🟢 Green | 7 | 3993 | $0.08 |
+| 🛠️ Refactor | 6 | 3376 | $0.07 |
+| 🔎 verify-green | 7 | 3993 | $0.08 |
+| 🔎 verify-refactor | 6 | 3376 | $0.07 |
 | 🔎 verify-<phase> (revised) | 1 | 420 | $0.01 |
 | 🗺️ Plan | 2 | 947 | $0.02 |
-| 🗺️ verify-plan | 5 | 2142 | $0.04 |
-| ▶️ Resuming | 3 | 1150 | $0.02 |
-| ⛔ Bailed | 2 | 1144 | $0.02 |
+| 🗺️ verify-plan | 6 | 2595 | $0.05 |
+| ▶️ Resuming | 4 | 1640 | $0.03 |
+| ⛔ Bailed | 3 | 1632 | $0.03 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 34 | 16082 | $0.32 |
+| Total | 37 | 18909 | $0.38 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 7 | 3 | 3 | 0 | 96 | 83 | 13 | 26 | 10667 | 167633 | 114189 | 0.41 |
+| plan | 8 | 4 | 3 | 0 | 107 | 92 | 14 | 28 | 11871 | 167633 | 135391 | 0.47 |
 | red | 20 | 6 | 1 | 0 | 637 | 385 | 120 | 224 | 45869 | 2160860 | 418833 | 1.84 |
 | green | 16 | 6 | 2 | 0 | 1119 | 237 | 81 | 158 | 24436 | 1388590 | 259318 | 1.12 |
 | refactor | 6 | 0 | 0 | 0 | 42 | 27 | 14 | 28 | 1947 | 182483 | 86299 | 0.25 |
 | pin | 6 | 6 | 0 | 0 | 131 | 95 | 27 | 54 | 7738 | 414148 | 88123 | 0.34 |
-| diff | 2 | 1 | 0 | 0 | 62 | 20 | 9 | 18 | 1939 | 129244 | 24453 | 0.09 |
+| diff | 4 | 2 | 0 | 0 | 142 | 39 | 17 | 34 | 4045 | 238032 | 54424 | 0.20 |
 | red-missing | 1 | 0 | 0 | 0 | 19 | 14 | 3 | 6 | 1817 | 46774 | 17247 | 0.07 |
+| prose | 10 | 0 | 0 | 0 | 155 | 133 | 10 | 20 | 21086 | 61562 | 267714 | 0.89 |
+| skill-edit | 2 | 0 | 0 | 0 | 18 | 13 | 7 | 14 | 1432 | 190748 | 79906 | 0.23 |
+| predicate | 1 | 0 | 0 | 0 | 8 | 6 | 3 | 6 | 510 | 33840 | 17218 | 0.05 |
+| cover | 1 | 0 | 0 | 0 | 18 | 14 | 7 | 12 | 1506 | 97050 | 14805 | 0.06 |
+| structural | 1 | 0 | 0 | 0 | 12 | 10 | 7 | 12 | 1386 | 97338 | 14116 | 0.06 |
+| transform | 1 | 1 | 0 | 0 | 16 | 10 | 4 | 8 | 1018 | 50615 | 18479 | 0.06 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 22 | 6 | 0 | 1275 | 395 | 113 | 222 | 40669 | 1743446 | 440905 | 1.68 |
-| developer | claude-sonnet-5-5 | 25 | 0 | 0 | 0 | 602 | 343 | 123 | 234 | 41486 | 2162144 | 474274 | 1.82 |
+| verifier | claude-sonnet-5-5 | 32 | 25 | 6 | 0 | 1340 | 424 | 121 | 238 | 44036 | 1827955 | 498457 | 1.87 |
+| developer | claude-sonnet-5-5 | 29 | 0 | 0 | 0 | 682 | 382 | 145 | 274 | 45849 | 2465266 | 532513 | 2.04 |
 | developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 229 | 123 | 31 | 58 | 12258 | 584142 | 93283 | 0.62 |
 
 #### Rework and waste, by phase
@@ -300,8 +360,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
-| revise-red | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| predicate | 0 | 0.00 | 0 | 0.00 |
+| cover | 0 | 0.00 | 0 | 0.00 |
+| structural | 0 | 0.00 | 0 | 0.00 |
+| transform | 0 | 0.00 | 0 | 0.00 |
+| revise-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -320,6 +385,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A `tick-ledger.sh --unpinnable` retire over a `.tdd/issue-<n>-mutations.md` holding a malformed record exits 2 naming that record on stderr, never an uncaught exception; a case pins it ⟦criterion 1⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 120 | 38 | 76 | 12449 | 644149 | 150144 | 0.56 | 575 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | The `tick-ledger.sh` usage line states that `--unpinnable` and `--already-holds` drop every mutation record whose named test is absent from the tree; its Red updates the verbatim `USAGE` pin in `skills/tdd/scripts/tests/py/unit/test_tick_ledger.py` and the `tick-ledger.sh` cksum pin (`"2087776818 176"`) in `skills/tdd/scripts/tests/py/unit/test_emitted_text.py` to the new text, either failing ⟦criterion 1⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 88 | 20 | 38 | 8965 | 368481 | 64119 | 0.40 | unknown | 1/2 | unknown | unknown |  |  | full |
 | The `tick-ledger.sh` usage line states that `--unpinnable` and `--already-holds` drop every mutation record whose named test is absent from the tree; its Red updates the verbatim `USAGE` pin in `skills/tdd/scripts/tests/py/unit/test_tick_ledger.py` and the `tick-ledger.sh` cksum pin (`"2087776818 176"`) in `skills/tdd/scripts/tests/py/unit/test_emitted_text.py` to the new text, either failing Note: the `test_emitted_text.py` cksum pin (`"3242222054 279"`) covers `exit 2\n` followed by the usage text, not the bare usage (the bare usage cksums `3578553194 272`). ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 76 | 24 | 48 | 8547 | 432220 | 90940 | 0.36 | 355 | unknown | 0/5 | nothing-left |  |  | full |
+| skill-edit step for the unit `skills/tdd/SCRIPTS.md`: `skill-edit-step.sh` adds to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SCRIPTS.md` a row stating that `tick-ledger.sh --unpinnable` and `--already-holds` drop from `.tdd/issue-<n>-mutations.md` every mutation record whose `TESTS=` test is absent from the tree, and the `--unpinnable`/`--already-holds` paragraph of SCRIPTS.md says so; it grades PASS against its whole list and is signed in `skills/tdd/GRADED` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 85 | 7 | 14 | 13551 | 181976 | 235928 | 0.74 | 128 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SUITE-REPAIR.md`: `skill-edit-step.sh` adds to `skills/tdd/REQUIREMENTS.md` under `## skills/tdd/SUITE-REPAIR.md` the row SR4, stating that retiring a suite-repair step also deletes that step's mutation records in `.tdd/issue-<n>-mutations.md` whose test no longer exists, as `tick-ledger.sh` does for `--unpinnable` and `--already-holds`, and SUITE-REPAIR.md's retire paragraph says so; it grades PASS against its whole list and is signed in `skills/tdd/GRADED` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 25 | 8 | 16 | 3054 | 67302 | 38476 | 0.13 | 62 | unknown | unknown | unknown |  |  | full |
+| After every other step's leaves have exited, the removal of the record pinning `test_a_run_with_no_refactor_event_and_no_structural_pass_event_prints_no_refactor_totals_section` survives `supervise.py`'s `restore_mutation_records` (#3283): `grep -c` of that name prints 0 both on `git show HEAD:.tdd/issue-3235-mutations.md` and on the working file, the tree matches HEAD for that file, and this step's leaf runs with mutation-record: .tdd/issue-3235-mutations.md so the supervisor restores no bytes of it; no production or test change ⟦diff-checked⟧ ⟦criterion 4⟧ | 6 | 2 | 0 | 0 | 0 | 0 | 59 | 29 | 54 | 6526 | 387631 | 94589 | 0.34 | 161 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -336,7 +404,9 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Structural pass
 
-Stopped: nothing-structural
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 1/10 | candidates-done |
 
 #### Refactor totals
 
@@ -348,18 +418,18 @@ Stopped: nothing-structural
 | Pin: a `tick-ledger.sh --unpinnable` retire that drops no mutation record leaves `.tdd/issue-<n>-mutations.md` byte-for-byte unrewritten (its bytes and mtime unchanged); a case pins it ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A `tick-ledger.sh --unpinnable` retire over a `.tdd/issue-<n>-mutations.md` holding a malformed record exits 2 naming that record on stderr, never an uncaught exception; a case pins it ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | The `tick-ledger.sh` usage line states that `--unpinnable` and `--already-holds` drop every mutation record whose named test is absent from the tree; its Red updates the verbatim `USAGE` pin in `skills/tdd/scripts/tests/py/unit/test_tick_ledger.py` and the `tick-ledger.sh` cksum pin (`"2087776818 176"`) in `skills/tdd/scripts/tests/py/unit/test_emitted_text.py` to the new text, either failing Note: the `test_emitted_text.py` cksum pin (`"3242222054 279"`) covers `exit 2\n` followed by the usage text, not the bare usage (the bare usage cksums `3578553194 272`). ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 7 | ? | ? | nothing-left 6, nothing-structural 1 |
+| issue | 7 | 1 | 6 | candidates-done 1, nothing-left 6 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 2 | 3 | 7 | 2 | 3 | 2 | 2 | 5 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 3 | 1 | 2 | 2 |
-| fast | 20 | 21 | 24 | 39 | 21 | 20 | 19 | 19 | 19 | 20 | 28 | 20 | 20 | 20 | 22 | 21 | 27 | 21 | 24 | 30 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 1 | 2 | 1 | 0 |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 2 | 3 | 7 | 2 | 3 | 2 | 2 | 5 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 3 | 1 | 2 | 2 | 1 | 1 | 1 | 4 |
+| fast | 20 | 21 | 24 | 39 | 21 | 20 | 19 | 19 | 19 | 20 | 28 | 20 | 20 | 20 | 22 | 21 | 27 | 21 | 24 | 30 | 31 | 25 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 1 | 2 | 1 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 267 | 514 | 94413 | 4489732 | 1008462 | 15.66 (estimate) |
+| total | 314 | 604 | 124661 | 5129673 | 1471873 | 19.98 (estimate) |
