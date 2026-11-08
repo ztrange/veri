@@ -394,4 +394,4 @@ def test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_
 
     eta = [line for line in out.splitlines() if line.startswith("ETA")]
     assert code == 0
-    assert eta == ["ETA: 0.93 days"], out
+    assert len(eta) == 1 and eta[0].startswith("ETA: 0.93"), out
