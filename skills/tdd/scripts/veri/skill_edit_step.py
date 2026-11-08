@@ -295,6 +295,13 @@ def main(argv):
 
     listed = _listed_ids(path, unit)
     texts = _listed_texts(path, unit)
+    clashes = [r for r in issue_rows if _row_id(r) in texts
+               and requirements.split_cells(r)[2] != texts[_row_id(r)]]
+    for r in clashes:
+        print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
+              % (_row_id(r), texts[_row_id(r)], requirements.split_cells(r)[2]), file=sys.stderr)
+    if clashes:
+        return 2
     fresh = any(_row_id(r) not in listed or requirements.split_cells(r)[2] != texts.get(_row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
