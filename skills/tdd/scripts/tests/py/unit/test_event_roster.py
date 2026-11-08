@@ -40,3 +40,11 @@ def test_a_name_emitted_by_a_supervise_mark_call_is_in_the_roster(tmp_path, monk
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-supervise-event"}
+
+
+def test_a_name_emitted_by_a_push_branch_record_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('push_branch.record("lone-push-event", "k=1")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-push-event"}
