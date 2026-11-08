@@ -14,3 +14,12 @@ new 12
 command 175
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_usage_on_too_few_arguments_and_nonzero_unpinnable_exit_passes_through_without_retired_3300
 
+file 47
+skills/tdd/scripts/veri/build_develop_prompt.py
+old 25
+rb"^REASON:.*stays green"
+new 12
+rb"^REASON:"
+command 181
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py::test_revise_red_for_a_verify_pin_reason_not_saying_stays_green_still_builds_the_prompt_3300
+
