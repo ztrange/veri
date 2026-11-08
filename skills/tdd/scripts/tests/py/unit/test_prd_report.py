@@ -659,3 +659,23 @@ def test_stale_prints_the_numbers_of_the_prds_whose_owed_answer_is_stale_one_per
 
     assert code == 0
     assert out.splitlines() == ["014", "016"], out
+
+
+def test_store_owed_stores_the_answer_file_under_the_prd_with_its_current_cached_updated_at(
+        run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    prd = {"number": 5, "title": "PRD 014: some owed", "state": "OPEN", "labels": [], "closedAt": None,
+           "updatedAt": "2026-11-02T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+           "wallSeconds": 0, "lane": None}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [prd]}))
+    answer = {"count": 2, "sections": ["Alpha section", "Beta section"]}
+    (tmp_path / "answer.json").write_text(json.dumps(answer))
+
+    code, _, _ = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=tmp_path)
+
+    assert code == 0
+    stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
+    assert stored == {"014": {"updatedAt": "2026-11-02T10:00:00Z", "answer": answer}}

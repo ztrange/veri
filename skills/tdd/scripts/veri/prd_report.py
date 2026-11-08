@@ -52,6 +52,11 @@ def main(argv):
             if _stale(stored, nnn, issue):
                 print(nnn)
         return 0
+    if argv[0] == "--store-owed":
+        heads = _heads(_load(CACHE)["issues"])
+        with open(OWED, "w") as f:
+            json.dump({argv[1]: {"updatedAt": heads[argv[1]]["updatedAt"], "answer": _load(argv[2])}}, f)
+        return 0
     if argv == ["--report"]:
         if not os.path.exists(CACHE):
             print("no snapshot: %s is missing" % CACHE, file=sys.stderr)
