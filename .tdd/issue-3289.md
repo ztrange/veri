@@ -1,6 +1,6 @@
 # Plan for #3289 — Retiring a step leaves its mutation pins for unwritten cases, so pin-recheck prints "base run failed" on later PRs
 
-- [ ] Retiring a step with `tick-ledger.sh --unpinnable` removes from the ledger's `.tdd/issue-<n>-mutations.md` a mutation record whose command's `TESTS=` names a test case that does not exist in the tree (the case's function absent from its test file); a case pins it ⟦criterion 1⟧
+- [x] Retiring a step with `tick-ledger.sh --unpinnable` removes from the ledger's `.tdd/issue-<n>-mutations.md` a mutation record whose command's `TESTS=` names a test case that does not exist in the tree (the case's function absent from its test file); a case pins it ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] Retiring a step with `tick-ledger.sh --already-holds` likewise removes from the ledger's `.tdd/issue-<n>-mutations.md` a mutation record whose command's `TESTS=` names a test case that does not exist in the tree; a case pins it ⟦criterion 1⟧
 - [ ] Retiring a step with `tick-ledger.sh --unpinnable` keeps in the ledger's `.tdd/issue-<n>-mutations.md` a mutation record whose command's `TESTS=` names a test case that does exist in the tree; a case pins it ⟦criterion 2⟧
 - [ ] After a step is retired with `tick-ledger.sh --unpinnable`, `pin-recheck.sh` run on a range touching the record's mutated file no longer prints "base run failed" for the record dropped by the retire; a case pins it (a process case is allowed, since pin-recheck runs git) ⟦criterion 3⟧
