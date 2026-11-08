@@ -25,3 +25,9 @@ def test_the_guard_fails_on_an_event_named_only_in_prose_or_another_row():
         "# Journal\n\nThe `prose-only` event is mentioned here but has no row.\n\n"
         "| Event | Keys | Meaning |\n|---|---|---|\n| `listed` | `n` | See also prose-only. |\n")
     assert documented_events(text) == {"listed"}
+
+
+def test_journal_md_has_a_table_row_for_the_conductor_restart_event():
+    from veri.event_roster import documented_events
+
+    assert "conductor-restart" in documented_events(JOURNAL.read_text(encoding="utf-8"))
