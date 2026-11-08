@@ -144,9 +144,10 @@ class RestAdapter:
             raise NoAnswer("")
 
     def issue_comment(self, number, body):
-        run = _gh("api", _issue(number) + "/comments", "-f", "body=%s" % body)
+        run = _gh("api", _issue(number) + "/comments", "-f", "body=%s" % body, "-q", ".html_url")
         if run.returncode != 0:
             raise NoAnswer("")
+        return run.stdout
 
     def issue_create(self, title, body):
         run = _gh("api", _ISSUES, "-f", "title=%s" % title,
@@ -173,7 +174,7 @@ class RestOnlyAdapter:
         self.rest.issue_edit(number, body_file)
 
     def issue_comment(self, number, body):
-        self.rest.issue_comment(number, body)
+        return self.rest.issue_comment(number, body)
 
     def issue_create(self, title, body):
         return self.rest.issue_create(title, body)
@@ -289,7 +290,7 @@ def gh_issue_create(title, body):
 
 
 def gh_issue_comment(number, body):
-    _select("issue_comment").issue_comment(number, body)
+    return _select("issue_comment").issue_comment(number, body)
 
 
 def gh_issue_add_label(number, label):
