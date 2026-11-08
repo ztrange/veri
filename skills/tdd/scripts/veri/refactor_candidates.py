@@ -37,13 +37,10 @@ def grouped(owed):
 
 
 def main(argv):
-    if len(argv) != 2:
+    if len(argv) != 2 or not re.fullmatch(r"[0-9]+", argv[0]):
         sys.stderr.write(USAGE)
         return 2
     issue, owed_file = argv
-    if not re.fullmatch(r"[0-9]+", issue):
-        sys.stderr.write(USAGE)
-        return 2
     try:
         with open(owed_file) as handle:
             owed = handle.read()
