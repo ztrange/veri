@@ -23,7 +23,31 @@ def _prd_number(title):
     return match.group(1) if match else None
 
 
+def _heads(opened):
+    heads = {}
+    for issue in opened:
+        number = _prd_number(issue["title"])
+        if number:
+            known = heads.get(number)
+            if known is None or issue["number"] < known["number"]:
+                heads[number] = issue
+    return heads
+
+
+def _load(path):
+    with open(path) as f:
+        return json.load(f)
+
+
 def main(argv):
+    if argv == ["--stale"]:
+        snapshot = _load(CACHE)
+        stored = _load(OWED)
+        heads = _heads([o for o in snapshot["issues"] if o["state"] == "OPEN"])
+        for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
+            if stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]:
+                print(nnn)
+        return 0
     if argv == ["--report"]:
         if not os.path.exists(CACHE):
             print("no snapshot: %s is missing" % CACHE, file=sys.stderr)
@@ -39,13 +63,7 @@ def main(argv):
         if os.path.exists(OWED):
             with open(OWED) as f:
                 stored = json.load(f)
-        heads = {}
-        for issue in opened:
-            number = _prd_number(issue["title"])
-            if number:
-                known = heads.get(number)
-                if known is None or issue["number"] < known["number"]:
-                    heads[number] = issue
+        heads = _heads(opened)
         for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
             print("PRD %s (#%d) — %s" % (nnn, issue["number"], issue["title"]))
             children = []
