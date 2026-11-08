@@ -294,3 +294,16 @@ def test_set_n_with_a_value_that_is_not_a_whole_number_exits_2_with_usage_and_le
     codes = [code for code, _, _ in results]
     usages = ["usage: role-state.sh" in err for _, _, err in results]
     assert (codes, usages, state.read_bytes()) == ([2] * 4, [True] * 4, before)
+
+
+@pytest.mark.process("git")
+def test_drop_of_an_id_the_list_does_not_hold_exits_3_and_leaves_the_state_file_unchanged(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    run_cli(role_state, ["coord", "add", "decision", "keep-alpha"], cwd=repo)
+    state = repo / ".tdd" / "role-coord.state"
+    before = state.read_bytes()
+    code, _, _ = run_cli(role_state, ["coord", "drop", "decision", "99"], cwd=repo)
+    assert (code, state.read_bytes()) == (3, before)

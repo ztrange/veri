@@ -70,7 +70,10 @@ def main(argv):
     if argv[1] == "drop":
         with open(path) as f:
             lines = f.readlines()
-        replace(path, "".join(l for l in lines if l.split()[:2] != argv[2:4]))
+        kept = [l for l in lines if l.split()[:2] != argv[2:4]]
+        if kept == lines:
+            return 3
+        replace(path, "".join(kept))
         return 0
     if argv[1] == "show":
         text = read(path)
