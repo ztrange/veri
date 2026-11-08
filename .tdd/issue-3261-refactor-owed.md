@@ -20,3 +20,5 @@
 ### `report.sh --stale` prints the numbers of the PRDs whose owed answer is stale, one per line ⟦criterion 3⟧
 - `--stale` loads the cache with `_load`, but `--report` reopens it inline with `open`/`json.load`, and it also loads the owed file inline. Using `_load` in both places would remove the duplication.
 - Both modes repeat the sort of `heads.items()` by integer PRD number. A shared helper could do that sort.
+### `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
+- out-of-scope | replace the inline `open`/`json.load` of the cache and owed files in `--report` with `_load`, which an earlier cycle wrote
