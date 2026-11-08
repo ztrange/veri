@@ -644,3 +644,38 @@ def test_pr_state_reads_a_merged_pull_request_as_merged_and_last_comment_ignores
         raising=False)
 
     assert (dispatch.pr_state("https://github.com/o/r/pull/7"), dispatch.last_comment("12")) == ("MERGED", "last")
+
+
+def test_main_does_not_raise_or_exit_2_and_keeps_looping_when_a_vanished_queued_merge_url_answers_a_404_body_with_no_merged_key_issue_3356(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import json
+    import types
+
+    (tmp_path / ".tdd").mkdir()
+    url = "https://github.com/o/r/pull/9"
+    listings = [[url], []]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges",
+                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
+    monkeypatch.setattr(
+        dispatch.github, "gh_api",
+        lambda path, *a, **kw: types.SimpleNamespace(stdout=json.dumps({"message": "Not Found"})),
+        raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    captured = capsys.readouterr()
+    lines = (captured.out + captured.err).splitlines()
+    assert (len(waits), len(lines) <= 1, all(url in line for line in lines)) == (3, True, True)
