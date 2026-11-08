@@ -547,7 +547,7 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_la
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
     (tmp_path / "issue.md").write_text(
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
     launched = []
     graded = []
     commands = []
@@ -615,7 +615,7 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_ap
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
     (tmp_path / "issue.md").write_text(
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
     events = []
 
     def run(cmd, **kw):
@@ -643,7 +643,7 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n")
     (tmp_path / "issue.md").write_text(
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1<reword> | The widget is blue. | because |\n")
     prompts = []
     grades = [(1, "A1: FAIL - not blue\n"), (0, "")]
 
