@@ -2414,3 +2414,34 @@ def test_3323_retiring_a_pin_in_one_record_file_leaves_the_other_record_file_unt
 
     assert (ran.returncode, records(first.read_text()), second.read_text()) == (
         3, [{**mine, "retired": "a later design adds it on purpose"}], untouched), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired while its test file survives")
+def test_3323_retiring_a_declared_pin_writes_exactly_one_pin_retired_event_carrying_the_reason(tmp_path):
+    import json
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    log = tmp_path / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
+    retired = [e.get("reason") for e in events if e.get("event") == "pin-retired"]
+    assert (ran.returncode, retired) == (3, ["a later design adds it on purpose"]), ran.stderr
