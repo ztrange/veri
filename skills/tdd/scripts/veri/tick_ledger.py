@@ -43,6 +43,29 @@ def tick_added(path, step_line):
             return
 
 
+def drop_missing_cases(record, root):
+    with open(record, encoding="utf-8") as handle:
+        text = handle.read()
+    kept, i = [], 0
+    while i < len(text):
+        start, fields = i, {}
+        while i < len(text) and text[i] != "\n":
+            end = text.index("\n", i)
+            name, size = text[i:end].split()
+            fields[name] = text[end + 1:end + 1 + int(size)]
+            i = end + 2 + int(size)
+        while i < len(text) and text[i] == "\n":
+            i += 1
+        target = re.search(r"TESTS=(\S+?)::(\w+)", fields.get("command", ""))
+        if target:
+            with open(os.path.join(root, target.group(1)), encoding="utf-8") as handle:
+                if not re.search(rf"def {target.group(2)}\b", handle.read()):
+                    continue
+        kept.append(text[start:i])
+    with open(record, "w", encoding="utf-8") as handle:
+        handle.write("".join(kept))
+
+
 def main(argv):
     pending, phase, owed, reason_file = False, None, False, None
     retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
@@ -126,6 +149,9 @@ def main(argv):
         reason = next((l[7:].strip() for l in reason_text.splitlines()
                        if l.startswith("REASON:") and l[7:].strip()), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
+        mutations = re.sub(r"\.md$", "", os.path.abspath(argv[0])) + "-mutations.md"
+        if os.path.exists(mutations):
+            drop_missing_cases(mutations, tdd_parent)
         return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])
     if left is None:
