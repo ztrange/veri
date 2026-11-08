@@ -511,14 +511,10 @@ def recover_bailed():
 
 
 def recover(role):
+    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "Merge lock": lambda: ["free"]}
     for heading in RECOVER_HEADINGS:
         print(heading)
-        body = recover_runs() if heading == "Runs" else []
-        if heading == "Bailed":
-            body = recover_bailed()
-        if heading == "Merge lock":
-            body = ["free"]
-        print("\n".join(body) or "none")
+        print("\n".join(bodies.get(heading, list)()) or "none")
     return 0
 
 
