@@ -3,6 +3,9 @@
 Measured with `skills/tdd/scripts/metrics.sh <issue>` afresh at the branch tip, after the later-record fix, run in this
 worktree, whose `.tdd/` reads the main checkout's `conductor-<n>.log`. Dollars are output tokens at
 `veri/prices.py`'s `claude-opus-5-5` output rate ($20.00 per million tokens). The families are CM3's.
+**Every per-family token or dollar figure is an average-split estimate**: a result record's output total is
+split evenly across its turns, so a family's tokens are its turns times that average, not a count of what the
+comment itself cost.
 
 ## Runs measured
 
@@ -30,20 +33,21 @@ the transcripts show the sessions' result records (#2488: 8 sessions, 523 turns,
 | ▶️ Resuming | 7 | 3420 | 0.07 | 1 | 523 | 0.01 |
 | ⛔ Bailed | 5 | 2607 | 0.05 | 1 | 563 | 0.01 |
 | ⏹️ Stopped | 0 | 0 | 0.00 | 0 | 0 | 0.00 |
-| **Total** | **103** | **52128** | **1.04** | **28** | **15124** | **0.29** |
+| **Total** | **73** | **36667** | **0.73** | **21** | **11343** | **0.23** |
 
-Totals are the sums of the rows (dollars are the sum of the rounded rows).
+The Total row counts each comment message once: a message matching two families (a `🔴 Red` comment that also
+matches `🔎 verify-red`) is one turn, so the Total is below the sum of the rows.
 
 | run | comment turns / all conductor turns | comment dollars / conductor dollars |
 | --- | ---: | ---: |
-| #2488 | 103 / 523 (19.7%) | $1.04 / $27.65 (3.8%) |
-| #2517 | 28 / 141 (19.9%) | $0.29 / $7.24 (4.0%) |
+| #2488 | 73 / 523 (14.0%) | $0.73 / $27.65 (2.6%) |
+| #2517 | 21 / 141 (14.9%) | $0.23 / $7.24 (3.2%) |
 
 ## Decision
 
-Composing routine comments costs about 4% of a conductor's dollars (roughly $0.29 to $1.04 a run) and
-about a fifth of its turns. The dollars are small, so 014.4b to 014.4g do **not** go ahead as filed on
-a cost saving. They are rewritten to serve data alone: a scripted comment is rendered from the journal
-and ledger so the thread mirrors them exactly, and none is justified by a saving. Any of them whose
-data benefit does not hold on its own is closed before mu reaches it. With two runs, neither with an
-event log, the sample is thin; it is enough to rule out a cost case, not to size a data case.
+Composing routine comments is 73 and 21 comment messages, about 14% of a conductor's turns, and about 3% of its
+dollars ($0.23 to $0.73 a run, an average-split estimate). The dollars are small, so 014.4b to 014.4g do **not**
+go ahead as filed on a cost saving. They are rewritten to serve data alone: a scripted comment is rendered from
+the journal and ledger so the thread mirrors them exactly, and none is justified by a saving. Any of them whose
+data benefit does not hold on its own is closed before mu reaches it. With two runs, neither with an event log,
+the sample is thin; it is enough to rule out a cost case, not to size a data case.
