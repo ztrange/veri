@@ -4,3 +4,6 @@
 - the "read file, parse the next id" logic in the `add` branch and the `append` read-modify-write both open the state file separately; a shared read helper would remove that duplication
 ### `role-state.sh <role> set n <value>` with a value that is not a whole number ≥ 0 exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
 - `drop` opens the file directly instead of using `read()`; routing it through `read()` would change how a missing file behaves, so it needs a test that demands it
+### `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
+- `drop` reads the file with its own `open()`, which duplicates `read()`. Swapping it to `(read(path) or "").splitlines(True)` would turn a missing state file from a traceback into exit 3. That changes behaviour, so I did not apply it.
+- `main` repeats the `argv[1] == ...` and `len(argv) == 4` checks across the validation and dispatch ladders. Folding them into one dispatch by verb would remove that. It goes beyond removing duplication against code this cycle wrote, so I left it.
