@@ -190,3 +190,22 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
     prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
     words = " ".join(prs).replace("#", "").split()
     assert code == 0 and "ready" in words and "draft" not in words and all(w in words for w in ("4722", "3601", "clean")), (code, prs)
+
+
+def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lock_holder_names_one(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        if args and os.path.basename(args[0]) == "merge-lock.sh" and "holder" in args:
+            return subprocess.CompletedProcess(args, 0, stdout="48213", stderr="")
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    lock = lines[lines.index("Merge lock") + 1:lines.index("State")]
+    assert code == 0 and lock == ["48213"], (code, lock)

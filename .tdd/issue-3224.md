@@ -25,7 +25,7 @@
 - [x] `status.sh --recover <role>` lists under `Bailed` each bailed run with its issue and its bail class ⟦criterion 6⟧
 - [x] `status.sh --recover <role>` lists under `PRs` an open draft PR with its number, the issue it closes, `draft`, and GitHub's `mergeable_state` ⟦criterion 6⟧
 - [x] `status.sh --recover <role>` lists under `PRs` an open PR that is not a draft as `ready` ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid when `merge-lock.sh holder` names a live holder ⟦criterion 6⟧
+- [x] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid when `merge-lock.sh holder` names a live holder ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] `status.sh --recover <role>` prints `stale` under `Merge lock` when `merge-lock.sh holder` answers stale ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` prints under `State` the role's N and its lane, read from the role's state file ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧
