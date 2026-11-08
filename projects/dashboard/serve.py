@@ -15,7 +15,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo")
-    parser.add_argument("--port", type=int)
+    parser.add_argument("--port", type=int, default=0)
     args = parser.parse_args()
     HTTPServer(("127.0.0.1",args.port), Handler).serve_forever()
 
