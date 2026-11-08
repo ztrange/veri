@@ -511,10 +511,12 @@ def recover_bailed():
 
 
 def recover_prs():
-    out = subprocess.run(["gh", "api", "repos/{owner}/{repo}/pulls?state=open"],
-                         capture_output=True, text=True).stdout
+    answer = subprocess.run(["gh", "api", "repos/{owner}/{repo}/pulls?state=open"],
+                            capture_output=True, text=True)
+    if answer.returncode != 0:
+        raise OSError("status.sh --recover: GitHub refused the open pull request read: %s" % answer.stderr.strip())
     lines = []
-    for pr in json.loads(out):
+    for pr in json.loads(answer.stdout):
         closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
         state = "draft" if pr["draft"] else "ready"
         lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, pr["mergeable_state"]))
@@ -553,9 +555,14 @@ def recover(role, lane=None):
               "State": lambda: recover_state(role, lane),
               "Pending decisions": lambda: recover_items(role, lane, "decision "),
               "Pending messages": lambda: recover_items(role, lane, "message ")}
-    for heading in RECOVER_HEADINGS:
+    try:
+        sections = [(heading, bodies.get(heading, list)()) for heading in RECOVER_HEADINGS]
+    except OSError as refused:
+        print(refused, file=sys.stderr)
+        return 2
+    for heading, lines in sections:
         print(heading)
-        print("\n".join(bodies.get(heading, list)()) or "none")
+        print("\n".join(lines) or "none")
     return 0
 
 
