@@ -113,3 +113,12 @@ def test_pr_ready_gh_refuses_to_label_still_exits_0_and_names_the_refusal(run_cl
     result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
 
     assert result == (0, "", "pr-ready.sh: no answer from gh labelling #42 pr-ready\n")
+
+
+def test_park_issue_takes_the_bailed_label_off_the_issue_it_parks(run_cli, monkeypatch):
+    park_issue = importlib.import_module("veri.park_issue")
+    calls = fake_gh(monkeypatch, lambda args: (0, "{}", ""))
+
+    result = run_cli(park_issue, ["42", "second bail", "a human reads the diff"])
+
+    assert (result[0], DELETE_BAILED in calls) == (0, True)
