@@ -17,3 +17,6 @@
 - Split the long `main` report branch into per-block helpers. This isn't duplication removal, so I didn't apply it.
 ### A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧
 - split `main` in prd_report.py into per-block helpers (children, left, owed, ETA). It is a move of behaviour, not duplication removal.
+### `report.sh --stale` prints the numbers of the PRDs whose owed answer is stale, one per line ⟦criterion 3⟧
+- `--stale` loads the cache with `_load`, but `--report` reopens it inline with `open`/`json.load`, and it also loads the owed file inline. Using `_load` in both places would remove the duplication.
+- Both modes repeat the sort of `heads.items()` by integer PRD number. A shared helper could do that sort.
