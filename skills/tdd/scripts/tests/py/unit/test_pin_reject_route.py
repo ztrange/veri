@@ -80,3 +80,24 @@ def test_main_missing_reroute_reject_not_saying_stays_green_retires_the_step_alr
         0, "retired",
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n",
         1, False), err
+
+
+def test_main_missing_reroute_reject_saying_stays_green_still_retires_unpinnable_first_3300(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events_file = ledger.parent / "events.jsonl"
+    events = [json.loads(line) for line in events_file.read_text().splitlines()] if events_file.exists() else []
+    names = [e.get("event") for e in events]
+    assert (code, out.strip(), ledger.read_text(), names.count("unpinnable-step"),
+            names.count("already-holds-step"), "revise" in names) == (
+        0, "retired",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n",
+        1, 0, False), err
