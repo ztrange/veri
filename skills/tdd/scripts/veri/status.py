@@ -529,24 +529,27 @@ def recover_lock():
     return [out or "free"]
 
 
-def recover_state(role, lane=None):
+def recover_state(role, lane=None, prefixes=("timed-n ", "override ")):
     fields = {}
     timed = []
     try:
         with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % (role if lane is None else "%s-%s" % (role, lane)))) as f:
             for line in f:
-                if line.startswith(("timed-n ", "override ")):
+                if line.startswith(prefixes):
                     timed.append(line.rstrip("\n"))
                 key, _, value = line.rstrip("\n").partition("=")
                 fields[key] = value
     except FileNotFoundError:
         pass
+    if prefixes != ("timed-n ", "override "):
+        return timed
     return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + timed
 
 
 def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
-              "State": lambda: recover_state(role, lane)}
+              "State": lambda: recover_state(role, lane),
+              "Pending decisions": lambda: recover_state(role, lane, ("decision ",))}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")

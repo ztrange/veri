@@ -51,3 +51,19 @@ skills/tdd/scripts/tests/py/unit/test_status_recover.py
 command 336
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpx44bkfbz/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_recover.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause
 
+before 40
+4618a6f4a6801a18633de2bb0084a310f4ccaaa0
+keep 55
+skills/tdd/scripts/tests/py/unit/test_status_recover.py
+command 328
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpx44bkfbz/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_status_recover.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines
+
+file 33
+skills/tdd/scripts/veri/status.py
+old 41
+recover_state(role, lane, ("decision ",))
+new 51
+recover_state(role, lane, ("decision ","message "))
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines
+
