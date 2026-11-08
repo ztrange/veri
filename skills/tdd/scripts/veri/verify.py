@@ -154,9 +154,19 @@ def appended(before, after):
 def outside_commands(added, root):
     lines = added.decode("utf-8", "replace").split("\n")
     root = os.path.realpath(root)
+
+    def escapes(word):
+        if "=" in word and not word.startswith(("/", "~")) and escapes(word.split("=", 1)[1]):
+            return True
+        if word.startswith("~"):
+            return True
+        if "/" not in word:
+            return False
+        resolved = os.path.realpath(os.path.join(root, word))
+        return os.path.commonpath([root, resolved]) != root
+
     return [lines[i + 1] for i, line in enumerate(lines[:-1]) if re.fullmatch(r"command \d+", line)
-            and any(word.startswith("/") and os.path.commonpath([root, os.path.realpath(word)]) != root
-                    for word in lines[i + 1].split())]
+            and any(escapes(word) for word in lines[i + 1].split())]
 
 
 def gitconfig_snapshot(path):
