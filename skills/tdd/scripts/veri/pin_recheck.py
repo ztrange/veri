@@ -149,6 +149,10 @@ def mutation_green_on_base(pin):
         return subprocess.run(pin["command"], shell=True, cwd=tree, capture_output=True).returncode == 0
 
 
+def mutated_file_of(record):
+    return record.get("file", record.get("keep"))
+
+
 def recheck(argv, looks):
     if not argv:
         sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
@@ -171,7 +175,7 @@ def recheck(argv, looks):
                 sys.stderr.write(f"retire-pin for {m[1]} {m[2]} has an empty reason\n")
                 return 2
             declared[(m[1], m[2])] = m[3].strip()
-    held = {(f, r.get("file", r.get("keep"))) for f, r in found}
+    held = {(f, mutated_file_of(r)) for f, r in found}
     for key in declared:
         if key not in held:
             sys.stderr.write(f"retire-pin names no pin: {key[0]} {key[1]}\n")
@@ -179,7 +183,7 @@ def recheck(argv, looks):
     status = 0
     retired = 0
     for ledger, pin in pins:
-        mutated_file = pin.get("file", pin.get("keep"))
+        mutated_file = mutated_file_of(pin)
         if "retired" in pin:
             retired += 1
             continue
