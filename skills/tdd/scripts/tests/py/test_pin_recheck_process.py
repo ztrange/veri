@@ -174,6 +174,40 @@ def test_3290_a_mutation_pin_green_under_its_mutation_at_head_and_at_the_base_pr
         True, True, True), (ran.returncode, ran.stdout, ran.stderr, mutated_at)
 
 
+@pytest.mark.process("git, and pin-recheck.sh run over a range with an origin/main base where the base-run mutation's command fails")
+def test_3290_a_failing_base_run_of_the_mutation_leaves_the_files_byte_identical_and_removes_the_base_worktree(tmp_path):
+    repo = tmp_path / "repo"
+    scratch = tmp_path / "scratch"
+    repo.mkdir()
+    scratch.mkdir()
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (repo / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (repo / ".tdd").mkdir()
+    record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"grep -q 'if guard' guard.txt || grep -q safe guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (repo / "guard.txt").write_text("if guard\nsafe\n")
+    git("commit", "-q", "-am", "later commit")
+    before = {p.name: p.read_bytes() for p in (repo / "guard.txt", repo / ".tdd" / "issue-835-mutations.md")}
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20,
+                         env={**os.environ, "TMPDIR": str(scratch)})
+
+    after = {p.name: p.read_bytes() for p in (repo / "guard.txt", repo / ".tdd" / "issue-835-mutations.md")}
+    worktrees = [l for l in git("worktree", "list").splitlines() if l]
+    assert (before == after, len(worktrees), sorted(p.name for p in scratch.iterdir()), git("status", "--porcelain")) == (
+        True, 1, [], ""), (ran.returncode, ran.stdout, ran.stderr, worktrees)
+
+
 @pytest.mark.process("git, and pin-recheck.sh run over a range whose later commit removes the recorded old text")
 def test_2506_a_record_whose_old_text_is_gone_prints_the_pin_as_needing_a_look_and_exits_0(tmp_path):
     def git(*words):
