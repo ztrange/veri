@@ -4,7 +4,9 @@
    candidate names, and counted against the issue's budget, not a step's. The conductor runs the pass whenever
    `refactor-owed.sh list` prints a candidate, and never skips or shortens it for cost: the
    way to spend less is to set a lower `VERI_ISSUE_REFACTOR_BUDGET` before launch. A run does
-   a refactor now, or drops it: the pass never files one. Every candidate it does not apply is
+   a refactor now, or drops it: the pass files no issue per candidate (partly reversing
+   ADR-0031's "never files"). What it does not apply is listed in the run's one candidates
+   issue, which the Draft PR step files (ADR-0034). Every candidate it does not apply is
    recorded with `refactor-owed.sh not-done` and its reason, and `render` shows it under
    `### Not done` in the PR body:
    ```
