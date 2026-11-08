@@ -1,5 +1,6 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import glob
 import os
 import shutil
@@ -114,33 +115,35 @@ def replay_before(pin, ledger, root=Path(".")):
     return ran.returncode
 
 
-def replay_on_base(pin, ledger):
-    base = git_out("merge-base", "origin/main", "HEAD").strip()
-    scratch = tempfile.mkdtemp()
-    tree = Path(scratch) / "base"
-    added = subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, text=True)
-    if added.returncode != 0:
-        sys.stderr.write(f"cannot create the base worktree at {base}: {added.stderr.strip()}\n")
-        return None
-    try:
-        return replay_before(pin, ledger, tree)
-    finally:
-        subprocess.run(["git", "worktree", "remove", str(tree)], capture_output=True)
-        shutil.rmtree(scratch, ignore_errors=True)
-
-
-def mutation_green_on_base(pin):
+@contextlib.contextmanager
+def base_worktree():
     base = git_out("merge-base", "origin/main", "HEAD").strip()
     scratch = tempfile.mkdtemp()
     tree = Path(scratch) / "base"
     try:
-        subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True)
-        target = tree / pin["file"]
-        target.write_bytes(target.read_bytes().replace(pin["old"].encode(), pin["new"].encode()))
-        return subprocess.run(pin["command"], shell=True, cwd=tree, capture_output=True).returncode == 0
+        added = subprocess.run(["git", "worktree", "add", "--detach", str(tree), base], capture_output=True, text=True)
+        if added.returncode != 0:
+            sys.stderr.write(f"cannot create the base worktree at {base}: {added.stderr.strip()}\n")
+            yield None
+        else:
+            yield tree
     finally:
         subprocess.run(["git", "worktree", "remove", "--force", str(tree)], capture_output=True)
         shutil.rmtree(scratch, ignore_errors=True)
+
+
+def replay_on_base(pin, ledger):
+    with base_worktree() as tree:
+        return None if tree is None else replay_before(pin, ledger, tree)
+
+
+def mutation_green_on_base(pin):
+    with base_worktree() as tree:
+        if tree is None:
+            return False
+        target = tree / pin["file"]
+        target.write_bytes(target.read_bytes().replace(pin["old"].encode(), pin["new"].encode()))
+        return subprocess.run(pin["command"], shell=True, cwd=tree, capture_output=True).returncode == 0
 
 
 def recheck(argv, looks):
