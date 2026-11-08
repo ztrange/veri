@@ -19,4 +19,4 @@
 - [x] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
 - [x] `serve.py`'s source starts no process: no `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*` or `os.fork`; pinned by a case that checks its source ⟦criterion 3⟧
 - [x] `serve.py`'s source imports nothing under `skills/` and adds no `skills/` path to `sys.path`; pinned by a case that checks its source ⟦criterion 3⟧
-- [ ] The branch changes no file outside `projects/dashboard/`, veri's own run state under `.tdd/` aside ⟦diff-checked⟧
+- [x] The branch changes no file outside `projects/dashboard/`, veri's own run state under `.tdd/` aside ⟦diff-checked⟧
