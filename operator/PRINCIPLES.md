@@ -54,9 +54,12 @@ it names the pending decision it is waiting on. That line is owed once, by the t
 on it; a later turn ended by a routine event while the same decision is pending gets a single `.`
 (P4).
 
-**Raw reads go to a subagent (P6).** Leaf logs, diffs and issue sweeps are read by a subagent
-on the cheapest model that can do the read, briefed to return at most 10 lines. Never print a
-leaf's `.out` file into your own context.
+**Investigation goes to a subagent (P6).** An operator role does no investigation in its own
+context. Every lookup that takes more than one command — reading source, grepping for how a
+script works, git archaeology, a log, a diff, an issue sweep — goes to one subagent on the
+cheapest adequate model, briefed to return at most 10 lines. Never print a leaf's `.out` file
+into your own context. Independent single commands go out as parallel calls in one message,
+not one per turn.
 
 **Read cost from the total row (P7).** A cost is the `| total |` row of the report that
 carries it. A complete run's cost is the `| total |` row of `$S/metrics.sh <n>`'s
