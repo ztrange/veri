@@ -63,7 +63,7 @@ def _growth(run):
                     records.append(json.loads(line))
                 except ValueError:
                     continue
-    except OSError:
+    except FileNotFoundError:
         return None
     return growth.growth(records)
 
@@ -96,7 +96,11 @@ def main(argv):
     while True:
         asked = False
         while conductor_alive(run):
-            g = _growth(run)
+            try:
+                g = _growth(run)
+            except OSError as e:
+                print(f"restart-conductor.sh: cannot read conductor-{run}.log: {e}", file=sys.stderr)
+                return 2
             if g is not None and g >= 0.85 * int(knob):
                 pending = _run_file(run, "restart-pending")
                 os.makedirs(os.path.dirname(pending), exist_ok=True)
