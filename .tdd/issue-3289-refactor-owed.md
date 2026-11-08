@@ -1,0 +1,2 @@
+### Pin: a `tick-ledger.sh --unpinnable` retire that drops no mutation record leaves `.tdd/issue-<n>-mutations.md` byte-for-byte unrewritten (its bytes and mtime unchanged); a case pins it ⟦criterion 1⟧
+- out-of-scope | `main` in tick_ledger.py builds the `-mutations.md` path twice (from `argv[0]` and from its absolute path); extract one helper. The duplication is in older code, not code this cycle wrote.
