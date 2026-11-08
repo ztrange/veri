@@ -352,3 +352,24 @@ def test_the_posted_done_comment_passes_the_conductors_done_check_and_matches_th
     assert conductor.done_posted("7") is True
     pattern = dict(metrics.COMMENT_FAMILIES)["✅ Done"]
     assert re.search(pattern, posted[0])
+
+
+def test_done_still_posts_the_pr_url_when_the_journal_holds_a_torn_line_before_the_done_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-9"
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "sta\n\n' + json.dumps({"event": "done", "pr": pr}) + "\n")
+    metrics = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n"
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text(metrics)
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert posted == [("7", f"### ✅ Done — {pr}\n\n{metrics}")]
