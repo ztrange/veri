@@ -131,7 +131,7 @@ def test_main_already_holds_event_records_the_first_reason_line_with_text_when_t
 
 
 def test_main_already_holds_drops_the_mutation_record_whose_tests_case_does_not_exist_3289(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
@@ -146,14 +146,16 @@ def test_main_already_holds_drops_the_mutation_record_whose_tests_case_does_not_
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, "test_never_written" in record.read_text()) == (0, False), err
 
 
 def test_main_already_holds_retire_that_drops_a_mutation_record_still_appends_its_already_holds_step_event_3289(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
@@ -168,7 +170,9 @@ def test_main_already_holds_retire_that_drops_a_mutation_record_still_appends_it
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
