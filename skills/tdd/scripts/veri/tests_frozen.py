@@ -268,26 +268,25 @@ def _revisions(name):
     return os.fsdecode(listed.stdout).split()
 
 
-def _moved_path(name, case):
-    for top, dirs, files in os.walk("."):
-        dirs[:] = [d for d in dirs if not d.startswith(".")]
-        if os.path.basename(name) in files:
-            path = os.path.join(top, os.path.basename(name))
-            with open(path, encoding="utf-8", errors="replace") as handle:
-                if case in dict(_cases(handle.read())):
-                    return path
-    return _renamed_path(name, case)
-
-
-def _renamed_path(name, case):
+def _path_holding(case, only=None):
     for top, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
         for file in files:
+            if only is not None and file != only:
+                continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
                 if case in dict(_cases(handle.read())):
                     return path
-    return name
+    return None
+
+
+def _moved_path(name, case):
+    return (
+        _path_holding(case, only=os.path.basename(name))
+        or _path_holding(case)
+        or name
+    )
 
 
 def _renamed_to(name, case, digest, text, consumed):
