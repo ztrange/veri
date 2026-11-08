@@ -135,7 +135,9 @@ and launched as `revise-diff-<k>` like any revise leaf. The re-verify is `run-ve
 with its stdout overwriting `.tdd/verify-diff.reason`, and each `<base-sha>` is the same base sha
 the original verify-diff verdict ran against — the run's branch point, and the step base sha
 recorded before the step's develop-diff leaf ran, not one recorded before the revise leaf — so
-the revised work is judged against the diff the rejection was about. A
+the revised work is judged against the diff the rejection was about. The `diff` revise leaf
+commits its change, and the conductor keeps that commit as made — no `git reset --soft`, squash
+or re-commit — before the re-verify judges `<step-base-sha>..HEAD`. A
 recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
 bullet in DIFF-CHECKED.md describes.
 
