@@ -327,3 +327,28 @@ def test_done_carries_the_unverified_phases_line_when_skip_verify_is_non_empty_t
 
     assert code == 0
     assert "⚠️ Unverified phases: refactor" in posted[0][1].splitlines()
+
+
+def test_the_posted_done_comment_passes_the_conductors_done_check_and_matches_the_done_metrics_family(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    conductor = importlib.import_module("run_conductor")
+    metrics = importlib.import_module("metrics")
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-5")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    thread = [{"body": posted[0], "created_at": "2026-11-08T00:00:00Z"}]
+    monkeypatch.setattr(conductor, "last_resume", lambda issue: 0)
+    monkeypatch.setattr(conductor.github, "gh_json_page", lambda jq, path: json.dumps(thread))
+    assert conductor.done_posted("7") is True
+    pattern = dict(metrics.COMMENT_FAMILIES)["✅ Done"]
+    assert re.search(pattern, posted[0])
