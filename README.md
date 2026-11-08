@@ -107,7 +107,7 @@ dependencies may have freed others, so the set is recomputed every iteration rat
 walked from a stale list. An issue is taken only if it is open, carries the
 **`ready-for-agent`** label — the human's explicit opt-in, since nothing is taken because
 it merely exists — every issue under its **`## Blocked by`** heading is closed, and no open
-PR already says `Closes #<n>` for it. The scope picks that label: `plain` is the bare
+PR already says `Closes #<n>` for it, other than the issue's own run branch (`tdd/<n>-…`), whose draft PR a released issue's resume continues (ADR-0036). The scope picks that label: `plain` is the bare
 `ready-for-agent`, any other scope is `ready-for-agent:<scope>`, and `VERI_LABEL` still
 overrides it outright. The intended use is partitioning — **one label per loop**,
 so two loops running against the same repository drain disjoint pools instead of racing for

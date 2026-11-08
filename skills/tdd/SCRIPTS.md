@@ -339,7 +339,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
-  saying `Closes #<n>` — one per line, in four bands: the `bug`s labelled `priority` first,
+  saying `Closes #<n>` (a PR on the issue's own run branch, `tdd/<n>-…`, claims nothing: a
+  released issue's resume continues it, ADR-0036) — one per line, in four bands: the `bug`s labelled `priority` first,
   then the other issues labelled `priority`, then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
   as the rest, and `priority` outranks `low-risk`. An issue also **inherits** the band of every
   open issue that names it under `## Blocked by`, transitively, and takes the better of its own
