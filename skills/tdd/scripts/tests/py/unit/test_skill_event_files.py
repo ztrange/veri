@@ -192,6 +192,12 @@ def test_draft_pr_md_exists_beside_skill_md_and_skill_md_names_it_3174():
     assert "`<base directory>/DRAFT-PR.md`" in SKILL.read_text()
 
 
+def test_suite_repair_md_exists_beside_skill_md_and_skill_md_names_it_3176():
+    """Subject is source text: SUITE-REPAIR.md is a file beside SKILL.md, and SKILL.md names it `<base directory>/SUITE-REPAIR.md`."""
+    assert SUITE_REPAIR.is_file()
+    assert "`<base directory>/SUITE-REPAIR.md`" in SKILL.read_text()
+
+
 SKILL_CEILING_3174 = 169_698 - 30_000
 
 
