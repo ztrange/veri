@@ -4,3 +4,5 @@
 - test-only | the five tests that script a conductor exit repeat the same `lives`/`wait`/monkeypatch setup, so a shared fixture or helper would remove it
 ### An unknown flag (e.g. `dispatch.sh --target 1 --frobnicate`) makes `dispatch.sh` print the usage on stderr and exit 2, launching nothing; unit-tier, run in-process with `run_cli` ⟦criterion 12⟧
 - extract the argument validation in `main` (usage, stall window, `--target <N>`) into a `parse_args` helper
+### `dispatch.sh --help` prints its usage on stdout and exits 0, launching nothing and reading no queue; unit-tier, run in-process with `run_cli` ⟦criterion 13⟧
+- test-only | extract the repeated monkeypatch setup (main_working_tree, live_conductors, solvable_issues, launch, wait) shared across test_dispatch.py cases into a fixture
