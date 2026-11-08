@@ -28,3 +28,12 @@ $(MAKE) -C projects/dashboard test < /dev/null || true;
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3340_criterion_3_a_failing_dashboard_case_named_alone_in_tests_makes_make_test_exit_1
 
+file 8
+Makefile
+old 30
+test < /dev/null || fail=1; fi
+new 20
+test < /dev/null; fi
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3340_criterion_3_a_failing_dashboard_case_named_alone_in_tests_makes_make_test_exit_non_zero
+
