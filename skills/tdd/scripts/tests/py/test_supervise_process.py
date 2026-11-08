@@ -588,3 +588,30 @@ def test_3298_a_red_leaf_that_deletes_an_uncommitted_production_file_has_it_rest
 
     assert (ran.returncode, prod.read_bytes() if prod.exists() else None, ["src/app.py" in l for l in restored]) == (
         1, b"VALUE = 2\n", [True]), ran.stderr
+
+
+@pytest.mark.process("supervise.sh and git run for real: a red leaf edits one uncommitted production file and leaves a clean tracked one alone")
+def test_3298_a_clean_tracked_production_file_a_red_leaf_does_not_touch_stays_byte_identical_with_no_restore_event(tmp_path):
+    work = tmp_path / "work"
+    (work / "src").mkdir(parents=True)
+    (work / ".tdd").mkdir()
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    prod = work / "src" / "app.py"
+    clean = work / "src" / "clean.py"
+    prod.write_bytes(b"VALUE = 1\n")
+    clean.write_bytes(b"CLEAN = 1\n")
+    subprocess.run(git + ["add", "."], cwd=work, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "base"], cwd=work, check=True)
+    prod.write_bytes(b"VALUE = 2\n")
+    os.utime(clean, (1_000_000_000, 1_000_000_000))
+    before = clean.stat().st_mtime_ns
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red-1", "sh", "-c", "git show HEAD:src/app.py > src/app.py"],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "3298", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    restored = [l for l in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in l]
+
+    assert (ran.returncode, clean.read_bytes(), clean.stat().st_mtime_ns, ["src/app.py" in l for l in restored], ["clean.py" in l for l in restored]) == (
+        0, b"CLEAN = 1\n", before, [True], [False]), ran.stderr
