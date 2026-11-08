@@ -218,3 +218,19 @@ def test_main_already_holds_with_a_passing_case_retires_the_step_with_one_alread
         0, "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
     assert [e.get("event") for e in events].count("already-holds-step") == 1
     assert ran == ["tests/py/test_x.py::test_holds"]
+
+
+def test_main_already_holds_with_no_case_exits_1_leaves_ledger_and_events_and_says_no_case_is_named_3305(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(before)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds; rerouted to pin step 4\n")
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
+    assert "a one" in err and "no case" in err
