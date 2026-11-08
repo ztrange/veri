@@ -1350,3 +1350,28 @@ def test_check_earlier_over_a_case_whose_call_never_closes_removes_the_steps_pas
     code = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[0]
 
     assert (code, marker.exists()) == (2, False)
+
+
+def test_check_earlier_refuses_a_case_whose_test_file_is_deleted_with_no_counterpart_at_any_path_naming_it_3284(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    suite = tmp_path / "test_suite.py"
+    suite.write_text("def test_real():\n    assert 1 + 1 == 2\n")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {"test_real": "def test_real():\n    pass\n"})
+    monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
+    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    earlier, later = "the earlier step B", "the later step C"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
+    recorded = run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)[0]
+    suite.unlink()
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
+
+    assert (recorded, code, out) == (0, 1, "test_real (%s)\n" % earlier)
