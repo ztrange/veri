@@ -46,6 +46,8 @@ def main(argv):
     path = os.path.join(main_tree(os.getcwd()), ".tdd", "role-%s.state" % name)
     if argv[1] == "recovered" and not os.environ.get("CLAUDE_CODE_SESSION_ID"):
         return usage()
+    if argv[1] == "set" and len(argv) == 4 and argv[2] not in ("n", "lane"):
+        return usage()
     if argv[1] in ("set", "add") and len(argv) == 4 or argv[1] == "recovered":
         os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
