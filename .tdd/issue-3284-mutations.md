@@ -18,3 +18,10 @@ any(d not in held
 command 188
 make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_a_case_whose_test_file_was_git_mv_ed_with_its_assertion_changed_in_the_move_3284
 
+before 40
+72cae51edec9d9317d05df5d74e7de6b0eab304b
+keep 56
+skills/tdd/scripts/tests/py/test_tests_frozen_process.py
+command 317
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpusihcds2/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_tests_frozen_process.py make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_matches_a_moved_file_only_to_a_visible_copy_holding_the_case_3284
+

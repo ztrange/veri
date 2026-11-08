@@ -268,6 +268,17 @@ def _revisions(name):
     return os.fsdecode(listed.stdout).split()
 
 
+def _moved_path(name, case):
+    for top, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        if os.path.basename(name) in files:
+            path = os.path.join(top, os.path.basename(name))
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                if case in dict(_cases(handle.read())):
+                    return path
+    return name
+
+
 def _renamed_to(name, case, digest, text, consumed):
     for rev in _revisions(name):
         held = _cases_at(rev, name)
@@ -337,7 +348,7 @@ def _check_earlier(ledger, step, exempt=()):
     releg = {}
     for (name, case), (digests, owner, marked) in latest.items():
         try:
-            with open(name, encoding="utf-8", errors="replace") as handle:
+            with open(_moved_path(name, case), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             nows = _bodies_of(text, case)
             olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
