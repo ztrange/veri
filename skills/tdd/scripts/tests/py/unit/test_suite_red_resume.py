@@ -638,3 +638,21 @@ def test_insert_with_a_red_mixing_a_grade_suite_with_an_outside_suite_both_namin
     steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
     assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
     assert "⟦skill-edit⟧" not in ledger.read_text().replace("⟦suite-repair⟧", "")
+
+
+def test_insert_leaves_the_ledger_untouched_and_exits_0_when_the_one_stale_graded_unit_is_named_by_the_first_unchecked_skill_edit_step_3306(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    unit = "skills/tdd/SUITE-REPAIR.md"
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", unit)], []))
+    ledger = tmp_path / "issue-7.md"
+    text = f"# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n- [ ] ⟦skill-edit⟧ sign `{unit}`\n- [ ] c ⟦criterion 3⟧\n"
+    ledger.write_text(text)
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text("test_prd_016_short_names.py — FAIL stale GRADED\n")
+
+    code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0
+    assert ledger.read_text() == text
