@@ -139,3 +139,24 @@ def test_main_unpinnable_retire_that_drops_no_mutation_record_leaves_the_mutatio
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, record.read_text(), record.stat().st_mtime_ns) == (0, content, 1_000_000_000), err
+
+
+def test_main_unpinnable_with_a_failing_case_exits_1_leaves_ledger_and_events_and_names_step_and_case_3305(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(before)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+    ran = []
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 1, raising=False)
+
+    code, out, err = run_cli(tick_ledger,
+                             ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_gone",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
+    assert "a one" in err and "tests/py/test_x.py::test_gone" in err
+    assert ran == ["tests/py/test_x.py::test_gone"]

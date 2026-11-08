@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re
+import subprocess
 import sys
 
 import event
@@ -16,6 +17,10 @@ USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-o
 
 def complain(message):
     print(f"tick-ledger.sh: {message}", file=sys.stderr)
+
+
+def run_case(case):
+    return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
 
 
 def changed_index(text, new):
@@ -80,7 +85,7 @@ def mutations_path(ledger_path):
 
 
 def main(argv):
-    pending, phase, owed, reason_file = False, None, False, None
+    pending, phase, owed, reason_file, case = False, None, False, None, None
     retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
     while True:
         if argv[:1] in (["--already-holds"], ["--unpinnable"]) and len(argv) > 1:
@@ -88,7 +93,9 @@ def main(argv):
                 retired_mark, event_name = " ⟂ retired already holds", "already-holds-step"
             reason_file, argv = argv[1], argv[2:]
             continue
-        if argv[:1] == ["--refactor-pending"]:
+        if argv[:1] == ["--case"] and len(argv) > 1:
+            case, argv = argv[1], argv[2:]
+        elif argv[:1] == ["--refactor-pending"]:
             pending, argv = True, argv[1:]
         elif argv[:1] == ["--phase"] and len(argv) > 1:
             phase, argv = argv[1], argv[2:]
@@ -97,6 +104,9 @@ def main(argv):
         else:
             break
     reason_text = ""
+    if case and run_case(case):
+        complain(f"{(argv[1:] or [''])[0]}: case {case} fails")
+        return 1
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
