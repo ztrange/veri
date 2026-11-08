@@ -1,0 +1,2 @@
+### A `report_repo` fixture in projects/dashboard/tests/conftest.py makes a repo directory under the case's tmp_path whose `.tdd/report-cache.json` is a copy of the fixture snapshot projects/dashboard/fixtures/report-cache.json (never the real repo), pinned by a small case in projects/dashboard/tests/test_report_repo_fixture.py ⟦guard-subject: projects/dashboard/tests/conftest.py⟧ ⟦criterion 3⟧
+- test-only | share the duplicated SNAPSHOT path constant between conftest.py and test_report_repo_fixture.py
