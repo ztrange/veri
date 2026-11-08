@@ -31,7 +31,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `.tdd/issue-*-mutations.md` record (an edit, a deletion, a new file) is undone and one
   `mutation-record-restored` event (`name=`, `file=`) goes to `events.jsonl` per record —
   only `mutation-probe` writes that record, except a record the leaf's step names with
-  `mutation-record: .tdd/issue-<n>-mutations.md` in its step text (`VERI_STEP`), which is left as the leaf made it. When a `develop-red…` or `revise-red-…` leaf exits,
+  `mutation-record: .tdd/issue-<n>-mutations.md` in its step text (`VERI_STEP`), which is left as the leaf made it; the marker inside backticks, double quotes or single quotes (an apostrophe within a word is not a quote) is ignored, so a step that only quotes it names no record. When a `develop-red…` or `revise-red-…` leaf exits,
   any tracked production file it changed from the step's uncommitted state is written back and
   one `production-file-restored` event (`name=`, `file=`) goes to `events.jsonl` per file.
   A refused launch exits 2, writes one `launch-refused` event (`name=`, `reason=`) naming the leaf
