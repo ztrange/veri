@@ -7,3 +7,5 @@
 ### `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
 - `drop` reads the file with its own `open()`, which duplicates `read()`. Swapping it to `(read(path) or "").splitlines(True)` would turn a missing state file from a traceback into exit 3. That changes behaviour, so I did not apply it.
 - `main` repeats the `argv[1] == ...` and `len(argv) == 4` checks across the validation and dispatch ladders. Folding them into one dispatch by verb would remove that. It goes beyond removing duplication against code this cycle wrote, so I left it.
+### `status.sh --recover <role>` lists under `Runs` a taken run held by a live conductor with its issue, its title and that conductor's pid ⟦criterion 6⟧
+- test-only | extract the duplicated fake `subprocess.run` and the `lines` and Runs-slice parsing in `test_status_recover.py` into helpers
