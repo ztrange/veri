@@ -115,6 +115,24 @@ def test_main_maps_a_dashboard_file_to_the_dashboards_own_tests_and_no_veri_suit
         "")
 
 
+def test_main_prints_the_union_of_a_veri_files_suites_and_the_dashboards_tests_for_a_mixed_range_3334(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["projects/dashboard/serve.py", "skills/tdd/scripts/veri/foo.py"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "py/unit").mkdir(parents=True)
+    (tests / "py/unit/test_foo.py").write_text("")
+    (tests / "py/unit/test_other.py").write_text("")
+    dashboard = tmp_path / "projects/dashboard/tests"
+    dashboard.mkdir(parents=True)
+    (dashboard / "test_serve_get_root.py").write_text("")
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0,
+        "projects/dashboard/tests/test_serve_get_root.py\n"
+        "skills/tdd/scripts/tests/py/unit/test_foo.py\n",
+        "")
+
+
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
