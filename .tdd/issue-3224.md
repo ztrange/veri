@@ -16,7 +16,7 @@
 - [x] `role-state.sh <role> set` with a field other than `n` or `lane` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
 - [x] `role-state.sh <role> add` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and writes nothing ⟦criterion 5⟧
 - [x] `role-state.sh <role> drop` with a list other than `decision`, `message`, `override` or `timed-n` exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
-- [x] `role-state.sh <role> set n <value>` with a value that is not a whole number ≥ 0 exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧ ⟂ refactor pending
+- [x] `role-state.sh <role> set n <value>` with a value that is not a whole number ≥ 0 exits 2 with its usage line on stderr and leaves the state file unchanged ⟦criterion 5⟧
 - [ ] `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
 - [ ] `skills/tdd/SCRIPTS.md` gains the `role-state.sh` entry (SC85) and the `status.sh` entry names `--recover` with its sections and exits (SC86), graded by the issue's `## Requirements` rows ⟦skill-edit⟧ ⟦criterion 8⟧
 - [ ] `status.sh --recover coord` with no taken run, no bailed run, no open PR, a free merge lock and no state file prints the headings `Runs`, `Bailed`, `PRs`, `Merge lock`, `State`, `Pending decisions`, `Pending messages` in that order, `none` under each empty one (`free` under `Merge lock`), and exits 0 ⟦criterion 6⟧
