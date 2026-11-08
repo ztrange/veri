@@ -17,7 +17,7 @@ The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the nam
 - [x] A PRD block whose open children no lane holds prints `ETA: no lane: no ETA` ⟦criterion 1⟧
 - [x] A PRD block whose open children are chained by `blockedBy` bounds its ETA by the slowest chain ⟦criterion 1⟧
 - [x] A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧
-- [x] A PRD whose cached `updatedAt` equals the one stored for it in `.tdd/report-owed.json` prints the stored owed answer (how many issues, with the sections they come from, or `none`) on its owed line ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A PRD whose cached `updatedAt` equals the one stored for it in `.tdd/report-owed.json` prints the stored owed answer (how many issues, with the sections they come from, or `none`) on its owed line ⟦criterion 1⟧
 - [ ] `report.sh --stale` prints the numbers of the PRDs whose owed answer is stale, one per line ⟦criterion 3⟧
 - [ ] `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
 - [ ] `report.sh --store-owed <prd> <file>` preserves every other PRD's entry already in `.tdd/report-owed.json` ⟦criterion 4⟧
