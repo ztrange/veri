@@ -37,3 +37,37 @@ skills/tdd/scripts/tests/py/unit/test_prd_report.py
 command 333
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpti8uesfw/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_line_drops_no_rate_yet_at_three_issues_closed_in_the_last_7_days_and_counts_only_closed_issues
 
+before 40
+400f34c97c924e8dba790b9932ddfee5d4050201
+keep 51
+skills/tdd/scripts/tests/py/unit/test_prd_report.py
+command 327
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpn36_8y3w/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_at_its_fastest_wall_quartile
+
+file 37
+skills/tdd/scripts/veri/prd_report.py
+old 60
+fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
+new 67
+fastest = min(fastest or 1e9, 86400 / walls[(len(walls) - 1) // 4])
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_at_its_fastest_wall_quartile
+
+file 37
+skills/tdd/scripts/veri/prd_report.py
+old 28
+walls[(len(walls) - 1) // 4]
+new 22
+walls[len(walls) // 2]
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_at_its_fastest_wall_quartile
+
+file 37
+skills/tdd/scripts/veri/prd_report.py
+old 28
+len(open_children) / fastest
+new 11
+1 / fastest
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_lower_bound_divides_the_left_count_by_the_highest_lane_rate_at_its_fastest_wall_quartile
+

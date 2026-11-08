@@ -67,9 +67,16 @@ def main(argv):
                 solvable, len({n for n, _ in waiting}),
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
             lanes = {o["lane"] for o in open_children if o["lane"]}
-            rate = sum(1 for o in snapshot["issues"] if o["state"] == "CLOSED"
-                       and o["lane"] in lanes and _utc(o["closedAt"]) >= week)
-            print("ETA: no rate yet" if rate < 3 else "ETA:")
+            closed = [o for o in snapshot["issues"] if o["state"] == "CLOSED"
+                      and o["lane"] in lanes and _utc(o["closedAt"]) >= week]
+            if len(closed) < 3:
+                print("ETA: no rate yet")
+                continue
+            fastest = 0
+            for lane in {o["lane"] for o in closed}:
+                walls = sorted(o["wallSeconds"] for o in closed if o["lane"] == lane)
+                fastest = max(fastest, 86400 / walls[(len(walls) - 1) // 4])
+            print("ETA: %.2f days" % (len(open_children) / fastest))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
