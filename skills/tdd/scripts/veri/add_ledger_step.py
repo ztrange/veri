@@ -159,6 +159,9 @@ def record_insertions(path, steps, awake):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        print(USAGE)
+        return 0
     criterion = None
     planned = argv[:1] == ["--planned"]
     if planned:
