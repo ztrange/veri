@@ -11,6 +11,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `conductor-start` | `pid`, `started` | A conductor began a run: its process id and start time. |
 | `conductor-restart` | `growth`, `knob` | restart-conductor.sh relaunched a run's conductor: the plan-growth count that triggered it and the knob whose change it picks up. |
 | `criterion-unticked` | `issue`, `matcher` | An issue acceptance criterion was unticked: the issue number and the text that matched it. |
+| `diff-leaf-deviation` | `leaf`, `base`, `head`, `commits` | A diff-checked leaf strayed from its one commit: the leaf, the step base sha, `HEAD` and the commit count. |
 | `done` | `pr`, `wall_seconds`, `awake_seconds`, `lane` | The run finished: the PR url, wall-clock seconds since the opening event (or last `resume`), awake-clock seconds over the same span (absent without both clocks), and the lane label. |
 | `exit` | `status`, `cause`, `secs` | A supervised leaf exited: its exit status, why when it was killed or refused (`cause`, absent otherwise), and the seconds it ran. |
 | `launch` | `name`, `cmd`, `model` | The supervisor launched a leaf: its name, the command line after the binary, the model. |
