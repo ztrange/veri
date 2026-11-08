@@ -15,7 +15,7 @@ import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh --target <N>\n"
+USAGE = "usage: dispatch.sh --target <N>"
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -94,12 +94,9 @@ def parse_args(argv):
 
 
 def main(argv):
-    if argv == ["--help"]:
-        sys.stdout.write(USAGE)
-        return 0
     target = parse_args(argv)
     if target is None:
-        sys.stderr.write(USAGE)
+        sys.stderr.write(USAGE + "\n")
         return 2
     previous = None
     seen = []
