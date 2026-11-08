@@ -70,8 +70,7 @@ def main(argv):
         if not os.path.exists(CACHE):
             print("no snapshot: %s is missing" % CACHE, file=sys.stderr)
             return 2
-        with open(CACHE) as f:
-            snapshot = json.load(f)
+        snapshot = _load(CACHE)
         now = datetime.datetime.now(datetime.timezone.utc)
         hours = int((now - _utc(snapshot["fetched_at"])).total_seconds() // 3600)
         print("snapshot age: %d hours" % hours)
