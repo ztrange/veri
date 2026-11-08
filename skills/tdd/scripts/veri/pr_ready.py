@@ -3,9 +3,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import sys
 
 try:
-    from veri import github
+    from veri import github, tunables
 except ImportError:
     import github
+    import tunables
 
 
 def main(argv):
@@ -16,7 +17,7 @@ def main(argv):
         github.gh_pr_ready(argv[0], argv[1])
     except github.NoAnswer:
         return 2
-    issue = github.tunables.read("VERI_STATE_LABEL_ISSUE")
+    issue = tunables.read("VERI_STATE_LABEL_ISSUE")
     if issue:
         try:
             github.gh_issue_add_label(issue, "pr-ready")
