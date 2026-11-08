@@ -140,7 +140,7 @@ def replay_on_base(pin, ledger):
 def mutation_green_on_base(pin):
     with base_worktree() as tree:
         if tree is None:
-            return False
+            return None
         target = tree / pin["file"]
         if not target.exists() or pin["old"].encode() not in target.read_bytes():
             return False
@@ -231,7 +231,10 @@ def recheck(argv, looks):
             if control.returncode == 0:
                 needs_a_look(looks, pin["file"], "mutation and control green")
                 continue
-            if mutation_green_on_base(pin):
+            on_base = mutation_green_on_base(pin)
+            if on_base is None:
+                return 2
+            if on_base:
                 sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")

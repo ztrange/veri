@@ -2270,3 +2270,28 @@ def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_th
 
     assert (ran.returncode, "pin stayed green under its mutation: guard.txt\n" in ran.stderr, "Traceback" in ran.stderr,
             "stale:" in ran.stdout) == (1, True, False, False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a green mutation pin whose base worktree cannot be created")
+def test_3290_a_mutation_pin_green_under_its_mutation_whose_base_worktree_cannot_be_created_exits_2_and_is_not_read_as_a_disarm(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    (tmp_path / "other.txt").write_text("one\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"grep -q throws guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\nmore\n")
+    git("commit", "-q", "-am", "range touches guard.txt")
+    (tmp_path / ".git" / "worktrees").write_text("not a directory\n")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "worktree" in ran.stderr, "pin stayed green" in ran.stderr, "stale:" in ran.stdout,
+            "Traceback" in ran.stderr) == (2, True, False, False, False), ran.stdout + ran.stderr
