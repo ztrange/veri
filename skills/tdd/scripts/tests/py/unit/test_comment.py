@@ -208,3 +208,19 @@ def test_step_done_note_file_text_follows_the_rendered_comment_after_a_blank_lin
 
     assert code == 0
     assert "second step bravo\n\nthe operator note zulu" in posted[0]
+
+
+def test_an_unknown_kind_exits_2_with_usage_posting_and_journaling_nothing(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "bogus-kind"], cwd=tmp_path)
+
+    assert (code, out, err) == (2, "", USAGE)
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
