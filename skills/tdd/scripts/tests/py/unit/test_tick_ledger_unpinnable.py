@@ -204,3 +204,19 @@ def test_main_unpinnable_with_no_case_exits_1_leaves_ledger_and_events_and_says_
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
     assert "a one" in err and "no case" in err
+
+
+def test_main_unpinnable_with_a_bare_case_flag_exits_2_with_the_usage_line_and_touches_nothing_3305(
+        tmp_path, run_cli, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    before = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(before)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, before, False), err
+    assert "usage: tick-ledger.sh" in err

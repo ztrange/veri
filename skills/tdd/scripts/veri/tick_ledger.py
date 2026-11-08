@@ -103,6 +103,9 @@ def main(argv):
             phase, owed, argv = argv[1], True, argv[2:]
         else:
             break
+    if argv[:1] == ["--case"]:
+        print(USAGE, file=sys.stderr)
+        return 2
     reason_text = ""
     matcher = (argv[1:] or [""])[0]
     if reason_file and not case:
