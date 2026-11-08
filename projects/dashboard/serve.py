@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--repo")
     parser.add_argument("--port", type=int)
     args = parser.parse_args()
-    HTTPServer(("", args.port), Handler).serve_forever()
+    HTTPServer(("127.0.0.1",args.port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
