@@ -14,3 +14,10 @@ skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py
 command 373
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp815gv6e5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_an_added_step_on_a_unit_graded_pass_with_a_stale_graded_line_and_no_new_row_refreshes_the_signature_launches_no_author_and_exits_3_3310
 
+before 40
+4618a6f4a6801a18633de2bb0084a310f4ccaaa0
+keep 59
+skills/tdd/scripts/tests/py/test_skill_edit_step_process.py
+command 347
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp_hxtl8nk/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_skill_edit_step_process.py make test TESTS=skills/tdd/scripts/tests/py/test_skill_edit_step_process.py::test_an_added_step_on_a_pass_unit_signs_it_when_graded_has_only_another_units_line_or_no_file_exiting_3_3310
+

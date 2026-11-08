@@ -234,6 +234,14 @@ def _read_existing(names):
     return snapshot
 
 
+def _signature(graded, unit):
+    for line in (graded or b"").decode("utf-8", "replace").splitlines():
+        cells = line.split()
+        if cells[:1] == [unit]:
+            return cells[1:2]
+    return None
+
+
 def _tree():
     tree = {}
     present = set()
@@ -301,7 +309,8 @@ def main(argv):
     else:
         graded, said = 1, "FAIL: unit is empty\n"
     if (added is not None and graded == 0 and change is None and not fresh
-            and _read_existing([graded_file]).get(graded_file) == snapshot.get(graded_file)):
+            and _signature(snapshot.get(graded_file), unit)
+            == _signature(_read_existing([graded_file]).get(graded_file), unit)):
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         undo()
         return 2
