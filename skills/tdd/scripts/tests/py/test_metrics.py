@@ -2194,8 +2194,9 @@ def test_the_report_gives_the_conductor_turns_and_output_tokens_spent_composing_
                turn(40, "🟢 Green: step 2"),
                turn(7),
                turn(25, "🔎 verify-green: PASS"),
+               turn(30, "🟢 Green: step 3 🔎 verify-green: PASS"),
                turn(60, "⛔ Bailed: stuck"),
-               {"type": "result", "total_cost_usd": 1.0, "num_turns": 5}]
+               {"type": "result", "total_cost_usd": 1.0, "num_turns": 6}]
     (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     monkeypatch.chdir(tmp_path)
 
@@ -2205,9 +2206,9 @@ def test_the_report_gives_the_conductor_turns_and_output_tokens_spent_composing_
             for row in table(out, "#### Conductor comments, by family")}
     assert list(rows) == ["✅ Step done", "✅ Done", "🔴 Red", "🟢 Green", "🛠️ Refactor", "🔎 verify-green",
                           "🔎 verify-refactor", "🔎 verify-<phase> (revised)", "🗺️ Plan", "🗺️ verify-plan",
-                          "▶️ Resuming", "⛔ Bailed", "⏹️ Stopped"]
-    assert (rows["🟢 Green"], rows["🔎 verify-green"], rows["⛔ Bailed"], rows["✅ Done"]) == (
-        ("2", "140"), ("1", "25"), ("1", "60"), ("0", "0"))
+                          "▶️ Resuming", "⛔ Bailed", "⏹️ Stopped", "Total"]
+    assert (rows["🟢 Green"], rows["🔎 verify-green"], rows["⛔ Bailed"], rows["✅ Done"], rows["Total"]) == (
+        ("3", "170"), ("2", "55"), ("1", "60"), ("0", "0"), ("5", "255"))
 
 
 def test_a_revised_verify_comment_counts_only_in_the_revised_family_and_a_verify_red_comment_in_the_red_family(tmp_path, monkeypatch, capsys, metrics):
@@ -2345,3 +2346,20 @@ def test_the_comment_family_table_counts_a_comment_whose_tool_use_sits_only_in_a
     rows = {row["family"]: (row["turns"], row["output tokens"])
             for row in table(out, "#### Conductor comments, by family")}
     assert rows["🟢 Green"] == ("1", "100")
+
+
+def test_the_comment_family_table_total_row_counts_a_comment_matching_two_families_once(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    body = "🔴 Red: step 1 🔎 verify-red: PASS"
+    records = [{"type": "system", "subtype": "init"},
+               {"type": "assistant", "message": {"id": "msg_a", "usage": {"input_tokens": 10, "output_tokens": 1},
+                                                 "content": [{"type": "tool_use", "name": "Bash",
+                                                              "input": {"command": "gh issue comment 108 --body '%s'" % body}}]}},
+               {"type": "result", "total_cost_usd": 1.0, "num_turns": 1, "usage": {"output_tokens": 100}}]
+    (tmp_path / ".tdd" / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = {row["family"]: row["turns"] for row in table(out, "#### Conductor comments, by family")}
+    assert rows.get("Total") == "1"
