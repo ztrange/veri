@@ -11,14 +11,17 @@ def tick_ledger():
 
 
 def test_main_already_holds_retires_the_step_with_an_already_holds_step_event_and_no_mutation_claim_3100(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
@@ -35,7 +38,7 @@ def test_main_already_holds_retires_the_step_with_an_already_holds_step_event_an
 
 
 def test_main_unpinnable_refuses_an_already_holds_reason_file_and_leaves_ledger_and_events_untouched_3100(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -43,14 +46,17 @@ def test_main_unpinnable_refuses_an_already_holds_reason_file_and_leaves_ledger_
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
 
 
 def test_main_already_holds_refuses_a_reason_file_with_no_reason_text_and_leaves_ledger_and_events_untouched_3116(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -58,14 +64,17 @@ def test_main_already_holds_refuses_a_reason_file_with_no_reason_text_and_leaves
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON:   \n\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
 
 
 def test_main_already_holds_refuses_an_empty_reason_file_and_leaves_ledger_and_events_untouched_3116(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -73,14 +82,17 @@ def test_main_already_holds_refuses_an_empty_reason_file_and_leaves_ledger_and_e
     reason = tmp_path / "reason.txt"
     reason.write_text("")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
 
 
 def test_main_already_holds_refuses_a_reason_file_with_text_but_no_reason_line_and_leaves_ledger_and_events_untouched_3116(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -88,21 +100,27 @@ def test_main_already_holds_refuses_a_reason_file_with_text_but_no_reason_line_a
     reason = tmp_path / "reason.txt"
     reason.write_text("already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
 
 
 def test_main_already_holds_event_records_the_first_reason_line_with_text_when_the_first_is_blank_3116(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON:   \nREASON: already holds; rerouted to pin step 4\n")
 
-    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events = [json.loads(line) for line in (ledger.parent / "events.jsonl").read_text().splitlines()]

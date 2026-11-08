@@ -12,14 +12,17 @@ def tick_ledger():
 
 
 def test_main_unpinnable_retires_the_matched_step_with_an_unpinnable_step_event_and_no_revise_event_2999(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
 
-    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     events_file = ledger.parent / "events.jsonl"
@@ -33,7 +36,7 @@ def test_main_unpinnable_retires_the_matched_step_with_an_unpinnable_step_event_
 
 
 def test_main_unpinnable_with_any_other_reject_reason_exits_1_and_leaves_ledger_and_events_unchanged_2999(
-        tmp_path, run_cli, tick_ledger):
+        tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     before = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -41,7 +44,10 @@ def test_main_unpinnable_with_any_other_reject_reason_exits_1_and_leaves_ledger_
     reason = tmp_path / "reason.txt"
     reason.write_text("VERDICT: REJECT\nREASON: the test is trivial and over-coupled to the wording\n")
 
-    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), str(ledger), "a one"],
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
