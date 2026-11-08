@@ -21,13 +21,26 @@ def main(argv):
         then = datetime.datetime.strptime(fetched, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
         hours = int((datetime.datetime.now(datetime.timezone.utc) - then).total_seconds() // 3600)
         print("snapshot age: %d hours" % hours)
-        prds = []
+        heads = {}
         for issue in snapshot["issues"]:
             match = re.match(r"PRD (\d+)", issue["title"])
             if match and issue["state"] == "OPEN":
-                prds.append((int(match.group(1)), match.group(1), issue))
-        for _, nnn, issue in sorted(prds, key=lambda p: p[0]):
+                known = heads.get(match.group(1))
+                if known is None or issue["number"] < known["number"]:
+                    heads[match.group(1)] = issue
+        for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
             print("PRD %s (#%d) — %s" % (nnn, issue["number"], issue["title"]))
+            children = []
+            for other in snapshot["issues"]:
+                if other["state"] != "CLOSED":
+                    continue
+                title = re.match(r"PRD (\d+)", other["title"])
+                if title and title.group(1) == nnn or other["number"] in issue["links"] and not title:
+                    children.append(other)
+            week = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+            recent = [c for c in children if datetime.datetime.strptime(
+                c["closedAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) >= week]
+            print("solved: %d (%d in the last 7 days)" % (len(children), len(recent)))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
