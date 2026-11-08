@@ -142,6 +142,8 @@ def mutation_green_on_base(pin):
         if tree is None:
             return False
         target = tree / pin["file"]
+        if not target.exists() or pin["old"].encode() not in target.read_bytes():
+            return False
         target.write_bytes(target.read_bytes().replace(pin["old"].encode(), pin["new"].encode()))
         return subprocess.run(pin["command"], shell=True, cwd=tree, capture_output=True).returncode == 0
 

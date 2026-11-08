@@ -2244,3 +2244,29 @@ def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still
                           "make test TESTS=./x -run TestFoo" in ran.stderr)
 
     assert outcomes == {"invalid": (2, True, True), "usage": (2, True, True)}
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a mutation pin whose file the range adds, so the base lacks it")
+def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_the_base_is_not_stale_and_exits_1_without_a_traceback(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "other.txt").write_text("one\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"grep -q throws guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "range adds guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation: guard.txt\n" in ran.stderr, "Traceback" in ran.stderr,
+            "stale:" in ran.stdout) == (1, True, False, False), ran.stdout + ran.stderr
