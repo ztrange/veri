@@ -778,3 +778,21 @@ def test_queued_merges_omits_a_queued_merge_sh_whose_script_path_is_outside_this
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == []
+
+
+def test_queued_merges_returns_the_pr_url_of_a_queued_merge_sh_reached_through_a_symlink_to_this_clones_scripts_issue_3364(
+        monkeypatch, dispatch, tmp_path):
+    import os
+    import subprocess
+
+    url = "https://github.com/o/r/pull/7"
+    link = tmp_path / "skills-link"
+    os.symlink(dispatch.paths.scripts_of(dispatch.__file__), link)
+    listing = f"sh {link}/queued-merge.sh {url}\n"
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == [url]
