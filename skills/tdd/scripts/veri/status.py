@@ -538,22 +538,21 @@ def read_role_state(role, lane=None):
         return []
 
 
-def recover_state(role, lane=None):
-    lines = read_role_state(role, lane)
-    fields = dict(line.partition("=")[::2] for line in lines)
-    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + [
-        line for line in lines if line.startswith(("timed-n ", "override "))]
-
-
-def recover_pending(role, lane, prefix):
+def recover_items(role, lane, prefix):
     return [line for line in read_role_state(role, lane) if line.startswith(prefix)]
+
+
+def recover_state(role, lane=None):
+    fields = dict(line.partition("=")[::2] for line in read_role_state(role, lane))
+    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + recover_items(
+        role, lane, ("timed-n ", "override "))
 
 
 def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
-              "Pending decisions": lambda: recover_pending(role, lane, "decision "),
-              "Pending messages": lambda: recover_pending(role, lane, "message ")}
+              "Pending decisions": lambda: recover_items(role, lane, "decision "),
+              "Pending messages": lambda: recover_items(role, lane, "message ")}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
