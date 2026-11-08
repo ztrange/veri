@@ -88,10 +88,13 @@ def insert(ledger, branch_file):
         if "⟦skill-edit⟧" not in line:
             break
         pending.append(line)
-    if candidates and all(any(unit in line for line in pending) for unit in candidates):
+    def covered_by(lines):
+        return bool(candidates) and all(any(unit in line for line in lines) for unit in candidates)
+
+    if covered_by(pending):
         return 0
     every = [line for line in unchecked if "⟦skill-edit⟧" in line]
-    if candidates and all(any(unit in line for line in every) for unit in candidates):
+    if covered_by(every):
         named = [line for line in every if any(unit in line for unit in candidates)]
         complain("a non-skill-edit step separates the pending skill-edit steps " + "; ".join(named) + ": reorder them with reorder-ledger-steps.sh")
         return 2
