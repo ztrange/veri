@@ -253,3 +253,22 @@ def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answe
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     lock = lines[lines.index("Merge lock") + 1:lines.index("State")]
     assert code == 0 and lock == ["stale"], (code, lock)
+
+
+def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_state_file(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text("n=7\nlane=default\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
+    words = " ".join(state).split()
+    assert code == 0 and "7" in words and "default" in words, (code, state)

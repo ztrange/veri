@@ -529,8 +529,21 @@ def recover_lock():
     return [out or "free"]
 
 
+def recover_state(role):
+    fields = {}
+    try:
+        with open(os.path.join(main_working_tree(), ".tdd", "role-%s.state" % role)) as f:
+            for line in f:
+                key, _, value = line.rstrip("\n").partition("=")
+                fields[key] = value
+    except FileNotFoundError:
+        pass
+    return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields]
+
+
 def recover(role):
-    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock}
+    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
+              "State": lambda: recover_state(role)}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
