@@ -79,7 +79,14 @@ def report_blocks(repo):
         m = re.match(r"PRD (\d+)", i["title"])
         if m and i["state"] == "OPEN":
             first.setdefault(int(m.group(1)), i)
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>\n<p>owed: stale</p>" % (n, i["number"], i["title"])
+    owed_path = pathlib.Path(repo) / ".tdd" / "report-owed.json"
+    owed = json.loads(owed_path.read_text()) if owed_path.exists() else {}
+
+    def owed_line(n, i):
+        entry = owed.get("%03d" % n)
+        return "" if entry and entry.get("updatedAt") == i["updatedAt"] else "\n<p>owed: stale</p>"
+
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s" % (n, i["number"], i["title"], owed_line(n, i))
                      for n, i in sorted(first.items()))
 
 
