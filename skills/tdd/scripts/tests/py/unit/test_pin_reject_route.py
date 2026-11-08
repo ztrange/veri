@@ -116,3 +116,12 @@ def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_33
     code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
 
     assert (code, "revise" in out) == (2, False), (out, err)
+
+
+def test_main_unpinnable_no_step_matched_exit_3_passes_through_and_prints_no_revise_3300(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 3)
+
+    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
+
+    assert (code, "revise" in out) == (3, False), (out, err)
