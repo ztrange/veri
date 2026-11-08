@@ -12,33 +12,29 @@ def _minutes(events):
     return (int(events[-1]["awake"]) - int(events[0]["awake"])) // 60
 
 
+def _unless_empty(items, render):
+    return render(items) if items else ""
+
+
 def _steps(events):
     plans = [e for e in events if e.get("event") == "plan"]
-    if not plans:
-        return ""
     done = sum(1 for e in events if e.get("event") == "step-done")
-    return " %d/%d" % (done, int(plans[-1]["steps"]))
+    return _unless_empty(plans, lambda p: " %d/%d" % (done, int(p[-1]["steps"])))
 
 
 def _phase(events):
     launches = [e["phase"] for e in events if e.get("event") == "launch"]
-    if not launches:
-        return ""
-    return " %s attempt %d" % (launches[-1], launches.count(launches[-1]))
+    return _unless_empty(launches, lambda l: " %s attempt %d" % (l[-1], l.count(l[-1])))
 
 
 def _counts(events):
     verdicts = [e.get("verdict") for e in events if e.get("event") == "verdict"]
-    if not verdicts:
-        return ""
-    return " PASS %d REJECT %d" % (verdicts.count("PASS"), verdicts.count("REJECT"))
+    return _unless_empty(verdicts, lambda v: " PASS %d REJECT %d" % (v.count("PASS"), v.count("REJECT")))
 
 
 def _cost(events):
     usage = [float(e["total_cost_usd"]) for e in events if e.get("event") == "usage"]
-    if not usage:
-        return ""
-    return " | total | $%.2f" % sum(usage)
+    return _unless_empty(usage, lambda u: " | total | $%.2f" % sum(u))
 
 
 def _split(events):
@@ -46,11 +42,15 @@ def _split(events):
     for e in events:
         if e.get("model"):
             models[e["name"].split("-")[0]] = e["model"]
-    if not models:
-        return ""
-    return " " + " ".join("%s %s" % (r, models[k]) for k, r in
-                          (("develop", "developer"), ("verify", "verifier"), ("revise", "revise"))
-                          if k in models)
+    return _unless_empty(models, lambda m: " " + " ".join(
+        "%s %s" % (r, m[k]) for k, r in
+        (("develop", "developer"), ("verify", "verifier"), ("revise", "revise")) if k in m))
+
+
+def _run_line(path, events):
+    return "<p>%s %dm%s%s%s%s%s</p>" % (
+        path.stem, _minutes(events), _steps(events), _phase(events),
+        _counts(events), _cost(events), _split(events))
 
 
 def running_lines():
@@ -60,13 +60,7 @@ def running_lines():
         events = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
         if not events or any(e.get("event") in ENDING for e in events):
             continue
-        minutes = _minutes(events)
-        steps = _steps(events)
-        phase = _phase(events)
-        counts = _counts(events)
-        cost = _cost(events)
-        split = _split(events)
-        lines.append("<p>%s %dm%s%s%s%s%s</p>" % (path.stem, minutes, steps, phase, counts, cost, split))
+        lines.append(_run_line(path, events))
     return lines
 
 
