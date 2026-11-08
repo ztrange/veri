@@ -233,6 +233,8 @@ def state_labels(event):
     if issue and event == b"bail":
         github.gh_issue_add_label(issue, "bailed")
         github.gh_issue_remove_label(issue, "pr-ready")
+    if issue and event == b"resume":
+        github.gh_issue_remove_label(issue, "bailed")
 
 
 def context(environ):
