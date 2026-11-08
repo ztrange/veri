@@ -2059,3 +2059,38 @@ def test_an_added_step_on_a_unit_graded_pass_with_a_stale_graded_line_and_no_new
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert (code, launched) == (3, []), (code, err, launched)
     assert len(commits) == 1 and len(adds) == 1 and "GRADED" in adds[0] and (tmp_path / "GRADED").read_text() != stale, (adds, commits)
+
+
+def test_a_step_whose_issue_row_has_a_bare_id_the_list_holds_with_different_text_exits_2_naming_the_id_and_both_texts_leaving_the_list_byte_identical_3320(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| A1 | The widget is red. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(original)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    launched = []
+    commands = []
+    grades = [(1, "FAIL: unit says red\n"), (0, "")]
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
+    monkeypatch.setattr(skill_edit_step, "_guard", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    named = "A1" in err and "The widget is red." in err and "The widget is blue." in err
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert (code, named, len(launched), len(commits), (tmp_path / "REQUIREMENTS.md").read_text()) \
+        == (2, True, 0, 0, original), (code, err)
