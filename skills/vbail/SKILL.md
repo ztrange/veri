@@ -67,18 +67,23 @@ on that resume so it re-pins the skill; otherwise resume as it was.
 
 ## A second bail: park
 
-If the run has already been resumed once and bails again, park it. Post one issue comment
-with the cause and what would unblock it, then take the next issue.
+If the run has already been resumed once and bails again, park it with
+`$S/park-issue.sh <n> <cause> <unblock> [<pr>]`, which labels the issue `parked` and posts one
+issue comment with the cause and what would unblock it, then take the next issue.
 
 ## Budgets and ledger
 
 Raise a budget or amend the ledger only on the coordinator's or the human's word, never on
 your own. The change applies to that one resume and is not kept.
 
+To add or replace a step in the committed ledger, on that word, run
+`$S/add-ledger-step.sh .tdd/wt/<n>/.tdd/issue-<n>.md after|before|instead-of <anchor-substring> <text>`.
+
 A ledger step amended in place between runs, on that word, is committed with a `plan: rewrite`
 subject. That commit becomes the growth baseline `ledger-growth.sh plan-sha` reads; under a
 plain `plan:` subject the reworded step reads as a new line with no `⟦added⟧` record, and the
-resumed run bails `step-added-off-route`.
+resumed run bails `step-added-off-route`. Commit it with
+`git -C .tdd/wt/<n> commit -m 'plan: rewrite — <why>' -- .tdd/issue-<n>.md`.
 
 ## What it must not do
 
