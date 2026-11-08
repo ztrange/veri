@@ -602,6 +602,13 @@ def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing
     assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh --target <N>\n", "", [], [])
 
 
+def test_main_with_help_writes_exactly_one_usage_line_to_the_stdout_descriptor_and_nothing_to_stderr(
+        capfd, dispatch):
+    code = dispatch.main(["--help"])
+
+    assert (code, capfd.readouterr()) == (0, ("usage: dispatch.sh --target <N>\n", ""))
+
+
 def test_last_comment_returns_the_body_of_the_issues_last_comment_read_through_the_github_port_without_starting_a_gh_process(
         monkeypatch, dispatch):
     import json
