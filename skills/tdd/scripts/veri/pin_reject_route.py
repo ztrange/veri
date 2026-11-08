@@ -8,10 +8,13 @@ USAGE = "usage: pin-reject-route.sh <reason-file> <ledger-file> <matcher>"
 
 
 def main(argv):
+    flag = "--unpinnable"
+    if argv[:1] == ["--missing-reroute"]:
+        flag, argv = "--already-holds", argv[1:]
     if len(argv) < 3:
         print(USAGE, file=sys.stderr)
         return 2
-    code = tick_ledger.main(["--unpinnable", argv[0], argv[1], argv[2]])
+    code = tick_ledger.main([flag, argv[0], argv[1], argv[2]])
     if code == 0:
         print("retired")
     elif code == 1:
