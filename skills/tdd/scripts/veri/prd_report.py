@@ -34,6 +34,10 @@ def _heads(opened):
     return heads
 
 
+def _ordered_heads(opened):
+    return sorted(_heads(opened).items(), key=lambda p: int(p[0]))
+
+
 def _load(path):
     with open(path) as f:
         return json.load(f)
@@ -50,8 +54,8 @@ def _stale(stored, nnn, issue):
 def _print_stale():
     snapshot = _load(CACHE)
     stored = _load(OWED)
-    heads = _heads([o for o in snapshot["issues"] if o["state"] == "OPEN"])
-    for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
+    opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
+    for nnn, issue in _ordered_heads(opened):
         if _stale(stored, nnn, issue):
             print(nnn)
     return 0
@@ -158,7 +162,7 @@ def _print_report():
     print("snapshot age: %d hours" % hours)
     opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
     stored = _owed()
-    for nnn, issue in sorted(_heads(opened).items(), key=lambda p: int(p[0])):
+    for nnn, issue in _ordered_heads(opened):
         _print_prd(snapshot, opened, stored, nnn, issue, now)
     return 0
 
