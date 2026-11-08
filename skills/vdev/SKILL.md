@@ -49,6 +49,7 @@ conductor exit:
 
 1. Apply any change the coordinator sent since the last decision — a new N (including a timed
    one now due or expired) or an order override — and send the coordinator no reply for it (P13).
+   An N change restarts `dispatch.sh` with the new `--target`.
 2. Count live conductors. While fewer than N are live, launch the next issue (below). When N
    went down, stop nothing: a live run finishes, and its slot is simply not refilled (P8).
 3. When `$S/solvable-issues.sh` exits 3 and no run is live, the queue is empty: say so and stop.
@@ -57,16 +58,18 @@ Keep exactly N conductors running for as long as the solvable list is non-empty.
 
 ## Launching
 
-The next issue is the first line of `$S/solvable-issues.sh` with no live conductor, unless the
-coordinator gave an override (P9). Launch it detached, never as a conductor inside this
-session:
+Launches go through `$S/dispatch.sh`: it launches the next issue (the first line of
+`$S/solvable-issues.sh` with no live conductor, unless the coordinator gave an override, P9)
+detached, never as a conductor inside this session, and only after the previous launch's ledger
+exists. The skill arms no ledger wait of its own.
+
+Every launch, a resume included, appends with `>>` to `.tdd/conductor-<n>.log`, the file
+`stop-reason.sh` and `metrics.sh` read; none truncates it. A launch by hand follows the same
+form:
 
 ```bash
 $S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null
 ```
-
-Every launch, a resume included, appends with `>>` to that `.log`, the file `stop-reason.sh`
-and `metrics.sh` read; none truncates it.
 
 Every conductor launch, a resume included, is followed by:
 
@@ -77,19 +80,25 @@ $S/detach-leaf.sh $S/restart-conductor.sh <n> >> .tdd/restart-<n>.log 2>&1 < /de
 It restarts that run's conductor at its next ledger commit once its growth reaches
 0.85 × `VERI_RESET_GROWTH_CONDUCTOR`. A restart is not an exit to route.
 
-Announce it as `Started #<n> — <title>`, the title read from `gh issue view <n> --json title`.
-
-Launch the next issue only once the previous launch's ledger exists: wait for
-`.tdd/wt/<prev>/.tdd/issue-<prev>.md` with a Monitor on
-`until [ -f .tdd/wt/<prev>/.tdd/issue-<prev>.md ]; do sleep 15; done; echo ledger <prev>`
-(a script that blocks, P3). Until that file exists the issue is not yet claimed, and
-`solvable-issues.sh` would hand it out again.
+`dispatch.sh` launches without printing. Announce each launch recorded in `.tdd/dispatch.log`
+since your last turn as `Started #<n> — <title>`, the title read from
+`gh issue view <n> --json title` (to the coordinator when one is attached, P4).
 
 ## Watching
 
-Wait on the blocking watch of P3: `$S/watch-runs.sh`, run by a Monitor (or a background
-command) itself, never a hand-written script. It prints one line per conductor exit; re-arm
-silently.
+Wait on the blocking watch of P3: `$S/dispatch.sh --target <N>`, run as one background command,
+never under a Monitor and never a hand-written script. It launches and re-arms without printing,
+and prints one line per event:
+
+- `done <n> <pr-url>`
+- `bail <n>`
+- `silent-exit <n>`
+- `merge-failed <pr-url>`
+- `stalled <n>`
+- `queue-empty`
+
+You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
+`until [ -f … ]`, no `while kill -0 <pid>`.
 
 ## Routing an exit
 
@@ -140,7 +149,8 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   `$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null`
   (then the restart line from *Launching*). Neither one: route it as a bail.
 
-Then take the slot decision.
+After routing a `dispatch.sh` line, start `dispatch.sh` again as one background command. Then
+take the slot decision.
 
 ## Running the sibling skills
 
