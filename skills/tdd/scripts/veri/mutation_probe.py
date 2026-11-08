@@ -89,7 +89,7 @@ def main(argv):
         return 2
     domain = tunables.read("VERI_MUTATION_ADDRESS_DOMAIN")
     if domain:
-        for address in re.findall(r"[^\s@]+@[^\s@]+", argv[2]):
+        for address in re.findall(r"[^\s@]+@[^\s@]+", argv[1] + " " + argv[2]):
             if address.rsplit("@", 1)[1] != domain:
                 sys.stderr.write(f"mutation-probe.sh: {address} is outside the allowed address domain {domain}\n")
                 return 2

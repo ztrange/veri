@@ -309,3 +309,30 @@ def test_main_refuses_a_new_with_an_outside_address_when_the_address_domain_is_s
     assert record.read_bytes() == b"before\n"
     assert "x@outside.invalid" in err
     assert "corp.invalid" in err
+
+
+def test_main_refuses_an_old_with_an_outside_address_when_the_address_domain_is_set_3330(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("mail x@outside.invalid now\n")
+    record = tmp_path / "mutations.md"
+    record.write_text("before\n")
+    calls = []
+
+    def fake_run(*a, **k):
+        calls.append(a)
+        return mutation_probe.subprocess.CompletedProcess(a, 1)
+
+    monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "x@outside.invalid", "beta", "--", "false"],
+        env={"VERI_MUTATION_RECORD": str(record), "VERI_MUTATION_ADDRESS_DOMAIN": "corp.invalid"},
+    )
+    assert code == 2
+    assert calls == []
+    assert target.read_bytes() == b"mail x@outside.invalid now\n"
+    assert record.read_bytes() == b"before\n"
+    assert "x@outside.invalid" in err
+    assert "corp.invalid" in err
