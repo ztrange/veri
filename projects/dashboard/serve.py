@@ -55,11 +55,12 @@ setInterval(() => fetch("/running").then(r => r.text()).then(t => {
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        running = "\n".join(running_lines())
         if self.path == "/running":
-            body = "\n".join(running_lines()).encode()
+            body = running.encode()
         else:
             body = ("<!doctype html><title>veri dashboard</title>\n<h2>Running</h2>\n<div id=running>\n"
-                    + "\n".join(running_lines()) + "\n</div>\n" + SCRIPT).encode()
+                    + running + "\n</div>\n" + SCRIPT).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.end_headers()
