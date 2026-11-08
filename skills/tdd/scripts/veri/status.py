@@ -156,7 +156,7 @@ def solvable_count(name):
     return "?"
 
 
-USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report"
+USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report | status.sh --recover <coord|dev> [--lane <lane>]"
 
 
 def parse_args(argv):
