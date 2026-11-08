@@ -64,3 +64,28 @@ def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_t
         [([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), "12"],
           subprocess.DEVNULL, True)],
         b"earlier\nconductor output\n")
+
+
+def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_no_process_while_it_keeps_waiting(
+        monkeypatch, capsys, dispatch):
+    import os
+    launches = []
+    waits = []
+    signals = []
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5", "7"], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(os, "kill", lambda pid, sig: signals.append((pid, sig)))
+
+    try:
+        code = dispatch.main(["--target", "2"])
+    except _StopWaiting:
+        code = None
+
+    assert (launches, signals, waits, code, capsys.readouterr().out) == ([], [], [1], None, "")

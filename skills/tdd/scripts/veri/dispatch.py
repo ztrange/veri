@@ -13,6 +13,7 @@ USAGE = "usage: dispatch.sh --target <N>\n"
 
 solvable_issues = watch_runs.solvable_issues
 wait = watch_runs.wait
+live_conductors = watch_runs.live_conductors
 
 
 def launch(issue):
@@ -27,8 +28,10 @@ def main(argv):
     if not argv:
         sys.stderr.write(USAGE)
         return 2
+    target = int(argv[1])
     while True:
-        launch(solvable_issues()[0])
+        if len(live_conductors()) < target:
+            launch(solvable_issues()[0])
         wait()
 
 
