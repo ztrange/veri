@@ -3419,3 +3419,20 @@ def test_main_3292_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_no
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair %s\n" % own)
+
+
+def test_main_3292_prints_repair_of_the_step_own_case_for_a_green_report_saying_wrong_test_in_prose_without_a_wrong_test_line_and_naming_no_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "This is a WRONG_TEST situation: the red assertion cannot hold because the fixture holds a second matching issue\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair %s\n" % own)
