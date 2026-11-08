@@ -97,8 +97,12 @@ def main(argv):
         for name, value in zip(names[3:], args[3:]):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return _refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
+    if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
+            and re.search(rb"^REASON:.*stays green", _read(args[3]), re.MULTILINE)):
+        return _refuse("build-develop-prompt: a verify-pin rejection saying 'stays green' is routed "
+                       "by pin-reject-route.sh, not revised")
     prompts = f"{HERE}/prompts"
-    template = "revise-diff" if revised_phase == "diff" else phase
+    template ="revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
     paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
     optional = {}
