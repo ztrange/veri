@@ -388,3 +388,38 @@ def test_3223_when_the_conductor_exits_after_its_own_stop_and_the_run_is_not_sto
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.strip(), pending.exists(), calls) == (0, "restarts 7 0", False, [("stop", "at-ledger", "7")])
+
+
+def _relaunch_setup(tmp_path, monkeypatch, alive_script, states):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    alive = iter(alive_script)
+    states = iter(states)
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: next(states, "✅ Done"), raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+    return restart_conductor, alive
+
+
+def test_3223_when_the_new_conductor_is_not_yet_recorded_right_after_the_relaunch_the_watch_waits_for_it_and_goes_on_watching(tmp_path, run_cli, monkeypatch):
+    # initial check, watch, exit, then two empty polls after the relaunch, the new conductor, its end
+    restart_conductor, alive = _relaunch_setup(
+        tmp_path, monkeypatch, [True, True, False, False, False, True, False], ["stopped", "✅ Done"])
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), list(alive)) == (0, "restarts 7 1", [])
+
+
+def test_3223_when_no_conductor_is_recorded_within_the_bound_after_the_relaunch_it_exits_2_naming_it_on_stderr_and_removes_restart_pending(tmp_path, run_cli, monkeypatch):
+    restart_conductor, alive = _relaunch_setup(tmp_path, monkeypatch, [True, True, False], ["stopped"])
+    pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out, "7" in err and "conductor" in err, pending.exists()) == (2, "", True, False)
