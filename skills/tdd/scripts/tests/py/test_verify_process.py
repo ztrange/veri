@@ -498,6 +498,17 @@ def test_verify_sh_pin_whose_appended_record_has_a_command_outside_the_repo_is_r
     assert (done.returncode, command in done.stdout + done.stderr) == (2, True), done.stdout + done.stderr
 
 
+@pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo, around a stub"
+                     " claude that appends a mutation record whose command is repo-relative before answering VERDICT: PASS")
+def test_verify_sh_pin_whose_appended_record_has_a_repo_relative_command_is_accepted_and_keeps_the_append_3357(tmp_path):
+    command = "make test TESTS=skills/tdd/scripts/tests/py/test_x.py"
+    entry = "file 8\nsrc.txt\nold 3\nfoo\nnew 3\nbar\ncommand %d\n%s\n" % (len(command), command)
+    done, record = run_verify_writing(tmp_path, "pin", [], recorded="",
+                                      then="printf '%%s' '%s' >> %s\n" % (entry, tmp_path / ".tdd" / "issue-2741-mutations.md"))
+
+    assert (done.returncode, record.read_text()) == (0, entry), done.stdout + done.stderr
+
+
 @pytest.mark.process("verify.sh pin run as a real shim over veri/verify.py in a throwaway git repo holding a mutation"
                      " record, around a stub claude that deletes it before answering VERDICT: PASS")
 def test_verify_sh_pin_whose_verifier_deletes_its_mutation_record_is_refused_and_the_record_restored_2741(tmp_path):
