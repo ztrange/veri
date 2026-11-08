@@ -280,9 +280,10 @@ def production_files():
 
 def restore_production_files(before, role, env, name):
     for path, content in sorted(before.items()):
-        with open(path, "rb") as f:
-            if f.read() == content:
-                continue
+        if os.path.isfile(path):
+            with open(path, "rb") as f:
+                if f.read() == content:
+                    continue
         with open(path, "wb") as f:
             f.write(content)
         mark(role, env, "production-file-restored", f"name={name}", f"file={path}")

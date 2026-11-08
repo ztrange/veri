@@ -564,3 +564,27 @@ def test_3283_a_develop_leaf_that_deletes_a_mutations_record_its_step_does_not_n
     assert (ran.returncode, other.read_bytes(),
             [("develop-green-1" in l, "issue-41-mutations.md" in l) for l in restored]) == (
         0, b"mutation: b\n", [(True, True)]), ran.stderr
+
+
+@pytest.mark.process("supervise.sh and git run for real: a red leaf's shell deletes an uncommitted production file")
+def test_3298_a_red_leaf_that_deletes_an_uncommitted_production_file_has_it_restored_and_the_supervisor_exits_with_the_leafs_code(tmp_path):
+    work = tmp_path / "work"
+    (work / "src").mkdir(parents=True)
+    (work / ".tdd").mkdir()
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run(["git", "init", "-q"], cwd=work, check=True)
+    prod = work / "src" / "app.py"
+    prod.write_bytes(b"VALUE = 1\n")
+    subprocess.run(git + ["add", "."], cwd=work, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "base"], cwd=work, check=True)
+    prod.write_bytes(b"VALUE = 2\n")
+
+    ran = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-red-1", "sh", "-c", "rm src/app.py; exit 1"],
+                         cwd=work, capture_output=True, text=True,
+                         env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
+                              "VERI_POLL": "0.05", "VERI_ISSUE": "3298", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    events = work / ".tdd" / "events.jsonl"
+    restored = [l for l in events.read_text().splitlines() if "production-file-restored" in l] if events.exists() else []
+
+    assert (ran.returncode, prod.read_bytes() if prod.exists() else None, ["src/app.py" in l for l in restored]) == (
+        1, b"VALUE = 2\n", [True]), ran.stderr
