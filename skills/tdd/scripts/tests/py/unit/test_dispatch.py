@@ -530,3 +530,20 @@ def test_main_with_a_rate_limited_queue_read_waits_for_the_reported_reset_making
         code = None
 
     assert (reads, launches, code) == ([1000, 1030], ["12"], None)
+
+
+def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    results = [run_cli(dispatch, argv) for argv in (["--target", "0"], ["--target", "abc"], ["--target"])]
+
+    usage = (2, "", "usage: dispatch.sh --target <N>\n")
+    assert (results, launches) == ([usage, usage, usage], [])
