@@ -39,13 +39,17 @@ def _load(path):
         return json.load(f)
 
 
+def _stale(stored, nnn, issue):
+    return stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]
+
+
 def main(argv):
     if argv == ["--stale"]:
         snapshot = _load(CACHE)
         stored = _load(OWED)
         heads = _heads([o for o in snapshot["issues"] if o["state"] == "OPEN"])
         for nnn, issue in sorted(heads.items(), key=lambda p: int(p[0])):
-            if stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]:
+            if _stale(stored, nnn, issue):
                 print(nnn)
         return 0
     if argv == ["--report"]:
@@ -89,7 +93,7 @@ def main(argv):
             print("left: solvable now %d, waiting %d on %s, held by no lane %d" % (
                 solvable, len({n for n, _ in waiting}),
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
-            if stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]:
+            if _stale(stored, nnn, issue):
                 print("owed: stale")
             else:
                 answer = stored[nnn]["answer"]
