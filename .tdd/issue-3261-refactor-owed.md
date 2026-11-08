@@ -6,3 +6,5 @@
 - split `main` into per-PRD helper functions (solved, left); this is not duplication removal, so it is not applied here
 ### A PRD block whose holding lanes have fewer than three issues closed in the last 7 days prints `no rate yet` for its ETA ⟦criterion 1⟧
 - split the `main` function in prd_report.py into per-section helpers (head selection, solved, left, ETA), which is a restructuring beyond this cycle's duplication-only remit
+### A PRD block whose holding lanes have three or more issues closed in the last 7 days prints its ETA's lower bound as its left count ÷ the fastest rate, the rate per lane taken from the cache's `lane` field over those closed issues (issues per day at the fastest quartile of `wallSeconds`), an issue with a null `lane` counting toward no lane; the red case's fixture holds two or more open children, so the bound changes when the left count does ⟦added⟧ ⟦criterion 1⟧
+- extract the fastest-lane-rate loop in `main` of `prd_report.py` into a named helper (moves logic, removes no duplication)
