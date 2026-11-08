@@ -29,3 +29,4 @@
 - the `sorted(heads.items(), key=lambda p: int(p[0]))` loop is repeated in `--stale` and `--report`; extract a shared helper
 not-done | transform-rejected | split `main` into load-snapshot, age-line and PRD-selection helpers (not duplication removal, so not applied here)
 not-done | transform-rejected | split `main` in prd_report.py into helpers (snapshot loading, children and solved counting, left-line rendering) — a larger restructuring than this leaf's duplication-only rule allows
+applied | 1cb53f1e3d0d1088e30c795e89c4d6e052e6d7b6 | split `main` into per-PRD helper functions (solved, left); this is not duplication removal, so it is not applied here	refactor: split prd_report.main into per-PRD helper functions (#3261)
