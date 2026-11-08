@@ -32,3 +32,21 @@ phase == "revise" and os
 command 179
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py::test_revise_green_for_a_verify_pin_reason_saying_stays_green_still_builds_the_prompt_3300
 
+before 40
+3b783edb2c5a2d853da2f795e1475f26c80a5518
+keep 57
+skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_3300
+
+file 43
+skills/tdd/scripts/veri/pin_reject_route.py
+old 43
+    elif code == 1:
+        print("revise")
+new 33
+    else:
+        print("revise")
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_3300
+
