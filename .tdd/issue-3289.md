@@ -8,7 +8,7 @@
 - [x] Pin: retiring a step with `tick-ledger.sh --unpinnable` keeps a mutation record whose command's `TESTS=` names a class-qualified case (`<file>::<Class>::<test>`) while that test exists in the tree; a case pins it ⟦added⟧ ⟦criterion 2⟧
 - [x] Pin: retiring a step with `tick-ledger.sh --unpinnable` drops a mutation record whose command's `TESTS=` names a test file that does not exist in the tree, and exits 0; a case pins it ⟦criterion 1⟧
 - [x] Pin: a `tick-ledger.sh --unpinnable` retire that drops a mutation record still appends its `unpinnable-step` event; a case pins it ⟦criterion 1⟧
-- [ ] Pin: a `tick-ledger.sh --already-holds` retire that drops a mutation record still appends its `already-holds-step` event; a case pins it ⟦criterion 1⟧
+- [x] Pin: a `tick-ledger.sh --already-holds` retire that drops a mutation record still appends its `already-holds-step` event; a case pins it ⟦criterion 1⟧
 - [ ] Pin: a `tick-ledger.sh --unpinnable` retire that drops no mutation record leaves `.tdd/issue-<n>-mutations.md` byte-for-byte unrewritten (its bytes and mtime unchanged); a case pins it ⟦criterion 1⟧
 - [ ] A `tick-ledger.sh --unpinnable` retire over a `.tdd/issue-<n>-mutations.md` holding a malformed record exits 2 naming that record on stderr, never an uncaught exception; a case pins it ⟦criterion 1⟧
 - [ ] The `tick-ledger.sh` usage line states that `--unpinnable` and `--already-holds` drop every mutation record whose named test is absent from the tree; its Red updates the verbatim `USAGE` pin in `skills/tdd/scripts/tests/py/unit/test_tick_ledger.py` and the `tick-ledger.sh` cksum pin (`"2087776818 176"`) in `skills/tdd/scripts/tests/py/unit/test_emitted_text.py` to the new text, either failing ⟦criterion 1⟧

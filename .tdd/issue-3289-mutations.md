@@ -28,3 +28,10 @@ skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py
 command 348
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpayocn29s/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_unpinnable.py::test_main_unpinnable_retire_that_drops_a_mutation_record_still_appends_its_unpinnable_step_event_3289
 
+before 40
+9d9a0cdce26ee5e406512ed504ab518d2d7ebcfb
+keep 66
+skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
+command 191
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_retire_that_drops_a_mutation_record_still_appends_its_already_holds_step_event_3289
+
