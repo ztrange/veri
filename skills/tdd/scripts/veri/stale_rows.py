@@ -12,6 +12,7 @@ import tempfile
 import github
 import grade_prose
 
+USAGE = "usage: stale-rows.sh <issue>"
 MARKER = "As is: these rows describe the unit's current text."
 
 
@@ -75,10 +76,10 @@ def cached_grade(unit, rows):
 
 def main(argv):
     if argv == ["--help"]:
-        print("usage: stale-rows.sh <issue>")
+        print(USAGE)
         return 0
     if len(argv) != 1:
-        print("usage: stale-rows.sh <issue>", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
         return 2
     number, code = argv[0], 0
     units = marked_units(github.gh_issue_view(number, "body"))
