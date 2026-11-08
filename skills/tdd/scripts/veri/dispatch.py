@@ -113,7 +113,7 @@ def main(argv):
         seen = live
         ledger = previous and ledger_path(run_dir(previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)) \
-            and time.time() >= resume_at:
+            and clock() >= resume_at:
             try:
                 previous = solvable_issues()[0]
             except watch_runs.QueueUnreadable as failure:
