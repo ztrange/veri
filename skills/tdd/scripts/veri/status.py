@@ -552,7 +552,8 @@ def recover_pending(role, lane, prefix):
 def recover(role, lane=None):
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
-              "Pending decisions": lambda: recover_pending(role, lane, "decision ")}
+              "Pending decisions": lambda: recover_pending(role, lane, "decision "),
+              "Pending messages": lambda: recover_pending(role, lane, "message ")}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
