@@ -15,3 +15,5 @@
 ### A PRD block whose open children are chained by `blockedBy` bounds its ETA by the slowest chain ⟦criterion 1⟧
 - `chain` is redefined on every PRD loop iteration. Lift it to a module-level function that takes `by_number`. This isn't duplication removal, so I didn't apply it.
 - Split the long `main` report branch into per-block helpers. This isn't duplication removal, so I didn't apply it.
+### A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧
+- split `main` in prd_report.py into per-block helpers (children, left, owed, ETA). It is a move of behaviour, not duplication removal.
