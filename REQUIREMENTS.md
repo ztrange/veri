@@ -68,6 +68,7 @@
 | CM77 | macOS checks each new executable on its first run (~330 ms); the fix is `sudo spctl developer-mode enable-terminal`, enabling the terminal under Privacy & Security → Developer Tools and restarting it, and since a Claude desktop session is not covered, conductors are launched from the enabled terminal. (`make test` on the development Mac, fourth bullet.) | The per-executable check otherwise taxes every run. |
 | CM78 | A speed issue states its acceptance criteria as behaviours only and quotes `make profile` before and after in the PR body; CI's `timeout-minutes` is the only wall-clock gate. (`make test` on the development Mac, last bullet.) | Speed is measured and reported, never asserted by a suite. |
 | CM79 | The "Invariants worth not breaking" bullet on blind verification says that `VERI_SKIP_VERIFY` (pinned per run, `plan` never) skips named verifiers, and cites ADR-0033. | The invariant as written would otherwise be false. |
+| CM80 | CLAUDE.md names `Refactor candidates left by #<n>` issues, labelled `refactor` and `refactor-owed` and never opted in, as the refactor-owed items `/vgroom --refactor-owed` reads. (Whole file.) | A run's one candidates issue (ADR-0034) is recognised by title, so grooming reads it and no session mistakes it for queue work. |
 
 ## README.md
 
