@@ -73,6 +73,10 @@ def main(argv):
                 ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
             if stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]:
                 print("owed: stale")
+            else:
+                answer = stored[nnn]["answer"]
+                print("owed: none" if not answer["count"] else "owed: %d (%s)" % (
+                    answer["count"], ", ".join(answer["sections"])))
             lanes = {o["lane"] for o in open_children if o["lane"]}
             if not lanes:
                 print("ETA: no lane: no ETA")

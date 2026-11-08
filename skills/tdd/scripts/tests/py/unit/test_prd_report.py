@@ -593,3 +593,38 @@ def test_report_prints_owed_stale_for_a_prd_with_no_stored_entry_or_a_differing_
     owed = [line for line in out.splitlines() if line.startswith("owed")]
     assert code == 0
     assert owed == ["owed: stale", "owed: stale"], out
+
+
+def test_report_prints_the_stored_owed_answer_for_a_prd_whose_updated_at_matches(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+
+    def issue(number, title, updated):
+        return {"number": number, "title": title, "state": "OPEN", "labels": [], "closedAt": None,
+                "updatedAt": updated, "body": "", "blockedBy": [], "links": [], "wallSeconds": 0,
+                "lane": None}
+
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    issues = [issue(5, "PRD 014: some owed", "2026-11-02T10:00:00Z"),
+              issue(6, "PRD 015: none owed", "2026-11-03T10:00:00Z")]
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+    (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({
+        "014": {"updatedAt": "2026-11-02T10:00:00Z",
+                "answer": {"count": 2, "sections": ["Alpha section", "Beta section"]}},
+        "015": {"updatedAt": "2026-11-03T10:00:00Z", "answer": {"count": 0, "sections": []}}}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    owed = [line for line in out.splitlines() if line.startswith("owed")]
+    assert code == 0
+    assert len(owed) == 2, out
+    assert "stale" not in owed[0] and "2" in owed[0], owed
+    assert "Alpha section" in owed[0] and "Beta section" in owed[0], owed
+    assert owed[1] == "owed: none", owed
