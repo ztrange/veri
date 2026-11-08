@@ -46,3 +46,28 @@ and pr_state(pr_url) == "MERGED"
 command 177
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_nothing_and_takes_the_slot_decision_again_when_a_running_queued_merge_ends_with_the_pr_merged
 
+before 40
+d8c8d1eae1f096c0f1ca7a4ac644422c74562c5d
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 328
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp45ouhdpo/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_dispatch.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599
+
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old 29
+"VERI_DISPATCH_STALL", "3600"
+new 29
+"VERI_DISPATCH_STALL", "3599"
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599
+
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old 29
+"VERI_DISPATCH_STALL", "3600"
+new 29
+"VERI_DISPATCH_STALL", "3601"
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599
+
