@@ -297,6 +297,9 @@ def main(argv):
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
+    if _unparseable_claim(argv[0]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
+        write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
+        return 1
     if case is None and (_unparseable_claim(argv[0]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         write(sys.stdout, "repair " + _case_name(argv[1]))
         return 0
