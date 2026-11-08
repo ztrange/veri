@@ -40,6 +40,15 @@ def last_comment(issue):
     return out.stdout
 
 
+def exit_line(issue):
+    heading = last_comment(issue).splitlines()[0]
+    if heading.startswith("### ⛔ Bailed"):
+        return f"bail {issue}"
+    if not heading.startswith("### ✅ Done"):
+        return f"silent-exit {issue}"
+    return f"done {issue} {heading.split()[-1]}"
+
+
 def main(argv):
     if not argv:
         sys.stderr.write(USAGE)
@@ -51,14 +60,7 @@ def main(argv):
         live = live_conductors()
         for issue in seen:
             if issue not in live:
-                heading = last_comment(issue).splitlines()[0]
-                if heading.startswith("### ⛔ Bailed"):
-                    sys.stdout.write(f"bail {issue}\n")
-                    return 0
-                if not heading.startswith("### ✅ Done"):
-                    sys.stdout.write(f"silent-exit {issue}\n")
-                    return 0
-                sys.stdout.write(f"done {issue} {heading.split()[-1]}\n")
+                sys.stdout.write(exit_line(issue) + "\n")
                 return 0
         seen = live
         ledger = previous and ledger_path(os.path.join(tdd_dir(), "wt", previous), previous)
