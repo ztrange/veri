@@ -183,3 +183,22 @@ def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leav
 
     assert (code, out.strip(), ran, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
         1, "revise", [TARGET], body, False), err
+
+
+def test_main_missing_reroute_already_holds_fallback_runs_the_target_test_and_retires_the_step_3305(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ran = []
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 0)
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the behaviour is already covered by an earlier step\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), ran) == (
+        0, "retired",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n",
+        [TARGET]), err

@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
 command 352
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp123h8cdo/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_with_a_passing_case_retires_the_step_with_one_already_holds_step_event_3305
 
+before 40
+9d9a0cdce26ee5e406512ed504ab518d2d7ebcfb
+keep 57
+skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_missing_reroute_already_holds_fallback_runs_the_target_test_and_retires_the_step_3305
+
