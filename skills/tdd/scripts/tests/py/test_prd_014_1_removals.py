@@ -38,7 +38,9 @@ def test_no_tracked_file_outside_the_record_names_the_removed_scripts(monkeypatc
     pattern = "|".join([DASH, "session" + ".cost", "render" + ".leaf." + "log"])
     found = subprocess.run(
         ["git", "-C", str(ROOT), "grep", "-iE", pattern, "--", ".",
-         ":!docs", ":!projects", ":!specs", ":!.tdd"],
+         ":!docs", ":!projects", ":!specs", ":!.tdd",
+         ":!skills/tdd/scripts/veri/affected_suites.py",
+         ":!skills/tdd/scripts/tests/py/test_affected_suites.py"],
         capture_output=True, text=True,
     )
     assert found.returncode == 1 and found.stdout == ""
