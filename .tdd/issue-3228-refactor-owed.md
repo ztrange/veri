@@ -1,0 +1,2 @@
+### With N or more live conductors `dispatch.sh --target <N>` launches nothing and stops nothing (no launch call and no signal sent to any process) while it keeps waiting; unit-tier, faking the queue read, the live listing, the wait and the launch wrapper ⟦criterion 4⟧
+- test-only | The two `main` cases in `test_dispatch.py` repeat the same setup: the `wait` stub that raises `_StopWaiting`, the four `monkeypatch.setattr` calls, and the try/except that catches `_StopWaiting`. A shared helper or fixture would remove that repetition.
