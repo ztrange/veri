@@ -67,8 +67,13 @@ Every other step takes the verdict as follows:
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
 - **REJECT (exit 1):** run
-  `$S/pin-reject-route.sh [--missing-reroute] .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`,
-  passing `--missing-reroute` on a step reached by a `missing` reroute. It prints `retired`
+  `$S/pin-reject-route.sh [--missing-reroute] .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`,
+  passing `--missing-reroute` on a step reached by a `missing` reroute, and `<target-test>`
+  the step's `TARGET_TEST` from the red leaf's report. The script retires the step only when
+  that case passes, and it runs the case to find out; a failing case makes it print `revise`
+  and exit 1, leaving the line unticked and unmarked with no retirement event, so you enter
+  the revise loop for red (or park the step when the revise budget is spent), never retiring
+  it by hand. It prints `retired`
   or `revise`, except that under `--missing-reroute` a reason saying `stays green` prints neither,
   ticks nothing and exits 2: only the added missing case is unpinnable, not the step. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
@@ -77,7 +82,8 @@ Every other step takes the verdict as follows:
   `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
   loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, a `verify-pin.reason`
   saying `stays green`, so that reason never reaches it); on its exit **2** **bail** as a
-  **system** failure.
+  **system** failure. Exit 2 still means bad arguments (a missing `<target-test>` included) or
+  no answer: read exit 1 as the methodology speaking and exit 2 as the plumbing breaking.
   The revise loop: enter it for the **red** phase, building the prompt as
   `revise red … .tdd/verify-pin.reason` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). The phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
