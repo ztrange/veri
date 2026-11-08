@@ -188,6 +188,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```
+   Right after the structural pass (or this skip) and before the PR is readied, run
+   `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the
+   candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3**
+   (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail**
+   with cause `no-verdict` (`Read` `<base directory>/BAIL.md`). The candidates issue is never
+   labelled with the opt-in label (`VERI_LABEL`) and is filed at most once per run: a resume
+   runs the same command and it replaces the existing issue's body.
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
    sub-step, in this order, from inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so

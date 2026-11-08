@@ -1,5 +1,7 @@
 # A run does a refactor now, or drops it; it never files one
 
+**Partly reversed by [ADR-0034](0034-a-run-files-one-candidates-issue-for-what-it-leaves.md)**: a run now files one `Refactor candidates left by #<n>` issue listing every `out-of-bounds` and `not-done` row; per-candidate `Refactor owed by` issues stay gone.
+
 Extends **ADR-0017** (one refactor leaf per step, bounded by `VERI_REFACTOR_BUDGET`) to the
 structural pass before the PR is readied. A refactor candidate the pass finds is either
 applied in the issue that found it or listed in the PR body under `### Not done` with its
