@@ -46,3 +46,10 @@ CAUSE
 command 160
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_event_roster.py::test_a_cause_constant_on_a_later_line_is_in_the_roster_but_one_not_starting_a_line_is_not
 
+before 40
+91d19e2837e34781e6517dce396e869bc9abd879
+keep 61
+skills/tdd/scripts/tests/py/unit/test_journal_event_roster.py
+command 320
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpe4utiu_z/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_journal_event_roster.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_journal_event_roster.py::test_the_real_guard_fails_on_an_emitted_event_the_journal_names_only_in_prose
+
