@@ -2481,3 +2481,35 @@ def test_3323_a_second_run_after_a_pin_was_retired_neither_replays_it_nor_writes
     assert (first.returncode, second.returncode, retired, mutations.read_text() == after_first,
             (tmp_path / "ran.witness").exists()) == (
         3, 3, ["a later design adds it on purpose"], True, False), first.stderr + second.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that declares one pin retired and leaves another pin whose mutant stays green")
+def test_3323_a_pin_not_declared_retired_beside_a_retired_one_is_still_replayed_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "other.txt").write_text("if other\nthrows\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    record(tmp_path / ".tdd" / "issue-836-mutations.md", file="other.txt", old="if other", new="if (true)",
+           command="grep -q throws other.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / "other.txt").write_text("if other\nthrows\nsafe\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit both files and declare the guard pin retired")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation: other.txt" in ran.stderr, (tmp_path / "ran.witness").exists(),
+            (tmp_path / "other.txt").read_bytes()) == (
+        1, True, False, b"if other\nthrows\nsafe\n"), ran.stdout + ran.stderr
