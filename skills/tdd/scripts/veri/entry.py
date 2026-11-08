@@ -37,8 +37,16 @@ def silence_stdout():
         pass
 
 
+def _usage(main):
+    usage = main.__globals__["USAGE"]
+    return usage[usage.index("usage: "):]
+
+
 def exit_code(main, argv, on_broken_pipe=silence_stdout):
     try:
+        if argv == ["--help"] and "USAGE" in main.__globals__:
+            write(sys.stdout, _usage(main))
+            return 0
         code = main(argv)
         sys.stdout.flush()
     except BrokenPipeError:
