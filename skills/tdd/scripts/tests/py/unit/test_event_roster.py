@@ -90,3 +90,11 @@ def test_a_name_emitted_by_a_bare_mark_call_with_the_role_first_is_in_the_roster
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-role-first-event"}
+
+
+def test_a_name_emitted_by_a_bare_record_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('    return record("lone-bare-record-event", "k=1")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-bare-record-event"}

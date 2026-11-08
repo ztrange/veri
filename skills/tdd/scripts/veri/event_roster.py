@@ -7,7 +7,7 @@ SH_CALL = re.compile(r"event\.sh +([a-z][a-z0-9-]*)")
 MARK_CALL = re.compile(r"""(?:event|verify|supervise)\.mark\((?:[^"']|""|"[^"]*:"|"[A-Za-z_]+"(?=\s*:))*?,\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
 BARE_MARK_CALL = re.compile(r"""mark\([^,]*,\s*[A-Za-z_]\w*\s*,\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
 ROLE_FIRST_MARK_CALL = re.compile(r"""mark\(\s*[A-Za-z_]\w*\s*,\s*"([a-z][a-z0-9-]*)"\s*,""")
-RECORD_CALL = re.compile(r"""push_branch\.record\(\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
+RECORD_CALL = re.compile(r"""record\(\s*"([a-z][a-z0-9-]*)"\s*[,)]""")
 CAUSE_CONST = re.compile(r"""^CAUSE\s*=\s*"([a-z][a-z0-9-]*)"\s*$""", re.M)
 
 
