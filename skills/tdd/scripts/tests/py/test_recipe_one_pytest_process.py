@@ -426,3 +426,36 @@ def test_3340_make_n_test_prints_the_recipe_and_runs_no_case(tmp_path):
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert (ran.returncode, log.read_text().splitlines()) == (0, []), ran.stdout + ran.stderr
+
+
+VERI_GIT_CASE = '''import os
+import subprocess
+
+
+def test_small():
+    subprocess.run(["git", "--version"], capture_output=True)
+    with open(os.environ["PLANTED_RAN_LOG"], "a") as log:
+        log.write("veri git ran\\n")
+'''
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make test started for real over a planted tree holding a passing dashboard case and an unmarked veri case that spawns git, both named in one TESTS list")
+def test_3340_criterion_4_an_unmarked_veri_case_that_spawns_git_still_refuses_beside_a_dashboard_case_and_make_test_exits_non_zero(tmp_path):
+    tree, log = planted_tree(tmp_path, small=VERI_GIT_CASE), tmp_path / "ran.log"
+    dashboard = tree / "projects" / "dashboard"
+    (dashboard / "tests").mkdir(parents=True)
+    (dashboard / "Makefile").write_text(DASHBOARD_MAKEFILE)
+    (dashboard / "tests" / "test_serve.py").write_text(DASHBOARD_CASE)
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    env["PATH"] = os.path.dirname(sys.executable) + os.pathsep + env["PATH"]
+    named = "TESTS=projects/dashboard/tests/test_serve.py skills/tdd/scripts/tests/py/unit/test_planted_small.py"
+
+    ran = subprocess.run(["make", "-C", str(tree), "test", named], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode != 0, log.read_text().splitlines()) == (True, ["dashboard served"]), ran.stdout + ran.stderr
