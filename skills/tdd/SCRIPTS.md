@@ -200,7 +200,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   more than one, the budget is unreadable, `--criterion` names a k that is
   not a whole number ≥ 1, or a text already carries a `⟦criterion k⟧` tag (the script
   names the tag, and one bad text inserts none of the batch), with the ledger left
-  byte-identical. Every text
+  byte-identical. A `<text>` holding the refactor-pending delimiter (a space, `⟂` U+27C2, a
+  space) is also refused with **exit 2**, stderr naming that token, before the ledger is read,
+  so the ledger is left untouched and a batch holding one such text inserts none of them; a
+  text with U+27C2 but no surrounding spaces is still inserted. Every text
   one growth is made of goes in **one call**: the script takes them all at once and reads the
   budget once per call, so a call per text would refuse a third text that one call either fits
   whole or files whole. Every insertion is marked in the log beside the call it made —
