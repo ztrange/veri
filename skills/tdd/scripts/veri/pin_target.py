@@ -9,6 +9,10 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
+    for line in open(argv[0], encoding="utf-8").read().splitlines():
+        if line.startswith("TARGET_TEST:"):
+            print(line.split(":", 1)[1].strip())
+            return 0
 
 
 if __name__ == "__main__":
