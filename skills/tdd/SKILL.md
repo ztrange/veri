@@ -1304,7 +1304,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      Green's stop check after its own push does (exit 0 and exit 2 as it sets them out); on
      exit 3 carry on.
      Then **mirror to the issue**:
-     post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
+     post the `### ✅ Step done` comment by running `$S/comment.sh <n> step-done`, composing none of it, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
      "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
@@ -1373,7 +1373,7 @@ before the re-verify with the same exit 2 outcome. The verifier's verdict closes
   its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
   pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>` and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin, a before record included, whose named test file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired). The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
-  Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
+  Green does, post `### ✅ Step done` by running `$S/comment.sh <n> step-done`, composing none of it, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
   PASS does.
 - **REJECT (exit 1):** a revise of the `⟦diff-checked⟧` step's `develop-diff` work under
