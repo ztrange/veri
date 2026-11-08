@@ -759,3 +759,9 @@ def test_3073_the_sibling_skill_refs_suite_whose_cases_start_no_process_lives_un
     tier = SCRIPTS / "tests" / "py"
     name = "test_sibling_skill_refs.py"
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
+def test_3233_the_operator_scripts_help_guard_suite_whose_cases_start_no_process_lives_under_tests_py_unit_and_not_beside_it():
+    tier = SCRIPTS / "tests" / "py"
+    name = "test_operator_scripts_help_guard.py"
+    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
