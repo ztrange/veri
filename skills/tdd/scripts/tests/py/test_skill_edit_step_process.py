@@ -33,7 +33,7 @@ def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
     claude = tmp_path / "claude"
     claude.write_text(GRADER)
     claude.chmod(0o755)
@@ -94,7 +94,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | secret-why-cell |\n")
+        "| A1<reword> | The widget is crimson. | secret-why-cell |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -151,7 +151,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -200,7 +200,7 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
     claude = tmp_path / "claude"
     claude.write_text(STUB_UNPARSEABLE)
     claude.chmod(0o755)
@@ -247,7 +247,7 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -297,7 +297,7 @@ def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -331,7 +331,7 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -361,7 +361,7 @@ def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_othe
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     claude = tmp_path / "claude"
     claude.write_text(STUB_ALWAYS_REJECT)
     claude.chmod(0o755)
@@ -530,7 +530,7 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
     beside.write_text("## skills/vdev/SKILL.md\n\n" + ROWS)
     (repo / "issue.md").write_text(
         "## Requirements\n\n### skills/vdev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "feat: unit")
     claude = tmp_path / "claude"
@@ -665,7 +665,7 @@ def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_
     beside.write_text("## skills/vdev/SKILL.md\n\n" + ROWS + "\n" + basename_section)
     (repo / "issue.md").write_text(
         "## Requirements\n\n### skills/vdev/SKILL.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n| A3 | The widget never rattles. | steady |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n| A3 | The widget never rattles. | steady |\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "feat: unit")
     claude = tmp_path / "claude"
@@ -789,7 +789,7 @@ def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_ever
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is a deep blue. | shade |\n")
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -823,7 +823,7 @@ def test_an_attempt_that_edits_the_unit_and_a_named_pin_file_commits_the_pin_fil
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -858,7 +858,7 @@ def test_a_step_that_changes_a_checksum_pinned_unit_sentence_leaves_the_pin_matc
     base = git(repo, "rev-parse", "HEAD")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     cap = tmp_path / "cap"
     cap.mkdir()
     claude = tmp_path / "claude"
@@ -946,7 +946,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_three_times_by_defa
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     monkeypatch.chdir(repo)
     for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
         monkeypatch.setenv(name, "t")
@@ -980,7 +980,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     monkeypatch.chdir(repo)
     monkeypatch.setenv("VERI_SKILL_EDIT_BUDGET", "2")
     for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
@@ -1015,7 +1015,7 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     monkeypatch.chdir(repo)
     for name in ("GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"):
         monkeypatch.setenv(name, "t")
@@ -1055,7 +1055,7 @@ def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_l
     git(repo, "commit", "-q", "-m", "feat: unit")
     (repo / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-        "| A1 | The widget is crimson. | shade |\n")
+        "| A1<reword> | The widget is crimson. | shade |\n")
     (repo / ".tdd").mkdir()
     ledger = repo / ".tdd" / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n")
