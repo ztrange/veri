@@ -87,3 +87,19 @@ walls[-1]
 command 168
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_upper_bound_uses_the_slowest_lane_at_its_slowest_wall_quartile_not_its_maximum_wall
 
+before 40
+81559b0229e2826274094d04deedfa63eccce9d3
+keep 51
+skills/tdd/scripts/tests/py/unit/test_prd_report.py
+command 305
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpljn1ti6p/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_range_survives_an_open_child_blocked_by_a_closed_or_uncached_issue
+
+file 37
+skills/tdd/scripts/veri/prd_report.py
+old 58
+for b in by_number[number]["blockedBy"] if b in by_number]
+new 40
+for b in by_number[number]["blockedBy"]]
+command 151
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_range_survives_an_open_child_blocked_by_a_closed_or_uncached_issue
+
