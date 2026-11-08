@@ -2513,3 +2513,35 @@ def test_3323_a_pin_not_declared_retired_beside_a_retired_one_is_still_replayed_
     assert (ran.returncode, "pin stayed green under its mutation: other.txt" in ran.stderr, (tmp_path / "ran.witness").exists(),
             (tmp_path / "other.txt").read_bytes()) == (
         1, True, False, b"if other\nthrows\nsafe\n"), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired with an empty reason")
+def test_3323_a_retire_pin_declaration_with_an_empty_reason_exits_2_and_retires_nothing(tmp_path):
+    import json
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    mutations = tmp_path / ".tdd" / "issue-835-mutations.md"
+    record(mutations, file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    before = mutations.read_text()
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- \n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired with no reason")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    log = tmp_path / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
+    assert (ran.returncode, "retired:" in ran.stdout, mutations.read_text() == before,
+            [e for e in events if e.get("event") == "pin-retired"], (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
+        2, False, True, [], False), ran.stdout + ran.stderr

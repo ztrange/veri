@@ -165,8 +165,11 @@ def recheck(argv, looks):
     deleted = set(git_out("diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD").split())
     declared = {}
     for line in git_out("diff", "-U0", f"{argv[0]}..HEAD", "--", ".tdd").splitlines():
-        m = re.match(r"\+\s*retire-pin: (\S+) (\S+) -- (.+)$", line)
+        m = re.match(r"\+\s*retire-pin: (\S+) (\S+) --(.*)$", line)
         if m:
+            if not m[3].strip():
+                sys.stderr.write(f"retire-pin for {m[1]} {m[2]} has an empty reason\n")
+                return 2
             declared[(m[1], m[2])] = m[3].strip()
     status = 0
     retired = 0
