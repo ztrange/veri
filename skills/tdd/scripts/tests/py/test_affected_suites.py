@@ -1032,7 +1032,7 @@ def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_r
     selected = capsys.readouterr().out.split()
     assert code == 0
     assert prefix + "unit/test_skill_draft_pr.py" in selected
-    assert prefix + "unit/test_skill_detect_call_tier_2433.py" not in selected
+    assert prefix + "unit/test_skill_sections.py" not in selected
 
 
 def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected):
