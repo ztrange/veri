@@ -129,3 +129,77 @@ def test_an_owed_file_with_nothing_out_of_bounds_or_not_done_files_nothing_and_e
     code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
 
     assert (code, out, writes) == (3, "", [])
+
+
+def test_a_second_run_replaces_the_open_issues_body_found_by_its_exact_title_instead_of_creating(
+        tmp_path, monkeypatch, github, run_cli):
+    created, edited = [], []
+    existing = [
+        {"number": 11, "title": "Refactor candidates left by #4"},
+        {"number": 12, "title": "Refactor candidates left by #42 and more"},
+        {"number": 13, "title": "Refactor candidates left by #42"},
+    ]
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: __import__("json").dumps(existing))
+    monkeypatch.setattr(github, "gh_rest_list", lambda *args, **kwargs: __import__("json").dumps(existing))
+    monkeypatch.setattr(github, "gh_issue_create", lambda title, body: created.append(title) or "https://github.com/o/r/issues/99\n")
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_label_ensure", lambda label: None)
+
+    def edit(number, body_file):
+        with open(body_file) as handle:
+            edited.append((str(number), handle.read()))
+
+    monkeypatch.setattr(github, "gh_issue_edit", edit)
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert code == 0
+    assert created == []
+    assert [number for number, _ in edited] == ["13"]
+    assert "rename helper in lib/util.py" in edited[0][1]
+    assert out.strip().endswith("/issues/13")
+
+
+def test_a_closed_issue_with_the_same_title_is_not_found_so_a_new_one_is_created_not_edited(
+        tmp_path, monkeypatch, github, run_cli):
+    created, edited = [], []
+    closed = [{"number": 13, "title": "Refactor candidates left by #42", "url": "https://github.com/o/r/issues/13"}]
+
+    def issue_list(*args):
+        wanted = args[args.index("--state") + 1] if "--state" in args else "all"
+        return __import__("json").dumps([] if wanted == "open" else closed)
+
+    monkeypatch.setattr(github, "gh_issue_list", issue_list)
+    monkeypatch.setattr(github, "gh_rest_list", lambda *args, **kwargs: "[]")
+    monkeypatch.setattr(github, "gh_issue_create", lambda title, body: created.append(title) or "https://github.com/o/r/issues/99\n")
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_label_ensure", lambda label: None)
+    monkeypatch.setattr(github, "gh_issue_edit", lambda number, body_file: edited.append(number))
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert (code, edited) == (0, [])
+    assert created == ["Refactor candidates left by #42"]
+    assert out.strip().endswith("/issues/99")
+
+
+def test_a_replace_prints_the_url_github_returned_for_the_existing_issue(
+        tmp_path, monkeypatch, github, run_cli):
+    url = "https://github.example/acme/widgets/issues/13"
+    existing = [{"number": 13, "title": "Refactor candidates left by #42", "url": url}]
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: __import__("json").dumps(existing))
+    monkeypatch.setattr(github, "gh_issue_edit", lambda number, body_file: None)
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert code == 0
+    assert out.strip() == url
