@@ -2,6 +2,8 @@
 import importlib
 import json
 
+import pytest
+
 
 def test_apply_adds_the_issue_rows_the_units_list_lacks_at_its_end_and_no_row_the_issue_does_not_state(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -2061,18 +2063,23 @@ def test_an_added_step_on_a_unit_graded_pass_with_a_stale_graded_line_and_no_new
     assert len(commits) == 1 and len(adds) == 1 and "GRADED" in adds[0] and (tmp_path / "GRADED").read_text() != stale, (adds, commits)
 
 
-def test_a_step_whose_issue_row_has_a_bare_id_the_list_holds_with_different_text_exits_2_naming_the_id_and_both_texts_leaving_the_list_byte_identical_3320(tmp_path, monkeypatch, run_cli):
+@pytest.mark.parametrize("existing,incoming", [
+    ("The widget is red.", "The widget is blue."),
+    ("The widget is Red.", "The widget is red."),
+    ("The widget is red.", "The widget is blu."),
+], ids=["different-words", "case-only", "equal-length"])
+def test_a_step_whose_issue_row_has_a_bare_id_the_list_holds_with_different_text_exits_2_naming_the_id_and_both_texts_leaving_the_list_byte_identical_3320(tmp_path, monkeypatch, run_cli, existing, incoming):
     monkeypatch.chdir(tmp_path)
     import subprocess
     import types
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
-                "| A1 | The widget is red. | because |\n")
+                f"| A1 | {existing} | because |\n")
     (tmp_path / "REQUIREMENTS.md").write_text(original)
     (tmp_path / "issue.md").write_text(
         "## Requirements\n\n### unit.md\n\n"
-        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | " + incoming + " | because |\n")
     launched = []
     commands = []
     grades = [(1, "FAIL: unit says red\n"), (0, "")]
@@ -2090,7 +2097,7 @@ def test_a_step_whose_issue_row_has_a_bare_id_the_list_holds_with_different_text
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
-    named = "A1" in err and "The widget is red." in err and "The widget is blue." in err
+    named = "A1" in err and existing in err and incoming in err
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert (code, named, len(launched), len(commits), (tmp_path / "REQUIREMENTS.md").read_text()) \
         == (2, True, 0, 0, original), (code, err)
