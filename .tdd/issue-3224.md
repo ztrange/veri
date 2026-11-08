@@ -20,12 +20,19 @@
 - [x] `role-state.sh <role> drop <list> <id>` of an id the list does not hold exits 3 and leaves the state file unchanged ⟦criterion 5⟧
 - [x] `skills/tdd/SCRIPTS.md` gains the `role-state.sh` entry (SC87) and the `status.sh` entry names `--recover` with its sections and exits (SC88), graded by the issue's `## Requirements` rows ⟦skill-edit⟧ ⟦criterion 8⟧
 - [ ] `status.sh --recover coord` with no taken run, no bailed run, no open PR, a free merge lock and no state file prints the headings `Runs`, `Bailed`, `PRs`, `Merge lock`, `State`, `Pending decisions`, `Pending messages` in that order, `none` under each empty one (`free` under `Merge lock`), and exits 0 ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` lists under `Runs` each taken run with its issue, its title and the live conductor's pid, or `dead` when no live conductor holds it ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `Runs` a taken run held by a live conductor with its issue, its title and that conductor's pid ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `Runs` a taken run no live conductor holds with its issue, its title and `dead` in place of a pid ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` lists under `Bailed` each bailed run with its issue and its bail class ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` lists under `PRs` each open PR with its number, the issue it closes, draft or ready, and GitHub's `mergeable_state` ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid, or `stale`, as `merge-lock.sh holder` answers ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` prints under `State` the role's N, its lane, and each timed N change and each order override with its id and time, read from the role's state file (the named lane's file with `--lane <lane>`) ⟦criterion 6⟧
-- [ ] `status.sh --recover <role>` prints under `Pending decisions` and `Pending messages` each pending decision and each pending message in full with its id and time ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `PRs` an open draft PR with its number, the issue it closes, `draft`, and GitHub's `mergeable_state` ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` lists under `PRs` an open PR that is not a draft as `ready` ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid when `merge-lock.sh holder` names a live holder ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints `stale` under `Merge lock` when `merge-lock.sh holder` answers stale ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `State` the role's N and its lane, read from the role's state file ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `State` each order override from the role's state file with its id and time ⟦criterion 6⟧
+- [ ] `status.sh --recover <role> --lane <lane>` reads the named lane's state file `.tdd/role-<role>-<lane>.state`, not the default lane's ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `Pending decisions` each pending decision in full with its id and time ⟦criterion 6⟧
+- [ ] `status.sh --recover <role>` prints under `Pending messages` each pending message in full with its id and time ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` exits 2 when GitHub refuses the open-PR read, its stderr naming that read ⟦criterion 6⟧
 - [ ] `status.sh --recover` given a role other than `coord` or `dev` exits 2 ⟦criterion 6⟧
 - [ ] Round trip (RC3): a case writes one item of every field and list with `role-state.sh`, takes `status.sh --recover`, finds each value verbatim in it, and a second report taken from the files on disk alone is identical to the first; removing any one list from the report turns the case red ⟦criterion 7⟧
