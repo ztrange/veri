@@ -56,3 +56,36 @@ def test_a_wrong_argument_count_prints_usage_on_stderr_and_exits_2_filing_nothin
 
     assert (code, out, created) == (2, "", [])
     assert err.startswith("usage:") and "refactor-candidates.sh" in err
+
+
+def test_body_groups_rows_under_their_module_else_unsorted(tmp_path, monkeypatch, github, run_cli):
+    created = []
+    monkeypatch.setattr(github, "gh_issue_create", lambda title, body: created.append(body) or "https://github.com/o/r/issues/5\n")
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_label_ensure", lambda label: None)
+    monkeypatch.setattr(github, "gh_issue_list", lambda *args: "[]")
+    monkeypatch.setattr(github, "gh_rest_list", lambda *args, **kwargs: "[]")
+    owed = tmp_path / "owed.md"
+    owed.write_text(
+        "- out-of-bounds | rename helper in lib/util.py\n"
+        "not-done | budget-spent | split parse() in src/parse.py\n"
+        "- out-of-bounds | drop dead branch in lib/other.py\n"
+        "not-done | no-predicate | simplify the naming overall\n")
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, _, _ = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert code == 0
+    heading_of = {}
+    heading = None
+    for line in created[0].split("\n"):
+        if not line.strip():
+            continue
+        if line.startswith("- "):
+            heading_of[line] = heading
+        else:
+            heading = line
+    expected = {"util.py": "lib", "other.py": "lib", "parse.py": "src", "naming": "unsorted"}
+    for needle, module in expected.items():
+        (row,) = [r for r in heading_of if needle in r]
+        assert heading_of[row] is not None and module in heading_of[row], (row, heading_of[row])
