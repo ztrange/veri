@@ -89,6 +89,9 @@ no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump,
   a plain `bug` lifts nothing. The bands only reorder the solvable set, never enlarge it,
   inherited bands included: open, opted in (`VERI_LABEL`), unblocked and unclaimed filter first,
   so neither `priority` nor blocking a `priority` issue makes an issue takeable.
+- **Refactor-owed items are issues titled `Refactor candidates left by #<n>`**, labelled `refactor`
+  and `refactor-owed` and never opted in (no `VERI_LABEL`), so selection never takes them;
+  `/vgroom --refactor-owed` reads them.
 
 ## Testing idiom
 
