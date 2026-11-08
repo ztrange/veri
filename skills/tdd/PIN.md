@@ -69,7 +69,8 @@ Every other step takes the verdict as follows:
 - **REJECT (exit 1):** run
   `$S/pin-reject-route.sh [--missing-reroute] .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`,
   passing `--missing-reroute` on a step reached by a `missing` reroute. It prints `retired`
-  or `revise`. The routing is the script's decision, never your reading of the reason. On its
+  or `revise`, except that under `--missing-reroute` a reason saying `stays green` prints neither,
+  ticks nothing and exits 2: only the added missing case is unpinnable, not the step. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
   `REVISE_BUDGET` attempt, post the step's retirement to the thread, and loop back to
   `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a

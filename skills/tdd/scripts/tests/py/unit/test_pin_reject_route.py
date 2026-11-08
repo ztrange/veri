@@ -82,7 +82,7 @@ def test_main_missing_reroute_reject_not_saying_stays_green_retires_the_step_alr
         1, False), err
 
 
-def test_main_missing_reroute_reject_saying_stays_green_still_retires_unpinnable_first_3300(
+def test_main_missing_reroute_reject_saying_stays_green_exits_2_and_ticks_nothing_3300(
         tmp_path, run_cli, pin_reject_route):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
@@ -96,6 +96,21 @@ def test_main_missing_reroute_reject_saying_stays_green_still_retires_unpinnable
     assert (code, "retired" in out, ledger.read_text()) == (
         2, False,
         "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"), err
+
+
+def test_main_missing_reroute_stays_green_matching_no_open_step_exits_3_and_writes_nothing_3343(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "no such step"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (3, "", body, False), err
 
 
 def test_main_no_argument_usage_line_names_the_missing_reroute_flag_3300(run_cli, pin_reject_route):

@@ -23,6 +23,8 @@ def main(argv):
         if "stays green" in reason:
             text = ledger.read_ledger(argv[1])
             _, new = ledger.ledger_tick(text, argv[2], False)
+            if new == text:
+                return 3
             step = tick_ledger.changed_line(text, new).split("] ", 1)[1]
             tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[1])))
             event.append(tdd_parent, event.context(os.environ), "unpinnable-missing", ["step=" + step])
