@@ -171,6 +171,11 @@ def recheck(argv, looks):
                 sys.stderr.write(f"retire-pin for {m[1]} {m[2]} has an empty reason\n")
                 return 2
             declared[(m[1], m[2])] = m[3].strip()
+    held = {(f, r.get("file", r.get("keep"))) for f, r in found}
+    for key in declared:
+        if key not in held:
+            sys.stderr.write(f"retire-pin names no pin: {key[0]} {key[1]}\n")
+            return 2
     status = 0
     retired = 0
     for ledger, pin in pins:
