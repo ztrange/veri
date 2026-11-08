@@ -18,7 +18,10 @@ def main(argv):
         return 2
     issue = github.tunables.read("VERI_STATE_LABEL_ISSUE")
     if issue:
-        github.gh_issue_add_label(issue, "pr-ready")
+        try:
+            github.gh_issue_add_label(issue, "pr-ready")
+        except github.NoAnswer:
+            print("pr-ready.sh: no answer from gh labelling #%s pr-ready" % issue, file=sys.stderr)
     return 0
 
 

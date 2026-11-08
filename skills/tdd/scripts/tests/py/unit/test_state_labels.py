@@ -104,3 +104,12 @@ def test_pr_ready_labels_the_state_label_issue_pr_ready_once_github_marked_the_p
     result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
 
     assert (result, calls) == ((0, "", ""), [HEAD_READ, PORCELAIN, ADD_PR_READY])
+
+
+def test_pr_ready_gh_refuses_to_label_still_exits_0_and_names_the_refusal(run_cli, monkeypatch):
+    pr_ready = importlib.import_module("veri.pr_ready")
+    fake_gh(monkeypatch, lambda args: {HEAD_READ: (0, SHA + "\n", ""), PORCELAIN: (0, "", "")}.get(args, (1, "", "")))
+
+    result = run_cli(pr_ready, ["7", SHA], env={"VERI_GH_DRIVER": "auto", "VERI_STATE_LABEL_ISSUE": "42"})
+
+    assert result == (0, "", "pr-ready.sh: no answer from gh labelling #42 pr-ready\n")
