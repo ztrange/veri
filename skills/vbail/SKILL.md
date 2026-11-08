@@ -71,6 +71,11 @@ If the run has already been resumed once and bails again, park it with
 `$S/park-issue.sh <n> <cause> <unblock> [<pr>]`, which labels the issue `parked` and posts one
 issue comment with the cause and what would unblock it, then take the next issue.
 
+When what would unblock it is another issue landing (a bug the run hit, filed or already open),
+add `--blocked-by <that issue>`: the parked issue then lists it under `## Blocked by`, so the
+blocker inherits the parked issue's selection band, and the parked issue is not selectable
+again until the blocker closes.
+
 ## Budgets and ledger
 
 Raise a budget or amend the ledger only on the coordinator's or the human's word, never on
