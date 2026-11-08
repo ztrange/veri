@@ -55,6 +55,9 @@ def main(argv):
                 if heading.startswith("### ⛔ Bailed"):
                     sys.stdout.write(f"bail {issue}\n")
                     return 0
+                if not heading.startswith("### ✅ Done"):
+                    sys.stdout.write(f"silent-exit {issue}\n")
+                    return 0
                 sys.stdout.write(f"done {issue} {heading.split()[-1]}\n")
                 return 0
         seen = live
