@@ -86,3 +86,22 @@ def test_listed_script_help_prints_usage_on_stdout_and_starts_nothing_and_writes
         seen = "blocked on a process"
 
     assert seen == (0, "", True, [])
+
+
+def test_restart_conductor_help_prints_usage_on_stdout_and_starts_nothing_and_writes_nothing(
+    run_cli, tmp_path, monkeypatch
+):
+    from veri import restart_conductor
+
+    def refuse_to_start(*args, **kwargs):
+        raise Blocked
+
+    monkeypatch.setattr(subprocess, "Popen", refuse_to_start)
+    monkeypatch.setattr(subprocess, "run", refuse_to_start)
+    try:
+        code, out, err = run_cli(restart_conductor, ["--help"], cwd=tmp_path)
+        seen = (code, err, out.startswith("usage: restart-conductor.sh"), list(tmp_path.iterdir()))
+    except Blocked:
+        seen = "blocked on a process"
+
+    assert seen == (0, "", True, [])
