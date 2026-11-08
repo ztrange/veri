@@ -521,8 +521,14 @@ def recover_prs():
     return lines
 
 
+def recover_lock():
+    holder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "merge-lock.sh")
+    out = subprocess.run([holder, "holder"], capture_output=True, text=True).stdout.strip()
+    return [out or "free"]
+
+
 def recover(role):
-    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": lambda: ["free"]}
+    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
