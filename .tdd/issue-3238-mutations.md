@@ -64,3 +64,19 @@ url = "/issues/" + number
 command 146
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py::test_a_replace_prints_the_url_github_returned_for_the_existing_issue
 
+before 40
+f70edde5f86b95391604e3f04a65c214b9b7f0aa
+keep 60
+skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py
+command 288
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpja67gw1x/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py::test_a_github_failure_exits_2_and_files_nothing
+
+file 46
+skills/tdd/scripts/veri/refactor_candidates.py
+old 122
+found = json.loads(github.gh_issue_list("--state", "open", "--search", title + " in:title", "--json", "number,title,url"))
+new 10
+found = []
+command 125
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py::test_a_github_failure_exits_2_and_files_nothing
+

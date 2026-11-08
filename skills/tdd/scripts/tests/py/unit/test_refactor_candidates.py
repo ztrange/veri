@@ -203,3 +203,22 @@ def test_a_replace_prints_the_url_github_returned_for_the_existing_issue(
 
     assert code == 0
     assert out.strip() == url
+
+
+def test_a_github_failure_exits_2_and_files_nothing(tmp_path, monkeypatch, github, run_cli):
+    writes = []
+
+    def fail(*args, **kwargs):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_list", fail)
+    monkeypatch.setattr(github, "gh_rest_list", fail)
+    for name in ("gh_issue_create", "gh_issue_add_label", "gh_label_ensure", "gh_issue_edit"):
+        monkeypatch.setattr(github, name, lambda *args, **kwargs: writes.append(args) or "", raising=False)
+    owed = tmp_path / "owed.md"
+    owed.write_text(OWED)
+    refactor_candidates = importlib.import_module("veri.refactor_candidates")
+
+    code, out, err = run_cli(refactor_candidates, ["42", str(owed)])
+
+    assert (code, out, writes) == (2, "", [])
