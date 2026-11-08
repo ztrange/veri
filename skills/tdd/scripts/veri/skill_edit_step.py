@@ -142,7 +142,8 @@ def _numbered(rows, have):
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
-    rows = _issue_rows(issue, unit)
+    rows = [r.replace("<reword>", "", 1) if _row_id(r).endswith("<reword>") else r
+            for r in _issue_rows(issue, unit)]
     if rows and not os.path.exists(unit):
         _create(unit, path, rows)
         return True
