@@ -5,8 +5,10 @@ import json
 import re
 
 
-def test_report_with_a_snapshot_states_the_snapshots_age_on_its_first_line(run_cli, tmp_path):
+def test_report_with_a_snapshot_states_the_snapshots_age_on_its_first_line(run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
+    issue_worktree = importlib.import_module("issue_worktree")
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     fetched = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=3, minutes=10)
@@ -34,8 +36,10 @@ def test_report_without_a_snapshot_says_there_is_no_snapshot_and_exits_2(run_cli
     assert "no snapshot" in (out + err).lower()
 
 
-def test_report_prints_one_block_per_open_prd_ordered_by_prd_number(run_cli, tmp_path):
+def test_report_prints_one_block_per_open_prd_ordered_by_prd_number(run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
+    issue_worktree = importlib.import_module("issue_worktree")
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
 
@@ -56,8 +60,10 @@ def test_report_prints_one_block_per_open_prd_ordered_by_prd_number(run_cli, tmp
     assert heads == ["PRD 003 (#30) — PRD 003: earlier", "PRD 020 (#7) — PRD 020: later"]
 
 
-def test_report_solved_line_counts_closed_children_and_those_closed_in_the_last_7_days(run_cli, tmp_path):
+def test_report_solved_line_counts_closed_children_and_those_closed_in_the_last_7_days(run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
+    issue_worktree = importlib.import_module("issue_worktree")
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -91,8 +97,10 @@ def test_report_left_line_counts_as_solvable_now_the_open_children_the_opt_in_la
         run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
     solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     listed = {"ready-for-agent:mu": [22, 100, 101]}
 
     def solvable(label, priority="priority", repo=None):
@@ -124,14 +132,17 @@ def test_report_left_line_counts_as_solvable_now_the_open_children_the_opt_in_la
     left = [line for line in lines[start:end] if line.lower().startswith("left")]
     assert code == 0
     assert len(left) == 1 and re.search(r"solvable now\D*\b1\b", left[0], re.I), left
+    assert re.search(r"held by no lane\D*\b2\b", left[0], re.I), left
 
 
 def test_report_left_line_counts_as_waiting_the_open_children_with_an_open_blocker_and_names_each_blocker(
         run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
     solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
 
     def issue(number, title, state="OPEN", blocked=()):
@@ -161,14 +172,17 @@ def test_report_left_line_counts_as_waiting_the_open_children_with_an_open_block
     assert code == 0
     assert len(left) == 1 and re.search(r"waiting\D*\b1\b", left[0], re.I), left
     assert "#50" in left[0] and "#51" not in left[0] and "#52" not in left[0], left
+    assert re.search(r"held by no lane\D*\b4\b", left[0], re.I), left
 
 
 def test_report_left_line_waiting_count_is_the_distinct_open_children_with_an_open_blocker(
         run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
     solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
 
     def issue(number, title, blocked=()):
@@ -193,14 +207,17 @@ def test_report_left_line_waiting_count_is_the_distinct_open_children_with_an_op
     assert code == 0
     assert len(left) == 1 and re.search(r"waiting\D*\b3\b", left[0], re.I), left
     assert "#50" in left[0] and "#52" in left[0], left
+    assert re.search(r"held by no lane\D*\b5\b", left[0], re.I), left
 
 
 def test_report_left_line_names_a_blocker_shared_by_several_waiting_children_once(
         run_cli, tmp_path, monkeypatch):
     prd_report = importlib.import_module("veri.prd_report")
     solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
     monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
 
     def issue(number, title, blocked=()):
@@ -221,3 +238,41 @@ def test_report_left_line_names_a_blocker_shared_by_several_waiting_children_onc
     left = [line for line in out.splitlines() if line.lower().startswith("left")]
     assert code == 0
     assert len(left) == 1 and left[0].count("#50") == 1, left
+    assert re.search(r"held by no lane\D*\b3\b", left[0], re.I), left
+
+
+def test_report_left_line_counts_as_held_by_no_lane_the_open_children_with_no_opt_in_label_and_no_branch_on_origin(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    branches = {"tdd/23": "tdd/23-has-a-branch"}
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: branches.get(n, ""))
+
+    def issue(number, title, label=None):
+        return {"number": number, "title": title, "state": "OPEN", "labels": [{"name": label}] if label else [],
+                "closedAt": None, "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [],
+                "wallSeconds": 0, "lane": None}
+
+    issues = [issue(5, "PRD 014: reports", label="ready-for-agent:mu"),
+              issue(22, "PRD 014: no label, no branch"),
+              issue(23, "PRD 014: no label, but a branch on origin"),
+              issue(24, "PRD 014: opted in", label="ready-for-agent:mu"),
+              issue(99, "PRD 015: other prd head"),
+              issue(100, "PRD 015: other no label, no branch"),
+              issue(101, "PRD 015: another no label, no branch")]
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+
+    code, out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+
+    lines = out.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("PRD 014"))
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("PRD ")), len(lines))
+    left = [line for line in lines[start:end] if line.lower().startswith("left")]
+    assert code == 0
+    assert len(left) == 1 and re.search(r"held by no lane\D*\b1\b", left[0], re.I), left
