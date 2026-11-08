@@ -35,6 +35,19 @@ def test_a_script_requiring_a_positional_argument_exits_2_with_a_usage_line_when
     assert name in err, "%s: usage line does not name it: %r" % (name, err)
 
 
+@pytest.mark.tree_audit("every skills/tdd/scripts/*.sh, read for its usage line and its shim")
+def test_3324_pin_target_with_no_argument_exits_2_with_a_usage_line_naming_the_report_arguments(run_cli):
+    name = "pin-target.sh"
+    script = SCRIPTS / name
+    assert script.is_file(), "%s does not exist" % name
+    assert script.read_text().startswith("#!/bin/sh"), "%s is not a /bin/sh shim" % name
+    assert name in subjects(), "the sweep does not cover %s" % name
+    code, out, err = run_cli(module_of(name), [], env=FLOOR_KNOBS)
+    assert code == 2, "%s: want exit 2, got %s: %s" % (name, code, err)
+    assert "usage" in err, "%s: no usage line on stderr: %r" % (name, err)
+    assert "pin-target.sh <step-red-report> [<red-missing-report>" in err, "usage line: %r" % err
+
+
 def roster_ids(roster):
     return ["%s %s" % (name, " ".join(repr(a) if a == "" else a for a in argv)) for name, argv in roster]
 
