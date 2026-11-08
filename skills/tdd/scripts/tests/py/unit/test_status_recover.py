@@ -445,3 +445,31 @@ def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no
     code, out, err = run_cli(status, ["--recover", "ops"])
 
     assert (code, out) == (2, ""), (code, out, err)
+
+
+def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_and_a_second_report_from_the_files_alone_is_identical(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(role_state, "main_tree", lambda _cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    values = {"n": "9", "lane": "roundtrip-lane"}
+    items = {"decision": "hold the roundtrip release?", "message": "told the roundtrip dev to rebase",
+             "override": "take roundtrip 12 first", "timed-n": "raise roundtrip N to 4"}
+    codes = [run_cli(role_state, ["coord", "set", field, value])[0] for field, value in values.items()]
+    codes += [run_cli(role_state, ["coord", "add", lst, text])[0] for lst, text in items.items()]
+    assert codes == [0] * 6, codes
+
+    first_code, first, _ = run_cli(status, ["--recover", "coord"])
+    second_code, second, _ = run_cli(status, ["--recover", "coord"])
+
+    assert (first_code, second_code) == (0, 0)
+    for value in list(values.values()) + list(items.values()):
+        assert value in first, (value, first)
+    assert second == first
