@@ -450,6 +450,9 @@ def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_namin
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
+    graded_before = (tmp_path / "GRADED").read_text()
     launched = []
     commands = []
     events = []
@@ -469,8 +472,8 @@ def test_an_added_step_on_a_unit_graded_pass_before_any_author_ran_exits_2_namin
     usage = run_cli(skill_edit_step, [])[2]
 
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
-    assert (code, step in err, launched, events, commits, (tmp_path / "GRADED").exists(), "--added" in usage) \
-        == (2, True, [], [], [], False, True), (code, err, launched, events, commits, usage)
+    assert (code, step in err, launched, events, commits, (tmp_path / "GRADED").read_text(), "--added" in usage) \
+        == (2, True, [], [], [], graded_before, True), (code, err, launched, events, commits, usage)
 
 
 def test_an_added_step_stating_a_row_new_to_the_list_on_a_unit_graded_pass_launches_no_author_commits_the_row_and_graded_and_exits_3_2513(tmp_path, monkeypatch, run_cli):
@@ -621,6 +624,9 @@ def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_grad
     (tmp_path / "issue.md").write_text(
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
         "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
+    graded_before = (tmp_path / "GRADED").read_text()
     launched = []
     commands = []
 
@@ -638,7 +644,7 @@ def test_an_added_step_stating_only_rows_the_list_already_carries_on_a_unit_grad
     code, out, err = run_cli(skill_edit_step, ["--added", step, str(tmp_path / "issue.md"), "unit.md"])
 
     commits = [c for c in commands if c[:2] in (["git", "add"], ["git", "commit"])]
-    assert (code, step in err, launched, commits, (tmp_path / "GRADED").exists()) == (2, True, [], [], False), \
+    assert (code, step in err, launched, commits, (tmp_path / "GRADED").read_text()) == (2, True, [], [], graded_before), \
         (code, err, launched, commits)
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
     assert (tmp_path / "unit.md").read_text() == prose
@@ -656,6 +662,9 @@ def test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the
     (tmp_path / "REQUIREMENTS.md").write_text(listing)
     (tmp_path / "issue.md").write_text(
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n" + rows)
+    grade_prose = importlib.import_module("veri.grade_prose")
+    grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
+    graded_before = (tmp_path / "GRADED").read_text()
     launched = []
     commands = []
 
@@ -675,6 +684,7 @@ def test_an_added_step_on_a_unit_graded_pass_exits_2_naming_the_step_leaving_the
     assert code == 2 and "graded PASS before any author ran" in err, (code, out, err)
     assert launched == [] and commits == [], (launched, commits)
     assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
+    assert (tmp_path / "GRADED").read_text() == graded_before
 
 
 def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt_commits_the_list_graded_and_unit_and_exits_0_2063(tmp_path, monkeypatch, run_cli):
