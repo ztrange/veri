@@ -45,3 +45,19 @@ def test_3352_a_step_only_quoting_the_marker_in_double_quotes_still_restores_the
         True,
         [("mutation-record-restored", "name=develop-red-1", f"file={record}")],
     )
+
+
+def test_3352_a_step_only_quoting_the_marker_in_single_quotes_still_restores_the_record_and_emits_the_event(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    record = ".tdd/issue-3352-mutations.md"
+    monkeypatch.setenv("VERI_STEP", f"Explain the 'mutation-record: {record} ' marker in the docs")
+    events = []
+    monkeypatch.setattr(supervise, "mark", lambda role, env, *fields: events.append(fields))
+
+    supervise.restore_mutation_records({record: b"mutation: a\n"}, "role", {}, "develop-red-1")
+
+    assert ((tmp_path / record).exists(), events) == (
+        True,
+        [("mutation-record-restored", "name=develop-red-1", f"file={record}")],
+    )
