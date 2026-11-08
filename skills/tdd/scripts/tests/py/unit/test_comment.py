@@ -224,3 +224,25 @@ def test_an_unknown_kind_exits_2_with_usage_posting_and_journaling_nothing(monke
     assert (code, out, err) == (2, "", USAGE)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_done_posts_the_done_heading_with_the_pr_url_then_the_metrics_file_verbatim_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-5"
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
+    metrics = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n"
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text(metrics)
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert posted == [("7", f"### ✅ Done — {pr}\n\n{metrics}")]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e.get("kind"), e.get("url")) for e in events[1:]] == [("comment", "done", url)]
