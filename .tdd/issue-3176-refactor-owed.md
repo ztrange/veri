@@ -1,0 +1,2 @@
+### `affected-suites.sh` places an edit to `skills/tdd/SUITE-REPAIR.md` on the suites that read that file (the pytest files that mention it), never raising Unplaced and never widening to every suite, because `SKILL_DOCS` in `veri/affected_suites.py` names the file; pinned by a small case over a fixture tree holding exactly two suites that name SUITE-REPAIR.md, compared as a set ⟦criterion 1⟧
+- test-only | fold the new SUITE-REPAIR.md case and the sibling DRAFT-PR.md case into one parametrized case over the doc name
