@@ -31,10 +31,12 @@ def main(argv):
         now = datetime.datetime.now(datetime.timezone.utc)
         hours = int((now - _utc(snapshot["fetched_at"])).total_seconds() // 3600)
         print("snapshot age: %d hours" % hours)
+        opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
+        open_numbers = {o["number"] for o in opened}
         heads = {}
-        for issue in snapshot["issues"]:
+        for issue in opened:
             number = _prd_number(issue["title"])
-            if number and issue["state"] == "OPEN":
+            if number:
                 known = heads.get(number)
                 if known is None or issue["number"] < known["number"]:
                     heads[number] = issue
@@ -50,13 +52,11 @@ def main(argv):
             week = now - datetime.timedelta(days=7)
             recent = [c for c in children if _utc(c["closedAt"]) >= week]
             print("solved: %d (%d in the last 7 days)" % (len(children), len(recent)))
-            open_children = [o for o in snapshot["issues"] if o["state"] == "OPEN"
-                             and _prd_number(o["title"]) == nnn]
+            open_children = [o for o in opened if _prd_number(o["title"]) == nnn]
             solvable = 0
             for label in sorted({l["name"] for o in open_children for l in o["labels"]}):
                 listed = solvable_issues.solvable(label)[1]
                 solvable += sum(1 for o in open_children if o["number"] in listed)
-            open_numbers = {o["number"] for o in snapshot["issues"] if o["state"] == "OPEN"}
             waiting = [(o["number"], b) for o in open_children
                        for b in o["blockedBy"] if b in open_numbers]
             print("left: solvable now %d, waiting %d on %s" % (
