@@ -430,3 +430,18 @@ def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_n
 
     assert code == 2, (code, err)
     assert "pull" in err.lower() or "PR" in err, err
+
+
+def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no_report(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "ops"])
+
+    assert (code, out) == (2, ""), (code, out, err)
