@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py ⟦suite-repair⟧ ⟦criterion 4⟧
