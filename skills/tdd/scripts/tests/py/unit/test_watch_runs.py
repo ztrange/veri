@@ -1129,3 +1129,27 @@ def test_main_reports_no_exited_line_for_a_run_whose_restart_pending_names_a_pid
     code = watch_runs.main(["--max-wait", "25"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_main_reports_the_exited_line_for_a_run_whose_restart_pending_names_a_dead_pid(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    pending = tmp_path / ".tdd" / "wt" / "5" / ".tdd"
+    pending.mkdir(parents=True)
+    (pending / "restart-pending").write_text("%d\n" % os.getpid())
+    listings = iter([["5"]])
+    ticks = itertools.count(0, 10)
+
+    def kill(pid, sig):
+        raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(watch_runs.os, "kill", kill)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "stopped")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "25"])
+
+    out = capsys.readouterr().out
+    assert (code, out.startswith("exited 5 ")) == (0, True), out
