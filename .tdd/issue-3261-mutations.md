@@ -103,3 +103,10 @@ for b in by_number[number]["blockedBy"]]
 command 151
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_report_eta_range_survives_an_open_child_blocked_by_a_closed_or_uncached_issue
 
+before 40
+81559b0229e2826274094d04deedfa63eccce9d3
+keep 51
+skills/tdd/scripts/tests/py/unit/test_prd_report.py
+command 313
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpljn1ti6p/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_prd_report.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_prd_report.py::test_store_owed_for_a_prd_absent_from_the_cache_exits_2_and_leaves_the_owed_file_untouched
+

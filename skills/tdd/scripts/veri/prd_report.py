@@ -58,6 +58,9 @@ def main(argv):
         return 0
     if argv[0] == "--store-owed":
         heads = _heads(_load(CACHE)["issues"])
+        if argv[1] not in heads:
+            print("PRD %s is not in the snapshot" % argv[1], file=sys.stderr)
+            return 2
         stored = _owed()
         stored[argv[1]] = {"updatedAt": heads[argv[1]]["updatedAt"], "answer": _load(argv[2])}
         with open(OWED, "w") as f:
