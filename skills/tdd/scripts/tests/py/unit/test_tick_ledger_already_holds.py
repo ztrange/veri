@@ -178,3 +178,25 @@ def test_main_already_holds_with_a_failing_case_exits_1_leaves_ledger_and_events
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
     assert "a one" in err and "tests/py/test_x.py::test_gone" in err
     assert ran == ["tests/py/test_x.py::test_gone"]
+
+
+def test_main_already_holds_with_a_passing_case_retires_the_step_with_one_already_holds_step_event_3305(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds; rerouted to pin step 4\n")
+    ran = []
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: ran.append(case) or 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger,
+                             ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events = [json.loads(line) for line in (ledger.parent / "events.jsonl").read_text().splitlines()]
+    assert (code, ledger.read_text()) == (
+        0, "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
+    assert [e.get("event") for e in events].count("already-holds-step") == 1
+    assert ran == ["tests/py/test_x.py::test_holds"]
