@@ -151,6 +151,14 @@ def appended(before, after):
     return after is not None and after.startswith(before or b"")
 
 
+def outside_commands(added, root):
+    lines = added.decode("utf-8", "replace").split("\n")
+    root = os.path.realpath(root)
+    return [lines[i + 1] for i, line in enumerate(lines[:-1]) if re.fullmatch(r"command \d+", line)
+            and any(word.startswith("/") and os.path.commonpath([root, os.path.realpath(word)]) != root
+                    for word in lines[i + 1].split())]
+
+
 def gitconfig_snapshot(path):
     try:
         with open(path, "rb") as config:
@@ -446,6 +454,9 @@ def main(argv):
             return 2
         # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
         # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
+        if changed == [own_record] and not record_irregular and appended(record_before, file_bytes(record)):
+            added = file_bytes(record)[len(record_before or b""):]
+            changed = changed + ["command " + c for c in outside_commands(added, top or os.getcwd())]
         if changed and not (changed == [own_record] and not record_irregular
                                                    and appended(record_before, file_bytes(record))):
             diff = save_diff(leaf, tree_before, tree_after)
