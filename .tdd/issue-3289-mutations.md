@@ -35,3 +35,10 @@ skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
 command 191
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_retire_that_drops_a_mutation_record_still_appends_its_already_holds_step_event_3289
 
+before 40
+9d9a0cdce26ee5e406512ed504ab518d2d7ebcfb
+keep 52
+skills/tdd/scripts/tests/py/unit/test_tick_ledger.py
+command 343
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpayocn29s/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_tick_ledger.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_returns_2_naming_that_record_on_stderr_3289
+
