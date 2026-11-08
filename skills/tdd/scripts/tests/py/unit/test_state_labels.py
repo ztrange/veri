@@ -78,3 +78,14 @@ def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue(event, 
     code = event.append(clone(tmp_path), {"issue": "42"}, "resume", [], ts=1700000000)
 
     assert (code, calls) == (0, [DELETE_BAILED])
+
+
+def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_names_the_refusal(event, monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    fake_gh(monkeypatch, lambda args: (1, "", "HTTP 502: Bad Gateway\n"))
+    run = clone(tmp_path)
+
+    code = event.append(run, {"issue": "42"}, "bail", ["cause=revise-exhausted"], ts=1700000000)
+
+    lines = open(run + "/.tdd/events.jsonl").read().count("\n")
+    assert (code, lines, capsys.readouterr().err) == (0, 1, "event: no answer from gh labelling #42's run state\n")

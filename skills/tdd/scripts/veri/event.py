@@ -224,7 +224,10 @@ def append(directory, context, event, fields=(), ts=None):
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
     write_journal(top, context, text)
-    state_labels(args[0])
+    try:
+        state_labels(args[0])
+    except github.NoAnswer:
+        sys.stderr.write("event: no answer from gh labelling #%s's run state\n" % tunables.read("VERI_STATE_LABEL_ISSUE"))
     return 0
 
 
