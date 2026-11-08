@@ -510,8 +510,18 @@ def recover_bailed():
     return lines
 
 
+def recover_prs():
+    out = subprocess.run(["gh", "api", "repos/{owner}/{repo}/pulls?state=open"],
+                         capture_output=True, text=True).stdout
+    lines = []
+    for pr in json.loads(out):
+        closes = re.search(r"[Cc]loses #(\d+)", pr["body"])
+        lines.append("#%d #%s draft %s" % (pr["number"], closes.group(1), pr["mergeable_state"]))
+    return lines
+
+
 def recover(role):
-    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "Merge lock": lambda: ["free"]}
+    bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": lambda: ["free"]}
     for heading in RECOVER_HEADINGS:
         print(heading)
         print("\n".join(bodies.get(heading, list)()) or "none")
