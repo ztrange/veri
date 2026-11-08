@@ -17,6 +17,9 @@ def main(argv):
     with open(ledger_path(".", issue)) as f:
         done = [r for r in ledger_steps(f.read()) if r[1] == "done"]
     body = f"### ✅ Step done\n\n{done[-1][6]}\n"
+    if len(argv) > 3:
+        with open(argv[3]) as f:
+            body += f"\n{f.read()}"
     url = github.gh_issue_comment(issue, body)
     return event.append("", {}, "comment", ["kind=step-done", f"url={url}"])
 

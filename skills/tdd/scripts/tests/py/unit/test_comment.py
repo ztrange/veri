@@ -40,3 +40,24 @@ def test_step_done_posts_the_heading_naming_the_last_done_step_and_appends_a_com
     assert "second step bravo" in body
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "step-done", url)]
+
+
+def test_step_done_note_file_text_is_appended_under_the_rendered_comment(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the operator note zulu\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    body = posted[0]
+    assert body.splitlines()[0] == "### ✅ Step done"
+    assert body.rstrip("\n").endswith("the operator note zulu")
+    assert body.index("second step bravo") < body.index("the operator note zulu")
