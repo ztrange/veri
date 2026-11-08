@@ -28,3 +28,4 @@
 ### `report.sh --store-owed <prd> <file>` for a PRD number absent from `.tdd/report-cache.json` exits 2 instead of raising a KeyError ⟦added⟧ ⟦criterion 4⟧
 - the `sorted(heads.items(), key=lambda p: int(p[0]))` loop is repeated in `--stale` and `--report`; extract a shared helper
 not-done | transform-rejected | split `main` into load-snapshot, age-line and PRD-selection helpers (not duplication removal, so not applied here)
+not-done | transform-rejected | split `main` in prd_report.py into helpers (snapshot loading, children and solved counting, left-line rendering) — a larger restructuring than this leaf's duplication-only rule allows
