@@ -5,12 +5,3 @@ skills/tdd/scripts/tests/py/unit/test_tick_ledger.py
 command 374
 /private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp5z9ingj5/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_tick_ledger.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_cli_with_an_added_file_leaves_it_byte_identical_for_a_planned_step_or_a_failed_ledger_write_and_ticks_only_the_equal_line_for_an_added_step_2976
 
-file 38
-skills/tdd/scripts/veri/tick_ledger.py
-old 50
-match.group(2) == " " and match.group(4) == target
-new 21
-match.group(2) == " "
-command 187
-make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_cli_ticking_a_planned_step_matching_no_added_line_ticks_the_ledger_and_leaves_the_added_file_byte_identical_2976
-
