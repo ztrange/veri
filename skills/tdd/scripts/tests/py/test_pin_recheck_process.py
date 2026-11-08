@@ -77,6 +77,10 @@ def test_2506_a_record_whose_command_stays_green_under_its_mutation_exits_1_nami
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -499,6 +503,10 @@ def test_2876_a_command_that_reads_its_file_and_passes_clean_and_mutated_still_r
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-2876-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -1199,6 +1207,10 @@ def test_2972_an_exit_1_removes_a_receipt_an_earlier_run_left_and_writes_none(tm
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
     (tmp_path / ".tdd").mkdir()
     record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
@@ -1356,6 +1368,10 @@ def test_3151_a_retired_pin_beside_a_live_pin_that_stays_green_exits_1_the_live_
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
+    (tmp_path / "live.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "live.txt").write_text("if guard\nthrows\n")
     (tmp_path / "tests").mkdir()
@@ -1781,11 +1797,13 @@ def test_3160_a_stale_before_state_pin_beside_an_old_format_pin_that_stays_green
     git("init", "-q")
     (tmp_path / "src.txt").write_text("old behaviour\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
-    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    (tmp_path / "guard.txt").write_text("if guard\n")
     git("add", "-A")
-    git("commit", "-q", "-m", "base")
-    base = git("rev-parse", "HEAD")
+    git("commit", "-q", "-m", "main")
     git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    git("commit", "-q", "-am", "base")
+    base = git("rev-parse", "HEAD")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
     git("commit", "-q", "-am", "touch the pin file and disarm guard")
