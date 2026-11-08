@@ -2248,10 +2248,6 @@ def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still
 
 @pytest.mark.process("git, and pin-recheck.sh run over a mutation pin whose file the range adds, so the base lacks it")
 def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_the_base_is_not_stale_and_exits_1_without_a_traceback(tmp_path):
-    def git(*words):
-        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
-                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
-    git("init", "-q")
     (tmp_path / "other.txt").write_text("one\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2324,3 +2320,32 @@ def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (retired.returncode, "base run failed" in ran.stdout + ran.stderr) == (0, False), retired.stderr + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired while its test file survives")
+def test_3323_a_pin_whose_test_survives_and_a_ledger_step_declares_retired_is_not_replayed_and_exits_3(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_guard.py").write_text("def test_g(): pass\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness TESTS=tests/test_guard.py")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] add the method\n  retire-pin: .tdd/issue-835-mutations.md guard.txt -- a later design adds it on purpose\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "edit guard.txt and declare its pin retired")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    retired = [line for line in ran.stdout.splitlines() if line.startswith("retired:")]
+    assert (ran.returncode, retired, (tmp_path / ".tdd" / "pin-recheck-ok").exists(),
+            (tmp_path / "ran.witness").exists()) == (
+        3, ["retired: .tdd/issue-835-mutations.md guard.txt a later design adds it on purpose"], True, False), ran.stderr
