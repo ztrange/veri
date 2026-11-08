@@ -80,3 +80,10 @@ found = []
 command 125
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_refactor_candidates.py::test_a_github_failure_exits_2_and_files_nothing
 
+before 40
+f70edde5f86b95391604e3f04a65c214b9b7f0aa
+keep 44
+skills/tdd/scripts/tests/py/test_adr_0034.py
+command 207
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmpja67gw1x/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/test_adr_0034.py make test TESTS=skills/tdd/scripts/tests/py/test_adr_0034.py
+
