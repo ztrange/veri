@@ -14,6 +14,8 @@ def main(argv):
     code = tick_ledger.main(["--unpinnable", argv[0], argv[1], argv[2]])
     if code == 0:
         print("retired")
+    elif code == 1:
+        print("revise")
     return code
 
 

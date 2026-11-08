@@ -44,3 +44,19 @@ def test_main_usage_on_too_few_arguments_and_nonzero_unpinnable_exit_passes_thro
 
     assert (few[0], few[1], "usage" in few[2].lower(), none[0], "retired" in none[1]) == (
         2, "", True, 3, False), (few, none)
+
+
+def test_main_reject_not_saying_stays_green_prints_revise_and_leaves_ledger_and_events_untouched_3300(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the test is over-coupled to the implementation\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
+        1, "revise", body, False), err
