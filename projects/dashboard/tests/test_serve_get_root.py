@@ -4,6 +4,7 @@ import socket
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 
 import pytest
@@ -462,3 +463,155 @@ def test_page_shows_only_the_roles_with_a_model_in_a_running_runs_model_split(ve
     entry = [l for l in body.splitlines() if "1414" in l]
     assert any("developer sonnet" in l for l in entry)
     assert not any("verifier" in l or "revise" in l or "None" in l for l in entry)
+
+
+@pytest.mark.process("serve.py")
+def test_page_fetches_fresh_running_data_so_an_appended_journal_line_shows_without_reload(veri_home):
+    import re
+
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "1515", "event": event, **extra}) + "\n"
+
+    journal = veri_home / "runs" / "1515.jsonl"
+    journal.write_text(ev(0, "conductor-start") + ev(10, "verdict", verdict="PASS"))
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    base = f"http://127.0.0.1:{port}"
+
+    def get(url):
+        with urllib.request.urlopen(url, timeout=2) as r:
+            return r.read().decode()
+
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                page = get(base + "/")
+                break
+            except OSError:
+                time.sleep(0.05)
+
+        found = re.search(r"""fetch\(\s*["']([^"']+)["']""", page)
+        assert found is not None
+        data_url = urllib.parse.urljoin(base + "/", found.group(1))
+        before = get(data_url)
+        with journal.open("a") as f:
+            f.write(ev(20, "verdict", verdict="REJECT"))
+        after = get(data_url)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert ("PASS 1 REJECT 0" in before, "PASS 1 REJECT 1" in after) == (True, True)
+
+
+@pytest.mark.process("serve.py and node running the page's script")
+def test_open_page_script_rerenders_freshly_fetched_running_data_into_the_page_without_reload(veri_home, tmp_path):
+    import re
+    import shutil
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is needed to run the page's script")
+
+    def ev(awake, event, **extra):
+        return json.dumps({"ts": 1794089519, "awake": awake, "issue": "1616", "event": event, **extra}) + "\n"
+
+    journal = veri_home / "runs" / "1616.jsonl"
+    journal.write_text(ev(0, "conductor-start") + ev(10, "verdict", verdict="PASS"))
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    base = f"http://127.0.0.1:{port}"
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(base + "/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+
+        scripts = re.findall(r"<script[^>]*>(.*?)</script>", page, re.S)
+        element_ids = re.findall(r"""\bid=["']?([\w-]+)""", page)
+        harness = tmp_path / "harness.mjs"
+        harness.write_text(
+            """
+const [base, ids] = [process.argv[2], JSON.parse(process.argv[3])];
+const els = {};
+globalThis.document = { getElementById: (id) => ids.includes(id) ? (els[id] ??= { innerHTML: "" }) : null };
+globalThis.setInterval = (cb) => { cb(); return 1; };
+const realFetch = globalThis.fetch;
+globalThis.fetch = (u, ...rest) => realFetch(new URL(u, base + "/"), ...rest);
+const src = JSON.parse(process.argv[4]);
+for (const s of src) (0, eval)(s);
+setTimeout(() => { console.log(JSON.stringify(els)); }, 1500);
+"""
+        )
+
+        def rendered():
+            out = subprocess.run(
+                [node, str(harness), base, json.dumps(element_ids), json.dumps(scripts)],
+                capture_output=True, text=True, timeout=20,
+            )
+            return " ".join(el["innerHTML"] for el in json.loads(out.stdout).values())
+
+        before = rendered()
+        with journal.open("a") as f:
+            f.write(ev(20, "verdict", verdict="REJECT"))
+        after = rendered()
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert ("PASS 1 REJECT 0" in before, "PASS 1 REJECT 1" in after) == (True, True)
+
+
+def test_page_script_fetches_a_data_only_endpoint_holding_running_lines_and_no_page_markup(veri_home):
+    import re
+
+    journal = veri_home / "runs" / "1515.jsonl"
+    journal.write_text(
+        json.dumps({"ts": 1794089519, "awake": 0, "issue": "1515", "event": "conductor-start"}) + "\n"
+        + json.dumps({"ts": 1794089519, "awake": 10, "issue": "1515", "event": "verdict", "verdict": "PASS"}) + "\n"
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    base = f"http://127.0.0.1:{port}"
+
+    def get(url):
+        with urllib.request.urlopen(url, timeout=2) as r:
+            return r.read().decode()
+
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                page = get(base + "/")
+                break
+            except OSError:
+                time.sleep(0.05)
+
+        found = re.search(r"""fetch\(\s*["']([^"']+)["']""", page)
+        assert found is not None
+        data = get(urllib.parse.urljoin(base + "/", found.group(1)))
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert ("1515" in data and "PASS 1 REJECT 0" in data, "<script" in data, "<h2" in data) == (True, False, False)
