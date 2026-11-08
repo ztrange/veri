@@ -31,8 +31,8 @@ project specific (labels, test commands, where PRDs live).
 3. Switch off every claude.ai connector loaded in this session, for this session only, with the
    desktop app's per-session connector tool; never change the account's settings. The
    coordinator needs none of them, and their tool definitions are re-read on every turn.
-4. With a dev session attached, arm no watch: its messages are your watch (below). With none
-   attached, arm the watch (below) and stay in it.
+4. Arm no watch, with or without a dev session attached: you watch no run state yourself. You
+   act on the dev session's messages and on the human's turns (below).
 
 ## What you do and do not do
 
@@ -91,21 +91,17 @@ awaits your ruling or merge instruction (between batches), never in the middle o
 
 ## Watching
 
-**While a dev session is attached, you watch no run state yourself**: arm no Monitor on
-`watch-runs.sh` and run no `status.sh`. You learn of conductor exits, bails and merges from the
-dev session's messages, and a report that needs no action gets a single `.` (P4).
-
-**With no dev session attached**, watch through the blocking watch of P3, `$S/watch-runs.sh`,
-which prints one line per conductor exit. Run `watch-runs.sh` itself under a Monitor (or as a
-background command), never a hand-written script. When the watch returns, re-read the state the
-line names (P1), act if it calls for it, and re-arm at once; a re-arm gets a single `.` (P4).
+**You watch no run state yourself, with or without a dev session attached**: arm no Monitor or
+background watch on `watch-runs.sh`, `dispatch.sh` or any other script, and run no `status.sh`
+to watch. You act on what the dev session sends you (a decision, a bail it has not handled, a
+cost surprise) and on the human's turns; a report that needs no action gets a single `.` (P4).
 
 On each event:
 
 - **Conductor start** the dev session already announced, **merge** already reported, routine
-  dev-session message, a pong, watch expiry, a progress check you made yourself: a single `.`; re-arm
-  if you armed a watch. This
-  holds while a human decision is pending: it was asked once, and these events do not re-ask it.
+  dev-session message, a pong, a watch expiry, a progress check you made yourself: a single `.`.
+  This holds while a human decision is pending: it was asked once, and these events do not
+  re-ask it.
 - **Bail or stall** the dev session has not handled: one line to the human, then whatever
   decision it needs, restated in full.
 - **Red CI on the default branch**: one line to the human; file the issue if the cause is
