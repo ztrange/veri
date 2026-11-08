@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import glob
+import json
 import os
 import shutil
 import tempfile
@@ -175,6 +176,8 @@ def recheck(argv, looks):
         if reason:
             sys.stdout.write(f"retired: {ledger} {mutated_file} {reason}\n")
             retired += 1
+            with open(".tdd/events.jsonl", "a") as log:
+                log.write(json.dumps({"event": "pin-retired", "reason": reason}) + "\n")
             pin["retired"] = reason
             Path(ledger).write_text("".join(
                 "".join(f"{k} {len(v)}\n{v}\n" for k, v in r.items()) + "\n" for f, r in found if f == ledger))
