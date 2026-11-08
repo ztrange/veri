@@ -579,3 +579,24 @@ def test_main_with_an_unknown_flag_in_the_first_position_prints_the_usage_on_std
     code, out, err = run_cli(dispatch, ["--frobnicate", "5"])
 
     assert (code, out, err, launches) == (2, "", "usage: dispatch.sh --target <N>\n", [])
+
+
+def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing_and_reading_no_queue(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    reads = []
+
+    def solvable():
+        reads.append(1)
+        return ["12"]
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    code, out, err = run_cli(dispatch, ["--help"])
+
+    assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh --target <N>\n", "", [], [])
