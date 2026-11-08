@@ -373,3 +373,34 @@ def test_main_prints_stalled_and_exits_0_when_a_live_conductors_event_log_record
         code = None
 
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
+
+
+def test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    events.parent.mkdir(parents=True)
+    events.write_text('{"event": "leaf-start"}\n')
+    os.utime(events, (1000, 1000))
+    ticks = [1000 + 3599, 1000 + 3600]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 4:
+            raise _StopWaiting
+
+    monkeypatch.delenv("VERI_DISPATCH_STALL", raising=False)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, len(waits)) == (0, "stalled 7\n", 2)
