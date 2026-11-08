@@ -2,3 +2,5 @@
 - test-only | The two `main` cases in `test_dispatch.py` repeat the same setup: the `wait` stub that raises `_StopWaiting`, the four `monkeypatch.setattr` calls, and the try/except that catches `_StopWaiting`. A shared helper or fixture would remove that repetition.
 ### A conductor that was live and exits, whose issue's last comment is neither a `### ✅ Done` nor a `### ⛔ Bailed` comment, makes `dispatch.sh` print `silent-exit <n>` and exit 0, running no further check of its own (the P10 checks stay the role's); unit-tier, faking the live listing, the wait and the last-comment read ⟦criterion 7⟧
 - test-only | the five tests that script a conductor exit repeat the same `lives`/`wait`/monkeypatch setup, so a shared fixture or helper would remove it
+### An unknown flag (e.g. `dispatch.sh --target 1 --frobnicate`) makes `dispatch.sh` print the usage on stderr and exit 2, launching nothing; unit-tier, run in-process with `run_cli` ⟦criterion 12⟧
+- extract the argument validation in `main` (usage, stall window, `--target <N>`) into a `parse_args` helper
