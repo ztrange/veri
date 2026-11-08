@@ -256,3 +256,13 @@ def test_set_with_a_field_other_than_n_or_lane_exits_2_with_usage_and_writes_no_
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
     code, out, err = run_cli(role_state, ["coord", "set", "color", "red"], cwd=repo)
     assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
+
+
+@pytest.mark.process("git")
+def test_add_with_a_list_other_than_the_four_exits_2_with_usage_and_writes_no_state_file(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    code, out, err = run_cli(role_state, ["coord", "add", "gossip", "hello"], cwd=repo)
+    assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
