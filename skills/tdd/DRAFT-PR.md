@@ -325,15 +325,18 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    reviewer sees which issue criterion is still waiting on them. A ledger holding no
    `⟦human-owed⟧` line adds no such section.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
-4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
-   under it, pasted verbatim from the file just committed — or, when `$metrics` is not 0,
-   the PR body's failed-render line for `metrics.sh` and `$metrics` in place of that block.
-   When `.tdd/issue-<n>-skip-verify` is non-empty, add `⚠️ Unverified phases: <list>` to it.
-   It mirrors the
-   `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
-   Before posting it, run `$S/stop-requested.sh`; on exit 0 or 2 run
-   `$S/stop-requested.sh --clear` and add a line to the comment saying that a stop arrived
-   after the last step, so the run finished rather than pausing — on exit 3 add nothing.
+4. Before posting it, run `$S/stop-requested.sh`. Then post the final done comment by running
+   `$S/comment.sh <n> done`, composing none of it: it posts `### ✅ Done — <pr-url>` (the url from
+   the `done` mark sub-step 2 wrote) with the same `### 📊 Metrics` block under it, verbatim from
+   the file just committed — or, when that file is absent or unusable and `metrics.sh` cannot render
+   it, the line `metrics could not be rendered: metrics.sh exited <code>` in its place. When
+   `.tdd/issue-<n>-skip-verify` is non-empty it adds `⚠️ Unverified phases: <list>`, and when
+   `.tdd/stop` exists (the stop request just asked about) it adds the line saying that a stop arrived
+   after the last step, so the run finished rather than pausing. It writes a `comment` event and no
+   second `done` mark; exit 2 (no `done` mark, or no answer from GitHub) is a system failure: **bail**
+   with cause `no-verdict` (`Read` `<base directory>/BAIL.md`). When the earlier
+   `$S/stop-requested.sh` exited 0 or 2, run `$S/stop-requested.sh --clear` after the call, so the
+   next run is not paused by it; on exit 3 add nothing.
 
 **The worktree stays.** Do not remove it here: it holds the run's leaf logs and is where a
 resume would land if the PR comes back for more work. It is removed once the PR is **merged**

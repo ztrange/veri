@@ -1,5 +1,8 @@
 """comment.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
+import io
+import os
 import sys
 
 import event
@@ -24,13 +27,22 @@ def post_done(issue):
     for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
         if e.get("event") == "done":
             pr = e["pr"]
+    if pr is None:
+        print("comment.sh: no done event in .tdd/events.jsonl, so there is no pr-url to post", file=sys.stderr)
+        return 2
     metrics = read_or_empty(f".tdd/issue-{issue}-metrics.md")
     if not metrics.startswith("### 📊 Metrics"):
-        code = metrics_module.main([issue])
-        metrics = f"metrics could not be rendered: metrics.sh exited {code}"
+        rendered = io.StringIO()
+        with contextlib.redirect_stdout(rendered):
+            code = metrics_module.main([issue])
+        metrics = rendered.getvalue()
+        if code != 0 or not metrics.startswith("### 📊 Metrics"):
+            metrics = f"metrics could not be rendered: metrics.sh exited {code}"
     pinned = read_or_empty(f".tdd/issue-{issue}-skip-verify").strip()
     if pinned:
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
+    if os.path.isfile(".tdd/stop"):
+        metrics = f"{metrics.rstrip()}\nA stop arrived after the last step, so the run finished rather than pausing.\n"
     url = github.gh_issue_comment(issue, f"### ✅ Done — {pr}\n\n{metrics}")
     return event.append("", {}, "comment", ["kind=done", f"url={url}"])
 
