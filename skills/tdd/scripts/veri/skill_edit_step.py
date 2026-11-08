@@ -301,7 +301,7 @@ def main(argv):
     else:
         graded, said = 1, "FAIL: unit is empty\n"
     if (added is not None and graded == 0 and change is None and not fresh
-            and _read_existing([graded_file]) == {k: v for k, v in snapshot.items() if k == graded_file}):
+            and _read_existing([graded_file]).get(graded_file) == snapshot.get(graded_file)):
         print("added step graded PASS before any author ran, so no prose would change: " + added, file=sys.stderr)
         undo()
         return 2
