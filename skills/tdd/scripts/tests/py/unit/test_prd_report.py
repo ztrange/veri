@@ -721,3 +721,13 @@ def test_store_owed_for_a_prd_absent_from_the_cache_exits_2_and_leaves_the_owed_
     assert code == 2
     assert "KeyError" not in err, err
     assert json.loads((tmp_path / ".tdd" / "report-owed.json").read_text()) == {"016": other}
+
+
+def test_no_argument_prints_the_usage_line_on_stderr_and_exits_2(run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+
+    code, out, err = run_cli(prd_report, [], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "report.sh" in err
+    assert "--report" in err
