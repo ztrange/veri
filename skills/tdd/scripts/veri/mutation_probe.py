@@ -63,12 +63,18 @@ def before_state(argv):
     returncode = run_with(restored, command)
     if returncode == 0:
         return 1
-    fields = [("before", sha), ("keep", keep), ("command", shlex.join(command))]
+    fields = [("before", sha), ("keep", keep), ("command", shlex.join(timed_stripped(command)))]
     if not names_issue_ledger(tunables.read("VERI_MUTATION_RECORD")):
         green = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
         fields.append(("green", green))
     append_record(fields)
     return 0
+
+
+def timed_stripped(command):
+    if Path(command[0]).resolve() == Path(__file__).resolve().parent.parent / "timed-test-run.sh":
+        return command[3:]
+    return command
 
 
 def names_issue_ledger(record):
