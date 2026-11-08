@@ -28,7 +28,7 @@
 - [x] `status.sh --recover <role>` prints under `Merge lock` the live holder's pid when `merge-lock.sh holder` names a live holder ⟦criterion 6⟧
 - [x] `status.sh --recover <role>` prints `stale` under `Merge lock` when `merge-lock.sh holder` answers stale ⟦criterion 6⟧
 - [x] `status.sh --recover <role>` prints under `State` the role's N and its lane, read from the role's state file ⟦criterion 6⟧
-- [x] `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧ ⟂ refactor pending
+- [x] `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` prints under `State` each order override from the role's state file with its id and time ⟦criterion 6⟧
 - [ ] `status.sh --recover <role> --lane <lane>` reads the named lane's state file `.tdd/role-<role>-<lane>.state`, not the default lane's ⟦criterion 6⟧
 - [ ] `status.sh --recover <role>` prints under `Pending decisions` each pending decision in full with its id and time ⟦criterion 6⟧

@@ -11,3 +11,5 @@
 - test-only | extract the duplicated fake `subprocess.run` and the `lines` and Runs-slice parsing in `test_status_recover.py` into helpers
 ### `status.sh --recover <role>` lists under `Runs` a taken run no live conductor holds with its issue, its title and `dead` in place of a pid ⟦criterion 6⟧
 - test-only | extract the repeated `run` stub and the tmp-tree setup in `test_status_recover.py` into a shared helper or fixture
+### `status.sh --recover <role>` prints under `State` each timed N change from the role's state file with its id and time ⟦criterion 6⟧
+- test-only | the `monkeypatch` setup and the stub `run` function are repeated across the `test_status_recover.py` cases; a shared fixture could replace them, but the cases are frozen, so I left it.
