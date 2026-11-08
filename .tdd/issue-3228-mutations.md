@@ -71,3 +71,21 @@ new 29
 command 176
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599
 
+before 40
+d8c8d1eae1f096c0f1ca7a4ac644422c74562c5d
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 316
+/private/var/folders/pd/gj5qklqn5jl5cwzqt6036jhr0000gn/T/tmp45ouhdpo/scripts/timed-test-run.sh target skills/tdd/scripts/tests/py/unit/test_dispatch.py make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_nothing_and_keeps_waiting_when_solvable_issues_exits_3_while_a_conductor_is_live
+
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old 59
+                if not live:
+                    sys.stdout
+new 55
+                if True:
+                    sys.stdout
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_nothing_and_keeps_waiting_when_solvable_issues_exits_3_while_a_conductor_is_live
+
