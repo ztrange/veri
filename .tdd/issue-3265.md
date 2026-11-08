@@ -15,7 +15,7 @@
 - [x] fix the full-suite failure: projects/dashboard/tests/test_veri_make_test_scope.py — FAILED test_veri_make_test_collects_nothing_under_projects_dashboard: assert (0, True) == (0, False) ⟦suite-repair⟧ ⟦criterion 4⟧ ⟂ retired unpinnable
 - [x] A line appended to a running run's journal shows on the already-open page without a reload (the page fetches fresh Running data from the server and re-renders it) ⟦criterion 4⟧
 - [x] veri's own `make test`, run for real, collects no case under `projects/dashboard/` and never calls the dashboard runner, whatever text the root Makefile's recipe prints for `make -n test` ⟦added⟧ ⟦criterion 1⟧ ⟂ retired unpinnable
-- [ ] `serve.py`'s source opens files only under `$VERI_HOME/runs/` and at `<repo>/.tdd/report-cache.json`; pinned by a case that checks its source ⟦criterion 3⟧
+- [x] `serve.py`'s source opens files only under `$VERI_HOME/runs/` and at `<repo>/.tdd/report-cache.json`; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source starts no process: no `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*` or `os.fork`; pinned by a case that checks its source ⟦criterion 3⟧
 - [ ] `serve.py`'s source imports nothing under `skills/` and adds no `skills/` path to `sys.path`; pinned by a case that checks its source ⟦criterion 3⟧

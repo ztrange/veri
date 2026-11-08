@@ -158,3 +158,19 @@ if true; then printf
 command 237
 /Users/marioferreira/.veri-tools/venv/bin/python3 -m pytest -q -p no:cacheprovider skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py::test_3265_a_plain_make_test_collects_no_dashboard_case_and_never_calls_the_dashboard_runner
 
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 51
+projects/dashboard/tests/test_serve_source_reads.py
+command 221
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmp2ddnc37g/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_source_reads.py make test TESTS=projects/dashboard/tests/test_serve_source_reads.py
+
+file 27
+projects/dashboard/serve.py
+old 7
+import 
+new 19
+import subprocess, 
+command 72
+python3 -m pytest -q projects/dashboard/tests/test_serve_source_reads.py
+
