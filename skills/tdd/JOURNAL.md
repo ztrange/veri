@@ -6,6 +6,7 @@
 |---|---|---|
 | `bail` | `cause`, `classification`, `suites` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step. |
 | `conductor-start` | `pid`, `started` | A conductor began a run: its process id and start time. |
+| `conductor-restart` | `growth`, `knob` | restart-conductor.sh relaunched a run's conductor: the plan-growth count that triggered it and the knob whose change it picks up. |
 | `criterion-unticked` | `issue`, `matcher` | An issue acceptance criterion was unticked: the issue number and the text that matched it. |
 | `done` | `pr`, `wall_seconds`, `awake_seconds`, `lane` | The run finished: the PR url, wall-clock seconds since the opening event (or last `resume`), awake-clock seconds over the same span (absent without both clocks), and the lane label. |
 | `exit` | `status`, `cause`, `secs` | A supervised leaf exited: its exit status, why when it was killed or refused (`cause`, absent otherwise), and the seconds it ran. |
