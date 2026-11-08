@@ -1396,6 +1396,8 @@ of Red, Green and Refactor, `Read` and run `<base directory>/PHASED.md`.
 
 When `next-unchecked.sh` exits 3 — every ledger step checked off but the `⟦full-suite⟧` and `⟦human-owed⟧` lines it skips — `Read` `<base directory>/DRAFT-PR.md` then and not before, and run it as step 4, *Draft PR*.
 
+In that step, right after the structural pass (or its `nothing-structural` skip) and before the PR is readied, run `$S/refactor-candidates.sh <n> .tdd/issue-<n>-refactor-owed.md` once. Exit **0** prints the candidates issue's url, which goes in the PR body's `## Refactor owed` section; exit **3** (nothing out-of-bounds or not done) does nothing; exit **2** is a system failure: **bail** with cause `no-verdict` (`Read` `<base directory>/BAIL.md`). The candidates issue is never labelled with the opt-in label (`VERI_LABEL`) and is filed at most once per run: a resume runs the same command and it replaces the existing issue's body.
+
 ## Detecting the test command
 
 Do not pick it by hand. Run `$S/detect-test-command.sh --tier fast --issue <body-file> <repo-root>` (its command goes through `detach-command.sh`)
