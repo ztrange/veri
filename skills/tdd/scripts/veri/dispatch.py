@@ -80,10 +80,7 @@ def exit_line(issue):
     return f"done {issue} {heading.split()[-1]}"
 
 
-def main(argv):
-    if argv == ["--help"]:
-        sys.stdout.write(USAGE)
-        return 0
+def parse_args(argv):
     if (
         not argv
         or not stall_window().isdigit()
@@ -92,9 +89,18 @@ def main(argv):
         or not argv[1].isdigit()
         or int(argv[1]) == 0
     ):
+        return None
+    return int(argv[1])
+
+
+def main(argv):
+    if argv == ["--help"]:
+        sys.stdout.write(USAGE)
+        return 0
+    target = parse_args(argv)
+    if target is None:
         sys.stderr.write(USAGE)
         return 2
-    target = int(argv[1])
     previous = None
     seen = []
     merges = []
