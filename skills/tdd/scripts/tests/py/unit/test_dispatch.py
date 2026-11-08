@@ -19,7 +19,8 @@ class _StopWaiting(Exception):
 
 
 def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_issue_silently_and_keeps_waiting(
-        monkeypatch, capsys, dispatch):
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
     launches = []
     waits = []
 
@@ -27,6 +28,8 @@ def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_i
         waits.append(1)
         raise _StopWaiting
 
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -116,3 +119,30 @@ def test_main_launches_the_next_issue_only_once_the_previous_launch_has_its_ledg
         dispatch.main(["--target", "3"])
 
     assert seen_at_wait == [["12"], ["12"], ["12", "15"]]
+
+
+def test_main_appends_one_launched_line_with_the_local_iso_time_to_dispatch_log_under_the_main_working_tree_per_launch(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    waits = []
+    launched = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 2:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [i for i in ["12", "15"] if i not in launched], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: launched.append(issue) or (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
+                        or (tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md").write_text("x"),
+                        raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "2"])
+
+    assert (tmp_path / ".tdd" / "dispatch.log").read_text() == (
+        "launched 12 2026-11-07T10:30:00\nlaunched 15 2026-11-07T10:30:00\n")

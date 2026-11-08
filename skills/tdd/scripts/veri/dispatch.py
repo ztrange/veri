@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import subprocess
 import sys
+from datetime import datetime
 
 import paths
 import status
@@ -15,6 +16,10 @@ USAGE = "usage: dispatch.sh --target <N>\n"
 solvable_issues = watch_runs.solvable_issues
 wait = watch_runs.wait
 live_conductors = watch_runs.live_conductors
+
+
+def now():
+    return datetime.now().isoformat(timespec="seconds")
 
 
 def launch(issue):
@@ -36,6 +41,8 @@ def main(argv):
         if len(live_conductors()) < target and (previous is None or os.path.exists(ledger)):
             previous = solvable_issues()[0]
             launch(previous)
+            with open(os.path.join(status.main_working_tree(), ".tdd", "dispatch.log"), "a") as log:
+                log.write(f"launched {previous} {now()}\n")
         wait()
 
 
