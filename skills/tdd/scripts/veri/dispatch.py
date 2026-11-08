@@ -22,9 +22,13 @@ def now():
     return datetime.now().isoformat(timespec="seconds")
 
 
+def tdd_dir():
+    return os.path.join(status.main_working_tree(), ".tdd")
+
+
 def launch(issue):
     scripts = paths.scripts_of(__file__)
-    log = os.path.join(status.main_working_tree(), ".tdd", f"conductor-{issue}.log")
+    log = os.path.join(tdd_dir(), f"conductor-{issue}.log")
     with open(log, "ab") as out:
         subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), issue],
                          stdin=subprocess.DEVNULL, stdout=out, stderr=out)
@@ -54,11 +58,11 @@ def main(argv):
                 sys.stdout.write(f"done {issue} {heading.split()[-1]}\n")
                 return 0
         seen = live
-        ledger = previous and ledger_path(os.path.join(status.main_working_tree(), ".tdd", "wt", previous), previous)
+        ledger = previous and ledger_path(os.path.join(tdd_dir(), "wt", previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)):
             previous = solvable_issues()[0]
             launch(previous)
-            with open(os.path.join(status.main_working_tree(), ".tdd", "dispatch.log"), "a") as log:
+            with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
                 log.write(f"launched {previous} {now()}\n")
         wait()
 
