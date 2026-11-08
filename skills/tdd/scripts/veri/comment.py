@@ -26,6 +26,13 @@ def post_done(issue):
     if not metrics.startswith("### 📊 Metrics"):
         code = metrics_module.main([issue])
         metrics = f"metrics could not be rendered: metrics.sh exited {code}"
+    try:
+        with open(f".tdd/issue-{issue}-skip-verify") as f:
+            pinned = f.read().strip()
+    except FileNotFoundError:
+        pinned = ""
+    if pinned:
+        metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
     url = github.gh_issue_comment(issue, f"### ✅ Done — {pr}\n\n{metrics}")
     return event.append("", {}, "comment", ["kind=done", f"url={url}"])
 

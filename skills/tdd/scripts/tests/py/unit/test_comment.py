@@ -307,3 +307,23 @@ def test_done_leaves_the_journal_with_its_one_done_event_plus_the_one_comment_ev
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [e["event"] for e in events] == ["done", "comment"]
     assert events[0] == json.loads(done)
+
+
+def test_done_carries_the_unverified_phases_line_when_skip_verify_is_non_empty_though_the_metrics_block_lacks_it(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-5"
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n")
+    (tmp_path / ".tdd" / "issue-7-skip-verify").write_text("refactor\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert "⚠️ Unverified phases: refactor" in posted[0][1].splitlines()
