@@ -20,7 +20,11 @@ leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the ver
 exit 2 means the leaf left no `SUITE:` line, so launch no verifier and **bail** as a system
 failure with cause `report-missing` (`Read` `<base directory>/BAIL.md`). The `diff` revise leaf asks for the line too, so after its wait
 exits 0 the same check, `$S/suite-reported.sh revise-diff-<k>` for the `revise-diff-<k>` leaf, runs
-before the re-verify with the same exit 2 outcome.
+before the re-verify with the same exit 2 outcome. After the `develop-diff` leaf's wait exits 0, and after each
+`revise-diff-<k>`, before its verifier, run `$S/diff-leaf-deviation.sh <leaf> <step-base-sha> .tdd/issue-<n>.md`.
+Exit 0 means a deviation was found and recorded as a `diff-leaf-deviation` event; exit 3 means the one-commit
+flow, or no commit for an unchanged criterion. Both go on to the verifier. Exit 2 **bails** the run. Never
+reset, squash or repair the leaf's commits.
 
 The `develop-diff` leaf's commit, and each `revise-diff-<k>` leaf's, are the step's work: leave
 each as made, and run no `git reset --soft`, squash or re-commit on it. After a PASS the
