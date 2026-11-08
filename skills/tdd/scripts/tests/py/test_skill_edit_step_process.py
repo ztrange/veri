@@ -1081,3 +1081,34 @@ def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_l
             sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()),
             "crimson" in (repo / "REQUIREMENTS.md").read_text()] \
         == [0, 1, 0, 1, ["GRADED", "REQUIREMENTS.md", "unit.md"], True], (inserted.stderr, ran.stdout, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh --added run against real git repositories with a stub grader")
+def test_an_added_step_on_a_pass_unit_signs_it_when_graded_has_only_another_units_line_or_no_file_exiting_3_3310(tmp_path):
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    seen = {}
+    for name, graded in (("other_line", "other.md 0123456789ab 2020-01-01 g1 t1\n"), ("no_file", None)):
+        repo = tmp_path / name
+        repo.mkdir()
+        git(repo, "init", "-q", "-b", "main")
+        (repo / ".gitignore").write_text(".tdd/\n")
+        (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+        (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+        (repo / "issue.md").write_text(
+            "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+            "| A1 | The widget is blue. | shade |\n")
+        if graded is not None:
+            (repo / "GRADED").write_text(graded)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", "feat: unit")
+        ran = subprocess.run([str(STEP), "--added", "sign the widget", "issue.md", "unit.md"], cwd=repo,
+                             capture_output=True, text=True, env=env)
+        signed = (repo / "GRADED").read_text() if (repo / "GRADED").exists() else ""
+        seen[name] = [ran.returncode, any(l.startswith("unit.md ") for l in signed.splitlines()),
+                      git(repo, "status", "--porcelain")]
+
+    assert seen == {"other_line": [3, True, ""], "no_file": [3, True, ""]}, seen
