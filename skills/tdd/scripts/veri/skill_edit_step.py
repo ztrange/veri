@@ -26,6 +26,10 @@ def _row_id(row):
     return requirements.split_cells(row)[1]
 
 
+def _row_text(row):
+    return requirements.split_cells(row)[2]
+
+
 def _requirements_lines(issue):
     return requirements.requirements_lines(requirements.read_lines(issue))
 
@@ -166,7 +170,7 @@ def apply(issue, unit):
         elif in_unit and line.startswith("|"):
             last = number
             row = reworded.get(_row_id(line), line)
-            lines[number] = None if requirements.split_cells(row)[2] == "(dropped)" else row
+            lines[number] = None if _row_text(row) == "(dropped)" else row
     lines[last + 1:last + 1] = new
     _write(path, [l for l in lines if l is not None])
     return moved
@@ -296,13 +300,13 @@ def main(argv):
     listed = _listed_ids(path, unit)
     texts = _listed_texts(path, unit)
     clashes = [r for r in issue_rows if _row_id(r) in texts
-               and requirements.split_cells(r)[2] != texts[_row_id(r)]]
+               and _row_text(r) != texts[_row_id(r)]]
     for r in clashes:
         print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
-              % (_row_id(r), texts[_row_id(r)], requirements.split_cells(r)[2]), file=sys.stderr)
+              % (_row_id(r), texts[_row_id(r)], _row_text(r)), file=sys.stderr)
     if clashes:
         return 2
-    fresh = any(_row_id(r) not in listed or requirements.split_cells(r)[2] != texts.get(_row_id(r))
+    fresh = any(_row_id(r) not in listed or _row_text(r) != texts.get(_row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
     if not _claimed(path, unit):
