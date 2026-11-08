@@ -14,6 +14,7 @@ def now():
 
 
 def replace(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         f.write(text)
@@ -48,8 +49,6 @@ def main(argv):
         return usage()
     if argv[1] == "set" and len(argv) == 4 and argv[2] not in ("n", "lane"):
         return usage()
-    if argv[1] in ("set", "add") and len(argv) == 4 or argv[1] == "recovered":
-        os.makedirs(os.path.dirname(path), exist_ok=True)
     if argv[1] == "recovered":
         append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), os.environ["CLAUDE_CODE_SESSION_ID"]))
         return 0
