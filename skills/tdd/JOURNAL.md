@@ -19,6 +19,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `merged` | `issue`, `pr`, `tag`, `message` | The PR was merged: `issue` is the issue number; `pr` the PR url; `tag` the version tag cut (empty when none); `message` the tag's capability message (empty when no tag). |
 | `mutation-record-restored` | `name`, `file` | A mutation record a leaf disturbed was restored: the record's name and file. |
 | `pin` | — | The skill snapshot was pinned to a commit. |
+| `pin-retired` | `reason` | pin-recheck.sh retired a pin that a later issue's design supersedes: the reason the declaration gave. |
 | `plan` | `steps` | The plan was written to the ledger: the number of steps. |
 | `prediction-diverged` | — | A step's predicted outcome differed from the observed one. |
 | `preflight-refused` | `check`, `cause`, `classification` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`). |
