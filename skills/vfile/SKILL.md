@@ -78,6 +78,11 @@ reads the plan out of these headings.
 1. **Duplicates and related issues.** Search the repo's issues (`gh api --paginate`, not a
    capped `gh issue list`) for a duplicate and for related ones. A duplicate is not filed again;
    report it instead. Name any **follow-ups** the issue leaves for later.
+   **A duplicate bug is a bug hit again**, so before reporting it, on the existing issue: post one
+   comment, `Hit again: run #<n> (lane `<lane>`)` (or `Hit again: reported by the human` outside a
+   run, `<lane>` as in `filed-by:<lane>`), adding what this occurrence showed only where it differs
+   from the body; and add `priority`, taking `low-risk` off, since a bug that recurs costs on every
+   occurrence. Both go on whatever lane holds it, and change nothing else on it.
 2. **Check the inputs.** Check that **every input a criterion names exists** (file, script,
    command, label), and that **the criterion's literal rule meets its goal**: read as written,
    passing it must really achieve what the issue is for.
