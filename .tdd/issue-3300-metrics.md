@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3300
 
-Wall time for the issue: 1121 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3338 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 17 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Steps done: 10 of 17 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3319.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.16 over 161 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $12.25 over 216 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78741 tokens, largest 234310 tokens
-Conductor context: first turn 78715 tokens, largest 158361 tokens
+Conductor context: first turn 78715 tokens, largest 160151 tokens
+Conductor context: first turn 78711 tokens, largest 165799 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -133,92 +134,148 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 114 | $0.07 | 232056 |
 | 115 | $0.07 | 234004 |
 | 116 | $0.07 | 234310 |
-| 117 | $0.49 | 78715 |
-| 118 | $0.06 | 84472 |
-| 119 | $0.03 | 85989 |
-| 120 | $0.07 | 92506 |
-| 121 | $0.05 | 96779 |
-| 122 | $0.02 | 97133 |
-| 123 | $0.02 | 97511 |
-| 124 | $0.02 | 97728 |
-| 125 | $0.02 | 98038 |
-| 126 | $0.02 | 98432 |
-| 127 | $0.02 | 98694 |
-| 128 | $0.03 | 99425 |
+| 117 | $0.50 | 78715 |
+| 118 | $0.07 | 84472 |
+| 119 | $0.04 | 85989 |
+| 120 | $0.08 | 92506 |
+| 121 | $0.07 | 96779 |
+| 122 | $0.03 | 97133 |
+| 123 | $0.03 | 97511 |
+| 124 | $0.03 | 97728 |
+| 125 | $0.04 | 98038 |
+| 126 | $0.03 | 98432 |
+| 127 | $0.03 | 98694 |
+| 128 | $0.04 | 99425 |
 | 129 | $0.03 | 100095 |
-| 130 | $0.02 | 100636 |
-| 131 | $0.02 | 101179 |
-| 132 | $0.03 | 101803 |
-| 133 | $0.03 | 103008 |
-| 134 | $0.04 | 105299 |
-| 135 | $0.04 | 107371 |
+| 130 | $0.04 | 100636 |
+| 131 | $0.03 | 101179 |
+| 132 | $0.04 | 101803 |
+| 133 | $0.04 | 103008 |
+| 134 | $0.05 | 105299 |
+| 135 | $0.05 | 107371 |
 | 136 | $0.03 | 107877 |
-| 137 | $0.03 | 108402 |
-| 138 | $0.03 | 108993 |
+| 137 | $0.04 | 108402 |
+| 138 | $0.04 | 108993 |
 | 139 | $0.03 | 109430 |
-| 140 | $0.03 | 110172 |
-| 141 | $0.13 | 124074 |
+| 140 | $0.04 | 110172 |
+| 141 | $0.15 | 124074 |
 | 142 | $0.03 | 124433 |
-| 143 | $0.03 | 125105 |
-| 144 | $0.03 | 125612 |
-| 145 | $0.03 | 125909 |
-| 146 | $0.04 | 127530 |
-| 147 | $0.03 | 128369 |
-| 148 | $0.03 | 128915 |
-| 149 | $0.03 | 129669 |
-| 150 | $0.04 | 131074 |
-| 151 | $0.03 | 131740 |
-| 152 | $0.03 | 132687 |
-| 153 | $0.04 | 133958 |
-| 154 | $0.03 | 134596 |
-| 155 | $0.03 | 135503 |
-| 156 | $0.05 | 138842 |
-| 157 | $0.04 | 140290 |
-| 158 | $0.04 | 141207 |
-| 159 | $0.07 | 146914 |
-| 160 | $0.08 | 153777 |
+| 143 | $0.04 | 125105 |
+| 144 | $0.04 | 125612 |
+| 145 | $0.04 | 125909 |
+| 146 | $0.05 | 127530 |
+| 147 | $0.04 | 128369 |
+| 148 | $0.04 | 128915 |
+| 149 | $0.05 | 129669 |
+| 150 | $0.05 | 131074 |
+| 151 | $0.04 | 131740 |
+| 152 | $0.04 | 132687 |
+| 153 | $0.05 | 133958 |
+| 154 | $0.04 | 134596 |
+| 155 | $0.05 | 135503 |
+| 156 | $0.06 | 138842 |
+| 157 | $0.05 | 140290 |
+| 158 | $0.05 | 141207 |
+| 159 | $0.08 | 146914 |
+| 160 | $0.10 | 153777 |
 | 161 | $0.07 | 158361 |
+| 162 | $0.05 | 159159 |
+| 163 | $0.05 | 160151 |
+| 164 | $0.49 | 78711 |
+| 165 | $0.06 | 84507 |
+| 166 | $0.03 | 86091 |
+| 167 | $0.06 | 91560 |
+| 168 | $0.06 | 96719 |
+| 169 | $0.02 | 97364 |
+| 170 | $0.02 | 97824 |
+| 171 | $0.02 | 98163 |
+| 172 | $0.02 | 98811 |
+| 173 | $0.02 | 99231 |
+| 174 | $0.02 | 99578 |
+| 175 | $0.03 | 100600 |
+| 176 | $0.03 | 101433 |
+| 177 | $0.03 | 102402 |
+| 178 | $0.03 | 103118 |
+| 179 | $0.02 | 103652 |
+| 180 | $0.05 | 107202 |
+| 181 | $0.03 | 107883 |
+| 182 | $0.12 | 120579 |
+| 183 | $0.03 | 121431 |
+| 184 | $0.03 | 121661 |
+| 185 | $0.03 | 122227 |
+| 186 | $0.03 | 122724 |
+| 187 | $0.03 | 123944 |
+| 188 | $0.04 | 125241 |
+| 189 | $0.03 | 126069 |
+| 190 | $0.04 | 127706 |
+| 191 | $0.03 | 128500 |
+| 192 | $0.03 | 128995 |
+| 193 | $0.03 | 129809 |
+| 194 | $0.04 | 131470 |
+| 195 | $0.03 | 132154 |
+| 196 | $0.03 | 133019 |
+| 197 | $0.04 | 134233 |
+| 198 | $0.15 | 149470 |
+| 199 | $0.03 | 149997 |
+| 200 | $0.03 | 150562 |
+| 201 | $0.04 | 151274 |
+| 202 | $0.04 | 152723 |
+| 203 | $0.03 | 153255 |
+| 204 | $0.04 | 154073 |
+| 205 | $0.04 | 154902 |
+| 206 | $0.07 | 160310 |
+| 207 | $0.04 | 160775 |
+| 208 | $0.04 | 161511 |
+| 209 | $0.04 | 162617 |
+| 210 | $0.04 | 163125 |
+| 211 | $0.04 | 163796 |
+| 212 | $0.03 | 164051 |
+| 213 | $0.04 | 164399 |
+| 214 | $0.04 | 164914 |
+| 215 | $0.04 | 165323 |
+| 216 | $0.04 | 165799 |
 
 #### Conductor comments, by family
 
 | family | turns | output tokens | dollars |
 | --- | ---: | ---: | ---: |
-| ✅ Step done | 11 | 5866 | $0.12 |
+| ✅ Step done | 11 | 6910 | $0.14 |
 | ✅ Done | 1 | 650 | $0.01 |
-| 🔴 Red | 8 | 4566 | $0.09 |
-| 🟢 Green | 6 | 3266 | $0.07 |
-| 🛠️ Refactor | 5 | 2608 | $0.05 |
-| 🔎 verify-green | 6 | 3266 | $0.07 |
-| 🔎 verify-refactor | 5 | 2608 | $0.05 |
+| 🔴 Red | 8 | 5080 | $0.10 |
+| 🟢 Green | 6 | 3780 | $0.08 |
+| 🛠️ Refactor | 5 | 3130 | $0.06 |
+| 🔎 verify-green | 6 | 3780 | $0.08 |
+| 🔎 verify-refactor | 5 | 3130 | $0.06 |
 | 🔎 verify-<phase> (revised) | 2 | 1300 | $0.03 |
 | 🗺️ Plan | 1 | 650 | $0.01 |
-| 🗺️ verify-plan | 3 | 706 | $0.01 |
-| ▶️ Resuming | 1 | 8 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 4 | 1726 | $0.03 |
+| ▶️ Resuming | 2 | 535 | $0.01 |
+| ⛔ Bailed | 1 | 530 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 32 | 16362 | $0.33 |
+| Total | 35 | 20511 | $0.41 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 2 | 1 | 0 | 59 | 50 | 10 | 20 | 5953 | 173710 | 68103 | 0.25 |
-| red | 17 | 6 | 0 | 0 | 526 | 238 | 77 | 140 | 28100 | 1129472 | 314632 | 1.37 |
+| plan | 4 | 3 | 1 | 0 | 72 | 61 | 11 | 22 | 7494 | 173710 | 90083 | 0.32 |
+| red | 21 | 6 | 0 | 0 | 597 | 289 | 94 | 170 | 34894 | 1373444 | 390052 | 1.65 |
 | green | 16 | 5 | 3 | 0 | 944 | 211 | 83 | 152 | 23816 | 1315883 | 255237 | 1.08 |
-| pin | 3 | 1 | 2 | 0 | 63 | 35 | 14 | 28 | 4037 | 215598 | 42864 | 0.17 |
+| pin | 7 | 5 | 2 | 0 | 167 | 114 | 41 | 80 | 12307 | 659000 | 109114 | 0.46 |
 | refactor | 5 | 0 | 0 | 0 | 33 | 19 | 13 | 24 | 1326 | 156680 | 73974 | 0.21 |
-| prose | 18 | 0 | 0 | 0 | 689 | 650 | 18 | 36 | 106553 | 145685 | 898436 | 3.33 |
+| prose | 23 | 0 | 0 | 0 | 946 | 894 | 23 | 46 | 148315 | 250164 | 1093025 | 4.24 |
 | skill-edit | 5 | 0 | 0 | 0 | 91 | 77 | 32 | 42 | 10957 | 1076263 | 324797 | 1.03 |
 | diff | 2 | 1 | 0 | 0 | 576 | 31 | 13 | 26 | 2954 | 196653 | 24987 | 0.11 |
+| rebase | 3 | 1 | 0 | 0 | 1379 | 82 | 25 | 48 | 8242 | 414778 | 91197 | 0.50 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 21 | 15 | 6 | 0 | 1530 | 276 | 94 | 180 | 31097 | 1469897 | 335747 | 1.30 |
-| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 435 | 184 | 79 | 146 | 21924 | 1166092 | 294905 | 1.07 |
-| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 236 | 124 | 37 | 64 | 13165 | 552007 | 149145 | 0.82 |
+| verifier | claude-sonnet-5-5 | 27 | 21 | 6 | 0 | 2848 | 380 | 127 | 242 | 42365 | 1949458 | 462262 | 1.77 |
+| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 506 | 235 | 96 | 176 | 28718 | 1410064 | 370325 | 1.35 |
+| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 414 | 192 | 57 | 104 | 19950 | 930626 | 202057 | 1.21 |
 
 #### Rework and waste, by phase
 
@@ -232,6 +289,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | prose | 0 | 0.00 | 516 | 2.57 |
 | skill-edit | 0 | 0.00 | 91 | 1.03 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 | revise-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -251,6 +309,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | USAGE in skills/tdd/scripts/veri/pin_reject_route.py and the usage line in the header of skills/tdd/scripts/pin-reject-route.sh name the optional `--missing-reroute` flag (`pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher>`), so the no-argument usage line on stderr shows it; pinned by one small in-process `run_cli` usage-text case in skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 45 | 21 | 38 | 4774 | 287720 | 79886 | 0.28 | 242 | unknown | 0/5 | nothing-left |  |  | full |
 | the stray whitespace-only edit `template ="revise-diff"` in skills/tdd/scripts/veri/build_develop_prompt.py is reverted to `template = "revise-diff"`, so the branch's diff of that file against its branch point holds no whitespace-only change; no test added, no other production change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 31 | 13 | 26 | 2954 | 196653 | 24987 | 0.11 | 627 | n/a | n/a | n/a |  |  | full |
 | pin: `build-develop-prompt.sh revise red <spec> <step> <test-cmd> <reason-file>` whose reason file is named `verify-pin.reason` and whose `REASON:` line does not say `stays green` still builds the revise-red prompt (prompt on stdout, exit 0); the behaviour already holds, so this is a pin step adding one small in-process case to skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py, no production change ⟦added⟧ ⟦criterion 1⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 54 | 16 | 28 | 5809 | 225806 | 62222 | 0.34 | unknown | 1/2 | unknown | unknown |  |  | full |
+| pin: `build-develop-prompt.sh revise red <spec> <step> <test-cmd> <reason-file>` whose reason file is named `verify-pin.reason` and whose `REASON:` line does not say `stays green` still builds the revise-red prompt (prompt on stdout, exit 0); this already holds on 3b783edb, so the case passes there and goes red under the mutant that widens the refusal to any `REASON:` line in a revise-red `verify-pin.reason` — pinned by one small in-process case in skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py, no production change ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 36 | 11 | 22 | 3776 | 180449 | 38318 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
+| pin: `build-develop-prompt.sh revise <phase>` for a phase other than `red` (e.g. `green`), given a reason file named `verify-pin.reason` whose `REASON:` line says `stays green`, still builds the revise prompt (prompt on stdout, exit 0); this already holds on 3b783edb, so the case passes there and goes red under the mutant that applies the refusal to any revise phase — pinned by one small in-process case in skills/tdd/scripts/tests/py/unit/test_build_develop_prompt_pin_reject.py, no production change ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 36 | 11 | 22 | 4330 | 190463 | 35015 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
+| pin: when the in-process `tick-ledger.sh --unpinnable` answers exit 2 (no answer), `pin-reject-route.sh` exits 2 and prints no `revise` on stdout; the behaviour already holds, so this is a pin step adding one small in-process case to skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py, no production change ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 28 | 10 | 18 | 3317 | 148938 | 34880 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
+| pin: when the in-process `tick-ledger.sh --unpinnable` answers exit 3 (no unchecked step matched), `pin-reject-route.sh` exits 3 and prints no `revise` on stdout; the behaviour already holds, so this is a pin step adding one small in-process case to skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py, no production change ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 112 | 37 | 68 | 11883 | 582302 | 124654 | 0.64 | unknown | 1/2 | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -281,14 +343,15 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 3 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 4 | 2 | 4 | 3 | 0 | 1 | 3 | 2 | 2 | 2 | 2 | 2 | 4 | 3 | 6 | 5 | 2 | 3 | 1 | 1 | 2 | 182 | 174 | 1 |
-| fast | 23 | 22 | 26 | 24 | 28 | 21 | 27 | 27 | 0 | 23 | 32 | 31 | 23 | 24 | 27 | 22 | 22 | 20 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 2 | 2 | 2 | 1 | 2 | 3 | 2 | 1 | 1 | 2 | 1 | 1 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 3 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 4 | 2 | 4 | 3 | 0 | 1 | 3 | 2 | 2 | 2 | 2 | 2 | 4 | 3 | 6 | 5 | 2 | 3 | 1 | 1 | 2 | 182 | 174 | 1 | 2 | 1 | 1 | 1 | 3 |
+| fast | 23 | 22 | 26 | 24 | 28 | 21 | 27 | 27 | 0 | 23 | 32 | 31 | 23 | 24 | 27 | 22 | 22 | 20 | 22 | 36 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 2 | 2 | 2 | 1 | 2 | 3 | 2 | 1 | 1 | 2 | 1 | 1 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 |  |  |  |  |  |  |  |  |  |
+| all | 22 | 23 | 1185 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 260 | 468 | 183696 | 4409944 | 2003030 | 16.70 (estimate) |
+| total | 335 | 610 | 250305 | 5616575 | 2452466 | 21.85 (estimate) |
