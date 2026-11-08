@@ -78,6 +78,9 @@ def exit_line(issue):
 
 
 def main(argv):
+    if argv == ["--help"]:
+        sys.stdout.write(USAGE)
+        return 0
     if (
         not argv
         or not stall_window().isdigit()
