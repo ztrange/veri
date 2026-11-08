@@ -174,3 +174,26 @@ import subprocess,
 command 72
 python3 -m pytest -q projects/dashboard/tests/test_serve_source_reads.py
 
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 52
+projects/dashboard/tests/test_serve_source_writes.py
+command 68
+make test TESTS=projects/dashboard/tests/test_serve_source_writes.py
+
+before 40
+36eda2d95c8d40f5a12604d5b57dd423e63b8943
+keep 52
+projects/dashboard/tests/test_serve_source_writes.py
+command 73
+python3 -m pytest -q projects/dashboard/tests/test_serve_source_writes.py
+
+file 27
+projects/dashboard/serve.py
+old 22
+self.wfile.write(body)
+new 18
+open("/tmp/x","w")
+command 73
+python3 -m pytest -q projects/dashboard/tests/test_serve_source_writes.py
+
