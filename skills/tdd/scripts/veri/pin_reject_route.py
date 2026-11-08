@@ -7,14 +7,14 @@ import ledger
 import os
 import tick_ledger
 
-USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher>"
+USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>"
 
 
 def main(argv):
     missing = argv[:1] == ["--missing-reroute"]
     if missing:
         argv = argv[1:]
-    if len(argv) < 3:
+    if len(argv) < 4:
         print(USAGE, file=sys.stderr)
         return 2
     if missing:

@@ -202,3 +202,19 @@ def test_main_missing_reroute_already_holds_fallback_runs_the_target_test_and_re
         0, "retired",
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n",
         [TARGET]), err
+
+
+def test_main_target_test_missing_exits_2_with_usage_naming_it_and_leaves_ledger_untouched_3305(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out, "usage" in err.lower() and "<target-test>" in err, ledger.read_text(),
+            (ledger.parent / "events.jsonl").exists()) == (2, "", True, body, False), err
