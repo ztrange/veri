@@ -246,3 +246,45 @@ def test_done_posts_the_done_heading_with_the_pr_url_then_the_metrics_file_verba
     assert posted == [("7", f"### ✅ Done — {pr}\n\n{metrics}")]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e.get("kind"), e.get("url")) for e in events[1:]] == [("comment", "done", url)]
+
+
+def test_done_posts_the_failed_render_line_with_the_exit_code_metrics_returns_when_the_metrics_file_is_absent(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-6"
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 3)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    assert posted[0][0] == "7"
+    assert posted[0][1].startswith(f"### ✅ Done — {pr}\n\n")
+    assert "metrics could not be rendered: metrics.sh exited 3" in posted[0][1]
+
+
+def test_done_posts_the_failed_render_line_in_place_of_a_metrics_file_whose_first_line_is_not_the_metrics_heading(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-6"
+    pr = "https://github.com/o/r/pull/12"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 3)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("garbled render\n| a | b |\n")
+
+    code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
+
+    assert code == 0
+    assert posted == [("7", f"### ✅ Done — {pr}\n\nmetrics could not be rendered: metrics.sh exited 3")]
