@@ -1966,3 +1966,41 @@ def test_an_added_step_on_a_unit_graded_pass_with_no_graded_line_and_no_new_row_
     assert (code, launched) == (3, []), (code, err, launched)
     assert len(commits) == 1 and len(adds) == 1 and "GRADED" in adds[0] and "unit.md" in (tmp_path / "GRADED").read_text(), (adds, commits)
 
+
+
+def test_an_added_step_on_a_unit_graded_pass_with_a_stale_graded_line_and_no_new_row_refreshes_the_signature_launches_no_author_and_exits_3_3310(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "unit.md").write_text("The widget is painted blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    grade_prose.record_graded("unit.md", grade_prose.signature("REQUIREMENTS.md", "unit.md"), "g1")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    stale = (tmp_path / "GRADED").read_text()
+    launched = []
+    commands = []
+
+    def run(cmd, **kw):
+        commands.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    def grade(path, unit):
+        grade_prose.record_graded(unit, grade_prose.signature(path, unit), "g2")
+        return 0, ""
+
+    monkeypatch.setattr(skill_edit_step, "_grade", grade)
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, ["--added", "refresh the blue unit", str(tmp_path / "issue.md"), "unit.md"])
+
+    adds = [c[2:] for c in commands if c[:2] == ["git", "add"]]
+    commits = [c for c in commands if c[:2] == ["git", "commit"]]
+    assert (code, launched) == (3, []), (code, err, launched)
+    assert len(commits) == 1 and len(adds) == 1 and "GRADED" in adds[0] and (tmp_path / "GRADED").read_text() != stale, (adds, commits)
