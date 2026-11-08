@@ -5,4 +5,4 @@
 - [x] A mutation pin green under its mutation at HEAD but red under the same mutation at the base (git merge-base origin/main HEAD) still prints "pin stayed green under its mutation: <file>" on stderr and exits 1 (a medium case: real git repository, pin-recheck.sh run as a process) ⟦criterion 2⟧
 - [x] A mutation pin green under its mutation at HEAD and also green under the same mutation at the base (git merge-base origin/main HEAD, run in a detached worktree as replay_on_base does) prints "stale: <record file> <mutated file>" on stdout and does not exit 1 (a medium case: real git repository, pin-recheck.sh run as a process) ⟦criterion 1⟧
 - [x] When the base-run mutation's command fails, pin-recheck leaves the working tree's files byte-identical and removes the base worktree (no extra `git worktree list` entry, no leftover directory) (a medium case: real git repository, pin-recheck.sh run as a process) ⟦criterion 4⟧
-- [ ] The stale-at-base guard, broken on purpose (stale branch forced to exit 1), goes red ⟦human-owed⟧ ⟦criterion 5⟧
+- [x] The stale-at-base guard, broken on purpose (stale branch forced to exit 1), goes red ⟦human-owed⟧ ⟦criterion 5⟧
