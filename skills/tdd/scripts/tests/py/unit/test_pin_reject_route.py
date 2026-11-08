@@ -120,3 +120,25 @@ def test_main_unpinnable_no_step_matched_exit_3_passes_through_and_prints_no_rev
     code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
 
     assert (code, "revise" in out) == (3, False), (out, err)
+
+
+def test_main_missing_reroute_stays_green_records_one_unpinnable_missing_event_and_leaves_ledger_untouched_3343(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    ledger_bytes = ledger.read_bytes()
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events_file = ledger.parent / "events.jsonl"
+    events = [json.loads(line) for line in events_file.read_text().splitlines()] if events_file.exists() else []
+    names = [e.get("event") for e in events]
+    missing = [e for e in events if e.get("event") == "unpinnable-missing"]
+    assert (names.count("unpinnable-missing"), [e.get("step") for e in missing],
+            [n for n in names if n in ("unpinnable-step", "already-holds-step", "revise")],
+            ledger.read_bytes()) == (1, ["a one ⟦criterion 1⟧"], [], ledger_bytes), (code, out, err, names)
