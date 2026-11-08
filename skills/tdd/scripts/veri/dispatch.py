@@ -112,10 +112,16 @@ def main(argv):
         seen = live
         ledger = previous and ledger_path(run_dir(previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)):
-            previous = solvable_issues()[0]
-            launch(previous)
-            with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
-                log.write(f"launched {previous} {now()}\n")
+            try:
+                previous = solvable_issues()[0]
+            except watch_runs.QueueUnreadable:
+                if not live:
+                    sys.stdout.write("queue-empty\n")
+                    return 3
+            else:
+                launch(previous)
+                with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
+                    log.write(f"launched {previous} {now()}\n")
         wait()
 
 

@@ -421,3 +421,55 @@ def test_main_with_a_non_integer_stall_window_prints_the_usage_on_stderr_and_exi
     code, out, err = run_cli(dispatch, ["--target", "1"])
 
     assert (code, out, err, launches) == (2, "", "usage: dispatch.sh --target <N>\n", [])
+
+
+def test_main_prints_queue_empty_and_exits_3_when_solvable_issues_exits_3_and_no_conductor_is_live(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 3, stdout="", stderr=""))
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches) == (3, "queue-empty\n", [])
+
+
+def test_main_prints_nothing_and_keeps_waiting_when_solvable_issues_exits_3_while_a_conductor_is_live(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 3, stdout="", stderr=""))
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "2"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches, waits) == (None, "", [], [1])
