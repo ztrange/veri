@@ -1,0 +1,20 @@
+# Plan for #3265 — PRD 014.7a: a local dashboard shows veri's running runs live, read-only, from the journal
+
+- [ ] `make -C projects/dashboard test` runs pytest over the tests under `projects/dashboard/` and exits with pytest's own exit code (a failing case makes it exit 1, all passing 0); pinned by a case under `projects/dashboard/tests/` that runs that Makefile's `test` target over a one-case tests directory in its `tmp_path`, changing nothing outside `projects/dashboard/` ⟦criterion 1⟧
+- [ ] Every case under `projects/dashboard/tests/` runs with `VERI_HOME` pointing at a copy of `fixtures/journal/` inside its own `tmp_path` (the copy holds `3277.jsonl` under `runs/`), never the real `~/.veri`; pinned by a case in a test file other than `projects/dashboard/tests/conftest.py`, which supplies the copy ⟦guard-subject: projects/dashboard/tests/conftest.py⟧ ⟦criterion 5⟧
+- [ ] veri's own `make test` collects no case under `projects/dashboard/`; pinned by a case under `projects/dashboard/tests/`, with no file outside `projects/dashboard/` changed ⟦criterion 1⟧
+- [ ] `python3 projects/dashboard/serve.py --repo <path> --port <n>` serves an HTML page answering `GET /` with status 200, using only the Python standard library; pinned by a case that starts it as a real process against the fixture copy ⟦criterion 2⟧
+- [ ] `serve.py` listens on `127.0.0.1` only: the page is reachable at `127.0.0.1` and the listening socket is bound to no other address ⟦criterion 2⟧
+- [ ] `serve.py --repo <path>` with no `--port` still serves the page, on a default port ⟦criterion 2⟧
+- [ ] The page's Running section names each run whose journal under `$VERI_HOME/runs/` has no ending event, with its awake wall time (minutes between its first and last journal line's `awake`), as `status.sh --report` prints it for that run ⟦criterion 4⟧
+- [ ] The page's Running entry for a run shows its steps done of planned (`step-done` events of the last `plan` event's `steps`), as `status.sh --report` prints them ⟦criterion 4⟧
+- [ ] The page's Running entry for a run shows its current phase (the last `launch` event's phase) and that phase's attempt count, as `status.sh --report` prints them ⟦criterion 4⟧
+- [ ] The page's Running entry for a run shows its PASS and REJECT verdict counts, as `status.sh --report` prints them ⟦criterion 4⟧
+- [ ] The page's Running entry for a run shows its cost in dollars (summed `usage` `total_cost_usd`), as `status.sh --report` prints it ⟦criterion 4⟧
+- [ ] The page's Running entry for a run shows its model split (the model per role: developer, verifier, revise), as `status.sh --report` prints it ⟦criterion 4⟧
+- [ ] A line appended to a running run's journal shows on the already-open page without a reload (the page fetches fresh Running data from the server and re-renders it) ⟦criterion 4⟧
+- [ ] `serve.py`'s source opens files only under `$VERI_HOME/runs/` and at `<repo>/.tdd/report-cache.json`; pinned by a case that checks its source ⟦criterion 3⟧
+- [ ] `serve.py`'s source writes nothing: no file opened for writing, no file or directory created, moved or removed; pinned by a case that checks its source ⟦criterion 3⟧
+- [ ] `serve.py`'s source starts no process: no `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*` or `os.fork`; pinned by a case that checks its source ⟦criterion 3⟧
+- [ ] `serve.py`'s source imports nothing under `skills/` and adds no `skills/` path to `sys.path`; pinned by a case that checks its source ⟦criterion 3⟧
+- [ ] The branch changes no file outside `projects/dashboard/`, veri's own run state under `.tdd/` aside ⟦diff-checked⟧
