@@ -524,6 +524,8 @@ def recover_prs():
 def recover_lock():
     holder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "merge-lock.sh")
     out = subprocess.run([holder, "holder"], capture_output=True, text=True).stdout.strip()
+    if out.startswith("stale"):
+        return ["stale"]
     return [out or "free"]
 
 

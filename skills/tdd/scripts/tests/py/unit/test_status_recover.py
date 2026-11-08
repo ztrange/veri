@@ -234,3 +234,22 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
     assert code == 0 and len(prs) == 2, (code, prs)
     assert all(w in words[0].split() for w in ("4723", "draft", "unstable")), prs
     assert all(w in words[1].split() for w in ("4724", "ready", "clean")), prs
+
+
+def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answers_stale(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        if args and os.path.basename(args[0]) == "merge-lock.sh" and "holder" in args:
+            return subprocess.CompletedProcess(args, 1, stdout="stale lock: 48213 1700000000 issue-9", stderr="")
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    lock = lines[lines.index("Merge lock") + 1:lines.index("State")]
+    assert code == 0 and lock == ["stale"], (code, lock)
