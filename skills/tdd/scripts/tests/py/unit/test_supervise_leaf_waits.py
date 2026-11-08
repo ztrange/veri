@@ -40,3 +40,15 @@ def test_a_leaf_that_never_starts_fails_with_the_leaf_never_started():
 def test_a_leaf_that_dies_after_more_than_the_old_30_s_bound_reads_as_gone_2940():
     clock = FakeClock()
     assert leaf_left(4242, lambda _pid: clock.now < 45.0, clock.sleep, clock) is False
+
+
+def test_a_zombie_leaf_that_a_nonblocking_reap_answers_reads_as_gone_3293(monkeypatch):
+    clock = FakeClock()
+    reaps = []
+
+    def fake_waitpid(pid, flags):
+        reaps.append((pid, flags))
+        return (pid, 0)
+
+    monkeypatch.setattr("os.waitpid", fake_waitpid)
+    assert leaf_left(4242, lambda _pid: True, clock.sleep, clock) is False

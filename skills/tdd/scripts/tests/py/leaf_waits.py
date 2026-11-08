@@ -4,6 +4,8 @@ Each returns as soon as its condition holds, so a passing run pays nothing for t
 `sleep` and `clock` are injected so the unit tier can drive them without real waits.
 """
 
+import os
+
 LEAF_START_BOUND = 30.0
 LEAF_DEATH_BOUND = 48.0
 
@@ -23,8 +25,15 @@ def leaf_started(read_pid, sleep, clock, bound=LEAF_START_BOUND, step=0.02):
 def leaf_left(pid, alive, sleep, clock, bound=LEAF_DEATH_BOUND, step=0.1):
     """True when <pid> is still alive after <bound> s; False as soon as it is gone."""
     deadline = clock() + bound
-    while alive(pid):
+    while alive(pid) and not _reaped(pid):
         if clock() >= deadline:
             return True
         sleep(step)
     return False
+
+
+def _reaped(pid):
+    try:
+        return os.waitpid(pid, os.WNOHANG)[0] == pid
+    except ChildProcessError:
+        return False
