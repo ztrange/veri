@@ -4618,3 +4618,21 @@ def test_main_on_a_fresh_launch_seeds_a_gitignore_listing_issue_star_skip_verify
     capfdbinary.readouterr()
     seed = tmp_path / ".tdd" / ".gitignore"
     assert "issue-*-skip-verify" in (seed.read_text().splitlines() if seed.is_file() else [])
+
+
+def test_cli_hands_the_conductor_veri_state_label_issue_naming_the_issue_it_runs(tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    conductor_that_prints(monkeypatch, tmp_path, ["done"], result_record("Done."))
+    started, seen = subprocess.run, []
+
+    def spy(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            seen.append((kwargs.get("env") or {}).get("VERI_STATE_LABEL_ISSUE"))
+        return started(args, *a, **kwargs)
+    monkeypatch.setattr(subprocess, "run", spy)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    assert (code, seen) == (0, ["4242"]), stderr
