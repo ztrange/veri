@@ -764,3 +764,17 @@ def test_queued_merges_still_returns_the_pr_url_of_a_queued_merge_sh_launched_fr
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == [url]
+
+
+def test_queued_merges_omits_a_queued_merge_sh_whose_script_path_is_outside_this_clone_issue_3364(
+        monkeypatch, dispatch):
+    import subprocess
+
+    listing = "sh /private/tmp/x/queued-merge.sh https://github.com/o/r/pull/7\n"
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == []
