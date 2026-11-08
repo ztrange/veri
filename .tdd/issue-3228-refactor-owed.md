@@ -6,3 +6,4 @@
 - extract the argument validation in `main` (usage, stall window, `--target <N>`) into a `parse_args` helper
 ### `dispatch.sh --help` prints its usage on stdout and exits 0, launching nothing and reading no queue; unit-tier, run in-process with `run_cli` ⟦criterion 13⟧
 - test-only | extract the repeated monkeypatch setup (main_working_tree, live_conductors, solvable_issues, launch, wait) shared across test_dispatch.py cases into a fixture
+applied | ddd61bc209e80acee93c860d5efd89935f5f3db9 | extract the argument validation in `main` (usage, stall window, `--target <N>`) into a `parse_args` helper	refactor: extract argument validation in dispatch main into parse_args (#3228)
