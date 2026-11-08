@@ -12,6 +12,8 @@ import pid_file
 import status
 import tunables
 
+USAGE = "usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)"
+
 
 def _runs():
     _, document = status.json_document(read_states=False)
@@ -101,14 +103,13 @@ def _whole_number(text):
 
 def main(argv):
     if argv == ["--help"]:
-        print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)")
+        print(USAGE)
         return 0
     given = {}
     for i in range(0, len(argv), 2):
         flag, value = argv[i], argv[i + 1:i + 2]
         if flag not in ("--target", "--max-wait") or flag in given or not (value and _whole_number(value[0])):
-            print("usage: watch-runs.sh [--target <N>] [--max-wait <seconds>]  (N, seconds: whole numbers >= 1)",
-                  file=sys.stderr)
+            print(USAGE, file=sys.stderr)
             return 2
         given[flag] = int(value[0])
     target = given.get("--target")
