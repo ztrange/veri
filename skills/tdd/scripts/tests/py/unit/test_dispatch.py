@@ -89,3 +89,30 @@ def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_n
         code = None
 
     assert (launches, signals, waits, code, capsys.readouterr().out) == ([], [], [1], None, "")
+
+
+def test_main_launches_the_next_issue_only_once_the_previous_launch_has_its_ledger_under_the_main_working_tree(
+        monkeypatch, tmp_path, dispatch):
+    launches = []
+    seen_at_wait = []
+    ledger = tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md"
+    ledger.parent.mkdir(parents=True)
+
+    def wait():
+        seen_at_wait.append(list(launches))
+        if len(seen_at_wait) == 2:
+            ledger.write_text("- [ ] step\n")
+        if len(seen_at_wait) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15", "18", "19"] if i not in launches], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "3"])
+
+    assert seen_at_wait == [["12"], ["12"], ["12", "15"]]

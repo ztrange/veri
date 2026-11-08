@@ -29,9 +29,12 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     target = int(argv[1])
+    previous = None
     while True:
-        if len(live_conductors()) < target:
-            launch(solvable_issues()[0])
+        ledger = previous and os.path.join(status.main_working_tree(), ".tdd", "wt", previous, ".tdd", f"issue-{previous}.md")
+        if len(live_conductors()) < target and (previous is None or os.path.exists(ledger)):
+            previous = solvable_issues()[0]
+            launch(previous)
         wait()
 
 
