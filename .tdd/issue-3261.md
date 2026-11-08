@@ -19,6 +19,6 @@ The logic lives in a new module `skills/tdd/scripts/veri/prd_report.py` (the nam
 - [x] A PRD whose cached `updatedAt` has no stored entry in `.tdd/report-owed.json`, or a stored `updatedAt` that differs, prints `owed: stale` ⟦criterion 3⟧
 - [x] A PRD whose cached `updatedAt` equals the one stored for it in `.tdd/report-owed.json` prints the stored owed answer (how many issues, with the sections they come from, or `none`) on its owed line ⟦criterion 1⟧
 - [x] `report.sh --stale` prints the numbers of the PRDs whose owed answer is stale, one per line ⟦criterion 3⟧
-- [x] `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧ ⟂ refactor pending
+- [x] `report.sh --store-owed <prd> <file>` stores the JSON answer read from `<file>` in `.tdd/report-owed.json` under that PRD with the PRD's current cached `updatedAt` ⟦criterion 4⟧
 - [ ] `report.sh --store-owed <prd> <file>` preserves every other PRD's entry already in `.tdd/report-owed.json` ⟦criterion 4⟧
 - [ ] With `gh` refusing and a snapshot present, `report.sh --report` exits 0 and prints the same report as with `gh` answering (a medium case at the process boundary, `gh` and `solvable-issues.sh`'s GitHub reads refused) ⟦criterion 2⟧
