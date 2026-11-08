@@ -6,6 +6,7 @@ import os
 import re
 import sys
 
+import issue_worktree
 import solvable_issues
 
 USAGE = "usage: report.sh --report"
@@ -59,9 +60,12 @@ def main(argv):
                 solvable += sum(1 for o in open_children if o["number"] in listed)
             waiting = [(o["number"], b) for o in open_children
                        for b in o["blockedBy"] if b in open_numbers]
-            print("left: solvable now %d, waiting %d on %s" % (
+            unheld = sum(1 for o in open_children
+                         if not any(l["name"].split(":")[0] == "ready-for-agent" for l in o["labels"])
+                         and not issue_worktree.remote_issue_branch("tdd/%d" % o["number"]))
+            print("left: solvable now %d, waiting %d on %s, held by no lane %d" % (
                 solvable, len({n for n, _ in waiting}),
-                ", ".join("#%d" % b for b in sorted({b for _, b in waiting}))))
+                ", ".join("#%d" % b for b in sorted({b for _, b in waiting})), unheld))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
