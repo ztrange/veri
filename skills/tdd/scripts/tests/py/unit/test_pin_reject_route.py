@@ -107,3 +107,12 @@ def test_main_no_argument_usage_line_names_the_missing_reroute_flag_3300(run_cli
     code, out, err = run_cli(pin_reject_route, [])
 
     assert (code, out, "[--missing-reroute]" in err) == (2, "", True), err
+
+
+def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_3300(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 2)
+
+    code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one"])
+
+    assert (code, "revise" in out) == (2, False), (out, err)
