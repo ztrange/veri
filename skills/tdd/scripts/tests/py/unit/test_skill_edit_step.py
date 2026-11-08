@@ -2094,3 +2094,31 @@ def test_a_step_whose_issue_row_has_a_bare_id_the_list_holds_with_different_text
     commits = [c for c in commands if c[:2] == ["git", "commit"]]
     assert (code, named, len(launched), len(commits), (tmp_path / "REQUIREMENTS.md").read_text()) \
         == (2, True, 0, 0, original), (code, err)
+
+
+def test_a_step_whose_issue_row_is_identical_to_the_listed_row_of_the_same_bare_id_refuses_nothing_and_leaves_the_list_byte_identical_3320(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| A1 | The widget is blue. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(original)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    launched = []
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "A1" in err, (tmp_path / "REQUIREMENTS.md").read_text()) == (3, False, original), (code, err)
