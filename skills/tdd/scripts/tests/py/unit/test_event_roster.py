@@ -24,3 +24,11 @@ def test_a_name_emitted_by_an_event_mark_call_with_an_empty_first_argument_is_in
     monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
 
     assert set(event_roster.emitted_events()) == {"lone-empty-first-event"}
+
+
+def test_a_name_emitted_by_a_verify_mark_call_is_in_the_roster(tmp_path, monkeypatch):
+    (tmp_path / "veri").mkdir()
+    (tmp_path / "veri" / "mod.py").write_text('verify.mark(role, "lone-verify-event", "k=1")\n')
+    monkeypatch.setattr(event_roster, "SKILLS", tmp_path)
+
+    assert set(event_roster.emitted_events()) == {"lone-verify-event"}
