@@ -104,8 +104,9 @@ def main(argv):
         else:
             break
     reason_text = ""
+    matcher = (argv[1:] or [""])[0]
     if reason_file and not case:
-        complain(f"{(argv[1:] or [''])[0]}: no case is named")
+        complain(f"{matcher}: no case is named")
         return 1
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
@@ -117,7 +118,7 @@ def main(argv):
         ):
             return 1
     if case and run_case(case):
-        complain(f"{(argv[1:] or [''])[0]}: case {case} fails")
+        complain(f"{matcher}: case {case} fails")
         return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
@@ -133,7 +134,6 @@ def main(argv):
     except OSError as error:
         complain(f"{argv[0]}: {error.strerror}")
         return 2
-    matcher = (argv[1:] or [""])[0]
     if phase:
         try:
             ticked, new = ledger.ledger_mark_phase(text, matcher, phase, owed)
