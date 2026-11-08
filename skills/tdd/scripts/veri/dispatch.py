@@ -7,6 +7,7 @@ import sys
 import paths
 import status
 import watch_runs
+from ledger import ledger_path
 
 USAGE = "usage: dispatch.sh --target <N>\n"
 
@@ -31,7 +32,7 @@ def main(argv):
     target = int(argv[1])
     previous = None
     while True:
-        ledger = previous and os.path.join(status.main_working_tree(), ".tdd", "wt", previous, ".tdd", f"issue-{previous}.md")
+        ledger = previous and ledger_path(os.path.join(status.main_working_tree(), ".tdd", "wt", previous), previous)
         if len(live_conductors()) < target and (previous is None or os.path.exists(ledger)):
             previous = solvable_issues()[0]
             launch(previous)
