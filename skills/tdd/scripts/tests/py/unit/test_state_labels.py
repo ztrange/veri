@@ -32,3 +32,10 @@ def test_gh_issue_remove_label_deletes_the_label_from_the_issue(github, monkeypa
     github.gh_issue_remove_label("42", "bailed")
 
     assert calls == [DELETE_BAILED]
+
+
+def test_gh_issue_remove_label_raises_no_answer_when_gh_refuses_the_delete(github, monkeypatch):
+    fake_gh(monkeypatch, lambda args: (1, "", "HTTP 502: Bad Gateway\n"))
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_remove_label("42", "bailed")
