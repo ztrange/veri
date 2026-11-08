@@ -500,10 +500,22 @@ def recover_runs():
     return lines
 
 
+def recover_bailed():
+    from classify_bail import CATEGORIES
+    lines = []
+    for path, events in journals():
+        if events and events[-1].get("event") == "bail":
+            cause = events[-1].get("cause", "")
+            lines.append("%s %s" % (run_name(path), CATEGORIES.get(cause, cause)))
+    return lines
+
+
 def recover(role):
     for heading in RECOVER_HEADINGS:
         print(heading)
         body = recover_runs() if heading == "Runs" else []
+        if heading == "Bailed":
+            body = recover_bailed()
         if heading == "Merge lock":
             body = ["free"]
         print("\n".join(body) or "none")
