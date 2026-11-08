@@ -224,13 +224,12 @@ def append(directory, context, event, fields=(), ts=None):
     text = line(args, context, ts, awake)
     append_once(tdd + "/events.jsonl", text)
     write_journal(top, context, text)
-    state_labels(args[0])
+    state_labels(args[0], tunables.read("VERI_STATE_LABEL_ISSUE"))
     return 0
 
 
-def state_labels(event):
-    """Mirror a bail or a resume onto issue $VERI_STATE_LABEL_ISSUE's labels; a refusal is named, never fatal."""
-    issue = tunables.read("VERI_STATE_LABEL_ISSUE")
+def state_labels(event, issue):
+    """Mirror a bail or a resume onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
     if not issue:
         return
     try:
