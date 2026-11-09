@@ -251,7 +251,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    green, and the wait is `wait-ci.sh`, one bounded slice per Bash call, given the full 40-hex sha just
    pushed (`git rev-parse HEAD`; an abbreviated one exits 2) so a rollup still reporting the previous head reads as pending: its exit 3 means a
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
-   pending past the deadline its first call recorded, checks still queued `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or `gh` unable to read the checks until that deadline (a 4xx other than 403 or 429 at once) — does
+   pending past the deadline its first call recorded, checks still queued `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, a ready, mergeable PR whose head has no check run and no commit status for `VERI_CI_NO_RUN_WAIT` seconds (default 120, a non-negative whole number; the grace restarts for each new head) while a `pull_request` workflow exists, its stderr naming `no CI run for <sha>` with the full 40-hex head, or `gh` unable to read the checks until that deadline (a 4xx other than 403 or 429 at once) — does
    **bail**, with cause `ci-timeout`, rather than waiting on (`Read` `<base directory>/BAIL.md`).
    That deadline is `wait-ci.sh`'s own bound, since the call gives no total-seconds: twice the
    mean of the last 5 completed CI runs, capped at 10 minutes, or 540 s when fewer than 5
