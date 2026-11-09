@@ -22,6 +22,8 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    minimal edit (remove the guard, invert the condition, drop the branch) through
    `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the target test>`,
    which edits, runs the command against the mutation and restores the file: the target test must **FAIL**.
+   If that probe exits 2 and its stderr names an allowed address domain, any email address in
+   `<old>`/`<new>` must be on that domain: retry with one that is.
    A probe exiting 2 gives no verdict, and one exiting 1 (the command still passed) is never a PASS.
    Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes on the real
    before-state, or with the behavior removed by hand when no before-state exists, pins
