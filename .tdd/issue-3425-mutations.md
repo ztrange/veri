@@ -16,3 +16,10 @@ skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
 command 162
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_3425
 
+before 40
+d660d33e605452c652f602287a1dd35143bf2528
+keep 66
+skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
+command 180
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_exits_1_naming_the_case_fails_when_the_command_ran_it_and_it_failed_3425
+
