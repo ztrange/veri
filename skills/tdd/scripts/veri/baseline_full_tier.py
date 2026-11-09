@@ -6,8 +6,11 @@ USAGE = "usage: baseline-full-tier.sh <issue> <full-tier-command>"
 
 
 def main(argv):
-    print(USAGE, file=sys.stderr)
-    return 2
+    if not argv:
+        print(USAGE, file=sys.stderr)
+        return 2
+    print("run")
+    return 0
 
 
 if __name__ == "__main__":
