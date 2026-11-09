@@ -463,13 +463,22 @@ def rerecord_earlier(ledger, step):
         return 2
     before, after, unchanged, changed = {}, {}, [], []
 
-    def rewrite(_, record, name, case, __):
+    def recorded_base(name, case, digest):
+        revs = subprocess.run(["git", "log", "--format=%H", base + "..HEAD", "--", name], stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL).stdout.decode().split()
+        for rev in revs:
+            if _body_digest(_cases_at(rev, name).get(case, "")) == digest:
+                return rev
+        return base
+
+    def rewrite(_, record, name, case, digest):
         if name not in after:
-            before[name], after[name] = _cases_at(base, name), _cases_at("HEAD", name)
+            after[name] = _cases_at("HEAD", name)
+        before = _cases_at(recorded_base(name, case, digest), name)
         now = after[name].get(case)
-        if now == before[name].get(case):
+        if now == before.get(case):
             unchanged.append(case)
-        if now is not None and now != before[name].get(case):
+        if now is not None and now != before.get(case):
             changed.append(case)
             head_text = _text_at("HEAD", name, subprocess.DEVNULL)
             body = "\n".join(_bodies_of(head_text, case))
