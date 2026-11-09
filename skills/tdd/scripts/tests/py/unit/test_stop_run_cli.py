@@ -66,6 +66,29 @@ def test_stop_run_cli_mode_now_writes_now_as_the_only_line_of_the_stop_file_name
     assert (run / ".tdd" / "stop").read_bytes() == b"now\n"
 
 
+def test_stop_run_cli_issue_3375_mode_now_exits_2_naming_the_pid_and_the_run_when_a_leaf_signal_is_refused_having_written_the_stop_file(
+        tmp_path, run_cli, stop_run, world, monkeypatch):
+    live, args_of, terms = world
+    repo = tmp_path.resolve() / "repo"
+    run = new_run(repo, "5", 4242)
+    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    live.update({4242, 4343})
+    args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
+    answer_kill = os.kill
+
+    def refuse_leaf(pid, sig):
+        if pid == 4343:
+            raise PermissionError(1, "Operation not permitted")
+        return answer_kill(pid, sig)
+
+    monkeypatch.setattr(os, "kill", refuse_leaf)
+
+    code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo)
+
+    assert (run / ".tdd" / "stop").read_bytes() == b"now\n"
+    assert (code, "4343" in err, str(run) in err) == (2, True, True)
+
+
 def test_stop_run_cli_a_missing_worktree_a_dead_conductor_and_all_with_no_live_run_each_exit_3_and_write_no_stop_file(
         tmp_path, run_cli, stop_run, world):
     live, args_of, terms = world

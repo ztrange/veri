@@ -12,7 +12,7 @@ import pid_file
 import stop_modes
 import tunables
 
-UNSIGNALLABLE = (ProcessLookupError, PermissionError, OverflowError)
+GONE = (ProcessLookupError, OverflowError)
 
 
 def usage():
@@ -77,13 +77,18 @@ def stop_run(run, mode):
     with open(run + "/.tdd/stop", "w") as stop:
         stop.write(mode + "\n")
     sys.stdout.buffer.write(os.fsencode(run) + b"\n")
-    if mode == "now":
-        stop_leaves(run)
+    if mode != "now":
+        return 0
+    refused = stop_leaves(run)
+    for pid in refused:
+        complain(f"cannot signal pid {pid} of run {run}")
+    return 2 if refused else 0
 
 
 def stop_leaves(run):
     tdd = run + "/.tdd/"
     termed = []
+    refused = []
     for entry in sorted(os.listdir(tdd)):
         if entry.startswith(".") or not entry.endswith(".pid"):
             continue
@@ -99,15 +104,18 @@ def stop_leaves(run):
             elif pid_file.detached(pid):
                 os.killpg(int(pid), signal.SIGTERM)
                 termed.append(int(pid))
-        except UNSIGNALLABLE:
+        except GONE:
             pass
+        except PermissionError:
+            refused.append(int(pid))
     if termed:
         time.sleep(float(tunables.read("VERI_STOP_KILL_GRACE") or "5"))
         for group in termed:
             try:
                 os.killpg(group, signal.SIGKILL)
-            except UNSIGNALLABLE:
+            except GONE + (PermissionError,):
                 pass
+    return refused
 
 
 def main(argv):
@@ -161,8 +169,7 @@ def main(argv):
     target = runs + issue
     if alive(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
-    stop_run(target, mode)
-    return 0
+    return stop_run(target, mode)
 
 
 if __name__ == "__main__":

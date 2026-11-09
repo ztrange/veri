@@ -284,9 +284,11 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
 
     monkeypatch.setattr(os, "kill", fake_kill)
 
-    assert stop_run.main(["--mode", "now", "5"]) == 0
+    assert stop_run.main(["--mode", "now", "5"]) == 2
     assert terms == [101, 106, 107, int(huge)]
-    assert capsysbinary.readouterr() == (os.fsencode(run) + b"\n", b"")
+    out, err = capsysbinary.readouterr()
+    assert out == os.fsencode(run) + b"\n"
+    assert (b"107" in err, os.fsencode(run) in err, b"101" in err, b"106" in err) == (True, True, False, False)
     assert (tdd / "stop").read_bytes() == b"now\n"
 
     for mode in ("at-ledger", "at-leaf"):
