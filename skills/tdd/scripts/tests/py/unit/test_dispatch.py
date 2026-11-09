@@ -931,3 +931,19 @@ def test_queued_merges_still_returns_a_pre_exec_queued_merge_sh_beside_a_post_ex
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == [pre, post]
+
+
+def test_queued_merges_ignores_an_editor_or_grep_naming_queued_merge_py_as_a_later_argument_issue_3403(
+        monkeypatch, dispatch):
+    import subprocess
+
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = (f"vim {mine}/veri/queued_merge.py https://github.com/o/r/pull/7\n"
+               f"grep -n {mine}/veri/queued_merge.py https://github.com/o/r/pull/8\n")
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == []

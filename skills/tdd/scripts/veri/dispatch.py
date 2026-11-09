@@ -62,7 +62,10 @@ def queued_merges():
     py_mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "veri", "queued_merge.py"))
     for line in out.stdout.splitlines():
         words = line.split()
-        if len(words) > 2 and os.path.realpath(words[1]) in (mine, py_mine):
+        if len(words) < 3:
+            continue
+        script = os.path.realpath(words[1])
+        if script == mine or (script == py_mine and os.path.basename(words[0]).startswith("python")):
             urls.append(words[2])
     return urls
 
