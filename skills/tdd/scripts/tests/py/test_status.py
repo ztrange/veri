@@ -977,3 +977,21 @@ def test_2635_main_json_renders_without_raising_a_run_whose_conductor_log_holds_
         code, rendered = "ValueError: %s" % raised, None
 
     assert (code, rendered) == (0, 1)
+
+
+def test_main_lists_the_other_run_and_exits_0_when_one_runs_events_log_has_an_unparseable_line_3366(tmp_path, monkeypatch, capsys, status):
+    bad = ledger_run(tmp_path, "41", "# Plan for #41 — bad log\n\n- [ ] a step\n")
+    good = ledger_run(tmp_path, "42", "# Plan for #42 — good log\n\n- [ ] a step\n")
+    (bad / ".tdd" / "events.jsonl").write_text("not json\n")
+    write_events(good / ".tdd" / "events.jsonl", [
+        {"ts": 9900, "issue": "42", "actor": "developer", "phase": "red", "step": "a step", "event": "launch",
+         "attempt": "1", "skill_commit": "abc", "name": "develop-red"}])
+    live_conductor(monkeypatch, good / ".tdd", "42")
+    fake_git(monkeypatch, tmp_path, {str(bad): "tdd/41-bad-log", str(good): "tdd/42-good-log"})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main([])
+    out = capsys.readouterr().out
+
+    assert code == 0
+    assert "#42  good log  tdd/42-good-log  step 1 of 1  red  developer  develop-red 100s  attempt 1  $0.00  0 tokens  running" in out.splitlines()
