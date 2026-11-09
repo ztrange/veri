@@ -32,3 +32,10 @@ skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py
 command 243
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_still_adds_the_suite_repair_step_before_the_first_unchecked_step_when_the_red_adds_test_scripts_md_rows_and_no_pending_skill_edit_step_names_scripts_md_3378
 
+before 40
+0d1de65005a42459747520f024358668ebe83625
+keep 57
+skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py
+command 202
+make unit TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_adds_the_repair_step_for_a_scripts_md_rows_red_only_when_no_pending_skill_edit_step_owns_skills_tdd_scripts_md_3378
+
