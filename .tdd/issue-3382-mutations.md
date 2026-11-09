@@ -1,0 +1,7 @@
+before 40
+8e091b892ba290f700eb534e644b2f1b322d5c85
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 217
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3382_with_the_conductor_alive_for_several_passes_after_the_ask_and_the_run_stopped_at_its_exit_the_watcher_asks_once_and_relaunches_once
+
