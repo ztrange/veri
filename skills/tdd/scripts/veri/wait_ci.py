@@ -287,6 +287,11 @@ def main(argv):
             warn("%s has no checks and no workflow triggers on pull_request; no check will come" % pr)
             return 0
         none = state == "none"
+        if not none:
+            try:
+                os.remove(".tdd/ci-none-" + head)
+            except OSError:
+                pass
         if state == "skipped":
             state = "pending"
         if mismatched:
