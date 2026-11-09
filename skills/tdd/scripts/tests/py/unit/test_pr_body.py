@@ -137,3 +137,15 @@ def test_main_when_the_write_of_the_body_fails_exits_2_naming_the_pr_3453(run_cl
 
     assert code == 2
     assert "42" in err
+
+
+def test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part_alone_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    written = fake_gh_pr_body(monkeypatch, "Closes #7 — legacy text a run wrote before markers")
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert written == ["%s\n%s\n%s" % (BEGIN, "Closes #7 — ready: 5 of 5 steps done", END)]
+    assert "legacy text" not in written[0]
