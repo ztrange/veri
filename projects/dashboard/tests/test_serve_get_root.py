@@ -1562,3 +1562,39 @@ def test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and
     assert "owed: stale" in body
     assert owed.read_bytes() == before_bytes
     assert sorted(p.name for p in tdd.iterdir()) == before_names
+
+
+@pytest.mark.process("serve.py")
+def test_page_landed_section_lists_each_merged_tag_in_status_report_shape(veri_home, monkeypatch):
+    import os
+    import re
+
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env={**os.environ, "TZ": "America/Chicago"},
+    )
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    section = re.search(r"<h2>Landed</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
+    lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
+    expected = (
+        "v0.1136  2026-11-07 19:13  A red-phase leaf's overwrite of the step's uncommitted "
+        "production code is restored and recorded, and the develop prompt forbids it"
+    )
+    assert [l for l in lines if l.startswith("<p>")] == []
+    assert [re.sub(r"<[^>]+>", "", l).strip() for l in lines if "v0.1136" in l] == [expected]

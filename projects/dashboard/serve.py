@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import re
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ENDING = {"done", "bail", "merged"}
@@ -63,6 +64,18 @@ def running_lines():
         if not events or any(e.get("event") in ENDING for e in events):
             continue
         lines.append(_run_line(path, events))
+    return lines
+
+
+def landed_lines():
+    lines = []
+    runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
+    for path in sorted(runs.glob("*.jsonl")):
+        for l in path.read_text().splitlines():
+            e = json.loads(l) if l.strip() else {}
+            if e.get("event") == "merged" and e.get("tag"):
+                when = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(e["ts"])))
+                lines.append("<div>%s  %s  %s</div>" % (e["tag"], when, e.get("message", "")))
     return lines
 
 
@@ -161,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             running = "\n".join(running_lines())
             body = ("<!doctype html><title>veri dashboard</title>\n<h2>Running</h2>\n<div id=running>\n"
-                    + running + "\n</div>\n" + SCRIPT).encode()
+                    + running + "\n</div>\n<h2>Landed</h2>\n" + "\n".join(landed_lines()) + "\n" + SCRIPT).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.end_headers()
