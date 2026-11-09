@@ -56,6 +56,19 @@ def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_i
     assert (launches, waits, code, capsys.readouterr().out) == (["12"], [1], None, "")
 
 
+def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3435(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    with pytest.raises(AssertionError, match="unfaked queued_merges call"):
+        dispatch.main(["--target", "1"])
+
+
 def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_the_conductor_log_with_stdin_from_dev_null(
         monkeypatch, tmp_path, dispatch):
     import os
