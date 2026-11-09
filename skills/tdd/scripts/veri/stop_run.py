@@ -185,6 +185,7 @@ def main(argv):
     alive = pid_file.live_conductor if mode == "now" else pid_file.recorded_alive
     if every:
         stopped = 0
+        failed = False
         try:
             names = os.listdir(runs)
         except FileNotFoundError:
@@ -192,11 +193,12 @@ def main(argv):
         for name in sorted(names):
             run = runs + name
             if not name.startswith(".") and alive(run) is not None:
-                stop_run(run, mode)
+                if stop_run(run, mode) == 2:
+                    failed = True
                 stopped += 1
         if not stopped:
             return nothing_to_do("no live run to stop")
-        return 0
+        return 2 if failed else 0
     target = runs + issue
     if alive(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
