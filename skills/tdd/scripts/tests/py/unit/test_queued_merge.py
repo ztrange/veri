@@ -858,3 +858,28 @@ def test_3452_queued_merge_whose_pr_body_read_fails_exits_2_naming_the_pr_frees_
     read = run((0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""))
 
     assert (failed, read[:3]) == ((2, True, 0, 1), (0, False, 1))
+
+
+def test_3452_queued_merge_on_a_branch_not_named_tdd_n_whose_worktree_holds_a_metrics_file_beside_the_ledger_checks_the_ledgers_issue_and_merges_as_with_the_ledger_alone(
+        fake_processes, run_cli, tmp_path):
+    def run(name, extra):
+        worktree = tmp_path / name
+        (worktree / ".tdd").mkdir(parents=True)
+        for file in ("issue-3255.md",) + extra:
+            (worktree / ".tdd" / file).write_text("# issue\n")
+
+        def with_body(answer):
+            def wrapped(line, **kwargs):
+                if "pr view" in line:
+                    return 0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""
+                return answer(line, **kwargs)
+            return fake_processes(wrapped)
+
+        calls = scenario(with_body)
+        code, _, _ = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+        return code, len([c for c in calls if "pr merge" in c])
+
+    alone = run("alone", ())
+    beside = run("beside", ("issue-3255-metrics.md",))
+
+    assert (beside, alone) == ((0, 1), (0, 1))
