@@ -51,7 +51,7 @@ def run_state(run):
 
 
 def _launch_env(run):
-    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env = {k: v for k, v in tunables.environment().items() if not k.startswith("VERI_")}
     try:
         with open(os.path.join(_tdd_dir(), f"issue-{run}-launch-env")) as record:
             for line in record:
