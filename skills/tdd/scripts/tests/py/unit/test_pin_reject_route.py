@@ -127,6 +127,16 @@ def test_main_no_argument_usage_line_names_the_missing_reroute_flag_3300(run_cli
     assert (code, out, "[--missing-reroute]" in err) == (2, "", True), err
 
 
+def test_main_missing_reroute_with_fewer_than_four_arguments_exits_2_printing_usage_only_3472(
+        tmp_path, run_cli, pin_reject_route):
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(tmp_path / "l.md"), "a one"])
+
+    assert (code, out, "usage:" in err) == (2, "", True), err
+
+
 def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_3300(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 2)
