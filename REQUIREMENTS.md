@@ -69,6 +69,7 @@
 | CM78 | A speed issue states its acceptance criteria as behaviours only and quotes `make profile` before and after in the PR body; CI's `timeout-minutes` is the only wall-clock gate. (`make test` on the development Mac, last bullet.) | Speed is measured and reported, never asserted by a suite. |
 | CM79 | The "Invariants worth not breaking" bullet on blind verification says that `VERI_SKIP_VERIFY` (pinned per run, `plan` never) skips named verifiers, and cites ADR-0033. | The invariant as written would otherwise be false. |
 | CM80 | CLAUDE.md names `Refactor candidates left by #<n>` issues, labelled `refactor` and `refactor-owed` and never opted in, as the refactor-owed items `/vgroom --refactor-owed` reads. (Whole file.) | A run's one candidates issue (ADR-0034) is recognised by title, so grooming reads it and no session mistakes it for queue work. |
+| CM81 | The *Commands* section says operator sessions, and every subagent they brief, run with `$VERI_VENV/bin` (default `~/.veri-tools/venv/bin`) first on PATH, since PATH's `python3` may lack pytest. (Commands section, after the `make install-dev` row.) | Three launches on 2026-10-28 refused at baseline on "No module named pytest". |
 
 ## README.md
 
