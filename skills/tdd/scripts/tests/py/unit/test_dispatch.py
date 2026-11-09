@@ -1695,7 +1695,7 @@ def test_main_reads_the_queue_at_most_once_per_overlap_poll_window_while_everyth
 _RATE_LIMITED = "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n"
 
 
-def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, reads):
+def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, reads, refusal=_RATE_LIMITED):
     """Fake gh at the process boundary over REST: the open-PR list (one run draft PR changing other.py),
     issue 12's body naming dispatch.py and the PR's diff; <limited_read> is refused as rate-limited until
     <limited_until>, and every read of it is recorded in <reads>."""
@@ -1709,7 +1709,7 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
             reads.append(times[len(waits)])
             if times[len(waits)] < limited_until:
                 return subprocess.CompletedProcess(argv, 1, stdout='{"message": "API rate limit exceeded"}',
-                                                   stderr=_RATE_LIMITED)
+                                                   stderr=refusal)
         if what == "list":
             page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
                    ' "head": {"ref": "tdd/80-other", "sha": "aaa"}}]'
@@ -1740,3 +1740,20 @@ def test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset
         code = None
 
     assert (code, reads, launches) == (None, [0, 100], ["12"])
+
+
+@pytest.mark.parametrize("failed_read, named", [("list", "the open PR list"), ("body", "issue 12's body")])
+def test_main_exits_2_naming_a_failed_pr_list_or_issue_body_read_and_launches_nothing_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch, failed_read, named):
+    times = [0, 50]
+    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
+                                    waits_before_stop=len(times))
+    _gh_rest(monkeypatch, dispatch, times, waits, 100, failed_read, [], refusal="gh: HTTP 502: Bad Gateway\n")
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    err = capsys.readouterr().err
+    assert (code, launches, f"reading {named} failed: gh: HTTP 502: Bad Gateway" in err) == (2, [], True)
