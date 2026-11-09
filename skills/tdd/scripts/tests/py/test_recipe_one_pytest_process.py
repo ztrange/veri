@@ -531,3 +531,21 @@ def test_3381_criterion_3_a_tests_list_of_one_veri_path_and_two_dashboard_paths_
 
     assert (ran.returncode, sorted(log.read_text().splitlines())) == \
         (0, ["dashboard served", "dashboard served", "pytest small"]), ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real over a planted tree whose fast-tier case logs when it runs, UNIT_TESTS naming two dashboard files")
+def test_3392_make_unit_with_unit_tests_naming_two_dashboard_paths_starts_no_veri_pytest_leg(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    named = "UNIT_TESTS=projects/dashboard/tests/a.py projects/dashboard/tests/b.py"
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    env["PATH"] = os.path.dirname(sys.executable) + os.pathsep + env["PATH"]
+
+    ran = subprocess.run(["make", "-C", str(tree), "unit", named], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert log.read_text().splitlines() == [], ran.stdout + ran.stderr
