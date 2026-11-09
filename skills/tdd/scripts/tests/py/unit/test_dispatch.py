@@ -1512,3 +1512,16 @@ def test_main_launches_an_issue_skipped_for_overlap_at_a_later_pass_once_no_open
         dispatch.main(["--target", "2"])
 
     assert waits == [["15"], ["15", "12"]]
+
+
+def test_main_prints_one_line_per_skip_naming_the_skipped_issue_the_overlapping_path_and_the_pr_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
+        {"12": ["skills/tdd/SCRIPTS.md", "skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
