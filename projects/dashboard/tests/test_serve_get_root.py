@@ -1633,3 +1633,77 @@ def test_page_waiting_section_lists_each_bail_as_run_and_cause_in_journal_order(
     assert [l for l in lines if l.startswith("<p>")] == []
     assert [t for t in text if t.startswith("#3277")] == ["#3277 untestable-criterion", "#3277 no-verdict"]
     assert len([t for t in text if t.startswith("#1200")]) == 1
+
+
+@pytest.mark.process("serve.py")
+def test_page_waiting_section_lists_a_done_pr_not_followed_by_merged_as_ready_to_merge(veri_home):
+    import re
+
+    pr = "https://github.com/ztrange/veri/pull/4000"
+    (veri_home / "runs" / "4000.jsonl").write_text(
+        json.dumps({"ts": 1794089519, "awake": 0, "issue": "4000", "event": "conductor-start"}) + "\n"
+        + json.dumps({"ts": 1794089600, "awake": 50, "issue": "4000", "event": "done", "pr": pr}) + "\n"
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    section = re.search(r"<h2>Waiting</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
+    lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
+    text = [re.sub(r"<[^>]+>", "", l).strip() for l in lines]
+    assert [t for t in text if "ready to merge" in t] == [f"#4000 PR {pr} ready to merge"]
+
+
+@pytest.mark.process("serve.py")
+def test_page_waiting_section_lists_ready_to_merge_when_the_only_merged_event_precedes_the_last_done_pr(veri_home):
+    import re
+
+    first = "https://github.com/ztrange/veri/pull/4100"
+    last = "https://github.com/ztrange/veri/pull/4101"
+    events = [
+        {"ts": 1794089519, "awake": 0, "issue": "4100", "event": "conductor-start"},
+        {"ts": 1794089600, "awake": 50, "issue": "4100", "event": "done", "pr": first},
+        {"ts": 1794089700, "awake": 60, "issue": "4100", "event": "merged", "pr": first},
+        {"ts": 1794089800, "awake": 70, "issue": "4100", "event": "done", "pr": last},
+    ]
+    (veri_home / "runs" / "4100.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    section = re.search(r"<h2>Waiting</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
+    lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
+    text = [re.sub(r"<[^>]+>", "", l).strip() for l in lines]
+    assert [t for t in text if "ready to merge" in t] == [f"#4100 PR {last} ready to merge"]

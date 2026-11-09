@@ -87,6 +87,9 @@ def waiting_lines():
         for e in events:
             if e.get("event") == "bail":
                 lines.append("<div>%s</div>" % " ".join(filter(None, ["#" + path.stem, e.get("cause")])))
+        prs = [i for i, e in enumerate(events) if e.get("event") == "done" and e.get("pr")]
+        if prs and not any(e.get("event") == "merged" for e in events[prs[-1]:]):
+            lines.append("<div>#%s PR %s ready to merge</div>" % (path.stem, events[prs[-1]]["pr"]))
     return lines
 
 
