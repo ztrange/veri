@@ -26,3 +26,19 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 193
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_record_is_absent_from_the_relaunched_process
 
+before 40
+ee0a2398e43a4d5c42af165b56820ad065f957c0
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment
+
+file 44
+skills/tdd/scripts/veri/restart_conductor.py
+old 84
+env = {k: v for k, v in tunables.environment().items() if not k.startswith("VERI_")}
+new 8
+env = {}
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment
+
