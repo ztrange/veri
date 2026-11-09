@@ -1,6 +1,6 @@
 # Plan for #3375 — stop-run.sh --mode now exits 0 while the conductor stays blocked in detach_command wait on its baseline full tier
 
-- [x] With a run whose `.tdd/fulltier.pid` names a live detached command (a session leader that is not a supervisor), `stop-run.sh <issue> --mode now` sends TERM to that command's whole process group, so a descendant of the command is signalled too ⟦criterion 1⟧ ⟂ refactor pending
+- [x] With a run whose `.tdd/fulltier.pid` names a live detached command (a session leader that is not a supervisor), `stop-run.sh <issue> --mode now` sends TERM to that command's whole process group, so a descendant of the command is signalled too ⟦criterion 1⟧
 - [ ] Under `--mode at-ledger` or `--mode at-leaf`, `stop-run.sh <issue>` with a run whose `.tdd/fulltier.pid` names a live detached command (a session leader that is not a supervisor) sends no signal to that command's process group ⟦criterion 2⟧
 - [ ] `stop-run.sh <issue> --mode now` signals no detached command whose recorded pid no longer runs the command it was started as (a recycled pid), so an unrelated process now holding that pid, and its group, are left alone ⟦criterion 2⟧
 - [ ] `detach_command.py wait <name>` returns 2 within one `VERI_POLL` interval when `.tdd/stop` holds `now` and the command has not finished, without waiting for its exit file ⟦criterion 3⟧
