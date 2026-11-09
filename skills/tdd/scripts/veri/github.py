@@ -277,6 +277,11 @@ def gh_json_page(fixture, path, *args):
     return _select("json").page(fixture, path, *args)
 
 
+def gh_pr_diff_names(number):
+    """The paths open PR <number> changes, from `gh pr diff --name-only`."""
+    return _gh("pr", "diff", str(number), "--name-only").stdout.split()
+
+
 def gh_issue_view(number, field):
     return _select("issue_view").issue_view(number, field)
 

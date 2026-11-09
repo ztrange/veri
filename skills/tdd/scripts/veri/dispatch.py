@@ -112,9 +112,7 @@ def run_pr_paths():
     for pr in handoff_state.open_prs("number,url,isDraft,headRefName"):
         head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
         if pr["isDraft"] and head.startswith("tdd/"):
-            diff = subprocess.run(["gh", "pr", "diff", str(pr["number"]), "--name-only"],
-                                  capture_output=True, text=True)
-            changed[pr.get("url") or pr.get("html_url")] = diff.stdout.split()
+            changed[pr.get("url") or pr.get("html_url")] = github.gh_pr_diff_names(pr["number"])
     return changed
 
 
