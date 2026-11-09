@@ -202,6 +202,7 @@ def main(argv):
     merges = []
     resume_at = 0
     reported = set()
+    held_at = None
     _reads.clear()
     while True:
         live = live_conductors()
@@ -248,7 +249,7 @@ def main(argv):
                 i for i in (os.listdir(wt) if os.path.isdir(wt) else [])
                 if i not in live and restart_pending(i)})
         if held < target and (previous is None or os.path.exists(ledger)) \
-            and clock() >= resume_at:
+            and clock() >= resume_at and (held_at is None or clock() - held_at >= int(overlap_poll())):
             try:
                 queue = solvable_issues()
                 changed = run_pr_paths()
@@ -263,6 +264,7 @@ def main(argv):
                     sys.stdout.write("queue-empty\n")
                     return 3
             else:
+                held_at = clock() if queue and not free else None
                 if free:
                     previous = free[0]
                     launch(previous)
