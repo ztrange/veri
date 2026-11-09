@@ -3512,3 +3512,22 @@ def test_main_3292_prints_revise_for_a_green_report_whose_only_wrong_test_mentio
         results.append((label, code, stdout))
 
     assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n")]
+
+
+def test_main_3292_criterion_3_prints_revise_and_exits_3_for_a_wrong_test_line_whose_body_is_none_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    (tmp_path / ".tdd").mkdir()
+    step = "wrong-test-route.sh answers revise for a none wrong test after the free reroute"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text('{"event": "reroute", "step": "%s"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: none\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
