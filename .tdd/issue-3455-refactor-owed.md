@@ -1,0 +1,2 @@
+### The no-run grace clock restarts for a new head: after one head has been `none` for longer than the grace, a later push's head that has been `none` for less than `VERI_CI_NO_RUN_WAIT` keeps polling (slice ends 3) rather than exiting 2 — one small in-process case in skills/tdd/scripts/tests/py/unit/test_wait_ci.py ⟦criterion 2⟧
+- test-only | extract the repeated ci.yml workflow-serving helper (the base64 `workflows` closure and the `answer` workflow branch) in test_wait_ci.py into one shared helper
