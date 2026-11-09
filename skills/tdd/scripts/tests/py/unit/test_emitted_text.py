@@ -93,6 +93,6 @@ def test_usage_output_on_a_missing_argument_is_unchanged(run_cli):
             problems.append(
                 "%s %s: want %s, got %s\n"
                 "  the pin covers: the line 'exit N' (here: exit 2), then the usage output with trailing newlines stripped, then one trailing newline\n"
-                "  reproduce: out=$(skills/tdd/scripts/%s%s 2>&1); printf 'exit %%d\\n%%s\\n' $? \"$out\" | cksum"
+                "  reproduce: o=$(mktemp); e=$(mktemp); skills/tdd/scripts/%s%s >$o 2>$e; c=$?; out=$(cat $o $e); rm -f $o $e; printf 'exit %%d\\n%%s\\n' $c \"$out\" | cksum"
                 % (script, " ".join(argv), want, got, script, args))
-    assert problems == []
+    assert problems == [], "\n".join(problems)
