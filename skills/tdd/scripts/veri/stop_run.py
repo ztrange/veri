@@ -94,6 +94,8 @@ def group_alive(group):
         os.killpg(group, 0)
     except GONE:
         return False
+    except PermissionError:
+        return True
     return True
 
 
