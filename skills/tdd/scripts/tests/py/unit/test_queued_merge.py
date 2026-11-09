@@ -763,3 +763,48 @@ def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_
 
     merges = [c for c in calls if "pr merge" in c]
     assert (code, merges) == (0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
+
+
+def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_exits_2_naming_the_line_makes_no_merge_call_and_frees_the_lock(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    body = json.dumps({"body": "## Review fixes\n- tidy\n"})
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "pr view" in line:
+                return 0, body, ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "auto"})
+
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "Closes #3255" in err, merges, len(released)) == (2, True, [], 1)
+
+
+def test_3422_queued_merge_of_a_pr_whose_only_closing_line_is_for_a_longer_issue_number_sharing_the_runs_number_as_a_prefix_exits_2_and_makes_no_merge_call(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    body = json.dumps({"body": "Closes #32550 — another capability\n"})
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "pr view" in line:
+                return 0, body, ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "auto"})
+
+    merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
+    assert (code, merges) == (2, [])
