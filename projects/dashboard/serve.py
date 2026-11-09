@@ -121,7 +121,10 @@ def report_blocks(repo):
         return "\n<p>left: solvable now %d, waiting %d on %s, held by no lane %d</p>" % (
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
 
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s%s" % (n, i["number"], i["title"], solved_line(n, i), left_line(n, i), owed_line(n, i))
+    def eta_line(n, prd):
+        return "\n<p>ETA: no lane: no ETA</p>"
+
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s%s%s" % (n, i["number"], i["title"], solved_line(n, i), left_line(n, i), eta_line(n, i), owed_line(n, i))
                      for n, i in sorted(first.items()))
 
 
