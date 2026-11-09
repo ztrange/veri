@@ -1112,3 +1112,37 @@ def test_an_added_step_on_a_pass_unit_signs_it_when_graded_has_only_another_unit
                       git(repo, "status", "--porcelain")]
 
     assert seen == {"other_line": [3, True, ""], "no_file": [3, True, ""]}, seen
+
+
+BUILD = SCRIPTS / "build-verify-prompt.sh"
+
+
+@pytest.mark.process("skill-edit-step.sh then build-verify-prompt.sh run against a real git repository with a stub grader")
+def test_a_unit_whose_prose_and_requirements_are_already_present_exits_3_and_the_diff_prompt_built_afterwards_names_it_as_already_present_3404(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
+    claude = tmp_path / "claude"
+    claude.write_text(GRADER)
+    claude.chmod(0o755)
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec\n")
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "CLAUDE_BIN": str(claude), "VERI_ISSUE": "3404",
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
+    built = subprocess.run([str(BUILD), "--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"],
+                           cwd=repo, capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+
+    prompt = " ".join(built.stdout.split())
+    assert (ran.returncode, built.returncode, "unit.md" in prompt, "already present" in prompt) \
+        == (3, 0, True, True), (ran.stderr, built.stderr)
