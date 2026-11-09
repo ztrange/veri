@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 216
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_three_consecutive_reads_ends_the_watch_with_restarts_7_0_and_exit_0
 
+before 40
+5db26ab9f70963d522dbb3dd8252f837294a69eb
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 225
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_a_conductor_asked_to_stop_whose_run_reads_stopped_and_stays_not_live_for_three_consecutive_reads_is_relaunched_exactly_once_after_the_third
+
