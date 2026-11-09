@@ -21,8 +21,10 @@ def main(argv):
     current = json.loads(github.gh_api(path).stdout)["body"]
     with open(argv[1]) as f:
         mine = BEGIN + "\n" + f.read() + "\n" + END
-    pattern = re.escape(BEGIN) + ".*?" + re.escape(END)
-    body = re.sub(pattern, lambda _: mine, current, flags=re.S) if re.search(pattern, current, flags=re.S) else mine
+    pattern = re.compile(re.escape(BEGIN) + ".*?" + re.escape(END), re.S)
+    body, replaced = pattern.subn(lambda _: mine, current)
+    if not replaced:
+        body = mine
     github._gh("api", "-X", "PATCH", path, "-f", "body=" + body)
     return 0
 
