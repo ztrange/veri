@@ -114,7 +114,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"),
 def selection_asked(args):
     """Whether the gh command <args> is the solvable selection's own listing, which the shim on PATH answers."""
     fields = args[args.index("--json") + 1] if "--json" in args else ""
-    return fields in ("number,title,labels,body,state", "body,state,headRefName") or (
+    return fields in ("number,title,labels,body,state", "body,state,headRefName,isDraft") or (
         args[1:2] == ["api"] and "&page=" not in args[2])
 
 
