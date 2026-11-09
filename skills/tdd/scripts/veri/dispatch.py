@@ -52,7 +52,7 @@ def launch(issue):
 
 def last_comment(issue):
     comments = json_documents.items(github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"))
-    return comments[-1]["body"]
+    return comments[-1]["body"] if comments else ""
 
 
 def queued_merges():
@@ -79,7 +79,7 @@ def pr_state(pr_url):
 
 
 def exit_line(issue):
-    heading = last_comment(issue).splitlines()[0]
+    heading = next(iter(last_comment(issue).splitlines()), "")
     if heading.startswith("### ⛔ Bailed"):
         return f"bail {issue}"
     if not heading.startswith("### ✅ Done"):
