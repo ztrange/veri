@@ -166,7 +166,9 @@ def main(argv):
                 if _restart_pending(issue):
                     continue
                 state = run_state(issue).split(" ")[0]
-                if state in ("", "running") and pid_file.recorded_started(
+                if state == "running":
+                    continue
+                if not state and pid_file.recorded_started(
                         os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):
                     continue
                 if not state:
