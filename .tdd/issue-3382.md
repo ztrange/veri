@@ -6,4 +6,4 @@
 - [x] Guard: when the run reaches stopped after the watcher asked, the watcher still relaunches the conductor once and the restart is unchanged (in-process, small case, no process) ⟦criterion 4⟧
 - [x] Manual check: break the single-ask logic on purpose (ask every pass), see the single-ask case go red, restore ⟦human-owed⟧ ⟦criterion 4⟧
 - [x] restart-conductor.sh marks the .tdd/stop it writes (an owner field in the stop file, or a check tied to its own restart-pending marker — the smaller) and removes only a stop carrying its own mark. One test: the watcher's own at-ledger stop is removed, and an operator's `stop-run.sh --mode at-ledger` stop written in the same window is left in place, as the contrast case in that same test. ⟦added⟧ ⟦criterion 4⟧
-- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: reword SC85 to state the once-only ask and that the watcher removes only the stop it wrote. ⟦added⟧ ⟦criterion 4⟧
+- [x] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: reword SC85 to state the once-only ask and that the watcher removes only the stop it wrote. ⟦added⟧ ⟦criterion 4⟧
