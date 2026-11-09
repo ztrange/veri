@@ -3632,3 +3632,22 @@ def test_main_3367_prints_supersede_with_the_file_of_each_older_case_a_green_rep
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
     assert (code, stdout) == (0, "supersede tests/py/unit/test_solvable.py::%s tests/py/unit/test_emitted.py::%s\n" % (first, second))
+
+
+def test_main_3367_prints_red_with_the_file_a_contradicts_id_gives_even_when_another_file_defines_the_same_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_usage_output_on_a_missing_argument_is_unchanged"
+    for name in ("test_aaa.py", "test_zzz.py", "test_mmm.py"):
+        (suite / name).write_text("def %s():\n    pass\n" % contradicted)
+    (suite / "test_tick_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\nCONTRADICTS: tests/py/unit/test_zzz.py::%s\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red tests/py/unit/test_zzz.py::%s\n" % contradicted)
