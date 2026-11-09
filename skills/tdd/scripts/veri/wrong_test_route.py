@@ -106,7 +106,14 @@ def _unparseable_claim(report):
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
             return True
-    return any("WRONG_TEST" in l and not l.startswith("WRONG_TEST:") and not any(True for _ in _spellings(l)) for l in _report_lines(report))
+    return any(_prose_claim(l) and not any(True for _ in _spellings(l)) for l in _report_lines(report))
+
+
+def _prose_claim(line):
+    if line.startswith("WRONG_TEST:"):
+        return False
+    return any(not re.search(r'\bnot\s+(a\s+)?$', line[:m.start()])
+               for m in re.finditer("WRONG_TEST", line))
 
 
 def _case_name(test_id):

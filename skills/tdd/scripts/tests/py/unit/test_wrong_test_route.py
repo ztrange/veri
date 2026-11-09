@@ -3493,3 +3493,22 @@ def test_main_3292_keeps_repair_for_a_log_holding_only_a_repair_reroute_and_revi
         results.append((code, stdout))
 
     assert results == [(0, "repair %s\n" % own), (3, "revise\n")]
+
+
+def test_main_3292_prints_revise_for_a_green_report_whose_only_wrong_test_mention_is_negated_or_quoted(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    results = []
+    for label, line in (
+            ("negated", "REJECT: product defect, this is not a WRONG_TEST, the code returns 1"),
+            ("quoted", 'the green said "WRONG_TEST" but named nothing')):
+        report = tmp_path / ("green-report-%s.txt" % label)
+        report.write_text("SUITE: make test\n%s\n" % line)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+        results.append((label, code, stdout))
+
+    assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n")]
