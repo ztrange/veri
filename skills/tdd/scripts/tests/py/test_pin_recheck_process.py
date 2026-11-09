@@ -2306,6 +2306,7 @@ def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_thing.py").write_text("def test_other():\n    pass\n")
+    (tmp_path / "Makefile").write_text("test:\n\t@true\n")
     (tmp_path / ".tdd").mkdir()
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
@@ -2318,7 +2319,8 @@ def test_3289_a_pin_dropped_by_an_unpinnable_retire_is_not_reported_as_base_run_
     base = git("rev-parse", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\nmore\n")
     git("commit", "-q", "-am", "touch guard.txt")
-    retired = subprocess.run(["sh", str(SCRIPTS / "tick-ledger.sh"), "--unpinnable", str(reason), str(ledger), "a one"],
+    retired = subprocess.run(["sh", str(SCRIPTS / "tick-ledger.sh"), "--unpinnable", str(reason), "--case",
+                              "tests/test_thing.py::test_other", str(ledger), "a one"],
                              cwd=tmp_path, capture_output=True, text=True, timeout=20, env={**os.environ, "VERI_ISSUE": "42"})
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
