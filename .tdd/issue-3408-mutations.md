@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/test_emitted_text_process.py
 command 156
 make test TESTS=skills/tdd/scripts/tests/py/test_emitted_text_process.py::test_3408_reproducing_command_prints_the_pin_cksum_and_leaves_no_temp_files_behind
 
+before 40
+00b3f00cc59b93ff8aa2d80ecbcf8ed98f031f6b
+keep 56
+skills/tdd/scripts/tests/py/test_emitted_text_process.py
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/test_emitted_text_process.py::test_3408_reproducing_command_passes_every_argument_to_the_script_verbatim
+
