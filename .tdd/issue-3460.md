@@ -1,0 +1,5 @@
+# Plan for #3460 — A resumed run on a released issue never re-claims it, so dispatch relaunches it after Done and wipes a reviewer's worktree
+
+- [ ] A resume re-claims a released issue: `event.sh resume` run with `VERI_STATE_LABEL_ISSUE=<n>` on an issue lacking its lane's `taken:<lane>` label (lane: the text after `VERI_LABEL`'s last `:`, else `main`) adds `taken:<lane>` and removes the opt-in label `VERI_LABEL`, pinned by a small in-process case (gh faked at the process boundary, no real process) that fails on the current code ⟦criterion 1⟧
+- [ ] `solvable-issues.sh` does not list an issue whose open PR from its own `tdd/<n>-…` run branch is no longer a draft (the run reached ✅ Done and readied it), while a released run's still-draft own-branch PR keeps the issue listed as today, pinned by a small in-process case on fixture listings that fails on the current code ⟦criterion 2⟧
+- [ ] Both guards, broken on purpose, go red: the re-claim on resume and the readied own-branch PR exclusion each broken by hand, its pinning case watched going red, and restored ⟦human-owed⟧ ⟦criterion 3⟧
