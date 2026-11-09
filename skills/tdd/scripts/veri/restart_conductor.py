@@ -117,7 +117,7 @@ def main(argv):
             except OSError as e:
                 print(f"restart-conductor.sh: cannot read conductor-{run}.log: {e}", file=sys.stderr)
                 return 2
-            if g is not None and g >= 0.85 * int(knob):
+            if not asked and g is not None and g >= 0.85 * int(knob):
                 pending = _run_file(run, "restart-pending")
                 os.makedirs(os.path.dirname(pending), exist_ok=True)
                 with open(pending, "w") as f:

@@ -677,3 +677,20 @@ def test_3384_a_conductor_asked_to_stop_whose_run_reads_stopped_and_stays_not_li
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.strip(), calls) == (0, "restarts 7 1", [("stop", "at-ledger", "7"), ("launch", "7", 5)])
+
+
+def test_3382_with_growth_over_the_threshold_and_a_conductor_alive_for_several_passes_stop_run_is_called_once_not_once_per_pass(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    alive = iter([True] * 5 + [False])
+    calls = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "_growth", lambda run, offset=0: 60500, raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert calls == [("stop", "at-ledger", "7")]
