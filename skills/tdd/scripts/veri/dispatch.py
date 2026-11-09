@@ -129,6 +129,7 @@ def main(argv):
     previous = None
     seen = []
     absent = []
+    pending = []
     merges = []
     resume_at = 0
     while True:
@@ -142,12 +143,15 @@ def main(argv):
         for issue in seen:
             if issue not in live:
                 if not os.path.isdir(run_dir(issue)):
+                    pending = [p for p in pending if p != issue]
                     if issue in absent:
                         sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
                         return 2
                     absent.append(issue)
                     continue
                 if restart_pending(issue):
+                    if issue not in pending:
+                        pending.append(issue)
                     continue
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
@@ -163,7 +167,8 @@ def main(argv):
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
         absent = [issue for issue in absent if issue not in live]
-        seen = live + absent
+        pending = [issue for issue in pending if issue not in live and issue not in absent]
+        seen = live + absent + pending
         ledger = previous and ledger_path(run_dir(previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)) \
             and clock() >= resume_at:
