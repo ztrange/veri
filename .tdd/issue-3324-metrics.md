@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3324
 
-Wall time for the issue: 92 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 15 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 4 of 10 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.82 over 153 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $9.45 over 177 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78087 tokens, largest 181395 tokens
 Conductor context: first turn 78107 tokens, largest 134507 tokens
-Conductor context: first turn 77009 tokens, largest 124294 tokens
+Conductor context: first turn 77009 tokens, largest 127290 tokens
+Conductor context: first turn 77108 tokens, largest 119056 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -131,37 +132,61 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 112 | $0.08 | 131373 |
 | 113 | $0.05 | 132990 |
 | 114 | $0.05 | 134507 |
-| 115 | $0.48 | 77009 |
-| 116 | $0.06 | 82937 |
-| 117 | $0.03 | 85127 |
-| 118 | $0.03 | 86995 |
-| 119 | $0.04 | 90028 |
-| 120 | $0.05 | 94381 |
-| 121 | $0.02 | 94705 |
-| 122 | $0.02 | 95151 |
-| 123 | $0.03 | 96328 |
-| 124 | $0.02 | 96897 |
-| 125 | $0.02 | 97259 |
-| 126 | $0.02 | 97743 |
-| 127 | $0.02 | 98180 |
-| 128 | $0.02 | 98727 |
-| 129 | $0.02 | 99176 |
-| 130 | $0.03 | 99925 |
-| 131 | $0.03 | 101146 |
-| 132 | $0.04 | 103302 |
+| 115 | $0.49 | 77009 |
+| 116 | $0.07 | 82937 |
+| 117 | $0.04 | 85127 |
+| 118 | $0.04 | 86995 |
+| 119 | $0.05 | 90028 |
+| 120 | $0.07 | 94381 |
+| 121 | $0.03 | 94705 |
+| 122 | $0.03 | 95151 |
+| 123 | $0.04 | 96328 |
+| 124 | $0.03 | 96897 |
+| 125 | $0.03 | 97259 |
+| 126 | $0.04 | 97743 |
+| 127 | $0.03 | 98180 |
+| 128 | $0.03 | 98727 |
+| 129 | $0.03 | 99176 |
+| 130 | $0.04 | 99925 |
+| 131 | $0.04 | 101146 |
+| 132 | $0.05 | 103302 |
 | 133 | $0.03 | 104017 |
-| 134 | $0.03 | 104686 |
-| 135 | $0.02 | 105107 |
-| 136 | $0.04 | 107098 |
-| 137 | $0.05 | 110634 |
-| 138 | $0.04 | 113251 |
-| 139 | $0.03 | 114109 |
+| 134 | $0.04 | 104686 |
+| 135 | $0.03 | 105107 |
+| 136 | $0.05 | 107098 |
+| 137 | $0.06 | 110634 |
+| 138 | $0.05 | 113251 |
+| 139 | $0.04 | 114109 |
 | 140 | $0.04 | 115695 |
-| 141 | $0.03 | 116290 |
-| 142 | $0.03 | 117618 |
-| 143 | $0.03 | 118506 |
-| 144 | $0.03 | 119596 |
-| 145 | $0.06 | 124294 |
+| 141 | $0.04 | 116290 |
+| 142 | $0.04 | 117618 |
+| 143 | $0.04 | 118506 |
+| 144 | $0.05 | 119596 |
+| 145 | $0.07 | 124294 |
+| 146 | $0.04 | 125261 |
+| 147 | $0.04 | 125767 |
+| 148 | $0.05 | 127290 |
+| 149 | $0.48 | 77108 |
+| 150 | $0.07 | 83366 |
+| 151 | $0.03 | 85600 |
+| 152 | $0.06 | 90571 |
+| 153 | $0.08 | 97828 |
+| 154 | $0.03 | 98973 |
+| 155 | $0.03 | 100003 |
+| 156 | $0.03 | 100979 |
+| 157 | $0.03 | 102233 |
+| 158 | $0.04 | 104459 |
+| 159 | $0.03 | 105378 |
+| 160 | $0.03 | 106225 |
+| 161 | $0.03 | 107031 |
+| 162 | $0.03 | 107662 |
+| 163 | $0.03 | 108572 |
+| 164 | $0.04 | 110749 |
+| 165 | $0.03 | 111500 |
+| 166 | $0.03 | 112208 |
+| 167 | $0.03 | 112973 |
+| 168 | $0.03 | 114284 |
+| 169 | $0.06 | 119056 |
 
 #### Conductor comments, by family
 
@@ -177,10 +202,10 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-<phase> (revised) | 1 | 575 | $0.01 |
 | 🗺️ Plan | 1 | 575 | $0.01 |
 | 🗺️ verify-plan | 3 | 1742 | $0.03 |
-| ▶️ Resuming | 1 | 592 | $0.01 |
-| ⛔ Bailed | 2 | 1167 | $0.02 |
+| ▶️ Resuming | 2 | 600 | $0.01 |
+| ⛔ Bailed | 3 | 1643 | $0.03 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 20 | 11585 | $0.23 |
+| Total | 22 | 12069 | $0.24 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
@@ -259,4 +284,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 124 | 240 | 73780 | 2231203 | 1008832 | 11.37 (estimate) |
+| total | 124 | 240 | 73780 | 2231203 | 1008832 | 13.01 (estimate) |
