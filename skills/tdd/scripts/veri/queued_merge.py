@@ -226,7 +226,7 @@ def main(argv):
     if code:
         return code
     code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                 "origin", branch, keep=True)
+                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
     if code:
         return code
     head = _rev(worktree, "HEAD")

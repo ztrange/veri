@@ -467,3 +467,86 @@ def test_queued_merge_whose_merge_lock_release_cannot_be_started_names_release_i
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     assert (run.returncode, "FileNotFoundError" in run.stderr, "merged, but cleanup failed: release" in run.stderr) == (2, False, True), run.stderr
+
+
+FAKE_GH_HEAD_OF_WORKTREE = """#!/bin/sh
+head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
+case "$*" in
+  *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "failure"}]}' ;;
+  *check-runs*) echo '{"check_runs": []}' ;;
+  *"/status"*) echo '{"statuses": []}' ;;
+  *"/pulls/"*) echo "{\\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}" ;;
+  *) echo '[]' ;;
+esac
+exit 0
+"""
+
+
+FAKE_GIT_MOVING_REMOTE = """#!/bin/sh
+case "$*" in
+  *" rebase "*)
+    "$REAL_GIT" "$@" || exit $?
+    if [ -n "$MOVE_REMOTE" ]; then
+      "$REAL_GIT" -C "$MOVE_REMOTE" -c user.name=veri -c user.email=veri@example.test commit -q --allow-empty -m raced || exit 1
+      "$REAL_GIT" -C "$MOVE_REMOTE" push -q origin HEAD:refs/heads/feature || exit 1
+    fi
+    exit 0 ;;
+esac
+exec "$REAL_GIT" "$@"
+"""
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a detached-HEAD worktree, with gh planted on PATH")
+def test_queued_merge_lease_push_from_a_detached_head_updates_the_remote_branch_but_a_remote_moved_past_the_lease_is_still_refused_3459(tmp_path):
+    real_git = shutil.which("git")
+    ident = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+
+    def git(repo, *args):
+        done = subprocess.run([real_git, "-C", str(repo), *ident, *args], check=True, capture_output=True, text=True, cwd=tmp_path)
+        return done.stdout.strip()
+
+    remote = tmp_path / "remote.git"
+    subprocess.run([real_git, "init", "-q", "--bare", "-b", "main", str(remote)], check=True, cwd=tmp_path)
+    seed = tmp_path / "seed"
+    subprocess.run([real_git, "clone", "-q", str(remote), str(seed)], check=True, capture_output=True, cwd=tmp_path)
+    git(seed, "checkout", "-q", "-b", "main")
+    git(seed, "commit", "-q", "--allow-empty", "-m", "initial")
+    git(seed, "push", "-q", "origin", "main")
+    git(seed, "checkout", "-q", "-b", "feature")
+    (seed / "f.txt").write_text("feature\n")
+    git(seed, "add", "f.txt")
+    git(seed, "commit", "-q", "-m", "feature work")
+    git(seed, "push", "-q", "origin", "feature")
+    worktree = tmp_path / "wt"
+    subprocess.run([real_git, "clone", "-q", "-b", "feature", str(remote), str(worktree)], check=True, capture_output=True, cwd=tmp_path)
+    mover = tmp_path / "mover"
+    subprocess.run([real_git, "clone", "-q", "-b", "feature", str(remote), str(mover)], check=True, capture_output=True, cwd=tmp_path)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_HEAD_OF_WORKTREE)
+    plant(bin_dir, "git", FAKE_GIT_MOVING_REMOTE)
+
+    def queued_merge(move):
+        git(seed, "checkout", "-q", "main")
+        git(seed, "commit", "-q", "--allow-empty", "-m", "main moved")
+        git(seed, "push", "-q", "origin", "main")
+        git(worktree, "fetch", "-q", "origin")
+        git(worktree, "checkout", "-q", "--detach", "origin/feature")
+        env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git,
+               "MOVE_REMOTE": str(mover) if move else "", "WORKTREE": str(worktree), "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0",
+               "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+               "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+        return subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "feature", "-"],
+                              cwd=worktree, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, timeout=30)
+
+    queued_merge(move=False)
+    pushed = git(remote, "rev-parse", "refs/heads/feature") == git(worktree, "rev-parse", "HEAD")
+
+    git(mover, "fetch", "-q", "origin")
+    git(mover, "reset", "-q", "--hard", "origin/feature")
+    before = git(remote, "rev-parse", "refs/heads/feature")
+    refused = queued_merge(move=True)
+    raced = git(remote, "rev-parse", "refs/heads/feature")
+
+    assert (pushed, refused.returncode, raced == git(mover, "rev-parse", "HEAD"), raced != before) == (True, 1, True, True)
