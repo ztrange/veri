@@ -251,7 +251,8 @@ def main(argv):
             _say("the full test command (%s) is red on the rebased tree; not merged" % full)
             _release(pid)
             return 1
-    for path in glob.glob(os.path.join(worktree, ".tdd", "issue-[0-9]*.md")):
+    own = re.match(r"tdd/(\d+)-", branch)
+    for path in glob.glob(os.path.join(worktree, ".tdd", "issue-%s.md" % (own.group(1) if own else "[0-9]*"))):
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
         shown = gh_probe("pr", "view", pr, "--json", "body")
         body = json.loads(shown.stdout)["body"]
