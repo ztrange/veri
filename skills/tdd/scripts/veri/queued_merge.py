@@ -14,10 +14,12 @@ try:
     import event
     import tunables
     from github import gh_api, gh_probe
+    from ledger import ledger_path
 except ImportError:
     from . import event
     from . import tunables
     from .github import gh_api, gh_probe
+    from .ledger import ledger_path
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
@@ -252,7 +254,7 @@ def main(argv):
             _release(pid)
             return 1
     own = re.match(r"tdd/(\d+)-", branch)
-    for path in glob.glob(os.path.join(worktree, ".tdd", "issue-%s.md" % (own.group(1) if own else "[0-9]*"))):
+    for path in glob.glob(ledger_path(worktree, own.group(1) if own else "[0-9]*")):
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
         shown = gh_probe("pr", "view", pr, "--json", "body")
         body = json.loads(shown.stdout)["body"]
