@@ -110,19 +110,45 @@ def answered(what, read, *args):
         raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
 
 
+def overlap_poll():
+    return tunables.read("VERI_DISPATCH_OVERLAP_POLL", "60", unless_empty="60")
+
+
+# The overlap reads one dispatch process has made, emptied as main() starts: issue bodies per issue,
+# PR diffs per (PR url, head sha), and the open run draft PRs with the time they were listed.
+_reads = {}
+
+
 def issue_paths(issue):
-    """The backticked words of <issue>'s body: the repo paths it names."""
-    return re.findall(r"`([^`\s]+)`", answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body"))
+    """The backticked words of <issue>'s body: the repo paths it names. Read once per dispatch process."""
+    bodies = _reads.setdefault("bodies", {})
+    if issue not in bodies:
+        bodies[issue] = answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body")
+    return re.findall(r"`([^`\s]+)`", bodies[issue])
+
+
+def run_prs():
+    """(url, number, head sha) of every open run draft PR (head tdd/…), on any machine,
+    listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds."""
+    listed = _reads.get("listed")
+    if listed is None or clock() - listed[0] >= int(overlap_poll()):
+        prs = []
+        for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName,headRefOid"):
+            head = pr.get("head") or {}
+            if pr["isDraft"] and (pr.get("headRefName") or head.get("ref") or "").startswith("tdd/"):
+                prs.append((pr.get("url") or pr.get("html_url"), pr["number"], pr.get("headRefOid") or head.get("sha")))
+        listed = _reads["listed"] = (clock(), prs)
+    return listed[1]
 
 
 def run_pr_paths():
-    """{url: changed paths} of every open run draft PR (head tdd/…), on any machine."""
+    """{url: changed paths} of every open run draft PR, each diff read once per head sha."""
+    diffs = _reads.setdefault("diffs", {})
     changed = {}
-    for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName"):
-        head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
-        if pr["isDraft"] and head.startswith("tdd/"):
-            url = pr.get("url") or pr.get("html_url")
-            changed[url] = answered(f"{url}'s diff", github.gh_pr_diff_names, pr["number"])
+    for url, number, sha in run_prs():
+        if (url, sha) not in diffs:
+            diffs[(url, sha)] = answered(f"{url}'s diff", github.gh_pr_diff_names, number)
+        changed[url] = diffs[(url, sha)]
     return changed
 
 
@@ -154,6 +180,7 @@ def parse_args(argv):
     if (
         not argv
         or not stall_window().isdigit()
+        or not overlap_poll().isdigit()
         or len(argv) != 2
         or argv[0] != "--target"
         or not argv[1].isdigit()
@@ -175,6 +202,7 @@ def main(argv):
     merges = []
     resume_at = 0
     reported = set()
+    _reads.clear()
     while True:
         live = live_conductors()
         running = queued_merges()
