@@ -32,7 +32,7 @@ def main(argv):
     if read.returncode != 0:
         return _refuse("no answer to reading the labels of issue #%s: %s" % (argv[0], read.stderr.strip()))
     names = [item["name"] for item in json.loads(read.stdout)]
-    taken = "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
+    taken = tunables.taken_label(opt_in)
     held = [name for name in names if name.startswith("taken:")]
     # A re-claim: this lane's own label with no ledger means a prior launch claimed and died before planning.
     reclaim = taken in held and not os.path.exists(ledger.ledger_path(os.getcwd(), argv[0]))

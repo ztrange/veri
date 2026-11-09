@@ -16,7 +16,7 @@ def main(argv):
         return 2
     number = argv[0]
     opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
-    taken = "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
+    taken = tunables.taken_label(opt_in)
     try:
         labels = github.gh_issue_view(number, "labels").split("\n")
     except github.NoAnswer:

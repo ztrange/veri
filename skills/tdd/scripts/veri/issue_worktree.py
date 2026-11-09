@@ -211,8 +211,7 @@ def issue_of(branch):
 
 def took_by_this_lane(issue):
     opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
-    lane = opt_in.rpartition(":")[2] if ":" in opt_in else "main"
-    return "taken:" + lane in github.gh_issue_view(issue, "labels").split("\n")
+    return tunables.taken_label(opt_in) in github.gh_issue_view(issue, "labels").split("\n")
 
 
 def cut(path, branch):
