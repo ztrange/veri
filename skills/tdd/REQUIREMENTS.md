@@ -621,6 +621,7 @@
 | BL45 | `BAIL.md`'s cause list has a `pr-ready-failed` bullet: `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or never answered the ready request, after its refusal retries) → **system** failure (#2581). | A refused GitHub call is plumbing, and naming it apart from `no-verdict` lets `classify-bail.sh` and an operator tell it from a verifier that gave no verdict. |
 | BL46 | `BAIL.md`'s cause list has a `graded-edit-outside-skill-edit` bullet: a step not marked `⟦skill-edit⟧` changed a unit listed in a `GRADED` file → **process** failure. | The methodology put graded prose outside the loop that grades and signs it; naming that apart tells the operator to move the edit into a `⟦skill-edit⟧` step. |
 | BL47 | The cause list has a `revise-impossible` bullet: a revise leaf answered `IMPOSSIBLE`, saying no revision can meet the objection, which is a **process** failure distinct from `revise-exhausted`, where the attempts ran out. | A reader of the bail must be able to tell the two apart. |
+| BL48 | `repair-reroutes-exhausted`: a step's `WRONG_TEST` naming no case took its `repair` once more after the free reroute, and the next such report still names no case; a **process** failure. | The red was repaired twice and the green still calls it wrong without naming it, so the human decides. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
