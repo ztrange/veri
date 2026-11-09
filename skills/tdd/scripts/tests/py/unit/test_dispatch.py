@@ -69,6 +69,33 @@ def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_t
         b"earlier\nconductor output\n")
 
 
+def test_launch_also_starts_restart_conductor_through_detach_leaf_appending_to_restart_log_with_stdin_from_dev_null_issue_3344(
+        monkeypatch, tmp_path, dispatch):
+    import os
+    import subprocess
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(dispatch.__file__)))
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "restart-12.log"
+    log.write_bytes(b"earlier\n")
+    calls = []
+
+    def popen(argv, stdin=None, stdout=None, stderr=None, **kw):
+        calls.append((list(argv), stdin, stdout, stderr))
+        if stdout is not None and getattr(stdout, "name", None) == str(log):
+            stdout.write(b"watcher output\n")
+            stdout.flush()
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.subprocess, "Popen", popen)
+
+    dispatch.launch("12")
+
+    want = [os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "restart-conductor.sh"), "12"]
+    restarts = [c for c in calls if c[0] == want]
+    assert ([(c[1], c[2] is c[3]) for c in restarts], log.read_bytes()) == (
+        [(subprocess.DEVNULL, True)], b"earlier\nwatcher output\n")
+
+
 def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_no_process_while_it_keeps_waiting(
         monkeypatch, capsys, dispatch):
     import os

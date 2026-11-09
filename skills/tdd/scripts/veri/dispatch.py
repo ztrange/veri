@@ -48,6 +48,9 @@ def launch(issue):
     with open(log, "ab") as out:
         subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), issue],
                          stdin=subprocess.DEVNULL, stdout=out, stderr=out)
+    with open(os.path.join(tdd_dir(), f"restart-{issue}.log"), "ab") as out:
+        subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "restart-conductor.sh"), issue],
+                         stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
 def last_comment(issue):
