@@ -73,13 +73,18 @@ setInterval(() => fetch("/running").then(r => r.text()).then(t => {
 </script>"""
 
 
+def prd_number(title):
+    m = re.match(r"PRD (\d+)", title)
+    return int(m.group(1)) if m else None
+
+
 def report_blocks(repo):
     cache = json.loads((pathlib.Path(repo) / ".tdd" / "report-cache.json").read_text())
     first = {}
     for i in sorted(cache["issues"], key=lambda i: i["number"]):
-        m = re.match(r"PRD (\d+)", i["title"])
-        if m and i["state"] == "OPEN":
-            first.setdefault(int(m.group(1)), i)
+        n = prd_number(i["title"])
+        if n is not None and i["state"] == "OPEN":
+            first.setdefault(n, i)
     owed_path = pathlib.Path(repo) / ".tdd" / "report-owed.json"
     owed = json.loads(owed_path.read_text()) if owed_path.exists() else {}
 
@@ -94,7 +99,7 @@ def report_blocks(repo):
 
     def solved_line(n):
         closed = [i for i in cache["issues"] if i["state"] == "CLOSED"
-                  and (m := re.match(r"PRD (\d+)", i["title"])) and int(m.group(1)) == n]
+                  and prd_number(i["title"]) == n]
         cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
         recent = [i for i in closed
                   if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
