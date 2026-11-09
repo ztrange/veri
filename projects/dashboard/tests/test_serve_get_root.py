@@ -1494,3 +1494,38 @@ def test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rat
 
     block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
     assert "ETA: 0.40 to 4.00 days" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file(report_repo):
+    tdd = report_repo / ".tdd"
+    (tdd / "report-cache.json").write_text(json.dumps({"issues": [
+        {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z"},
+    ]}))
+    owed = tdd / "report-owed.json"
+    owed.write_text(json.dumps({"014": {"updatedAt": "2026-11-01T10:00:00Z", "answer": {"count": 2, "sections": ["Goals"]}}}))
+    before_bytes = owed.read_bytes()
+    before_names = sorted(p.name for p in tdd.iterdir())
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert "owed: stale" in body
+    assert owed.read_bytes() == before_bytes
+    assert sorted(p.name for p in tdd.iterdir()) == before_names
