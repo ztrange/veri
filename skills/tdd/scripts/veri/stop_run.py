@@ -5,6 +5,7 @@ import re
 import signal
 import subprocess
 import sys
+import time
 
 import paths
 import pid_file
@@ -80,6 +81,7 @@ def stop_run(run, mode):
 
 def stop_leaves(run):
     tdd = run + "/.tdd/"
+    termed = []
     for entry in sorted(os.listdir(tdd)):
         if entry.startswith(".") or not entry.endswith(".pid"):
             continue
@@ -94,8 +96,16 @@ def stop_leaves(run):
                 os.kill(int(pid), signal.SIGTERM)
             elif pid_file.detached(pid):
                 os.killpg(int(pid), signal.SIGTERM)
+                termed.append(int(pid))
         except (ProcessLookupError, PermissionError, OverflowError):
             pass
+    if termed:
+        time.sleep(float(tunables.read("VERI_STOP_KILL_GRACE") or "5"))
+        for group in termed:
+            try:
+                os.killpg(group, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OverflowError):
+                pass
 
 
 def main(argv):
