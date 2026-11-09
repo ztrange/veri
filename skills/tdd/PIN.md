@@ -74,14 +74,17 @@ Every other step takes the verdict as follows:
   and exit 1, leaving the line unticked and unmarked with no retirement event, so you enter
   the revise loop for red (or park the step when the revise budget is spent), never retiring
   it by hand. It prints `retired`
-  or `revise`, except that under `--missing-reroute` a reason saying `stays green` prints neither,
-  ticks nothing and exits 2: only the added missing case is unpinnable, not the step. The routing is the script's decision, never your reading of the reason. On its
+  or `revise`, except that under `--missing-reroute` a reason saying `stays green` prints
+  `unpinnable-missing`, ticks nothing and exits 2: only the added missing case is unpinnable,
+  not the step. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
   `REVISE_BUDGET` attempt, post the step's retirement to the thread, and loop back to
   `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a
   `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
   loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, a `verify-pin.reason`
-  saying `stays green`, so that reason never reaches it); on its exit **2** **bail** as a
+  saying `stays green`, so that reason never reaches it); on its exit **2** printing
+  `unpinnable-missing` (only under `--missing-reroute`) **bail** with `cause=unpinnable-missing`
+  as a **process** failure, and on any other (bare) exit **2** **bail** as a
   **system** failure. Exit 2 still means bad arguments (a missing `<target-test>` included) or
   no answer: read exit 1 as the methodology speaking and exit 2 as the plumbing breaking.
   The revise loop: enter it for the **red** phase, building the prompt as
