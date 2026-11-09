@@ -410,6 +410,44 @@ def test_main_launches_nothing_on_the_tick_where_a_run_seen_live_is_restarting_b
     assert launches == []
 
 
+def test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover_marker_and_a_never_seen_restarting_run_issue_3495(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    for issue in ("7", "9"):
+        marker = tmp_path / ".tdd" / "wt" / issue / ".tdd" / "restart-pending"
+        marker.parent.mkdir(parents=True)
+        marker.write_text(f"{os.getpid()}\n")
+    launches = []
+    waits = []
+
+    def launch(issue):
+        launches.append(issue)
+        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("- [ ] step\n")
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"] + launches, raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "3"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
+
+
 def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker_naming_a_dead_restarter_issue_3370(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
