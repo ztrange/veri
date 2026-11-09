@@ -213,7 +213,7 @@ def main(argv):
             try:
                 queue = solvable_issues()
                 changed = run_pr_paths()
-                previous = [issue for issue in queue if launchable(issue, changed)][0]
+                free = [issue for issue in queue if launchable(issue, changed)]
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
@@ -224,9 +224,11 @@ def main(argv):
                     sys.stdout.write("queue-empty\n")
                     return 3
             else:
-                launch(previous)
-                with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
-                    log.write(f"launched {previous} {now()}\n")
+                if free:
+                    previous = free[0]
+                    launch(previous)
+                    with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
+                        log.write(f"launched {previous} {now()}\n")
         wait()
 
 
