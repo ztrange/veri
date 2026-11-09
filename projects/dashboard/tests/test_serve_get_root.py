@@ -1206,3 +1206,94 @@ def test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another
 
     block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
     assert "ETA: no lane: no ETA" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_no_rate_yet_when_fewer_than_three_lane_issues_closed_in_7_days(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+
+    def closed(number):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": recent, "closedAt": recent, "blockedBy": [], "labels": [], "lane": "mu"}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            closed(60),
+            closed(61),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no rate yet" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+    old = (now - datetime.timedelta(days=10)).isoformat()
+
+    def closed(number, lane, closed_at):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": closed_at, "closedAt": closed_at, "blockedBy": [], "labels": [], "lane": lane}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            closed(60, "mu", recent),
+            closed(61, "mu", recent),
+            closed(62, "other", recent),
+            closed(63, "other", recent),
+            closed(64, "mu", old),
+            closed(65, "mu", old),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no rate yet" in block

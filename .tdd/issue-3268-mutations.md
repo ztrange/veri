@@ -119,3 +119,20 @@ and True and
 command 145
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 325
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three
+
+file 27
+projects/dashboard/serve.py
+old 106
+i.get("lane") in lanes
+                      and datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
+new 5
+True]
+command 175
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three
+
