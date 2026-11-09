@@ -103,6 +103,7 @@ def main(argv):
         return 2
     previous = None
     seen = []
+    absent = []
     merges = []
     resume_at = 0
     while True:
@@ -116,8 +117,11 @@ def main(argv):
         for issue in seen:
             if issue not in live:
                 if not os.path.isdir(run_dir(issue)):
-                    sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
-                    return 2
+                    if issue in absent:
+                        sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
+                        return 2
+                    absent.append(issue)
+                    continue
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
         stall = int(stall_window())
@@ -126,7 +130,8 @@ def main(argv):
             if os.path.exists(events) and clock() - os.path.getmtime(events) >= stall:
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
-        seen = live
+        absent = [issue for issue in absent if issue not in live]
+        seen = live + absent
         ledger = previous and ledger_path(run_dir(previous), previous)
         if len(live) < target and (previous is None or os.path.exists(ledger)) \
             and clock() >= resume_at:
