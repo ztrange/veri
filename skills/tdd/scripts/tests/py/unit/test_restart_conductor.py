@@ -605,3 +605,35 @@ def test_3384_a_watcher_armed_when_no_conductor_is_ever_recorded_exits_3_only_af
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out, err, now[0]) == (3, "", "", restart_conductor.LAUNCH_WAIT)
+
+
+def test_3384_a_live_conductor_that_reads_not_live_for_one_poll_and_live_again_is_still_watched_until_three_consecutive_not_live_reads(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    # arm, a watched poll, one not-live blip, two more live polls, then three consecutive not-live reads
+    alive = iter([True, True, False, True, True, False, False, False])
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), list(alive)) == (0, "restarts 7 0", [])
+
+
+def test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    events = []
+    reads = iter([True, False, False, False])
+
+    def alive(run):
+        read = next(reads, False)
+        events.append("live" if read else "not-live")
+        return read
+
+    monkeypatch.setattr(restart_conductor, "conductor_alive", alive, raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: events.append("sleep"), raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), events[1:6]) == (0, "restarts 7 0", ["not-live", "sleep", "not-live", "sleep", "not-live"])
