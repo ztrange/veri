@@ -1,19 +1,21 @@
 ### 📊 Metrics — issue 3375
 
-Wall time for the issue: 1190 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1096 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 14 planned.
+Steps done: 11 of 14 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3410.
 Lane: ready-for-agent:mu
+Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.94 over 305 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $17.98 over 341 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77115 tokens, largest 205644 tokens
 Conductor context: first turn 77560 tokens, largest 111950 tokens
 Conductor context: first turn 77561 tokens, largest 121257 tokens
 Conductor context: first turn 77597 tokens, largest 144030 tokens
 Conductor context: first turn 77550 tokens, largest 158727 tokens
-Conductor context: first turn 77566 tokens, largest 122591 tokens
+Conductor context: first turn 77566 tokens, largest 139205 tokens
+Conductor context: first turn 77588 tokens, largest 128312 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -298,31 +300,67 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 276 | $0.04 | 157644 |
 | 277 | $0.05 | 157958 |
 | 278 | $0.04 | 158727 |
-| 279 | $0.48 | 77566 |
-| 280 | $0.06 | 83579 |
-| 281 | $0.05 | 87214 |
-| 282 | $0.02 | 87897 |
+| 279 | $0.49 | 77566 |
+| 280 | $0.07 | 83579 |
+| 281 | $0.06 | 87214 |
+| 282 | $0.03 | 87897 |
 | 283 | $0.05 | 91454 |
-| 284 | $0.04 | 93826 |
+| 284 | $0.05 | 93826 |
 | 285 | $0.03 | 94954 |
-| 286 | $0.05 | 99394 |
-| 287 | $0.02 | 99975 |
-| 288 | $0.02 | 100345 |
-| 289 | $0.02 | 100695 |
-| 290 | $0.02 | 101101 |
-| 291 | $0.03 | 101819 |
-| 292 | $0.02 | 102390 |
-| 293 | $0.03 | 103273 |
+| 286 | $0.07 | 99394 |
+| 287 | $0.03 | 99975 |
+| 288 | $0.03 | 100345 |
+| 289 | $0.03 | 100695 |
+| 290 | $0.03 | 101101 |
+| 291 | $0.04 | 101819 |
+| 292 | $0.03 | 102390 |
+| 293 | $0.04 | 103273 |
 | 294 | $0.03 | 103822 |
-| 295 | $0.06 | 108330 |
+| 295 | $0.07 | 108330 |
 | 296 | $0.11 | 119143 |
-| 297 | $0.03 | 119576 |
+| 297 | $0.04 | 119576 |
 | 298 | $0.03 | 119939 |
-| 299 | $0.03 | 120924 |
-| 300 | $0.03 | 121474 |
-| 301 | $0.03 | 121864 |
+| 299 | $0.04 | 120924 |
+| 300 | $0.04 | 121474 |
+| 301 | $0.04 | 121864 |
 | 302 | $0.03 | 122152 |
-| 303 | $0.03 | 122591 |
+| 303 | $0.04 | 122591 |
+| 304 | $0.04 | 123174 |
+| 305 | $0.14 | 137171 |
+| 306 | $0.04 | 137909 |
+| 307 | $0.05 | 138932 |
+| 308 | $0.04 | 139205 |
+| 309 | $0.48 | 77588 |
+| 310 | $0.06 | 83592 |
+| 311 | $0.05 | 87221 |
+| 312 | $0.05 | 91276 |
+| 313 | $0.05 | 95622 |
+| 314 | $0.02 | 96009 |
+| 315 | $0.02 | 96543 |
+| 316 | $0.02 | 97104 |
+| 317 | $0.02 | 97424 |
+| 318 | $0.03 | 98192 |
+| 319 | $0.03 | 99042 |
+| 320 | $0.03 | 99785 |
+| 321 | $0.03 | 100664 |
+| 322 | $0.02 | 101095 |
+| 323 | $0.02 | 101400 |
+| 324 | $0.03 | 102331 |
+| 325 | $0.04 | 104239 |
+| 326 | $0.03 | 104919 |
+| 327 | $0.02 | 105205 |
+| 328 | $0.03 | 106239 |
+| 329 | $0.03 | 106930 |
+| 330 | $0.03 | 107387 |
+| 331 | $0.03 | 108527 |
+| 332 | $0.15 | 124069 |
+| 333 | $0.03 | 124743 |
+| 334 | $0.03 | 125109 |
+| 335 | $0.03 | 125741 |
+| 336 | $0.04 | 127199 |
+| 337 | $0.03 | 127556 |
+| 338 | $0.03 | 127957 |
+| 339 | $0.03 | 128312 |
 
 #### Conductor comments, by family
 
@@ -337,33 +375,33 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 6 | 2505 | $0.05 |
 | 🔎 verify-<phase> (revised) | 3 | 1245 | $0.02 |
 | 🗺️ Plan | 1 | 415 | $0.01 |
-| 🗺️ verify-plan | 7 | 2532 | $0.05 |
-| ▶️ Resuming | 5 | 1694 | $0.03 |
+| 🗺️ verify-plan | 8 | 2956 | $0.06 |
+| ▶️ Resuming | 6 | 2117 | $0.04 |
 | ⛔ Bailed | 3 | 1256 | $0.03 |
 | ⏹️ Stopped | 2 | 872 | $0.02 |
-| Total | 41 | 16383 | $0.33 |
+| Total | 43 | 17230 | $0.34 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 7 | 6 | 1 | 0 | 82 | 67 | 7 | 14 | 8612 | 5231 | 145537 | 0.45 |
+| plan | 8 | 7 | 1 | 0 | 93 | 75 | 8 | 16 | 9701 | 5231 | 168020 | 0.52 |
 | red | 18 | 7 | 1 | 0 | 719 | 351 | 102 | 194 | 40972 | 1917850 | 397551 | 1.77 |
 | green | 20 | 6 | 3 | 0 | 2563 | 300 | 118 | 218 | 32997 | 1988424 | 371920 | 1.61 |
 | refactor | 8 | 2 | 0 | 0 | 142 | 47 | 23 | 46 | 4395 | 325649 | 121735 | 0.38 |
 | pin | 4 | 2 | 2 | 0 | 102 | 62 | 17 | 32 | 7048 | 242094 | 61935 | 0.25 |
 | red-contradicted | 2 | 0 | 0 | 0 | 89 | 50 | 15 | 28 | 5530 | 283791 | 41254 | 0.19 |
 | red-missing | 1 | 0 | 0 | 0 | 48 | 23 | 5 | 10 | 3216 | 98126 | 22572 | 0.10 |
-| prose | 34 | 0 | 0 | 0 | 810 | 731 | 34 | 68 | 114785 | 291313 | 981830 | 3.63 |
-| skill-edit | 5 | 0 | 0 | 0 | 68 | 53 | 21 | 40 | 5732 | 593023 | 216894 | 0.66 |
+| prose | 42 | 0 | 0 | 0 | 1009 | 914 | 42 | 84 | 141898 | 313343 | 1202286 | 4.46 |
+| skill-edit | 6 | 0 | 0 | 0 | 84 | 68 | 28 | 50 | 6862 | 665949 | 236399 | 0.73 |
 | rebase | 2 | 1 | 0 | 0 | 516 | 35 | 15 | 30 | 3823 | 257699 | 68111 | 0.23 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 31 | 24 | 7 | 0 | 2951 | 382 | 117 | 218 | 43266 | 1584413 | 572141 | 2.02 |
+| verifier | claude-sonnet-5-5 | 32 | 25 | 7 | 0 | 2962 | 390 | 118 | 220 | 44355 | 1584413 | 594624 | 2.09 |
 | developer | claude-sonnet-5-5 | 24 | 0 | 0 | 0 | 853 | 387 | 139 | 272 | 45387 | 2705267 | 500802 | 1.98 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 457 | 166 | 46 | 82 | 17940 | 829184 | 157672 | 0.97 |
 
@@ -378,8 +416,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 57 | 0.13 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 45 | 0.13 |
-| skill-edit | 0 | 0.00 | 16 | 0.06 |
+| prose | 0 | 0.00 | 60 | 0.15 |
+| skill-edit | 0 | 0.00 | 16 | 0.07 |
 | rebase | 0 | 0.00 | 0 | 0.00 |
 | develop-red | 0 | 0.00 | 0 | 0.00 |
 
@@ -400,7 +438,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | skill-edit step for the unit `skills/tdd/SCRIPTS.md`: the `stop-run.sh` entry gains the detached-command process-group TERM, the KILL after `VERI_STOP_KILL_GRACE` (default 5) and the exit 2 naming the pid and run on a refused signal, and the `detach-command.sh` entry gains `wait` returning 2 under `.tdd/stop` `now` and how the conductor tells it from a dead command, with its SC rows in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 90 | 9 | 18 | 14191 | 347506 | 244613 | 0.79 | 116 | unknown | unknown | unknown |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_event_files.py ⟦suite-repair⟧ ⟦criterion 5⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 93 | 37 | 70 | 10353 | 688444 | 158393 | 0.57 | 2065 | unknown | 0/5 | nothing-left |  |  | full |
 | skill-edit step for the unit `skills/tdd/PREFLIGHT-FAILURES.md`: the `detach-command.sh wait` bullet (answers 1 and 2) says a 2 while `stop-requested.sh` reports `now` is a stop, not a failure or a poisoned baseline, and goes to *Stopping*, with its PF rows in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 7 | 1 | 0 | 0 | 0 | 0 | 77 | 23 | 46 | 9452 | 331726 | 114951 | 0.42 | 74 | unknown | unknown | unknown |  |  | full |
-| skill-edit step for the unit `skills/tdd/STOPPING.md`: regrade REJECT on the rebased tip, SP19 FAIL: step 5 says no metrics file is written or committed but never says the section stages and commits nothing; reword step 5 to say it ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 47 | 9 | 18 | 5281 | 86582 | 53079 | 0.19 | unknown | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/STOPPING.md`: regrade REJECT on the rebased tip, SP19 FAIL: step 5 says no metrics file is written or committed but never says the section stages and commits nothing; reword step 5 to say it ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 47 | 9 | 18 | 5281 | 86582 | 53079 | 0.19 | 3728 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/PREFLIGHT-FAILURES.md`: the `detach-command.sh wait` bullet (answers 1 and 2) says a 2 while `stop-requested.sh` reports `now` is a stop, not a failure or a poisoned baseline, and goes to *Stopping*; change: add one sentence after it stating that a wait that exits 2 while no `now` stop is pending is still read as the failure it reports (the contrast to the stop case, today only implied at PREFLIGHT-FAILURES.md:39-43), with its PF rows in `skills/tdd/REQUIREMENTS.md` updated to match, row PF61 gaining that clause ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 67 | 11 | 18 | 7643 | 88892 | 53155 | 0.22 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -444,4 +483,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 357 | 680 | 227110 | 6003200 | 2429339 | 25.21 (estimate) |
+| total | 373 | 708 | 256442 | 6098156 | 2691783 | 28.20 (estimate) |
