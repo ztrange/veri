@@ -29,7 +29,10 @@ def main(argv):
     body, replaced = pattern.subn(lambda _: mine, current)
     if not replaced:
         body = mine
-    github._gh("api", "-X", "PATCH", path, "-f", "body=" + body)
+    write = github._gh("api", "-X", "PATCH", path, "-f", "body=" + body)
+    if write.returncode != 0:
+        print("pr-body.sh: cannot write the body of PR #%s" % argv[0], file=sys.stderr)
+        return 2
     return 0
 
 

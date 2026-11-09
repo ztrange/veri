@@ -120,3 +120,20 @@ def test_main_on_a_null_body_treats_it_as_empty_and_writes_the_file_as_the_run_p
 
     assert code == 0, err
     assert written == ["%s\n%s\n%s" % (BEGIN, "Closes #7 — ready: 5 of 5 steps done", END)]
+
+
+def test_main_when_the_write_of_the_body_fails_exits_2_naming_the_pr_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    def fake_run(args, **kwargs):
+        args = tuple(str(arg) for arg in args)
+        if "PATCH" in args or any(a.startswith("body=") for a in args):
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 502")
+        return subprocess.CompletedProcess(args, 0, json.dumps({"body": ""}), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 2
+    assert "42" in err
