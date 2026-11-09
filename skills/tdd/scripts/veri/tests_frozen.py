@@ -461,7 +461,7 @@ def rerecord_earlier(ledger, step):
     if not base:
         write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
         return 2
-    before, after, unchanged, changed = {}, {}, [], []
+    after, unchanged, changed = {}, [], []
 
     def recorded_base(name, case, digest):
         revs = subprocess.run(["git", "log", "--format=%H", base + "..HEAD", "--", name], stdout=subprocess.PIPE,
