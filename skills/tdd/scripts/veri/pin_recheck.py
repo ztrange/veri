@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import event
+from mutation_probe import run_keeping_journal
 from ledger import ledger_path
 
 
@@ -39,15 +40,6 @@ def current_wrapper(command):
 
 def run_captured(command):
     return subprocess.run(command, shell=True, capture_output=True, text=True)
-
-
-def run_keeping_journal(command):
-    journal = Path(".tdd/events.jsonl")
-    before = journal.read_bytes() if journal.exists() else None
-    ran = run_captured(command)
-    if before is not None and not journal.read_bytes().startswith(before):
-        journal.write_bytes(before)
-    return ran
 
 
 def control_run(path, original, command):
@@ -262,7 +254,7 @@ def recheck(argv, looks):
             write_tail(base)
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
-        mutated = run_keeping_journal(pin["command"])
+        mutated = run_keeping_journal(lambda: run_captured(pin["command"]))
         path.write_bytes(original)
         green = mutated.returncode == 0
         base_lines = output_lines(base)
