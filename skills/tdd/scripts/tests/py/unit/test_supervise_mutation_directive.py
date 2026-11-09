@@ -82,3 +82,19 @@ def test_3395_a_directive_followed_by_a_period_semicolon_or_parenthesis_exempts_
         {"p": False, "s": False, "c": False, "n": True},
         [("mutation-record-restored", "name=develop-red-1", f"file={names['n']}")],
     )
+
+
+def test_3395_a_directive_with_no_trailing_punctuation_still_exempts_its_record_while_an_unnamed_one_is_restored(tmp_path, monkeypatch):
+    named, unnamed = ".tdd/issue-3395-named-mutations.md", ".tdd/issue-3395-unnamed-mutations.md"
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", f"Retire the stale record mutation-record: {named} for good")
+    events = []
+    monkeypatch.setattr(supervise, "mark", lambda role, env, *fields: events.append(fields))
+    supervise.restore_mutation_records({named: b"mutation: a\n", unnamed: b"mutation: a\n"}, "role", {}, "develop-red-1")
+
+    assert ((tmp_path / named).exists(), (tmp_path / unnamed).exists(), events) == (
+        False,
+        True,
+        [("mutation-record-restored", "name=develop-red-1", f"file={unnamed}")],
+    )
