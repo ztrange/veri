@@ -44,3 +44,5 @@
 | D43 | The block of rules every review, hand-fix or merge brief carries says every command reads stdin from `/dev/null`. | A subagent cannot answer a prompt; a command waiting on input hangs it. |
 | D44 | The same block says every command runs under a time limit, naming a form that works on macOS (`perl -e 'alarm shift; exec @ARGV' <seconds> <command>`). | Review subagents hung 20–75 min (2026-10-10 to 10-15). |
 | D45 | The same block says `rm` removes only paths inside the project directory, never outside it, and that scratch lives under the run worktree's `.tdd/`. | Three hand-fix subagents stalled 2–4 h on an `rm` outside the project (2026-10-23); the owner allowed `rm` inside it (2026-11-09). |
+| D46 | The block of rules every review, hand-fix or merge brief carries says a hand fix runs `make unit` and every affected suite outside the fast tier before it pushes. | Each alone missed a red: #2126 (2026-10-22), PR 3031 (2026-11-04). |
+| D47 | The same block says a reviewer that pushes any fix does not merge; it reports and stops, and the fix is reviewed afresh before the merge. | #3331 (2026-11-09) was fixed and merged in one pass, its fix unreviewed. |

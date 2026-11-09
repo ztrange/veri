@@ -183,6 +183,9 @@ the job, briefed to return at most 10 lines and to read the skill at
   `perl -e 'alarm shift; exec @ARGV' <seconds> <command>`.
 - `rm` removes only paths inside the project directory, never outside it; scratch lives under
   the run worktree's `.tdd/`.
+- A hand fix runs `make unit` and every affected suite outside the fast tier before it pushes.
+- A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
+  afresh before the merge.
 
 Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
