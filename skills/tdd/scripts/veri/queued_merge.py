@@ -256,6 +256,8 @@ def main(argv):
     own = re.match(r"tdd/(\d+)-", branch)
     for path in glob.glob(ledger_path(worktree, own.group(1) if own else "[0-9]*")):
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
+        if not number:
+            continue
         shown = gh_probe("pr", "view", pr, "--json", "body")
         if shown.returncode:
             _say("could not read the PR body of %s; not merged" % pr)
