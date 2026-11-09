@@ -1,4 +1,4 @@
 # Plan for #3438 — add-ledger-step.sh accepts a ⟦diff-checked⟧ step with no ⟦criterion k⟧, which KIND_RE reads as a plain step, so its tick never re-records the earlier case
 
 - [x] add-ledger-step.sh refuses, with exit 2 and a message naming the missing `⟦criterion k⟧` tag, a `⟦diff-checked⟧` step line that would enter the ledger carrying no `⟦criterion k⟧` (an anchor with no criterion and no --criterion), leaving the ledger unchanged; while a `⟦diff-checked⟧` step inserted with a criterion is still accepted and parsed by ledger-steps as kind `diff-checked` with added=1 — pinned by one small in-process case holding both, in skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py ⟦criterion 1⟧
-- [ ] `skills/tdd/SCRIPTS.md`: the add-ledger-step.sh entry lists, among its exit-2 refusals, a step text carrying a diff-checked marker with no criterion marker (nothing inserted) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
+- [x] `skills/tdd/SCRIPTS.md`: the add-ledger-step.sh entry lists, among its exit-2 refusals, a step text carrying a diff-checked marker with no criterion marker (nothing inserted) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
