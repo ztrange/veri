@@ -216,3 +216,40 @@ def test_2351_a_step_reworded_in_a_plan_rewrite_commit_is_the_baseline_and_passe
     baseline = run_cli(ledger_growth, ["plan-sha"], stdin=log)
     growth = run_cli(ledger_growth, [str(plan), str(ledger)])
     assert (baseline, growth) == ((0, "c" * 40 + "\n", ""), (0, "", ""))
+
+
+def test_3439_steps_a_verify_plan_rewrite_added_are_recorded_by_record_rewrite_and_a_later_hand_step_still_exits_1(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    pre = tmp_path / "pre-rewrite.md"
+    ledger = tmp_path / "issue-42.md"
+    head = "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+    plan.write_text("# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n")
+    pre.write_text(head + "- [ ] one broad step ⟦added⟧ ⟦criterion 1⟧\n")
+    (tmp_path / "issue-42-added.md").write_text("- [ ] one broad step ⟦added⟧ ⟦criterion 1⟧\n")
+    ledger.write_text(
+        head + "- [ ] landed lines ⟦added⟧ ⟦criterion 1⟧\n- [ ] waiting bail lines ⟦added⟧ ⟦criterion 1⟧\n")
+    run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])
+    assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (0, "", "")
+    ledger.write_text(ledger.read_text() + "- [ ] a hand step ⟦added⟧ ⟦criterion 1⟧\n")
+    assert run_cli(ledger_growth, [str(plan), str(ledger)]) == (
+        1, "", "ledger-growth.sh: step added without an add-ledger-step.sh record: a hand step ⟦added⟧ ⟦criterion 1⟧\n")
+
+
+def test_3439_record_rewrite_keeps_earlier_records_adds_only_steps_the_pre_rewrite_file_lacked_and_exits_2_when_the_records_file_cannot_be_written(
+        tmp_path, run_cli, ledger_growth):
+    pre = tmp_path / "pre-rewrite.md"
+    ledger = tmp_path / "issue-42.md"
+    records = tmp_path / "issue-42-added.md"
+    pre.write_text("# Plan for #42\n\n- [ ] kept step ⟦added⟧ ⟦criterion 1⟧\n")
+    records.write_text("- [ ] earlier record ⟦added⟧ ⟦criterion 1⟧\n")
+    ledger.write_text("# Plan for #42\n\n- [ ] kept step ⟦added⟧ ⟦criterion 1⟧\n"
+                      "- [ ] fresh step ⟦added⟧ ⟦criterion 1⟧\n")
+    code = run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])[0]
+    assert (code, records.read_text()) == (0, "- [ ] earlier record ⟦added⟧ ⟦criterion 1⟧\n"
+                                              "- [ ] fresh step ⟦added⟧ ⟦criterion 1⟧\n")
+    blocked = tmp_path / "blocked"
+    (blocked / "issue-43-added.md").mkdir(parents=True)
+    (blocked / "issue-43.md").write_text("# Plan for #43\n\n- [ ] fresh step ⟦added⟧ ⟦criterion 1⟧\n")
+    code, out, err = run_cli(ledger_growth, ["record-rewrite", str(pre), str(blocked / "issue-43.md")])
+    assert (code, out, err.startswith(f"ledger-growth.sh: {blocked / 'issue-43-added.md'}: ")) == (2, "", True)

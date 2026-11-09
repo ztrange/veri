@@ -85,6 +85,19 @@ def record_existing(ledger):
     return 0
 
 
+def record_rewrite(pre, ledger):
+    try:
+        before = set(step_texts(read_ledger(pre)))
+        steps = step_texts(read_ledger(ledger))
+        recorded = set(recorded_steps(ledger))
+        with open(added_file(ledger), "ab") as f:
+            f.write("".join(f"- [ ] {step}\n" for step in steps if step not in before
+                            and step not in recorded).encode(errors="surrogateescape"))
+    except OSError as error:
+        return unreadable(error)
+    return 0
+
+
 def unreadable(error):
     print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
     return 2
@@ -93,6 +106,8 @@ def unreadable(error):
 def main(argv):
     if len(argv) == 2 and argv[0] == "record-existing":
         return record_existing(argv[1])
+    if len(argv) == 3 and argv[0] == "record-rewrite":
+        return record_rewrite(argv[1], argv[2])
     if argv == ["plan-sha"]:
         sha = plan_sha(sys.stdin.read())
         if sha is None:
