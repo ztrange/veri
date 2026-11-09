@@ -242,9 +242,9 @@ def render(as_json, scope, read_states=True):
 
 
 def json_document(scope=None, read_states=True):
-    """(exit code, the --json document) as main(["--json"]) would print it, diagnostics dropped."""
+    """(exit code, the --json document) as main(["--json"]) would print it."""
     out = io.StringIO()
-    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+    with contextlib.redirect_stdout(out):
         code = render(True, tunables.read("VERI_LABEL") if scope is None else scope, read_states)
     return code, out.getvalue()
 

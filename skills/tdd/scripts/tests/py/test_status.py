@@ -1037,3 +1037,33 @@ def test_main_reports_only_the_run_with_an_unparseable_events_log_as_unreadable_
     assert str(bad / ".tdd" / "events.jsonl") in err
     assert str(fresh / ".tdd" / "events.jsonl") not in err
     assert "#43" not in err
+
+
+def test_dispatch_main_keeps_watching_the_other_run_and_reports_its_done_line_when_one_runs_events_log_has_an_unparseable_line_3366(tmp_path, monkeypatch, run_cli, status):
+    dispatch = importlib.import_module("veri.dispatch")
+    bad = ledger_run(tmp_path, "41", "# Plan for #41 — bad log\n\n- [ ] a step\n")
+    good = ledger_run(tmp_path, "42", "# Plan for #42 — good log\n\n- [ ] a step\n")
+    (bad / ".tdd" / "events.jsonl").write_text("not json\n")
+    write_events(good / ".tdd" / "events.jsonl", [
+        {"ts": 9900, "issue": "42", "actor": "developer", "phase": "red", "step": "a step", "event": "launch",
+         "attempt": "1", "skill_commit": "abc", "name": "develop-red"}])
+    live_conductor(monkeypatch, good / ".tdd", "42")
+    fake_git(monkeypatch, tmp_path, {str(bad): "tdd/41-bad-log", str(good): "tdd/42-good-log"})
+    at_ten_thousand(monkeypatch)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.watch_runs, "_starting", lambda: [])
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [])
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody")
+    monkeypatch.setattr(dispatch, "clock", lambda: 10000)
+    monkeypatch.setattr(os.path, "getmtime", lambda path: 10000)
+
+    def wait():
+        (good / ".tdd" / "conductor.pid").unlink()
+
+    monkeypatch.setattr(dispatch, "wait", wait)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out) == (0, "done 42 https://github.com/o/r/pull/9\n")
+    assert str(bad / ".tdd" / "events.jsonl") in err
