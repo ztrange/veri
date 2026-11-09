@@ -2056,3 +2056,42 @@ def test_main_refuses_an_uppercase_40_hex_head_sha_with_2_issue_3099(tmp_path, w
     code, out, err = run_cli(wait_ci, [PR, "5", "5", FULL_SHA.upper()], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, out, err.count("\n")) == (2, "", 1)
+
+
+def test_main_restarts_the_no_run_grace_for_a_new_head_and_ends_its_slice_with_3_not_2_issue_3455(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    old, new = "a" * 40, "b" * 40
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+    state = {"clock": 0, "pulls": 0}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            state["clock"] += 30
+            return 0, f"{state['clock']}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        if line == PULL:
+            state["pulls"] += 1
+            head = old if state["pulls"] <= 2 else new
+            return 0, json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                  "head": {"sha": head}}), ""
+        if ".github/workflows" in line:
+            if line.split("?")[0].endswith("ci.yml"):
+                return 0, json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                      "content": base64.b64encode(workflow.encode()).decode()}), ""
+            return 0, json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}]), ""
+        if line.endswith("/status"):
+            return 0, json.dumps({"statuses": []}), ""
+        if "/check-runs?page=" in line:
+            return 0, json.dumps({"total_count": 0, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+
+    code, out, err = run_cli(wait_ci, [PR, "150", "3600"],
+                             env={"VERI_POLL": "0", "VERI_CI_NO_RUN_WAIT": "100"}, cwd=work)
+
+    assert (code, out, "no CI run for" in err, state["pulls"] > 2) == (3, "", False, True)
