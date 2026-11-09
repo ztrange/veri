@@ -1,0 +1,7 @@
+before 40
+1ccfac3d673784eb663f3f53e70f922ceffdf38f
+keep 56
+skills/tdd/scripts/tests/py/test_tests_frozen_process.py
+command 194
+make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_earlier_keeps_the_record_of_a_case_edited_in_a_commit_before_the_step_base_and_check_earlier_names_it_2199
+
