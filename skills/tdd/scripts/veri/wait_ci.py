@@ -238,6 +238,7 @@ def main(argv):
     slice_end = None
     unread = 0
     first_none = None
+    none_head = None
     while True:
         draft = False
         try:
@@ -290,7 +291,8 @@ def main(argv):
         now = epoch()
         scope["now"] = now
         if none and mergeable:
-            first_none = now if first_none is None else first_none
+            if none_head != head:
+                none_head, first_none = head, now
             if now - first_none >= int(no_run_wait):
                 warn("no CI run for %s" % head)
                 return 2
