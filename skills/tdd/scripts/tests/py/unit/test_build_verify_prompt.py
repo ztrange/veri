@@ -1462,3 +1462,54 @@ def test_3104_supersede_base_diff_prompt_judges_git_diff_of_that_sha_and_keeps_o
 
     assert code == 0
     assert f"git diff {sha}" in flat
+
+
+def test_main_renders_a_diff_prompt_naming_a_unit_whose_skill_edit_step_ran_author_less_as_already_present_3404(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "awake": 1, "issue": "3404", "actor": "", "phase": "", "step": "", '
+        '"event": "skill-edit-no-author", "attempt": "", "skill_commit": "", "unit": "skills/tdd/SCRIPTS.md"}\n')
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "3404")
+
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    assert (code, "skills/tdd/SCRIPTS.md" in prompt, "already present" in prompt) == (0, True, True)
+
+
+def test_main_lists_only_this_issues_named_author_less_units_sorted_past_an_unreadable_log_line_and_only_in_a_diff_prompt_3404(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    def event(issue, unit):
+        unit_field = f', "unit": "{unit}"' if unit is not None else ""
+        return ('{"ts": 1, "awake": 1, "issue": "%s", "actor": "", "phase": "", "step": "", '
+                '"event": "skill-edit-no-author", "attempt": "", "skill_commit": ""%s}\n' % (issue, unit_field))
+
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        event("3404", "skills/tdd/b-unit.md") + "not json at all\n" + event("9999", "skills/tdd/foreign-unit.md")
+        + event("3404", None) + event("3404", "skills/tdd/a-unit.md"))
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "3404")
+
+    def rendered(*phase_args):
+        code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", *phase_args])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    code, diff = rendered("diff", str(spec), "0123abc", "4567def")
+    green_code, green = rendered("green", str(spec), "tests/py/test_x.py", "test_x")
+
+    assert (code, green_code) == (0, 0)
+    assert (
+        "- skills/tdd/a-unit.md - skills/tdd/b-unit.md" in diff,
+        "foreign-unit" in diff,
+        "already present" in green,
+        "a-unit" in green,
+    ) == (True, False, False, False)
