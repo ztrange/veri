@@ -2248,6 +2248,10 @@ def test_3204_a_make_exit_2_printing_only_invalid_option_or_only_its_usage_still
 
 @pytest.mark.process("git, and pin-recheck.sh run over a mutation pin whose file the range adds, so the base lacks it")
 def test_3290_a_mutation_pin_green_under_its_mutation_whose_file_is_absent_on_the_base_is_not_stale_and_exits_1_without_a_traceback(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
     (tmp_path / "other.txt").write_text("one\n")
     git("add", "-A")
     git("commit", "-q", "-m", "main")
@@ -2489,6 +2493,8 @@ def test_3323_a_pin_not_declared_retired_beside_a_retired_one_is_still_replayed_
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
+    git("commit", "-q", "--allow-empty", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
     (tmp_path / "guard.txt").write_text("if guard\n")
     (tmp_path / "other.txt").write_text("if other\nthrows\n")
     (tmp_path / "tests").mkdir()
