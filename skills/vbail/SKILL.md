@@ -26,6 +26,7 @@ tree and read its first line:
 - `done <pr>`: not a bail; take no action.
 - `stopped <mode>`: a requested stop, not a bail; report the mode and take no action.
 - `usage-limit [<reset text>]`: a usage limit (see below).
+- `outage [<text>]`: an API outage (see the usage limit, sleep or API outage section below).
 - `bailed <phase> <classification>`: classify by the bail event, next.
 - `killed [<text>]` or `unknown [<text>]`: a sleep (see below) when a `gap <ts> <ts>` line
   follows (two consecutive events more than `VERI_SLEEP_GAP` seconds apart); otherwise ask
