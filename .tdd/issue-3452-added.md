@@ -1,0 +1,1 @@
+- [ ] `skills/tdd/SCRIPTS.md`: the queued-merge.sh entry lists, among its exit-2 causes, a PR whose body cannot be read (`gh pr view --json body` non-zero: stderr `could not read the PR body of <pr>; not merged`, nothing merged, the lock released) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
