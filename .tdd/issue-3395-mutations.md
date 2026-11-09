@@ -14,3 +14,10 @@ mutation-recordX:\s*(
 command 195
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py::test_3395_a_directive_with_no_trailing_punctuation_still_exempts_its_record_while_an_unnamed_one_is_restored
 
+before 40
+15fd19f67a4cfdd355447ede9867baf3a9a16e09
+keep 69
+skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py
+command 199
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py::test_3395_a_changed_record_that_no_marker_names_is_restored_and_emits_the_event_while_a_named_one_keeps_its_edit
+

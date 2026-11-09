@@ -98,3 +98,21 @@ def test_3395_a_directive_with_no_trailing_punctuation_still_exempts_its_record_
         True,
         [("mutation-record-restored", "name=develop-red-1", f"file={unnamed}")],
     )
+
+
+def test_3395_a_changed_record_that_no_marker_names_is_restored_and_emits_the_event_while_a_named_one_keeps_its_edit(tmp_path, monkeypatch):
+    named, unnamed = ".tdd/issue-3395-kept-mutations.md", ".tdd/issue-3395-edited-mutations.md"
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / named).write_bytes(b"mutation: edited\n")
+    (tmp_path / unnamed).write_bytes(b"mutation: edited\n")
+    monkeypatch.setenv("VERI_STEP", f"Rework mutation-record: {named}, only")
+    events = []
+    monkeypatch.setattr(supervise, "mark", lambda role, env, *fields: events.append(fields))
+    supervise.restore_mutation_records({named: b"mutation: a\n", unnamed: b"mutation: a\n"}, "role", {}, "develop-red-1")
+
+    assert ((tmp_path / named).read_bytes(), (tmp_path / unnamed).read_bytes(), events) == (
+        b"mutation: edited\n",
+        b"mutation: a\n",
+        [("mutation-record-restored", "name=develop-red-1", f"file={unnamed}")],
+    )
