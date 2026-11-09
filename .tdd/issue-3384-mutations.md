@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 148
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll
 
+before 40
+5db26ab9f70963d522dbb3dd8252f837294a69eb
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 216
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_three_consecutive_reads_ends_the_watch_with_restarts_7_0_and_exit_0
+
