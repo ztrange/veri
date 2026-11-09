@@ -44,6 +44,12 @@ def _issue_rows(issue, unit):
     return rows[2:]
 
 
+def _headerless(issue, unit):
+    rows = [line for heading, line in _requirements_lines(issue)
+            if _names_unit(heading, unit) and line.startswith("|")]
+    return bool(rows) and [r.replace(" ", "") for r in rows[:2]] != [h.replace(" ", "") for h in TABLE_HEAD]
+
+
 def _unknown_heading(issue):
     for heading, line in _requirements_lines(issue):
         if line.startswith("### ") and not heading.endswith(" (new)") and not os.path.exists(heading):
@@ -72,6 +78,8 @@ def _refusal(issue, unit):
     if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
             and not any(_names_unit(h, unit) for h, _ in _requirements_lines(issue))):
         return "## Requirements has no ### heading for unit: " + unit
+    if _headerless(issue, unit):
+        return "## Requirements table for %s lacks its header: %s" % (unit, " / ".join(TABLE_HEAD))
     return None
 
 
