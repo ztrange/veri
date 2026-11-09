@@ -741,3 +741,25 @@ def test_3022_queued_merge_whose_rebase_stops_non_zero_on_a_clean_status_with_ot
 
     ran = [c for c in calls if "update-index" in c or "rebase --continue" in c or " push " in c or "merge-lock.sh release" in c]
     assert (code, ran, events.exists()) == (1, [], False)
+
+
+def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_merges_it_on_the_pushed_head_and_exits_0(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    body = json.dumps({"body": "Closes #3255 — the capability\n"})
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "pr view" in line:
+                return 0, body, ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+
+    merges = [c for c in calls if "pr merge" in c]
+    assert (code, merges) == (0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
