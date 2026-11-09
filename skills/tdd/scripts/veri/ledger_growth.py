@@ -63,6 +63,10 @@ def git_out(directory, *args):
                           text=True, errors="surrogateescape").stdout
 
 
+def record_lines(steps):
+    return "".join(f"- [ ] {step}\n" for step in steps).encode(errors="surrogateescape")
+
+
 def record_existing(ledger):
     added = added_file(ledger)
     if os.path.exists(added):
@@ -80,8 +84,7 @@ def record_existing(ledger):
         print(f"ledger-growth.sh: cannot read {ledger}: {error}", file=sys.stderr)
         return 2
     with open(added, "wb") as f:
-        f.write("".join(f"- [ ] {step}\n" for step in steps if step not in planned)
-                .encode(errors="surrogateescape"))
+        f.write(record_lines(step for step in steps if step not in planned))
     return 0
 
 
@@ -91,8 +94,8 @@ def record_rewrite(pre, ledger):
         steps = step_texts(read_ledger(ledger))
         recorded = set(recorded_steps(ledger))
         with open(added_file(ledger), "ab") as f:
-            f.write("".join(f"- [ ] {step}\n" for step in steps if step not in before
-                            and step not in recorded).encode(errors="surrogateescape"))
+            f.write(record_lines(step for step in steps if step not in before
+                                 and step not in recorded))
     except OSError as error:
         return unreadable(error)
     return 0
