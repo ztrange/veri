@@ -268,6 +268,16 @@ def _revisions(name):
     return os.fsdecode(listed.stdout).split()
 
 
+def _root_variants(body):
+    yield body
+    for k in range(10):
+        yield re.sub(r"parents\[\d+\]", "parents[%d]" % k, body)
+
+
+def _as_recorded(body, digests):
+    return next((v for v in _root_variants(body) if _body_digest(v) in digests), body)
+
+
 def _path_holding(case, digests, only=None):
     for top, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
@@ -276,7 +286,8 @@ def _path_holding(case, digests, only=None):
                 continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if any(_body_digest(body) in digests for body in _bodies_of(handle.read(), case)):
+                if any(_body_digest(v) in digests for body in _bodies_of(handle.read(), case)
+                       for v in _root_variants(body)):
                     return path
     return None
 
@@ -360,10 +371,14 @@ def _check_earlier(ledger, step, exempt=()):
     releg = {}
     for (name, case), (digests, owner, marked) in latest.items():
         try:
-            with open(_moved_path(name, case, digests), encoding="utf-8", errors="replace") as handle:
+            moved = _moved_path(name, case, digests)
+            with open(moved, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             nows = _bodies_of(text, case)
             olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
+            if moved != name:
+                nows = [_as_recorded(b, digests) for b in nows]
+                olds = [_as_recorded(b, digests) for b in olds]
             digest = digests[-1]
             if not nows:
                 other = _renamed_to(name, case, digest, text, consumed)
