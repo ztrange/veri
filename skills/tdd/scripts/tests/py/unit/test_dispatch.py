@@ -1563,3 +1563,15 @@ def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of
 
     err = capsys.readouterr().err
     assert (code, launches, "90" in err and "HTTP 502" in err) == (2, [], True)
+
+
+def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_process_not_on_every_pass_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, waits_before_stop=3)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
