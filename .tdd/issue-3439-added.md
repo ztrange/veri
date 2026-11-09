@@ -1,0 +1,1 @@
+- [ ] record-rewrite appends no line for a rewritten step an existing record already covers; one test, with a new step recorded as the contrast ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧
