@@ -1,1 +1,1 @@
-- [ ] A PRD block on /report counts in `solved:` the snapshot's CLOSED issues titled with no PRD number that are listed in the PRD issue's `links`, beside those titled with its PRD number ⟦added⟧ ⟦criterion 1⟧
+- [x] A PRD block on /report counts in `solved:` the snapshot's CLOSED issues titled with no PRD number that are listed in the PRD issue's `links`, beside those titled with its PRD number ⟦added⟧ ⟦criterion 1⟧
