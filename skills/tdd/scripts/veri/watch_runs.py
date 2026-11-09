@@ -36,6 +36,10 @@ def run_state(issue):
     return ""
 
 
+def state_word(issue):
+    return run_state(issue).split(" ")[0]
+
+
 class QueueUnreadable(Exception):
     pass
 
@@ -120,7 +124,7 @@ def main(argv):
     seen = _seen()
     for issue in seen:
         if issue not in started:
-            state = run_state(issue).split(" ")[0]
+            state = state_word(issue)
             return _report_exit(issue, state, started)
     _remember(started)
     if not given and not started:
@@ -165,7 +169,7 @@ def main(argv):
             if issue not in live:
                 if _restart_pending(issue):
                     continue
-                state = run_state(issue).split(" ")[0]
+                state = state_word(issue)
                 if state == "running":
                     continue
                 if not state and pid_file.recorded_started(
