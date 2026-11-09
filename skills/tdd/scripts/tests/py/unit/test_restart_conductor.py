@@ -489,3 +489,24 @@ def test_3369_a_relaunched_conductor_whose_init_record_is_not_yet_written_is_not
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, calls) == (0, [("stop", "at-ledger", "7", True), ("launch", "7")])
+
+
+def test_3369_a_relaunched_conductor_whose_own_session_growth_reaches_85_percent_of_the_knob_is_stopped_again(tmp_path, run_cli, monkeypatch):
+    # initial check, watch, exit, the new conductor, its watch (growth reached), its exit
+    restart_conductor, alive = _relaunch_setup(
+        tmp_path, monkeypatch, [True, True, False, True, True, False], ["stopped", "✅ Done"])
+    usage = lambda n: {"type": "assistant", "message": {"id": f"n{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    log = tmp_path / ".tdd" / "conductor-7.log"
+    calls = []
+
+    def detach_leaf(run):
+        calls.append(("launch", run))
+        with open(log, "a") as f:
+            f.write("".join(json.dumps(r) + "\n" for r in [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]))
+
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", detach_leaf, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, calls) == (0, [("stop", "at-ledger", "7"), ("launch", "7"), ("stop", "at-ledger", "7")])
