@@ -99,7 +99,7 @@ def main(argv):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
     run = argv[0]
-    if not conductor_alive(run):
+    if not conductor_alive(run) and not _new_conductor_appears(run):
         return 3
     restarts = 0
     offset = 0
