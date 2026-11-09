@@ -201,7 +201,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   under a trailing `## Owed steps` heading instead; **exit 2** = the anchor matches no step or
   more than one, the budget is unreadable, `--criterion` names a k that is
   not a whole number ≥ 1, or a text already carries a `⟦criterion k⟧` tag (the script
-  names the tag, and one bad text inserts none of the batch), with the ledger left
+  names the tag, and one bad text inserts none of the batch), or a step text carrying
+  `⟦diff-checked⟧` with no `⟦criterion k⟧`, whether given by `--criterion` or inherited from
+  the anchor (nothing inserted), with the ledger left
   byte-identical. A `<text>` holding the refactor-pending delimiter (a space, `⟂` U+27C2, a
   space) is also refused with **exit 2**, stderr naming that token, before the ledger is read,
   so the ledger is left untouched and a batch holding one such text inserts none of them; a
