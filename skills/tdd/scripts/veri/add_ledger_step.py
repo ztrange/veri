@@ -252,6 +252,9 @@ def main(argv):
         owed += "".join(f"- {text}\n" for text in texts)
         write_ledger(path, read_ledger(path), owed)
         return 1
+    bare = next((line for line in inserted_lines if carries_mark(line, "diff-checked") and CRITERION_TAG not in line), None)
+    if bare:
+        return refuse("add-ledger-step.sh: a diff-checked step needs a ⟦criterion k⟧ tag: " + bare)
     awake = event.awake_reading()
     if isinstance(awake, int):
         return 2

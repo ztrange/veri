@@ -1579,3 +1579,21 @@ def test_3314_texts_without_the_refactor_pending_delimiter_are_inserted_with_exi
 
     assert (code, lines[4:6], within[0], beyond[0]) == (
         0, ["- [ ] do X ⟦added⟧ ⟦criterion 2⟧", "- [ ] do Y⟂Z ⟦added⟧ ⟦criterion 2⟧"], 0, 1), (err, within, beyond)
+
+
+def test_main_refuses_a_diff_checked_step_that_would_carry_no_criterion_naming_the_tag_and_still_accepts_one_with_it_3438(tmp_path, monkeypatch, capsys, add_ledger_step):
+    from veri.ledger import ledger_steps
+
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    untagged = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode()
+    ledger.write_bytes(untagged)
+    code = add_ledger_step.main([str(ledger), "after", "b two", "x ⟦diff-checked⟧"])
+    refused = (code, capsys.readouterr().err, ledger.read_bytes() == untagged)
+    assert (refused[0], "criterion" in refused[1], refused[2]) == (2, True, True)
+
+    ledger.write_bytes(LEDGER)
+    code = add_ledger_step.main([str(ledger), "after", "b two", "x ⟦diff-checked⟧"])
+    capsys.readouterr()
+    record = [r for r in ledger_steps(ledger.read_text()) if "x ⟦diff-checked⟧" in r[6]]
+    assert (code, [(r[2], r[4], r[5]) for r in record]) == (0, [("diff-checked", "1", "2")])
