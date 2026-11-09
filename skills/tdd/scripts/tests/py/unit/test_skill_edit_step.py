@@ -2192,3 +2192,33 @@ def test_a_requirements_table_without_its_header_and_separator_exits_2_naming_th
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert (code != 2, "| M9 | new text | why |" in (tmp_path / "REQUIREMENTS.md").read_text()) == (True, True), (code, err)
+
+
+def test_a_requirements_table_with_the_header_line_but_a_missing_or_wrong_separator_exits_2_naming_the_unit_before_any_author_while_the_correct_separator_is_accepted_3445(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    row = "| A2 | The widget is round. | because |\n"
+    head = "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n"
+    launched = []
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 1)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    outcomes = {}
+    for name, separator in (("short", "|--|--|\n"), ("none", ""), ("correct", "|---|---|---|\n")):
+        launched.clear()
+        (tmp_path / "issue.md").write_text(head + separator + row)
+        code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+        outcomes[name] = (code == 2 and "unit.md" in err, len(launched) > 0)
+
+    assert outcomes == {"short": (True, False), "none": (True, False), "correct": (False, True)}, outcomes
