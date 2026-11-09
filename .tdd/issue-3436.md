@@ -1,7 +1,7 @@
 # Plan for #3436 — VERI_BASELINE_FULL_TIER=reuse is prose-only: the conductor ran the full tier in preflight
 
 - [x] A new script `baseline-full-tier.sh <issue> <full-tier-command>` (logic in `veri/baseline_full_tier.py`, a `/bin/sh` shim, cases in `tests/py/unit/test_baseline_full_tier.py` driven in-process with `run_cli`), called with no argument, exits 2 with a usage line naming it on stderr ⟦criterion 1⟧
-- [x] `baseline-full-tier.sh <issue> <full-tier-command>` prints `run` and exits 0 when `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `baseline-full-tier.sh <issue> <full-tier-command>` prints `run` and exits 0 when `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 1⟧
 - [ ] Given `VERI_BASELINE_FULL_TIER=reuse` and a time recorded through `full-tier-time.sh --record <seconds> <command>` for the full-tier command it is given, `baseline-full-tier.sh` prints `reuse <seconds>` and exits 0 ⟦criterion 1⟧
 - [ ] Given `VERI_BASELINE_FULL_TIER=reuse` and no recorded time for the full-tier command it is given, `baseline-full-tier.sh` prints `run` and exits 0 ⟦criterion 1⟧
 - [ ] A fresh `run-conductor.sh <n>` launch pins the launch's `VERI_BASELINE_FULL_TIER` value per run, writing it to `.tdd/issue-<n>-baseline-full-tier` beside `.tdd/issue-<n>-skip-verify` ⟦criterion 2⟧
