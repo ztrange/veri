@@ -1,0 +1,1 @@
+- [ ] `skills/tdd/SCRIPTS.md`: the add-ledger-step.sh entry lists, among its exit-2 refusals, a step text carrying a diff-checked marker with no criterion marker (nothing inserted) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
