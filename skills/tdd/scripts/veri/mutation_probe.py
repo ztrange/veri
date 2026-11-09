@@ -104,7 +104,10 @@ def main(argv):
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")
         return 1
-    append_record((("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("command", shlex.join(timed_stripped(argv[4:])))))
+    text = saved.decode()
+    start = text.index(argv[1])
+    context = text[text.rfind("\n", 0, start) + 1:].split("\n", 1)[0]
+    append_record((("file", argv[0]), ("old", argv[1]), ("new", argv[2]), ("context", context), ("command", shlex.join(timed_stripped(argv[4:])))))
     return 0
 
 
