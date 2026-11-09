@@ -97,13 +97,14 @@ def report_blocks(repo):
             return "\n<p>owed: none</p>"
         return "\n<p>owed: %d (%s)</p>" % (answer["count"], ", ".join(answer["sections"]))
 
+    def closed_last_week(issues):
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+        return [i for i in issues if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
+
     def solved_line(n, prd):
         closed = [i for i in cache["issues"] if i["state"] == "CLOSED"
                   and (prd_number(i["title"]) == n or i["number"] in prd.get("links", []))]
-        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
-        recent = [i for i in closed
-                  if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
-        return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(recent))
+        return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(closed_last_week(closed)))
 
     def open_children(n, prd):
         return [i for i in cache["issues"] if i["state"] == "OPEN"
@@ -127,9 +128,8 @@ def report_blocks(repo):
     def eta_line(n, prd):
         lanes = {i.get("lane") for i in open_children(n, prd)} - {None}
         if lanes:
-            cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
-            closed = [i for i in cache["issues"] if i["state"] == "CLOSED" and i.get("lane") in lanes
-                      and datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
+            closed = closed_last_week(i for i in cache["issues"]
+                                      if i["state"] == "CLOSED" and i.get("lane") in lanes)
             if len(closed) < 3:
                 return "\n<p>ETA: no rate yet</p>"
             return ""
