@@ -127,6 +127,8 @@ def main(argv):
                         return 2
                     absent.append(issue)
                     continue
+                if os.path.exists(os.path.join(run_dir(issue), ".tdd", "restart-pending")):
+                    continue
                 sys.stdout.write(exit_line(issue) + "\n")
                 return 0
         stall = int(stall_window())
