@@ -1,6 +1,7 @@
 """dispatch.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
+import glob
 import os
 import subprocess
 import sys
@@ -134,7 +135,9 @@ def main(argv):
             events = os.path.join(tdd, "events.jsonl")
             log = os.path.join(tdd, f"conductor-{issue}.log")
             if os.path.exists(events) and clock() - max(
-                    os.path.getmtime(f) for f in (events, log) if os.path.exists(f)) >= stall:
+                    os.path.getmtime(f)
+                    for f in (events, log, *glob.glob(os.path.join(tdd, "*.out")))
+                    if os.path.exists(f)) >= stall:
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
         absent = [issue for issue in absent if issue not in live]
