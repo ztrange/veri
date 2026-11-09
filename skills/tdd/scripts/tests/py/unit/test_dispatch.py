@@ -1575,3 +1575,54 @@ def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_
         dispatch.main(["--target", "1"])
 
     assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+
+
+def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_each_pr_diff_once_per_head_sha_and_the_pr_list_once_per_poll_window_issue_3478(
+        monkeypatch, tmp_path, dispatch):
+    times = [0, 10, 70, 80, 140]
+    listed, diffed, viewed = [], [], []
+    _, waits = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"], {}, _REAL["run_pr_paths"], waits_before_stop=len(times))
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+
+    def open_prs(fields, *extra):
+        listed.append(1)
+        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
+                 "headRefName": "tdd/80-other", "headRefOid": "bbb" if times[len(waits)] >= 140 else "aaa"}]
+
+    def diff(number):
+        diffed.append(number)
+        return ["skills/tdd/scripts/veri/dispatch.py", "skills/tdd/SCRIPTS.md"]
+
+    def view(issue, field):
+        viewed.append(issue)
+        return {"12": "Touches `skills/tdd/scripts/veri/dispatch.py`.", "15": "Edits `skills/tdd/SCRIPTS.md`."}[issue]
+
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", diff)
+    monkeypatch.setattr(dispatch.github, "gh_issue_view", view)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (len(listed), diffed, viewed) == (3, [90, 90], ["12", "15"])
+
+
+@pytest.mark.parametrize("poll", ["soon", "-5"])
+def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exits_2_before_any_launch_issue_3478(
+        monkeypatch, tmp_path, run_cli, dispatch, poll):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", poll)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh --target <N>\n", [])
