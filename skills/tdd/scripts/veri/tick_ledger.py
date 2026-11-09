@@ -26,8 +26,10 @@ def run_case(case):
     if not command:
         return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
     path = case.split("::", 1)[0]
-    code = subprocess.run(["sh", "-c", command, "sh", path]).returncode
-    return 2 if code and not os.path.exists(path) else code
+    done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True)
+    if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
+        return 2
+    return done.returncode
 
 
 def changed_index(text, new):
@@ -129,7 +131,7 @@ def main(argv):
             return 1
     ran = run_case(case) if case else 0
     if ran == 2:
-        complain(f"{matcher}: case {case} never run: its file path does not exist")
+        complain(f"{matcher}: case {case} never run: no such file path or no tests ran")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")

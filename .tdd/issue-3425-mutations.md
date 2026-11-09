@@ -9,3 +9,10 @@ context 71
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_run_case_in_a_repo_declaring_no_one_test_file_command_runs_make_test_tests_case_3425
 
+before 40
+d660d33e605452c652f602287a1dd35143bf2528
+keep 66
+skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_already_holds.py::test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_3425
+
