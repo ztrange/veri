@@ -7,6 +7,7 @@ import re
 import sys
 
 import event_log
+import tunables
 from entry import write
 from ledger import carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
@@ -224,7 +225,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     if phase == "diff":
-        out += _author_less_block(os.environ.get("VERI_ISSUE", ""))
+        out += _author_less_block(tunables.read("VERI_ISSUE"))
     return 0, out + b"\n"
 
 
