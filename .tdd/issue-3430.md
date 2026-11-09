@@ -1,0 +1,3 @@
+# Plan for #3430 — vmerge names make merge-gates, a target the Makefile lacks and a project fact P12 forbids in a skill
+
+- [ ] Unit skills/vmerge/SKILL.md: reword M9 in skills/vmerge/REQUIREMENTS.md to the issue's `## Requirements` row, and route the prose to meet it: the Gates step (step 2) and the merge-lock paragraph no longer name `make merge-gates` or any make target; the Gates step runs, under `$S/merge-lock.sh gate --pid <driver> --owner <token> -- …`, the pre-merge gate command the target repo's CLAUDE.md names, and skips it when CLAUDE.md names none, then runs `$S/prose-owed.sh` as before; grade the unit PASS against its whole list and sign it in GRADED ⟦skill-edit⟧ ⟦criterion 1⟧
