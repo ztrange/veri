@@ -6,3 +6,4 @@
 - [ ] The go-red control: with the body check removed from queued_merge.py, the refusal case goes red ⟦human-owed⟧ ⟦criterion 2⟧
 - [x] skills/vdev/SKILL.md: a non-blocking review finding goes into the PR body as a line appended to the existing body, never replacing it, so the `Closes #<n>` line survives (requirement D<next> in skills/vdev/REQUIREMENTS.md) ⟦skill-edit⟧ ⟦criterion 3⟧
 - [x] skills/vmerge/SKILL.md: before step 4 (Merge), read the PR body and stop, releasing the lock, when it lacks `Closes #<n>` for the run's issue, naming the missing line (requirement M<next> in skills/vmerge/REQUIREMENTS.md) ⟦skill-edit⟧ ⟦criterion 4⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['queued_merge.py'] == [] ⟦suite-repair⟧ ⟦criterion 4⟧
