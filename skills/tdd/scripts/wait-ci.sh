@@ -28,6 +28,6 @@
 # Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_RETRY_BACKOFF 1 (default)
 # doubles the retry sleep, 0 keeps it VERI_POLL; VERI_CI_QUEUE_WAIT secs checks may
 # stay queued before exit 2 (default 3600); VERI_CI_NO_RUN_WAIT secs, counted across calls from the
-# first no-run sighting (.tdd/ci-none-<sha>), a head may have no check run and no status before exit 2 (default 120, a non-negative whole number; anything else exit 2).
+# first no-run sighting (.tdd/ci-none-<sha>), a head may have no check run and no status before exit 2 (default 600, a non-negative whole number; anything else exit 2).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/wait_ci.py" "$@"
