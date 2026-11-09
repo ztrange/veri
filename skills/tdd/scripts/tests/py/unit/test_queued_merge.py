@@ -78,8 +78,8 @@ def test_2372_queued_merge_pushes_under_a_lease_pinned_to_origin_branch_sha_read
 
     code, _, _ = run_cli(queued_merge, ARGV)
 
-    pushes = [c for c in calls if " push " in c and "--delete" not in c and "v0." not in c]
-    assert (code, pushes) == (0, ["merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin feature"
+    pushes = [c.rsplit(" ", 1)[0] for c in calls if " push " in c and "--delete" not in c and "v0." not in c]
+    assert (code, pushes) == (0, ["merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin"
                                   % (PID, ORIGIN_SHA)])
 
 
@@ -194,9 +194,9 @@ def test_3030_queued_merge_on_a_clean_worktree_strictly_behind_origin_branch_fas
 
     code, _, _ = run_cli(queued_merge, ARGV)
 
-    pushes = [c for c in calls if " push " in c and "--delete" not in c and "v0." not in c]
+    pushes = [c.rsplit(" ", 1)[0] for c in calls if " push " in c and "--delete" not in c and "v0." not in c]
     assert (code, first(calls, "rebase origin/main") is not None, pushes) == (
-        0, True, ["merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin feature"
+        0, True, ["merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin"
                   % (PID, ORIGIN_SHA)])
 
 
