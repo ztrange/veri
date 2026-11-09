@@ -1,0 +1,14 @@
+before 40
+0c22e1761008c4cc4a4d838f46b2a39f7d07da9e
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 206
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3477_leaving_the_watch_logs_pid_file_unreadable_for_a_garbled_pid_file_and_pid_dead_when_the_recorded_pid_cannot_be_signalled
+
+before 40
+0c22e1761008c4cc4a4d838f46b2a39f7d07da9e
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 187
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3477_after_a_not_live_read_then_a_live_read_leaving_the_watch_logs_only_the_final_three_consecutive_misses
+

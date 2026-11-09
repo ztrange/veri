@@ -127,12 +127,15 @@ def main(argv):
     while True:
         asked = False
         misses = 0
+        reasons = []
         while misses < 3:
             if not conductor_alive(run):
                 misses += 1
+                reasons.append(pid_file.not_live_reason(_run_dir(run)))
                 sleep(1)
                 continue
             misses = 0
+            reasons = []
             try:
                 g = _growth(run, offset)
             except OSError as e:
@@ -147,6 +150,8 @@ def main(argv):
                 asked = True
                 mark = _stop_mark(run)
             sleep(5)
+        for reason in reasons:
+            print(f"restart-conductor.sh: conductor read not-live: {reason}")
         if not asked or run_state(run) != "stopped":
             if asked:
                 os.remove(_run_file(run, "restart-pending"))

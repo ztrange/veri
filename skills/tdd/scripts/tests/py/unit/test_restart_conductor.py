@@ -79,7 +79,7 @@ def test_3223_a_live_conductor_below_the_growth_threshold_that_exits_with_the_ru
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), calls) == (0, "restarts 7 0", [])
+    assert (code, out.splitlines()[-1:], calls) == (0, ["restarts 7 0"], [])
 
 
 def test_3223_while_the_conductor_is_alive_the_watch_waits_through_the_sleep_wrapper_with_a_positive_interval(tmp_path, run_cli, monkeypatch):
@@ -159,7 +159,7 @@ def test_3346_a_conductor_log_whose_every_line_is_plain_text_measures_no_growth_
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), calls) == (0, "restarts 7 0", [])
+    assert (code, out.splitlines()[-1:], calls) == (0, ["restarts 7 0"], [])
 
 
 def test_3346_a_conductor_log_that_exists_but_cannot_be_read_exits_2_with_a_stderr_line_naming_conductor_7_log(tmp_path, run_cli, monkeypatch):
@@ -347,7 +347,7 @@ def test_3223_a_run_is_live_when_pid_files_live_conductor_check_names_a_conducto
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), set(asked)) == (0, "restarts 7 0", {worktree})
+    assert (code, out.splitlines()[-1:], set(asked)) == (0, ["restarts 7 0"], {worktree})
 
 
 def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_growth_and_the_knob_in_the_runs_events_log(tmp_path, run_cli, monkeypatch):
@@ -413,7 +413,7 @@ def test_3223_after_a_relaunch_it_goes_on_watching_and_when_the_new_launch_ends_
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), calls) == (0, "restarts 7 1", [("stop", "at-ledger", "7"), ("launch", "7")])
+    assert (code, out.splitlines()[-1:], calls) == (0, ["restarts 7 1"], [("stop", "at-ledger", "7"), ("launch", "7")])
 
 
 def test_3223_a_live_conductor_is_stopped_at_85_percent_of_a_knob_the_caller_sets_not_at_the_default_threshold(tmp_path, run_cli, monkeypatch):
@@ -452,7 +452,7 @@ def test_3223_when_the_conductor_exits_after_its_own_stop_and_the_run_is_not_sto
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), pending.exists(), calls) == (0, "restarts 7 0", False, [("stop", "at-ledger", "7")])
+    assert (code, out.splitlines()[-1:], pending.exists(), calls) == (0, ["restarts 7 0"], False, [("stop", "at-ledger", "7")])
 
 
 def _relaunch_setup(tmp_path, monkeypatch, alive_script, states):
@@ -478,7 +478,7 @@ def test_3223_when_the_new_conductor_is_not_yet_recorded_right_after_the_relaunc
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), list(alive)) == (0, "restarts 7 1", [])
+    assert (code, out.splitlines()[-1:], list(alive)) == (0, ["restarts 7 1"], [])
 
 
 def test_3223_when_no_conductor_is_recorded_within_the_bound_after_the_relaunch_it_exits_2_naming_it_on_stderr_and_removes_restart_pending(tmp_path, run_cli, monkeypatch):
@@ -487,7 +487,7 @@ def test_3223_when_no_conductor_is_recorded_within_the_bound_after_the_relaunch_
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out, "7" in err and "conductor" in err, pending.exists()) == (2, "", True, False)
+    assert (code, "restarts" in out, "7" in err and "conductor" in err, pending.exists()) == (2, False, True, False)
 
 
 def test_3369_a_relaunched_conductor_whose_init_record_is_not_yet_written_is_not_stopped_for_the_growth_its_predecessor_accrued(tmp_path, run_cli, monkeypatch):
@@ -541,7 +541,7 @@ def test_3389_a_conductor_log_ending_in_an_init_record_after_a_usage_record_keep
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
-    assert (code, out.strip(), calls, pending.exists()) == (0, "restarts 7 0", [], False)
+    assert (code, out.splitlines()[-1:], calls, pending.exists()) == (0, ["restarts 7 0"], [], False)
 
 
 def test_3389_once_the_new_sessions_usage_records_land_after_an_init_record_growth_is_computed_again_and_the_conductor_is_stopped_with_mode_at_ledger(tmp_path, run_cli, monkeypatch):
@@ -583,7 +583,7 @@ def test_3384_a_watcher_armed_before_the_conductor_is_recorded_waits_for_it_and_
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), err) == (0, "restarts 7 0", "")
+    assert (code, out.splitlines()[-1:], err) == (0, ["restarts 7 0"], "")
 
 
 def test_3384_a_watcher_armed_when_no_conductor_is_ever_recorded_exits_3_only_after_waiting_the_launch_bound_on_the_fake_clock(tmp_path, run_cli, monkeypatch):
@@ -617,7 +617,7 @@ def test_3384_a_live_conductor_that_reads_not_live_for_one_poll_and_live_again_i
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), list(alive)) == (0, "restarts 7 0", [])
+    assert (code, out.splitlines()[-1:], list(alive)) == (0, ["restarts 7 0"], [])
 
 
 def test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll(tmp_path, run_cli, monkeypatch):
@@ -636,7 +636,7 @@ def test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll(tmp
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), events[1:6]) == (0, "restarts 7 0", ["not-live", "sleep", "not-live", "sleep", "not-live"])
+    assert (code, out.splitlines()[-1:], events[1:6]) == (0, ["restarts 7 0"], ["not-live", "sleep", "not-live", "sleep", "not-live"])
 
 
 def test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_three_consecutive_reads_ends_the_watch_with_restarts_7_0_and_exit_0(tmp_path, run_cli, monkeypatch):
@@ -649,7 +649,7 @@ def test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_thr
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), list(alive)) == (0, "restarts 7 0", [True])
+    assert (code, out.splitlines()[-1:], list(alive)) == (0, ["restarts 7 0"], [True])
 
 
 def test_3384_a_conductor_asked_to_stop_whose_run_reads_stopped_and_stays_not_live_for_three_consecutive_reads_is_relaunched_exactly_once_after_the_third(tmp_path, run_cli, monkeypatch):
@@ -676,7 +676,7 @@ def test_3384_a_conductor_asked_to_stop_whose_run_reads_stopped_and_stays_not_li
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code, out.strip(), calls) == (0, "restarts 7 1", [("stop", "at-ledger", "7"), ("launch", "7", 5)])
+    assert (code, out.splitlines()[-1:], calls) == (0, ["restarts 7 1"], [("stop", "at-ledger", "7"), ("launch", "7", 5)])
 
 
 def test_3382_with_growth_over_the_threshold_and_a_conductor_alive_for_several_passes_stop_run_is_called_once_not_once_per_pass(tmp_path, run_cli, monkeypatch):
@@ -887,3 +887,117 @@ def test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment(tmp
     restart_conductor.detach_leaf("7")
 
     assert launched == [("/watcher/bin:/usr/bin", "18")]
+
+
+def test_3477_leaving_the_watch_after_three_not_live_reads_logs_which_condition_read_not_live_on_each_miss(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    pid_path.parent.mkdir(parents=True)
+    pid_path.write_text("4242\nstart-A\n")
+    # arm live, one live poll, then three misses: parent command, own command, lstart
+    states = iter(["live", "live", "parent", "own", "lstart"])
+    state = ["live"]
+    real_live_conductor = pid_file.live_conductor
+
+    def live_conductor(path):
+        state[0] = next(states, "live")
+        return real_live_conductor(path)
+
+    def ps(field, pid):
+        if field == "lstart":
+            return "start-B" if state[0] == "lstart" else "start-A"
+        if field == "ppid":
+            return "100"
+        if str(pid) == "100":
+            return "bash -l" if state[0] == "parent" else "python3 run_conductor.py 7"
+        return "node server.js" if state[0] == "own" else "claude --print"
+
+    monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    positions = [out.find(name) for name in ("parent command", "own command", "lstart mismatch")]
+    assert (code, positions == sorted(positions) and -1 not in positions) == (0, True), out
+
+
+def test_3477_leaving_the_watch_logs_pid_file_unreadable_for_a_garbled_pid_file_and_pid_dead_when_the_recorded_pid_cannot_be_signalled(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    pid_path.parent.mkdir(parents=True)
+    pid_path.write_text("4242\nstart-A\n")
+    states = iter(["live", "live", "unreadable", "dead", "unreadable"])
+    state = ["live"]
+    real_live_conductor = pid_file.live_conductor
+
+    def live_conductor(path):
+        state[0] = next(states, "live")
+        pid_path.write_text("42x\n" if state[0] == "unreadable" else "4242\nstart-A\n")
+        return real_live_conductor(path)
+
+    def kill(pid, sig):
+        if state[0] == "dead":
+            raise ProcessLookupError(pid)
+
+    def ps(field, pid):
+        if field == "lstart":
+            return "start-A"
+        if field == "ppid":
+            return "100"
+        return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
+
+    monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    names = ("pid file unreadable", "pid dead")
+    named = [[n for n in names if n in line] for line in out.splitlines()]
+    assert (code, named) == (0, [["pid file unreadable"], ["pid dead"], ["pid file unreadable"], []]), out
+
+
+def test_3477_after_a_not_live_read_then_a_live_read_leaving_the_watch_logs_only_the_final_three_consecutive_misses(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    pid_path.parent.mkdir(parents=True)
+    pid_path.write_text("4242\nstart-A\n")
+    states = iter(["live", "live", "unreadable", "live", "dead", "dead", "dead"])
+    state = ["live"]
+    real_live_conductor = pid_file.live_conductor
+
+    def live_conductor(path):
+        state[0] = next(states, "live")
+        pid_path.write_text("42x\n" if state[0] == "unreadable" else "4242\nstart-A\n")
+        return real_live_conductor(path)
+
+    def kill(pid, sig):
+        if state[0] == "dead":
+            raise ProcessLookupError(pid)
+
+    def ps(field, pid):
+        if field == "lstart":
+            return "start-A"
+        if field == "ppid":
+            return "100"
+        return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
+
+    monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    names = ("pid file unreadable", "pid dead")
+    named = [[n for n in names if n in line] for line in out.splitlines()]
+    assert (code, named) == (0, [["pid dead"], ["pid dead"], ["pid dead"], []]), out
