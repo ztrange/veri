@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_events_jsonl_openers.py — FAILED skills/tdd/scripts/tests/py/test_events_jsonl_openers.py::test_no_module_but_event_and_event_log_opens_events_jsonl - AssertionError: assert ['mutation_probe.py'] == [] ⟦suite-repair⟧ ⟦criterion 1⟧
