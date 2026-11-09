@@ -137,8 +137,11 @@ def stop_leaves(run, killed=None):
                 killed.append(group)
             try:
                 os.killpg(group, signal.SIGKILL)
-            except GONE + (PermissionError,):
+            except GONE:
                 pass
+            except PermissionError:
+                if not (pid_file._ps("stat", group) or "").startswith("Z"):
+                    refused.append(group)
     return refused
 
 
