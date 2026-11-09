@@ -86,5 +86,10 @@ def test_usage_output_on_a_missing_argument_is_unchanged(run_cli):
             continue
         got = cksum(text.encode("utf-8", "surrogateescape"))
         if got != want:
-            problems.append("%s %s: want %s, got %s" % (script, " ".join(argv), want, got))
+            args = "".join(" '%s'" % x for x in argv)
+            problems.append(
+                "%s %s: want %s, got %s\n"
+                "  the pin covers: the line 'exit N' (here: exit 2), then the usage output with trailing newlines stripped, then one trailing newline\n"
+                "  reproduce: out=$(skills/tdd/scripts/%s%s 2>&1); printf 'exit %%d\\n%%s\\n' $? \"$out\" | cksum"
+                % (script, " ".join(argv), want, got, script, args))
     assert problems == []
