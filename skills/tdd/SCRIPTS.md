@@ -114,6 +114,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   from the worktree. Takes the fast command as its one argument. On failure it writes the
   command's output to `.tdd/verify-pin.reason`. **Exit 0 = the command passed, 1 = it failed
   (output in the reason file), 2 = no command given.**
+- `$S/mutation-probe.sh <file> <old> <new> -- <command…> | --before <sha> --keep <test-path> -- <command…>` — mutate `<file>` (`<old>` replaced by `<new>`), run `<command>` against the mutation, restore the file, and write the run's `.tdd/issue-<n>-mutations.md` record. `VERI_MUTATION_ADDRESS_DOMAIN` (unset or empty: no check): when set, a `<old>` or `<new>` holding an email address whose host is not that domain makes the probe exit **2** before it mutates the file, runs the command or writes the record, stderr naming the address and the allowed domain. **Exit 2** also for bad arguments, or no answer.
 - `$S/pin-recheck.sh <base-sha>` — re-run each recorded mutation whose file the range touches (a before record's file is its `keep` file):
   **exit 0** every such pin still goes red, printing any that need a look; **exit 1** a pin
   stayed green under its mutation (one that stays green under it on the range's base too is stale, not exit 1), a before-state pin this range disarmed (green at `HEAD`, red on the range's base), or a mutated run did not build, which prints
