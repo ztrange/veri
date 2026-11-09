@@ -285,6 +285,7 @@ def test_main_exits_2_naming_the_vanished_run_and_prints_no_closing_line_when_a_
 
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment",
