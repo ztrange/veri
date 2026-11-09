@@ -469,3 +469,35 @@ def test_issue_3016_before_state_probe_at_a_plan_only_head_does_not_stamp_head_a
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     text = record.read_text() if record.exists() else ""
     assert (result.returncode, f"green {len(head)}\n{head}\n" in text) == (0, False), (result.stderr, text)
+
+
+@pytest.mark.process("git, mutation-probe.sh applying an event.py mutant and a copied timed-test-run.sh in a scratch repo")
+@pytest.mark.tree_audit("copies the veri scripts and lib trees into a temporary repo")
+def test_issue_3383_probe_dropping_o_append_from_event_py_leaves_the_live_journal_append_only(tmp_path):
+    import json
+    import shutil
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    scripts = tmp_path / "skills" / "tdd" / "scripts"
+    scripts.mkdir(parents=True)
+    shutil.copy(PROBE.parent / "timed-test-run.sh", scripts)
+    shutil.copytree(PROBE.parent / "lib", scripts / "lib")
+    shutil.copytree(PROBE.parent / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    git("init", "-q")
+    (tmp_path / ".gitignore").write_text(".tdd/events.jsonl\n")
+    (tmp_path / ".tdd").mkdir()
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    before = "".join(json.dumps({"ts": 1794156370 + n, "event": "step", "note": "x" * 200}) + "\n" for n in range(3))
+    journal.write_text(before)
+
+    subprocess.run([str(PROBE), str(scripts / "veri" / "event.py"), "os.O_WRONLY | os.O_APPEND | os.O_CREAT", "os.O_WRONLY | os.O_CREAT",
+                    "--", str(scripts / "timed-test-run.sh"), "affected", "suite", "true"],
+                   cwd=tmp_path, capture_output=True, text=True, timeout=60,
+                   env={**os.environ, "VERI_MUTATION_RECORD": str(tmp_path.parent / (tmp_path.name + "-mutations.md"))})
+
+    after = journal.read_text()
+    assert (after.startswith(before), after[len(before):] == "" or after.endswith("\n")) == (True, True), after
