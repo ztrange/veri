@@ -59,7 +59,8 @@ leaves the run resumable. Run this sequence in order.
    block, the boundary reached (`at=<at>`), what step 2 dropped, the branch, the worktree
    path, any `push=rejected sha=<remote-sha>`, and the resume command
    `$S/run-conductor.sh <n>`. The metrics go into the comment and nowhere else: **no
-   metrics file is written or committed**. Committing them marks an ending, as *Done* and
+   metrics file is written or committed**, and this section stages and commits nothing.
+   Committing them marks an ending, as *Done* and
    `<base directory>/BAIL.md` do, and a stopped run will be resumed.
 6. **Clear and end.** Run `$S/stop-requested.sh --clear`, so the request does not outlive
    the stop it asked for and pause the resumed run at its first checkpoint, then end the
