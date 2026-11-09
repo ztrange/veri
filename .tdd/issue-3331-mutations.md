@@ -1,0 +1,7 @@
+before 40
+c0dcfc68892e46e288c1a857f9eed4b4dc8e6419
+keep 64
+skills/tdd/scripts/tests/py/unit/test_pin_recheck_build_error.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_recheck_build_error.py::test_3331_a_record_without_context_whose_old_text_occurs_twice_is_reported_as_occurring_more_than_once
+

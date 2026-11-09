@@ -157,3 +157,27 @@ def test_3331_a_pin_whose_old_text_occurs_once_off_its_recorded_line_needs_a_loo
 
     assert (any("continue" in s for s in seen), sorted({f for f, _ in looks}),
             target.read_text()) == (False, ["guard.txt"], "for a in x:\n    stop(a)\nfor b in y:\n    break\n")
+
+
+def test_3331_a_record_without_context_whose_old_text_occurs_twice_is_reported_as_occurring_more_than_once(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1-mutations.md").write_text(record(
+        file="guard.txt", old="break", new="continue",
+        command="python3 -m pytest -q t.py::case"))
+    target = tmp_path / "guard.txt"
+    target.write_text("for a in x:\n    if a: break\nfor b in y:\n    break\n")
+    seen = []
+
+    def fake_run(command):
+        seen.append(target.read_text())
+        return SimpleNamespace(returncode=0, stdout="1 passed in 0.19s\n", stderr="")
+
+    monkeypatch.setattr(pin_recheck, "run_captured", fake_run)
+    monkeypatch.setattr(pin_recheck, "git_out", lambda *a: "guard.txt\n" if "--diff-filter=D" not in a else "")
+    looks = {}
+
+    pin_recheck.recheck(["base"], looks)
+
+    assert (seen, looks) == ([], {("guard.txt", "old text occurs more than once"): 1})
