@@ -52,7 +52,9 @@ A developer agent has written the implementation intended to make the target tes
    never the affected suites or one test file alone, so a branch only a fast-tier case
    requires is not judged required by no test. It edits, runs the
    command and restores the file; if it exits 1 (the suites stay green) nothing
-   required the code, and an exit of 2 gives no verdict. Confirm that
+   required the code, and an exit of 2 gives no verdict. If that probe exits 2 and its
+   stderr names an allowed address domain, any email address in `<old>`/`<new>` must be on
+   that domain: retry with one that is. Confirm that
    `git diff` prints what it printed before the probe — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
 5. {{INCLUDE:_verify-comments-lead.md}} change {{INCLUDE:_verify-comments-allowed.md}} change {{INCLUDE:_verify-comments-never-reject.md}}
