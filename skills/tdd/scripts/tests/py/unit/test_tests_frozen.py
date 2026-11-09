@@ -1375,3 +1375,32 @@ def test_check_earlier_refuses_a_case_whose_test_file_is_deleted_with_no_counter
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (recorded, code, out) == (0, 1, "test_real (%s)\n" % earlier)
+
+
+def test_rerecord_earlier_exits_2_naming_the_case_and_the_base_when_base_to_head_leaves_it_unchanged_and_rewrites_it_when_changed_3440(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = _rerecord_fixture(tmp_path, tests_frozen, monkeypatch)
+    earlier, edit = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧"
+    base = "b45e0001b45e0001b45e0001b45e0001b45e0001"
+    old = "def test_pinned_3440():\n    assert 1 == 2\n"
+    new = "def test_pinned_3440():\n    assert 2 == 2\n"
+    suite.write_text(old)
+    run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
+    kept = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+    monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
+        PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
+    monkeypatch.setattr(tests_frozen, "_text_at", lambda rev, name, err=None: new)
+    old_cases, new_cases = dict(tests_frozen._cases(old)), dict(tests_frozen._cases(new))
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+    unchanged = (code, "test_pinned_3440" in err and base in err,
+                 (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept)
+
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases if rev == base else new_cases)
+    code2 = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    rewritten = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+
+    assert (unchanged, code2, rewritten != kept) == ((2, True, True), 0, True)
