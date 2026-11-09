@@ -16,3 +16,14 @@ context 97
 command 135
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pr_body.py::test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453
 
+file 34
+skills/tdd/scripts/veri/pr_body.py
+old 19
+        body = mine
+new 29
+        body = current + mine
+context 19
+        body = mine
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pr_body.py::test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part_alone_3453
+
