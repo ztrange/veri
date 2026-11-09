@@ -59,9 +59,10 @@ def queued_merges():
     out = subprocess.run(["ps", "-axo", "args="], capture_output=True, text=True, check=True)
     urls = []
     mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "queued-merge.sh"))
+    py_mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "veri", "queued_merge.py"))
     for line in out.stdout.splitlines():
         words = line.split()
-        if len(words) > 2 and os.path.realpath(words[1]) == mine:
+        if len(words) > 2 and os.path.realpath(words[1]) in (mine, py_mine):
             urls.append(words[2])
     return urls
 
