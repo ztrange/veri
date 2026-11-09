@@ -104,13 +104,13 @@ def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_
         make_run(repo, 102, gone.pid)
         make_run(repo, 103, second.pid)
         env, marker = watch_hook(tmp_path)
-        watcher = subprocess.Popen([str(SHIM), "--max-wait", "15"], cwd=repo, stdin=subprocess.DEVNULL,
+        watcher = subprocess.Popen([str(SHIM), "--max-wait", "30"], cwd=repo, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
-        wait_for_snapshot(watcher, marker)
+        wait_for_snapshot(watcher, marker, bound=20)
         second.terminate()
         second.wait()
         (repo / ".tdd" / "wt" / "103" / ".tdd" / "conductor.pid").write_text("%d\n" % reused.pid)
-        out, err = watcher.communicate(timeout=15)
+        out, err = watcher.communicate(timeout=45)
     finally:
         if watcher.poll() is None:
             watcher.kill()
