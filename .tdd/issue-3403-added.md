@@ -1,2 +1,2 @@
-- [ ] queued_merges() ignores a queued_merge.py running from another clone's path; one test, with this clone's queued_merge.py counted as the contrast case ⟦added⟧
+- [x] queued_merges() ignores a queued_merge.py running from another clone's path; one test, with this clone's queued_merge.py counted as the contrast case ⟦added⟧
 - [ ] test_dispatch.py:275 test_main_exits_2_naming_the_vanished_run… fakes queued_merges, so no case reads the real process table ⟦diff-checked⟧ ⟦added⟧

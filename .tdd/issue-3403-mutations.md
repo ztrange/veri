@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 172
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_queued_merges_still_returns_a_pre_exec_queued_merge_sh_beside_a_post_exec_queued_merge_py_issue_3403
 
+before 40
+82a38405ba3f68f0a711ca2599b4e97a509e4386
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_queued_merges_ignores_a_python_process_running_queued_merge_py_from_another_clones_path_beside_this_clones_issue_3403
+
