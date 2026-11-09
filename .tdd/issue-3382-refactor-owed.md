@@ -1,0 +1,2 @@
+### A .tdd/stop the watcher did not write (one holding now, as stop-run.sh writes) is left in place by the watcher's not-stopped exit path (in-process, small case, no process) ⟦criterion 3⟧
+- in `restart_conductor.main`, replace the nested `if asked:` inside `if not asked or run_state(run) != "stopped":` with a helper that cleans up after an unstopped exit. The helper removes `restart-pending` and removes `.tdd/stop` only when it holds `at-ledger`.
