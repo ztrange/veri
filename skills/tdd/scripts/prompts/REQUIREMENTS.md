@@ -682,6 +682,7 @@
 | VG18 | The "Only code a test requires" check: production code outside the step's criterion is rejected by asking for its removal, never by offering a test for it, and the `MISSING_TEST:` paragraph says such code is not named on that line. | verify-pin and verify-red reject a test outside the criterion, so an offered test spends the step's revise budget on a contradiction (clarion2 issue #3, step R5, `revise-exhausted`). |
 | VG19 | The run-the-tests check: the verifier runs only the commands the prompt names, never sets `VERI_TEST_LOCK`, and when a command gives no answer it ends without a verdict rather than rerunning it another way. | A #2794 verifier widened to `make test`, timed out at 30 minutes and rerun with the lock off, so a verdict rested on a run the machine's lock never admitted. |
 | CY131 | The prompt lists the ledger's later unchecked steps and tells the verifier to put a `LATER_STEP: <step text>` line before the `VERDICT:` line when a `MISSING_TEST:` behaviour is one of them. | The verifier is the only leaf that sees the Green's gap and the plan together. |
+| VG20 | Where it sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 whose stderr names an allowed address domain means any email address in `<old>`/`<new>` must be on that domain, and the verifier retries with one that is. | Same recovery in verify-green as in verify-pin. |
 
 ## skills/tdd/scripts/prompts/verify-refactor.md
 
