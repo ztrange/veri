@@ -311,6 +311,10 @@ def main(argv):
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     where = _defining_file(case) if case is not None and "::" not in case else None
+    if where is not None:
+        for line in _lines_with(argv[0], "CONTRADICTS:"):
+            given = re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
+            where = given.group(1) if given else where
     if case is None and len(older) == 1:
         case = older[0]
     fixture = None if case is not None or rerouted else _fixture(argv[0], argv[1])
