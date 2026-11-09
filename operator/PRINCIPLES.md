@@ -79,8 +79,8 @@ and the one line you tell the human.
 **A silent exit is checked before it is a bail (P10).** A conductor that exits with no closing
 comment on its issue (neither ✅ Done nor a bail) is first checked for a usage limit — a 429 or
 a usage-limit message in its output, or a last leaf that answered in one turn at zero cost —
-for an API outage — a 5xx or an overloaded or connection error in its output, or the
-provider's status page reporting an incident over the run's window — and for the machine
+for an API outage — a conductor log ending in an API-unreachable error, as vbail defines it,
+and nothing wider — and for the machine
 having slept (on a Mac, `pmset -g log | grep -E 'Sleep|Wake'` over the run's window). Only
 when none of the three explains the exit is it treated as a bail.
 
