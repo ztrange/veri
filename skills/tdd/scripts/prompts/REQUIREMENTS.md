@@ -729,6 +729,7 @@
 | VP16 | Check 3's **not self-contained** bullet: the test runs another test suite, whole or sliced, or re-runs the suite it lives in, instead of exercising the unit directly. (Check 3, last bullet.) | No suite runs another suite. |
 | VP17 | The closing paragraph says PASS only if all three hold: it passes now, it fails under the mutation, and it is a clean, behavior-level pin of the criterion; and it tells the verifier to leave the working tree exactly as it found it. (Closing paragraph.) | The verdict needs all three checks, and the mutation must not survive the verification. |
 | VP18 | Check 3's REJECT list has a bullet for a test failing on an incidental error: its only observable is that something throws or exits non-zero, with no assertion on which error or on the behaviour, unless that specific error is what the criterion names. | A pin like this survives its mutation check today and is disarmed by any later change to the throw (#2506). |
+| VP19 | Where check 2 sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 whose stderr names an allowed address domain means any email address in `<old>`/`<new>` must be on that domain, and the verifier retries with one that is. | A refused address is corrected by the verifier instead of ending in an unrecoverable no-verdict. |
 
 ## skills/tdd/scripts/prompts/verify-plan.md
 
