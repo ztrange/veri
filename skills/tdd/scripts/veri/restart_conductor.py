@@ -128,6 +128,10 @@ def main(argv):
         if not asked or run_state(run) != "stopped":
             if asked:
                 os.remove(_run_file(run, "restart-pending"))
+                try:
+                    os.remove(_run_file(run, "stop"))
+                except FileNotFoundError:
+                    pass
             break
         offset = _log_size(run)
         detach_leaf(run)
