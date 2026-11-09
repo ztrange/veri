@@ -813,3 +813,66 @@ def test_3375_stop_run_cli_mode_now_signals_no_group_of_an_unrelated_process_now
             os.kill(child, 9)
         except OSError:
             pass
+
+
+@pytest.mark.process("a real detached session leader and a descendant that both ignore TERM, sent a real TERM and then KILL")
+def test_3375_stop_run_cli_mode_now_kills_the_members_of_the_detached_command_s_group_that_survive_the_term(
+        tmp_path, run_cli, stop_run, started):
+    repo = new_repo(tmp_path.resolve() / "repo")
+    run = repo / ".tdd" / "wt" / "5"
+    live_conductor(run, started)
+    child_file = tmp_path / "child.pid"
+    command = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & echo $! > "$0"; wait', str(child_file)],
+                               start_new_session=True)
+    started.append(command)
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % command.pid)
+    for _ in range(200):
+        if child_file.is_file() and child_file.read_text().strip():
+            break
+        time.sleep(0.05)
+    child = int(child_file.read_text())
+
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo,
+                                 env={"VERI_STOP_KILL_GRACE": "0.2"})
+
+        assert (code, out, err) == (0, str(run) + "\n", "")
+        assert gone(command), "the TERM-ignoring detached command %d was not killed" % command.pid
+        for _ in range(40):
+            try:
+                os.kill(child, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("the TERM-ignoring descendant %d of the detached command was not killed" % child)
+    finally:
+        try:
+            os.kill(child, 9)
+        except OSError:
+            pass
+
+
+def test_3375_stop_leaves_waits_the_kill_grace_the_env_names_between_the_term_and_the_kill_of_a_detached_group_and_by_default_waits_a_positive_time(
+        monkeypatch, tmp_path, stop_run):
+    import signal
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "fulltier.pid").write_text("777\n")
+    events = []
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    monkeypatch.setattr(os, "killpg", lambda group, sig: events.append(("killpg", group, sig)))
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: events.append(("sleep", seconds)))
+
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "7")
+    stop_run.stop_leaves(str(tmp_path))
+
+    assert events == [("killpg", 777, signal.SIGTERM), ("sleep", 7.0), ("killpg", 777, signal.SIGKILL)]
+
+    events.clear()
+    monkeypatch.delenv("VERI_STOP_KILL_GRACE")
+    stop_run.stop_leaves(str(tmp_path))
+
+    assert [e[0] for e in events] == ["killpg", "sleep", "killpg"]
+    assert events[1][1] > 0
