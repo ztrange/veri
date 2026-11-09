@@ -1,0 +1,14 @@
+before 40
+1ccfac3d673784eb663f3f53e70f922ceffdf38f
+keep 54
+skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3439_record_rewrite_appends_only_steps_neither_held_nor_recorded_and_exits_2_on_an_unreadable_file
+
+before 40
+1ccfac3d673784eb663f3f53e70f922ceffdf38f
+keep 54
+skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
+command 214
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3439_record_rewrite_keeps_earlier_records_adds_only_steps_the_pre_rewrite_file_lacked_and_exits_2_when_the_records_file_cannot_be_written
+
