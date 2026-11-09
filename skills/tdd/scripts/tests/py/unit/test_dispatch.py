@@ -947,3 +947,21 @@ def test_queued_merges_ignores_an_editor_or_grep_naming_queued_merge_py_as_a_lat
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == []
+
+
+def test_queued_merges_ignores_a_python_process_running_queued_merge_py_from_another_clones_path_beside_this_clones_issue_3403(
+        monkeypatch, dispatch):
+    import subprocess
+
+    mine_url = "https://github.com/o/r/pull/7"
+    foreign_url = "https://github.com/o/r/pull/8"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = (f"/usr/bin/python3 {mine}/veri/queued_merge.py {mine_url} /wt branch -\n"
+               f"/usr/bin/python3 /private/tmp/x/veri/queued_merge.py {foreign_url} /wt2 branch -\n")
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == [mine_url]
