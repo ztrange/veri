@@ -11,6 +11,10 @@ def read(name, default="", unless_empty=None):
     return value if value or unless_empty is None else unless_empty
 
 
+def taken_label(opt_in):
+    return "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
+
+
 def pop(name, default=""):
     return os.environ.pop(name, default)
 
