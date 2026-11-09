@@ -760,6 +760,7 @@
 | RS34 | Because each step was checked off atomically with its green commit, the ledger and the git history agree on exactly what is done, so resume never repeats or skips a step. (Closing paragraph.) | The ledger can be trusted as the record of what is done. |
 | RS35 | Before preflight step 3 runs the branch-red suites on `origin/<default>`, the conductor runs each test file the red baseline names alone once, with the repo's own runner (`make test TESTS="<file>"` on veri). When all of them pass, it writes a `suite-flake` event naming the files, writes no `.tdd/resume-suite-red`, and goes on as on a green baseline. When any stays red, or the output names no file, the baseline takes today's path. | A load flake on resume is not a defect of the branch, and must not buy the run a repair step with nothing to repair. |
 | RS36 | Before the first step leaf, the resume compares the newest `plan:` commit to the last verify-plan PASS and runs verify-plan only when the plan commit is newer; a REJECT then follows step 2c's revise-plan route. | Without the comparison a resume either never re-verifies a rewritten plan or re-pays verify-plan on every resume of an unchanged one. |
+| RS37 | Sub-step 4: when `insert` exits 2 naming a reorder of pending `⟦skill-edit⟧` steps, the resume bails with cause `no-verdict` carrying that stderr line, and inserts no step. | The operator reads the needed reorder from the bail, not from a failed repair leaf. |
 
 ## skills/tdd/REVISE.md
 
