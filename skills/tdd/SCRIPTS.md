@@ -395,7 +395,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or a ready,
   mergeable PR whose head has stayed none (no check run, no commit status) for
   `VERI_CI_NO_RUN_WAIT` seconds while a `pull_request` workflow exists (stderr names
-  `no CI run for <sha>`, the full 40-hex head). That grace is counted across calls: the first
+  `no CI run for <sha>`, the full 40-hex head). That no-run grace is long enough (default
+  600 s) for a slow-to-start CI run to appear, so a finished run is not bailed for a late
+  one, and a head still without a run after it exits 2 rather than waiting out the whole CI
+  budget. That grace is counted across calls: the first
   call that saw a ready, mergeable PR's head with no check run and no commit status records
   the sighting in `.tdd/ci-none-<sha>`, and later calls for the same sha inherit it, so a
   `VERI_CI_NO_RUN_WAIT` above one slice still exits 2 naming `no CI run for <sha>`; a new head
@@ -415,7 +418,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   than `0`, `1` or empty is an **exit 2**.
   Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_RETRY_BACKOFF` (`1`, the default,
   doubles the retry sleep; `0` keeps it flat), `VERI_CI_QUEUE_WAIT` (default 3600 s),
-  `VERI_CI_NO_RUN_WAIT` (default 120 s, a non-negative whole number; anything else is an
+  `VERI_CI_NO_RUN_WAIT` (default 600 s, a non-negative whole number; anything else is an
   **exit 2** naming it), `VERI_CI_ON_PR` (unset means checks are expected, unless the detection above finds no
   `pull_request` workflow).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
