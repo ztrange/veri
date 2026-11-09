@@ -370,3 +370,22 @@ def test_main_before_behaves_the_same_with_the_address_domain_set_and_unset_on_a
     assert outcomes[0][0] == 0
     assert b"x@outside.invalid" in outcomes[0][3]
     assert outcomes[0] == outcomes[1]
+
+
+def test_main_records_the_full_source_line_holding_the_old_text_as_context_3331(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("head\n    if done: break  # stop\ntail\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    line = "    if done: break  # stop"
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "break", "continue", "--", "check"],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    assert f"context {len(line)}\n{line}\n" in record.read_text()
