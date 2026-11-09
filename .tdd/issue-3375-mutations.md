@@ -32,3 +32,10 @@ or "0"
 command 205
 make test TESTS=skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_leaves_waits_the_kill_grace_the_env_names_between_the_term_and_the_kill_of_a_detached_group_and_by_default_waits_a_positive_time
 
+before 40
+6642f10fa1aeda8789f94871b2ddbe55bf2633b9
+keep 44
+skills/tdd/scripts/tests/py/test_stop_run.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/test_stop_run.py::test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing
+
