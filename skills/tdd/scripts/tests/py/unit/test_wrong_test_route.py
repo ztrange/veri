@@ -3552,3 +3552,11 @@ def test_main_3292_criterion_3_prints_revise_and_exits_3_for_a_wrong_test_line_w
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, stdout) == (3, "revise\n")
+
+
+def test_main_3292_usage_states_one_extra_repair_after_the_free_reroute_for_a_wrong_test_naming_no_case(run_cli):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+
+    code, stdout, stderr = run_cli(wrong_test_route, [])
+
+    assert (code, stdout, "one extra repair" in stderr, "free reroute" in stderr) == (2, "", True, True)
