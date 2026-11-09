@@ -1,0 +1,2 @@
+### run-conductor.sh records the VERI_* values of the environment it was launched with in a file under the run's .tdd/ state, rewritten on each launch (case: a launch with VERI_STEP_GROWTH=18 leaves a record holding VERI_STEP_GROWTH=18; an in-process unit case faking the process boundaries, no real conductor) ⟦criterion 1⟧
+- test-only | extract the repeated monkeypatch setup (toplevel, gh_issue_view, prompt, sweep_dead_runs, conduct) in `test_run_conductor_launch_env.py` into a fixture
