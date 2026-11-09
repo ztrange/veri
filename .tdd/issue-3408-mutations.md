@@ -1,0 +1,7 @@
+before 40
+ee0a2398e43a4d5c42af165b56820ad065f957c0
+keep 56
+skills/tdd/scripts/tests/py/test_emitted_text_process.py
+command 156
+make test TESTS=skills/tdd/scripts/tests/py/test_emitted_text_process.py::test_3408_reproducing_command_prints_the_pin_cksum_and_leaves_no_temp_files_behind
+

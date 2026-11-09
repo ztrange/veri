@@ -1,5 +1,7 @@
 """Cases for the emitted-text cksum pins that run a real shell."""
 import importlib.util
+import os
+import shutil
 import subprocess
 
 import pytest
@@ -25,3 +27,55 @@ def test_3368_reproducing_command_of_a_mismatched_pin_prints_the_cksum_the_test_
     ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
     assert ran.stdout.strip() == computed
+
+
+@pytest.mark.process("bash running the reproducing command a mismatched pin prints, for a script interleaving both streams")
+def test_3408_reproducing_command_for_a_script_interleaving_stdout_and_stderr_prints_the_pin_cksum(monkeypatch, run_cli, tmp_path):
+    stub = tmp_path / "interleave.sh"
+    stub.write_text("#!/bin/sh\necho out1\necho err1 >&2\necho out2\nexit 2\n")
+    stub.chmod(0o755)
+    name = os.path.relpath(stub, SCRIPTS)
+    spec = importlib.util.spec_from_file_location("emitted_text_pins_under_test", UNIT)
+    pins = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pins)
+    monkeypatch.setattr(pins, "USAGE", [("1 1", name, [])])
+    monkeypatch.setattr(pins, "emitted", lambda run_cli, script, argv: "exit 2\nout1\nout2\nerr1\n")
+
+    with pytest.raises(AssertionError) as failure:
+        pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
+
+    message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
+    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    computed = pins.cksum(b"exit 2\nout1\nout2\nerr1\n")
+    ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True)
+    assert ran.stdout.strip() == computed
+
+
+@pytest.mark.process("bash running the reproducing command a mismatched pin prints, with a scratch TMPDIR")
+def test_3408_reproducing_command_prints_the_pin_cksum_and_leaves_no_temp_files_behind(monkeypatch, run_cli, tmp_path):
+    stub = tmp_path / "interleave.sh"
+    stub.write_text("#!/bin/sh\necho out1\necho err1 >&2\necho out2\nexit 2\n")
+    stub.chmod(0o755)
+    name = os.path.relpath(stub, SCRIPTS)
+    spec = importlib.util.spec_from_file_location("emitted_text_pins_under_test", UNIT)
+    pins = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pins)
+    monkeypatch.setattr(pins, "USAGE", [("1 1", name, [])])
+    monkeypatch.setattr(pins, "emitted", lambda run_cli, script, argv: "exit 2\nout1\nout2\nerr1\n")
+
+    with pytest.raises(AssertionError) as failure:
+        pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
+
+    message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
+    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    shims = tmp_path / "shims"
+    shims.mkdir()
+    shim = shims / "mktemp"
+    shim.write_text('#!/bin/sh\nexec %s "%s/f.XXXXXX"\n' % (shutil.which("mktemp"), scratch))
+    shim.chmod(0o755)
+    ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
+                         capture_output=True, text=True, env={**os.environ, "PATH": "%s:%s" % (shims, os.environ["PATH"])})
+    assert (ran.stdout.strip(), sorted(p.name for p in scratch.iterdir())) == (pins.cksum(b"exit 2\nout1\nout2\nerr1\n"), [])
