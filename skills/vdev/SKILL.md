@@ -78,7 +78,9 @@ $S/detach-leaf.sh $S/restart-conductor.sh <n> >> .tdd/restart-<n>.log 2>&1 < /de
 ```
 
 It restarts that run's conductor at its next ledger commit once its growth reaches
-0.85 × `VERI_RESET_GROWTH_CONDUCTOR`. A restart is not an exit to route.
+0.85 × `VERI_RESET_GROWTH_CONDUCTOR`. `dispatch.sh` starts this restart watcher
+(`restart-conductor.sh`) itself for every launch it makes, so you run the line above by hand only
+for a launch you make by hand. A restart is not an exit to route.
 
 `dispatch.sh` launches without printing. Announce each launch recorded in `.tdd/dispatch.log`
 since your last turn as `Started #<n> — <title>`, the title read from
