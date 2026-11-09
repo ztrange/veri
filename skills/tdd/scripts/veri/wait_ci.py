@@ -292,7 +292,14 @@ def main(argv):
         scope["now"] = now
         if none and mergeable:
             if none_head != head:
-                none_head, first_none = head, now
+                none_head = head
+                sighting = ".tdd/ci-none-" + head
+                try:
+                    with open(sighting) as found:
+                        first_none = int(found.read())
+                except (OSError, ValueError):
+                    first_none = now
+                    record(sighting, now)
             if now - first_none >= int(no_run_wait):
                 warn("no CI run for %s" % head)
                 return 2
