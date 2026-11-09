@@ -3,3 +3,6 @@
 - [ ] while every solvable issue overlaps, PR diffs are cached per (PR, head sha), issue bodies per process, and the open-PR list re-read at most once per VERI_DISPATCH_OVERLAP_POLL seconds (default 60; a bad value refused) ⟦added⟧ ⟦criterion 4⟧
 - [ ] the backtick-path extraction and the run-PR filter (draft on a tdd/ branch) are each pinned by a case that goes red when broken ⟦added⟧ ⟦criterion 1⟧
 - [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: the dispatch.sh entry states the once-per skip line, VERI_DISPATCH_OVERLAP_POLL and exit 2 on a failed overlap read (PR #3494 review) ⟦added⟧ ⟦criterion 5⟧
+- [ ] while the last slot decision launched nothing because every solvable issue overlapped, the queue read runs at most once per VERI_DISPATCH_OVERLAP_POLL seconds, and conductor exits are still reported at the normal cadence ⟦added⟧ ⟦criterion 4⟧
+- [ ] a rate-limited open-PR list or issue-body read waits for the reset like the queue read, instead of exiting 2 ⟦added⟧ ⟦criterion 1⟧
+- [ ] a failed open-PR list read and a failed issue-body read each exit 2 naming the failure and launch nothing, each pinned by a case that goes red when the failure is swallowed ⟦added⟧ ⟦criterion 1⟧
