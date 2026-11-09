@@ -1,5 +1,6 @@
 """Usage: serve.py --repo <path> --port <n>"""
 import argparse
+import datetime
 import json
 import os
 import pathlib
@@ -91,7 +92,15 @@ def report_blocks(repo):
             return "\n<p>owed: none</p>"
         return "\n<p>owed: %d (%s)</p>" % (answer["count"], ", ".join(answer["sections"]))
 
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s" % (n, i["number"], i["title"], owed_line(n, i))
+    def solved_line(n):
+        closed = [i for i in cache["issues"] if i["state"] == "CLOSED"
+                  and (m := re.match(r"PRD (\d+)", i["title"])) and int(m.group(1)) == n]
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+        recent = [i for i in closed
+                  if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
+        return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(recent))
+
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s" % (n, i["number"], i["title"], solved_line(n), owed_line(n, i))
                      for n, i in sorted(first.items()))
 
 

@@ -1,3 +1,4 @@
+import datetime
 import json
 import pathlib
 import socket
@@ -879,3 +880,45 @@ def test_report_page_shows_owed_count_and_sections_when_the_current_entry_has_a_
 
     block = body.split("<h2>")[1]
     assert "owed: 3 (Goals, Risks)" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_solved_count_of_closed_prd_titled_issues_and_those_closed_in_the_last_7_days(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def stamp(days):
+        return (now - datetime.timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def closed(number, title, days):
+        return {"number": number, "title": title, "state": "CLOSED", "updatedAt": stamp(days), "closedAt": stamp(days)}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z"},
+            closed(41, "PRD 14.1 first slice", 2),
+            closed(42, "PRD 14.2 second slice", 20),
+            closed(43, "PRD 9 other slice", 1),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = body.split("<h2>")[1]
+    assert "solved: 2 (1 in the last 7 days)" in block
