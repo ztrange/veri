@@ -34,16 +34,18 @@ def _test_files():
 
 def _defining_files(case):
     found = []
-    for root, name, py_file, go_file, _ in _test_files():
+    for root, name, py_file, go_file, js_file in _test_files():
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
-            if defined_name(case, handle.read(), py_file, go_file):
-                found.append(os.path.relpath(os.path.join(root, name)))
+            text = handle.read()
+        if (defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
+                or name.endswith(".test.sh") and ('name="%s"' % case) in text):
+            found.append(os.path.relpath(os.path.join(root, name)))
     return found
 
 
 def _defining_file(case):
     found = _defining_files(case)
-    return found[0] if found else None
+    return found[0] if len(found) == 1 else None
 
 
 def _file_case(file, case):
@@ -214,6 +216,15 @@ def _superseded(report, step, own_id=None):
     return cases
 
 
+def _unresolved_superseded(report, step, own_id):
+    own = _recorded_cases(step)
+    for line in _lines_with(report, "SUPERSEDED:"):
+        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and _exists(case) is None:
+            return True
+    return False
+
+
 def _reroutes(step):
     try:
         events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
@@ -316,20 +327,21 @@ def main(argv):
         if own in recorded:
             write(sys.stdout, "supersede-diff " + " ".join(older))
         else:
-            write(sys.stdout, "supersede " + " ".join(_file_case(_defining_file(c), c) for c in older))
+            where = [_defining_file(c) for c in older]
+            if None in where:
+                return 2
+            write(sys.stdout, "supersede " + " ".join(_file_case(f, c) for f, c in zip(where, older)))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
-    where = _defining_file(case) if case is not None and "::" not in case else None
-    if where is not None:
-        ambiguous = len(_defining_files(case)) > 1
-        for line in _lines_with(argv[0], "CONTRADICTS:"):
-            given = re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
-            if given:
-                where = given.group(1)
-            elif ambiguous:
-                return 2
     if case is None and len(older) == 1:
         case = older[0]
+    where = None
+    if case is not None and "::" not in case:
+        given = [m.group(1) for m in (re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
+                                      for line in _lines_with(argv[0], "CONTRADICTS:")) if m]
+        where = given[-1] if given else _defining_file(case)
+        if where is None:
+            return 2
     fixture = None if case is not None or rerouted else _fixture(argv[0], argv[1])
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
@@ -338,6 +350,8 @@ def main(argv):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
     if case is None and not rerouted and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
+        return 2
+    if case is None and not rerouted and _unresolved_superseded(argv[0], step, argv[1]):
         return 2
     if case is None and (_unparseable_claim(argv[0]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         file, sep, _ = argv[1].partition("::")
