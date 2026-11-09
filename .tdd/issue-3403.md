@@ -4,3 +4,5 @@
 - [x] queued_merges() still returns the PR URL of a pre-exec `<this clone's scripts>/queued-merge.sh <pr-url> …` process in the same faked ps listing that also holds a post-exec queued_merge.py line ⟦criterion 2⟧
 - [x] queued_merges() ignores a process that merely names this clone's veri/queued_merge.py as a later argument, not as its script word (for example `vim <scripts>/veri/queued_merge.py <pr-url>` or `grep queued_merge.py`) ⟦criterion 3⟧
 - [x] queued_merges() omits a post-exec `<python> <other clone>/veri/queued_merge.py <pr-url> …` process whose script path is outside this clone, the same clone-path filter #3364 applies to queued-merge.sh ⟂ retired unpinnable
+- [ ] queued_merges() ignores a queued_merge.py running from another clone's path; one test, with this clone's queued_merge.py counted as the contrast case ⟦added⟧
+- [ ] test_dispatch.py:275 test_main_exits_2_naming_the_vanished_run… fakes queued_merges, so no case reads the real process table ⟦diff-checked⟧ ⟦added⟧
