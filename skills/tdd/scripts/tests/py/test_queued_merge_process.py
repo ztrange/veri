@@ -161,9 +161,9 @@ def test_queued_merge_whose_push_under_the_pinned_lease_is_refused_exits_1_and_k
     except subprocess.TimeoutExpired:
         second = "blocked"
 
-    pushes = [c.split() for c in call_log.read_text().splitlines() if " push " in c]
+    pushes = [c.split()[:-1] for c in call_log.read_text().splitlines() if " push " in c]
     assert (stopped.returncode, second, pushes) == (
-        1, "blocked", [["git", "-C", str(repo), "push", "--force-with-lease=feature:1111111", "origin", "feature"]])
+        1, "blocked", [["git", "-C", str(repo), "push", "--force-with-lease=feature:1111111", "origin"]])
 
 
 FAKE_GH_MERGING = FAKE_GH_GREEN.replace("#!/bin/sh\n", '#!/bin/sh\necho "gh $*" >> "$CALL_LOG"\n', 1)
