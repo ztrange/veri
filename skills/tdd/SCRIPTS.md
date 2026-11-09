@@ -393,7 +393,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or a ready,
   mergeable PR whose head has stayed none (no check run, no commit status) for
   `VERI_CI_NO_RUN_WAIT` seconds while a `pull_request` workflow exists (stderr names
-  `no CI run for <sha>`, the full 40-hex head; the grace clock restarts for each new head). **Exit 3** still
+  `no CI run for <sha>`, the full 40-hex head). That grace is counted across calls: the first
+  call that saw a ready, mergeable PR's head with no check run and no commit status records
+  the sighting in `.tdd/ci-none-<sha>`, and later calls for the same sha inherit it, so a
+  `VERI_CI_NO_RUN_WAIT` above one slice still exits 2 naming `no CI run for <sha>`; a new head
+  starts a new grace, and a sighting of a run clears it. **Exit 3** still
   pending, no check yet, every one `SKIPPED`, or a mismatched head, when the slice runs out.
   With `VERI_CI_ON_PR=0`, a PR whose head has no check runs and no commit statuses exits 0, since
   there is nothing to wait for; checks that do exist are still waited on and read as above. A
