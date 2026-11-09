@@ -178,6 +178,11 @@ the job, briefed to return at most 10 lines and to read the skill at
 - Before reporting, check that `git -C <primary clone> status --porcelain` is empty, and report
   any output as dirt.
 - No concurrent background jobs that share a scratch file.
+- Every command reads stdin from `/dev/null`.
+- Every command runs under a time limit, in a form that works on macOS:
+  `perl -e 'alarm shift; exec @ARGV' <seconds> <command>`.
+- `rm` removes only paths inside the project directory, never outside it; scratch lives under
+  the run worktree's `.tdd/`.
 
 Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
