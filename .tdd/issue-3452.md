@@ -1,0 +1,4 @@
+# Plan for #3452 — queued-merge's Closes check crashes on a failed PR-body read and on issue-<n>-metrics.md instead of exiting 2 or skipping it
+
+- [ ] queued-merge whose `gh pr view <pr> --json body` read fails (exit 1, empty stdout) exits 2 with stderr naming the PR, releases the merge lock and makes no merge call; contrast in the same in-process test in skills/tdd/scripts/tests/py/unit/test_queued_merge.py: a successful read of a body carrying `Closes #<n>` still exits 0 with the merge call made ⟦criterion 1⟧
+- [ ] queued-merge on a branch not named `tdd/<n>-…` whose worktree holds `.tdd/issue-<n>-metrics.md` beside `.tdd/issue-<n>.md` resolves only the ledger `issue-<n>.md` (no crash, the Closes check runs on `<n>` and the merge is made); contrast in the same in-process test in skills/tdd/scripts/tests/py/unit/test_queued_merge.py: a worktree holding only `issue-<n>.md` resolves as today ⟦criterion 2⟧
