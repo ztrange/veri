@@ -86,6 +86,38 @@ def test_serve_listens_on_loopback_only(veri_home):
     assert (loopback, reachable_elsewhere) == (True, [])
 
 
+@pytest.mark.process("serve.py")
+def test_serve_answers_report_on_loopback_and_on_no_other_local_address(report_repo):
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    def reachable(address):
+        try:
+            with urllib.request.urlopen(f"http://{address}:{port}/report", timeout=2):
+                return True
+        except OSError:
+            return False
+
+    try:
+        deadline = time.monotonic() + 10
+        loopback = False
+        while time.monotonic() < deadline and proc.poll() is None:
+            loopback = reachable("127.0.0.1")
+            if loopback:
+                break
+            time.sleep(0.05)
+        reachable_elsewhere = [a for a in _other_local_addresses() if reachable(a)]
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    assert (loopback, reachable_elsewhere) == (True, [])
+
+
 def _listening_ports(pid):
     out = subprocess.run(
         ["lsof", "-a", "-p", str(pid), "-iTCP", "-sTCP:LISTEN", "-Fn"],

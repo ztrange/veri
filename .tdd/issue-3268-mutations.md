@@ -232,3 +232,35 @@ new 69
 command 157
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 282
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 132
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+
+file 27
+projects/dashboard/serve.py
+old 24
+("127.0.0.1", args.port)
+new 22
+("0.0.0.0", args.port)
+command 132
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+
+file 27
+projects/dashboard/serve.py
+old 22
+self.path == "/report"
+new 23
+self.path == "/reportx"
+command 132
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+
