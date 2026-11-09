@@ -20,7 +20,12 @@ def complain(message):
 
 
 def run_case(case):
-    return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
+    detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
+    found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
+    command = found.stdout.strip()
+    if not command:
+        return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
+    return subprocess.run(["sh", "-c", command, "sh", case.split("::", 1)[0]]).returncode
 
 
 def changed_index(text, new):
