@@ -304,8 +304,10 @@ def main(argv):
             write(sys.stdout, "revise")
             return 3
         own = _case_name(argv[1])
-        kind = "supersede-diff" if own in recorded else "supersede"
-        write(sys.stdout, kind + " " + " ".join(older))
+        if own in recorded:
+            write(sys.stdout, "supersede-diff " + " ".join(older))
+        else:
+            write(sys.stdout, "supersede " + " ".join(_defining_file(c) + "::" + c for c in older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     where = _defining_file(case) if case is not None and "::" not in case else None

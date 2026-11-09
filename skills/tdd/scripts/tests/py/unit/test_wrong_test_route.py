@@ -3614,3 +3614,21 @@ def test_main_3367_prints_repair_with_the_file_of_the_red_test_id_for_the_step_o
         wrong_test_route, SPEC + [str(report), "tests/py/unit/test_ledger.py::" + own], cwd=tmp_path)
 
     assert (code, stdout) == (0, "repair tests/py/unit/test_ledger.py::%s\n" % own)
+
+
+def test_main_3367_prints_supersede_with_the_file_of_each_older_case_a_green_report_lists_by_bare_name(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    first, second = "test_main_prints_usage_on_no_arguments", "test_main_prints_usage_on_a_bad_flag"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    assert USAGE\n\ndef %s():\n    pass\n" % (first, added))
+    (suite / "test_emitted.py").write_text("def %s():\n    assert USAGE\n" % second)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: %s\nSUPERSEDED: %s\n" % (first, second))
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "supersede tests/py/unit/test_solvable.py::%s tests/py/unit/test_emitted.py::%s\n" % (first, second))
