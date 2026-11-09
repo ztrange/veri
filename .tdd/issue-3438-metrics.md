@@ -1,14 +1,14 @@
 ### 📊 Metrics — issue 3438
 
-Wall time for the issue: 1674 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 2310 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 1 of 1 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3454.
+Outcome: the run bailed — ci-timeout, a system failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $1.67 over 40 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $1.80 over 43 turns, in 1 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 77556 tokens, largest 126862 tokens
+Conductor context: first turn 77556 tokens, largest 132729 tokens
 
 #### Conductor per turn
 
@@ -54,6 +54,9 @@ Conductor context: first turn 77556 tokens, largest 126862 tokens
 | 38 | $0.03 | 125946 |
 | 39 | $0.03 | 126425 |
 | 40 | $0.03 | 126862 |
+| 41 | $0.03 | 127382 |
+| 42 | $0.03 | 127772 |
+| 43 | $0.07 | 132729 |
 
 #### Conductor comments, by family
 
@@ -137,4 +140,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 27 | 52 | 7742 | 471353 | 114349 | 2.08 (estimate) |
+| total | 27 | 52 | 7742 | 471353 | 114349 | 2.21 (estimate) |
