@@ -85,8 +85,10 @@ run it. A preflight that passes never reads it.
    default branch is the exception, checked with `suite-red-resume.sh check` (`Read` `<base directory>/RESUME.md`).
    On such a resume `suite-red-resume.sh insert` inserts no `⟦suite-repair⟧` step when the union of
    the units of the consecutive pending `⟦skill-edit⟧` steps from the first unchecked step explains
-   the whole red (a skill-edit step separated from the first by a non-skill-edit unchecked step does
-   not count), so the first such step runs first; the `insert` exit codes are unchanged. Reading the body **here**, before the baseline runs, is what
+   the whole red, so the first such step runs first. When every unit the red is explained by has a
+   pending `⟦skill-edit⟧` step but a non-skill-edit unchecked step separates them, `insert` likewise
+   inserts no `⟦suite-repair⟧` step and exits 2, naming the reorder the plan needs (the skill-edit
+   steps moved together); the other `insert` exit codes are unchanged. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
    long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
