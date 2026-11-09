@@ -63,6 +63,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `missing-reroutes-exhausted` — a step's repeat `missing` reroutes spent
   `VERI_MISSING_REROUTE_BUDGET` and verify-green still names a behaviour no test pins →
   **process** failure (the methodology spoke: the tests still do not pin the criterion).
+- `unpinnable-missing` — a missing-reroute's demanded case is green on the before-state and
+  cannot be pinned → **process** failure (the methodology spoke: the verifier demanded a test
+  that no red-first case can pin, and the plumbing did not break).
 - `repair-reroutes-exhausted` — a step's `WRONG_TEST` naming no case took its `repair` once
   more after the free reroute, and the next such report still names no case → **process**
   failure (the methodology spoke: the verifier still cannot say which test is wrong).

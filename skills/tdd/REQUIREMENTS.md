@@ -623,6 +623,7 @@
 | BL46 | `BAIL.md`'s cause list has a `graded-edit-outside-skill-edit` bullet: a step not marked `⟦skill-edit⟧` changed a unit listed in a `GRADED` file → **process** failure. | The methodology put graded prose outside the loop that grades and signs it; naming that apart tells the operator to move the edit into a `⟦skill-edit⟧` step. |
 | BL47 | The cause list has a `revise-impossible` bullet: a revise leaf answered `IMPOSSIBLE`, saying no revision can meet the objection, which is a **process** failure distinct from `revise-exhausted`, where the attempts ran out. | A reader of the bail must be able to tell the two apart. |
 | BL48 | `repair-reroutes-exhausted`: a step's `WRONG_TEST` naming no case took its `repair` once more after the free reroute, and the next such report still names no case; a **process** failure. | The red was repaired twice and the green still calls it wrong without naming it, so the human decides. |
+| BL49 | `unpinnable-missing`: a missing-reroute's demanded case is green on the before-state and cannot be pinned; a **process** failure. | The tests cannot pin the criterion; the plumbing worked. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
