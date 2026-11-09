@@ -1,0 +1,2 @@
+### queued-merge.sh merging a run's PR whose body lacks `Closes #<n>` for the run's issue exits 2, names the missing `Closes #<n>` line on stderr, makes neither the `gh pr merge` call nor the REST merge, and releases the merge lock (a small in-process case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py beside the contrast case; the existing queued_merge cases stay green unchanged) ⟦criterion 1⟧
+- test-only | extract the repeated worktree setup and `with_body` wrapper of the three test_3422 cases in test_queued_merge.py into one shared helper
