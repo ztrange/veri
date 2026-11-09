@@ -1219,7 +1219,7 @@ def test_main_2568_prints_red_over_the_one_superseded_case_when_the_only_red_rer
     answer, older = _superseded_2568(run_cli, tmp_path, monkeypatch, "rerouted between two resumes",
                                      ["resume", "reroute", "resume"])
 
-    assert answer == (0, "red %s\n" % older)
+    assert (answer[0], bare_route(answer[1])) == (0, "red %s\n" % older)
 
 
 def _missing_2568(run_cli, tmp_path, monkeypatch, budget, events):
@@ -1251,7 +1251,7 @@ def test_main_2568_prints_missing_behaviour_and_exits_0_when_the_only_missing_re
     assert answer == (0, "missing a guard is pinned by a case\n")
 
 
-def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
+def test_main_1865_exits_2_for_a_lone_superseded_line_naming_a_case_no_test_file_defines(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     suite = tmp_path / "tests" / "py"
@@ -1265,7 +1265,7 @@ def test_main_1865_drops_a_superseded_line_naming_a_case_no_test_file_defines(
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (2, "")
 
 
 def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_faults_it_and_cites_another_as_the_example_and_the_step_has_no_red_record(
@@ -1791,7 +1791,7 @@ def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_
             "WRONG_TEST: `rejects an empty name%s` contradicts the criterion\n" % ellipsis + "CONTRADICTS: `rejects an empty name%s`\n" % ellipsis)
         code, stdout, stderr = run_cli(
             wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=repo)
-        results.append((code, stdout, stderr))
+        results.append((code, bare_route(stdout), stderr))
 
     assert results == [(0, "red %s\n" % sibling, "")] * 2
 
@@ -2056,7 +2056,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, 'red says "hi" loudly\n', "")
+    assert (code, bare_route(stdout), stderr) == (0, 'red says "hi" loudly\n', "")
 
 
 def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_the_step_own_case_and_the_wrong_test_line_names_no_case_that_routes(
@@ -2313,7 +2313,7 @@ def test_main_2172_prints_red_when_a_wrong_test_name_is_both_a_js_it_title_and_a
     case = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=shared)
     missed = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=nowhere)
 
-    assert (case[0], case[1], missed[0], missed[1]) == (0, "red adminOnClock\n", 2, "")
+    assert (case[0], bare_route(case[1]), missed[0], missed[1]) == (0, "red adminOnClock\n", 2, "")
 
 
 def test_main_2172_prints_revise_for_a_wrong_test_naming_a_helper_in_a_test_file_once_the_step_log_holds_a_reroute_event(
@@ -2745,7 +2745,7 @@ def test_main_2565_resolves_an_unquoted_superseded_line_naming_a_case_whose_own_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
-    assert (code, stdout, "no defined test case resolves:" in stderr) == (0, "red %s\n" % title, False)
+    assert (code, bare_route(stdout), "no defined test case resolves:" in stderr) == (0, "red %s\n" % title, False)
 
 
 def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go_test_file(
@@ -2764,7 +2764,7 @@ def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go
     assert (code, bare_route(stdout)) == (0, "red TestOther\n")
 
 
-def test_main_2807_prints_revise_for_a_superseded_line_naming_a_go_func_defined_only_in_a_file_not_named_test_go(
+def test_main_2807_exits_2_for_a_superseded_line_naming_a_go_func_defined_only_in_a_file_not_named_test_go(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "pkg").mkdir()
@@ -2776,7 +2776,7 @@ def test_main_2807_prints_revise_for_a_superseded_line_naming_a_go_func_defined_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (2, "")
 
 
 def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare_word(
@@ -3688,3 +3688,81 @@ def test_main_3367_exits_2_printing_no_route_and_no_file_for_a_bare_contradicted
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (2, "")
+
+
+def _lone_superseded_3367(run_cli, tmp_path, monkeypatch, files, superseded="test_a"):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    (suite / "test_tick_ledger.py").write_text("def %s():\n    pass\n" % added)
+    for name in files:
+        (suite / name).write_text("def test_a():\n    pass\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "solvable-issues.sh usage mentions --not-running, one case superseded")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nWRONG_TEST: %s pins the old usage\nSUPERSEDED: %s\n" % (superseded, superseded))
+    return run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+
+def test_main_3367_prints_red_with_the_file_that_defines_the_one_superseded_case_a_green_report_names_by_bare_name(
+        run_cli, tmp_path, monkeypatch):
+    code, stdout, stderr = _lone_superseded_3367(run_cli, tmp_path, monkeypatch, ["test_emitted_text.py"])
+
+    assert (code, stdout) == (0, "red tests/py/unit/test_emitted_text.py::test_a\n")
+
+
+def test_main_3367_exits_2_printing_no_route_for_the_one_superseded_case_more_than_one_test_file_defines(
+        run_cli, tmp_path, monkeypatch):
+    code, stdout, stderr = _lone_superseded_3367(
+        run_cli, tmp_path, monkeypatch, ["test_aaa.py", "test_zzz.py"])
+
+    assert (code, stdout) == (2, "")
+
+
+def test_main_3367_exits_2_printing_no_route_for_the_one_superseded_case_no_test_file_defines(
+        run_cli, tmp_path, monkeypatch):
+    code, stdout, stderr = _lone_superseded_3367(
+        run_cli, tmp_path, monkeypatch, ["test_emitted_text.py"], superseded="test_a_case_nobody_defines")
+
+    assert (code, stdout) == (2, "")
+
+
+def test_main_3367_exits_2_printing_no_route_for_two_superseded_cases_one_of_them_defined_in_more_than_one_test_file(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    (suite / "test_tick_ledger.py").write_text("def %s():\n    pass\n\ndef test_b():\n    pass\n" % added)
+    for name in ("test_aaa.py", "test_zzz.py"):
+        (suite / name).write_text("def test_a():\n    pass\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "solvable-issues.sh usage mentions --not-running, two cases superseded")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: test_a\nSUPERSEDED: test_b\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (2, "")
+
+
+def test_main_3367_prints_supersede_with_the_file_of_each_of_two_js_ts_titles_a_green_report_lists_as_superseded(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "  it('rejects an empty name', () => {});\n"
+        "  it('rejects a long name', () => {});\n"
+        "});\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setenv("VERI_STEP", "foo accepts names, two superseded titles")
+    report = tmp_path / "green-report.txt"
+    report.write_text('SUITE: make test\nSUPERSEDED: "rejects an empty name"\nSUPERSEDED: "rejects a long name"\n')
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (
+        0, "supersede foo.test.ts::rejects an empty name foo.test.ts::rejects a long name\n", "")

@@ -39,7 +39,7 @@ def test_2254_criterion_1_a_develop_green_report_naming_one_older_case_on_supers
 
     code, out, err = route(repo, ".tdd/develop-green.out")
 
-    assert (code, out) == (0, "red %s\n" % OLDER), err
+    assert (code, out) == (0, "red tests/test_cog.py::%s\n" % OLDER), err
 
 
 @pytest.mark.process("wrong-test-route.sh run as REVISE.md runs it")
@@ -52,7 +52,7 @@ def test_2254_criterion_3_a_revise_green_report_naming_one_older_case_on_superse
     code, out, err = route(repo, ".tdd/revise-green-1.out")
 
     assert out != "revise\n" and code != 3, err
-    assert (code, out) == (0, "red %s\n" % OLDER), err
+    assert (code, out) == (0, "red tests/test_cog.py::%s\n" % OLDER), err
 
 
 @pytest.mark.process("wrong-test-route.sh run as the Green step runs it")
