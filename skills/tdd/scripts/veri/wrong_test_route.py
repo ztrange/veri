@@ -333,6 +333,8 @@ def main(argv):
     if _unparseable_claim(argv[0]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
+    if case is None and not rerouted and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
+        return 2
     if case is None and (_unparseable_claim(argv[0]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         file, sep, _ = argv[1].partition("::")
         write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))

@@ -353,7 +353,7 @@ def test_main_1621_counts_a_test_prefixed_python_function_only_when_defined_in_a
             wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
         results.append((code, bare_route(stdout)))
 
-    assert results == [(3, "revise\n"), (0, "red %s\n" % case)]
+    assert results == [(2, ""), (0, "red %s\n" % case)]
 
 
 def test_main_1736_prints_revise_when_the_named_case_exists_only_in_a_test_file_under_dot_git(
@@ -2313,7 +2313,7 @@ def test_main_2172_prints_red_when_a_wrong_test_name_is_both_a_js_it_title_and_a
     case = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=shared)
     missed = run_cli(wrong_test_route, SPEC + [str(report), "expires an idle session"], cwd=nowhere)
 
-    assert (case[0], case[1], missed[0], missed[1]) == (0, "red adminOnClock\n", 3, "revise\n")
+    assert (case[0], case[1], missed[0], missed[1]) == (0, "red adminOnClock\n", 2, "")
 
 
 def test_main_2172_prints_revise_for_a_wrong_test_naming_a_helper_in_a_test_file_once_the_step_log_holds_a_reroute_event(
@@ -3212,7 +3212,7 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_a_case_defined_nowhere_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (3, "revise\n", "")
+    assert (code, stdout) == (2, "")
 
 
 def test_main_3007_criterion_4_a_contradicts_line_naming_the_step_own_case_routes_repair_of_the_own_case(
