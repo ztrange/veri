@@ -205,6 +205,10 @@ def main(argv):
     if backoff not in ("0", "1"):
         warn("VERI_CI_RETRY_BACKOFF '%s' is not 0 or 1" % backoff)
         return 2
+    no_run_wait = tunables.read("VERI_CI_NO_RUN_WAIT", unless_empty="120")
+    if not re.fullmatch(r"[0-9]+", no_run_wait):
+        warn("VERI_CI_NO_RUN_WAIT '%s' is not a non-negative whole number" % no_run_wait)
+        return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     want = argv[3] if len(argv) > 3 else ""

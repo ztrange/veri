@@ -1744,6 +1744,21 @@ def test_main_exits_2_naming_no_ci_run_for_the_full_head_earlier_than_the_defaul
     assert (code, out, f"no CI run for {FULL_SHA}" in err) == (2, "", True)
 
 
+def test_main_exits_2_naming_ci_no_run_wait_when_it_is_not_a_non_negative_whole_number_issue_3455(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    served(fake_processes, bodies)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_CI_NO_RUN_WAIT": "-5"}, cwd=work)
+
+    assert (code, out, "VERI_CI_NO_RUN_WAIT" in err) == (2, "", True)
+
+
 def test_main_keeps_its_wait_with_3_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_only_a_pull_request_target_workflow_issue_2885(
         tmp_path, wait_ci, fake_processes, run_cli):
     import base64
