@@ -56,11 +56,15 @@ def _run_line(path, events):
         _counts(events), _cost(events), _split(events))
 
 
-def running_lines():
-    lines = []
+def _journals():
     runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
     for path in sorted(runs.glob("*.jsonl")):
-        events = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+        yield path, [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+
+
+def running_lines():
+    lines = []
+    for path, events in _journals():
         if not events or any(e.get("event") in ENDING for e in events):
             continue
         lines.append(_run_line(path, events))
@@ -69,10 +73,8 @@ def running_lines():
 
 def landed_lines():
     lines = []
-    runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
-    for path in sorted(runs.glob("*.jsonl")):
-        for l in path.read_text().splitlines():
-            e = json.loads(l) if l.strip() else {}
+    for _, events in _journals():
+        for e in events:
             if e.get("event") == "merged" and e.get("tag"):
                 when = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(e["ts"])))
                 lines.append("<div>%s  %s  %s</div>" % (e["tag"], when, e.get("message", "")))
