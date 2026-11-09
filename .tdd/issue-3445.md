@@ -1,4 +1,3 @@
 # Plan for #3445 — skill-edit-step drops the only row of a Requirements table that has no header and separator lines, and the run bails revise-exhausted
 
 - [ ] One test with the contrast case, in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py driving skill-edit-step's CLI in-process with run_cli (a small case, no real process): an issue whose `## Requirements` / `### <unit>` table holds a row such as `| M9<reword> | new text | why |` with no `| ID | Requirement | Why |` header and no `|---|---|---|` separator line makes skill-edit-step exit 2 with stderr naming the unit and the missing header, before any author attempt is launched and leaving the unit's requirements list unchanged; the same row under a proper `| ID | Requirement | Why |` / `|---|---|---|` header is applied to the list ⟦criterion 1⟧
-- [ ] The full suite (`make test`) is green ⟦full-suite⟧
