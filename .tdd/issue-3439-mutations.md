@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
 command 214
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3439_record_rewrite_keeps_earlier_records_adds_only_steps_the_pre_rewrite_file_lacked_and_exits_2_when_the_records_file_cannot_be_written
 
+before 40
+dda51be62c5aa5256c6cfeaeeb44246a550b9dcb
+keep 54
+skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
+command 174
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3439_record_rewrite_appends_no_line_for_a_step_an_existing_record_covers_and_records_the_new_step
+
