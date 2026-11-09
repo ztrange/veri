@@ -1420,3 +1420,30 @@ def test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_agai
         code = None
 
     assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
+
+
+def test_main_launches_the_next_issue_at_target_2_beside_one_live_run_and_a_worktree_whose_restart_marker_names_a_dead_restarter_issue_3495(
+        monkeypatch, tmp_path, dispatch):
+    marker = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("4242\n")
+    launches = []
+
+    def dead(pid, sig):
+        raise ProcessLookupError(pid)
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.os, "kill", dead)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "2"])
+
+    assert launches == ["12"]
