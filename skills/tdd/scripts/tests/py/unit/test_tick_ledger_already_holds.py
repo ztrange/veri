@@ -310,3 +310,71 @@ def test_main_already_holds_exits_2_naming_the_case_never_run_when_its_file_path
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, original, False), err
     assert "TestIssue99CheckExitsZero" in err and "fails" not in err
+
+
+def test_main_already_holds_exits_2_naming_the_case_never_run_when_the_command_reports_no_tests_ran_3425(
+    tmp_path, run_cli, tick_ledger, monkeypatch
+):
+    import subprocess
+
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(original)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    pass\n")
+    report = "collected 0 items\n\nno tests ran in 0.01s\n"
+
+    def fake_run(argv, *args, **kwargs):
+        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = './run-one "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+        return subprocess.CompletedProcess(argv, 5, stdout=report if text else report.encode(), stderr="" if text else b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/test_x.py::test_holds",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, original, False), err
+    assert "tests/test_x.py::test_holds" in err and "never run" in err and "fails" not in err
+
+
+def test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_3425(
+    tmp_path, run_cli, tick_ledger, monkeypatch
+):
+    import subprocess
+
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    pass\n")
+    report = {}
+
+    def fake_run(argv, *args, **kwargs):
+        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = './run-one "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+        out = report["text"]
+        return subprocess.CompletedProcess(argv, 5, stdout=out if text else out.encode(), stderr="" if text else b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    seen = {}
+    for phrasing in ("no tests were collected", "no tests ran", "collected 0 items"):
+        ledger.write_text(original)
+        report["text"] = f"=== {phrasing} ===\n"
+        code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/test_x.py::test_holds",
+                                  str(ledger), "a one"],
+                                 env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+        seen[phrasing] = (code, ledger.read_text(), "never run" in err and "fails" not in err)
+
+    assert seen == {p: (2, original, True) for p in seen}
