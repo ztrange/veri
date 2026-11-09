@@ -1,136 +1,166 @@
 ### 📊 Metrics — issue 3375
 
-Wall time for the issue: 4530 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 97 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 7 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3410.
+Steps done: 5 of 12 planned.
+Outcome: the run bailed — untestable-criterion, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.90 over 117 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $7.24 over 146 turns, in 2 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 77115 tokens, largest 202991 tokens
+Conductor context: first turn 77115 tokens, largest 205644 tokens
+Conductor context: first turn 77560 tokens, largest 110022 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
 | 1 | $0.48 | 77115 |
-| 2 | $0.06 | 83055 |
-| 3 | $0.03 | 85103 |
-| 4 | $0.03 | 87012 |
-| 5 | $0.02 | 87279 |
+| 2 | $0.08 | 83055 |
+| 3 | $0.04 | 85103 |
+| 4 | $0.04 | 87012 |
+| 5 | $0.03 | 87279 |
 | 6 | $0.02 | 87596 |
-| 7 | $0.02 | 87956 |
-| 8 | $0.02 | 88213 |
-| 9 | $0.02 | 88694 |
-| 10 | $0.02 | 89015 |
-| 11 | $0.02 | 89704 |
-| 12 | $0.02 | 90054 |
-| 13 | $0.02 | 90364 |
-| 14 | $0.05 | 94520 |
-| 15 | $0.03 | 96364 |
-| 16 | $0.06 | 101411 |
-| 17 | $0.03 | 102795 |
+| 7 | $0.03 | 87956 |
+| 8 | $0.03 | 88213 |
+| 9 | $0.03 | 88694 |
+| 10 | $0.03 | 89015 |
+| 11 | $0.03 | 89704 |
+| 12 | $0.03 | 90054 |
+| 13 | $0.03 | 90364 |
+| 14 | $0.06 | 94520 |
+| 15 | $0.04 | 96364 |
+| 16 | $0.07 | 101411 |
+| 17 | $0.04 | 102795 |
 | 18 | $0.03 | 103779 |
-| 19 | $0.02 | 104167 |
+| 19 | $0.04 | 104167 |
 | 20 | $0.03 | 104997 |
-| 21 | $0.03 | 105593 |
+| 21 | $0.04 | 105593 |
 | 22 | $0.03 | 106354 |
-| 23 | $0.03 | 107069 |
-| 24 | $0.02 | 107252 |
-| 25 | $0.03 | 108380 |
+| 23 | $0.04 | 107069 |
+| 24 | $0.03 | 107252 |
+| 25 | $0.04 | 108380 |
 | 26 | $0.03 | 109113 |
-| 27 | $0.11 | 120157 |
-| 28 | $0.03 | 120668 |
-| 29 | $0.03 | 121316 |
+| 27 | $0.12 | 120157 |
+| 28 | $0.04 | 120668 |
+| 29 | $0.04 | 121316 |
 | 30 | $0.03 | 122041 |
-| 31 | $0.03 | 122499 |
-| 32 | $0.03 | 122859 |
-| 33 | $0.09 | 131577 |
+| 31 | $0.04 | 122499 |
+| 32 | $0.04 | 122859 |
+| 33 | $0.10 | 131577 |
 | 34 | $0.04 | 132801 |
-| 35 | $0.03 | 133214 |
-| 36 | $0.03 | 133640 |
-| 37 | $0.03 | 134539 |
-| 38 | $0.03 | 134937 |
-| 39 | $0.03 | 135447 |
-| 40 | $0.03 | 136174 |
-| 41 | $0.03 | 136745 |
-| 42 | $0.03 | 137093 |
+| 35 | $0.04 | 133214 |
+| 36 | $0.04 | 133640 |
+| 37 | $0.04 | 134539 |
+| 38 | $0.04 | 134937 |
+| 39 | $0.04 | 135447 |
+| 40 | $0.04 | 136174 |
+| 41 | $0.04 | 136745 |
+| 42 | $0.04 | 137093 |
 | 43 | $0.04 | 138040 |
-| 44 | $0.05 | 141351 |
-| 45 | $0.03 | 141775 |
-| 46 | $0.03 | 142181 |
-| 47 | $0.03 | 142890 |
-| 48 | $0.03 | 143377 |
-| 49 | $0.03 | 143830 |
+| 44 | $0.07 | 141351 |
+| 45 | $0.04 | 141775 |
+| 46 | $0.04 | 142181 |
+| 47 | $0.04 | 142890 |
+| 48 | $0.04 | 143377 |
+| 49 | $0.04 | 143830 |
 | 50 | $0.04 | 144860 |
-| 51 | $0.03 | 145536 |
+| 51 | $0.05 | 145536 |
 | 52 | $0.04 | 146335 |
-| 53 | $0.03 | 146686 |
-| 54 | $0.03 | 147106 |
-| 55 | $0.03 | 147460 |
-| 56 | $0.04 | 148203 |
+| 53 | $0.04 | 146686 |
+| 54 | $0.04 | 147106 |
+| 55 | $0.04 | 147460 |
+| 56 | $0.05 | 148203 |
 | 57 | $0.04 | 149143 |
-| 58 | $0.04 | 150365 |
-| 59 | $0.03 | 150701 |
-| 60 | $0.03 | 151166 |
-| 61 | $0.04 | 152645 |
-| 62 | $0.04 | 153279 |
-| 63 | $0.04 | 154665 |
-| 64 | $0.03 | 155103 |
-| 65 | $0.04 | 155834 |
-| 66 | $0.03 | 156181 |
+| 58 | $0.05 | 150365 |
+| 59 | $0.04 | 150701 |
+| 60 | $0.04 | 151166 |
+| 61 | $0.05 | 152645 |
+| 62 | $0.05 | 153279 |
+| 63 | $0.05 | 154665 |
+| 64 | $0.04 | 155103 |
+| 65 | $0.05 | 155834 |
+| 66 | $0.04 | 156181 |
 | 67 | $0.04 | 156740 |
-| 68 | $0.04 | 157787 |
-| 69 | $0.04 | 158512 |
+| 68 | $0.05 | 157787 |
+| 69 | $0.05 | 158512 |
 | 70 | $0.04 | 159212 |
-| 71 | $0.04 | 159797 |
+| 71 | $0.05 | 159797 |
 | 72 | $0.04 | 160866 |
-| 73 | $0.04 | 161473 |
-| 74 | $0.04 | 162272 |
+| 73 | $0.05 | 161473 |
+| 74 | $0.05 | 162272 |
 | 75 | $0.04 | 162792 |
-| 76 | $0.04 | 163427 |
+| 76 | $0.05 | 163427 |
 | 77 | $0.04 | 163919 |
-| 78 | $0.04 | 164284 |
-| 79 | $0.03 | 164502 |
-| 80 | $0.04 | 165119 |
+| 78 | $0.05 | 164284 |
+| 79 | $0.04 | 164502 |
+| 80 | $0.05 | 165119 |
 | 81 | $0.04 | 165685 |
-| 82 | $0.04 | 166221 |
-| 83 | $0.04 | 167430 |
-| 84 | $0.04 | 168041 |
+| 82 | $0.05 | 166221 |
+| 83 | $0.05 | 167430 |
+| 84 | $0.05 | 168041 |
 | 85 | $0.04 | 168318 |
-| 86 | $0.04 | 169172 |
+| 86 | $0.05 | 169172 |
 | 87 | $0.04 | 169592 |
-| 88 | $0.04 | 170347 |
-| 89 | $0.04 | 170765 |
-| 90 | $0.04 | 171674 |
-| 91 | $0.04 | 172259 |
+| 88 | $0.05 | 170347 |
+| 89 | $0.05 | 170765 |
+| 90 | $0.05 | 171674 |
+| 91 | $0.05 | 172259 |
 | 92 | $0.04 | 172736 |
-| 93 | $0.04 | 173230 |
-| 94 | $0.04 | 173904 |
+| 93 | $0.05 | 173230 |
+| 94 | $0.05 | 173904 |
 | 95 | $0.04 | 174445 |
-| 96 | $0.05 | 176243 |
-| 97 | $0.04 | 177285 |
-| 98 | $0.04 | 178302 |
-| 99 | $0.04 | 179276 |
-| 100 | $0.04 | 179775 |
-| 101 | $0.04 | 180549 |
+| 96 | $0.06 | 176243 |
+| 97 | $0.05 | 177285 |
+| 98 | $0.06 | 178302 |
+| 99 | $0.05 | 179276 |
+| 100 | $0.05 | 179775 |
+| 101 | $0.05 | 180549 |
 | 102 | $0.04 | 181011 |
-| 103 | $0.04 | 181230 |
-| 104 | $0.04 | 182037 |
-| 105 | $0.04 | 182437 |
-| 106 | $0.04 | 183380 |
-| 107 | $0.04 | 183945 |
-| 108 | $0.04 | 184565 |
-| 109 | $0.04 | 185501 |
-| 110 | $0.16 | 200994 |
-| 111 | $0.04 | 201261 |
-| 112 | $0.04 | 201557 |
-| 113 | $0.04 | 201979 |
-| 114 | $0.04 | 202181 |
-| 115 | $0.04 | 202390 |
-| 116 | $0.04 | 202729 |
-| 117 | $0.04 | 202991 |
+| 103 | $0.05 | 181230 |
+| 104 | $0.05 | 182037 |
+| 105 | $0.05 | 182437 |
+| 106 | $0.05 | 183380 |
+| 107 | $0.05 | 183945 |
+| 108 | $0.05 | 184565 |
+| 109 | $0.05 | 185501 |
+| 110 | $0.17 | 200994 |
+| 111 | $0.05 | 201261 |
+| 112 | $0.05 | 201557 |
+| 113 | $0.06 | 201979 |
+| 114 | $0.05 | 202181 |
+| 115 | $0.05 | 202390 |
+| 116 | $0.05 | 202729 |
+| 117 | $0.05 | 202991 |
+| 118 | $0.05 | 203421 |
+| 119 | $0.06 | 204349 |
+| 120 | $0.06 | 205428 |
+| 121 | $0.05 | 205644 |
+| 122 | $0.48 | 77560 |
+| 123 | $0.06 | 83564 |
+| 124 | $0.05 | 87379 |
+| 125 | $0.02 | 88242 |
+| 126 | $0.03 | 89855 |
+| 127 | $0.03 | 91895 |
+| 128 | $0.05 | 96278 |
+| 129 | $0.02 | 96707 |
+| 130 | $0.02 | 97024 |
+| 131 | $0.02 | 97498 |
+| 132 | $0.02 | 97831 |
+| 133 | $0.02 | 98219 |
+| 134 | $0.02 | 98738 |
+| 135 | $0.03 | 99523 |
+| 136 | $0.02 | 100151 |
+| 137 | $0.03 | 100950 |
+| 138 | $0.02 | 101202 |
+| 139 | $0.02 | 101591 |
+| 140 | $0.02 | 101987 |
+| 141 | $0.02 | 102535 |
+| 142 | $0.02 | 102972 |
+| 143 | $0.03 | 104122 |
+| 144 | $0.03 | 105220 |
+| 145 | $0.06 | 110022 |
 
 #### Conductor comments, by family
 
@@ -138,26 +168,26 @@ Conductor context: first turn 77115 tokens, largest 202991 tokens
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 7 | 123 | $0.00 |
-| 🟢 Green | 5 | 77 | $0.00 |
-| 🛠️ Refactor | 5 | 67 | $0.00 |
-| 🔎 verify-green | 6 | 108 | $0.00 |
-| 🔎 verify-refactor | 5 | 67 | $0.00 |
-| 🔎 verify-<phase> (revised) | 3 | 37 | $0.00 |
-| 🗺️ Plan | 1 | 16 | $0.00 |
-| 🗺️ verify-plan | 2 | 36 | $0.00 |
-| ▶️ Resuming | 0 | 0 | $0.00 |
+| 🔴 Red | 7 | 2905 | $0.06 |
+| 🟢 Green | 5 | 2075 | $0.04 |
+| 🛠️ Refactor | 5 | 2075 | $0.04 |
+| 🔎 verify-green | 6 | 2490 | $0.05 |
+| 🔎 verify-refactor | 5 | 2075 | $0.04 |
+| 🔎 verify-<phase> (revised) | 3 | 1245 | $0.02 |
+| 🗺️ Plan | 1 | 415 | $0.01 |
+| 🗺️ verify-plan | 3 | 846 | $0.02 |
+| ▶️ Resuming | 1 | 8 | $0.00 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 23 | 371 | $0.01 |
+| Total | 25 | 9569 | $0.19 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 1 | 1 | 0 | 26 | 22 | 2 | 4 | 2985 | 5231 | 34105 | 0.12 |
-| red | 15 | 6 | 1 | 0 | 617 | 289 | 81 | 156 | 33318 | 1516867 | 312924 | 1.44 |
+| plan | 3 | 2 | 1 | 0 | 38 | 32 | 3 | 6 | 4214 | 5231 | 56391 | 0.18 |
+| red | 16 | 6 | 1 | 0 | 648 | 315 | 90 | 174 | 36374 | 1726902 | 344497 | 1.57 |
 | green | 18 | 5 | 3 | 0 | 1299 | 246 | 95 | 172 | 27384 | 1510922 | 287505 | 1.29 |
 | refactor | 7 | 2 | 0 | 0 | 137 | 44 | 21 | 42 | 4253 | 305655 | 100811 | 0.33 |
 | pin | 4 | 2 | 2 | 0 | 102 | 62 | 17 | 32 | 7048 | 242094 | 61935 | 0.25 |
@@ -168,8 +198,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 23 | 16 | 7 | 0 | 1276 | 292 | 96 | 178 | 32994 | 1394696 | 335329 | 1.31 |
-| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 585 | 278 | 94 | 184 | 32800 | 1738806 | 368105 | 1.42 |
+| verifier | claude-sonnet-5-5 | 24 | 17 | 7 | 0 | 1288 | 302 | 97 | 180 | 34223 | 1394696 | 357615 | 1.38 |
+| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 616 | 304 | 103 | 202 | 35856 | 1948841 | 399678 | 1.55 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 457 | 166 | 46 | 82 | 17940 | 829184 | 157672 | 0.97 |
 
 #### Rework and waste, by phase
@@ -177,12 +207,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 267 | 0.64 | 60 | 0.18 |
+| red | 267 | 0.64 | 91 | 0.31 |
 | green | 976 | 0.96 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 57 | 0.13 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
+| develop-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -195,6 +226,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `detach_command.py wait <name>` keeps waiting (does not return 2) while `.tdd/stop` holds `at-ledger` or `at-leaf` and the command has not finished ⟦criterion 3⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 38 | 9 | 18 | 4739 | 155709 | 34212 | 0.15 | unknown | unknown | unknown | unknown |  |  | full |
 | Under `stop-run.sh <issue> --mode now`, a process in the detached command's group that survives the TERM for a bounded grace (a tunable read as `${VAR:-default}` so a case can shrink it) is sent KILL, so no process of that group is left after the stop; pinned with a TERM-ignoring child ⟦criterion 4⟧ | 10 | 4 | 1 | 0 | 0 | 0 | 142 | 46 | 88 | 16541 | 765300 | 172189 | 0.67 | 627 | unknown | 1/5 | nothing-left |  |  | already-satisfied |
 | When a signal `stop-run.sh --mode now` sends to a leaf or detached command fails for a reason other than the process being gone (`os.kill`/`os.killpg` raising `PermissionError`), `stop-run.sh` exits 2 naming the pid and the run on stderr, having still written `.tdd/stop` ⟦criterion 5⟧ | 10 | 3 | 1 | 0 | 0 | 0 | 141 | 50 | 90 | 16290 | 809156 | 166982 | 0.74 | 749 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
+| A `--mode now` stop during a `detach-command.sh wait` (wait exits 2) records as a stop, not a bail; one test, with a wait=2 outside any stop still bailing as the contrast case in that same test ⟦added⟧ ⟦criterion 5⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 26 | 9 | 18 | 3056 | 210035 | 31573 | 0.13 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -235,4 +267,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 236 | 444 | 83734 | 3962686 | 861106 | 8.60 (estimate) |
+| total | 246 | 464 | 88019 | 4172721 | 914965 | 11.14 (estimate) |
