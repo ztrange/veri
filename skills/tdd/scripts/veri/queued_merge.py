@@ -1,5 +1,6 @@
 """queued-merge.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
 import json
 import os
 import re
@@ -12,11 +13,11 @@ import time
 try:
     import event
     import tunables
-    from github import gh_api
+    from github import gh_api, gh_probe
 except ImportError:
     from . import event
     from . import tunables
-    from .github import gh_api
+    from .github import gh_api, gh_probe
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
@@ -250,6 +251,14 @@ def main(argv):
             _say("the full test command (%s) is red on the rebased tree; not merged" % full)
             _release(pid)
             return 1
+    for path in glob.glob(os.path.join(worktree, ".tdd", "issue-[0-9]*.md")):
+        number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
+        shown = gh_probe("pr", "view", pr, "--json", "body")
+        body = json.loads(shown.stdout)["body"]
+        if not re.search(r"Closes #%s\b" % number.group(1), body):
+            _say("the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)))
+            _release(pid)
+            return 2
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
