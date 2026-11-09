@@ -67,3 +67,26 @@ def test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453(run_cl
 
     assert code == 0, err
     assert written == ["%s\n%s\n%s\n\n## Review notes\n" % (BEGIN, mine, END)]
+
+
+def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_next_write_keeps_appended_notes_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    notes = "## Review notes\n\n- appended later\n"
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+    first = fake_gh_pr_body(monkeypatch, "")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert first == ["%s\nCloses #7 — ready: 5 of 5 steps done\n%s" % (BEGIN, END)]
+
+    second = fake_gh_pr_body(monkeypatch, first[0] + "\n\n" + notes)
+    body_file.write_text("Closes #7 — resumed: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert len(second) == 1
+    assert notes in second[0]
+    assert "resumed" in second[0]
+    assert "ready" not in second[0]
