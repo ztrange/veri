@@ -238,3 +238,22 @@ def test_main_already_holds_with_no_case_exits_1_leaves_ledger_and_events_and_sa
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, before, False), err
     assert "a one" in err and "no case" in err
+
+
+def test_run_case_in_a_repo_declaring_no_one_test_file_command_runs_make_test_tests_case_3425(
+    tick_ledger, monkeypatch, tmp_path
+):
+    import subprocess
+
+    (tmp_path / "CLAUDE.md").write_text("veri: all tests: make test\n")
+    monkeypatch.chdir(tmp_path)
+    launched = []
+
+    def fake_run(argv, *args, **kwargs):
+        launched.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    assert tick_ledger.run_case("TestIssue99CheckExitsZero") == 0
+    assert ["make", "test", "TESTS=TestIssue99CheckExitsZero"] in launched
