@@ -170,7 +170,7 @@ def main(argv):
         pending = [issue for issue in pending if issue not in live and issue not in absent]
         seen = live + absent + pending
         ledger = previous and ledger_path(run_dir(previous), previous)
-        if len(live) < target and (previous is None or os.path.exists(ledger)) \
+        if len(live) + len(pending) < target and (previous is None or os.path.exists(ledger)) \
             and clock() >= resume_at:
             try:
                 previous = solvable_issues()[0]
