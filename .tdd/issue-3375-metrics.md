@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3375
 
-Wall time for the issue: 97 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 576 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 12 planned.
-Outcome: the run bailed — untestable-criterion, a process failure.
+Steps done: 8 of 12 planned.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.24 over 146 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $8.94 over 179 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77115 tokens, largest 205644 tokens
-Conductor context: first turn 77560 tokens, largest 110022 tokens
+Conductor context: first turn 77560 tokens, largest 111950 tokens
+Conductor context: first turn 77561 tokens, largest 119036 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -137,30 +138,63 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 119 | $0.06 | 204349 |
 | 120 | $0.06 | 205428 |
 | 121 | $0.05 | 205644 |
-| 122 | $0.48 | 77560 |
-| 123 | $0.06 | 83564 |
+| 122 | $0.49 | 77560 |
+| 123 | $0.07 | 83564 |
 | 124 | $0.05 | 87379 |
-| 125 | $0.02 | 88242 |
-| 126 | $0.03 | 89855 |
-| 127 | $0.03 | 91895 |
-| 128 | $0.05 | 96278 |
-| 129 | $0.02 | 96707 |
-| 130 | $0.02 | 97024 |
-| 131 | $0.02 | 97498 |
-| 132 | $0.02 | 97831 |
-| 133 | $0.02 | 98219 |
-| 134 | $0.02 | 98738 |
-| 135 | $0.03 | 99523 |
-| 136 | $0.02 | 100151 |
-| 137 | $0.03 | 100950 |
-| 138 | $0.02 | 101202 |
-| 139 | $0.02 | 101591 |
-| 140 | $0.02 | 101987 |
-| 141 | $0.02 | 102535 |
-| 142 | $0.02 | 102972 |
-| 143 | $0.03 | 104122 |
-| 144 | $0.03 | 105220 |
-| 145 | $0.06 | 110022 |
+| 125 | $0.04 | 88242 |
+| 126 | $0.04 | 89855 |
+| 127 | $0.04 | 91895 |
+| 128 | $0.06 | 96278 |
+| 129 | $0.03 | 96707 |
+| 130 | $0.03 | 97024 |
+| 131 | $0.03 | 97498 |
+| 132 | $0.03 | 97831 |
+| 133 | $0.03 | 98219 |
+| 134 | $0.03 | 98738 |
+| 135 | $0.04 | 99523 |
+| 136 | $0.03 | 100151 |
+| 137 | $0.04 | 100950 |
+| 138 | $0.03 | 101202 |
+| 139 | $0.03 | 101591 |
+| 140 | $0.03 | 101987 |
+| 141 | $0.03 | 102535 |
+| 142 | $0.03 | 102972 |
+| 143 | $0.04 | 104122 |
+| 144 | $0.04 | 105220 |
+| 145 | $0.07 | 110022 |
+| 146 | $0.03 | 110996 |
+| 147 | $0.04 | 111950 |
+| 148 | $0.48 | 77561 |
+| 149 | $0.06 | 83575 |
+| 150 | $0.05 | 87266 |
+| 151 | $0.04 | 90493 |
+| 152 | $0.05 | 94887 |
+| 153 | $0.02 | 95300 |
+| 154 | $0.02 | 95772 |
+| 155 | $0.02 | 96030 |
+| 156 | $0.02 | 96213 |
+| 157 | $0.02 | 96469 |
+| 158 | $0.03 | 97363 |
+| 159 | $0.05 | 101736 |
+| 160 | $0.03 | 102493 |
+| 161 | $0.02 | 103024 |
+| 162 | $0.03 | 103600 |
+| 163 | $0.02 | 104081 |
+| 164 | $0.03 | 105029 |
+| 165 | $0.03 | 106434 |
+| 166 | $0.03 | 107291 |
+| 167 | $0.02 | 107526 |
+| 168 | $0.03 | 108107 |
+| 169 | $0.03 | 109201 |
+| 170 | $0.03 | 110015 |
+| 171 | $0.02 | 110225 |
+| 172 | $0.03 | 110594 |
+| 173 | $0.03 | 111591 |
+| 174 | $0.02 | 111804 |
+| 175 | $0.03 | 112144 |
+| 176 | $0.03 | 113046 |
+| 177 | $0.03 | 114275 |
+| 178 | $0.06 | 119036 |
 
 #### Conductor comments, by family
 
@@ -175,30 +209,32 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 5 | 2075 | $0.04 |
 | 🔎 verify-<phase> (revised) | 3 | 1245 | $0.02 |
 | 🗺️ Plan | 1 | 415 | $0.01 |
-| 🗺️ verify-plan | 3 | 846 | $0.02 |
-| ▶️ Resuming | 1 | 8 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 4 | 1245 | $0.02 |
+| ▶️ Resuming | 2 | 460 | $0.01 |
+| ⛔ Bailed | 1 | 399 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 25 | 9569 | $0.19 |
+| Total | 28 | 10819 | $0.22 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 2 | 1 | 0 | 38 | 32 | 3 | 6 | 4214 | 5231 | 56391 | 0.18 |
+| plan | 4 | 3 | 1 | 0 | 50 | 42 | 4 | 8 | 5573 | 5231 | 78690 | 0.25 |
 | red | 16 | 6 | 1 | 0 | 648 | 315 | 90 | 174 | 36374 | 1726902 | 344497 | 1.57 |
 | green | 18 | 5 | 3 | 0 | 1299 | 246 | 95 | 172 | 27384 | 1510922 | 287505 | 1.29 |
 | refactor | 7 | 2 | 0 | 0 | 137 | 44 | 21 | 42 | 4253 | 305655 | 100811 | 0.33 |
 | pin | 4 | 2 | 2 | 0 | 102 | 62 | 17 | 32 | 7048 | 242094 | 61935 | 0.25 |
 | red-contradicted | 2 | 0 | 0 | 0 | 89 | 50 | 15 | 28 | 5530 | 283791 | 41254 | 0.19 |
 | red-missing | 1 | 0 | 0 | 0 | 48 | 23 | 5 | 10 | 3216 | 98126 | 22572 | 0.10 |
+| prose | 15 | 0 | 0 | 0 | 395 | 359 | 15 | 30 | 56383 | 236407 | 468571 | 1.76 |
+| skill-edit | 3 | 0 | 0 | 0 | 36 | 28 | 12 | 22 | 4097 | 462528 | 185767 | 0.55 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 24 | 17 | 7 | 0 | 1288 | 302 | 97 | 180 | 34223 | 1394696 | 357615 | 1.38 |
+| verifier | claude-sonnet-5-5 | 25 | 18 | 7 | 0 | 1300 | 312 | 98 | 182 | 35582 | 1394696 | 379914 | 1.45 |
 | developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 616 | 304 | 103 | 202 | 35856 | 1948841 | 399678 | 1.55 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 457 | 166 | 46 | 82 | 17940 | 829184 | 157672 | 0.97 |
 
@@ -213,6 +249,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 57 | 0.13 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 | develop-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -227,6 +265,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | Under `stop-run.sh <issue> --mode now`, a process in the detached command's group that survives the TERM for a bounded grace (a tunable read as `${VAR:-default}` so a case can shrink it) is sent KILL, so no process of that group is left after the stop; pinned with a TERM-ignoring child ⟦criterion 4⟧ | 10 | 4 | 1 | 0 | 0 | 0 | 142 | 46 | 88 | 16541 | 765300 | 172189 | 0.67 | 627 | unknown | 1/5 | nothing-left |  |  | already-satisfied |
 | When a signal `stop-run.sh --mode now` sends to a leaf or detached command fails for a reason other than the process being gone (`os.kill`/`os.killpg` raising `PermissionError`), `stop-run.sh` exits 2 naming the pid and the run on stderr, having still written `.tdd/stop` ⟦criterion 5⟧ | 10 | 3 | 1 | 0 | 0 | 0 | 141 | 50 | 90 | 16290 | 809156 | 166982 | 0.74 | 749 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | A `--mode now` stop during a `detach-command.sh wait` (wait exits 2) records as a stop, not a bail; one test, with a wait=2 outside any stop still bailing as the contrast case in that same test ⟦added⟧ ⟦criterion 5⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 26 | 9 | 18 | 3056 | 210035 | 31573 | 0.13 | unknown | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/STOPPING.md`: step 1 says that under mode `now` a `detach-command.sh wait` on the conductor's own detached command also returns 2 at once, after `stop-run.sh` sent the command's process group TERM and then KILL after `VERI_STOP_KILL_GRACE` (default 5 seconds), and that this 2 is the stop being carried out, recorded as a stop; and that a refused signal makes `stop-run.sh` exit 2 naming the pid and run, with its SP rows in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 7 | 0 | 0 | 0 | 0 | 0 | 54 | 11 | 20 | 7962 | 82551 | 64274 | 0.25 | 90 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SKILL.md`: extend the Stopping text's "before reading any leaf's exit 2 as killed-stuck" rule to an exit 2 from `detach-command.sh wait` on the conductor's baseline or full-suite run, so with `now` pending the run goes to *Stopping* and never bails or refuses preflight, with its LL row in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 6 | 0 | 0 | 0 | 0 | 0 | 243 | 7 | 14 | 38327 | 268878 | 345451 | 1.27 | 268 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SCRIPTS.md`: the `stop-run.sh` entry gains the detached-command process-group TERM, the KILL after `VERI_STOP_KILL_GRACE` (default 5) and the exit 2 naming the pid and run on a refused signal, and the `detach-command.sh` entry gains `wait` returning 2 under `.tdd/stop` `now` and how the conductor tells it from a dead command, with its SC rows in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 90 | 9 | 18 | 14191 | 347506 | 244613 | 0.79 | 116 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -267,4 +308,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 246 | 464 | 88019 | 4172721 | 914965 | 11.14 (estimate) |
+| total | 274 | 518 | 149858 | 4871656 | 1591602 | 15.22 (estimate) |
