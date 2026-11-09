@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3330
 
-Wall time for the issue: 356 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 4 of 8 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Wall time for the issue: 1359 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 7 of 8 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.60 over 96 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $6.67 over 133 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77028 tokens, largest 141790 tokens
-Conductor context: first turn 77016 tokens, largest 141797 tokens
+Conductor context: first turn 77016 tokens, largest 143749 tokens
+Conductor context: first turn 77041 tokens, largest 134695 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -73,44 +74,81 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 55 | $0.05 | 140999 |
 | 56 | $0.04 | 141790 |
 | 57 | $0.48 | 77016 |
-| 58 | $0.06 | 82937 |
+| 58 | $0.08 | 82937 |
 | 59 | $0.04 | 85797 |
-| 60 | $0.04 | 89017 |
-| 61 | $0.05 | 93296 |
-| 62 | $0.02 | 93872 |
-| 63 | $0.02 | 94598 |
-| 64 | $0.02 | 94911 |
-| 65 | $0.02 | 95123 |
-| 66 | $0.02 | 95275 |
+| 60 | $0.06 | 89017 |
+| 61 | $0.06 | 93296 |
+| 62 | $0.03 | 93872 |
+| 63 | $0.03 | 94598 |
+| 64 | $0.03 | 94911 |
+| 65 | $0.03 | 95123 |
+| 66 | $0.03 | 95275 |
 | 67 | $0.03 | 96098 |
-| 68 | $0.02 | 96625 |
-| 69 | $0.02 | 96952 |
-| 70 | $0.02 | 97510 |
-| 71 | $0.02 | 97837 |
-| 72 | $0.02 | 98236 |
-| 73 | $0.02 | 98641 |
-| 74 | $0.03 | 99483 |
+| 68 | $0.04 | 96625 |
+| 69 | $0.03 | 96952 |
+| 70 | $0.03 | 97510 |
+| 71 | $0.03 | 97837 |
+| 72 | $0.03 | 98236 |
+| 73 | $0.03 | 98641 |
+| 74 | $0.04 | 99483 |
 | 75 | $0.03 | 100274 |
-| 76 | $0.02 | 100670 |
-| 77 | $0.03 | 101490 |
+| 76 | $0.03 | 100670 |
+| 77 | $0.04 | 101490 |
 | 78 | $0.03 | 102194 |
-| 79 | $0.03 | 102800 |
-| 80 | $0.02 | 103024 |
+| 79 | $0.04 | 102800 |
+| 80 | $0.03 | 103024 |
 | 81 | $0.14 | 117582 |
-| 82 | $0.03 | 118474 |
-| 83 | $0.03 | 119153 |
-| 84 | $0.03 | 119819 |
-| 85 | $0.03 | 120562 |
-| 86 | $0.03 | 121155 |
+| 82 | $0.04 | 118474 |
+| 83 | $0.04 | 119153 |
+| 84 | $0.04 | 119819 |
+| 85 | $0.04 | 120562 |
+| 86 | $0.04 | 121155 |
 | 87 | $0.03 | 121946 |
-| 88 | $0.03 | 122481 |
-| 89 | $0.05 | 125760 |
-| 90 | $0.03 | 126418 |
-| 91 | $0.03 | 126850 |
-| 92 | $0.09 | 135463 |
-| 93 | $0.03 | 135956 |
+| 88 | $0.04 | 122481 |
+| 89 | $0.06 | 125760 |
+| 90 | $0.04 | 126418 |
+| 91 | $0.04 | 126850 |
+| 92 | $0.10 | 135463 |
+| 93 | $0.04 | 135956 |
 | 94 | $0.04 | 137097 |
-| 95 | $0.07 | 141797 |
+| 95 | $0.08 | 141797 |
+| 96 | $0.04 | 142769 |
+| 97 | $0.05 | 143749 |
+| 98 | $0.48 | 77041 |
+| 99 | $0.06 | 82935 |
+| 100 | $0.04 | 85844 |
+| 101 | $0.03 | 87655 |
+| 102 | $0.03 | 89768 |
+| 103 | $0.03 | 91081 |
+| 104 | $0.02 | 91553 |
+| 105 | $0.02 | 91829 |
+| 106 | $0.02 | 92071 |
+| 107 | $0.02 | 92390 |
+| 108 | $0.02 | 93035 |
+| 109 | $0.05 | 97290 |
+| 110 | $0.02 | 97944 |
+| 111 | $0.02 | 98601 |
+| 112 | $0.02 | 99027 |
+| 113 | $0.03 | 99876 |
+| 114 | $0.03 | 100916 |
+| 115 | $0.02 | 101409 |
+| 116 | $0.02 | 101791 |
+| 117 | $0.03 | 103068 |
+| 118 | $0.02 | 103470 |
+| 119 | $0.03 | 104039 |
+| 120 | $0.02 | 104390 |
+| 121 | $0.02 | 104651 |
+| 122 | $0.03 | 105705 |
+| 123 | $0.15 | 121205 |
+| 124 | $0.03 | 121544 |
+| 125 | $0.03 | 121928 |
+| 126 | $0.03 | 122423 |
+| 127 | $0.03 | 122593 |
+| 128 | $0.04 | 125053 |
+| 129 | $0.05 | 127587 |
+| 130 | $0.03 | 128691 |
+| 131 | $0.04 | 130153 |
+| 132 | $0.06 | 134695 |
 
 #### Conductor comments, by family
 
@@ -120,33 +158,35 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ✅ Done | 0 | 0 | $0.00 |
 | 🔴 Red | 2 | 1002 | $0.02 |
 | 🟢 Green | 2 | 1002 | $0.02 |
-| 🛠️ Refactor | 2 | 504 | $0.01 |
+| 🛠️ Refactor | 2 | 931 | $0.02 |
 | 🔎 verify-green | 2 | 1002 | $0.02 |
-| 🔎 verify-refactor | 2 | 504 | $0.01 |
+| 🔎 verify-refactor | 2 | 931 | $0.02 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
 | 🗺️ Plan | 1 | 501 | $0.01 |
-| 🗺️ verify-plan | 2 | 517 | $0.01 |
-| ▶️ Resuming | 1 | 55 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 3 | 947 | $0.02 |
+| ▶️ Resuming | 2 | 436 | $0.01 |
+| ⛔ Bailed | 1 | 430 | $0.01 |
 | ⏹️ Stopped | 1 | 501 | $0.01 |
-| Total | 11 | 4082 | $0.08 |
+| Total | 14 | 5750 | $0.11 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 26 | 19 | 2 | 4 | 2170 | 0 | 42577 | 0.13 |
+| plan | 3 | 3 | 0 | 0 | 37 | 27 | 3 | 6 | 3122 | 0 | 63900 | 0.19 |
 | red | 8 | 2 | 0 | 0 | 428 | 143 | 36 | 68 | 15100 | 638281 | 171616 | 0.74 |
 | pin | 3 | 2 | 1 | 0 | 107 | 54 | 14 | 28 | 4858 | 232039 | 48793 | 0.19 |
 | green | 4 | 2 | 0 | 0 | 739 | 54 | 19 | 32 | 5114 | 248162 | 88442 | 0.30 |
 | refactor | 2 | 0 | 0 | 0 | 19 | 10 | 5 | 8 | 729 | 38768 | 44475 | 0.12 |
+| prose | 12 | 0 | 0 | 0 | 171 | 129 | 12 | 24 | 19978 | 75906 | 232854 | 0.79 |
+| skill-edit | 3 | 0 | 0 | 0 | 44 | 31 | 13 | 24 | 2852 | 329513 | 97622 | 0.31 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 9 | 8 | 1 | 0 | 927 | 124 | 32 | 64 | 11565 | 472041 | 177936 | 0.61 |
+| verifier | claude-sonnet-5-5 | 10 | 9 | 1 | 0 | 938 | 132 | 33 | 66 | 12517 | 472041 | 199259 | 0.67 |
 | developer | claude-sonnet-5-5 | 8 | 0 | 0 | 0 | 316 | 104 | 33 | 56 | 11128 | 474694 | 165909 | 0.57 |
 | developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 76 | 52 | 11 | 20 | 5278 | 210515 | 52058 | 0.30 |
 
@@ -159,6 +199,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 33 | 0.07 |
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 | revise-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -170,6 +212,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | With `VERI_MUTATION_ADDRESS_DOMAIN=corp.invalid`, a probe whose `<new>` holds `x@outside.invalid` exits 2, leaves the record file and the target file byte-for-byte untouched and runs no command; its stderr names both `x@outside.invalid` and `corp.invalid`; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 67 | 20 | 36 | 6783 | 273325 | 113867 | 0.38 | 866 | unknown | 0/5 | nothing-left |  |  | full |
 | With `VERI_MUTATION_ADDRESS_DOMAIN=corp.invalid`, a probe whose `<old>` holds `x@outside.invalid` (and whose `<new>` holds no address) gets the same refusal: exit 2, record and file untouched, no command run, stderr naming `x@outside.invalid` and `corp.invalid`; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py` ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 50 | 19 | 34 | 4689 | 268238 | 90054 | 0.30 | 2419 | unknown | 0/5 | nothing-left |  |  | full |
 | With `VERI_MUTATION_ADDRESS_DOMAIN=corp.invalid`, the `--before <sha> --keep <test-path> -- <cmd>` form behaves as it does with the key unset (it takes no `<old>`/`<new>` and is never refused by the address check); one case in `skills/tdd/scripts/tests/py/test_mutation_probe_process.py` or `skills/tdd/scripts/tests/py/unit/test_mutation_probe.py`, whichever fits the git boundary the `--before` form needs, carrying the `process` mark if it starts a real git ⟦criterion 5⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 70 | 16 | 30 | 6874 | 295939 | 68932 | 0.37 | unknown | 1/2 | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SCRIPTS.md`: SC<next> as the issue's table states it (the `mutation-probe.sh` entry names `VERI_MUTATION_ADDRESS_DOMAIN`, unset or empty no check, and the exit-2 refusal naming the address and the allowed domain before any mutation, command or record), graded PASS and signed ⟦skill-edit⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 83 | 9 | 16 | 12567 | 258524 | 241492 | 0.76 | 131 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/scripts/prompts/verify-pin.md`: VP<next> as the issue's table states it (a probe exit 2 naming an allowed address domain means any address in `<old>`/`<new>` must be on that domain; retry with one that is), graded PASS and signed ⟦skill-edit⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 37 | 8 | 16 | 4911 | 72708 | 43523 | 0.17 | 77 | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/scripts/prompts/verify-green.md`: VG<next> as the issue's table states it (the same retry instruction where it sends the verifier through `{{MUTATION_PROBE}}`), graded PASS and signed ⟦skill-edit⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 40 | 8 | 16 | 5352 | 74187 | 45461 | 0.17 | 73 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -200,4 +245,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 76 | 140 | 27971 | 1157250 | 395903 | 6.08 (estimate) |
+| total | 102 | 190 | 51753 | 1562669 | 747702 | 9.31 (estimate) |
