@@ -765,7 +765,9 @@ def main(argv):
                     lines.append(frozen_record._format_line())
                 for name in files:
                     try:
-                        added = [] if name in _guard_subjects(step) else _added_cases(name)
+                        added = _added_cases(name)
+                        if name in _guard_subjects(step):
+                            added = [c for c in added if c[0] not in _head_and_new_cases(name)[0]]
                         kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
                     except UnclosedCase as error:
                         raise LookupError("%s: %s" % (name, error))
