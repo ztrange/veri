@@ -80,6 +80,10 @@ def _differing_tests():
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")
 
 
+def _guard_subjects(step):
+    return re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step))
+
+
 def _accepted_per_digest(digests, nows, olds):
     """Each recorded digest's accepted bodies: the n-th digest for a name against that name's n-th case.
 
@@ -761,7 +765,7 @@ def main(argv):
                     lines.append(frozen_record._format_line())
                 for name in files:
                     try:
-                        added = [] if name in re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step)) else _added_cases(name)
+                        added = [] if name in _guard_subjects(step) else _added_cases(name)
                         kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
                     except UnclosedCase as error:
                         raise LookupError("%s: %s" % (name, error))
@@ -796,7 +800,7 @@ def main(argv):
             return 2
         fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
         loose = fixture.group(1) if fixture else None
-        subjects = re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step)) if by_step else []
+        subjects = _guard_subjects(step) if by_step else []
         changed = []
         for expected, name in entries:
             if expected == "deleted":
