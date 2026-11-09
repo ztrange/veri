@@ -105,3 +105,30 @@ def test_3331_a_pin_whose_old_text_occurs_twice_in_its_file_needs_a_look_and_is_
 
     assert (any("continue" in s for s in seen), sorted({f for f, _ in looks}),
             target.read_text()) == (False, ["guard.txt"], "for a in x:\n    break\nfor b in y:\n    break\n")
+
+
+def test_3331_a_pin_whose_old_text_occurs_once_on_its_recorded_line_still_mutates_and_replays(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1-mutations.md").write_text(record(
+        file="guard.txt", old="break", new="continue", context="    break",
+        command="python3 -m pytest -q t.py::case"))
+    target = tmp_path / "guard.txt"
+    target.write_text("for a in x:\n    break\n")
+    seen = []
+
+    def fake_run(command):
+        seen.append(target.read_text())
+        if "continue" in seen[-1]:
+            return SimpleNamespace(
+                returncode=1, stdout="FAILED t.py::case - AssertionError\n1 failed in 0.2s\n", stderr="")
+        return SimpleNamespace(returncode=0, stdout="1 passed in 0.19s\n", stderr="")
+
+    monkeypatch.setattr(pin_recheck, "run_captured", fake_run)
+    monkeypatch.setattr(pin_recheck, "git_out", lambda *a: "guard.txt\n" if "--diff-filter=D" not in a else "")
+    looks = {}
+
+    status = pin_recheck.recheck(["base"], looks)
+
+    assert (status, looks, any("continue" in s for s in seen)) == (0, {}, True)
