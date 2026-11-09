@@ -32,6 +32,15 @@ def _test_files():
             yield root, name, py, go, js
 
 
+def _defining_file(case):
+    found = []
+    for root, name, py_file, go_file, _ in _test_files():
+        with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
+            if defined_name(case, handle.read(), py_file, go_file):
+                found.append(os.path.relpath(os.path.join(root, name)))
+    return found[0] if found else None
+
+
 def _exists(case):
     cut = cut_prefix(case)
     titles = set()
@@ -299,6 +308,7 @@ def main(argv):
         write(sys.stdout, kind + " " + " ".join(older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
+    where = _defining_file(case) if case is not None and "::" not in case else None
     if case is None and len(older) == 1:
         case = older[0]
     fixture = None if case is not None or rerouted else _fixture(argv[0], argv[1])
@@ -314,7 +324,7 @@ def main(argv):
     if case is None:
         write(sys.stdout, "revise")
         return 3
-    write(sys.stdout, "red " + case)
+    write(sys.stdout, "red " + (where + "::" + case if where else case))
     return 0
 
 

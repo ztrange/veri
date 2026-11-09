@@ -3560,3 +3560,39 @@ def test_main_3292_usage_states_one_extra_repair_after_the_free_reroute_for_a_wr
     code, stdout, stderr = run_cli(wrong_test_route, [])
 
     assert (code, stdout, "one extra repair" in stderr, "free reroute" in stderr) == (2, "", True, True)
+
+
+def test_main_3367_prints_red_with_the_file_that_defines_a_bare_named_contradicted_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_usage_output_on_a_missing_argument_is_unchanged"
+    (suite / "test_emitted_text.py").write_text("def %s():\n    pass\n" % contradicted)
+    (suite / "test_tick_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s asserts the opposite of the criterion\n" % contradicted + "CONTRADICTS: %s\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red tests/py/unit/test_emitted_text.py::%s\n" % contradicted)
+
+
+def test_main_3367_prints_a_file_qualified_contradicted_id_as_given_without_resolving_a_file_again(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    qualified = "test_odd::case"
+    (suite / "test_odd.py").write_text("def %s():\n    pass\n" % qualified)
+    (suite / "test_tick_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nCONTRADICTS: `%s`\n" % qualified)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "red %s\n" % qualified)
