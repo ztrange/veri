@@ -2110,3 +2110,81 @@ def test_main_restarts_the_no_run_grace_for_a_new_head_and_ends_its_slice_with_3
                              env={"VERI_POLL": "0", "VERI_CI_NO_RUN_WAIT": "100"}, cwd=work)
 
     assert (code, out, "no CI run for" in err, state["pulls"] > 2) == (3, "", False, True)
+
+
+def test_main_counts_the_no_run_grace_across_calls_for_one_head_and_exits_2_once_it_passes_issue_3476(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+    state = {"clock": 0}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            return 0, f"{state['clock']}\n", ""
+        if line.startswith("sleep "):
+            state["clock"] += 1
+            return 0, "", ""
+        if line == PULL:
+            return 0, json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                  "head": {"sha": FULL_SHA}}), ""
+        if ".github/workflows" in line:
+            if line.split("?")[0].endswith("ci.yml"):
+                return 0, json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                      "content": base64.b64encode(workflow.encode()).decode()}), ""
+            return 0, json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}]), ""
+        if line.endswith("/status"):
+            return 0, json.dumps({"statuses": []}), ""
+        if "/check-runs?page=" in line:
+            return 0, json.dumps({"total_count": 0, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+
+    observed = []
+    for start in (100, 103, 110):
+        state["clock"] = start
+        code, out, err = run_cli(wait_ci, [PR, "3", "3600", FULL_SHA],
+                                 env={"VERI_POLL": "1", "VERI_CI_NO_RUN_WAIT": "10"}, cwd=work)
+        observed.append((code, f"no CI run for {FULL_SHA}" in err))
+
+    assert observed == [(3, False), (3, False), (2, True)]
+
+
+def test_main_treats_a_corrupt_no_run_sighting_file_as_no_sighting_and_rewrites_it_issue_3476(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    sighting = work / ".tdd" / f"ci-none-{FULL_SHA}"
+    sighting.write_text("not-a-number\n")
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+    state = {"clock": 100}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            return 0, f"{state['clock']}\n", ""
+        if line.startswith("sleep "):
+            state["clock"] += 1
+            return 0, "", ""
+        if line == PULL:
+            return 0, json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                  "head": {"sha": FULL_SHA}}), ""
+        if ".github/workflows" in line:
+            if line.split("?")[0].endswith("ci.yml"):
+                return 0, json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                      "content": base64.b64encode(workflow.encode()).decode()}), ""
+            return 0, json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}]), ""
+        if line.endswith("/status"):
+            return 0, json.dumps({"statuses": []}), ""
+        if "/check-runs?page=" in line:
+            return 0, json.dumps({"total_count": 0, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+
+    code, out, err = run_cli(wait_ci, [PR, "3", "3600", FULL_SHA],
+                             env={"VERI_POLL": "1", "VERI_CI_NO_RUN_WAIT": "10"}, cwd=work)
+
+    assert (code, f"no CI run for {FULL_SHA}" in err, sighting.read_text().strip()) == (3, False, "100")
