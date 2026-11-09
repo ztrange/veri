@@ -1672,3 +1672,21 @@ def test_main_counts_only_an_open_draft_pr_on_a_tdd_branch_as_a_run_pr_issue_347
         dispatch.main(["--target", "1"])
 
     assert launches == ["12"]
+
+
+def test_main_reads_the_queue_at_most_once_per_overlap_poll_window_while_everything_overlaps_yet_reports_a_conductor_exit_on_the_next_pass_issue_3478(
+        monkeypatch, tmp_path, dispatch):
+    times = [0, 10, 70, 80, 90]
+    queue_reads = []
+    _, waits = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: queue_reads.append(times[len(waits)]) or ["12"],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, waits_before_stop=len(times))
+    (tmp_path / ".tdd" / "wt" / "5").mkdir(parents=True)
+    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"] if len(waits) < 4 else [])
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n")
+
+    code = dispatch.main(["--target", "2"])
+
+    assert (code, queue_reads, len(waits)) == (0, [0, 70], 4)
