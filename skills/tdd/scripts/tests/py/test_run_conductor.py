@@ -642,6 +642,22 @@ def test_main_on_a_fresh_launch_with_skip_verify_unset_writes_an_empty_skip_veri
     assert (skip.read_text() if skip.is_file() else None) == ""
 
 
+def test_main_on_a_fresh_launch_with_baseline_full_tier_reuse_writes_reuse_to_the_baseline_full_tier_file_beside_the_skip_verify_pin_3436(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "reuse")
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    pin = tmp_path / ".tdd" / "issue-4242-baseline-full-tier"
+    assert (pin.read_text() if pin.is_file() else None) == "reuse\n"
+
+
 def test_main_on_a_resume_with_veri_new_skill_1_re_pins_the_skip_verify_file_from_veri_skip_verify_replacing_the_old_list(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
