@@ -456,7 +456,7 @@ def rerecord_earlier(ledger, step):
     if not base:
         write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
         return 2
-    before, after, unchanged = {}, {}, []
+    before, after, unchanged, changed = {}, {}, [], []
 
     def rewrite(_, record, name, case, __):
         if name not in after:
@@ -465,6 +465,7 @@ def rerecord_earlier(ledger, step):
         if now == before[name].get(case):
             unchanged.append(case)
         if now is not None and now != before[name].get(case):
+            changed.append(case)
             head_text = _text_at("HEAD", name, subprocess.DEVNULL)
             body = "\n".join(_bodies_of(head_text, case))
             if not _helpers_in(head_text, body):
@@ -478,7 +479,7 @@ def rerecord_earlier(ledger, step):
     except OSError as error:
         write(sys.stderr, "tests-frozen.sh: %s" % error)
         return 2
-    if unchanged:
+    if unchanged and not changed:
         write(sys.stderr, "tests-frozen.sh: %s unchanged between %s and HEAD; record not rewritten\n"
               % (", ".join(unchanged), base))
         return 2
