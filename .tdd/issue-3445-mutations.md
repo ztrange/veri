@@ -1,0 +1,7 @@
+before 40
+379a2b5ed051202d31c415e18130027b183c8b4e
+keep 56
+skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py
+command 240
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_a_requirements_table_with_the_header_line_but_a_missing_or_wrong_separator_exits_2_naming_the_unit_before_any_author_while_the_correct_separator_is_accepted_3445
+
