@@ -6867,3 +6867,33 @@ def test_record_step_freezes_only_the_red_case_of_each_of_two_prefix_sharing_gua
 
     assert [guarded_changed[:2], (red_changed[0], sorted(red_changed[1].splitlines()))] == [
         (0, ""), (1, ["test_red_one_3443 (%s)" % earlier, "test_red_two_3443 (%s)" % earlier])]
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subject_whose_path_it_ends_with_3485(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "projects/x/tests").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "projects/x/tests/test_guard.py").write_text("def test_subject_case():\n    assert True, 'a'\n")
+    (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'a'\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests", "projects")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = "step one ⟦guard-subject: projects/x/tests/test_guard.py⟧", "step two"
+    (tmp_path / "projects/x/tests/test_guard.py").write_text(
+        "def test_subject_case():\n    assert True, 'b'\n\n\ndef test_red_3485():\n    assert 1 == 2\n")
+    (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'b'\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "projects/x/tests/test_guard.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    argv = ["check-earlier", str(ledger), "--step", current]
+    (tmp_path / "projects/x/tests/test_guard.py").write_text(
+        "def test_subject_case():\n    assert True, 'c'\n\n\ndef test_red_3485():\n    assert 1 == 2\n")
+
+    subject_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'c'\n")
+    other_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    assert [subject_changed[:2], other_changed[:2]] == [
+        (0, ""), (1, "test_other_case (%s)\n" % earlier)]
