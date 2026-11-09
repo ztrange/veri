@@ -146,10 +146,11 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
 - **Last comment is a bail.** Hand it to `vbail <n>`. An issue is parked only through
   `$S/park-issue.sh <n> <cause> <unblock> [<pr>]`: it labels the issue `parked` and posts the
   cause and what would unblock it. Budget raises come only from the coordinator or the human.
-- **No closing comment.** Check for a usage limit or sleep first (P10). Either one is not a
-  bail: resume the run once usage is back, from the target repository's main working tree:
+- **No closing comment.** Check for a usage limit, an API outage or sleep first (P10). Any of
+  the three is not a bail: resume the run once usage is back or the API answers, from the target
+  repository's main working tree:
   `$S/detach-leaf.sh $S/run-conductor.sh <n> >> .tdd/conductor-<n>.log 2>&1 < /dev/null`
-  (then the restart line from *Launching*). Neither one: route it as a bail.
+  (then the restart line from *Launching*). None of the three: route it as a bail.
 
 After routing a `dispatch.sh` line, start `dispatch.sh` again as one background command. Then
 take the slot decision.
