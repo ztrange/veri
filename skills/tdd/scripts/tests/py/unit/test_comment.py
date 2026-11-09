@@ -431,3 +431,36 @@ def test_done_adds_the_stop_arrived_line_when_a_stop_request_is_pending_and_none
 
     assert "stop" not in posted[0][1].lower()
     assert "A stop arrived after the last step, so the run finished rather than pausing." in posted[1][1].splitlines()
+
+
+def test_red_posts_the_red_heading_with_the_test_failure_and_matched_prediction_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-55"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "I wrote the case.\n"
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: assert 'ccw' == 'cw'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: MATCHED\n")
+
+    code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔴 Red"
+    for carried in ("tests/py/unit/test_widget.py", "test_widget_spins_clockwise",
+                    "assert 'ccw' == 'cw'", "assert spin == 'cw' fires with 'ccw'",
+                    "prediction matched"):
+        assert carried in body, carried
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "red", url)]
