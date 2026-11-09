@@ -336,3 +336,37 @@ def test_main_refuses_an_old_with_an_outside_address_when_the_address_domain_is_
     assert record.read_bytes() == b"before\n"
     assert "x@outside.invalid" in err
     assert "corp.invalid" in err
+
+
+def test_main_before_behaves_the_same_with_the_address_domain_set_and_unset_on_an_outside_address_3330(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    """Criterion 5: with VERI_MUTATION_ADDRESS_DOMAIN=corp.invalid the --before form behaves as with the key unset."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "f.txt").write_text("new\n")
+
+    def fake_run(argv, *a, **k):
+        done = mutation_probe.subprocess.CompletedProcess
+        if argv[:2] == ["git", "rev-parse"] and "HEAD" in argv:
+            return done(argv, 0, stdout="cafe123\n")
+        if argv[:2] == ["git", "rev-parse"]:
+            return done(argv, 0, stdout=b"")
+        if argv[:2] == ["git", "diff"]:
+            return done(argv, 0, stdout=b"f.txt\0")
+        if argv[:2] == ["git", "ls-files"]:
+            return done(argv, 0, stdout=b"")
+        if argv[:2] == ["git", "show"]:
+            return done(argv, 0, stdout=b"old\n")
+        return done(argv, 1)
+
+    monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
+    args = ["--before", "abc1234", "--keep", "t.py", "--", "echo", "x@outside.invalid"]
+    outcomes = []
+    for env in ({}, {"VERI_MUTATION_ADDRESS_DOMAIN": "corp.invalid"}):
+        record = tmp_path / "mutations.md"
+        record.write_text("")
+        code, out, err = run_cli(mutation_probe, args, env={"VERI_MUTATION_RECORD": str(record), **env})
+        outcomes.append((code, out, err, record.read_bytes(), (tmp_path / "f.txt").read_bytes()))
+    assert outcomes[0][0] == 0
+    assert b"x@outside.invalid" in outcomes[0][3]
+    assert outcomes[0] == outcomes[1]
