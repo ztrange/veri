@@ -96,6 +96,24 @@ def test_launch_also_starts_restart_conductor_through_detach_leaf_appending_to_r
         [(subprocess.DEVNULL, True)], b"earlier\nwatcher output\n")
 
 
+def test_launch_raises_and_starts_no_restart_conductor_when_the_run_conductor_launch_fails_issue_3344(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    scripts_called = []
+
+    def popen(argv, **kw):
+        scripts_called.append(argv[1].rsplit("/", 1)[-1])
+        raise OSError("exec failed")
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.subprocess, "Popen", popen)
+
+    with pytest.raises(OSError):
+        dispatch.launch("12")
+
+    assert scripts_called == ["run-conductor.sh"]
+
+
 def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_no_process_while_it_keeps_waiting(
         monkeypatch, capsys, dispatch):
     import os
