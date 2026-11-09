@@ -861,3 +861,29 @@ def test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_
     restart_conductor.detach_leaf("7")
 
     assert launched == [("18", "3", False)]
+
+
+def test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
+    launched = []
+
+    class FakePopen:
+        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
+            seen = os.environ if env is None else env
+            launched.append((seen.get("PATH"), seen.get("VERI_STEP_GROWTH")))
+
+    monkeypatch.setenv("PATH", "/watcher/bin:/usr/bin")
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.chdir(start)
+
+    restart_conductor.detach_leaf("7")
+
+    assert launched == [("/watcher/bin:/usr/bin", "18")]
