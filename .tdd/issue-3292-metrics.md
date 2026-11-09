@@ -1,20 +1,20 @@
 ### 📊 Metrics — issue 3292
 
-Wall time for the issue: 4825 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 4878 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 12 of 15 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3309.
+Outcome: the run bailed — ci-conflict, a system failure.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $17.75 over 337 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $17.93 over 341 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78707 tokens, largest 166271 tokens
 Conductor context: first turn 77023 tokens, largest 140413 tokens
 Conductor context: first turn 76998 tokens, largest 144937 tokens
 Conductor context: first turn 77012 tokens, largest 127825 tokens
 Conductor context: first turn 77008 tokens, largest 193738 tokens
-Conductor context: first turn 77013 tokens, largest 171186 tokens
+Conductor context: first turn 77013 tokens, largest 177111 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -358,6 +358,10 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 335 | $0.04 | 170450 |
 | 336 | $0.04 | 170837 |
 | 337 | $0.04 | 171186 |
+| 338 | $0.04 | 171808 |
+| 339 | $0.04 | 172296 |
+| 340 | $0.06 | 174971 |
+| 341 | $0.05 | 177111 |
 
 #### Conductor comments, by family
 
@@ -480,4 +484,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 383 | 730 | 222977 | 6848775 | 2656973 | 27.83 (estimate) |
+| total | 383 | 730 | 222977 | 6848775 | 2656973 | 28.02 (estimate) |
