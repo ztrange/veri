@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 import event
-from mutation_probe import run_keeping_journal
+from event_log import run_keeping_journal
 from ledger import ledger_path
 
 
