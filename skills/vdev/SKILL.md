@@ -132,7 +132,7 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   makes is one of two things. **Blocking**, fixed on the PR's branch before merge: a criterion
   with no test that goes red when its behaviour is removed; a behaviour failure or regression;
   a surviving mutant in a guard, an exit-code path, or data-deleting or data-overwriting code;
-  a doc miss (next paragraph). **Otherwise**, a line in the PR body. A review finding is never
+  a doc miss (next paragraph). **Otherwise**, a line appended to the PR's existing body (read the body, add the line, write it back), never a replacement of the body: the `Closes #<n>` line survives. A review finding is never
   filed as an issue.
 
   **Doc miss.** When the run's PR adds or renames a phase, subcommand, flag or event, the
