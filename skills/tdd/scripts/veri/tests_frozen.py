@@ -268,7 +268,7 @@ def _revisions(name):
     return os.fsdecode(listed.stdout).split()
 
 
-def _path_holding(case, only=None):
+def _path_holding(case, digests, only=None):
     for top, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
         for file in files:
@@ -276,15 +276,17 @@ def _path_holding(case, only=None):
                 continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if case in dict(_cases(handle.read())):
+                if any(_body_digest(body) in digests for body in _bodies_of(handle.read(), case)):
                     return path
     return None
 
 
-def _moved_path(name, case):
+def _moved_path(name, case, digests):
+    if os.path.exists(name):
+        return name
     return (
-        _path_holding(case, only=os.path.basename(name))
-        or _path_holding(case)
+        _path_holding(case, digests, only=os.path.basename(name))
+        or _path_holding(case, digests)
         or name
     )
 
@@ -358,7 +360,7 @@ def _check_earlier(ledger, step, exempt=()):
     releg = {}
     for (name, case), (digests, owner, marked) in latest.items():
         try:
-            with open(_moved_path(name, case), encoding="utf-8", errors="replace") as handle:
+            with open(_moved_path(name, case, digests), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             nows = _bodies_of(text, case)
             olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
