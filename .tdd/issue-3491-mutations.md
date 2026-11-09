@@ -1,0 +1,7 @@
+before 40
+5227f1d046e58fcc30a511dfa407652cee8d153e
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_naming_no_ci_run_for_the_full_head_when_a_ready_heads_state_stays_none_for_the_default_no_run_wait_issue_3455
+
