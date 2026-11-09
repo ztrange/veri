@@ -1,18 +1,20 @@
 ### 📊 Metrics — issue 3453
 
-Wall time for the issue: 2180 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4036 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 8 planned.
+Steps done: 11 of 11 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3474.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $13.73 over 251 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $19.02 over 348 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77918 tokens, largest 210898 tokens
 Conductor context: first turn 77917 tokens, largest 147046 tokens
 Conductor context: first turn 77917 tokens, largest 142162 tokens
 Conductor context: first turn 77901 tokens, largest 111714 tokens
-Conductor context: first turn 77900 tokens, largest 151987 tokens
+Conductor context: first turn 77900 tokens, largest 154482 tokens
+Conductor context: first turn 77901 tokens, largest 148980 tokens
+Conductor context: first turn 77964 tokens, largest 152579 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -225,51 +227,148 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 204 | $0.07 | 109323 |
 | 205 | $0.05 | 110752 |
 | 206 | $0.03 | 111714 |
-| 207 | $0.48 | 77900 |
-| 208 | $0.06 | 83914 |
-| 209 | $0.03 | 85927 |
-| 210 | $0.03 | 87867 |
-| 211 | $0.04 | 90517 |
+| 207 | $0.49 | 77900 |
+| 208 | $0.07 | 83914 |
+| 209 | $0.05 | 85927 |
+| 210 | $0.04 | 87867 |
+| 211 | $0.05 | 90517 |
 | 212 | $0.06 | 95371 |
-| 213 | $0.03 | 96255 |
+| 213 | $0.04 | 96255 |
 | 214 | $0.04 | 98233 |
-| 215 | $0.03 | 99052 |
-| 216 | $0.02 | 99553 |
-| 217 | $0.02 | 99904 |
-| 218 | $0.02 | 100414 |
-| 219 | $0.02 | 100841 |
-| 220 | $0.03 | 101589 |
+| 215 | $0.04 | 99052 |
+| 216 | $0.03 | 99553 |
+| 217 | $0.03 | 99904 |
+| 218 | $0.03 | 100414 |
+| 219 | $0.03 | 100841 |
+| 220 | $0.04 | 101589 |
 | 221 | $0.03 | 102304 |
-| 222 | $0.03 | 103047 |
+| 222 | $0.04 | 103047 |
 | 223 | $0.03 | 103676 |
-| 224 | $0.03 | 104604 |
-| 225 | $0.03 | 105703 |
-| 226 | $0.03 | 106466 |
-| 227 | $0.02 | 106812 |
-| 228 | $0.03 | 108512 |
-| 229 | $0.03 | 109479 |
-| 230 | $0.03 | 110112 |
-| 231 | $0.04 | 112584 |
+| 224 | $0.04 | 104604 |
+| 225 | $0.04 | 105703 |
+| 226 | $0.04 | 106466 |
+| 227 | $0.03 | 106812 |
+| 228 | $0.04 | 108512 |
+| 229 | $0.04 | 109479 |
+| 230 | $0.04 | 110112 |
+| 231 | $0.05 | 112584 |
 | 232 | $0.04 | 114516 |
-| 233 | $0.03 | 115219 |
-| 234 | $0.03 | 115766 |
+| 233 | $0.04 | 115219 |
+| 234 | $0.04 | 115766 |
 | 235 | $0.15 | 131266 |
-| 236 | $0.03 | 131750 |
-| 237 | $0.03 | 132161 |
-| 238 | $0.03 | 132995 |
-| 239 | $0.07 | 138771 |
-| 240 | $0.03 | 139439 |
-| 241 | $0.03 | 140022 |
-| 242 | $0.03 | 140819 |
-| 243 | $0.08 | 146749 |
-| 244 | $0.03 | 147314 |
+| 236 | $0.04 | 131750 |
+| 237 | $0.04 | 132161 |
+| 238 | $0.04 | 132995 |
+| 239 | $0.09 | 138771 |
+| 240 | $0.04 | 139439 |
+| 241 | $0.04 | 140022 |
+| 242 | $0.04 | 140819 |
+| 243 | $0.09 | 146749 |
+| 244 | $0.04 | 147314 |
 | 245 | $0.04 | 148097 |
-| 246 | $0.04 | 149463 |
-| 247 | $0.04 | 150212 |
+| 246 | $0.05 | 149463 |
+| 247 | $0.05 | 150212 |
 | 248 | $0.04 | 150865 |
-| 249 | $0.03 | 151166 |
-| 250 | $0.03 | 151531 |
-| 251 | $0.03 | 151987 |
+| 249 | $0.04 | 151166 |
+| 250 | $0.05 | 151531 |
+| 251 | $0.04 | 151987 |
+| 252 | $0.04 | 152557 |
+| 253 | $0.05 | 153260 |
+| 254 | $0.04 | 154179 |
+| 255 | $0.05 | 154482 |
+| 256 | $0.49 | 77901 |
+| 257 | $0.08 | 83916 |
+| 258 | $0.04 | 85885 |
+| 259 | $0.04 | 87598 |
+| 260 | $0.05 | 90529 |
+| 261 | $0.07 | 94923 |
+| 262 | $0.03 | 95761 |
+| 263 | $0.04 | 96202 |
+| 264 | $0.03 | 96496 |
+| 265 | $0.03 | 96940 |
+| 266 | $0.04 | 97196 |
+| 267 | $0.03 | 97963 |
+| 268 | $0.05 | 100429 |
+| 269 | $0.04 | 101316 |
+| 270 | $0.04 | 101907 |
+| 271 | $0.03 | 102809 |
+| 272 | $0.04 | 103577 |
+| 273 | $0.07 | 107816 |
+| 274 | $0.16 | 123524 |
+| 275 | $0.04 | 124381 |
+| 276 | $0.04 | 124966 |
+| 277 | $0.04 | 125859 |
+| 278 | $0.04 | 126724 |
+| 279 | $0.04 | 127197 |
+| 280 | $0.05 | 128747 |
+| 281 | $0.04 | 129179 |
+| 282 | $0.04 | 129925 |
+| 283 | $0.05 | 130735 |
+| 284 | $0.04 | 131364 |
+| 285 | $0.04 | 132278 |
+| 286 | $0.05 | 133348 |
+| 287 | $0.05 | 134550 |
+| 288 | $0.04 | 135748 |
+| 289 | $0.05 | 136509 |
+| 290 | $0.04 | 137320 |
+| 291 | $0.05 | 138080 |
+| 292 | $0.04 | 138734 |
+| 293 | $0.05 | 139618 |
+| 294 | $0.10 | 147675 |
+| 295 | $0.04 | 148085 |
+| 296 | $0.05 | 148449 |
+| 297 | $0.04 | 148980 |
+| 298 | $0.48 | 77964 |
+| 299 | $0.06 | 83976 |
+| 300 | $0.03 | 85913 |
+| 301 | $0.02 | 86658 |
+| 302 | $0.06 | 91560 |
+| 303 | $0.02 | 92123 |
+| 304 | $0.02 | 92505 |
+| 305 | $0.02 | 93049 |
+| 306 | $0.02 | 93416 |
+| 307 | $0.02 | 93828 |
+| 308 | $0.02 | 94248 |
+| 309 | $0.03 | 95298 |
+| 310 | $0.06 | 99858 |
+| 311 | $0.02 | 100461 |
+| 312 | $0.02 | 101069 |
+| 313 | $0.03 | 101672 |
+| 314 | $0.05 | 105261 |
+| 315 | $0.03 | 105987 |
+| 316 | $0.03 | 107383 |
+| 317 | $0.03 | 107889 |
+| 318 | $0.03 | 108693 |
+| 319 | $0.02 | 109055 |
+| 320 | $0.03 | 109678 |
+| 321 | $0.03 | 110262 |
+| 322 | $0.03 | 110785 |
+| 323 | $0.03 | 111721 |
+| 324 | $0.15 | 127210 |
+| 325 | $0.03 | 127731 |
+| 326 | $0.03 | 128069 |
+| 327 | $0.03 | 128625 |
+| 328 | $0.03 | 129490 |
+| 329 | $0.03 | 130065 |
+| 330 | $0.03 | 130815 |
+| 331 | $0.03 | 131862 |
+| 332 | $0.03 | 132808 |
+| 333 | $0.03 | 133337 |
+| 334 | $0.03 | 133630 |
+| 335 | $0.03 | 134043 |
+| 336 | $0.03 | 134599 |
+| 337 | $0.03 | 135271 |
+| 338 | $0.03 | 135869 |
+| 339 | $0.04 | 136992 |
+| 340 | $0.04 | 137943 |
+| 341 | $0.03 | 138844 |
+| 342 | $0.10 | 147746 |
+| 343 | $0.03 | 148128 |
+| 344 | $0.04 | 149082 |
+| 345 | $0.04 | 149832 |
+| 346 | $0.04 | 151594 |
+| 347 | $0.03 | 152157 |
+| 348 | $0.03 | 152579 |
 
 #### Conductor comments, by family
 
@@ -277,41 +376,41 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 8 | 4342 | $0.09 |
-| 🟢 Green | 7 | 3870 | $0.08 |
-| 🛠️ Refactor | 4 | 2061 | $0.04 |
-| 🔎 verify-green | 7 | 3870 | $0.08 |
-| 🔎 verify-refactor | 4 | 2061 | $0.04 |
-| 🔎 verify-<phase> (revised) | 7 | 3343 | $0.07 |
+| 🔴 Red | 10 | 5412 | $0.11 |
+| 🟢 Green | 9 | 4940 | $0.10 |
+| 🛠️ Refactor | 6 | 3131 | $0.06 |
+| 🔎 verify-green | 9 | 4940 | $0.10 |
+| 🔎 verify-refactor | 6 | 3131 | $0.06 |
+| 🔎 verify-<phase> (revised) | 8 | 3794 | $0.08 |
 | 🗺️ Plan | 1 | 582 | $0.01 |
-| 🗺️ verify-plan | 7 | 3120 | $0.06 |
-| ▶️ Resuming | 4 | 1413 | $0.03 |
+| 🗺️ verify-plan | 10 | 4633 | $0.09 |
+| ▶️ Resuming | 6 | 2386 | $0.05 |
 | ⛔ Bailed | 2 | 980 | $0.02 |
-| ⏹️ Stopped | 2 | 1007 | $0.02 |
-| Total | 39 | 19082 | $0.38 |
+| ⏹️ Stopped | 3 | 1542 | $0.03 |
+| Total | 52 | 25764 | $0.52 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 7 | 5 | 2 | 0 | 96 | 80 | 10 | 20 | 10203 | 71111 | 131889 | 0.44 |
-| prose | 24 | 0 | 0 | 0 | 967 | 913 | 24 | 48 | 137252 | 295233 | 1295698 | 4.64 |
+| plan | 10 | 7 | 3 | 0 | 129 | 105 | 13 | 26 | 13452 | 76342 | 189481 | 0.62 |
+| prose | 32 | 0 | 0 | 0 | 1323 | 1250 | 32 | 64 | 189443 | 365748 | 1754582 | 6.32 |
 | skill-edit | 6 | 0 | 0 | 0 | 150 | 133 | 37 | 50 | 11794 | 1627411 | 520232 | 1.58 |
-| red | 18 | 6 | 1 | 0 | 559 | 348 | 92 | 178 | 36398 | 1573298 | 319564 | 1.62 |
-| green | 20 | 4 | 6 | 0 | 1515 | 352 | 107 | 210 | 32678 | 1849424 | 274452 | 1.41 |
-| refactor | 5 | 1 | 0 | 0 | 67 | 32 | 14 | 26 | 2146 | 159635 | 76693 | 0.23 |
-| pin | 3 | 2 | 1 | 0 | 66 | 48 | 17 | 32 | 5122 | 256121 | 44412 | 0.19 |
+| red | 23 | 8 | 1 | 0 | 700 | 412 | 110 | 214 | 42552 | 1850547 | 416738 | 1.95 |
+| green | 24 | 6 | 6 | 0 | 1765 | 411 | 123 | 240 | 36784 | 2085390 | 335447 | 1.63 |
+| refactor | 7 | 1 | 0 | 0 | 83 | 43 | 18 | 34 | 2535 | 208254 | 104164 | 0.31 |
+| pin | 4 | 3 | 1 | 0 | 85 | 62 | 21 | 40 | 6190 | 315606 | 58812 | 0.24 |
 | exhausted | 1 | 0 | 0 | 0 | 46 | 20 | 4 | 8 | 1454 | 56592 | 12506 | 0.10 |
-| rebase | 3 | 1 | 0 | 0 | 450 | 123 | 32 | 62 | 11143 | 669878 | 75524 | 0.58 |
+| rebase | 9 | 3 | 1 | 0 | 2615 | 332 | 86 | 160 | 24586 | 1569069 | 267510 | 1.51 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 19 | 10 | 0 | 1692 | 416 | 109 | 210 | 41365 | 1599685 | 409158 | 1.60 |
-| developer | claude-sonnet-5-5 | 11 | 0 | 0 | 0 | 251 | 148 | 51 | 100 | 14483 | 853153 | 192724 | 0.71 |
-| developer | claude-opus-5-5 | 17 | 0 | 0 | 0 | 856 | 439 | 116 | 226 | 43296 | 2183221 | 333158 | 2.26 |
+| verifier | claude-sonnet-5-5 | 40 | 28 | 12 | 0 | 2741 | 584 | 148 | 282 | 53793 | 2094090 | 612132 | 2.28 |
+| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 428 | 228 | 74 | 144 | 21035 | 1186712 | 316371 | 1.12 |
+| developer | claude-opus-5-5 | 20 | 0 | 0 | 0 | 2254 | 573 | 153 | 296 | 52725 | 2880998 | 456155 | 2.95 |
 
 #### Rework and waste, by phase
 
@@ -325,7 +424,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 45 | 0.13 |
 | exhausted | 0 | 0.00 | 46 | 0.10 |
-| rebase | 0 | 0.00 | 0 | 0.00 |
+| rebase | 2165 | 0.93 | 0 | 0.00 |
 
 #### By step
 
@@ -340,6 +439,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `pr-body.sh` exits 2 and writes nothing to the PR when its current body cannot be read from GitHub (the read fails), naming the PR on stderr, so a failed read never replaces a body whose operator sections it could not see; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py` ⟦criterion 1⟧ | 6 | 2 | 0 | 0 | 0 | 0 | 110 | 28 | 56 | 8103 | 456317 | 97491 | 0.46 | 376 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `skills/tdd/SKILL.md`: the draft PR's first body (the `Closes #<n> — work in progress: <k> steps planned` body) is marked as the run's own part, and the progress PATCH after each green tick (`Closes #<n> — work in progress: <done> of <total> steps done`) writes the body through `$S/pr-body.sh` instead of a whole-body `-f body=` replacement, so a section an operator appended survives it ⟦skill-edit⟧ ⟦criterion 1⟧ | 19 | 0 | 0 | 0 | 0 | 0 | 646 | 40 | 62 | 90878 | 1496762 | 1279062 | 4.26 | 240 | unknown | unknown | unknown |  |  | full |
 | `skills/tdd/DRAFT-PR.md`: the ready PATCH sets the title and writes the body through `$S/pr-body.sh` instead of a whole-body `-f body=` replacement, so a `## Review notes` section appended after it survives a resumed run's next write ⟦skill-edit⟧ ⟦criterion 1⟧ | 8 | 1 | 0 | 0 | 0 | 0 | 268 | 43 | 80 | 27900 | 859037 | 196588 | 1.07 | 181 | 1/2 | unknown | unknown |  |  | full |
+| `pr-body.sh` given a PR whose current body is null (GitHub returns `"body": null` for an empty PR body) treats it as empty and writes the body-file's content as the run's marked part, exit 0, instead of raising TypeError; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 43 | 17 | 32 | 4468 | 235027 | 83875 | 0.28 | 281 | unknown | 0/5 | nothing-left |  |  | full |
+| `pr-body.sh` exits 2 and names the PR on stderr when the PATCH that writes the body fails (non-zero return from the GitHub write), instead of exiting 0; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 79 | 18 | 36 | 4635 | 284633 | 77739 | 0.27 | 311 | unknown | 0/5 | nothing-left |  |  | full |
+| A PR whose current body is non-empty and holds no run markers (a body a run wrote before this change) is replaced by the run's marked part alone, the legacy text dropped; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, with an in-case contrast: a current body of legacy text must not appear in the written body, so the case goes red when `body = mine` in `pr_body.py`'s no-marker fallback is mutated to `body = current + mine`; a pin on behaviour already implemented, expected green at once ⟦added⟧ ⟦criterion 1⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 235 | 61 | 112 | 16057 | 1000850 | 230412 | 1.06 | unknown | 1/2 | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -351,6 +453,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `pr-body.sh <pr-number> <body-file>` writes the run's body to the PR while keeping every part of the PR's current body the run did not author: given a current body holding the run's earlier, marked-as-the-run's-own content followed by an appended `## Review notes` section, the written body still carries `## Review notes` verbatim, and (contrast, in the same one case, in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write) the run's own part holds the new body-file's content and none of the earlier run content; exit 0. The minimum: `veri/pr_body.py` imports `github` as its sibling modules do (`try: from veri import github` / `except ImportError: import github`; that fallback is the veri-module convention, as in `refactor_candidates.py`, `unlabel_issue.py` and `pr_ready.py`, and is not this step's behaviour to test), and splices the run's part into the current body with `re.sub` given a replacement function (`lambda _: mine`) rather than the string, because a string replacement makes `re.sub` read backslash escapes in the run's part ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.05 |
 | `pr-body.sh` given a PR whose current body holds no part marked as the run's own (an empty body, or one a run wrote before this change) writes the body-file's content as the run's own marked part, so the next write through `pr-body.sh` keeps what is appended after it; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py` ⟦criterion 1⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 51 | 0.10 |
 | `pr-body.sh` exits 2 and writes nothing to the PR when its current body cannot be read from GitHub (the read fails), naming the PR on stderr, so a failed read never replaces a body whose operator sections it could not see; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py` ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.04 |
+| `pr-body.sh` given a PR whose current body is null (GitHub returns `"body": null` for an empty PR body) treats it as empty and writes the body-file's content as the run's marked part, exit 0, instead of raising TypeError; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.04 |
+| `pr-body.sh` exits 2 and names the PR on stderr when the PATCH that writes the body fails (non-zero return from the GitHub write), instead of exiting 0; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.04 |
 
 #### Structural pass
 
@@ -364,19 +468,21 @@ Stopped: nothing-structural
 | `pr-body.sh <pr-number> <body-file>` writes the run's body to the PR while keeping every part of the PR's current body the run did not author: given a current body holding the run's earlier, marked-as-the-run's-own content followed by an appended `## Review notes` section, the written body still carries `## Review notes` verbatim, and (contrast, in the same one case, in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write) the run's own part holds the new body-file's content and none of the earlier run content; exit 0. The minimum: `veri/pr_body.py` imports `github` as its sibling modules do (`try: from veri import github` / `except ImportError: import github`; that fallback is the veri-module convention, as in `refactor_candidates.py`, `unlabel_issue.py` and `pr_ready.py`, and is not this step's behaviour to test), and splices the run's part into the current body with `re.sub` given a replacement function (`lambda _: mine`) rather than the string, because a string replacement makes `re.sub` read backslash escapes in the run's part ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `pr-body.sh` given a PR whose current body holds no part marked as the run's own (an empty body, or one a run wrote before this change) writes the body-file's content as the run's own marked part, so the next write through `pr-body.sh` keeps what is appended after it; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py` ⟦criterion 1⟧ | 1 | 1 | 0 | nothing-structural 1 |
 | `pr-body.sh` exits 2 and writes nothing to the PR when its current body cannot be read from GitHub (the read fails), naming the PR on stderr, so a failed read never replaces a body whose operator sections it could not see; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py` ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 5 | ? | ? | nothing-left 3, nothing-structural 2 |
+| `pr-body.sh` given a PR whose current body is null (GitHub returns `"body": null` for an empty PR body) treats it as empty and writes the body-file's content as the run's marked part, exit 0, instead of raising TypeError; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `pr-body.sh` exits 2 and names the PR on stderr when the PATCH that writes the body fails (non-zero return from the GitHub write), instead of exiting 0; one case in `skills/tdd/scripts/tests/py/unit/test_pr_body.py`, driven in-process with `run_cli`, faking only the GitHub read and write, red before the fix ⟦added⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 7 | ? | ? | nothing-left 5, nothing-structural 2 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 0 | 0 | 1 | 0 | 0 | 1 | 1 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 2 | 5 | 1 | 1 | 2 |
-| fast | 21 | 22 | 24 | 23 | 21 | 22 | 25 | 22 | 30 | 25 | 23 | 23 | 22 | 22 | 22 | 21 | 21 | 21 | 21 | 22 | 21 | 23 | 21 |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 22 | 195 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 0 | 0 | 1 | 0 | 0 | 1 | 1 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 2 | 5 | 1 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 3 | 924 |
+| fast | 21 | 22 | 24 | 23 | 21 | 22 | 25 | 22 | 30 | 25 | 23 | 23 | 22 | 22 | 22 | 21 | 21 | 21 | 21 | 22 | 21 | 23 | 21 | 22 | 21 | 22 | 23 | 30 | 30 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 22 | 195 | 23 | 26 | 40 | 34 | 23 | 22 | 23 | 252 | 24 | 226 | 196 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 337 | 634 | 248190 | 6558703 | 2750970 | 24.52 (estimate) |
+| total | 444 | 836 | 328790 | 8154959 | 3659472 | 33.27 (estimate) |
