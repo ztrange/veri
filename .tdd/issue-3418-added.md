@@ -1,0 +1,1 @@
+- [ ] fix the CI failure: skills/tdd/scripts/tests/py/unit/test_dispatch.py — FAILED skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its_issue_has_no_comments_issue_3418 - AssertionError: unfaked queued_merges call: the case reads the real process table ⟦ci-repair⟧ ⟦criterion 1⟧
