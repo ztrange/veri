@@ -101,7 +101,7 @@ def stop_leaves(run):
         try:
             if pid_file.supervising(pid, name):
                 os.kill(int(pid), signal.SIGTERM)
-            elif pid_file.detached(pid):
+            elif pid_file.detached(pid) and pid_file.start_matches(tdd + entry, pid):
                 os.killpg(int(pid), signal.SIGTERM)
                 termed.append(int(pid))
         except GONE:

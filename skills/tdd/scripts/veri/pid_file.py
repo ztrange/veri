@@ -75,12 +75,14 @@ def recorded_started(path):
     pid = recorded_alive(path)
     if pid is None:
         return None
-    with open(_pid_path(path), "rb") as f:
+    return pid if start_matches(_pid_path(path), pid) else None
+
+
+def start_matches(file, pid):
+    with open(file, "rb") as f:
         f.readline()
         started = f.readline().decode().strip()
-    if started and started != _ps("lstart", pid):
-        return None
-    return pid
+    return not started or started == _ps("lstart", pid)
 
 
 def live_conductor(path):
