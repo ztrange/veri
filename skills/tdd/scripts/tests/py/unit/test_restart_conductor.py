@@ -396,7 +396,7 @@ def test_3223_after_a_relaunch_it_goes_on_watching_and_when_the_new_launch_ends_
     usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     log = tmp_path / ".tdd" / "conductor-7.log"
     log.write_text("".join(json.dumps(r) + "\n" for r in [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]))
-    alive = iter([True, True, False, True, False])
+    alive = iter([True, True, False, False, False, True, False, False, False])
     states = iter(["stopped", "✅ Done"])
     calls = []
 
@@ -474,7 +474,7 @@ def _relaunch_setup(tmp_path, monkeypatch, alive_script, states):
 def test_3223_when_the_new_conductor_is_not_yet_recorded_right_after_the_relaunch_the_watch_waits_for_it_and_goes_on_watching(tmp_path, run_cli, monkeypatch):
     # initial check, watch, exit, then two empty polls after the relaunch, the new conductor, its end
     restart_conductor, alive = _relaunch_setup(
-        tmp_path, monkeypatch, [True, True, False, False, False, True, False], ["stopped", "✅ Done"])
+        tmp_path, monkeypatch, [True, True, False, False, False, False, False, True, False, False, False], ["stopped", "✅ Done"])
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
@@ -492,7 +492,7 @@ def test_3223_when_no_conductor_is_recorded_within_the_bound_after_the_relaunch_
 
 def test_3369_a_relaunched_conductor_whose_init_record_is_not_yet_written_is_not_stopped_for_the_growth_its_predecessor_accrued(tmp_path, run_cli, monkeypatch):
     restart_conductor, alive = _relaunch_setup(
-        tmp_path, monkeypatch, [True, True, False, True, True, False], ["stopped", "✅ Done"])
+        tmp_path, monkeypatch, [True, True, False, False, False, True, True, False, False, False], ["stopped", "✅ Done"])
     pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
     calls = []
     monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run, pending.exists())), raising=False)
@@ -506,7 +506,7 @@ def test_3369_a_relaunched_conductor_whose_init_record_is_not_yet_written_is_not
 def test_3369_a_relaunched_conductor_whose_own_session_growth_reaches_85_percent_of_the_knob_is_stopped_again(tmp_path, run_cli, monkeypatch):
     # initial check, watch, exit, the new conductor, its watch (growth reached), its exit
     restart_conductor, alive = _relaunch_setup(
-        tmp_path, monkeypatch, [True, True, False, True, True, False], ["stopped", "✅ Done"])
+        tmp_path, monkeypatch, [True, True, False, False, False, True, True, False, False, False], ["stopped", "✅ Done"])
     usage = lambda n: {"type": "assistant", "message": {"id": f"n{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     log = tmp_path / ".tdd" / "conductor-7.log"
     calls = []
