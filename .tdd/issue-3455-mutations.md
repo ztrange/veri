@@ -32,3 +32,21 @@ skills/tdd/scripts/tests/py/unit/test_wait_ci.py
 command 192
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_naming_no_ci_run_for_the_full_head_earlier_than_the_default_when_ci_no_run_wait_is_an_explicit_60_issue_3455
 
+before 40
+d660d33e605452c652f602287a1dd35143bf2528
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_naming_ci_no_run_wait_when_it_is_digits_followed_by_a_non_digit_issue_3455
+
+file 34
+skills/tdd/scripts/veri/wait_ci.py
+old 36
+re.fullmatch(r"[0-9]+", no_run_wait)
+new 32
+re.match(r"[0-9]+", no_run_wait)
+context 48
+    if not re.fullmatch(r"[0-9]+", no_run_wait):
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_naming_ci_no_run_wait_when_it_is_digits_followed_by_a_non_digit_issue_3455
+
