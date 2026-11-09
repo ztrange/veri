@@ -1531,3 +1531,24 @@ def test_main_renders_a_diff_prompt_without_the_author_less_block_when_the_log_h
     prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
 
     assert (code, "already present" in prompt, "skills/tdd/SCRIPTS.md" in prompt) == (0, False, False)
+
+
+def test_main_keeps_leaf_output_and_reason_files_out_of_a_diff_prompt_that_carries_the_author_less_block_3404(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "events.jsonl").write_text(
+        '{"ts": 1, "awake": 1, "issue": "3404", "actor": "", "phase": "", "step": "", '
+        '"event": "skill-edit-no-author", "attempt": "", "skill_commit": "", "unit": "skills/tdd/SCRIPTS.md"}\n')
+    (tdd / "issue-3404-step3-develop.out").write_text("ZEBRA-RATIONALE-OUT the developer reasoned thus\n")
+    (tdd / "issue-3404-step3-develop.reason").write_text("ZEBRA-RATIONALE-REASON because it was upstream\n")
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "3404")
+
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    out, _ = capsysbinary.readouterr()
+    prompt = out.decode("utf-8", "surrogateescape")
+
+    assert (code, "already present" in " ".join(prompt.split()), "ZEBRA-RATIONALE" in prompt) == (0, True, False)
