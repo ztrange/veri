@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from conftest import ROOT
+from conftest import ROOT, bare_route
 
 SPEC = ["--spec", ".tdd/issue-0-spec.md"]
 
@@ -40,7 +40,7 @@ def test_main_1621_routes_a_green_whose_wrong_test_names_a_contradicted_case_to_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_1621_prints_revise_and_exits_3_when_the_green_report_has_no_wrong_test_line(
@@ -99,7 +99,7 @@ def test_main_1621_finds_a_real_pytest_function_from_the_repository_root(
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=ROOT)
 
-    assert (code, stdout) == (0, "red %s\n" % pytest_case)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % pytest_case)
 
 
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
@@ -117,7 +117,7 @@ def test_main_1621_refuses_a_wrong_test_naming_no_case_only_its_own_red_or_a_mis
         report = tmp_path / ("report-%d.txt" % number)
         report.write_text("SUITE: make test\n" + line + "\n")
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own_id], cwd=ROOT)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
     for argv in ([], [str(report)], [str(report), own_id, "extra"], ["", own_id], [str(report), ""], SPEC + [str(report)], SPEC + [str(report), own_id, "extra"], SPEC + ["", own_id], ["--spec", "", str(report), own_id]):
         code, stdout, stderr = run_cli(wrong_test_route, argv, cwd=ROOT)
         results.append((code, stdout, stderr))
@@ -151,7 +151,7 @@ def test_main_1621_routes_a_revise_green_report_in_the_revise_template_shape_to_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
@@ -186,7 +186,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_backticks
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_quotes_to_a_red_over_that_case(
@@ -204,7 +204,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_double_qu
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quotes_to_a_red_over_that_case(
@@ -222,7 +222,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_curly_quo
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_bare_test_form_to_a_red_over_that_case(
@@ -240,7 +240,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_bare_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_bare_test_form_to_a_red_over_that_case(
@@ -259,7 +259,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_go_case_in_the_ba
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "TestMainReturnsZero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite_case_form_to_a_red_over_that_case(
@@ -276,7 +276,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "checkout.spec.ts::checkout accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
@@ -315,7 +315,7 @@ def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_
             "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
 
     assert results == [(0, "red %s\n" % pytest_case), (0, "red %s\n" % bash_case)]
 
@@ -351,7 +351,7 @@ def test_main_1621_counts_a_test_prefixed_python_function_only_when_defined_in_a
             "WRONG_TEST: the case `%s` asserts the opposite of the criterion\n" % case + "CONTRADICTS: `%s`\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=repo)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
 
     assert results == [(3, "revise\n"), (0, "red %s\n" % case)]
 
@@ -462,7 +462,7 @@ def test_main_2878_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_it
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_2878_prints_revise_and_exits_3_for_a_green_report_whose_wrong_test_line_is_none(
@@ -499,7 +499,7 @@ def test_main_1735_prints_revise_for_a_second_green_of_a_step_whose_log_already_
         report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case + "CONTRADICTS: %s\n" % case)
         code, stdout, stderr = run_cli(
             wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
         (tmp_path / ".tdd" / "events.jsonl").write_text(
             '{"event": "reroute", "step": "%s"}\n' % step)
 
@@ -525,7 +525,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_pytest_function_in_th
         report = tmp_path / ("green-report-%d.txt" % number)
         report.write_text("SUITE: make test\nWRONG_TEST: %s asserts the opposite of the criterion\n" % case)
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
 
     assert results == [(0, "repair %s\n" % added), (0, "repair %s\n" % own)]
 
@@ -551,7 +551,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_a_bash_name_case_in_the
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % added)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % added)
 
 
 def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_file_as_a_red_record_case(
@@ -573,7 +573,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_in_the_same_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red_record_names_no_case_only_its_file(
@@ -595,7 +595,7 @@ def test_main_1765_prints_red_for_a_wrong_test_naming_an_older_case_when_the_red
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), edited], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1765_prints_repair_for_a_wrong_test_naming_an_existing_case_the_step_red_edited_and_listed_in_its_record(
@@ -617,7 +617,7 @@ def test_main_1765_prints_repair_for_a_wrong_test_naming_an_existing_case_the_st
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), older], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % edited)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % edited)
 
 
 def test_main_1765_prints_revise_for_a_wrong_test_naming_a_case_outside_the_step_red_record_and_in_no_suite(
@@ -716,8 +716,8 @@ def test_main_1808_prints_revise_for_a_missing_test_or_wrong_test_report_once_th
     events = tmp_path / ".tdd" / "events.jsonl"
 
     def answers(reports):
-        return [run_cli(wrong_test_route, SPEC + [str(r), "test_other"], cwd=tmp_path)[:2]
-                for r in reports]
+        return [(code, bare_route(stdout)) for code, stdout, _ in
+                (run_cli(wrong_test_route, SPEC + [str(r), "test_other"], cwd=tmp_path) for r in reports)]
 
     events.write_text('{"event": "reroute", "step": "another step"}\n')
     other_step = answers((missing, wrong))
@@ -861,7 +861,7 @@ def test_main_1862_prints_supersede_naming_every_older_case_a_green_report_lists
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "supersede %s %s\n" % (first, second))
+    assert (code, bare_route(stdout)) == (0, "supersede %s %s\n" % (first, second))
 
 
 def test_main_1862_prints_revise_when_superseded_lines_are_joined_by_a_wrong_test_naming_another_older_case_the_step_does_not_supersede(
@@ -906,7 +906,7 @@ def test_main_1865_prints_red_over_another_existing_case_a_wrong_test_line_says_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicting)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicting)
 
 
 def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_faults_it_and_cites_another_existing_case_only_as_the_pattern_to_follow(
@@ -932,7 +932,7 @@ def test_main_1865_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_1865_prints_missing_behaviour_of_the_first_well_formed_missing_test_line_skipping_an_empty_one_before_it(
@@ -988,7 +988,7 @@ def test_main_1865_prints_red_over_the_one_case_a_green_report_lists_as_supersed
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1865_prints_red_over_the_one_case_the_remaining_superseded_lines_name_when_another_superseded_line_is_empty(
@@ -1011,7 +1011,7 @@ def test_main_1865_prints_red_over_the_one_case_the_remaining_superseded_lines_n
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_in_backticks(
@@ -1034,7 +1034,7 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_in_backt
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 @pytest.mark.parametrize("indent", [" ", "  ", "   "])
@@ -1081,7 +1081,7 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_before_a
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1865_prints_repair_keeping_the_superseded_cases_a_repair_report_also_carries(
@@ -1105,7 +1105,7 @@ def test_main_1865_prints_repair_keeping_the_superseded_cases_a_repair_report_al
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s %s\n" % (own, older))
+    assert (code, bare_route(stdout)) == (0, "repair %s %s\n" % (own, older))
 
 
 def test_main_1865_prints_revise_for_one_or_several_superseded_lines_once_the_step_log_holds_a_reroute_event(
@@ -1156,7 +1156,7 @@ def test_main_2568_prints_red_over_the_one_superseded_case_when_the_step_reroute
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_2568_prints_revise_and_exits_3_for_the_one_superseded_case_when_the_step_log_holds_a_red_reroute_and_no_resume_event(
@@ -1287,7 +1287,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_faults_it_and_cites_another_as_the_example_and_the_red_record_names_only_its_file(
@@ -1313,7 +1313,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_faults_it_and_cites_another_as_the_example_and_the_red_record_names_it_as_a_path_and_id(
@@ -1340,7 +1340,7 @@ def test_main_1932_prints_repair_of_the_step_own_case_when_the_wrong_test_line_f
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own_id], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_1932_prints_revise_when_a_missing_test_line_is_indented_as_a_quote_inside_prose(
@@ -1380,7 +1380,7 @@ def test_main_1932_prints_red_over_the_case_a_bulleted_superseded_line_names(
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1932_prints_revise_when_the_missing_test_line_says_none(
@@ -1416,7 +1416,7 @@ def test_main_1932_prints_red_over_the_one_case_a_backticked_superseded_line_nam
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 @pytest.mark.parametrize("indent", [" ", "  ", "   "])
@@ -1482,7 +1482,7 @@ def test_main_1932_prints_red_over_the_case_a_star_bulleted_superseded_line_name
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_1932_prints_revise_with_nothing_on_stderr_when_missing_test_none_precedes_a_well_formed_missing_test_line(
@@ -1520,7 +1520,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_backticks_an_it_title_in_a_foo_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 @pytest.mark.parametrize("filename", [
@@ -1545,7 +1545,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/%s::foo accepts a name" % filename], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file_is_a_js_or_ts_file_under_a_tests_directory_without_test_or_spec_in_its_name(
@@ -1567,7 +1567,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/__tests__/foo.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
@@ -1625,7 +1625,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 @pytest.mark.parametrize("call", ["it.only", "it.skip", "test.only", "test.skip"])
@@ -1646,7 +1646,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_an_only_or_skip_form_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 @pytest.mark.parametrize("head", ["it.each([1, 2])", "test.each([[1, 2]])", "it.each`\n  a | b\n  ${1} | ${2}\n`"])
@@ -1667,7 +1667,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % sibling)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
 def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
@@ -1707,7 +1707,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_s
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
+    assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
 def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_inside_a_block_comment(
@@ -1749,7 +1749,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_double_quotes_the_title_of_a_js
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
+    assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_in_curly_quotes_the_title_of_a_js_ts_case_to_a_red_over_that_title(
@@ -1769,7 +1769,7 @@ def test_main_1957_routes_a_wrong_test_naming_in_curly_quotes_the_title_of_a_js_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
+    assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
 def test_main_1957_routes_a_wrong_test_name_ending_in_either_ellipsis_form_to_a_red_over_the_one_title_it_is_a_prefix_of(
@@ -1830,7 +1830,7 @@ def test_main_1957_routes_a_wrong_test_name_that_is_the_exact_title_of_a_sibling
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red name\n", "")
+    assert (code, bare_route(stdout), stderr) == (0, "red name\n", "")
 
 
 def test_main_1957_prints_repair_listing_the_js_ts_case_a_quoted_superseded_line_names_by_its_title(
@@ -1857,7 +1857,7 @@ def test_main_1957_prints_repair_listing_the_js_ts_case_a_quoted_superseded_line
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair accepts a long name rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "repair accepts a long name rejects an empty name\n")
 
 
 def test_main_1957_prints_red_over_the_full_title_when_a_superseded_line_names_a_js_ts_case_by_a_cut_name_ending_in_an_ellipsis(
@@ -1876,7 +1876,7 @@ def test_main_1957_prints_red_over_the_full_title_when_a_superseded_line_names_a
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_1957_prints_revise_when_a_wrong_test_cut_name_ending_in_an_ellipsis_expands_to_the_step_own_case(
@@ -1948,7 +1948,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_it_call_on_a_l
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red %s\n" % sibling, "")
+    assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
 def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_call_of_a_js_ts_test_file(
@@ -2037,7 +2037,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "red doesn't crash on null\n", "")
+    assert (code, bare_route(stdout), stderr) == (0, "red doesn't crash on null\n", "")
 
 
 def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_single_quoted_title_holding_double_quotes(
@@ -2130,7 +2130,7 @@ def test_main_1957_prints_repair_without_a_duplicate_when_a_superseded_cut_name_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "repair rejects an empty name\n")
 
 
 def test_main_1957_prints_repair_without_the_other_recorded_case_when_a_two_case_record_and_a_superseded_cut_name_expands_to_the_second_recorded_case(
@@ -2158,7 +2158,7 @@ def test_main_1957_prints_repair_without_the_other_recorded_case_when_a_two_case
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair accepts a long name\n")
+    assert (code, bare_route(stdout)) == (0, "repair accepts a long name\n")
 
 
 def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_a_recorded_case_and_the_wrong_test_names_no_case_that_routes(
@@ -2351,7 +2351,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_ts_case_by_a_backticked_path_then_a_curly_quoted_title(
@@ -2370,7 +2370,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_ts_case_by_a_path_then_a_separator_then_an_unquoted_title(
@@ -2389,7 +2389,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_ts_case_by_a_path_then_a_separator_then_a_double_quoted_title(
@@ -2408,7 +2408,7 @@ def test_main_2227_prints_red_over_the_title_when_a_superseded_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_revise_when_a_superseded_line_holds_only_a_backticked_test_file_path_and_names_no_title(
@@ -2449,7 +2449,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_an
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red " + full + "\n")
+    assert (code, bare_route(stdout)) == (0, "red " + full + "\n")
 
 
 def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_three_dots_in_the_middle(
@@ -2471,7 +2471,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_has_th
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red " + full + "\n")
+    assert (code, bare_route(stdout)) == (0, "red " + full + "\n")
 
 
 def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_ends_in_an_ellipsis_prefix(
@@ -2493,7 +2493,7 @@ def test_main_2227_prints_red_over_the_full_title_when_a_superseded_title_ends_i
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "CotizadorPage.test.tsx::CotizadorPage accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red " + full + "\n")
+    assert (code, bare_route(stdout)) == (0, "red " + full + "\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_backticked_path_then_a_double_quoted_title(
@@ -2510,7 +2510,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_backticked_path_then_a_curly_quoted_title(
@@ -2527,7 +2527,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_path_then_a_separator_then_an_unquoted_title(
@@ -2544,7 +2544,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_ts_case_by_a_path_then_a_separator_then_a_double_quoted_title(
@@ -2561,7 +2561,7 @@ def test_main_2227_prints_red_over_the_title_when_a_wrong_test_line_names_a_js_t
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_2254_prints_red_over_the_full_name_when_a_lone_superseded_line_names_an_earlier_pytest_case_by_a_bare_name_cut_short_with_an_ellipsis(
@@ -2579,7 +2579,7 @@ def test_main_2254_prints_red_over_the_full_name_when_a_lone_superseded_line_nam
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_main_2254_prints_red_over_the_older_case_a_revise_green_report_names_only_on_a_superseded_line_as_a_node_id(
@@ -2600,7 +2600,7 @@ def test_main_2254_prints_red_over_the_older_case_a_revise_green_report_names_on
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % older)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
 def test_superseded_2453_writes_no_unresolved_line_for_a_case_the_step_itself_records(
@@ -2681,7 +2681,7 @@ def test_main_2596_prints_repair_for_a_wrong_test_naming_the_own_vitest_case_wit
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), title], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % title)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % title)
 
 
 def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_test_naming_the_own_vitest_case_under_nested_describes(
@@ -2706,7 +2706,7 @@ def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_te
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), title], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % title)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % title)
 
 
 def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_test_naming_the_own_python_method_with_its_class_prefix_and_file_path(
@@ -2730,7 +2730,7 @@ def test_main_2596_prints_repair_with_the_bare_recorded_case_name_for_a_wrong_te
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), case], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % case)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % case)
 
 
 def test_main_2565_resolves_an_unquoted_superseded_line_naming_a_case_whose_own_title_begins_with_an_issue_reference_to_the_full_title(
@@ -2761,7 +2761,7 @@ def test_main_2807_prints_red_over_the_go_case_a_superseded_line_names_from_a_go
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red TestOther\n")
+    assert (code, bare_route(stdout)) == (0, "red TestOther\n")
 
 
 def test_main_2807_prints_revise_for_a_superseded_line_naming_a_go_func_defined_only_in_a_file_not_named_test_go(
@@ -2792,7 +2792,7 @@ def test_main_2807_prints_red_over_the_go_case_a_wrong_test_line_names_as_a_bare
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red TestOther\n")
+    assert (code, bare_route(stdout)) == (0, "red TestOther\n")
 
 
 def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_name_from_go_test_files(
@@ -2811,7 +2811,7 @@ def test_main_2807_prints_supersede_naming_both_go_cases_two_superseded_lines_na
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "TestAdded"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "supersede TestFirst TestSecond\n")
+    assert (code, bare_route(stdout)) == (0, "supersede TestFirst TestSecond\n")
 
 
 def test_main_2807_prints_revise_when_a_wrong_test_names_only_the_step_own_go_case(
@@ -3133,7 +3133,7 @@ def test_main_3007_criterion_2_a_contradicts_line_naming_an_existing_other_case_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
 
 
 def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_with_no_contradicts_line_routes_repair_of_the_step_own_case(
@@ -3152,7 +3152,7 @@ def test_main_3007_criterion_1_a_wrong_test_naming_an_existing_other_case_with_n
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_3007_criterion_3_a_case_on_both_lines_routes_red_by_the_contradicts_line_only_and_the_cited_case_is_not_listed(
@@ -3173,7 +3173,7 @@ def test_main_3007_criterion_3_a_case_on_both_lines_routes_red_by_the_contradict
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % contradicted)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
     assert cited not in stdout
 
 
@@ -3194,7 +3194,7 @@ def test_main_3007_criterion_9_a_contradicts_line_naming_a_js_ts_case_by_a_backt
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red rejects an empty name\n")
+    assert (code, bare_route(stdout)) == (0, "red rejects an empty name\n")
 
 
 def test_main_3007_criterion_4_a_contradicts_line_naming_a_case_defined_nowhere_is_not_a_red_route_and_falls_to_revise_with_the_usual_empty_stderr(
@@ -3230,7 +3230,7 @@ def test_main_3007_criterion_4_a_contradicts_line_naming_the_step_own_case_route
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_3135_criterion_1_prints_missing_for_a_behaviour_inside_a_later_step_ledger_text_but_not_its_criterion_text(
@@ -3425,7 +3425,7 @@ def test_main_3292_prints_repair_of_the_step_own_case_for_a_wrong_test_naming_no
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_3292_prints_repair_of_the_step_own_case_for_a_green_report_saying_wrong_test_in_prose_without_a_wrong_test_line_and_naming_no_case(
@@ -3442,7 +3442,7 @@ def test_main_3292_prints_repair_of_the_step_own_case_for_a_green_report_saying_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair %s\n" % own)
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
 
 
 def test_main_3292_prints_repair_exhausted_and_exits_1_for_a_wrong_test_naming_no_case_once_the_log_holds_a_repair_reroute_after_the_first(
@@ -3463,7 +3463,7 @@ def test_main_3292_prints_repair_exhausted_and_exits_1_for_a_wrong_test_naming_n
     for log in (first, first + '{"event": "reroute", "step": "%s", "kind": "repair"}\n' % step):
         events.write_text(log)
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
 
     assert results == [(0, "repair %s\n" % own), (1, "repair-exhausted %s\n" % own)]
 
@@ -3490,7 +3490,7 @@ def test_main_3292_keeps_repair_for_a_log_holding_only_a_repair_reroute_and_revi
     for report, log in ((unnamed, repair), (named, first + repair)):
         events.write_text(log)
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
-        results.append((code, stdout))
+        results.append((code, bare_route(stdout)))
 
     assert results == [(0, "repair %s\n" % own), (3, "revise\n")]
 
@@ -3509,7 +3509,7 @@ def test_main_3292_prints_revise_for_a_green_report_whose_only_wrong_test_mentio
         report = tmp_path / ("green-report-%s.txt" % label)
         report.write_text("SUITE: make test\n%s\n" % line)
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
-        results.append((label, code, stdout))
+        results.append((label, code, bare_route(stdout)))
 
     assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n")]
 
@@ -3529,7 +3529,7 @@ def test_main_3292_routes_a_quoted_wrong_test_mention_to_revise_like_a_negated_o
         report = tmp_path / ("green-report-%s.txt" % label)
         report.write_text("SUITE: make test\n%s\n" % line)
         code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
-        results.append((label, code, stdout))
+        results.append((label, code, bare_route(stdout)))
 
     assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n"),
                        ("unquoted", 0, "repair %s\n" % own)]
