@@ -21,7 +21,7 @@ EVENT_FILES = {
 }
 
 
-PLACED = r"\)?[.:](\s|\Z)"
+PLACED = r"\)?[.:](\s|\Z)|\) and does not bail"
 
 
 def unpointed_sends(text):
@@ -98,7 +98,7 @@ def test_every_line_sending_the_run_to_stopping_points_at_stopping_md_1716():
     """Subject is source text: each line of SKILL.md that sends the run to *Stopping* names the file to read."""
     sends = [line for line in _outside_green(_lines_with_pin()) if re.search(EVENT_FILES["STOPPING.md"], line)]
 
-    assert len(sends) == 2
+    assert len(sends) == 3
     assert [line for line in sends if "`<base directory>/STOPPING.md`" not in line] == []
 
 
