@@ -1297,3 +1297,200 @@ def test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_o
 
     block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
     assert "ETA: no rate yet" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_the_eta_range_from_the_lane_quartile_wall_seconds(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+
+    def closed(number, wall):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": recent, "closedAt": recent, "blockedBy": [], "labels": [],
+                "lane": "mu", "wallSeconds": wall}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            {"number": 42, "title": "PRD 14.2 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            closed(60, 10000),
+            closed(61, 20000),
+            closed(62, 40000),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: 0.23 to 0.93 days" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_the_eta_range_with_the_longest_open_blocked_by_chain_when_longer_than_the_child_count(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+
+    def closed(number, wall):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": recent, "closedAt": recent, "blockedBy": [], "labels": [],
+                "lane": "mu", "wallSeconds": wall}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [42], "labels": [], "lane": "mu"},
+            {"number": 42, "title": "PRD 14.2 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [50], "labels": [], "lane": "mu"},
+            {"number": 50, "title": "unrelated blocker", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            closed(60, 10000),
+            closed(61, 20000),
+            closed(62, 40000),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: 0.23 to 1.39 days" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_eta_uses_lower_and_upper_quartile_wall_seconds_not_min_and_max_with_five_closed_issues(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+
+    def closed(number, wall):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": recent, "closedAt": recent, "blockedBy": [], "labels": [],
+                "lane": "mu", "wallSeconds": wall}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            {"number": 42, "title": "PRD 14.2 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            closed(60, 1000),
+            closed(61, 10000),
+            closed(62, 20000),
+            closed(63, 40000),
+            closed(64, 400000),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: 0.23 to 0.93 days" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers(report_repo):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    recent = (now - datetime.timedelta(days=1)).isoformat()
+
+    def closed(number, wall, lane):
+        return {"number": number, "title": "other work %d" % number, "state": "CLOSED",
+                "updatedAt": recent, "closedAt": recent, "blockedBy": [], "labels": [],
+                "lane": lane, "wallSeconds": wall}
+
+    def child(number, lane, blocked_by):
+        return {"number": number, "title": "PRD 14.%d slice" % number, "state": "OPEN",
+                "updatedAt": "2026-11-02T10:00:00Z", "blockedBy": blocked_by, "labels": [], "lane": lane}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            child(41, "la", [60]),
+            child(42, "lb", []),
+            child(43, "lc", []),
+            child(44, "ld", []),
+            closed(60, 8640, "la"),
+            closed(61, 17280, "lb"),
+            closed(62, 43200, "lc"),
+            closed(63, 86400, "ld"),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: 0.40 to 4.00 days" in block

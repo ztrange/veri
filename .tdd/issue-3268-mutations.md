@@ -136,3 +136,76 @@ True]
 command 175
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 323
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_the_eta_range_with_the_longest_open_blocked_by_chain_when_longer_than_the_child_count
+
+file 27
+projects/dashboard/serve.py
+old 71
+longest = max([len(children)] + [chain(c["number"]) for c in children])
+new 23
+longest = len(children)
+command 173
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_the_eta_range_with_the_longest_open_blocked_by_chain_when_longer_than_the_child_count
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 318
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_lower_and_upper_quartile_wall_seconds_not_min_and_max_with_five_closed_issues
+
+file 27
+projects/dashboard/serve.py
+old 28
+walls[(len(walls) - 1) // 4]
+new 8
+walls[0]
+command 168
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_lower_and_upper_quartile_wall_seconds_not_min_and_max_with_five_closed_issues
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 322
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 172
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+
+file 27
+projects/dashboard/serve.py
+old 9
+max(fast)
+new 9
+min(fast)
+command 172
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+
+file 27
+projects/dashboard/serve.py
+old 9
+min(slow)
+new 9
+max(slow)
+command 172
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+
+file 27
+projects/dashboard/serve.py
+old 17
+if b in by_number
+new 7
+if True
+command 172
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+
