@@ -57,20 +57,21 @@ def start_conductor(tmp_path, issue):
     return Conductor(proc, int(pid_file.read_text()))
 
 
-def watch_hook(tmp_path):
-    """Env for a watcher that touches a marker file as it first goes to wait, i.e. once its snapshot of live conductors is taken."""
+def watch_hook(tmp_path, delay=0):
+    """Env for a watcher that sleeps delay seconds at startup, before its snapshot of live conductors, then touches a marker file as it first goes to wait, i.e. once that snapshot is taken."""
     hook = tmp_path / "hook"
     hook.mkdir(exist_ok=True)
     marker = tmp_path / "watcher-snapshotted"
     (hook / "sitecustomize.py").write_text(
         "import os, time\n"
         "_sleep = time.sleep\n"
+        "_sleep(float(os.environ.get('WATCH_DELAY', '0')))\n"
         "def sleep(seconds):\n"
         "    if os.environ.get('WATCH_MARKER'):\n"
         "        open(os.environ['WATCH_MARKER'], 'w').close()\n"
         "    _sleep(seconds)\n"
         "time.sleep = sleep\n")
-    env = {**os.environ, "WATCH_MARKER": str(marker),
+    env = {**os.environ, "WATCH_MARKER": str(marker), "WATCH_DELAY": str(delay),
            "PYTHONPATH": os.pathsep.join(filter(None, [str(hook), os.environ.get("PYTHONPATH")]))}
     return env, marker
 
@@ -103,7 +104,7 @@ def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_
         make_run(repo, 101, first.pid)
         make_run(repo, 102, gone.pid)
         make_run(repo, 103, second.pid)
-        env, marker = watch_hook(tmp_path)
+        env, marker = watch_hook(tmp_path, delay=5)
         watcher = subprocess.Popen([str(SHIM), "--max-wait", "30"], cwd=repo, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
         wait_for_snapshot(watcher, marker, bound=20)
