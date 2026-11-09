@@ -2089,6 +2089,54 @@ def test_rerecord_earlier_for_a_diff_checked_step_rewrites_the_changed_case_so_a
     assert (rerecorded, code, out) == (0, 0, "")
 
 
+@pytest.mark.process("a real git repository under tmp_path, asked for the commits of a step and the file at HEAD")
+def test_rerecord_earlier_derives_the_step_base_from_its_own_commits_so_a_later_plan_commit_neither_empties_the_diff_nor_blocks_the_rewrite_3468(
+        tmp_path, run_cli, tests_frozen):
+    earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
+    older = "def test_older_case():\n    assert True\n"
+    pinned = older + "\n\ndef test_pinned_3468():\n    assert %s\n"
+
+    def build(name, edited):
+        repo = tmp_path / name
+        (repo / "tests").mkdir(parents=True)
+        (repo / ".tdd").mkdir()
+        (repo / "tests/test_suite.py").write_text(older)
+        (repo / "notes.txt").write_text("a\n")
+        git(repo, "init", "-q", "-b", "tdd/9-x")
+        git(repo, "add", "tests", "notes.txt")
+        git(repo, "commit", "-q", "-m", "base")
+        (repo / "tests/test_suite.py").write_text(pinned % "1 == 2")
+        run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=repo)
+        ledger = repo / ".tdd/issue-9.md"
+        ledger.write_text("- [x] %s\n- [ ] %s\n- [ ] %s\n" % (earlier, edit, later))
+        git(repo, "add", "tests", ".tdd/issue-9.md")
+        git(repo, "commit", "-q", "-m", "red")
+        if edited:
+            (repo / "tests/test_suite.py").write_text(pinned % "2 == 2")
+        else:
+            (repo / "notes.txt").write_text("b\n")
+        git(repo, "add", "tests", "notes.txt")
+        git(repo, "commit", "-q", "-m", "edit")
+        ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (earlier, edit, later))
+        git(repo, "add", ".tdd/issue-9.md")
+        git(repo, "commit", "-q", "-m", "tick")
+        ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n- [ ] step four\n" % (earlier, edit, later))
+        git(repo, "add", ".tdd/issue-9.md")
+        git(repo, "commit", "-q", "-m", "plan: rewrite")
+        record = repo / run_cli(tests_frozen, ["path", earlier], cwd=repo)[1].strip()
+        return repo, ledger, record
+
+    results = []
+    for name, edited in (("changed", True), ("unchanged", False)):
+        repo, ledger, record = build(name, edited)
+        before = record.read_bytes()
+        code = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=repo,
+                       env={"VERI_ISSUE": "9"})[0]
+        results.append((code, record.read_bytes() != before))
+
+    assert results == [(0, True), (2, False)]
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_a_changed_frozen_case_of_a_step_not_diff_checked_is_not_rerecorded_and_check_earlier_names_it_2199(
         tmp_path, run_cli, tests_frozen):
