@@ -1123,3 +1123,35 @@ def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_windo
         code = None
 
     assert (code, capsys.readouterr().out) == (None, "")
+
+
+def test_main_prints_stalled_and_exits_0_when_the_events_conductor_log_and_detached_command_output_are_all_older_than_the_stall_window_issue_3360(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    for name in ("events.jsonl", "conductor-7.log", "tip-full.out"):
+        (tdd / name).write_text("x\n")
+        os.utime(tdd / name, (1000, 1000))
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
