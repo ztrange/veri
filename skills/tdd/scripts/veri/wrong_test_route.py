@@ -113,6 +113,7 @@ def _prose_claim(line):
     if line.startswith("WRONG_TEST:"):
         return False
     return any(not re.search(r'\bnot\s+(a\s+)?$', line[:m.start()])
+               and not re.search(r'[\'"`“‘]$', line[:m.start()])
                for m in re.finditer("WRONG_TEST", line))
 
 
