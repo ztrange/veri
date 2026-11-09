@@ -40,7 +40,8 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
   and report) and 2 when it died recording nothing. A 2 while `$S/stop-requested.sh` exits 0 and prints
   `now` is the stop being carried out: not a preflight failure and not a poisoned baseline. The
   conductor goes to *Stopping* (`Read` and run `<base directory>/STOPPING.md`), records a `stop` event
-  and no `bail`, and posts no preflight refusal.
+  and no `bail`, and posts no preflight refusal. A wait that exits 2 while no `now` stop is pending is
+  still read as the failure it reports.
 - A red baseline stops the run as a preflight failure, whatever state the caller's checkout is in. A red
   output naming no file, or any file still red alone, stops the run.
 - A red full tier stops the run. A red output naming no file, or any file still red alone, stops the run.
