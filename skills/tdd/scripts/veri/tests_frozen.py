@@ -761,7 +761,7 @@ def main(argv):
                     lines.append(frozen_record._format_line())
                 for name in files:
                     try:
-                        added = _added_cases(name)
+                        added = [] if name in re.findall(r"⟦guard-subject: ([^⟧]+)⟧", trailing_markers(step)) else _added_cases(name)
                         kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
                     except UnclosedCase as error:
                         raise LookupError("%s: %s" % (name, error))
