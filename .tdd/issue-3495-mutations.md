@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 184
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_launches_nothing_on_the_tick_where_a_run_seen_live_is_restarting_beside_one_live_run_at_target_2_issue_3495
 
+before 40
+e4908614f1eaae4078bcb1a64795fd7b1656619b
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 205
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_again_beside_a_live_run_and_a_never_seen_restarting_run_issue_3495
+
