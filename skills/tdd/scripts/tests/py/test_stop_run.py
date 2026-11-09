@@ -739,3 +739,40 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     monkeypatch.chdir(real.parent.parent)
 
     assert loaded.inside_own_scripts() is True
+
+
+@pytest.mark.process("a real detached session leader with a descendant in its group, sent a real TERM")
+def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detached_command_in_fulltier_pid(
+        tmp_path, run_cli, stop_run, started):
+    repo = new_repo(tmp_path.resolve() / "repo")
+    run = repo / ".tdd" / "wt" / "5"
+    live_conductor(run, started)
+    child_file = tmp_path / "child.pid"
+    command = subprocess.Popen(["sh", "-c", 'sleep 60 & echo $! > "$0"; wait', str(child_file)],
+                               start_new_session=True)
+    started.append(command)
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % command.pid)
+    for _ in range(200):
+        if child_file.is_file() and child_file.read_text().strip():
+            break
+        time.sleep(0.05)
+    child = int(child_file.read_text())
+
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo)
+
+        assert (code, out, err) == (0, str(run) + "\n", "")
+        assert gone(command), "the detached command %d was not signalled" % command.pid
+        for _ in range(40):
+            try:
+                os.kill(child, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("the detached command's descendant %d was not signalled" % child)
+    finally:
+        try:
+            os.kill(child, 9)
+        except OSError:
+            pass

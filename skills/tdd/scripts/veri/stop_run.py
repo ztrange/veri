@@ -87,10 +87,13 @@ def stop_leaves(run):
         if name == "conductor":
             continue
         pid = pid_file.number_in(tdd + entry)
-        if pid is None or not pid_file.supervising(pid, name):
+        if pid is None:
             continue
         try:
-            os.kill(int(pid), signal.SIGTERM)
+            if pid_file.supervising(pid, name):
+                os.kill(int(pid), signal.SIGTERM)
+            else:
+                os.killpg(int(pid), signal.SIGTERM)
         except (ProcessLookupError, PermissionError, OverflowError):
             pass
 
