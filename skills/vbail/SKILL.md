@@ -49,14 +49,18 @@ and label it with `$S/classify-bail.sh <cause>`; check its answer against the le
   without a verdict.`). No source tells these apart, so ask the human which;
 - any other cause: a real bail of that cause and its classify-bail category.
 
-## A usage limit or sleep is not a bail
+## A usage limit, sleep or API outage is not a bail
+
+An API outage is the same: a conductor log that ends in an API-unreachable error such as
+`Can't reach the API server`. It gets the same save and restore, and the run resumes once the
+API answers.
 
 In the run's worktree `.tdd/wt/<n>` (the only place this save and restore happens), save every
 uncommitted leaf edit, untracked files included, as a binary-safe patch under `.tdd/`
 (`git add -A && git diff --cached --binary HEAD > <file>`, then `git reset`), and restore that
-worktree's tree to the last commit (`git reset --hard && git clean -fd`). When usage is back,
-re-apply the patch in that worktree with `git apply <file>`, then resume. It spends no resume
-and costs no park.
+worktree's tree to the last commit (`git reset --hard && git clean -fd`). When usage is back
+(or the API answers), re-apply the patch in that worktree with `git apply <file>`, then resume.
+It spends no resume and costs no park.
 
 ## A first real bail: resume once
 
