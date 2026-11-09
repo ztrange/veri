@@ -204,3 +204,8 @@ def test_mutation_probe_takes_its_veri_values_from_the_one_reader_2506():
 
 def test_watch_runs_takes_its_veri_values_from_the_one_reader_2958():
     assert direct_reads(VERI / "watch_runs.py") == []
+
+
+@pytest.mark.tree_audit("build_verify_prompt.py")
+def test_build_verify_prompt_takes_the_issue_number_from_the_one_reader_3404():
+    assert direct_reads(VERI / "build_verify_prompt.py") == []
