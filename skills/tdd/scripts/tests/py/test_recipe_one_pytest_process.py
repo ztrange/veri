@@ -549,3 +549,25 @@ def test_3392_make_unit_with_unit_tests_naming_two_dashboard_paths_starts_no_ver
                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
 
     assert log.read_text().splitlines() == [], ran.stdout + ran.stderr
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit started for real over a planted tree with two fast-tier cases and a dashboard project, UNIT_TESTS naming one veri path and two dashboard files")
+def test_3392_make_unit_with_one_veri_path_and_two_dashboard_paths_runs_the_pytest_leg_on_the_veri_path_only(tmp_path):
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    unit = tree / "skills" / "tdd" / "scripts" / "tests" / "py" / "unit"
+    (unit / "test_planted_other.py").write_text(PLANTED_CASES.split("@pytest.mark.process")[0].replace("def test_small", "def test_other_unit"))
+    log.write_text("")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    env["VERI_PYTEST_LEGS"] = os.environ["VERI_PYTEST_LEGS"]
+    env["VERI_PYTEST_WORKERS"] = "1"
+    env["PLANTED_RAN_LOG"] = str(log)
+    env["PATH"] = os.path.dirname(sys.executable) + os.pathsep + env["PATH"]
+    named = ("UNIT_TESTS=skills/tdd/scripts/tests/py/unit/test_planted_small.py "
+             "projects/dashboard/tests/test_serve_a.py projects/dashboard/tests/test_serve_b.py")
+
+    ran = subprocess.run(["make", "-C", str(tree), "unit", named], env=env,
+                         stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, sorted(log.read_text().splitlines())) == \
+        (0, ["pytest small"]), ran.stdout + ran.stderr
