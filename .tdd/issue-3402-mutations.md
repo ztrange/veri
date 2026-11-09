@@ -5,3 +5,17 @@ skills/tdd/scripts/tests/py/unit/test_run_conductor_launch_env.py
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_conductor_launch_env.py::test_3402_the_launch_record_holds_veri_variables_and_no_other_variable_of_the_launching_environment
 
+before 40
+15fd19f67a4cfdd355447ede9867baf3a9a16e09
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_record_is_absent_from_the_relaunched_process
+
+before 40
+15fd19f67a4cfdd355447ede9867baf3a9a16e09
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 196
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_around_it_still_reach_the_relaunched_process
+

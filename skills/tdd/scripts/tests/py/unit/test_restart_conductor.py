@@ -784,3 +784,80 @@ def test_3382_the_watchers_own_at_ledger_stop_is_removed_at_the_conductors_exit_
         stops[name] = stop.read_text().strip() if stop.exists() else None
 
     assert stops == {"watcher": None, "operator": "at-ledger"}
+
+
+def test_3402_the_detach_wrapper_launches_run_conductor_with_the_veri_values_in_the_launch_record_not_the_watchers_environment(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
+    launched = []
+
+    class FakePopen:
+        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
+            seen = os.environ if env is None else env
+            launched.append(seen.get("VERI_STEP_GROWTH"))
+
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.chdir(start)
+
+    restart_conductor.detach_leaf("7")
+
+    assert launched == ["18"]
+
+
+def test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_record_is_absent_from_the_relaunched_process(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
+    launched = []
+
+    class FakePopen:
+        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
+            seen = os.environ if env is None else env
+            launched.append((seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET")))
+
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "99")
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.chdir(start)
+
+    restart_conductor.detach_leaf("7")
+
+    assert launched == [("18", None)]
+
+
+def test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_around_it_still_reach_the_relaunched_process(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    main = tmp_path / "main"
+    gitdir = main / ".git" / "worktrees" / "7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    start = main / ".tdd" / "wt" / "7"
+    start.mkdir(parents=True)
+    (start / ".git").write_text(f"gitdir: {gitdir}\n")
+    (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\nVERI_STRAY_LINE\nVERI_REFACTOR_BUDGET=3\n")
+    launched = []
+
+    class FakePopen:
+        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
+            seen = os.environ if env is None else env
+            launched.append((seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET"), "VERI_STRAY_LINE" in seen))
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.chdir(start)
+
+    restart_conductor.detach_leaf("7")
+
+    assert launched == [("18", "3", False)]
