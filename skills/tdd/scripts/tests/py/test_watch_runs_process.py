@@ -35,7 +35,7 @@ class Conductor:
 
 
 def start_conductor(tmp_path, issue):
-    """A live claude whose parent's command line is run_conductor.py <issue>."""
+    """A live claude whose parent's command line is run_conductor.py <issue>, working in tmp_path/repo."""
     bin_dir = tmp_path / ("bin-%s" % issue)
     bin_dir.mkdir()
     claude = bin_dir / "claude"
@@ -46,7 +46,7 @@ def start_conductor(tmp_path, issue):
                       "trap 'kill $p; wait $p; exit 0' TERM\nwait $p\n")
     script.chmod(0o755)
     pid_file = tmp_path / ("claude-%s.pid" % issue)
-    proc = subprocess.Popen([str(script), str(issue), str(pid_file)])
+    proc = subprocess.Popen([str(script), str(issue), str(pid_file)], cwd=tmp_path / "repo")
     deadline = time.monotonic() + 10
     while not (pid_file.exists() and pid_file.read_text().strip()):
         if time.monotonic() >= deadline:
