@@ -125,7 +125,13 @@ def report_blocks(repo):
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
 
     def eta_line(n, prd):
-        if any(i.get("lane") for i in open_children(n, prd)):
+        lanes = {i.get("lane") for i in open_children(n, prd)} - {None}
+        if lanes:
+            cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+            closed = [i for i in cache["issues"] if i["state"] == "CLOSED" and i.get("lane") in lanes
+                      and datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
+            if len(closed) < 3:
+                return "\n<p>ETA: no rate yet</p>"
             return ""
         return "\n<p>ETA: no lane: no ETA</p>"
 
