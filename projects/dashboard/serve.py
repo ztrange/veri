@@ -126,7 +126,8 @@ def report_blocks(repo):
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
 
     def eta_line(n, prd):
-        lanes = {i.get("lane") for i in open_children(n, prd)} - {None}
+        children = open_children(n, prd)
+        lanes = {i.get("lane") for i in children} - {None}
         if lanes:
             closed = closed_last_week(i for i in cache["issues"]
                                       if i["state"] == "CLOSED" and i.get("lane") in lanes)
@@ -137,7 +138,6 @@ def report_blocks(repo):
                 walls = sorted(i["wallSeconds"] for i in closed if i.get("lane") == lane)
                 fast.append(86400 / walls[(len(walls) - 1) // 4])
                 slow.append(86400 / walls[-1 - (len(walls) - 1) // 4])
-            children = open_children(n, prd)
             by_number = {i["number"]: i for i in cache["issues"] if i["state"] == "OPEN"}
 
             def chain(number):
