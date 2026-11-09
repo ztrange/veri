@@ -4,6 +4,7 @@ import os
 from event_log import read_events
 from pid_file import live_conductor
 
+OUTAGE = ("Can't reach the API server", "ENOTFOUND")
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped",
          "preflight-refused": "refused"}
 
@@ -38,6 +39,8 @@ def _launch_cause(run_dir, issue):
         return "killed" if launched else None
     if "limit" in result.get("result", ""):
         return "usage-limit"
+    if any(marker in result.get("result", "") for marker in OUTAGE):
+        return "outage"
     logs = sorted((os.path.join(tdd, n) for n in os.listdir(tdd) if n.endswith(".log")),
                   key=os.path.getmtime)
     limited = bool(logs) and any(r.get("error") == "rate_limit" for r in read_events(logs[-1], skip_unreadable=True))

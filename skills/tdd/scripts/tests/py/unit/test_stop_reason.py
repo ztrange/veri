@@ -372,3 +372,23 @@ def test_issue_2521_a_run_whose_end_mark_is_a_preflight_refusal_prints_refused_a
     without_log = run_cli(stop_reason, ["8"], cwd=tmp_path)
 
     assert (with_log[:2], without_log[:2]) == ((0, "refused red-baseline\n"), (0, "refused red-baseline\n"))
+
+
+def test_a_run_whose_conductor_log_ends_in_an_api_unreachable_error_prints_outage_and_its_text_and_the_usage_names_that_line_3483(tmp_path, run_cli):
+    stop_reason = importlib.import_module("veri.stop_reason")
+    for issue, text in (("7", "API Error: Can't reach the API server"),
+                        ("8", "getaddrinfo ENOTFOUND api.anthropic.com")):
+        run = tmp_path / ".tdd" / "wt" / issue / ".tdd"
+        run.mkdir(parents=True)
+        (run / "events.jsonl").write_text(json.dumps({"ts": 100, "issue": issue, "event": "step-done"}) + "\n")
+        (tmp_path / ".tdd" / ("conductor-%s.log" % issue)).write_text("".join(json.dumps(r) + "\n" for r in (
+            {"type": "system", "subtype": "init"},
+            {"type": "result", "is_error": True, "result": text})))
+
+    unreachable = run_cli(stop_reason, ["7"], cwd=tmp_path)
+    not_found = run_cli(stop_reason, ["8"], cwd=tmp_path)
+    usage = run_cli(stop_reason, [], cwd=tmp_path)
+
+    assert (unreachable[:2], not_found[:2], usage[0], "outage [<text>]" in usage[2]) == (
+        (0, "outage API Error: Can't reach the API server\n"),
+        (0, "outage getaddrinfo ENOTFOUND api.anthropic.com\n"), 2, True)

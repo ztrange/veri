@@ -7,7 +7,10 @@ import event_log
 import run_end
 import tunables
 
-USAGE = "usage: stop-reason.sh <issue>\n"
+USAGE = ("usage: stop-reason.sh <issue>\n"
+         "first line: running | done <pr> | bailed <phase> <classification> | stopped <mode> | "
+         "refused <check> | killed-external <leaf> | usage-limit [<reset text>] | outage [<text>] | "
+         "killed [<text>] | unknown [<text>]\n")
 
 
 def killed_external(events):
