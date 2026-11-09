@@ -355,7 +355,7 @@ def main(argv):
             sys.stdout.write(said)
         return graded
     if not authored:
-        event.append(".", {}, "skill-edit-no-author", ["unit=" + unit])
+        event.append(".", event.context(os.environ), "skill-edit-no-author", ["unit=" + unit])
     files = [path, grade_prose.graded_path(unit)] + [unit] * (authored or moved) + pins * authored
     subprocess.run(["git", "add", *files], check=True)
     subprocess.run(["git", "commit", "-q", "-m", "docs: requirements for %s, graded" % unit, *files], check=True)
