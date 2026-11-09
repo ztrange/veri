@@ -1383,3 +1383,40 @@ def test_main_prints_stalled_and_exits_0_when_the_events_conductor_log_and_detac
         code = None
 
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
+
+
+def test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_again_beside_a_live_run_and_a_never_seen_restarting_run_issue_3495(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    marker = tmp_path / ".tdd" / "wt" / "9" / ".tdd" / "restart-pending"
+    marker.parent.mkdir(parents=True)
+    marker.write_text(f"{os.getpid()}\n")
+    launches = []
+    waits = []
+
+    def launch(issue):
+        launches.append(issue)
+        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("- [ ] step\n")
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7", "8"] + launches, raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "4"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
