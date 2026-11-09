@@ -3,12 +3,14 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import json
 import glob
 import os
+import re
 import subprocess
 import sys
 import time
 from datetime import datetime
 
 import github
+import handoff_state
 import json_documents
 import paths
 import status
@@ -99,6 +101,28 @@ def pr_state(pr_url):
     return "MERGED" if pull["merged"] else pull["state"].upper()
 
 
+def issue_paths(issue):
+    """The backticked words of <issue>'s body: the repo paths it names."""
+    return re.findall(r"`([^`\s]+)`", github.gh_issue_view(issue, "body"))
+
+
+def run_pr_paths():
+    """{url: changed paths} of every open run draft PR (head tdd/…), on any machine."""
+    changed = {}
+    for pr in handoff_state.open_prs("number,url,isDraft,headRefName"):
+        head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
+        if pr["isDraft"] and head.startswith("tdd/"):
+            diff = subprocess.run(["gh", "pr", "diff", str(pr["number"]), "--name-only"],
+                                  capture_output=True, text=True)
+            changed[pr.get("url") or pr.get("html_url")] = diff.stdout.split()
+    return changed
+
+
+def overlaps(issue, changed):
+    """Whether <issue> names a path some open run draft PR in <changed> changes."""
+    return any(path in files for path in issue_paths(issue) for files in changed.values())
+
+
 def exit_line(issue):
     heading = next(iter(last_comment(issue).splitlines()), "")
     if heading.startswith("### ⛔ Bailed"):
@@ -179,7 +203,9 @@ def main(argv):
         if held < target and (previous is None or os.path.exists(ledger)) \
             and clock() >= resume_at:
             try:
-                previous = solvable_issues()[0]
+                queue = solvable_issues()
+                changed = run_pr_paths()
+                previous = [issue for issue in queue if not overlaps(issue, changed)][0]
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
