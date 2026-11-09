@@ -1,5 +1,8 @@
 """Emitted-text pins: every script's usage text on a missing argument, byte-identical by `cksum`.
 
+Each pin is the cksum of the `exit N` line, then the script's stdout then stderr with trailing
+newlines stripped, then one trailing newline — not of the bare usage text.
+
 Each case's subject is text the scripts emit, driven in-process through each script's module.
 """
 import importlib
