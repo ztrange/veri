@@ -56,6 +56,9 @@ def _run_line(path, events):
         _counts(events), _cost(events), _split(events))
 
 
+NONE_LINE = "<div>none</div>"
+
+
 def _journals():
     runs = pathlib.Path(os.environ["VERI_HOME"]) / "runs"
     for path in sorted(runs.glob("*.jsonl")):
@@ -78,7 +81,7 @@ def landed_lines():
             if e.get("event") == "merged" and e.get("tag"):
                 when = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(e["ts"])))
                 lines.append("<div>%s  %s  %s</div>" % (e["tag"], when, e.get("message", "")))
-    return lines or ["<div>none</div>"]
+    return lines or [NONE_LINE]
 
 
 def waiting_lines():
@@ -90,7 +93,7 @@ def waiting_lines():
         prs = [i for i, e in enumerate(events) if e.get("event") == "done" and e.get("pr")]
         if prs and not any(e.get("event") == "merged" for e in events[prs[-1]:]):
             lines.append("<div>#%s PR %s ready to merge</div>" % (path.stem, events[prs[-1]]["pr"]))
-    return lines or ["<div>none</div>"]
+    return lines or [NONE_LINE]
 
 
 SCRIPT = """<script>
