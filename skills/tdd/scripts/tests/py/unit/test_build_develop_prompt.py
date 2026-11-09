@@ -1531,6 +1531,16 @@ def test_cli_red_contradicted_builds_a_prompt_naming_the_case_to_update_and_the_
         0, [True] * (2 + len(footer)), 2, "", 2, "")
 
 
+def test_cli_red_contradicted_names_the_file_with_the_case_under_the_case_to_update_given_a_file_qualified_case_3367(
+        tmp_path, run_cli, build_develop_prompt):
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    case = "tests/py/unit/test_emitted_text.py::test_usage_output_on_a_missing_argument_is_unchanged"
+
+    code, out, err = run_cli(build_develop_prompt, ["red-contradicted", _spec(tmp_path), step, "make test", case])
+
+    assert (code, "### The case to update\n\n%s\n" % case in out) == (0, True)
+
+
 def test_cli_red_repair_prompt_carries_the_named_case_and_the_wrong_test_reason_and_tells_the_leaf_to_edit_that_case_only_never_create_a_suite_1765(
         tmp_path, run_cli, build_develop_prompt):
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
