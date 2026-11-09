@@ -1,0 +1,2 @@
+### The page's Waiting section also shows `#<run> PR <pr> ready to merge` for a journal whose last done event carrying a pr is followed by no merged event, as status.sh --report prints it, and none for the fixture's run 3277 whose done is followed by merged; pinned by a medium case that adds such a journal beside the fixture copied into tmp_path and starts the real server, the change confined to projects/dashboard/ ⟦criterion 1⟧
+- test-only | extract the repeated start-server/fetch-page/parse-Waiting-section block in `test_serve_get_root.py` into a shared helper
