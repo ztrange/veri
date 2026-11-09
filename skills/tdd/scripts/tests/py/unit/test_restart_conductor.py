@@ -637,3 +637,16 @@ def test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll(tmp
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.strip(), events[1:6]) == (0, "restarts 7 0", ["not-live", "sleep", "not-live", "sleep", "not-live"])
+
+
+def test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_three_consecutive_reads_ends_the_watch_with_restarts_7_0_and_exit_0(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    # arm live, then three consecutive not-live reads; the trailing live read must never be taken
+    alive = iter([True, False, False, False, True])
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), list(alive)) == (0, "restarts 7 0", [True])
