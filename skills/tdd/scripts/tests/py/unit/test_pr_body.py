@@ -54,3 +54,16 @@ def test_main_keeps_review_notes_appended_after_the_runs_part_and_rewrites_only_
     assert notes in written[0]
     assert "5 of 5 steps done" in written[0]
     assert "2 of 5 steps done" not in written[0]
+
+
+def test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    mine = "Closes #7 — keeps \\1 and \\g<0> and a lone \\"
+    current = "%s\nCloses #7 — work in progress\n%s\n\n## Review notes\n" % (BEGIN, END)
+    written = fake_gh_pr_body(monkeypatch, current)
+    body_file = tmp_path / "body.md"
+    body_file.write_text(mine)
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert written == ["%s\n%s\n%s\n\n## Review notes\n" % (BEGIN, mine, END)]
