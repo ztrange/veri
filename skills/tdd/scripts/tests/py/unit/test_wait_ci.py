@@ -2188,3 +2188,46 @@ def test_main_treats_a_corrupt_no_run_sighting_file_as_no_sighting_and_rewrites_
                              env={"VERI_POLL": "1", "VERI_CI_NO_RUN_WAIT": "10"}, cwd=work)
 
     assert (code, f"no CI run for {FULL_SHA}" in err, sighting.read_text().strip()) == (3, False, "100")
+
+
+def test_main_clears_the_no_run_sighting_when_a_call_sees_a_check_run_so_a_later_none_call_starts_a_new_grace_issue_3476(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+    state = {"clock": 0, "runs": []}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            return 0, f"{state['clock']}\n", ""
+        if line.startswith("sleep "):
+            state["clock"] += 1
+            return 0, "", ""
+        if line == PULL:
+            return 0, json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                                  "head": {"sha": FULL_SHA}}), ""
+        if ".github/workflows" in line:
+            if line.split("?")[0].endswith("ci.yml"):
+                return 0, json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                      "content": base64.b64encode(workflow.encode()).decode()}), ""
+            return 0, json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}]), ""
+        if line.endswith("/status"):
+            return 0, json.dumps({"statuses": []}), ""
+        if line.endswith("/check-runs?page=1"):
+            return 0, json.dumps({"total_count": len(state["runs"]), "check_runs": state["runs"]}), ""
+        if "/check-runs?page=" in line:
+            return 0, json.dumps({"total_count": 0, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+
+    observed = []
+    for start, runs in ((100, []), (103, [check_run("gates", FULL_SHA, "in_progress")]), (112, [])):
+        state["clock"] = start
+        state["runs"] = runs
+        code, out, err = run_cli(wait_ci, [PR, "3", "3600", FULL_SHA],
+                                 env={"VERI_POLL": "1", "VERI_CI_NO_RUN_WAIT": "10"}, cwd=work)
+        observed.append((code, f"no CI run for {FULL_SHA}" in err))
+
+    assert observed == [(3, False), (3, False), (3, False)]
