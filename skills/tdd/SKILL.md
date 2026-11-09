@@ -124,7 +124,8 @@ the one that loses nothing.
 
 **Before reading any leaf's exit 2 as killed-stuck, run `$S/stop-requested.sh`.** A pending `at-leaf` or `now`
 stop makes `supervise.sh` refuse the launch with exit 2 (and a `now` stop also kills a live leaf), so the wait comes back 2 exactly as a hung leaf's does: either pending
-mode explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`. Any other answer
+mode explains the 2, and the run goes to *Stopping* instead of bailing: when that happens, `Read` and run `<base directory>/STOPPING.md`.
+The same check covers an exit 2 from `$S/detach-command.sh wait` on the conductor's own command (the baseline or the full-suite run): a pending `now` makes that wait return 2 within one poll, so with `now` pending the run goes to *Stopping* (`Read` and run `<base directory>/STOPPING.md`) and does not bail or refuse preflight. Any other answer
 leaves the 2 to be read as the phase below reads it, with one check first, for a developer leaf and whatever the phase: when
 `.tdd/<name>.err` carries the supervisor's status line `supervise[<name>]: killed-external`, the leaf died with no recorded exit
 and veri did not kill it, so do not relaunch the leaf, and **bail** with cause `killed-external`, a system failure: `Read` and run `<base directory>/BAIL.md`. Any other exit 2 is left to be read as the phase below reads it.
