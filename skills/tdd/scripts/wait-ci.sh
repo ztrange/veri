@@ -8,7 +8,9 @@
 # 403/429 at once), a
 # check still pending past the deadline an earlier call recorded for the same head commit, or
 # checks never started: still queued VERI_CI_QUEUE_WAIT secs after the first call that saw them
-# queued · 3 a check is still pending, none has appeared yet, every one was SKIPPED, or the PR
+# queued, or a ready, mergeable PR's head with no check run and no commit status for
+# VERI_CI_NO_RUN_WAIT secs while a pull_request workflow exists (stderr: no CI run for <sha>)
+# · 3 a check is still pending, none has appeared yet, every one was SKIPPED, or the PR
 # still reports a head other than <head-sha>, when this call's <slice-seconds> run out.
 #
 # The deadline does not run only while every pending check is queued (or the PR reports a
@@ -22,6 +24,7 @@
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10); VERI_CI_RETRY_BACKOFF 1 (default)
 # doubles the retry sleep, 0 keeps it VERI_POLL; VERI_CI_QUEUE_WAIT secs checks may
-# stay queued before exit 2 (default 3600).
+# stay queued before exit 2 (default 3600); VERI_CI_NO_RUN_WAIT secs a head may have no check run
+# and no status before exit 2 (default 120, a non-negative whole number; anything else exit 2).
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/wait_ci.py" "$@"
