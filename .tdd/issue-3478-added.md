@@ -2,3 +2,4 @@
 - [ ] a skip line is printed once per (issue, PR, path) for the life of the dispatch process, not on every pass ⟦added⟧ ⟦criterion 3⟧
 - [ ] while every solvable issue overlaps, PR diffs are cached per (PR, head sha), issue bodies per process, and the open-PR list re-read at most once per VERI_DISPATCH_OVERLAP_POLL seconds (default 60; a bad value refused) ⟦added⟧ ⟦criterion 4⟧
 - [ ] the backtick-path extraction and the run-PR filter (draft on a tdd/ branch) are each pinned by a case that goes red when broken ⟦added⟧ ⟦criterion 1⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: the dispatch.sh entry states the once-per skip line, VERI_DISPATCH_OVERLAP_POLL and exit 2 on a failed overlap read (PR #3494 review) ⟦added⟧ ⟦criterion 5⟧
