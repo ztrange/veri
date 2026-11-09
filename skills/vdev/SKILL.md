@@ -63,6 +63,10 @@ Launches go through `$S/dispatch.sh`: it launches the next issue (the first line
 detached, never as a conductor inside this session, and only after the previous launch's ledger
 exists. The skill arms no ledger wait of its own.
 
+`dispatch.sh` skips a solvable issue whose named paths an open run draft PR changes, on any
+machine, a run on another machine included. It prints each skip line, and you report each one to
+the coordinator as an override (P4).
+
 Every launch, a resume included, appends with `>>` to `.tdd/conductor-<n>.log`, the file
 `stop-reason.sh` and `metrics.sh` read; none truncates it. A launch by hand follows the same
 form:
