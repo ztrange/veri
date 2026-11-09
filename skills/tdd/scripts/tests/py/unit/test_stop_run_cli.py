@@ -89,6 +89,31 @@ def test_stop_run_cli_issue_3375_mode_now_exits_2_naming_the_pid_and_the_run_whe
     assert (code, "4343" in err, str(run) in err) == (2, True, True)
 
 
+def test_stop_run_cli_issue_3375_all_mode_now_exits_2_when_one_runs_stop_exits_2_still_stopping_the_other_run(
+        tmp_path, run_cli, stop_run, world, monkeypatch):
+    live, args_of, terms = world
+    repo = tmp_path.resolve() / "repo"
+    refused_run = new_run(repo, "5", 4242)
+    (refused_run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    other_run = new_run(repo, "6", 4444)
+    (other_run / ".tdd" / "develop-red.pid").write_bytes(b"4545\n")
+    live.update({4242, 4343, 4444, 4545})
+    args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
+    args_of["4545"] = b"/bin/sh supervise.sh develop-red 6\n"
+    answer_kill = os.kill
+
+    def refuse_first_run_leaf(pid, sig):
+        if pid == 4343:
+            raise PermissionError(1, "Operation not permitted")
+        return answer_kill(pid, sig)
+
+    monkeypatch.setattr(os, "kill", refuse_first_run_leaf)
+
+    code, out, err = run_cli(stop_run, ["--all", "--mode", "now"], cwd=repo)
+
+    assert (code, "4343" in err, 4545 in terms) == (2, True, True)
+
+
 def test_stop_run_cli_a_missing_worktree_a_dead_conductor_and_all_with_no_live_run_each_exit_3_and_write_no_stop_file(
         tmp_path, run_cli, stop_run, world):
     live, args_of, terms = world
