@@ -216,9 +216,7 @@ def render(as_json, scope, read_states=True):
                     bare += 1
                 if not as_json:
                     activity = "  " + activity
-            except FileNotFoundError:
-                activity = ""
-            except ValueError:
+            except (FileNotFoundError, ValueError):
                 activity = ""
         elif has_ledger:
             bare += 1
