@@ -63,6 +63,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `missing-reroutes-exhausted` — a step's repeat `missing` reroutes spent
   `VERI_MISSING_REROUTE_BUDGET` and verify-green still names a behaviour no test pins →
   **process** failure (the methodology spoke: the tests still do not pin the criterion).
+- `repair-reroutes-exhausted` — a step's `WRONG_TEST` naming no case took its `repair` once
+  more after the free reroute, and the next such report still names no case → **process**
+  failure (the methodology spoke: the verifier still cannot say which test is wrong).
 - `graded-edit-outside-skill-edit` — a step not marked `⟦skill-edit⟧` changed a unit listed
   in a `GRADED` file (`graded-changed.sh` exited **1**) → **process** failure (the step
   edited graded prose by a route other than the ⟦skill-edit⟧ runner, and the plumbing did
