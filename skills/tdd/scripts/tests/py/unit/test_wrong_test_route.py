@@ -3596,3 +3596,21 @@ def test_main_3367_prints_a_file_qualified_contradicted_id_as_given_without_reso
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red %s\n" % qualified)
+
+
+def test_main_3367_prints_repair_with_the_file_of_the_red_test_id_for_the_step_own_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / "test_ledger.py").write_text("def %s():\n    pass\n" % own)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the red case omits the required environment stub and asserts a payload field the upstream never sends\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "tests/py/unit/test_ledger.py::" + own], cwd=tmp_path)
+
+    assert (code, stdout) == (0, "repair tests/py/unit/test_ledger.py::%s\n" % own)

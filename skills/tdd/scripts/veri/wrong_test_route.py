@@ -319,7 +319,8 @@ def main(argv):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
     if case is None and (_unparseable_claim(argv[0]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
-        write(sys.stdout, "repair " + _case_name(argv[1]))
+        file, sep, _ = argv[1].partition("::")
+        write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))
         return 0
     if case is None:
         write(sys.stdout, "revise")
