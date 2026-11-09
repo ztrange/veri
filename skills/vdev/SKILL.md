@@ -166,6 +166,10 @@ the job, briefed to return at most 10 lines and to read the skill at
 
 **Every brief for a review, hand-fix or merge subagent also says:**
 
+- Run `make unit` first. Start the full suite, or any suite beyond `make unit`, only while no
+  conductor baseline is running: a running baseline is a `.tdd/wt/<n>/.tdd/baseline-*.pid` with
+  no matching `.exit` whose pid is live, never a `pgrep` on the word "baseline".
+
 - Mutations (edit a file, run the suite, restore it) run only in a scratch clone or the run's
   own worktree, never in the primary clone.
 - Every `cd` in a chained command makes the whole command fail when the `cd` fails (`&&` or
