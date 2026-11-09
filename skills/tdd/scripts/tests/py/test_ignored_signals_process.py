@@ -57,6 +57,17 @@ def test_a_detach_leaf_signal_case_passes_in_a_pytest_run_started_with_int_term_
     assert done.returncode == 0, done.stdout[-1500:]
 
 
+def test_the_detach_leaf_signal_cases_outcome_wait_ends_inside_its_child_sessions_per_case_timeout_3498():
+    import re
+    from test_detach_leaf import SIGNAL_OUTCOME_WAIT
+
+    source = pathlib.Path(__file__).read_text()
+    case = source.split("def test_a_detach_leaf_signal_case_passes", 1)[1].split("\n\n\n", 1)[0]
+    per_case_timeout = int(re.search(r"--timeout=(\d+)", case).group(1))
+
+    assert SIGNAL_OUTCOME_WAIT < per_case_timeout < CHILD_SESSION_WAIT
+
+
 CASES_AFTER_A_PROCESS_CASE = '''
 import signal
 

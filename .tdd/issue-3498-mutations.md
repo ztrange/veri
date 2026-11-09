@@ -1,0 +1,7 @@
+before 40
+0c22e1761008c4cc4a4d838f46b2a39f7d07da9e
+keep 59
+skills/tdd/scripts/tests/py/test_ignored_signals_process.py
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/test_ignored_signals_process.py::test_the_detach_leaf_signal_cases_outcome_wait_ends_inside_its_child_sessions_per_case_timeout_3498
+
