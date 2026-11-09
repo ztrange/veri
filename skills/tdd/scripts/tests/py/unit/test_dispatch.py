@@ -1690,3 +1690,53 @@ def test_main_reads_the_queue_at_most_once_per_overlap_poll_window_while_everyth
     code = dispatch.main(["--target", "2"])
 
     assert (code, queue_reads, len(waits)) == (0, [0, 70], 4)
+
+
+_RATE_LIMITED = "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n"
+
+
+def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, reads):
+    """Fake gh at the process boundary over REST: the open-PR list (one run draft PR changing other.py),
+    issue 12's body naming dispatch.py and the PR's diff; <limited_read> is refused as rate-limited until
+    <limited_until>, and every read of it is recorded in <reads>."""
+    import subprocess
+
+    def run(argv, **kw):
+        if argv[:3] == ["gh", "api", "rate_limit"]:
+            return subprocess.CompletedProcess(argv, 0, stdout=f"{limited_until}\n", stderr="")
+        what = "diff" if argv[:3] == ["gh", "pr", "diff"] else "list" if "/pulls" in argv[2] else "body"
+        if what == limited_read and not argv[2].endswith("page=2"):
+            reads.append(times[len(waits)])
+            if times[len(waits)] < limited_until:
+                return subprocess.CompletedProcess(argv, 1, stdout='{"message": "API rate limit exceeded"}',
+                                                   stderr=_RATE_LIMITED)
+        if what == "list":
+            page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
+                   ' "head": {"ref": "tdd/80-other", "sha": "aaa"}}]'
+            return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
+        if what == "diff":
+            return subprocess.CompletedProcess(argv, 0, stdout="skills/tdd/SCRIPTS.md\n", stderr="")
+        body = '{"body": "Change `skills/tdd/scripts/veri/dispatch.py`.", "labels": []}'
+        return subprocess.CompletedProcess(argv, 0, stdout=body, stderr="")
+
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+
+
+@pytest.mark.parametrize("limited_read", ["list", "body"])
+def test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset_then_reads_again_and_launches_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch, limited_read):
+    times = [0, 50, 100]
+    reads = []
+    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
+                                    waits_before_stop=len(times))
+    _gh_rest(monkeypatch, dispatch, times, waits, 100, limited_read, reads)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, reads, launches) == (None, [0, 100], ["12"])
