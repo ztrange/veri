@@ -192,6 +192,15 @@ def record(mark, deadline):
         warn(error)
 
 
+def first_sighting(mark, now):
+    try:
+        with open(mark) as found:
+            return int(found.read())
+    except (OSError, ValueError):
+        record(mark, now)
+        return now
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -293,13 +302,7 @@ def main(argv):
         if none and mergeable:
             if none_head != head:
                 none_head = head
-                sighting = ".tdd/ci-none-" + head
-                try:
-                    with open(sighting) as found:
-                        first_none = int(found.read())
-                except (OSError, ValueError):
-                    first_none = now
-                    record(sighting, now)
+                first_none = first_sighting(".tdd/ci-none-" + head, now)
             if now - first_none >= int(no_run_wait):
                 warn("no CI run for %s" % head)
                 return 2
@@ -312,13 +315,7 @@ def main(argv):
                 warn(error)
                 break
         if queued and not mismatched:
-            seen = ".tdd/ci-queued-" + (want or head)
-            try:
-                with open(seen) as found:
-                    first = int(found.read())
-            except (OSError, ValueError):
-                first = now
-                record(seen, now)
+            first = first_sighting(".tdd/ci-queued-" + (want or head), now)
             if now - first > int(tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600")):
                 warn("checks of %s never started: queued since %s" % (pr, first))
                 return 2
