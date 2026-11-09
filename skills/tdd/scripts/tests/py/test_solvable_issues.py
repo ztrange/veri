@@ -381,6 +381,20 @@ def test_main_3460_withholds_an_issue_whose_own_run_branch_pr_is_ready_and_lists
     assert (code, out) == (0, "31\n")
 
 
+def test_main_3460_withholds_an_issue_whose_rest_own_run_branch_pr_carries_draft_false(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (40, 41)]))
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"state": "OPEN", "body": "Closes #40", "head": {"ref": "tdd/40-done-run"}, "draft": False},
+        {"state": "OPEN", "body": "Closes #41", "head": {"ref": "tdd/41-released-run"}, "draft": True}]))
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "41\n")
+
+
 def blocked_by(number, *refs):
     return dict(opted_in(number), body="## Blocked by\n\n" + "".join("- %s\n" % ref for ref in refs) + "\n## Notes\n\n#1\n")
 
