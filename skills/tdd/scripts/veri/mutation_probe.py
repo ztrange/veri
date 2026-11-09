@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import tunables
+from event_log import run_keeping_journal
 
 USAGE = "usage: mutation-probe.sh <file> <old> <new> -- <command…>"
 BEFORE_USAGE = "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <command…>"
@@ -20,15 +21,6 @@ def append_record(fields):
             for name, value in fields:
                 f.write(f"{name} {len(value)}\n{value}\n")
             f.write("\n")
-
-
-def run_keeping_journal(run):
-    journal = Path(".tdd/events.jsonl")
-    before = journal.read_bytes() if journal.exists() else None
-    ran = run()
-    if before is not None and not journal.read_bytes().startswith(before):
-        journal.write_bytes(before)
-    return ran
 
 
 def run_with(contents, command):

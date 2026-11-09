@@ -1,6 +1,7 @@
 """The one per-line parse of a run's events.jsonl and the one dollar/token sum over its
 `usage` events, which status.sh's run_activity and scope_totals both read through (#281)."""
 import json
+from pathlib import Path
 
 TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
                "cache_creation_input_tokens")
@@ -60,3 +61,12 @@ def usage_totals(events):
             dollars += float(line.get("total_cost_usd") or 0)
             tokens += sum(int(line.get(kind) or 0) for kind in TOKEN_KINDS)
     return dollars, tokens
+
+
+def run_keeping_journal(run):
+    journal = Path(".tdd/events.jsonl")
+    before = journal.read_bytes() if journal.exists() else None
+    ran = run()
+    if before is not None and not journal.read_bytes().startswith(before):
+        journal.write_bytes(before)
+    return ran
