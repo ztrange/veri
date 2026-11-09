@@ -2157,3 +2157,38 @@ def test_a_step_whose_issue_row_is_prefix_next_for_a_list_holding_rows_of_that_p
 
     listed = (tmp_path / "REQUIREMENTS.md").read_text()
     assert (code != 2, "| A3 | The widget is shiny. | gloss |" in listed) == (True, True), (code, err, listed)
+
+
+def test_a_requirements_table_without_its_header_and_separator_exits_2_naming_the_unit_and_header_before_any_author_while_the_same_row_under_a_header_is_applied_3445(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    original = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+                "| M9 | The widget is blue. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(original)
+    authors = []
+
+    def run(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
+    monkeypatch.setattr(skill_edit_step, "subprocess",
+                        types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
+
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| M9<reword> | new text | why |\n")
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "unit.md" in err and "header" in err, authors,
+            (tmp_path / "REQUIREMENTS.md").read_text()) == (2, True, [], original), (code, err)
+
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| M9<reword> | new text | why |\n")
+    code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code != 2, "| M9 | new text | why |" in (tmp_path / "REQUIREMENTS.md").read_text()) == (True, True), (code, err)
