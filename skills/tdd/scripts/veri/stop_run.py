@@ -92,7 +92,7 @@ def stop_leaves(run):
         try:
             if pid_file.supervising(pid, name):
                 os.kill(int(pid), signal.SIGTERM)
-            else:
+            elif pid_file.detached(pid):
                 os.killpg(int(pid), signal.SIGTERM)
         except (ProcessLookupError, PermissionError, OverflowError):
             pass
