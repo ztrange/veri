@@ -510,3 +510,23 @@ def test_3369_a_relaunched_conductor_whose_own_session_growth_reaches_85_percent
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, calls) == (0, [("stop", "at-ledger", "7"), ("launch", "7"), ("stop", "at-ledger", "7")])
+
+
+def test_3389_a_conductor_log_ending_in_an_init_record_after_a_usage_record_keeps_watching_with_no_restart_pending_and_no_stop(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    usage = {"type": "assistant", "message": {"id": "a", "usage": {"input_tokens": 80000, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "conductor-7.log").write_text(
+        "".join(json.dumps(r) + "\n" for r in [usage, {"type": "system", "subtype": "init"}]))
+    alive = iter([True, True, False])
+    calls = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    assert (code, out.strip(), calls, pending.exists()) == (0, "restarts 7 0", [], False)

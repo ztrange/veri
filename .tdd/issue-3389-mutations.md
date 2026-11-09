@@ -1,0 +1,7 @@
+before 40
+6642f10fa1aeda8789f94871b2ddbe55bf2633b9
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 198
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3389_a_conductor_log_ending_in_an_init_record_after_a_usage_record_keeps_watching_with_no_restart_pending_and_no_stop
+
