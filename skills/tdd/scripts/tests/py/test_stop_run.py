@@ -855,6 +855,36 @@ def test_3375_stop_run_cli_mode_now_kills_the_members_of_the_detached_command_s_
             pass
 
 
+@pytest.mark.process("two real sh -c session leaders, one veri's recorded command and one unrelated holding a recorded pid, sent real signals")
+def test_3375_stop_run_cli_mode_now_signals_a_detached_sh_c_only_when_its_recorded_start_time_still_matches_and_never_an_unrelated_sh_c_holding_the_pid(
+        tmp_path, run_cli, stop_run, started):
+    repo = new_repo(tmp_path.resolve() / "repo")
+    run = repo / ".tdd" / "wt" / "5"
+    live_conductor(run, started)
+    own = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & wait'], start_new_session=True)
+    unrelated = subprocess.Popen(["sh", "-c", "sleep 60 & wait"], start_new_session=True)
+    started.extend([own, unrelated])
+    own_started = subprocess.run(["ps", "-o", "lstart=", "-p", str(own.pid)],
+                                 stdout=subprocess.PIPE, text=True).stdout.strip()
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n%s\n" % (own.pid, own_started))
+    (run / ".tdd" / "fasttier.pid").write_text("%d\nThu Jan  1 00:00:00 1970\n" % unrelated.pid)
+    time.sleep(0.3)
+
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo,
+                                 env={"VERI_STOP_KILL_GRACE": "0.2"})
+
+        assert (code, out, err) == (0, str(run) + "\n", "")
+        assert gone(own), "veri's own detached command %d was not sent TERM then KILL" % own.pid
+        assert not gone(unrelated), "the unrelated sh -c %d holding the recorded pid was signalled" % unrelated.pid
+    finally:
+        for proc in (own, unrelated):
+            try:
+                os.killpg(proc.pid, 9)
+            except OSError:
+                pass
+
+
 def test_3375_stop_leaves_waits_the_kill_grace_the_env_names_between_the_term_and_the_kill_of_a_detached_group_and_by_default_waits_a_positive_time(
         monkeypatch, tmp_path, stop_run):
     import signal
