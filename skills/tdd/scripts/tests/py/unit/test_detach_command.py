@@ -617,3 +617,33 @@ def test_start_passes_a_trailing_alone_and_its_value_to_the_command_unchanged_29
 
     assert (code, [args[4:] for args in launches]) == (
         0, [["sh", "-c", 'printf %s "$*"', "_", "--alone", "x"]])
+
+
+def test_wait_returns_2_within_one_poll_when_stop_holds_now_and_keeps_waiting_otherwise_3375(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    monkeypatch.setenv("VERI_POLL", "1")
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+    now = [1000.0]
+    slept = []
+
+    def fake_sleep(seconds):
+        slept.append(float(seconds))
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+
+    for mode in ("at-ledger", "at-leaf"):
+        (tdd / "stop").write_text(mode + "\n")
+        slept.clear()
+        code = detach_command.main(["wait", "x", "5"])
+        assert (mode, code, sum(slept) >= 5) == (mode, 3, True)
+
+    (tdd / "stop").write_text("now\n")
+    slept.clear()
+    code = detach_command.main(["wait", "x", "100"])
+    assert (code, sum(slept) <= 1, capsys.readouterr().err) == (2, True, "")

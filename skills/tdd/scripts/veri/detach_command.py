@@ -51,6 +51,13 @@ def _limit(text):
         return None
 
 
+def _stopping_now():
+    try:
+        return _read(".tdd/stop") == "now"
+    except OSError:
+        return False
+
+
 def _wait(exit_file, pid_file, text, alone=None):
     start = int(time.time())
     poll = tunables.read("VERI_POLL") or "1"
@@ -64,6 +71,8 @@ def _wait(exit_file, pid_file, text, alone=None):
         if not _alive(pid_file):
             code = _recorded(exit_file, alone)
             return 2 if code is None else code
+        if _stopping_now():
+            return 2
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
