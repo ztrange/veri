@@ -942,6 +942,30 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detach
     assert "777" in err and str(run) in err
 
 
+def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_survivor_probe_of_a_detached_group_is_refused(
+        monkeypatch, tmp_path, capsys, stop_run):
+    import signal
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
+
+    def killpg(group, sig):
+        if sig == 0:
+            raise PermissionError(1, "Operation not permitted")
+
+    monkeypatch.setattr(os, "killpg", killpg)
+
+    code = stop_run.stop_run(str(run), "now")
+    err = capsys.readouterr().err
+
+    assert (run / ".tdd" / "stop").read_text() == "now\n"
+    assert code == 2
+    assert "777" in err and str(run) in err
+
+
 @pytest.mark.process("a real detached group killed by stop-run.sh")
 def test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_kill_is_an_unreaped_zombie_and_2_when_a_live_member_survives_kill(
         monkeypatch, tmp_path, run_cli, stop_run, started):
