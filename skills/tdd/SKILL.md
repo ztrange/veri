@@ -507,7 +507,12 @@ three times over branches its ledger pinned on later lines.
    are never checked as added. A plan step the conductor rewords after the plan commit and before
    verify-plan is committed the same way, as `plan: rewrite #<n> …` (the form step 2c gives), never under
    another subject: `plan-sha` takes only `plan: scope` and `plan: rewrite` as a baseline, so the
-   reworded plan becomes the baseline. Each step line the plan commit did not hold must have a matching
+   reworded plan becomes the baseline. Such a rewrite saves the ledger as the last commit holds it
+   to a temp file first (`git show HEAD:.tdd/issue-<n>.md`), runs
+   `$S/ledger-growth.sh record-rewrite <that file> .tdd/issue-<n>.md` after the rewrite, and stages
+   `.tdd/issue-<n>-added.md` with the ledger in that same `plan: rewrite` commit
+   (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`), so the steps it adds are recorded by the
+   rewrite route itself and never need a hand-written record. Each step line the plan commit did not hold must have a matching
    record written by `add-ledger-step.sh` itself, never one the conductor wrote by hand with
    `event.sh`. The records the check reads are the ones `ledger-growth.sh` reads: the tracked
    `.tdd/issue-<n>-added.md` that `add-ledger-step.sh` writes, and the run's `step-added` events
@@ -597,8 +602,11 @@ reaches the thread even on a PASS.
 
 - **PASS (exit 0):** continue to the cycle loop.
 - **REJECT (exit 1):** the plan is wrong, not the run — **rewrite the ledger** from the
-  reason alone (it names the criterion and the part of it no step covers), commit the
-  rewrite with `git add .tdd/issue-<n>.md && git commit -m "plan: rewrite #<n> after
+  reason alone (it names the criterion and the part of it no step covers). Before the rewrite,
+  save the ledger as the last commit holds it (`git show HEAD:.tdd/issue-<n>.md` into a temp
+  file); after it, run `$S/ledger-growth.sh record-rewrite <that file> .tdd/issue-<n>.md`, so the
+  steps the rewrite adds are recorded by the rewrite route itself and never by a hand-written
+  record. Commit the rewrite with `git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit -m "plan: rewrite #<n> after
   verify-plan REJECT (#<n>)"`, post the revised plan to the thread, and **re-verify** by
   running the launch above again. Rewrite and re-verify up to `REVISE_BUDGET` times; if the
   last re-verification is still `REJECT`, **bail** as a process failure —
