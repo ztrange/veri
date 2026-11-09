@@ -9,6 +9,18 @@ def dispatch():
     return importlib.import_module("veri.dispatch")
 
 
+@pytest.fixture(autouse=True)
+def no_unfaked_process_listing(monkeypatch, dispatch):
+    real_run = dispatch.subprocess.run
+
+    def run(argv, *args, **kw):
+        if list(argv) == ["ps", "-axo", "args="]:
+            raise AssertionError("unfaked queued_merges call: the case reads the real process table")
+        return real_run(argv, *args, **kw)
+
+    monkeypatch.setattr(dispatch.subprocess, "run", run)
+
+
 def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli, dispatch):
     code, out, err = run_cli(dispatch, [])
     assert (code, out, err) == (2, "", "usage: dispatch.sh --target <N>\n")
