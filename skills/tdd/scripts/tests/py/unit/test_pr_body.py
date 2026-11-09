@@ -161,3 +161,16 @@ def test_main_with_an_extra_argument_exits_2_with_the_usage_line_and_writes_noth
     assert (code, out) == (2, "")
     assert "pr-body.sh <pr-number> <body-file>" in err
     assert written == []
+
+
+def test_main_keeps_foreign_text_between_two_run_parts_byte_identical_3502(run_cli, pr_body, monkeypatch, tmp_path):
+    foreign = "## Review notes\nhuman text"
+    current = "%s\na\n%s\n\n%s\n\n%s\nb\n%s" % (BEGIN, END, foreign, BEGIN, END)
+    written = fake_gh_pr_body(monkeypatch, current)
+    body_file = tmp_path / "body.md"
+    body_file.write_text("new")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert written == ["%s\nnew\n%s\n\n%s\n\n%s\nnew\n%s" % (BEGIN, END, foreign, BEGIN, END)]
