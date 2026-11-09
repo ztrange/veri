@@ -235,6 +235,9 @@ def recheck(argv, looks):
         if pin["old"].encode() not in original:
             needs_a_look(looks, pin["file"], "old text gone")
             continue
+        if original.count(pin["old"].encode()) > 1:
+            needs_a_look(looks, pin["file"], "old text occurs more than once")
+            continue
         base = run_captured(pin["command"])
         if base.returncode == 127 or "no makefile found" in base.stderr.lower():
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
