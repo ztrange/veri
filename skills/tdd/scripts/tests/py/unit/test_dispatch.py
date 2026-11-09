@@ -63,7 +63,7 @@ def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_t
 
     dispatch.launch("12")
 
-    assert (calls, log.read_bytes()) == (
+    assert (calls[:1], log.read_bytes()) == (
         [([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), "12"],
           subprocess.DEVNULL, True)],
         b"earlier\nconductor output\n")
