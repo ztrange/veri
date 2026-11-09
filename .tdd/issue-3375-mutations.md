@@ -39,3 +39,21 @@ skills/tdd/scripts/tests/py/test_stop_run.py
 command 184
 make test TESTS=skills/tdd/scripts/tests/py/test_stop_run.py::test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing
 
+before 40
+00b3f00cc59b93ff8aa2d80ecbcf8ed98f031f6b
+keep 44
+skills/tdd/scripts/tests/py/test_stop_run.py
+command 203
+make test TESTS=skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_kill_is_an_unreaped_zombie_and_2_when_a_live_member_survives_kill
+
+file 35
+skills/tdd/scripts/veri/stop_run.py
+old 55
+if (pid_file._ps("stat", group) or "").startswith("Z"):
+new 9
+if False:
+context 59
+    if (pid_file._ps("stat", group) or "").startswith("Z"):
+command 203
+make test TESTS=skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_kill_is_an_unreaped_zombie_and_2_when_a_live_member_survives_kill
+
