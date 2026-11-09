@@ -1,0 +1,7 @@
+before 40
+8d335c1dd54e9528d5e6cd6e4e369baddcb62d9f
+keep 42
+skills/tdd/scripts/tests/py/test_status.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/test_status.py::test_main_reports_only_the_run_with_an_unparseable_events_log_as_unreadable_not_a_live_run_with_no_events_file_3366
+

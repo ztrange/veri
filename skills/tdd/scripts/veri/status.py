@@ -218,6 +218,8 @@ def render(as_json, scope, read_states=True):
                     activity = "  " + activity
             except (FileNotFoundError, ValueError):
                 activity = ""
+                if has_events:
+                    print("unreadable run %s: %s" % (run, events_path), file=sys.stderr)
         elif has_ledger:
             bare += 1
         if not has_ledger:

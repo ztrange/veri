@@ -995,3 +995,45 @@ def test_main_lists_the_other_run_and_exits_0_when_one_runs_events_log_has_an_un
 
     assert code == 0
     assert "#42  good log  tdd/42-good-log  step 1 of 1  red  developer  develop-red 100s  attempt 1  $0.00  0 tokens  running" in out.splitlines()
+
+
+def test_main_names_the_unreadable_run_and_its_events_file_on_stderr_when_one_runs_events_log_has_an_unparseable_line_3366(tmp_path, monkeypatch, capsys, status):
+    bad = ledger_run(tmp_path, "41", "# Plan for #41 — bad log\n\n- [ ] a step\n")
+    good = ledger_run(tmp_path, "42", "# Plan for #42 — good log\n\n- [ ] a step\n")
+    (bad / ".tdd" / "events.jsonl").write_text("not json\n")
+    write_events(good / ".tdd" / "events.jsonl", [
+        {"ts": 9900, "issue": "42", "actor": "developer", "phase": "red", "step": "a step", "event": "launch",
+         "attempt": "1", "skill_commit": "abc", "name": "develop-red"}])
+    live_conductor(monkeypatch, good / ".tdd", "42")
+    fake_git(monkeypatch, tmp_path, {str(bad): "tdd/41-bad-log", str(good): "tdd/42-good-log"})
+    at_ten_thousand(monkeypatch)
+
+    status.main([])
+    err = capsys.readouterr().err
+
+    assert str(bad / ".tdd" / "events.jsonl") in err
+
+
+def test_main_reports_only_the_run_with_an_unparseable_events_log_as_unreadable_not_a_live_run_with_no_events_file_3366(tmp_path, monkeypatch, capsys, status):
+    bad = ledger_run(tmp_path, "41", "# Plan for #41 — bad log\n\n- [ ] a step\n")
+    fresh = ledger_run(tmp_path, "43", "# Plan for #43 — fresh start\n\n- [ ] a step\n")
+    (bad / ".tdd" / "events.jsonl").write_text("not json\n")
+    live_conductor(monkeypatch, fresh / ".tdd", "43")
+    fake_git(monkeypatch, tmp_path, {str(bad): "tdd/41-bad-log", str(fresh): "tdd/43-fresh-start"})
+    at_ten_thousand(monkeypatch)
+    real_run_activity = status.run_activity
+
+    def run_activity(run, *args):
+        if os.fspath(run) == str(fresh):
+            raise FileNotFoundError(str(fresh / ".tdd" / "events.jsonl"))
+        return real_run_activity(run, *args)
+
+    monkeypatch.setattr(status, "run_activity", run_activity)
+
+    code = status.main([])
+    err = capsys.readouterr().err
+
+    assert code == 0
+    assert str(bad / ".tdd" / "events.jsonl") in err
+    assert str(fresh / ".tdd" / "events.jsonl") not in err
+    assert "#43" not in err
