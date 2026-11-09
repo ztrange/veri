@@ -455,8 +455,9 @@ def rerecord_earlier(ledger, step):
         return 2
     ledger = os.path.abspath(ledger)
     os.chdir(root)
-    base = subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().strip()
+    base = subprocess.run(["git", "log", "--reverse", "--format=%H", "-S" + step, "--", ledger],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().split()[:1]
+    base = base[0] if base else ""
     if not base:
         write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
         return 2
