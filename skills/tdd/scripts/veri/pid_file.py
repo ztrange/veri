@@ -85,18 +85,30 @@ def start_matches(file, pid):
     return not started or started == _ps("lstart", pid)
 
 
-def live_conductor(path):
-    pid = recorded_started(path)
+def _reading(path):
+    pid = number_in(_pid_path(path))
     if pid is None:
-        return None
+        return None, "pid file unreadable"
+    if recorded_alive(path) is None:
+        return None, "pid dead"
+    if not start_matches(_pid_path(path), pid):
+        return None, "lstart mismatch"
     parent = _ps("ppid", pid)
     parent_command = _ps("command", parent) if parent else ""
     if parent_command and "run_conductor.py" not in parent_command:
-        return None
+        return None, "parent command"
     own = _ps("command", pid)
     if own and "claude" not in (os.path.basename(word) for word in own.split()[:2]):
-        return None
-    return pid
+        return None, "own command"
+    return pid, None
+
+
+def live_conductor(path):
+    return _reading(path)[0]
+
+
+def not_live_reason(path):
+    return _reading(path)[1]
 
 
 def _args(pid):
