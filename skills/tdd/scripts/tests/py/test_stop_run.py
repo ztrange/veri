@@ -3,6 +3,7 @@ import importlib
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -771,6 +772,42 @@ def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detache
             time.sleep(0.05)
         else:
             pytest.fail("the detached command's descendant %d was not signalled" % child)
+    finally:
+        try:
+            os.kill(child, 9)
+        except OSError:
+            pass
+
+
+@pytest.mark.process("a real session leader that is not the command detach-command.sh starts, holding the pid fulltier.pid records, with a descendant in its group")
+def test_3375_stop_run_cli_mode_now_signals_no_group_of_an_unrelated_process_now_holding_the_pid_in_fulltier_pid(
+        tmp_path, run_cli, stop_run, started):
+    repo = new_repo(tmp_path.resolve() / "repo")
+    run = repo / ".tdd" / "wt" / "5"
+    live_conductor(run, started)
+    child_file = tmp_path / "child.pid"
+    unrelated = subprocess.Popen(
+        [sys.executable, "-c",
+         "import subprocess, sys\n"
+         "child = subprocess.Popen(['sleep', '60'])\n"
+         "open(sys.argv[1], 'w').write(str(child.pid))\n"
+         "child.wait()\n",
+         str(child_file)],
+        start_new_session=True)
+    started.append(unrelated)
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % unrelated.pid)
+    for _ in range(200):
+        if child_file.is_file() and child_file.read_text().strip():
+            break
+        time.sleep(0.05)
+    child = int(child_file.read_text())
+
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo)
+
+        assert (code, out, err) == (0, str(run) + "\n", "")
+        assert not gone(unrelated), "the unrelated process %d now holding the recorded pid was signalled" % unrelated.pid
+        os.kill(child, 0)
     finally:
         try:
             os.kill(child, 9)
