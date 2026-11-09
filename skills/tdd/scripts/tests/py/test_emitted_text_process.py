@@ -70,3 +70,27 @@ def test_3408_reproducing_command_prints_the_pin_cksum_and_leaves_no_temp_files_
     ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True, env={**os.environ, "PATH": "%s:%s" % (shims, os.environ["PATH"])})
     assert (ran.stdout.strip(), sorted(p.name for p in scratch.iterdir())) == (pins.cksum(b"exit 2\nout1\nout2\nerr1\n"), [])
+
+
+@pytest.mark.process("bash running the reproducing command a mismatched pin prints, for a script that records its argv")
+def test_3408_reproducing_command_passes_every_argument_to_the_script_verbatim(monkeypatch, run_cli, tmp_path):
+    argv = ["a b", "it's", 'say "hi"', "$HOME", "`id`", "x;y", "*", ""]
+    record = tmp_path / "argv.bin"
+    stub = tmp_path / "echo-argv.sh"
+    stub.write_text('#!/bin/sh\nprintf \'%%s\\0\' "$@" > "%s"\nexit 2\n' % record)
+    stub.chmod(0o755)
+    name = os.path.relpath(stub, SCRIPTS)
+    spec = importlib.util.spec_from_file_location("emitted_text_pins_under_test", UNIT)
+    pins = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pins)
+    monkeypatch.setattr(pins, "USAGE", [("1 1", name, argv)])
+    monkeypatch.setattr(pins, "emitted", lambda run_cli, script, argv: "exit 2\n")
+
+    with pytest.raises(AssertionError) as failure:
+        pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
+
+    message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
+    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
+                   capture_output=True, text=True)
+    assert record.read_bytes().split(b"\0")[:-1] == [a.encode() for a in argv]
