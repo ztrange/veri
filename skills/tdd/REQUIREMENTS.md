@@ -483,6 +483,7 @@
 | PF35 | Step 3 says `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`; that `reuse` runs the full tier anyway when `$S/full-tier-time.sh` has no usable time; and that the fast-tier baseline runs in both modes. | Under `reuse` the fast tier is the only suite proof before the first cycle, and a first run on a machine still has to measure. |
 | PF39 | Step 5 (the tunables check) checks `VERI_SKIP_VERIFY`: each comma-separated word must be a phase this release can skip, and `plan` is never one. | A bad list must stop the run before it spends anything. |
 | PF59 | When a preflight check refuses (a failing check, a red baseline or full tier, or any exit the check names as a stop or a bail), PREFLIGHT.md sends the run to `<base directory>/PREFLIGHT-FAILURES.md`, which it `Read`s then and not before, and runs; a preflight that passes never reads it. | Preflight's failure branches are read only by the runs whose preflight fails (#3152 measured the conductor carrying PREFLIGHT.md, 18,664 bytes, from turn 2 of every run); a refusal handled without the file would stop without its `preflight-refused` event and comment. |
+| PF60 | The resume exception states that when every unit the red is explained by has a pending `⟦skill-edit⟧` step but a non-skill-edit unchecked step separates them, `suite-red-resume.sh insert` inserts no `⟦suite-repair⟧` step and exits 2 with the reorder named. | A repair step cannot regrade a signed unit; the refusal names the one reorder that unblocks the run. |
 
 ## skills/tdd/PIN.md
 
