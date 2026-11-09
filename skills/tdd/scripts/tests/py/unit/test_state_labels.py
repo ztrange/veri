@@ -82,6 +82,17 @@ def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue_and_re_
     assert (code, DELETE_BAILED in calls, ADD_TAKEN_MAIN in calls) == (0, True, True)
 
 
+def test_a_resume_event_adds_the_lane_taken_label_and_takes_the_opt_in_label_off_a_released_issue_3460(event, monkeypatch, tmp_path):
+    monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent")
+    calls = fake_gh(monkeypatch, lambda args: (0, "", ""))
+
+    code = event.append(clone(tmp_path), {"issue": "42"}, "resume", [], ts=1700000000)
+
+    delete_opt_in = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/ready-for-agent")
+    assert (code, ADD_TAKEN_MAIN in calls, delete_opt_in in calls) == (0, True, True)
+
+
 def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_names_the_refusal(event, monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
     fake_gh(monkeypatch, lambda args: (1, "", "HTTP 502: Bad Gateway\n"))
