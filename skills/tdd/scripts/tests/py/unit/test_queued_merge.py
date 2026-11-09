@@ -808,3 +808,27 @@ def test_3422_queued_merge_of_a_pr_whose_only_closing_line_is_for_a_longer_issue
 
     merges = [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]
     assert (code, merges) == (2, [])
+
+
+def test_3422_queued_merge_on_a_worktree_holding_other_issues_ledgers_and_their_metrics_and_refactor_owed_files_checks_only_the_runs_own_issue_and_merges_a_pr_carrying_its_closes_line(
+        fake_processes, run_cli, tmp_path):
+    BRANCH = "tdd/3255-the-done-comment"
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    for name in ("issue-3255.md", "issue-3100.md", "issue-3100-metrics.md", "issue-3100-refactor-owed.md"):
+        (worktree / ".tdd" / name).write_text("# issue\n")
+    body = json.dumps({"body": "Closes #3255 — the capability\n"})
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "pr view" in line:
+                return 0, body, ""
+            return answer(line.replace(BRANCH, "feature"), **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+
+    code, _, _ = run_cli(queued_merge, [PR, str(worktree), BRANCH, "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+
+    merges = [c for c in calls if "pr merge" in c]
+    assert (code, len(merges)) == (0, 1)
