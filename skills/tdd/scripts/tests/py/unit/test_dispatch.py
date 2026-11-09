@@ -1626,3 +1626,49 @@ def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exit
     code, out, err = run_cli(dispatch, ["--target", "1"])
 
     assert (code, out, err, launches) == (2, "", "usage: dispatch.sh --target <N>\n", [])
+
+
+def _real_overlap_reads(monkeypatch, dispatch, prs, bodies, diffs):
+    monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: prs)
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: diffs[number])
+    monkeypatch.setattr(dispatch.github, "gh_issue_view", lambda issue, field: bodies[issue])
+
+
+def test_main_counts_only_a_path_an_issue_body_names_in_backticks_not_one_it_names_in_prose_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    path = "skills/tdd/scripts/veri/dispatch.py"
+    launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12", "15", "18"], {}, None)
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
+                          "headRefName": "tdd/80-other", "headRefOid": "aaa"}],
+                        {"12": f"Change `{path}` and the `conductor` wording.\n",
+                         "15": f"Touches {path} too, named in prose; run `make test`.\n",
+                         "18": "Nothing named.\n"},
+                        {90: [path, "conductor"]})
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, capsys.readouterr().out) == (["15"], f"skip 12 {path} https://github.com/o/r/pull/90\n")
+
+
+def test_main_counts_only_an_open_draft_pr_on_a_tdd_branch_as_a_run_pr_issue_3478(
+        monkeypatch, tmp_path, dispatch):
+    path, other = "skills/tdd/scripts/veri/dispatch.py", "skills/tdd/SCRIPTS.md"
+
+    def pr(number, draft, head):
+        return {"number": number, "url": f"https://github.com/o/r/pull/{number}", "isDraft": draft,
+                "headRefName": head, "headRefOid": "aaa"}
+
+    launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["15", "12"], {}, None)
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [pr(90, True, "tdd/80-run"), pr(91, False, "tdd/81-ready"), pr(92, True, "fix-by-hand")],
+                        {"12": f"Change `{path}`.\n", "15": f"Change `{other}`.\n"},
+                        {90: [other], 91: [path], 92: [path]})
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert launches == ["12"]
