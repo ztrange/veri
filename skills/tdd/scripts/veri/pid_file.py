@@ -25,8 +25,16 @@ def conductor_processes():
     return [issue for pid, issue in _conductors() if _inside(_cwd(pid), root)]
 
 
+def _with_run_directory(root):
+    return [(pid, issue) for pid, issue in _conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+
+
+def runs_with_directory(root):
+    return [issue for _, issue in _with_run_directory(root)]
+
+
 def starting_runs(root):
-    return [issue for _, issue in _conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+    return [issue for pid, issue in _with_run_directory(root) if _inside(_cwd(pid), root)]
 
 
 def number_in(file):

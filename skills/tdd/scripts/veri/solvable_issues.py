@@ -177,7 +177,7 @@ def main(argv):
     repo = rest[1] if rest else None
     if len(rest) != len(argv):
         main_tree = main_working_tree()
-        starting = pid_file.starting_runs(main_tree)
+        starting = pid_file.runs_with_directory(main_tree)
         skip = running_numbers() | {int(number) for number in starting}
     label = scope_label()
     priority = label and priority_label()

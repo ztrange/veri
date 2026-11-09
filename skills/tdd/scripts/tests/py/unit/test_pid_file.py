@@ -522,3 +522,24 @@ def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_st
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\nMon Oct 26 09:00:00 2026\n")
 
     assert pid_file.live_conductor(str(run_dir)) is None
+
+
+def test_starting_runs_names_no_issue_whose_run_conductor_process_works_in_another_repo_3247(tmp_path, monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    root = tmp_path / "repo"
+    other = tmp_path / "other"
+    for issue in ("103", "104"):
+        (root / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
+    ps = "  500 /usr/bin/python3 /x/run_conductor.py 103\n  501 /usr/bin/python3 /x/run_conductor.py 104\n"
+    cwds = {"500": str(other), "501": str(root)}
+
+    def fake_run(argv, *args, **kwargs):
+        if argv[0] == "ps":
+            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % cwds[argv[-1]], stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert pid_file.starting_runs(str(root)) == ["104"]
