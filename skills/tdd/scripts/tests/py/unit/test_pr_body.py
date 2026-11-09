@@ -149,3 +149,15 @@ def test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part
     assert code == 0, err
     assert written == ["%s\n%s\n%s" % (BEGIN, "Closes #7 — ready: 5 of 5 steps done", END)]
     assert "legacy text" not in written[0]
+
+
+def test_main_with_an_extra_argument_exits_2_with_the_usage_line_and_writes_nothing_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    written = fake_gh_pr_body(monkeypatch, "%s\nCloses #7\n%s\n" % (BEGIN, END))
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file), "extra"])
+
+    assert (code, out) == (2, "")
+    assert "pr-body.sh <pr-number> <body-file>" in err
+    assert written == []
