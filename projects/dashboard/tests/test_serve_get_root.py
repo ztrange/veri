@@ -1061,3 +1061,42 @@ def test_report_page_left_line_ignores_closed_children_of_the_prd(report_repo):
 
     block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
     assert "left: solvable now 1, waiting 1 on #41, held by no lane 1" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_no_lane_no_eta_when_no_open_child_has_a_lane(report_repo):
+    def child(number, labels):
+        return {"number": number, "title": "PRD 14.%d slice" % number, "state": "OPEN",
+                "updatedAt": "2026-11-02T10:00:00Z", "blockedBy": [],
+                "labels": [{"name": l} for l in labels]}
+
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            child(41, []),
+            child(42, ["bug"]),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no lane: no ETA" in block
