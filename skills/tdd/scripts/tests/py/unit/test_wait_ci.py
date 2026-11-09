@@ -1737,6 +1737,45 @@ def test_main_exits_2_naming_no_ci_run_for_the_full_head_only_after_600_seconds_
     assert observed == [(3, False), (3, False), (2, True)]
 
 
+def test_main_waits_at_599_seconds_and_exits_2_naming_the_full_head_at_600_under_the_default_no_run_wait_issue_3491(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    pull = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                       "head": {"sha": FULL_SHA}})
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+    clock = {"now": 1000}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            return 0, f"{clock['now']}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        if line == PULL:
+            return 0, pull, ""
+        if ".github/workflows" in line:
+            if line.split("?")[0].endswith("ci.yml"):
+                return 0, json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                                      "content": base64.b64encode(workflow.encode()).decode()}), ""
+            return 0, json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}]), ""
+        if line == f"{COMMITS}/status":
+            return 0, json.dumps({"state": "pending", "sha": FULL_SHA, "total_count": 0, "statuses": []}), ""
+        if line.startswith(f"{COMMITS}/check-runs?page="):
+            return 0, json.dumps({"total_count": 0, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+    observed = []
+    for at in (0, 599, 600):
+        clock["now"] = 1000 + at
+        code, _, err = run_cli(wait_ci, [PR, "0", "3600", FULL_SHA],
+                               env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, f"no CI run for {FULL_SHA}" in err))
+
+    assert observed == [(3, False), (3, False), (2, True)]
+
+
 def test_main_exits_2_naming_no_ci_run_for_the_full_head_when_a_ready_heads_state_stays_none_for_the_default_no_run_wait_issue_3455(
         tmp_path, wait_ci, fake_processes, run_cli):
     import base64

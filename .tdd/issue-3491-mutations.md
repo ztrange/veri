@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_wait_ci.py
 command 193
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_exits_2_naming_no_ci_run_for_the_full_head_when_a_ready_heads_state_stays_none_for_the_default_no_run_wait_issue_3455
 
+before 40
+e4908614f1eaae4078bcb1a64795fd7b1656619b
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 177
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_waits_at_599_seconds_and_exits_2_naming_the_full_head_at_600_under_the_default_no_run_wait_issue_3491
+
