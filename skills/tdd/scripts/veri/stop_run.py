@@ -87,8 +87,12 @@ def stop_run(run, mode):
     return 2 if refused else 0
 
 
+def zombie(pid):
+    return (pid_file._ps("stat", pid) or "").startswith("Z")
+
+
 def group_alive(group):
-    if (pid_file._ps("stat", group) or "").startswith("Z"):
+    if zombie(group):
         return False
     try:
         os.killpg(group, 0)
@@ -140,7 +144,7 @@ def stop_leaves(run, killed=None):
             except GONE:
                 pass
             except PermissionError:
-                if not (pid_file._ps("stat", group) or "").startswith("Z"):
+                if not zombie(group):
                     refused.append(group)
     return refused
 
