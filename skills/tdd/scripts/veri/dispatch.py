@@ -44,13 +44,10 @@ def run_dir(issue):
 
 def launch(issue):
     scripts = paths.scripts_of(__file__)
-    log = os.path.join(tdd_dir(), f"conductor-{issue}.log")
-    with open(log, "ab") as out:
-        subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), issue],
-                         stdin=subprocess.DEVNULL, stdout=out, stderr=out)
-    with open(os.path.join(tdd_dir(), f"restart-{issue}.log"), "ab") as out:
-        subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "restart-conductor.sh"), issue],
-                         stdin=subprocess.DEVNULL, stdout=out, stderr=out)
+    for script, log_name in (("run-conductor.sh", f"conductor-{issue}.log"), ("restart-conductor.sh", f"restart-{issue}.log")):
+        with open(os.path.join(tdd_dir(), log_name), "ab") as out:
+            subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, script), issue],
+                             stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
 def last_comment(issue):
