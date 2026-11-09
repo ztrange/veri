@@ -5,6 +5,7 @@ Each returns as soon as its condition holds, so a passing run pays nothing for t
 """
 
 import os
+import subprocess
 
 LEAF_START_BOUND = 30.0
 LEAF_DEATH_BOUND = 48.0
@@ -36,4 +37,9 @@ def _reaped(pid):
     try:
         return os.waitpid(pid, os.WNOHANG)[0] == pid
     except ChildProcessError:
-        return False
+        return _zombie(pid)
+
+
+def _zombie(pid):
+    stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout
+    return stat.strip().startswith("Z")
