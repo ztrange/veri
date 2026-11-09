@@ -113,7 +113,7 @@ def main(argv):
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
-                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-conductor-model\nconductor-*.log\nwt/\n")
+                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-conductor-model\nissue-*-launch-env\nconductor-*.log\nwt/\n")
         if resuming:
             try:
                 with open(record) as recorded_file:
@@ -216,6 +216,8 @@ def launch(base, issue, commit, **exports):
             record.write("%s %d\n" % (run_tmp, os.getpid()))
         with open(os.path.join(run_state, "issue-%s-conductor-model" % issue), "w") as record:
             record.write(conductor_model() + "\n")
+        with open(os.path.join(run_state, "issue-%s-launch-env" % issue), "w") as record:
+            record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_")))
         exports["VERI_STATE_LABEL_ISSUE"] = issue
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
