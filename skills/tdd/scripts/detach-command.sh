@@ -10,7 +10,7 @@
 # Exit codes (wait):
 #   0  the command finished and recorded 0
 #   1  the command finished and recorded a non-zero code; that code is printed on stdout
-#   2  the command died without recording a code, or bad arguments
+#   2  the command died without recording a code, bad arguments, or .tdd/stop holds `now` (a stop is being carried out) and the command has not finished
 #   3  no completion file yet — call again
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/detach_command.py" "$@"
