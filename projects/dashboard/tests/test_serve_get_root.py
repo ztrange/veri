@@ -1569,6 +1569,25 @@ def test_page_landed_section_lists_each_merged_tag_in_status_report_shape(veri_h
     import os
     import re
 
+    message = (
+        "A red-phase leaf's overwrite of the step's uncommitted "
+        "production code is restored and recorded, and the develop prompt forbids it"
+    )
+    git_env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+        "GIT_COMMITTER_DATE": "@1794100422 +0000",
+    }
+    for args in (
+        ["init", "-q"],
+        ["commit", "-q", "--allow-empty", "-m", "base"],
+        ["tag", "-a", "v0.1136", "-m", message],
+    ):
+        subprocess.run(["git", "-C", str(veri_home), *args], env=git_env, check=True, capture_output=True)
+
     port = _free_port()
     proc = subprocess.Popen(
         [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
@@ -1592,10 +1611,7 @@ def test_page_landed_section_lists_each_merged_tag_in_status_report_shape(veri_h
 
     section = re.search(r"<h2>Landed</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
     lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
-    expected = (
-        "v0.1136  2026-11-07 19:13  A red-phase leaf's overwrite of the step's uncommitted "
-        "production code is restored and recorded, and the develop prompt forbids it"
-    )
+    expected = "v0.1136  2026-11-07 19:13  " + message
     assert [l for l in lines if l.startswith("<p>")] == []
     assert [re.sub(r"<[^>]+>", "", l).strip() for l in lines if "v0.1136" in l] == [expected]
 
