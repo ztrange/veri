@@ -235,7 +235,7 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         return [
             ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
             ["gh", "api", prefix + "/issues?state=open&per_page=100"],
-            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName", *scope],
+            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft", *scope],
             ["gh", "api", prefix + "/pulls?state=open&per_page=100"],
         ]
 
@@ -365,6 +365,20 @@ def test_main_lists_a_released_issue_whose_only_open_pr_is_its_own_run_branch(tm
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "20\n21\n")
+
+
+def test_main_3460_withholds_an_issue_whose_own_run_branch_pr_is_ready_and_lists_one_whose_own_run_branch_pr_is_still_a_draft(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in (30, 31)]))
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"state": "OPEN", "body": "Closes #30", "headRefName": "tdd/30-done-run", "isDraft": False},
+        {"state": "OPEN", "body": "Closes #31", "headRefName": "tdd/31-released-run", "isDraft": True}]))
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "31\n")
 
 
 def blocked_by(number, *refs):

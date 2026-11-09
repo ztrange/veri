@@ -135,12 +135,12 @@ def select(label, priority="priority", repo=None):
     try:
         issues = open_listing("issues.json", prefix + "/issues",
                               "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
-        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName", *scope)
+        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft", *scope)
     except NoAnswer:
         return 2, []
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")
-               if not own_run_branch(pr, n)}
+               if not own_run_branch(pr, n) or not pr.get("isDraft", True)}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
     bands = {issue["number"]: band(issue, priority) for issue in issues}
