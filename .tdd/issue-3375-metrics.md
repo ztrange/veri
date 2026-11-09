@@ -1,13 +1,13 @@
 ### 📊 Metrics — issue 3375
 
-Wall time for the issue: 1734 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2223 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 17 of 22 planned.
+Steps done: 19 of 24 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3410.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py, skills/tdd/scripts/tests/py/test_run_conductor_process.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $34.04 over 652 turns, in 12 sessions, on opus (estimate).
+Conductor own spending: $37.02 over 712 turns, in 13 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77115 tokens, largest 205644 tokens
 Conductor context: first turn 77560 tokens, largest 111950 tokens
@@ -20,7 +20,8 @@ Conductor context: first turn 77891 tokens, largest 172063 tokens
 Conductor context: first turn 77919 tokens, largest 160937 tokens
 Conductor context: first turn 77919 tokens, largest 149564 tokens
 Conductor context: first turn 77918 tokens, largest 151896 tokens
-Conductor context: first turn 77906 tokens, largest 146665 tokens
+Conductor context: first turn 77906 tokens, largest 150159 tokens
+Conductor context: first turn 77924 tokens, largest 163635 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -641,38 +642,98 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 612 | $0.06 | 150015 |
 | 613 | $0.05 | 151045 |
 | 614 | $0.04 | 151896 |
-| 615 | $0.48 | 77906 |
-| 616 | $0.06 | 83930 |
-| 617 | $0.05 | 87919 |
-| 618 | $0.03 | 89099 |
-| 619 | $0.05 | 93574 |
-| 620 | $0.02 | 94201 |
-| 621 | $0.02 | 94509 |
-| 622 | $0.02 | 94813 |
-| 623 | $0.03 | 95588 |
+| 615 | $0.49 | 77906 |
+| 616 | $0.07 | 83930 |
+| 617 | $0.06 | 87919 |
+| 618 | $0.04 | 89099 |
+| 619 | $0.06 | 93574 |
+| 620 | $0.03 | 94201 |
+| 621 | $0.03 | 94509 |
+| 622 | $0.03 | 94813 |
+| 623 | $0.04 | 95588 |
 | 624 | $0.06 | 100255 |
-| 625 | $0.03 | 101183 |
+| 625 | $0.04 | 101183 |
 | 626 | $0.03 | 101840 |
-| 627 | $0.02 | 102199 |
-| 628 | $0.07 | 108302 |
-| 629 | $0.03 | 109603 |
-| 630 | $0.15 | 125135 |
+| 627 | $0.03 | 102199 |
+| 628 | $0.08 | 108302 |
+| 629 | $0.04 | 109603 |
+| 630 | $0.16 | 125135 |
 | 631 | $0.03 | 125516 |
-| 632 | $0.03 | 125991 |
-| 633 | $0.03 | 126637 |
-| 634 | $0.08 | 133722 |
-| 635 | $0.03 | 134115 |
-| 636 | $0.03 | 134825 |
-| 637 | $0.03 | 135504 |
-| 638 | $0.08 | 141514 |
-| 639 | $0.03 | 142210 |
-| 640 | $0.03 | 142904 |
-| 641 | $0.04 | 144328 |
-| 642 | $0.03 | 145005 |
-| 643 | $0.03 | 145482 |
-| 644 | $0.03 | 145915 |
-| 645 | $0.03 | 146255 |
-| 646 | $0.03 | 146665 |
+| 632 | $0.04 | 125991 |
+| 633 | $0.04 | 126637 |
+| 634 | $0.09 | 133722 |
+| 635 | $0.04 | 134115 |
+| 636 | $0.04 | 134825 |
+| 637 | $0.04 | 135504 |
+| 638 | $0.09 | 141514 |
+| 639 | $0.04 | 142210 |
+| 640 | $0.04 | 142904 |
+| 641 | $0.05 | 144328 |
+| 642 | $0.04 | 145005 |
+| 643 | $0.04 | 145482 |
+| 644 | $0.05 | 145915 |
+| 645 | $0.04 | 146255 |
+| 646 | $0.04 | 146665 |
+| 647 | $0.04 | 147231 |
+| 648 | $0.05 | 148672 |
+| 649 | $0.05 | 149867 |
+| 650 | $0.04 | 150159 |
+| 651 | $0.48 | 77924 |
+| 652 | $0.06 | 83933 |
+| 653 | $0.05 | 87957 |
+| 654 | $0.07 | 94880 |
+| 655 | $0.05 | 99303 |
+| 656 | $0.02 | 99696 |
+| 657 | $0.02 | 100296 |
+| 658 | $0.02 | 100602 |
+| 659 | $0.02 | 100904 |
+| 660 | $0.02 | 101208 |
+| 661 | $0.02 | 101515 |
+| 662 | $0.02 | 102014 |
+| 663 | $0.03 | 102831 |
+| 664 | $0.03 | 103451 |
+| 665 | $0.03 | 104230 |
+| 666 | $0.03 | 104777 |
+| 667 | $0.03 | 105812 |
+| 668 | $0.03 | 106624 |
+| 669 | $0.03 | 107593 |
+| 670 | $0.03 | 108411 |
+| 671 | $0.03 | 109441 |
+| 672 | $0.03 | 110173 |
+| 673 | $0.03 | 111476 |
+| 674 | $0.05 | 115022 |
+| 675 | $0.03 | 115768 |
+| 676 | $0.03 | 116000 |
+| 677 | $0.03 | 116643 |
+| 678 | $0.03 | 117379 |
+| 679 | $0.04 | 119641 |
+| 680 | $0.03 | 120373 |
+| 681 | $0.03 | 120895 |
+| 682 | $0.03 | 121581 |
+| 683 | $0.03 | 121831 |
+| 684 | $0.04 | 123322 |
+| 685 | $0.04 | 125635 |
+| 686 | $0.03 | 126534 |
+| 687 | $0.04 | 127826 |
+| 688 | $0.15 | 143432 |
+| 689 | $0.03 | 143767 |
+| 690 | $0.03 | 144247 |
+| 691 | $0.03 | 144788 |
+| 692 | $0.03 | 145451 |
+| 693 | $0.04 | 146237 |
+| 694 | $0.03 | 146904 |
+| 695 | $0.03 | 147303 |
+| 696 | $0.03 | 147950 |
+| 697 | $0.04 | 148672 |
+| 698 | $0.04 | 150346 |
+| 699 | $0.10 | 159279 |
+| 700 | $0.03 | 159631 |
+| 701 | $0.04 | 160459 |
+| 702 | $0.04 | 161074 |
+| 703 | $0.04 | 161818 |
+| 704 | $0.04 | 162449 |
+| 705 | $0.04 | 162850 |
+| 706 | $0.04 | 163635 |
 
 #### Conductor comments, by family
 
@@ -685,40 +746,40 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🛠️ Refactor | 10 | 4676 | $0.09 |
 | 🔎 verify-green | 13 | 5938 | $0.12 |
 | 🔎 verify-refactor | 11 | 5106 | $0.10 |
-| 🔎 verify-<phase> (revised) | 8 | 3141 | $0.06 |
+| 🔎 verify-<phase> (revised) | 9 | 3574 | $0.07 |
 | 🗺️ Plan | 3 | 1441 | $0.03 |
-| 🗺️ verify-plan | 16 | 6820 | $0.14 |
-| ▶️ Resuming | 11 | 4528 | $0.09 |
+| 🗺️ verify-plan | 18 | 7272 | $0.15 |
+| ▶️ Resuming | 12 | 4963 | $0.10 |
 | ⛔ Bailed | 6 | 2643 | $0.05 |
 | ⏹️ Stopped | 4 | 1934 | $0.04 |
-| Total | 89 | 39429 | $0.79 |
+| Total | 93 | 40749 | $0.81 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 16 | 12 | 4 | 0 | 228 | 188 | 17 | 34 | 21152 | 45619 | 348562 | 1.09 |
-| red | 41 | 17 | 2 | 0 | 2209 | 962 | 245 | 476 | 99111 | 5317931 | 969829 | 4.69 |
+| plan | 18 | 13 | 5 | 0 | 270 | 225 | 21 | 42 | 23843 | 102908 | 396815 | 1.24 |
+| red | 42 | 17 | 2 | 0 | 2273 | 995 | 251 | 486 | 101342 | 5426285 | 1000888 | 4.80 |
 | green | 41 | 11 | 5 | 0 | 4910 | 901 | 255 | 464 | 85693 | 4647894 | 807934 | 4.00 |
 | refactor | 14 | 3 | 0 | 0 | 240 | 89 | 41 | 82 | 7480 | 607480 | 228305 | 0.71 |
-| pin | 6 | 3 | 3 | 0 | 162 | 102 | 30 | 56 | 11187 | 463581 | 98622 | 0.40 |
+| pin | 7 | 4 | 3 | 0 | 185 | 117 | 34 | 64 | 12674 | 530208 | 115517 | 0.47 |
 | red-contradicted | 3 | 0 | 0 | 0 | 133 | 83 | 21 | 40 | 8271 | 416809 | 65257 | 0.29 |
 | red-missing | 2 | 0 | 0 | 0 | 155 | 64 | 9 | 18 | 5976 | 330305 | 94392 | 0.33 |
-| prose | 48 | 0 | 0 | 0 | 1227 | 1122 | 48 | 96 | 175344 | 321572 | 1527722 | 5.61 |
+| prose | 52 | 0 | 0 | 0 | 1382 | 1266 | 52 | 104 | 197175 | 327636 | 1716812 | 6.30 |
 | skill-edit | 7 | 0 | 0 | 0 | 103 | 85 | 32 | 58 | 8015 | 892911 | 305263 | 0.93 |
-| rebase | 5 | 2 | 0 | 0 | 1044 | 274 | 63 | 120 | 20922 | 1491146 | 180050 | 1.05 |
+| rebase | 8 | 3 | 0 | 0 | 1662 | 422 | 95 | 184 | 30266 | 2173799 | 277730 | 1.63 |
 | exhausted | 1 | 0 | 0 | 0 | 44 | 14 | 3 | 6 | 1266 | 43750 | 14920 | 0.11 |
 | red-supersede | 1 | 0 | 0 | 0 | 198 | 58 | 12 | 18 | 6391 | 242323 | 29222 | 0.16 |
-| diff | 1 | 1 | 0 | 0 | 172 | 16 | 4 | 8 | 1590 | 61980 | 22606 | 0.08 |
+| diff | 3 | 2 | 0 | 0 | 277 | 54 | 15 | 28 | 4456 | 232236 | 53325 | 0.20 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 63 | 49 | 14 | 0 | 5040 | 882 | 230 | 434 | 88693 | 3355575 | 1194650 | 4.21 |
-| developer | claude-sonnet-5-5 | 48 | 0 | 0 | 0 | 2672 | 1018 | 294 | 556 | 104444 | 6037236 | 1126103 | 4.58 |
-| developer | claude-opus-5-5 | 20 | 0 | 0 | 0 | 1783 | 851 | 176 | 332 | 75902 | 4276007 | 538946 | 4.12 |
+| verifier | claude-sonnet-5-5 | 68 | 53 | 15 | 0 | 5521 | 971 | 247 | 468 | 95729 | 3604691 | 1316072 | 4.61 |
+| developer | claude-sonnet-5-5 | 50 | 0 | 0 | 0 | 2791 | 1072 | 307 | 578 | 108329 | 6252012 | 1172541 | 4.75 |
+| developer | claude-opus-5-5 | 22 | 0 | 0 | 0 | 2035 | 979 | 203 | 386 | 83600 | 4897294 | 595692 | 4.57 |
 
 #### Rework and waste, by phase
 
@@ -768,6 +829,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `stop-run.sh <issue> --mode now` exits 2 naming the pid and the run on stderr when the KILL it sends a detached command's group is refused for a reason other than the group being gone (`os.killpg` raising `PermissionError`; stop_run.py:116 swallows it today), having still written `.tdd/stop` ⟦added⟧ ⟦criterion 7⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 98 | 32 | 60 | 8473 | 601938 | 117387 | 0.44 | 490 | unknown | 1/5 | nothing-structural |  |  | full |
 | `stop-run.sh --all --mode now` exits 2 when any one run's stop exits 2 (stop_run.py ~:164 discards each run's result today), still stopping every other run ⟦added⟧ ⟦criterion 7⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 56 | 22 | 42 | 6092 | 385648 | 91299 | 0.33 | 335 | unknown | 0/5 | nothing-left |  |  | full |
 | skill-edit step for the unit `skills/tdd/SCRIPTS.md`: the `stop-run.sh` entry's exit-2 causes gain a member that survives the KILL and a refused KILL, also under `--all`, and say a detached command is signalled only while its pid still runs the command veri recorded (a recycled pid is never signalled), with its SC106 row in `skills/tdd/REQUIREMENTS.md` updated to match, change: SC106<reword> in a `| ID | Requirement | Why |` table ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 7⟧ | 6 | 1 | 0 | 0 | 0 | 0 | 324 | 54 | 102 | 29818 | 1463441 | 316410 | 1.48 | unknown | 1/2 | unknown | unknown |  |  | full |
+| `stop-run.sh <issue> --mode now` exits 0, not 2, when a member of the detached command's group is still alive at the first survivor probe after the KILL and gone at a later probe within the retry window of `outlives_kill` (stop_run.py:107); a pin step adding one new small case to `skills/tdd/scripts/tests/py/test_stop_run.py`, driving `stop_run` in-process with `os.killpg` faked so the group answers alive for the first probe(s) and gone after, and `time.sleep` faked as a no-op so the window is the probe count and needs no new tunable; no production change (its Red reports already-passes); step 18's retired late-member pin and the existing dies-on-KILL and permanent-survivor cases leave this uncovered, so the review mutant `range(10)` to `range(1)` in `outlives_kill` survived, and that mutant must turn the new case red ⟦added⟧ ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 48 | 10 | 18 | 3718 | 174981 | 47954 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
+| the header of `skills/tdd/scripts/stop-run.sh` (its comment block and the `usage`/`Exits:` lines) gains: `--mode now` also signals a detached command (a `.tdd/<name>.pid` session leader that is not a supervisor, only while the pid still runs the command veri recorded): TERM to its whole process group, then KILL after `VERI_STOP_KILL_GRACE` (default 5 seconds); and the exit-2 causes: a group member that survives the KILL, a KILL refused (`PermissionError`) and a refused survivor probe, each naming the pid and the run on stderr, also under `--all` where any one run exiting 2 makes the whole call exit 2 while still stopping every other run; the step edits only that header text and adds no test; any older case pinning the header wording is updated in the same step ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 7⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 186 | 43 | 84 | 12210 | 852909 | 128399 | 0.70 | 153 | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -810,15 +873,15 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 8 | 8 | 2 | 3 | 3 | 3 | 7 | 1 | 3 | 3 | 3 | 2 | 3 | 8 | 5 | 8 | 5 | 3 | 2 | 2 | 4 | 2 | 4 | 4 | 7 | 7 | 14 | 11 | 11 | 7 | 10 | 2 | 2 | 11 | 13 | 11 | 10 | 9 | 11 | 2 | 1 | 1 | 2 | 1 | 12 | 1 | 16 | 14 | 16 | 14 | 16 | 11 | 10 | 10 | 9 | 14 | 20 | 16 | 14 | 10 | 9 | 13 | 14 | 11 | 136 | 133 | 133 | 135 | 64 | 65 | 9 | 9 | 9 | 13 | 9 | 13 | 9 | 3 | 2 | 9 | 9 | 9 | 9 | 18 | 17 | 9 | 9 | 9 | 9 | 1 | 2 | 1 | 17 | 16 |
-| fast | 23 | 24 | 27 | 24 | 34 | 49 | 43 | 23 | 23 | 23 | 22 | 22 | 23 | 24 | 21 | 23 | 22 | 23 | 25 | 24 | 33 | 43 | 37 | 46 | 26 | 25 | 23 | 49 | 32 | 47 | 24 | 23 | 22 | 26 | 23 | 22 | 22 | 21 | 21 | 23 | 22 | 20 | 21 | 23 | 32 | 21 | 21 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 2 | 4 | 2 | 3 | 5 | 2 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 3 | 2 | 1 | 1 | 1 | 4 | 2 | 3 | 1 | 4 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 29 | 30 | 411 | 21 | 22 | 186 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 8 | 8 | 2 | 3 | 3 | 3 | 7 | 1 | 3 | 3 | 3 | 2 | 3 | 8 | 5 | 8 | 5 | 3 | 2 | 2 | 4 | 2 | 4 | 4 | 7 | 7 | 14 | 11 | 11 | 7 | 10 | 2 | 2 | 11 | 13 | 11 | 10 | 9 | 11 | 2 | 1 | 1 | 2 | 1 | 12 | 1 | 16 | 14 | 16 | 14 | 16 | 11 | 10 | 10 | 9 | 14 | 20 | 16 | 14 | 10 | 9 | 13 | 14 | 11 | 136 | 133 | 133 | 135 | 64 | 65 | 9 | 9 | 9 | 13 | 9 | 13 | 9 | 3 | 2 | 9 | 9 | 9 | 9 | 18 | 17 | 9 | 9 | 9 | 9 | 1 | 2 | 1 | 17 | 16 | 15 | 9 | 9 |
+| fast | 23 | 24 | 27 | 24 | 34 | 49 | 43 | 23 | 23 | 23 | 22 | 22 | 23 | 24 | 21 | 23 | 22 | 23 | 25 | 24 | 33 | 43 | 37 | 46 | 26 | 25 | 23 | 49 | 32 | 47 | 24 | 23 | 22 | 26 | 23 | 22 | 22 | 21 | 21 | 23 | 22 | 20 | 21 | 23 | 32 | 21 | 21 | 22 | 22 | 37 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 2 | 4 | 2 | 3 | 5 | 2 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 3 | 2 | 1 | 1 | 1 | 4 | 2 | 3 | 1 | 4 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 29 | 30 | 411 | 21 | 22 | 186 | 21 | 22 | 342 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 780 | 1476 | 452398 | 14883301 | 4692684 | 53.48 (estimate) |
+| total | 841 | 1594 | 492848 | 15974544 | 5106380 | 58.18 (estimate) |
