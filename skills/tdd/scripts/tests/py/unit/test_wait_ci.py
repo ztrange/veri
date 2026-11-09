@@ -1718,6 +1718,32 @@ def test_main_exits_2_naming_no_ci_run_for_the_full_head_when_a_ready_heads_stat
     assert (code, out, f"no CI run for {FULL_SHA}" in err) == (2, "", True)
 
 
+def test_main_exits_2_naming_no_ci_run_for_the_full_head_earlier_than_the_default_when_ci_no_run_wait_is_an_explicit_60_issue_3455(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    import base64
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([], [], "pending")
+    bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True,
+                               "head": {"sha": FULL_SHA}})
+    workflow = "name: CI\non: pull_request\njobs: {}\n"
+
+    def workflows(line):
+        if ".github/workflows" not in line:
+            return None
+        if line.split("?")[0].endswith("ci.yml"):
+            return json.dumps({"name": "ci.yml", "type": "file", "encoding": "base64",
+                               "content": base64.b64encode(workflow.encode()).decode()})
+        return json.dumps([{"name": "ci.yml", "type": "file", "path": ".github/workflows/ci.yml"}])
+
+    served(fake_processes, bodies, workflows)
+
+    code, out, err = run_cli(wait_ci, [PR, "60", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_CI_NO_RUN_WAIT": "60"}, cwd=work)
+
+    assert (code, out, f"no CI run for {FULL_SHA}" in err) == (2, "", True)
+
+
 def test_main_keeps_its_wait_with_3_on_a_mergeable_pr_with_no_checks_when_ci_on_pr_is_unset_and_the_head_tree_has_only_a_pull_request_target_workflow_issue_2885(
         tmp_path, wait_ci, fake_processes, run_cli):
     import base64
