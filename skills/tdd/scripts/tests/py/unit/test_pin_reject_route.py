@@ -218,3 +218,34 @@ def test_main_target_test_missing_exits_2_with_usage_naming_it_and_leaves_ledger
 
     assert (code, out, "usage" in err.lower() and "<target-test>" in err, ledger.read_text(),
             (ledger.parent / "events.jsonl").exists()) == (2, "", True, body, False), err
+
+
+def test_main_missing_reroute_bare_name_case_whose_command_fails_in_setup_prints_nothing_exits_2_and_spends_no_revise_3425(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    import subprocess
+
+    monkeypatch.undo()
+    ledger = tmp_path / ".tdd" / "issue-99.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #99\n\n- [ ] a one ⟦criterion 4⟧\n- [ ] b two ⟦criterion 5⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the behaviour is already covered by an earlier step\n")
+    bare = "TestIssue99CheckExitsZero"
+    setup_error = f"stat {tmp_path}/{bare}: directory not found\nFAIL {bare} [setup failed]\n"
+
+    def fake_run(argv, *args, **kwargs):
+        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = 'go test "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+        return subprocess.CompletedProcess(argv, 1, stdout="" if text else b"",
+                                           stderr=setup_error if text else setup_error.encode())
+
+    monkeypatch.setattr(pin_reject_route.tick_ledger.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", bare],
+                             env={"VERI_ISSUE": "99"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
+        2, "", body, False), err
