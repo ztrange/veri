@@ -105,7 +105,22 @@ def report_blocks(repo):
                   if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
         return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(recent))
 
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s" % (n, i["number"], i["title"], solved_line(n, i), owed_line(n, i))
+    def left_line(n, prd):
+        open_numbers = {i["number"] for i in cache["issues"] if i["state"] == "OPEN"}
+        children = [i for i in cache["issues"] if i["state"] == "OPEN"
+                    and prd_number(i["title"]) == n and i["number"] != prd["number"]]
+        names = lambda c: [l["name"] for l in c.get("labels", [])]
+        blockers = lambda c: [b for b in c.get("blockedBy", []) if b in open_numbers]
+        waiting = [c for c in children if blockers(c)]
+        solvable = [c for c in children if not blockers(c)
+                    and any(x.startswith("ready-for-agent") for x in names(c))
+                    and not any(x.startswith("taken:") for x in names(c))]
+        unheld = [c for c in children if not any(x.startswith("ready-for-agent") for x in names(c))]
+        on = sorted({b for c in waiting for b in blockers(c)})
+        return "\n<p>left: solvable now %d, waiting %d on %s, held by no lane %d</p>" % (
+            len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
+
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s%s" % (n, i["number"], i["title"], solved_line(n, i), left_line(n, i), owed_line(n, i))
                      for n, i in sorted(first.items()))
 
 

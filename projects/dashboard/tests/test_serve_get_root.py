@@ -966,3 +966,98 @@ def test_report_page_counts_in_solved_closed_unnumbered_issues_listed_in_the_prd
 
     block = body.split("<h2>")[1]
     assert "solved: 3 (2 in the last 7 days)" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_left_line_with_solvable_waiting_and_unheld_counts_of_open_children(report_repo):
+    def child(number, labels, blocked_by=()):
+        return {"number": number, "title": "PRD 14.%d slice" % number, "state": "OPEN",
+                "updatedAt": "2026-11-02T10:00:00Z", "blockedBy": list(blocked_by),
+                "labels": [{"name": l} for l in labels]}
+
+    ready = "ready-for-agent:mu"
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            child(41, [ready]),
+            child(42, [ready], [41]),
+            child(43, [ready], [41]),
+            child(44, [ready, "taken:mu"]),
+            child(45, []),
+            child(46, [ready], [99]),
+            {"number": 99, "title": "old blocker", "state": "CLOSED", "updatedAt": "2026-11-02T10:00:00Z",
+             "closedAt": "2026-11-01T10:00:00Z", "blockedBy": [], "labels": []},
+            {"number": 60, "title": "PRD 9.1 other", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [{"name": ready}]},
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "left: solvable now 2, waiting 2 on #41, held by no lane 1" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_left_line_ignores_closed_children_of_the_prd(report_repo):
+    def child(number, state, labels, blocked_by=()):
+        issue = {"number": number, "title": "PRD 14.%d slice" % number, "state": state,
+                 "updatedAt": "2026-11-02T10:00:00Z", "blockedBy": list(blocked_by),
+                 "labels": [{"name": l} for l in labels]}
+        if state == "CLOSED":
+            issue["closedAt"] = "2026-11-01T10:00:00Z"
+        return issue
+
+    ready = "ready-for-agent:mu"
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            child(41, "OPEN", [ready]),
+            child(42, "OPEN", [ready], [41]),
+            child(45, "OPEN", []),
+            child(51, "CLOSED", [ready]),
+            child(52, "CLOSED", [ready], [41]),
+            child(53, "CLOSED", []),
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "left: solvable now 1, waiting 1 on #41, held by no lane 1" in block
