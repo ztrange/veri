@@ -78,7 +78,7 @@ def landed_lines():
             if e.get("event") == "merged" and e.get("tag"):
                 when = time.strftime("%Y-%m-%d %H:%M", time.localtime(int(e["ts"])))
                 lines.append("<div>%s  %s  %s</div>" % (e["tag"], when, e.get("message", "")))
-    return lines
+    return lines or ["<div>none</div>"]
 
 
 def waiting_lines():
