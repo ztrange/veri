@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3495
 
-Wall time for the issue: 243 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 888 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 5 of 7 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3506.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.53 over 169 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $10.36 over 200 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78407 tokens, largest 161178 tokens
 Conductor context: first turn 78385 tokens, largest 176336 tokens
-Conductor context: first turn 78385 tokens, largest 132843 tokens
+Conductor context: first turn 78385 tokens, largest 134892 tokens
+Conductor context: first turn 78385 tokens, largest 125237 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -152,39 +153,70 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 133 | $0.05 | 176161 |
 | 134 | $0.04 | 176336 |
 | 135 | $0.49 | 78385 |
-| 136 | $0.06 | 84402 |
+| 136 | $0.08 | 84402 |
 | 137 | $0.04 | 86842 |
-| 138 | $0.02 | 87732 |
+| 138 | $0.04 | 87732 |
 | 139 | $0.04 | 89939 |
-| 140 | $0.05 | 94298 |
-| 141 | $0.02 | 94671 |
-| 142 | $0.02 | 95128 |
-| 143 | $0.02 | 95427 |
-| 144 | $0.02 | 95964 |
-| 145 | $0.02 | 96503 |
-| 146 | $0.02 | 96801 |
-| 147 | $0.02 | 97251 |
-| 148 | $0.02 | 97665 |
-| 149 | $0.03 | 99458 |
+| 140 | $0.06 | 94298 |
+| 141 | $0.03 | 94671 |
+| 142 | $0.03 | 95128 |
+| 143 | $0.03 | 95427 |
+| 144 | $0.04 | 95964 |
+| 145 | $0.03 | 96503 |
+| 146 | $0.03 | 96801 |
+| 147 | $0.03 | 97251 |
+| 148 | $0.03 | 97665 |
+| 149 | $0.05 | 99458 |
 | 150 | $0.03 | 100578 |
-| 151 | $0.03 | 101310 |
-| 152 | $0.02 | 101762 |
-| 153 | $0.02 | 102106 |
-| 154 | $0.03 | 102718 |
+| 151 | $0.04 | 101310 |
+| 152 | $0.03 | 101762 |
+| 153 | $0.03 | 102106 |
+| 154 | $0.04 | 102718 |
 | 155 | $0.03 | 103471 |
-| 156 | $0.09 | 112348 |
-| 157 | $0.05 | 115975 |
-| 158 | $0.03 | 117165 |
+| 156 | $0.10 | 112348 |
+| 157 | $0.06 | 115975 |
+| 158 | $0.05 | 117165 |
 | 159 | $0.03 | 117741 |
-| 160 | $0.03 | 118180 |
-| 161 | $0.03 | 118823 |
+| 160 | $0.04 | 118180 |
+| 161 | $0.04 | 118823 |
 | 162 | $0.04 | 120231 |
-| 163 | $0.04 | 122438 |
-| 164 | $0.03 | 123304 |
-| 165 | $0.03 | 124279 |
-| 166 | $0.04 | 126513 |
-| 167 | $0.04 | 128117 |
-| 168 | $0.06 | 132843 |
+| 163 | $0.05 | 122438 |
+| 164 | $0.04 | 123304 |
+| 165 | $0.04 | 124279 |
+| 166 | $0.05 | 126513 |
+| 167 | $0.05 | 128117 |
+| 168 | $0.07 | 132843 |
+| 169 | $0.05 | 133950 |
+| 170 | $0.04 | 134892 |
+| 171 | $0.49 | 78385 |
+| 172 | $0.06 | 84394 |
+| 173 | $0.04 | 86823 |
+| 174 | $0.03 | 88733 |
+| 175 | $0.03 | 90709 |
+| 176 | $0.02 | 91172 |
+| 177 | $0.02 | 91584 |
+| 178 | $0.02 | 91898 |
+| 179 | $0.02 | 92288 |
+| 180 | $0.02 | 92989 |
+| 181 | $0.05 | 97383 |
+| 182 | $0.03 | 98377 |
+| 183 | $0.03 | 99193 |
+| 184 | $0.02 | 99665 |
+| 185 | $0.03 | 100637 |
+| 186 | $0.03 | 101709 |
+| 187 | $0.03 | 102728 |
+| 188 | $0.02 | 103269 |
+| 189 | $0.02 | 103606 |
+| 190 | $0.03 | 104622 |
+| 191 | $0.03 | 105350 |
+| 192 | $0.03 | 106378 |
+| 193 | $0.15 | 122185 |
+| 194 | $0.03 | 122573 |
+| 195 | $0.03 | 122914 |
+| 196 | $0.03 | 123438 |
+| 197 | $0.03 | 124443 |
+| 198 | $0.03 | 124791 |
+| 199 | $0.03 | 125237 |
 
 #### Conductor comments, by family
 
@@ -199,30 +231,32 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 2 | 966 | $0.02 |
 | 🔎 verify-<phase> (revised) | 2 | 966 | $0.02 |
 | 🗺️ Plan | 1 | 559 | $0.01 |
-| 🗺️ verify-plan | 3 | 982 | $0.02 |
-| ▶️ Resuming | 2 | 415 | $0.01 |
-| ⛔ Bailed | 1 | 559 | $0.01 |
+| 🗺️ verify-plan | 4 | 1426 | $0.03 |
+| ▶️ Resuming | 3 | 859 | $0.02 |
+| ⛔ Bailed | 2 | 1003 | $0.02 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 18 | 8056 | $0.16 |
+| Total | 21 | 9388 | $0.19 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 37 | 30 | 3 | 6 | 3225 | 0 | 59295 | 0.18 |
+| plan | 4 | 4 | 0 | 0 | 49 | 41 | 4 | 8 | 4296 | 0 | 79808 | 0.24 |
 | red | 15 | 5 | 1 | 0 | 520 | 333 | 82 | 156 | 33641 | 1573976 | 330213 | 1.56 |
 | green | 9 | 2 | 2 | 0 | 710 | 206 | 52 | 100 | 20373 | 930757 | 159978 | 0.70 |
 | refactor | 2 | 0 | 0 | 0 | 33 | 27 | 8 | 16 | 1764 | 129942 | 29275 | 0.10 |
 | pin | 6 | 3 | 3 | 0 | 144 | 114 | 27 | 54 | 10570 | 436816 | 92693 | 0.38 |
 | red-missing | 2 | 0 | 0 | 0 | 101 | 67 | 12 | 24 | 7261 | 242263 | 41867 | 0.20 |
 | red-contradicted | 1 | 0 | 0 | 0 | 31 | 26 | 6 | 12 | 3319 | 119876 | 21686 | 0.10 |
+| prose | 5 | 0 | 0 | 0 | 123 | 113 | 5 | 10 | 18073 | 49770 | 257808 | 0.83 |
+| skill-edit | 1 | 0 | 0 | 0 | 12 | 9 | 4 | 8 | 742 | 232439 | 78226 | 0.23 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 19 | 13 | 6 | 0 | 773 | 272 | 63 | 126 | 24523 | 915622 | 298695 | 1.08 |
+| verifier | claude-sonnet-5-5 | 20 | 14 | 6 | 0 | 785 | 283 | 64 | 128 | 25594 | 915622 | 319208 | 1.15 |
 | developer | claude-sonnet-5-5 | 15 | 0 | 0 | 0 | 657 | 403 | 97 | 184 | 42682 | 1888467 | 329333 | 1.44 |
 | developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 146 | 128 | 30 | 58 | 12948 | 629541 | 106979 | 0.70 |
 
@@ -237,7 +271,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 84 | 0.21 |
 | red-missing | 0 | 0.00 | 101 | 0.20 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
-| skill-edit | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 85 | 0.59 |
+| skill-edit | 0 | 0.00 | 12 | 0.23 |
 
 #### By step
 
@@ -250,6 +285,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | After the restart completes (marker gone) and the conductor is live again the run counts once: at `--target 4` with run 7 back live beside live run 8 and a never-seen restarting run 9, two queued issues, dispatch launches exactly one; a unit case in test_dispatch.py ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 37 | 10 | 18 | 3849 | 164709 | 37959 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
 | A stale restart marker holds no slot: with N-1 conductors live and a worktree whose `.tdd/restart-pending` names a dead restarter's pid, the dispatch tick launches the next queued issue; a unit case in test_dispatch.py ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 47 | 12 | 24 | 4983 | 241197 | 39249 | 0.17 | unknown | unknown | unknown | unknown |  |  | pin |
 | At `--target 3` with a run dispatch saw live earlier now restarting (restart marker held by a live restarter, conductor gone) beside one live run and one free slot, and two queued issues, dispatch launches exactly one (the free count), not two as when the restarting run is counted twice; an in-case contrast added to the existing seen-live restarting case in test_dispatch.py, red against the double-counting before-state ⟦added⟧ ⟦criterion 1⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 76 | 17 | 30 | 7787 | 313316 | 50264 | 0.23 | unknown | unknown | unknown | unknown |  |  | full |
+| skill-edit step for the unit `skills/tdd/SCRIPTS.md`: state in the `dispatch.sh` entry that a run whose conductor is mid-restart (restart marker live) holds its slot and is counted once, with the SC89 and SC110 rows in `skills/tdd/REQUIREMENTS.md` updated to match ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 85 | 8 | 16 | 12848 | 280574 | 264603 | 0.82 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -284,4 +320,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 190 | 368 | 80153 | 3433630 | 735007 | 11.75 (estimate) |
+| total | 200 | 388 | 100039 | 3715839 | 1091554 | 14.69 (estimate) |
