@@ -15,7 +15,8 @@
 #          record for that file — the ledger is left unmodified — or, for a ⟦diff-checked⟧
 #          tick, the re-record of earlier frozen records failed after the ledger was written, or a ⟦diff-checked⟧
 #          step is ticked without a .tdd/pin-recheck-ok receipt whose sha resolves and differs from HEAD only under .tdd/
-#          (the ledger is left untouched); 3 no unchecked step matched —
+#          (the ledger is left untouched), or, with --unpinnable/--already-holds, the --case never ran (its
+#          file path does not exist, or the one-test-file command reports no tests ran; ledger and events untouched); 3 no unchecked step matched —
 #          the file is left untouched
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/tick_ledger.py" "$@"
