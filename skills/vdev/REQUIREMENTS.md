@@ -39,3 +39,4 @@
 | D37 | *Routing an exit* says that after routing a `dispatch.sh` line the dev session starts `dispatch.sh` again as one background command. | `dispatch.sh` exits on each judgment event; without a restart no slot is refilled (P5). |
 | D38 | *The slot decision* step 1 says an N change from the coordinator restarts `dispatch.sh` with the new `--target`. | Until PRD 012.14b, N reaches the script only as an argument. |
 | D39 | *Launching* says the dev session announces each launch recorded in `.tdd/dispatch.log` since its last turn as `Started #<n> — <title>` (to the coordinator when one is attached, P4). | `dispatch.sh` prints nothing per launch, so the announcement comes from its log. |
+| D41 | A review finding that is not blocking goes in the PR body as a line appended to the existing body. It never replaces the body, and the `Closes #<n>` line survives. | A replaced body at #3355 dropped the closing keyword and left #3255 open. |
