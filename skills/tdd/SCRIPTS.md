@@ -390,7 +390,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   PR with no checks (or only skipped ones) that conflicts with its base branch (stderr says
   `conflicts with its base branch`), a check still pending past the recorded deadline, an
   unreadable deadline file, or checks that never started — still queued more than
-  `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued. **Exit 3** still
+  `VERI_CI_QUEUE_WAIT` seconds after the first call that saw them queued, or a ready,
+  mergeable PR whose head has stayed none (no check run, no commit status) for
+  `VERI_CI_NO_RUN_WAIT` seconds while a `pull_request` workflow exists (stderr names
+  `no CI run for <sha>`, the full 40-hex head; the grace clock restarts for each new head). **Exit 3** still
   pending, no check yet, every one `SKIPPED`, or a mismatched head, when the slice runs out.
   With `VERI_CI_ON_PR=0`, a PR whose head has no check runs and no commit statuses exits 0, since
   there is nothing to wait for; checks that do exist are still waited on and read as above. A
@@ -406,7 +409,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   than `0`, `1` or empty is an **exit 2**.
   Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_RETRY_BACKOFF` (`1`, the default,
   doubles the retry sleep; `0` keeps it flat), `VERI_CI_QUEUE_WAIT` (default 3600 s),
-  `VERI_CI_ON_PR` (unset means checks are expected, unless the detection above finds no
+  `VERI_CI_NO_RUN_WAIT` (default 120 s, a non-negative whole number; anything else is an
+  **exit 2** naming it), `VERI_CI_ON_PR` (unset means checks are expected, unless the detection above finds no
   `pull_request` workflow).
 - `$S/stop-reason.sh <issue>` — why a run ended with no ✅ Done or ⛔ Bailed comment: the operator's helper. Exit 2 on no argument, an issue with no run under `.tdd/wt`, a missing events log, or a run whose `conductor-<n>.log` has no result record. Nothing in the procedure calls it.
 - `$S/handoff-state.sh` — print a read-only snapshot of the run state for a context reset. Its first line is `main <sha> <tag>`: main's commit and the highest version tag by `git tag --sort=-v:refname`. Exit **0**, **2** no answer. The conductor does not call this; it is an operator's.
