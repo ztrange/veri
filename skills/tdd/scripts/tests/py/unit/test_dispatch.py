@@ -69,6 +69,28 @@ def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3
         dispatch.main(["--target", "1"])
 
 
+def test_main_with_a_queued_merges_fake_runs_under_the_guard_and_reaches_the_faked_wait_issue_3435(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    waits = []
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert waits == [1]
+
+
 def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_the_conductor_log_with_stdin_from_dev_null(
         monkeypatch, tmp_path, dispatch):
     import os
