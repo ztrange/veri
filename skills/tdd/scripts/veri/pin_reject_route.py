@@ -28,6 +28,7 @@ def main(argv):
             step = tick_ledger.changed_line(text, new).split("] ", 1)[1]
             tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[1])))
             event.append(tdd_parent, event.context(os.environ), "unpinnable-missing", ["step=" + step])
+            print("unpinnable-missing")
             return 2
     code = tick_ledger.main(["--unpinnable", argv[0], "--case", argv[3], argv[1], argv[2]])
     if code == 1 and missing:
