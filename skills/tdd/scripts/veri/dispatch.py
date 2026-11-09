@@ -130,8 +130,11 @@ def main(argv):
                 return 0
         stall = int(stall_window())
         for issue in seen:
-            events = os.path.join(run_dir(issue), ".tdd", "events.jsonl")
-            if os.path.exists(events) and clock() - os.path.getmtime(events) >= stall:
+            tdd = os.path.join(run_dir(issue), ".tdd")
+            events = os.path.join(tdd, "events.jsonl")
+            log = os.path.join(tdd, f"conductor-{issue}.log")
+            if os.path.exists(events) and clock() - max(
+                    os.path.getmtime(f) for f in (events, log) if os.path.exists(f)) >= stall:
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
         absent = [issue for issue in absent if issue not in live]
