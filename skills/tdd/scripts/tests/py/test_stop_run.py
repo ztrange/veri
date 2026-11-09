@@ -940,3 +940,44 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detach
 
     assert code == 2
     assert "777" in err and str(run) in err
+
+
+@pytest.mark.process("a real detached group killed by stop-run.sh")
+def test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_kill_is_an_unreaped_zombie_and_2_when_a_live_member_survives_kill(
+        monkeypatch, tmp_path, run_cli, stop_run, started):
+    import signal
+    repo = new_repo(tmp_path.resolve() / "repo")
+    run = repo / ".tdd" / "wt" / "5"
+    live_conductor(run, started)
+    env = {"VERI_STOP_KILL_GRACE": "0.2"}
+    real_killpg = os.killpg
+
+    stubborn = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & wait'], start_new_session=True)
+    started.append(stubborn)
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % stubborn.pid)
+    time.sleep(0.3)
+    monkeypatch.setattr(os, "killpg", lambda group, sig: None if sig == signal.SIGKILL else real_killpg(group, sig))
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo, env=env)
+        assert code == 2 and str(stubborn.pid) in err and str(run) in err
+    finally:
+        monkeypatch.setattr(os, "killpg", real_killpg)
+        os.killpg(stubborn.pid, 9)
+        stubborn.wait()
+
+    leader = subprocess.Popen(["sh", "-c", "sleep 60 & wait"], start_new_session=True)
+    started.append(leader)
+    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % leader.pid)
+    time.sleep(0.3)
+    try:
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo, env=env)
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(leader.pid)],
+                               stdout=subprocess.PIPE, text=True).stdout.strip()
+        assert state.startswith("Z"), "the killed leader %d should be an unreaped zombie, ps says %r" % (leader.pid, state)
+        assert (code, out, err) == (0, str(run) + "\n", "")
+    finally:
+        try:
+            os.killpg(leader.pid, 9)
+        except OSError:
+            pass
+        leader.wait()
