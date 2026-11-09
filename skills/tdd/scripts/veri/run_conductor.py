@@ -217,7 +217,7 @@ def launch(base, issue, commit, **exports):
         with open(os.path.join(run_state, "issue-%s-conductor-model" % issue), "w") as record:
             record.write(conductor_model() + "\n")
         with open(os.path.join(run_state, "issue-%s-launch-env" % issue), "w") as record:
-            record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_")))
+            record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_") and kv[0] != "VERI_NEW_SKILL"))
         exports["VERI_STATE_LABEL_ISSUE"] = issue
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:
