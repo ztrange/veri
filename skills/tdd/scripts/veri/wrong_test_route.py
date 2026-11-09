@@ -317,11 +317,12 @@ def main(argv):
     case = None if rerouted else route(argv[0], argv[1])
     where = _defining_file(case) if case is not None and "::" not in case else None
     if where is not None:
+        ambiguous = len(_defining_files(case)) > 1
         for line in _lines_with(argv[0], "CONTRADICTS:"):
             given = re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
             if given:
                 where = given.group(1)
-            elif len(_defining_files(case)) > 1:
+            elif ambiguous:
                 return 2
     if case is None and len(older) == 1:
         case = older[0]
