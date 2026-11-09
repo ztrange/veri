@@ -90,3 +90,22 @@ def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_
     assert notes in second[0]
     assert "resumed" in second[0]
     assert "ready" not in second[0]
+
+
+def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_writes_nothing_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = tuple(str(arg) for arg in args)
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 1, "", "HTTP 502")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 2
+    assert "42" in err
+    assert [c for c in calls if "PATCH" in c or any(a.startswith("body=") for a in c)] == []

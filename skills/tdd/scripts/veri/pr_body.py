@@ -18,7 +18,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     path = "repos/{owner}/{repo}/pulls/%s" % argv[0]
-    current = json.loads(github.gh_api(path).stdout)["body"]
+    read = github.gh_api(path)
+    if read.returncode != 0:
+        print("pr-body.sh: cannot read the body of PR #%s" % argv[0], file=sys.stderr)
+        return 2
+    current = json.loads(read.stdout)["body"]
     with open(argv[1]) as f:
         mine = BEGIN + "\n" + f.read() + "\n" + END
     pattern = re.compile(re.escape(BEGIN) + ".*?" + re.escape(END), re.S)
