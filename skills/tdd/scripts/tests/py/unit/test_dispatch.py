@@ -230,12 +230,12 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
 def test_main_exits_2_naming_the_vanished_run_and_prints_no_closing_line_when_a_live_conductor_exits_leaving_no_worktree(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
-    lives = [["7"], []]
+    lives = [["7"], [], []]
     waits = []
 
     def wait():
         waits.append(1)
-        if len(waits) == 2:
+        if len(waits) == 3:
             raise _StopWaiting
 
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
@@ -252,7 +252,7 @@ def test_main_exits_2_naming_the_vanished_run_and_prints_no_closing_line_when_a_
         code = None
 
     captured = capsys.readouterr()
-    assert (code, captured.out, "7" in captured.err) == (2, "", True)
+    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
 
 
 def test_main_prints_merge_failed_with_the_pr_url_and_exits_0_when_a_running_queued_merge_ends_with_the_pr_not_merged(
