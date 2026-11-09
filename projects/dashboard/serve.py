@@ -97,15 +97,15 @@ def report_blocks(repo):
             return "\n<p>owed: none</p>"
         return "\n<p>owed: %d (%s)</p>" % (answer["count"], ", ".join(answer["sections"]))
 
-    def solved_line(n):
+    def solved_line(n, prd):
         closed = [i for i in cache["issues"] if i["state"] == "CLOSED"
-                  and prd_number(i["title"]) == n]
+                  and (prd_number(i["title"]) == n or i["number"] in prd.get("links", []))]
         cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
         recent = [i for i in closed
                   if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
         return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(recent))
 
-    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s" % (n, i["number"], i["title"], solved_line(n), owed_line(n, i))
+    return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s" % (n, i["number"], i["title"], solved_line(n, i), owed_line(n, i))
                      for n, i in sorted(first.items()))
 
 
