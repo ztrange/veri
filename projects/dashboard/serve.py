@@ -110,12 +110,13 @@ def report_blocks(repo):
         children = [i for i in cache["issues"] if i["state"] == "OPEN"
                     and prd_number(i["title"]) == n and i["number"] != prd["number"]]
         names = lambda c: [l["name"] for l in c.get("labels", [])]
+        has_lane = lambda c: any(x.startswith("ready-for-agent") for x in names(c))
         blockers = lambda c: [b for b in c.get("blockedBy", []) if b in open_numbers]
         waiting = [c for c in children if blockers(c)]
         solvable = [c for c in children if not blockers(c)
-                    and any(x.startswith("ready-for-agent") for x in names(c))
+                    and has_lane(c)
                     and not any(x.startswith("taken:") for x in names(c))]
-        unheld = [c for c in children if not any(x.startswith("ready-for-agent") for x in names(c))]
+        unheld = [c for c in children if not has_lane(c)]
         on = sorted({b for c in waiting for b in blockers(c)})
         return "\n<p>left: solvable now %d, waiting %d on %s, held by no lane %d</p>" % (
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
