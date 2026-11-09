@@ -687,7 +687,8 @@ def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_re
         returncode, stdout, stderr = answers[tuple(args)]
         if kwargs.get("stderr") is None:
             sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(args, returncode, stdout, None)
+        return subprocess.CompletedProcess(args, returncode, stdout,
+                                           stderr if kwargs.get("stderr") == subprocess.PIPE else None)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
 

@@ -106,7 +106,7 @@ def answered(what, read, *args):
     try:
         return read(*args)
     except github.NoAnswer as failure:
-        detail = " ".join(str(failure.answer).split()) or "no answer"
+        detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
         raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
 
 

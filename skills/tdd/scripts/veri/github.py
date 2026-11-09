@@ -21,8 +21,17 @@ PARKED_HEADING = "### ⏸ Parked"
 
 
 class NoAnswer(Exception):
-    def __init__(self, answer):
+    """<answer>: what was read before the failure; <detail>: gh's stderr for it, when captured."""
+    def __init__(self, answer, detail=""):
         self.answer = answer
+        self.detail = detail
+
+
+def _gh_api_said(path):
+    """gh api <path> with its stderr captured and still written to ours, so a caller can read why it failed."""
+    run = gh_api(path, stderr=subprocess.PIPE)
+    sys.stderr.write(run.stderr or "")
+    return run
 
 
 def _wait_seconds(name, default, least):
@@ -116,9 +125,9 @@ class RestAdapter:
         sep = "&" if "?" in path else "?"
         page = 1
         while True:
-            run = gh_api("%s%spage=%d" % (path, sep, page))
+            run = _gh_api_said("%s%spage=%d" % (path, sep, page))
             if run.returncode != 0:
-                raise NoAnswer(answer)
+                raise NoAnswer(answer, run.stderr or "")
             body = run.stdout.rstrip("\n")
             if not body or re.search(empty, body):
                 return answer
@@ -126,14 +135,14 @@ class RestAdapter:
             page += 1
 
     def issue_view(self, number, field):
-        rest = gh_api(_issue(number))
+        rest = _gh_api_said(_issue(number))
         try:
             issue = json.loads(rest.stdout)
         except json.JSONDecodeError as error:
             print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
-            raise NoAnswer("")
+            raise NoAnswer("", rest.stderr or "")
         if rest.returncode != 0:
-            raise NoAnswer("")
+            raise NoAnswer("", rest.stderr or "")
         if field == "labels":
             return "".join(label["name"] + "\n" for label in issue["labels"])
         return (issue["body"] or "") + "\n"
