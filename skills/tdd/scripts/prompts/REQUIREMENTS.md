@@ -137,6 +137,7 @@
 | RM12 | Step 6 tells the leaf to leave no change to any file other than the test file. (What to do, item 6.) | The leaf writes no production code. |
 | RM13 | The issue's behavior spec section is headed context only, pin only the step above, and the test command has its own section. (Sections before "What to do".) | The spec informs without widening the pin. |
 | RM14 | The prompt ends by asking for the same report lines as Red, in order: `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:`, `PREDICTED_FAILURE:` (the missing name for a name error, otherwise assertion, values and message shape, as predicted before running), `PREDICTION: MATCHED | DIVERGED`, `PREDICTION_NOTE:`. (Report section.) | The conductor reads it as a red report. |
+| RM15 | When the step's criterion is an exclusion (something must NOT appear or happen), the prompt tells the leaf to write the one case as a contrast against the positive behaviour, asserting both that the included thing is present and that the excluded thing is absent, and never as a standalone absence test. (The paragraph after `{{REJECTION_REASON}}`.) | A standalone absence test passes on the before-state and verify-pin rejects it (VP8); a contrast case fails there on its positive half and fails without the guard on its negative half, so it pins. |
 
 ## skills/tdd/scripts/prompts/develop-red-supersede.md
 

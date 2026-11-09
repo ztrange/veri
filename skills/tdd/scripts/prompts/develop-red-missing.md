@@ -18,6 +18,11 @@ Pin the behaviour its `MISSING_TEST:` line names, in one case, as observable beh
 code does when it is called, not how it is written inside. Leave every other case, and all
 production code, untouched.
 
+When the step's criterion is an exclusion (something must NOT appear or happen), write the one
+case as a contrast against the positive behaviour: assert both that the included thing is
+present and that the excluded thing is absent. Never write it as a standalone absence test,
+which passes just as well when the code does nothing at all.
+
 {{INCLUDE:_develop-red-valid-test.md}}
 
 ### The issue's behavior spec (context only — pin only the step above)
