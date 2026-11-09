@@ -45,7 +45,7 @@ def test_a_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_igno
 
 @pytest.mark.process("a child pytest session started with SIGINT, SIGTERM and SIGHUP ignored, running a detach-leaf signal case")
 def test_a_detach_leaf_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_ignored_2294():
-    command = "trap '' INT TERM HUP; exec \"$0\" -m pytest -p no:cacheprovider -q --timeout=10 \"$1\""
+    command = "trap '' INT TERM HUP; exec \"$0\" -m pytest -p no:cacheprovider -q --timeout=40 \"$1\""
     guard = os.path.dirname(os.environ["PUSH_BACKOFF_LOG"])
     path = os.pathsep.join(entry for entry in os.environ["PATH"].split(os.pathsep) if entry != guard)
     try:

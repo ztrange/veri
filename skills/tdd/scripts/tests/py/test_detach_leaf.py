@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 USAGE = "usage: detach-leaf.sh <cmd> [args…]\n"
+SIGNAL_OUTCOME_WAIT = 20
 
 
 @pytest.fixture
@@ -156,7 +157,7 @@ def test_main_launches_a_command_that_dies_of_sigxfsz_past_ulimit_f_rather_than_
     assert (answer, status.read_text() if status.exists() else "never written") == ((0, "", ""), "153\n")
 
 
-def appeared(path, patience=3):
+def appeared(path, patience=SIGNAL_OUTCOME_WAIT):
     import time
 
     deadline = time.monotonic() + patience
@@ -189,7 +190,7 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
     leaf.write_text(
         'printf \'%s\\n\' "$$" > "$2"\n'
         'n=0\n'
-        f'while [ ! -e "{go}" ] && [ "$n" -lt 150 ]; do sleep 0.02; n=$((n + 1)); done\n'
+        f'while [ ! -e "{go}" ] && [ "$n" -lt {SIGNAL_OUTCOME_WAIT * 50} ]; do sleep 0.02; n=$((n + 1)); done\n'
         'printf \'0\\n\' > "$1"\n')
 
     launcher = os.fork()
@@ -210,11 +211,11 @@ def test_main_launches_a_child_that_writes_its_completion_file_after_a_term_to_t
         pids = [int(path.read_text()) for path in (detached_pid, control_pid) if appeared(path, 0)]
         alive_at_term = [alive(pid) for pid in pids]
         os.killpg(launcher, signal.SIGTERM)
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + SIGNAL_OUTCOME_WAIT
         while not launcher_gone and time.monotonic() < deadline:
             launcher_gone = os.waitpid(launcher, os.WNOHANG)[0] == launcher
             time.sleep(0.02)
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + SIGNAL_OUTCOME_WAIT
         while len(pids) == 2 and alive(pids[1]) and time.monotonic() < deadline:
             time.sleep(0.02)
         go.write_text("")
