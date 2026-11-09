@@ -54,3 +54,13 @@ def test_main_prints_run_when_unset_with_a_recorded_time_and_under_reuse_with_no
     assert (unset[0], unset[1].strip()) == (0, "run")
     assert (reuse_unrecorded[0], reuse_unrecorded[1].strip()) == (0, "run")
     assert reuse_recorded[1].strip() == "reuse 727"
+
+
+def test_main_with_reuse_and_no_recorded_time_for_the_command_prints_run_and_exits_0_3436(
+        tmp_path, run_cli, baseline_full_tier):
+    (tmp_path / ".git").mkdir()
+
+    code, out, err = run_cli(baseline_full_tier, ["3436", "make test"],
+                             env={"VERI_BASELINE_FULL_TIER": "reuse"}, cwd=tmp_path)
+
+    assert (code, out.strip()) == (0, "run")
