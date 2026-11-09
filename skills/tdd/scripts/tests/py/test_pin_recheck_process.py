@@ -2585,3 +2585,40 @@ def test_3323_a_retire_pin_declaration_naming_a_file_that_holds_no_pin_exits_2_a
     assert (ran.returncode, "retired:" in ran.stdout, mutations.read_text() == before,
             [e for e in events if e.get("event") == "pin-retired"], (tmp_path / ".tdd" / "pin-recheck-ok").exists()) == (
         2, False, True, [], False), ran.stdout + ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh replaying an event.py mutant through a copied timed-test-run.sh")
+@pytest.mark.tree_audit("copies the veri scripts and lib trees into a temporary repo")
+def test_3383_a_replayed_mutant_dropping_o_append_from_event_py_leaves_the_live_journal_append_only(tmp_path):
+    import json
+    import shutil
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    scripts = tmp_path / "skills" / "tdd" / "scripts"
+    scripts.mkdir(parents=True)
+    shutil.copy(SCRIPTS / "timed-test-run.sh", scripts)
+    shutil.copytree(SCRIPTS / "lib", scripts / "lib")
+    shutil.copytree(SCRIPTS / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    git("init", "-q")
+    (tmp_path / ".gitignore").write_text(".tdd/events.jsonl\n")
+    (tmp_path / ".tdd").mkdir()
+    wrapper = scripts / "timed-test-run.sh"
+    record(tmp_path / ".tdd" / "issue-2749-mutations.md", file="skills/tdd/scripts/veri/event.py",
+           old="os.O_WRONLY | os.O_APPEND | os.O_CREAT", new="os.O_WRONLY | os.O_CREAT",
+           command=f"{wrapper} affected suite true")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    event_py = scripts / "veri" / "event.py"
+    event_py.write_text(event_py.read_text() + "\n")
+    git("commit", "-q", "-am", "touch event.py")
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    before = "".join(json.dumps({"ts": 1794156370 + n, "event": "step", "note": "x" * 200}) + "\n" for n in range(3))
+    journal.write_text(before)
+
+    subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=60)
+
+    after = journal.read_text()
+    assert (after.startswith(before), after[len(before):] == "" or after.endswith("\n")) == (True, True), after
