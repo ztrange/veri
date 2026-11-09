@@ -378,3 +378,38 @@ def test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_34
         seen[phrasing] = (code, ledger.read_text(), "never run" in err and "fails" not in err)
 
     assert seen == {p: (2, original, True) for p in seen}
+
+
+def test_main_already_holds_exits_1_naming_the_case_fails_when_the_command_ran_it_and_it_failed_3425(
+    tmp_path, run_cli, tick_ledger, monkeypatch
+):
+    import subprocess
+
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(original)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    assert False\n")
+    failed = "collected 1 item\n\ntests/test_x.py F\n\n1 failed in 0.01s\n"
+    passed = "collected 1 item\n\ntests/test_x.py .\n\n1 passed in 0.01s\n"
+
+    def fake_run(argv, *args, **kwargs):
+        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = './run-one "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+        ran_one_file = './run-one "$1"' in argv and "tests/test_x.py" in argv
+        code, report = (1, failed) if ran_one_file else (0, passed)
+        return subprocess.CompletedProcess(argv, code, stdout=report if text else report.encode(), stderr="" if text else b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/test_x.py::test_holds",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
+    assert "case tests/test_x.py::test_holds fails" in err and "never run" not in err
