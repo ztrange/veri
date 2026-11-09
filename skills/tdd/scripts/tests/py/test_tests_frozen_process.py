@@ -6880,6 +6880,7 @@ def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subje
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "projects/x/tests/test_guard.py").write_text("def test_subject_case():\n    assert True, 'a'\n")
     (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'a'\n")
+    (tmp_path / "projects/x/tests/test_guard.py.bak").write_text("def test_bak_case():\n    assert True, 'a'\n")
     git(tmp_path, "init", "-q")
     git(tmp_path, "add", "tests", "projects")
     git(tmp_path, "commit", "-q", "-m", "base")
@@ -6887,6 +6888,7 @@ def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subje
     (tmp_path / "projects/x/tests/test_guard.py").write_text(
         "def test_subject_case():\n    assert True, 'b'\n\n\ndef test_red_3485():\n    assert 1 == 2\n")
     (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'b'\n")
+    (tmp_path / "projects/x/tests/test_guard.py.bak").write_text("def test_bak_case():\n    assert True, 'b'\n")
     run_cli(tests_frozen, ["record", "--step", earlier, "projects/x/tests/test_guard.py"], cwd=tmp_path)
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -6898,5 +6900,9 @@ def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subje
     (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'c'\n")
     other_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
 
-    assert [subject_changed[:2], other_changed[:2]] == [
-        (0, ""), (1, "test_other_case (%s)\n" % earlier)]
+    (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'b'\n")
+    (tmp_path / "projects/x/tests/test_guard.py.bak").write_text("def test_bak_case():\n    assert True, 'c'\n")
+    prefixed_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    assert [subject_changed[:2], other_changed[:2], prefixed_changed[:2]] == [
+        (0, ""), (1, "test_other_case (%s)\n" % earlier), (1, "test_bak_case (%s)\n" % earlier)]
