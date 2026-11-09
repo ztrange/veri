@@ -1513,3 +1513,21 @@ def test_main_lists_only_this_issues_named_author_less_units_sorted_past_an_unre
         "already present" in green,
         "a-unit" in green,
     ) == (True, False, False, False)
+
+
+def test_main_renders_a_diff_prompt_without_the_author_less_block_when_the_log_holds_no_event_for_this_issue_3404(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "awake": 1, "issue": "9999", "actor": "", "phase": "", "step": "", '
+        '"event": "skill-edit-no-author", "attempt": "", "skill_commit": "", "unit": "skills/tdd/SCRIPTS.md"}\n')
+    spec = tmp_path / "spec.md"
+    spec.write_text("spec\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "3404")
+
+    code = build_verify_prompt.main(["--step", "s", "--fast-cmd", "make unit", "diff", str(spec), "0123abc", "4567def"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(r"\s+", " ", out.decode("utf-8", "surrogateescape"))
+
+    assert (code, "already present" in prompt, "skills/tdd/SCRIPTS.md" in prompt) == (0, False, False)
