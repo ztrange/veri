@@ -189,3 +189,9 @@ def test_main_classifies_revise_impossible_as_a_process_failure_with_0_2617(caps
     code = classify_bail.main(["revise-impossible"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_repair_reroutes_exhausted_as_a_process_failure_with_0_3292(capsys, classify_bail):
+    code = classify_bail.main(["repair-reroutes-exhausted"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
