@@ -756,3 +756,31 @@ def test_3382_with_the_conductor_alive_for_several_passes_after_the_ask_and_the_
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
+
+
+def test_3382_the_watchers_own_at_ledger_stop_is_removed_at_the_conductors_exit_while_an_operators_at_ledger_stop_written_in_the_same_window_is_left_in_place(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    stop_run_module = importlib.import_module("veri.stop_run")
+    stops = {}
+    for name, operator_writes in (("watcher", False), ("operator", True)):
+        tree = tmp_path / name
+        run_dir = tree / ".tdd" / "wt" / "7"
+        (run_dir / ".tdd").mkdir(parents=True)
+        alive = iter([True, True, False])
+
+        def operator_stop(seconds, run_dir=run_dir, operator_writes=operator_writes):
+            if operator_writes:
+                stop_run_module.stop_run(str(run_dir), "at-ledger")
+
+        monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run, alive=alive: next(alive, False), raising=False)
+        monkeypatch.setattr(restart_conductor, "_growth", lambda run, offset=0: 60500, raising=False)
+        monkeypatch.setattr(restart_conductor, "run_state", lambda run: "❌ Bailed", raising=False)
+        monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: None, raising=False)
+        monkeypatch.setattr(restart_conductor, "sleep", operator_stop, raising=False)
+
+        run_cli(restart_conductor, ["7"], cwd=tree)
+
+        stop = run_dir / ".tdd" / "stop"
+        stops[name] = stop.read_text().strip() if stop.exists() else None
+
+    assert stops == {"watcher": None, "operator": "at-ledger"}
