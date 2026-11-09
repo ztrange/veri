@@ -291,7 +291,7 @@ def main(argv):
         scope["now"] = now
         if none and mergeable:
             first_none = now if first_none is None else first_none
-            if now - first_none >= int(tunables.read("VERI_CI_NO_RUN_WAIT", unless_empty="120")):
+            if now - first_none >= int(no_run_wait):
                 warn("no CI run for %s" % head)
                 return 2
         if slice_end is None:
