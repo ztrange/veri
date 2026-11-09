@@ -738,3 +738,21 @@ def test_3382_a_stop_holding_now_that_the_watcher_did_not_write_is_left_in_place
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert ((run_tdd / "stop").read_text() if (run_tdd / "stop").exists() else None) == "now"
+
+
+def test_3382_with_the_conductor_alive_for_several_passes_after_the_ask_and_the_run_stopped_at_its_exit_the_watcher_asks_once_and_relaunches_once(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("")
+    alive = iter([True] * 5 + [False])
+    calls = []
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "_growth", lambda run, offset=0: 60500, raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
