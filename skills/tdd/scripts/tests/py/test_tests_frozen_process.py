@@ -6701,3 +6701,39 @@ def test_check_earlier_exits_0_for_a_later_step_changing_a_non_red_case_in_an_ea
     assert [guard_changed[:2], red_changed[:2]] == [
         (0, ""), (1, "test_pinned_3443 (%s)\n" % earlier)]
 
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_record_step_freezes_only_the_red_case_of_each_of_two_prefix_sharing_guard_subjects_3443(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_guard.py").write_text("def test_guarded_one():\n    assert True, 'a'\n")
+    (tmp_path / "tests/test_guard_more.py").write_text("def test_guarded_two():\n    assert True, 'a'\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier, current = ("step one ⟦guard-subject: tests/test_guard.py⟧ ⟦guard-subject: tests/test_guard_more.py⟧",
+                        "step two")
+    (tmp_path / "tests/test_guard.py").write_text(
+        "def test_guarded_one():\n    assert True, 'b'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
+    (tmp_path / "tests/test_guard_more.py").write_text(
+        "def test_guarded_two():\n    assert True, 'b'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_guard.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    (tmp_path / "tests/test_guard.py").write_text(
+        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert 1 == 2\n")
+    (tmp_path / "tests/test_guard_more.py").write_text(
+        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert 1 == 3\n")
+    argv = ["check-earlier", str(ledger), "--step", current]
+
+    guarded_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+    (tmp_path / "tests/test_guard.py").write_text(
+        "def test_guarded_one():\n    assert True, 'c'\n\n\ndef test_red_one_3443():\n    assert True\n")
+    (tmp_path / "tests/test_guard_more.py").write_text(
+        "def test_guarded_two():\n    assert True, 'c'\n\n\ndef test_red_two_3443():\n    assert True\n")
+    red_changed = run_cli(tests_frozen, argv, cwd=tmp_path)
+
+    assert [guarded_changed[:2], (red_changed[0], sorted(red_changed[1].splitlines()))] == [
+        (0, ""), (1, ["test_red_one_3443 (%s)" % earlier, "test_red_two_3443 (%s)" % earlier])]
