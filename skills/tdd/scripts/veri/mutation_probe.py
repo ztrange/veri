@@ -22,6 +22,15 @@ def append_record(fields):
             f.write("\n")
 
 
+def run_keeping_journal(run):
+    journal = Path(".tdd/events.jsonl")
+    before = journal.read_bytes() if journal.exists() else None
+    ran = run()
+    if before is not None and not journal.read_bytes().startswith(before):
+        journal.write_bytes(before)
+    return ran
+
+
 def run_with(contents, command):
     saved = {path: path.read_bytes() if path.exists() else None for path in contents}
     try:
@@ -30,12 +39,7 @@ def run_with(contents, command):
                 path.unlink(missing_ok=True)
             else:
                 path.write_bytes(content)
-        journal = Path(".tdd/events.jsonl")
-        before = journal.read_bytes() if journal.exists() else None
-        returncode = subprocess.run(command).returncode
-        if before is not None and not journal.read_bytes().startswith(before):
-            journal.write_bytes(before)
-        return returncode
+        return run_keeping_journal(lambda: subprocess.run(command)).returncode
     finally:
         for path, content in saved.items():
             if content is None:
