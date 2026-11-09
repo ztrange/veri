@@ -282,3 +282,31 @@ def test_run_case_in_a_repo_declaring_a_one_test_file_command_runs_it_with_the_c
     assert len(case_runs) == 1
     assert "./run-one" in " ".join(case_runs[0]) and case_runs[0][-1] == "pkg/check_test.go"
     assert not any("TESTS=" in arg for argv in case_runs for arg in argv)
+
+
+def test_main_already_holds_exits_2_naming_the_case_never_run_when_its_file_path_does_not_exist_3425(
+    tmp_path, run_cli, tick_ledger, monkeypatch
+):
+    import subprocess
+
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(original)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: already holds\n")
+
+    def fake_run(argv, *args, **kwargs):
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = './run-one "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if kwargs.get("text") else out.encode(), stderr="")
+        return subprocess.CompletedProcess(argv, 1, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "TestIssue99CheckExitsZero",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, original, False), err
+    assert "TestIssue99CheckExitsZero" in err and "fails" not in err

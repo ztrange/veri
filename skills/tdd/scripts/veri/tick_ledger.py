@@ -25,7 +25,9 @@ def run_case(case):
     command = found.stdout.strip()
     if not command:
         return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
-    return subprocess.run(["sh", "-c", command, "sh", case.split("::", 1)[0]]).returncode
+    path = case.split("::", 1)[0]
+    code = subprocess.run(["sh", "-c", command, "sh", path]).returncode
+    return 2 if code and not os.path.exists(path) else code
 
 
 def changed_index(text, new):
@@ -125,7 +127,11 @@ def main(argv):
             l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()
         ):
             return 1
-    if case and run_case(case):
+    ran = run_case(case) if case else 0
+    if ran == 2:
+        complain(f"{matcher}: case {case} never run: its file path does not exist")
+        return 2
+    if ran:
         complain(f"{matcher}: case {case} fails")
         return 1
     if pending and phase:
