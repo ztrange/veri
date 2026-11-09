@@ -167,6 +167,26 @@ def test_main_missing_reroute_stays_green_records_one_unpinnable_missing_event_a
             ledger.read_bytes()) == (1, ["a one ⟦criterion 1⟧"], [], ledger_bytes), (code, out, err, names)
 
 
+def test_main_missing_reroute_stays_green_prints_unpinnable_missing_and_exits_2_with_one_event_3472(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    ledger_bytes = ledger.read_bytes()
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events_file = ledger.parent / "events.jsonl"
+    events = [json.loads(line) for line in events_file.read_text().splitlines()] if events_file.exists() else []
+    names = [e.get("event") for e in events]
+    assert (code, out.strip(), names.count("unpinnable-missing"), ledger.read_bytes()) == (
+        2, "unpinnable-missing", 1, ledger_bytes), err
+
+
 def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leaves_line_unticked_3305(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     ran = []
