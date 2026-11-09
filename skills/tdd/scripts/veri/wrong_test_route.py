@@ -46,6 +46,10 @@ def _defining_file(case):
     return found[0] if found else None
 
 
+def _file_case(file, case):
+    return file + "::" + case
+
+
 def _exists(case):
     cut = cut_prefix(case)
     titles = set()
@@ -312,7 +316,7 @@ def main(argv):
         if own in recorded:
             write(sys.stdout, "supersede-diff " + " ".join(older))
         else:
-            write(sys.stdout, "supersede " + " ".join(_defining_file(c) + "::" + c for c in older))
+            write(sys.stdout, "supersede " + " ".join(_file_case(_defining_file(c), c) for c in older))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     where = _defining_file(case) if case is not None and "::" not in case else None
@@ -342,7 +346,7 @@ def main(argv):
     if case is None:
         write(sys.stdout, "revise")
         return 3
-    write(sys.stdout, "red " + (where + "::" + case if where else case))
+    write(sys.stdout, "red " + (_file_case(where, case) if where else case))
     return 0
 
 
