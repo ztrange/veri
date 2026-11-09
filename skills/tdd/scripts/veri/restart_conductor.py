@@ -105,7 +105,13 @@ def main(argv):
     offset = 0
     while True:
         asked = False
-        while conductor_alive(run):
+        misses = 0
+        while misses < 3:
+            if not conductor_alive(run):
+                misses += 1
+                sleep(1)
+                continue
+            misses = 0
             try:
                 g = _growth(run, offset)
             except OSError as e:

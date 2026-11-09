@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 198
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_a_watcher_armed_when_no_conductor_is_ever_recorded_exits_3_only_after_waiting_the_launch_bound_on_the_fake_clock
 
+before 40
+5db26ab9f70963d522dbb3dd8252f837294a69eb
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3384_the_watch_sleeps_after_each_not_live_read_before_the_next_poll
+
