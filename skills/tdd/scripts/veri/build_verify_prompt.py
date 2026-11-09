@@ -6,6 +6,7 @@ import paths
 import re
 import sys
 
+import event_log
 from entry import write
 from ledger import carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
@@ -81,6 +82,20 @@ def _expand(text, prompts, chain=()):
 def _later_steps(ledger, step_arg):
     unchecked = [step[6] for step in ledger_steps(_read(ledger).decode()) if step[1] == "open"]
     return list(itertools.dropwhile(lambda text: text != step_arg, unchecked))[1:]
+
+
+def _author_less_block(issue):
+    try:
+        events = event_log.read_events(".tdd/events.jsonl", skip_unreadable=True)
+    except OSError:
+        return b""
+    units = sorted({e["unit"] for e in events if e.get("event") == "skill-edit-no-author"
+                    and str(e.get("issue")) == issue and e.get("unit")})
+    if not units:
+        return b""
+    return ("\n\n### Units whose prose was already present\n\n"
+            "The prose of these units was already present before this run, so a unit with no prose diff "
+            "is not a shortfall:\n\n" + "\n".join(f"- {unit}" for unit in units)).encode()
 
 
 def main(argv):
@@ -208,6 +223,8 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
                                (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
+    if phase == "diff":
+        out += _author_less_block(os.environ.get("VERI_ISSUE", ""))
     return 0, out + b"\n"
 
 
