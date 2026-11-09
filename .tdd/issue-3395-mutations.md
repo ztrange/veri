@@ -5,3 +5,12 @@ skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py
 command 206
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py::test_3395_a_directive_followed_by_a_period_semicolon_or_parenthesis_exempts_its_record_while_an_unnamed_one_is_restored
 
+file 36
+skills/tdd/scripts/veri/supervise.py
+old 20
+mutation-record:\s*(
+new 21
+mutation-recordX:\s*(
+command 195
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_mutation_directive.py::test_3395_a_directive_with_no_trailing_punctuation_still_exempts_its_record_while_an_unnamed_one_is_restored
+
