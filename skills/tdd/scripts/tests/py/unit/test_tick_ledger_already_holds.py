@@ -257,3 +257,28 @@ def test_run_case_in_a_repo_declaring_no_one_test_file_command_runs_make_test_te
 
     assert tick_ledger.run_case("TestIssue99CheckExitsZero") == 0
     assert ["make", "test", "TESTS=TestIssue99CheckExitsZero"] in launched
+
+
+def test_run_case_in_a_repo_declaring_a_one_test_file_command_runs_it_with_the_case_file_as_dollar_1_3425(
+    tick_ledger, monkeypatch, tmp_path
+):
+    import subprocess
+
+    (tmp_path / "CLAUDE.md").write_text('veri: one test file: ./run-one "$1"\n')
+    monkeypatch.chdir(tmp_path)
+    launched = []
+
+    def fake_run(argv, *args, **kwargs):
+        launched.append(list(argv))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = './run-one "$1"\n'
+            return subprocess.CompletedProcess(argv, 0, stdout=out if kwargs.get("text") else out.encode(), stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    assert tick_ledger.run_case("pkg/check_test.go::TestIssue99CheckExitsZero") == 0
+    case_runs = [argv for argv in launched if not str(argv[0]).endswith("detect-test-command.sh")]
+    assert len(case_runs) == 1
+    assert "./run-one" in " ".join(case_runs[0]) and case_runs[0][-1] == "pkg/check_test.go"
+    assert not any("TESTS=" in arg for argv in case_runs for arg in argv)
