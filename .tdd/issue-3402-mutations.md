@@ -1,0 +1,7 @@
+before 40
+15fd19f67a4cfdd355447ede9867baf3a9a16e09
+keep 65
+skills/tdd/scripts/tests/py/unit/test_run_conductor_launch_env.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_run_conductor_launch_env.py::test_3402_the_launch_record_holds_veri_variables_and_no_other_variable_of_the_launching_environment
+
