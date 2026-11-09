@@ -474,7 +474,7 @@ def _relaunch_setup(tmp_path, monkeypatch, alive_script, states):
 def test_3223_when_the_new_conductor_is_not_yet_recorded_right_after_the_relaunch_the_watch_waits_for_it_and_goes_on_watching(tmp_path, run_cli, monkeypatch):
     # initial check, watch, exit, then two empty polls after the relaunch, the new conductor, its end
     restart_conductor, alive = _relaunch_setup(
-        tmp_path, monkeypatch, [True, True, False, False, False, False, False, True, False, False, False], ["stopped", "✅ Done"])
+        tmp_path, monkeypatch, [True, True, False, False, False, False, False, True], ["stopped", "✅ Done"])
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
