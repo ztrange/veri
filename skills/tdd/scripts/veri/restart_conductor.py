@@ -50,12 +50,26 @@ def run_state(run):
     return json.loads(status.run_activity(_run_dir(run), as_json=True))["state"]
 
 
+def _launch_env(run):
+    env = {k: v for k, v in os.environ.items() if not k.startswith("VERI_")}
+    try:
+        with open(os.path.join(_tdd_dir(), f"issue-{run}-launch-env")) as record:
+            for line in record:
+                key, sep, value = line.rstrip("\n").partition("=")
+                if sep:
+                    env[key] = value
+    except FileNotFoundError:
+        pass
+    return env
+
+
 def detach_leaf(run):
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env = _launch_env(run)
     with open(_log_path(run), "a") as log:
         subprocess.Popen(
             [os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), run],
-            stdout=log)
+            stdout=log, env=env)
 
 
 def _log_size(run):
