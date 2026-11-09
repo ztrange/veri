@@ -131,10 +131,12 @@ def overlap(issue, changed):
     return next(((path, url) for path in issue_paths(issue) for url, files in changed.items() if path in files), None)
 
 
-def launchable(issue, changed):
-    """Whether <issue> overlaps no open run draft PR; a skip prints one line naming the issue, the path and the PR."""
+def launchable(issue, changed, reported):
+    """Whether <issue> overlaps no open run draft PR; a skip prints one line naming the issue, the path and the PR,
+    once per (issue, path, PR) in <reported>, the skips this dispatch process already printed."""
     found = overlap(issue, changed)
-    if found:
+    if found and (issue, *found) not in reported:
+        reported.add((issue, *found))
         sys.stdout.write(f"skip {issue} {found[0]} {found[1]}\n")
     return not found
 
@@ -172,6 +174,7 @@ def main(argv):
     pending = []
     merges = []
     resume_at = 0
+    reported = set()
     while True:
         live = live_conductors()
         running = queued_merges()
@@ -221,7 +224,7 @@ def main(argv):
             try:
                 queue = solvable_issues()
                 changed = run_pr_paths()
-                free = [issue for issue in queue if launchable(issue, changed)]
+                free = [issue for issue in queue if launchable(issue, changed, reported)]
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
