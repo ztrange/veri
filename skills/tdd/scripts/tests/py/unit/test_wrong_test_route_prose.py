@@ -1,6 +1,8 @@
 """In-process cases for wrong_test_route.py reading an unquoted prose SUPERSEDED: case name."""
 import importlib
 
+from conftest import bare_route
+
 SPEC = ["--spec", ".tdd/issue-0-spec.md"]
 
 
@@ -16,7 +18,7 @@ def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_behind
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % title)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % title)
 
 
 def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_and_no_issue_reference_to_the_case_a_test_file_defines(
@@ -31,7 +33,7 @@ def test_main_2416_resolves_a_superseded_line_with_an_unquoted_prose_name_and_no
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), "test_other"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "red %s\n" % title)
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % title)
 
 
 def test_main_2416_names_on_stderr_a_superseded_line_whose_case_no_test_file_defines(run_cli, tmp_path):

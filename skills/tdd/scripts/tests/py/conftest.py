@@ -22,6 +22,12 @@ import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
+
+
+def bare_route(stdout):
+    return re.sub(r"(?<=\s)[^\s:]*::", "", stdout) if stdout.startswith(("red ", "repair ", "supersede ")) else stdout
+
+
 for path in (SCRIPTS / "veri", SCRIPTS):
     while str(path) in sys.path:
         sys.path.remove(str(path))
