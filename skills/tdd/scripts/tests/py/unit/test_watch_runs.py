@@ -1165,3 +1165,19 @@ def test_3247_main_prints_no_exited_line_for_a_run_with_a_state_whose_two_line_c
     code = watch_runs.main(["--max-wait", "25"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
+
+
+def test_3247_main_never_prints_an_exited_line_whose_state_is_running_for_a_run_that_left_the_live_listing(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    listings = iter([["5"]])
+    ticks = itertools.count(0, 10)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "running")
+    monkeypatch.setattr(watch_runs, "wait", lambda: None)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    watch_runs.main(["--max-wait", "25"])
+
+    out = capsys.readouterr().out
+    assert [line for line in out.splitlines() if line.startswith("exited ") and line.endswith(" running")] == []
