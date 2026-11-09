@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3436
 
-Wall time for the issue: 1533 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 816 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 11 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Steps done: 7 of 11 planned.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $10.44 over 199 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $12.97 over 251 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77948 tokens, largest 146341 tokens
 Conductor context: first turn 77948 tokens, largest 165877 tokens
 Conductor context: first turn 77989 tokens, largest 150721 tokens
-Conductor context: first turn 78102 tokens, largest 143318 tokens
+Conductor context: first turn 78102 tokens, largest 146164 tokens
+Conductor context: first turn 78375 tokens, largest 129964 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -172,51 +173,103 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 152 | $0.04 | 148988 |
 | 153 | $0.05 | 150163 |
 | 154 | $0.05 | 150721 |
-| 155 | $0.48 | 78102 |
-| 156 | $0.06 | 84112 |
-| 157 | $0.03 | 85887 |
-| 158 | $0.03 | 87797 |
-| 159 | $0.03 | 88916 |
-| 160 | $0.03 | 90833 |
-| 161 | $0.02 | 91370 |
-| 162 | $0.02 | 91803 |
-| 163 | $0.02 | 92113 |
-| 164 | $0.02 | 92537 |
-| 165 | $0.02 | 92811 |
-| 166 | $0.02 | 93221 |
+| 155 | $0.49 | 78102 |
+| 156 | $0.08 | 84112 |
+| 157 | $0.04 | 85887 |
+| 158 | $0.04 | 87797 |
+| 159 | $0.04 | 88916 |
+| 160 | $0.04 | 90833 |
+| 161 | $0.04 | 91370 |
+| 162 | $0.03 | 91803 |
+| 163 | $0.03 | 92113 |
+| 164 | $0.03 | 92537 |
+| 165 | $0.03 | 92811 |
+| 166 | $0.04 | 93221 |
 | 167 | $0.03 | 94115 |
-| 168 | $0.05 | 98569 |
+| 168 | $0.07 | 98569 |
 | 169 | $0.03 | 99384 |
-| 170 | $0.03 | 100089 |
-| 171 | $0.06 | 105018 |
-| 172 | $0.03 | 105785 |
+| 170 | $0.04 | 100089 |
+| 171 | $0.07 | 105018 |
+| 172 | $0.04 | 105785 |
 | 173 | $0.03 | 106288 |
-| 174 | $0.03 | 106767 |
-| 175 | $0.03 | 107464 |
+| 174 | $0.04 | 106767 |
+| 175 | $0.04 | 107464 |
 | 176 | $0.03 | 108136 |
-| 177 | $0.02 | 108433 |
-| 178 | $0.03 | 109787 |
-| 179 | $0.05 | 113300 |
-| 180 | $0.03 | 113995 |
-| 181 | $0.03 | 114303 |
-| 182 | $0.03 | 115086 |
-| 183 | $0.03 | 115731 |
-| 184 | $0.03 | 116903 |
-| 185 | $0.03 | 117832 |
-| 186 | $0.03 | 118458 |
-| 187 | $0.03 | 119603 |
-| 188 | $0.03 | 120745 |
-| 189 | $0.03 | 121431 |
-| 190 | $0.03 | 122484 |
-| 191 | $0.03 | 123307 |
-| 192 | $0.03 | 123888 |
-| 193 | $0.03 | 124719 |
-| 194 | $0.04 | 126179 |
-| 195 | $0.03 | 126939 |
-| 196 | $0.03 | 127697 |
-| 197 | $0.10 | 136715 |
-| 198 | $0.04 | 138376 |
-| 199 | $0.07 | 143318 |
+| 177 | $0.04 | 108433 |
+| 178 | $0.04 | 109787 |
+| 179 | $0.06 | 113300 |
+| 180 | $0.04 | 113995 |
+| 181 | $0.04 | 114303 |
+| 182 | $0.04 | 115086 |
+| 183 | $0.04 | 115731 |
+| 184 | $0.04 | 116903 |
+| 185 | $0.04 | 117832 |
+| 186 | $0.04 | 118458 |
+| 187 | $0.04 | 119603 |
+| 188 | $0.05 | 120745 |
+| 189 | $0.04 | 121431 |
+| 190 | $0.04 | 122484 |
+| 191 | $0.04 | 123307 |
+| 192 | $0.04 | 123888 |
+| 193 | $0.04 | 124719 |
+| 194 | $0.05 | 126179 |
+| 195 | $0.04 | 126939 |
+| 196 | $0.04 | 127697 |
+| 197 | $0.11 | 136715 |
+| 198 | $0.05 | 138376 |
+| 199 | $0.08 | 143318 |
+| 200 | $0.06 | 145172 |
+| 201 | $0.04 | 146164 |
+| 202 | $0.49 | 78375 |
+| 203 | $0.06 | 84385 |
+| 204 | $0.03 | 86194 |
+| 205 | $0.03 | 88109 |
+| 206 | $0.03 | 89950 |
+| 207 | $0.06 | 95262 |
+| 208 | $0.04 | 97420 |
+| 209 | $0.02 | 98088 |
+| 210 | $0.03 | 98943 |
+| 211 | $0.02 | 99248 |
+| 212 | $0.02 | 99660 |
+| 213 | $0.02 | 99914 |
+| 214 | $0.02 | 100273 |
+| 215 | $0.03 | 101371 |
+| 216 | $0.02 | 101767 |
+| 217 | $0.03 | 102404 |
+| 218 | $0.03 | 103332 |
+| 219 | $0.02 | 103774 |
+| 220 | $0.03 | 104402 |
+| 221 | $0.03 | 105107 |
+| 222 | $0.02 | 105581 |
+| 223 | $0.02 | 105827 |
+| 224 | $0.03 | 106571 |
+| 225 | $0.03 | 107887 |
+| 226 | $0.04 | 109814 |
+| 227 | $0.03 | 110262 |
+| 228 | $0.03 | 110936 |
+| 229 | $0.03 | 111591 |
+| 230 | $0.03 | 112262 |
+| 231 | $0.03 | 112847 |
+| 232 | $0.03 | 113832 |
+| 233 | $0.03 | 114119 |
+| 234 | $0.03 | 114840 |
+| 235 | $0.02 | 115088 |
+| 236 | $0.03 | 115570 |
+| 237 | $0.03 | 116113 |
+| 238 | $0.03 | 116813 |
+| 239 | $0.03 | 117400 |
+| 240 | $0.03 | 118078 |
+| 241 | $0.03 | 118385 |
+| 242 | $0.03 | 119198 |
+| 243 | $0.03 | 119545 |
+| 244 | $0.03 | 120128 |
+| 245 | $0.03 | 120686 |
+| 246 | $0.03 | 121496 |
+| 247 | $0.04 | 122945 |
+| 248 | $0.03 | 124005 |
+| 249 | $0.03 | 124719 |
+| 250 | $0.03 | 125009 |
+| 251 | $0.06 | 129964 |
 
 #### Conductor comments, by family
 
@@ -224,36 +277,36 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 5 | 2196 | $0.04 |
-| 🟢 Green | 6 | 2753 | $0.06 |
-| 🛠️ Refactor | 4 | 1604 | $0.03 |
-| 🔎 verify-green | 6 | 2753 | $0.06 |
-| 🔎 verify-refactor | 4 | 1604 | $0.03 |
+| 🔴 Red | 6 | 2719 | $0.05 |
+| 🟢 Green | 7 | 3295 | $0.07 |
+| 🛠️ Refactor | 5 | 2144 | $0.04 |
+| 🔎 verify-green | 7 | 3295 | $0.07 |
+| 🔎 verify-refactor | 5 | 2144 | $0.04 |
 | 🔎 verify-<phase> (revised) | 1 | 572 | $0.01 |
 | 🗺️ Plan | 1 | 579 | $0.01 |
-| 🗺️ verify-plan | 5 | 2199 | $0.04 |
-| ▶️ Resuming | 3 | 1033 | $0.02 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 6 | 2726 | $0.05 |
+| ▶️ Resuming | 4 | 1558 | $0.03 |
+| ⛔ Bailed | 1 | 527 | $0.01 |
 | ⏹️ Stopped | 3 | 1604 | $0.03 |
-| Total | 28 | 12540 | $0.25 |
+| Total | 34 | 15724 | $0.31 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 4 | 1 | 0 | 141 | 112 | 25 | 50 | 10638 | 460807 | 112190 | 0.43 |
-| red | 14 | 5 | 0 | 0 | 890 | 225 | 60 | 120 | 20959 | 999570 | 268858 | 1.07 |
-| green | 15 | 5 | 2 | 0 | 6423 | 259 | 83 | 154 | 21432 | 1307084 | 266459 | 1.08 |
-| refactor | 5 | 0 | 0 | 0 | 41 | 25 | 12 | 20 | 1207 | 104178 | 86375 | 0.24 |
+| plan | 6 | 5 | 1 | 0 | 153 | 120 | 26 | 52 | 11537 | 460807 | 132453 | 0.49 |
+| red | 16 | 6 | 0 | 0 | 1076 | 267 | 70 | 140 | 23920 | 1176060 | 308810 | 1.22 |
+| green | 17 | 6 | 2 | 0 | 6729 | 303 | 94 | 176 | 24256 | 1503997 | 298925 | 1.21 |
+| refactor | 6 | 0 | 0 | 0 | 49 | 30 | 15 | 24 | 1492 | 128759 | 100618 | 0.28 |
 | pin | 3 | 2 | 1 | 0 | 116 | 66 | 18 | 36 | 6237 | 310293 | 48948 | 0.22 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 21 | 16 | 4 | 0 | 6266 | 371 | 100 | 196 | 32936 | 1625032 | 387822 | 1.46 |
-| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 1267 | 265 | 88 | 164 | 22957 | 1362575 | 344504 | 1.30 |
+| verifier | claude-sonnet-5-5 | 24 | 19 | 4 | 0 | 6560 | 416 | 108 | 212 | 36039 | 1729194 | 437631 | 1.63 |
+| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 1485 | 319 | 105 | 196 | 26823 | 1656397 | 401619 | 1.51 |
 | developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 78 | 51 | 10 | 20 | 4580 | 194325 | 50504 | 0.28 |
 
 #### Rework and waste, by phase
@@ -266,6 +319,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 41 | 0.07 |
 | revise-red | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -278,6 +332,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | Given `VERI_BASELINE_FULL_TIER=reuse` and no recorded time for the full-tier command it is given, `baseline-full-tier.sh` prints `run` and exits 0 ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 46 | 12 | 24 | 3625 | 213511 | 33883 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
 | A fresh `run-conductor.sh <n>` launch pins the launch's `VERI_BASELINE_FULL_TIER` value per run, writing it to `.tdd/issue-<n>-baseline-full-tier` beside `.tdd/issue-<n>-skip-verify` ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 94 | 23 | 46 | 6250 | 391308 | 87555 | 0.32 | 981 | unknown | 0/5 | nothing-left |  |  | full |
 | A resumed `run-conductor.sh <n>` launch (skill commit recorded, `VERI_NEW_SKILL` not 1) leaves `.tdd/issue-<n>-baseline-full-tier` as the first launch wrote it, even when its own `VERI_BASELINE_FULL_TIER` differs ⟦criterion 2⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 73 | 15 | 30 | 7046 | 274241 | 65982 | 0.35 | unknown | 1/2 | unknown | unknown |  |  | full |
+| `baseline-full-tier.sh <issue> <command>` takes the run's pinned value from `.tdd/issue-<issue>-baseline-full-tier` (in the main checkout's `.tdd/`, where `run-conductor.sh` writes it) in preference to its own environment: a pinned `reuse` with a recorded time prints `reuse <seconds>` while `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 91 | 24 | 46 | 6070 | 397984 | 86661 | 0.32 | 718 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -290,6 +345,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Given `VERI_BASELINE_FULL_TIER=reuse` and a time recorded through `full-tier-time.sh --record <seconds> <command>` for the full-tier command it is given, `baseline-full-tier.sh` prints `reuse <seconds>` and exits 0 ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.06 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (veri/baseline_full_tier.py:15 reads a VERI_ name directly) ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.05 |
 | A fresh `run-conductor.sh <n>` launch pins the launch's `VERI_BASELINE_FULL_TIER` value per run, writing it to `.tdd/issue-<n>-baseline-full-tier` beside `.tdd/issue-<n>-skip-verify` ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.04 |
+| `baseline-full-tier.sh <issue> <command>` takes the run's pinned value from `.tdd/issue-<issue>-baseline-full-tier` (in the main checkout's `.tdd/`, where `run-conductor.sh` writes it) in preference to its own environment: a pinned `reuse` with a recorded time prints `reuse <seconds>` while `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.04 |
 
 #### Refactor totals
 
@@ -300,18 +356,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Given `VERI_BASELINE_FULL_TIER=reuse` and a time recorded through `full-tier-time.sh --record <seconds> <command>` for the full-tier command it is given, `baseline-full-tier.sh` prints `reuse <seconds>` and exits 0 ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment (veri/baseline_full_tier.py:15 reads a VERI_ name directly) ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A fresh `run-conductor.sh <n>` launch pins the launch's `VERI_BASELINE_FULL_TIER` value per run, writing it to `.tdd/issue-<n>-baseline-full-tier` beside `.tdd/issue-<n>-skip-verify` ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 5 | 0 | 5 | nothing-left 5 |
+| `baseline-full-tier.sh <issue> <command>` takes the run's pinned value from `.tdd/issue-<issue>-baseline-full-tier` (in the main checkout's `.tdd/`, where `run-conductor.sh` writes it) in preference to its own environment: a pinned `reuse` with a recorded time prints `reuse <seconds>` while `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 6 | 0 | 6 | nothing-left 6 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 5 | 5 | 2 | 3 | 3 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 3 | 3 | 2 | 12 | 14 | 14 | 4 | 3 | 4 | 50 | 46 | 81 | 50 | 5 |
-| fast | 0 | 86 | 51 | 38 | 38 | 59 | 72 | 39 | 40 | 79 | 51 | 140 | 86 | 40 | 84 | 46 |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 2 | 3 | 2 | 3 | 4 | 3 | 3 | 8 | 4 | 3 | 2 | 6 | 7 | 9 | 8 | 6 | 6 | 5 | 5 | 5 |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 5 | 5 | 2 | 3 | 3 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 3 | 3 | 2 | 12 | 14 | 14 | 4 | 3 | 4 | 50 | 46 | 81 | 50 | 5 | 5 | 6 | 7 |
+| fast | 0 | 86 | 51 | 38 | 38 | 59 | 72 | 39 | 40 | 79 | 51 | 140 | 86 | 40 | 84 | 46 | 134 | 102 |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 2 | 3 | 2 | 3 | 4 | 3 | 3 | 8 | 4 | 3 | 2 | 6 | 7 | 9 | 8 | 6 | 6 | 5 | 5 | 5 | 6 |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 198 | 380 | 60473 | 3181932 | 782830 | 13.48 (estimate) |
+| total | 223 | 428 | 67442 | 3579916 | 889754 | 16.39 (estimate) |
