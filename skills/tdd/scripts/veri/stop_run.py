@@ -79,15 +79,35 @@ def stop_run(run, mode):
     sys.stdout.buffer.write(os.fsencode(run) + b"\n")
     if mode != "now":
         return 0
-    refused = stop_leaves(run)
+    killed = []
+    refused = stop_leaves(run, killed)
+    refused += [group for group in killed if outlives_kill(group)]
     for pid in refused:
         complain(f"cannot signal pid {pid} of run {run}")
     return 2 if refused else 0
 
 
-def stop_leaves(run):
+def group_alive(group):
+    if (pid_file._ps("stat", group) or "").startswith("Z"):
+        return False
+    try:
+        os.killpg(group, 0)
+    except GONE:
+        return False
+    return True
+
+
+def outlives_kill(group):
+    for _ in range(10):
+        if not group_alive(group):
+            return False
+        time.sleep(0.1)
+    return True
+
+
+def stop_leaves(run, killed=None):
     tdd = run + "/.tdd/"
-    termed = []
+    termed = {}
     refused = []
     for entry in sorted(os.listdir(tdd)):
         if entry.startswith(".") or not entry.endswith(".pid"):
@@ -103,7 +123,7 @@ def stop_leaves(run):
                 os.kill(int(pid), signal.SIGTERM)
             elif pid_file.detached(pid) and pid_file.start_matches(tdd + entry, pid):
                 os.killpg(int(pid), signal.SIGTERM)
-                termed.append(int(pid))
+                termed[int(pid)] = name
         except GONE:
             pass
         except PermissionError:
@@ -111,6 +131,8 @@ def stop_leaves(run):
     if termed:
         time.sleep(float(tunables.read("VERI_STOP_KILL_GRACE") or "5"))
         for group in termed:
+            if killed is not None:
+                killed.append(group)
             try:
                 os.killpg(group, signal.SIGKILL)
             except GONE + (PermissionError,):
