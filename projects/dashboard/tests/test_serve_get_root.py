@@ -1100,3 +1100,109 @@ def test_report_page_shows_no_lane_no_eta_when_no_open_child_has_a_lane(report_r
 
     block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
     assert "ETA: no lane: no ETA" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_omits_no_eta_when_an_open_child_has_a_lane(report_repo):
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no lane: no ETA" not in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane(report_repo):
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no lane: no ETA" in block
+
+
+@pytest.mark.process("serve.py")
+def test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd(report_repo):
+    (report_repo / ".tdd" / "report-cache.json").write_text(
+        json.dumps({"issues": [
+            {"number": 40, "title": "PRD 14 dashboard", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 41, "title": "PRD 14.1 slice", "state": "CLOSED", "updatedAt": "2026-11-02T10:00:00Z", "closedAt": "2026-11-02T10:00:00+00:00",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+            {"number": 50, "title": "PRD 15 other", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": []},
+            {"number": 51, "title": "PRD 15.1 slice", "state": "OPEN", "updatedAt": "2026-11-02T10:00:00Z",
+             "blockedBy": [], "labels": [], "lane": "mu"},
+        ]})
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(report_repo), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        body = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/report", timeout=2) as r:
+                    body = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    block = next(b for b in body.split("<h2>") if b.startswith("PRD 14 "))
+    assert "ETA: no lane: no ETA" in block

@@ -122,6 +122,9 @@ def report_blocks(repo):
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
 
     def eta_line(n, prd):
+        if any(i.get("lane") for i in cache["issues"] if i["state"] == "OPEN"
+               and prd_number(i["title"]) == n and i["number"] != prd["number"]):
+            return ""
         return "\n<p>ETA: no lane: no ETA</p>"
 
     return "\n".join("<h2>PRD %d (#%d) \u2014 %s</h2>%s%s%s%s" % (n, i["number"], i["title"], solved_line(n, i), left_line(n, i), eta_line(n, i), owed_line(n, i))
