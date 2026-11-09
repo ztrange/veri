@@ -1,0 +1,2 @@
+### A green report whose CONTRADICTS: line gives a `<file>::<case>` id makes wrong-test-route print `red <file>::<case>` with that same file, even when another test file under the worktree also defines a case of that name; a case in skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py pins it ⟦criterion 2⟧
+- `_defining_file(c) + "::" + c` and `where + "::" + case` build the same `file::case` string in two places, and a helper could hold it. The two uses differ in shape, so I judged it not worth a transform.
