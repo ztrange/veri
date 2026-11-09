@@ -1,13 +1,13 @@
 ### 📊 Metrics — issue 3375
 
-Wall time for the issue: 1254 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1431 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 20 of 25 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3410.
+Outcome: the run bailed — ci-timeout, a system failure.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/test_run_conductor_process.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py, skills/tdd/scripts/tests/py/unit/test_dispatch.py, skills/tdd/scripts/tests/py/test_run_conductor_process.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $39.69 over 755 turns, in 14 sessions, on opus (estimate).
+Conductor own spending: $39.84 over 758 turns, in 14 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77115 tokens, largest 205644 tokens
 Conductor context: first turn 77560 tokens, largest 111950 tokens
@@ -22,7 +22,7 @@ Conductor context: first turn 77919 tokens, largest 149564 tokens
 Conductor context: first turn 77918 tokens, largest 151896 tokens
 Conductor context: first turn 77906 tokens, largest 150159 tokens
 Conductor context: first turn 77924 tokens, largest 168678 tokens
-Conductor context: first turn 77905 tokens, largest 151014 tokens
+Conductor context: first turn 77905 tokens, largest 157360 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -777,6 +777,9 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 746 | $0.03 | 150134 |
 | 747 | $0.03 | 150572 |
 | 748 | $0.03 | 151014 |
+| 749 | $0.03 | 151600 |
+| 750 | $0.03 | 152181 |
+| 751 | $0.07 | 157360 |
 
 #### Conductor comments, by family
 
@@ -928,4 +931,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 860 | 1628 | 519817 | 16180631 | 5358141 | 61.78 (estimate) |
+| total | 860 | 1628 | 519817 | 16180631 | 5358141 | 61.92 (estimate) |
