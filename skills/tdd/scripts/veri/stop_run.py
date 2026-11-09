@@ -12,6 +12,8 @@ import pid_file
 import stop_modes
 import tunables
 
+UNSIGNALLABLE = (ProcessLookupError, PermissionError, OverflowError)
+
 
 def usage():
     return f"usage: stop-run.sh [--mode {'|'.join(stop_modes.STOP_MODES)}] <issue> | --all\n".encode()
@@ -97,14 +99,14 @@ def stop_leaves(run):
             elif pid_file.detached(pid):
                 os.killpg(int(pid), signal.SIGTERM)
                 termed.append(int(pid))
-        except (ProcessLookupError, PermissionError, OverflowError):
+        except UNSIGNALLABLE:
             pass
     if termed:
         time.sleep(float(tunables.read("VERI_STOP_KILL_GRACE") or "5"))
         for group in termed:
             try:
                 os.killpg(group, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError, OverflowError):
+            except UNSIGNALLABLE:
                 pass
 
 
