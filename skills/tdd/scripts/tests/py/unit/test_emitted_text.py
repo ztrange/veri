@@ -6,6 +6,7 @@ newlines stripped, then one trailing newline — not of the bare usage text.
 Each case's subject is text the scripts emit, driven in-process through each script's module.
 """
 import importlib
+import shlex
 
 
 def cksum(data):
@@ -89,7 +90,7 @@ def test_usage_output_on_a_missing_argument_is_unchanged(run_cli):
             continue
         got = cksum(text.encode("utf-8", "surrogateescape"))
         if got != want:
-            args = "".join(" '%s'" % x for x in argv)
+            args = "".join(" " + shlex.quote(x) for x in argv)
             problems.append(
                 "%s %s: want %s, got %s\n"
                 "  the pin covers: the line 'exit N' (here: exit 2), then the usage output with trailing newlines stripped, then one trailing newline\n"
