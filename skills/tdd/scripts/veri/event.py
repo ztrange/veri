@@ -238,6 +238,8 @@ def state_labels(event, issue):
             github.gh_issue_remove_label(issue, "pr-ready")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
+            opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+            github.gh_issue_add_label(issue, "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main"))
         elif event == b"start":
             github.gh_issue_remove_label(issue, "bailed")
             github.gh_issue_remove_label(issue, "pr-ready")

@@ -6,6 +6,7 @@ import pytest
 
 DELETE_BAILED = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/bailed")
 DELETE_PR_READY = ("gh", "api", "-X", "DELETE", "repos/{owner}/{repo}/issues/42/labels/pr-ready")
+ADD_TAKEN_MAIN = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=taken:main")
 ADD_BAILED = ("gh", "api", "repos/{owner}/{repo}/issues/42/labels", "-f", "labels[]=bailed")
 
 
@@ -71,13 +72,14 @@ def test_a_bail_event_labels_the_state_label_issue_bailed_and_takes_its_pr_ready
     assert (code, calls) == (0, [ADD_BAILED, DELETE_PR_READY])
 
 
-def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue(event, monkeypatch, tmp_path):
+def test_a_resume_event_takes_the_bailed_label_off_the_state_label_issue_and_re_claims_it_3460(event, monkeypatch, tmp_path):
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "42")
+    monkeypatch.delenv("VERI_LABEL", raising=False)
     calls = fake_gh(monkeypatch, lambda args: (0, "", ""))
 
     code = event.append(clone(tmp_path), {"issue": "42"}, "resume", [], ts=1700000000)
 
-    assert (code, calls) == (0, [DELETE_BAILED])
+    assert (code, DELETE_BAILED in calls, ADD_TAKEN_MAIN in calls) == (0, True, True)
 
 
 def test_a_bail_event_gh_refuses_to_label_still_writes_its_line_exits_0_and_names_the_refusal(event, monkeypatch, tmp_path, capsys):
