@@ -37,7 +37,10 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
   say) changed it with the default branch untouched; it also tells the two apart. Exit 2 bails
   `no-verdict`, a system failure (see `<base directory>/BAIL.md`).
 - `detach-command.sh wait` answers 1 when it finished red with its code on stdout (a red suite: stop
-  and report) and 2 when it died recording nothing.
+  and report) and 2 when it died recording nothing. A 2 while `$S/stop-requested.sh` exits 0 and prints
+  `now` is the stop being carried out: not a preflight failure and not a poisoned baseline. The
+  conductor goes to *Stopping* (`Read` and run `<base directory>/STOPPING.md`), records a `stop` event
+  and no `bail`, and posts no preflight refusal.
 - A red baseline stops the run as a preflight failure, whatever state the caller's checkout is in. A red
   output naming no file, or any file still red alone, stops the run.
 - A red full tier stops the run. A red output naming no file, or any file still red alone, stops the run.
