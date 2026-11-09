@@ -897,3 +897,19 @@ def test_queued_merges_returns_the_pr_url_of_a_queued_merge_sh_reached_through_a
     monkeypatch.setattr(dispatch.subprocess, "run", ps)
 
     assert dispatch.queued_merges() == [url]
+
+
+def test_queued_merges_returns_the_pr_url_of_a_python_process_running_this_clones_queued_merge_py_issue_3403(
+        monkeypatch, dispatch):
+    import subprocess
+
+    url = "https://github.com/o/r/pull/7"
+    mine = dispatch.paths.scripts_of(dispatch.__file__)
+    listing = f"/usr/bin/python3 {mine}/veri/queued_merge.py {url} /wt branch -\n"
+
+    def ps(argv, **kw):
+        return subprocess.CompletedProcess(argv, 0, stdout=listing, stderr="")
+
+    monkeypatch.setattr(dispatch.subprocess, "run", ps)
+
+    assert dispatch.queued_merges() == [url]
