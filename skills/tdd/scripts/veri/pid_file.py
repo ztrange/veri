@@ -97,11 +97,15 @@ def live_conductor(path):
     return pid
 
 
-def supervising(pid, name):
+def _args(pid):
     ps = subprocess.run(["ps", "-p", pid, "-o", "args="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    return ps.returncode == 0 and (f"supervise.sh {name} " in ps.stdout or f"veri/supervise.py {name} " in ps.stdout)
+    return ps.stdout if ps.returncode == 0 else ""
+
+
+def supervising(pid, name):
+    args = _args(pid)
+    return f"supervise.sh {name} " in args or f"veri/supervise.py {name} " in args
 
 
 def detached(pid):
-    ps = subprocess.run(["ps", "-p", pid, "-o", "args="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    return ps.returncode == 0 and ps.stdout.startswith("sh -c ")
+    return _args(pid).startswith("sh -c ")
