@@ -105,10 +105,13 @@ def report_blocks(repo):
                   if datetime.datetime.fromisoformat(i["closedAt"]) >= cutoff]
         return "\n<p>solved: %d (%d in the last 7 days)</p>" % (len(closed), len(recent))
 
+    def open_children(n, prd):
+        return [i for i in cache["issues"] if i["state"] == "OPEN"
+                and prd_number(i["title"]) == n and i["number"] != prd["number"]]
+
     def left_line(n, prd):
         open_numbers = {i["number"] for i in cache["issues"] if i["state"] == "OPEN"}
-        children = [i for i in cache["issues"] if i["state"] == "OPEN"
-                    and prd_number(i["title"]) == n and i["number"] != prd["number"]]
+        children = open_children(n, prd)
         names = lambda c: [l["name"] for l in c.get("labels", [])]
         has_lane = lambda c: any(x.startswith("ready-for-agent") for x in names(c))
         blockers = lambda c: [b for b in c.get("blockedBy", []) if b in open_numbers]
@@ -122,8 +125,7 @@ def report_blocks(repo):
             len(solvable), len(waiting), ", ".join("#%d" % b for b in on), len(unheld))
 
     def eta_line(n, prd):
-        if any(i.get("lane") for i in cache["issues"] if i["state"] == "OPEN"
-               and prd_number(i["title"]) == n and i["number"] != prd["number"]):
+        if any(i.get("lane") for i in open_children(n, prd)):
             return ""
         return "\n<p>ETA: no lane: no ETA</p>"
 
