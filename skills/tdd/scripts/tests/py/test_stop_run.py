@@ -942,6 +942,31 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detach
     assert "777" in err and str(run) in err
 
 
+def test_3375_stop_run_mode_now_exits_0_when_a_member_of_the_detached_group_is_alive_at_the_first_probes_after_kill_and_gone_at_a_later_probe(
+        monkeypatch, tmp_path, capsys, stop_run):
+    import signal
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
+    probes = []
+
+    def killpg(group, sig):
+        if sig == 0:
+            probes.append(group)
+            if len(probes) > 3:
+                raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "killpg", killpg)
+
+    code = stop_run.stop_run(str(run), "now")
+    err = capsys.readouterr().err
+
+    assert code == 0, err
+
+
 def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_survivor_probe_of_a_detached_group_is_refused(
         monkeypatch, tmp_path, capsys, stop_run):
     import signal
