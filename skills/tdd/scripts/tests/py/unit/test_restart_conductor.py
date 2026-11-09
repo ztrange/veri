@@ -584,3 +584,24 @@ def test_3384_a_watcher_armed_before_the_conductor_is_recorded_waits_for_it_and_
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.strip(), err) == (0, "restarts 7 0", "")
+
+
+def test_3384_a_watcher_armed_when_no_conductor_is_ever_recorded_exits_3_only_after_waiting_the_launch_bound_on_the_fake_clock(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    now = [0.0]
+
+    def nap(seconds):
+        now[0] += seconds
+
+    class FakeClock:
+        sleep = staticmethod(nap)
+        time = staticmethod(lambda: now[0])
+        monotonic = staticmethod(lambda: now[0])
+
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: False, raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+    monkeypatch.setattr(restart_conductor, "time", FakeClock, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out, err, now[0]) == (3, "", "", restart_conductor.LAUNCH_WAIT)
