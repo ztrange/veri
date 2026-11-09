@@ -257,6 +257,10 @@ def main(argv):
     for path in glob.glob(ledger_path(worktree, own.group(1) if own else "[0-9]*")):
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
         shown = gh_probe("pr", "view", pr, "--json", "body")
+        if shown.returncode:
+            _say("could not read the PR body of %s; not merged" % pr)
+            _release(pid)
+            return 2
         body = json.loads(shown.stdout)["body"]
         if not re.search(r"Closes #%s\b" % number.group(1), body):
             _say("the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)))

@@ -832,3 +832,29 @@ def test_3422_queued_merge_on_a_worktree_holding_other_issues_ledgers_and_their_
 
     merges = [c for c in calls if "pr merge" in c]
     assert (code, len(merges)) == (0, 1)
+
+
+def test_3452_queued_merge_whose_pr_body_read_fails_exits_2_naming_the_pr_frees_the_lock_and_makes_no_merge_call_while_a_successful_read_of_a_closes_body_merges(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+
+    def run(read):
+        def with_body(answer):
+            def wrapped(line, **kwargs):
+                if "pr view" in line:
+                    return read
+                return answer(line, **kwargs)
+            return fake_processes(wrapped)
+
+        calls = scenario(with_body)
+        code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+        merges = [c for c in calls if "pr merge" in c]
+        released = [c for c in calls if c.startswith("merge-lock.sh release")]
+        return code, PR in err, len(merges), len(released)
+
+    failed = run((1, "", "HTTP 502"))
+    read = run((0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""))
+
+    assert (failed, read[:3]) == ((2, True, 0, 1), (0, False, 1))
