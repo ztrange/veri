@@ -1153,3 +1153,15 @@ def test_main_reports_the_exited_line_for_a_run_whose_restart_pending_names_a_de
 
     out = capsys.readouterr().out
     assert (code, out.startswith("exited 5 ")) == (0, True), out
+
+
+def test_3247_main_prints_no_exited_line_for_a_run_with_a_state_whose_two_line_conductor_pid_answers_kill_0(
+        monkeypatch, capsys, tmp_path, watch_runs):
+    _starting_run(monkeypatch, tmp_path, watch_runs, "%d\nTue Oct 27 13:45:10 2026\n", "Tue Oct 27 13:45:10 2026")
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "running")
+    ticks = itertools.count(0, 10)
+    monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
+
+    code = watch_runs.main(["--max-wait", "25"])
+
+    assert (code, capsys.readouterr().out) == (3, "timeout\n")
