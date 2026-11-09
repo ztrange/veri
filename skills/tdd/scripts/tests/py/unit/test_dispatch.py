@@ -382,6 +382,34 @@ def test_main_launches_nothing_on_any_tick_across_a_restart_of_one_of_two_slot_h
     assert launches == []
 
 
+def test_main_launches_nothing_on_the_tick_where_a_run_seen_live_is_restarting_beside_one_live_run_at_target_2_issue_3495(
+        monkeypatch, tmp_path, dispatch):
+    import os
+    marker = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    marker.parent.mkdir(parents=True)
+    marker.write_text(f"{os.getpid()}\n")
+    lives = [["5", "7"], ["5"]]
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 2:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives[len(waits)], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "2"])
+
+    assert launches == []
+
+
 def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker_naming_a_dead_restarter_issue_3370(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
