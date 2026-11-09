@@ -339,6 +339,7 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
 
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *a, **kw: "[]", raising=False)
