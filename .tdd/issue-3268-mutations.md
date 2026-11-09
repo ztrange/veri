@@ -209,3 +209,26 @@ if True
 command 172
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 307
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 63
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py
+
+file 27
+projects/dashboard/serve.py
+old 41
+            return "\n<p>owed: stale</p>"
+new 69
+            owed_path.write_text("{}"); return "\n<p>owed: stale</p>"
+command 157
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file
+
