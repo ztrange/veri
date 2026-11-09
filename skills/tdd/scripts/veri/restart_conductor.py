@@ -77,6 +77,13 @@ def _growth(run, offset=0):
     return growth.growth(records)
 
 
+def _stop_mark(run):
+    try:
+        return os.stat(_run_file(run, "stop")).st_mtime_ns
+    except FileNotFoundError:
+        return None
+
+
 def sleep(seconds):
     time.sleep(seconds)
 
@@ -124,14 +131,13 @@ def main(argv):
                     f.write(f"{os.getpid()}\n")
                 stop_run("at-ledger", run)
                 asked = True
+                mark = _stop_mark(run)
             sleep(5)
         if not asked or run_state(run) != "stopped":
             if asked:
                 os.remove(_run_file(run, "restart-pending"))
                 try:
-                    with open(_run_file(run, "stop")) as f:
-                        written = f.read().strip() == "at-ledger"
-                    if written:
+                    if _stop_mark(run) == mark:
                         os.remove(_run_file(run, "stop"))
                 except FileNotFoundError:
                     pass
