@@ -18,4 +18,4 @@
 - [x] `skills/tdd/PIN.md`: its requirements rows PN19, PN20 and PN21 ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] `skills/tdd/SKILL.md`: its requirements row CY42 ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] `skills/tdd/REVISE.md`: its requirements rows RV59 and RV60 ⟦skill-edit⟧ ⟦criterion 7⟧
-- [ ] Go-red: with the case-run check removed from `tick_ledger.py`, the failing-case criterion's case fails (the retirement exits 0); restored, it passes ⟦human-owed⟧ ⟦criterion 8⟧
+- [x] Go-red: with the case-run check removed from `tick_ledger.py`, the failing-case criterion's case fails (the retirement exits 0); restored, it passes ⟦human-owed⟧ ⟦criterion 8⟧
