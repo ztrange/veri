@@ -3669,3 +3669,22 @@ def test_main_3367_exits_2_printing_no_route_for_a_bare_contradicted_case_define
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (2, "")
+
+
+def test_main_3367_exits_2_printing_no_route_and_no_file_for_a_bare_contradicted_case_no_test_file_defines(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    (suite / "test_emitted_text.py").write_text("def test_some_other_case():\n    pass\n")
+    (suite / "test_tick_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: test_a_case_nobody_defines asserts the opposite of the criterion\n"
+        "CONTRADICTS: test_a_case_nobody_defines\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (2, "")
