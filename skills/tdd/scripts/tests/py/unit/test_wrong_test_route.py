@@ -3514,6 +3514,27 @@ def test_main_3292_prints_revise_for_a_green_report_whose_only_wrong_test_mentio
     assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n")]
 
 
+def test_main_3292_routes_a_quoted_wrong_test_mention_to_revise_like_a_negated_one_and_an_unquoted_claim_to_repair(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    results = []
+    for label, line in (
+            ("negated", "REJECT: product defect, this is not a WRONG_TEST, the code returns 1"),
+            ("quoted", "REJECT: product defect, the log line 'WRONG_TEST' is printed by the code under test"),
+            ("unquoted", "REJECT: this is a WRONG_TEST, the red case asserts a count the fixture cannot give")):
+        report = tmp_path / ("green-report-%s.txt" % label)
+        report.write_text("SUITE: make test\n%s\n" % line)
+        code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+        results.append((label, code, stdout))
+
+    assert results == [("negated", 3, "revise\n"), ("quoted", 3, "revise\n"),
+                       ("unquoted", 0, "repair %s\n" % own)]
+
+
 def test_main_3292_criterion_3_prints_revise_and_exits_3_for_a_wrong_test_line_whose_body_is_none_once_the_step_log_holds_a_reroute_event(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
