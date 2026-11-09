@@ -1,15 +1,17 @@
 ### 📊 Metrics — issue 3431
 
-Wall time for the issue: 703 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 2 of 2 planned.
+Wall time for the issue: 1387 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 3 of 3 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3446.
 Lane: ready-for-agent:mu
+Suite flakes: skills/tdd/scripts/tests/py/unit/test_dispatch.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.37 over 91 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $6.46 over 131 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 77564 tokens, largest 144017 tokens
-Conductor context: first turn 77553 tokens, largest 130094 tokens
+Conductor context: first turn 77553 tokens, largest 138450 tokens
+Conductor context: first turn 77555 tokens, largest 130234 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -76,36 +78,75 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 58 | $0.05 | 142959 |
 | 59 | $0.05 | 143456 |
 | 60 | $0.04 | 144017 |
-| 61 | $0.48 | 77553 |
-| 62 | $0.06 | 83529 |
-| 63 | $0.02 | 84532 |
-| 64 | $0.02 | 85488 |
-| 65 | $0.03 | 87329 |
+| 61 | $0.49 | 77553 |
+| 62 | $0.07 | 83529 |
+| 63 | $0.03 | 84532 |
+| 64 | $0.04 | 85488 |
+| 65 | $0.04 | 87329 |
 | 66 | $0.03 | 88310 |
-| 67 | $0.05 | 92664 |
-| 68 | $0.02 | 93164 |
-| 69 | $0.02 | 93608 |
-| 70 | $0.02 | 93953 |
-| 71 | $0.02 | 94560 |
-| 72 | $0.02 | 94875 |
-| 73 | $0.03 | 95633 |
+| 67 | $0.06 | 92664 |
+| 68 | $0.03 | 93164 |
+| 69 | $0.03 | 93608 |
+| 70 | $0.03 | 93953 |
+| 71 | $0.03 | 94560 |
+| 72 | $0.03 | 94875 |
+| 73 | $0.04 | 95633 |
 | 74 | $0.03 | 96493 |
-| 75 | $0.03 | 97243 |
+| 75 | $0.04 | 97243 |
 | 76 | $0.03 | 98098 |
-| 77 | $0.09 | 107437 |
-| 78 | $0.03 | 108787 |
-| 79 | $0.03 | 109564 |
-| 80 | $0.03 | 110200 |
+| 77 | $0.10 | 107437 |
+| 78 | $0.04 | 108787 |
+| 79 | $0.04 | 109564 |
+| 80 | $0.04 | 110200 |
 | 81 | $0.03 | 110831 |
-| 82 | $0.03 | 111831 |
-| 83 | $0.15 | 127353 |
+| 82 | $0.04 | 111831 |
+| 83 | $0.16 | 127353 |
 | 84 | $0.03 | 127751 |
-| 85 | $0.03 | 128066 |
-| 86 | $0.03 | 128454 |
+| 85 | $0.04 | 128066 |
+| 86 | $0.04 | 128454 |
 | 87 | $0.03 | 128973 |
-| 88 | $0.03 | 129347 |
-| 89 | $0.03 | 129802 |
-| 90 | $0.03 | 130094 |
+| 88 | $0.04 | 129347 |
+| 89 | $0.04 | 129802 |
+| 90 | $0.04 | 130094 |
+| 91 | $0.04 | 130648 |
+| 92 | $0.08 | 136978 |
+| 93 | $0.05 | 138083 |
+| 94 | $0.03 | 138450 |
+| 95 | $0.48 | 77555 |
+| 96 | $0.06 | 83555 |
+| 97 | $0.03 | 84935 |
+| 98 | $0.03 | 86570 |
+| 99 | $0.08 | 94125 |
+| 100 | $0.02 | 94679 |
+| 101 | $0.02 | 95076 |
+| 102 | $0.02 | 95417 |
+| 103 | $0.02 | 95661 |
+| 104 | $0.02 | 95950 |
+| 105 | $0.02 | 96265 |
+| 106 | $0.02 | 96821 |
+| 107 | $0.03 | 97673 |
+| 108 | $0.05 | 102054 |
+| 109 | $0.03 | 102838 |
+| 110 | $0.03 | 103651 |
+| 111 | $0.02 | 104156 |
+| 112 | $0.03 | 105263 |
+| 113 | $0.03 | 106786 |
+| 114 | $0.03 | 107274 |
+| 115 | $0.02 | 107515 |
+| 116 | $0.03 | 108631 |
+| 117 | $0.03 | 109328 |
+| 118 | $0.03 | 109783 |
+| 119 | $0.03 | 110952 |
+| 120 | $0.15 | 126590 |
+| 121 | $0.03 | 127185 |
+| 122 | $0.03 | 127540 |
+| 123 | $0.03 | 128142 |
+| 124 | $0.03 | 128563 |
+| 125 | $0.03 | 128871 |
+| 126 | $0.03 | 129182 |
+| 127 | $0.03 | 129602 |
+| 128 | $0.03 | 129903 |
+| 129 | $0.03 | 130234 |
 
 #### Conductor comments, by family
 
@@ -120,28 +161,30 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
 | 🗺️ Plan | 1 | 414 | $0.01 |
-| 🗺️ verify-plan | 2 | 430 | $0.01 |
-| ▶️ Resuming | 1 | 59 | $0.00 |
+| 🗺️ verify-plan | 3 | 850 | $0.02 |
+| ▶️ Resuming | 2 | 423 | $0.01 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 1 | 414 | $0.01 |
-| Total | 6 | 1731 | $0.03 |
+| Total | 8 | 2515 | $0.05 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 14 | 8 | 2 | 4 | 1018 | 0 | 36718 | 0.10 |
+| plan | 3 | 3 | 0 | 0 | 22 | 14 | 3 | 6 | 1778 | 0 | 55633 | 0.16 |
 | red | 3 | 1 | 0 | 0 | 214 | 142 | 31 | 60 | 16212 | 752685 | 93526 | 0.47 |
 | pin | 1 | 1 | 0 | 0 | 28 | 16 | 4 | 8 | 1393 | 58913 | 14478 | 0.06 |
 | green | 2 | 1 | 0 | 0 | 950 | 45 | 14 | 28 | 3581 | 219583 | 60309 | 0.21 |
 | refactor | 1 | 0 | 0 | 0 | 7 | 5 | 2 | 4 | 272 | 17749 | 19968 | 0.05 |
+| prose | 5 | 0 | 0 | 0 | 59 | 44 | 5 | 10 | 6555 | 17635 | 44216 | 0.18 |
+| skill-edit | 1 | 0 | 0 | 0 | 9 | 6 | 3 | 6 | 684 | 40155 | 11834 | 0.04 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 5 | 5 | 0 | 0 | 248 | 71 | 17 | 34 | 5607 | 230498 | 94056 | 0.31 |
+| verifier | claude-sonnet-5-5 | 6 | 6 | 0 | 0 | 256 | 77 | 18 | 36 | 6367 | 230498 | 112971 | 0.37 |
 | developer | claude-sonnet-5-5 | 4 | 0 | 0 | 0 | 965 | 145 | 36 | 70 | 16869 | 818432 | 130943 | 0.58 |
 
 #### Rework and waste, by phase
@@ -153,6 +196,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 0 | 0.00 |
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -192,4 +237,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 53 | 104 | 22476 | 1048930 | 224999 | 5.26 (estimate) |
+| total | 62 | 122 | 30475 | 1106720 | 299964 | 7.62 (estimate) |
