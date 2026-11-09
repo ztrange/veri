@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3378
 
-Wall time for the issue: 312 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1876 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 9 of 12 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 10 of 12 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3399.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.44 over 170 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $11.82 over 215 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 76998 tokens, largest 175895 tokens
 Conductor context: first turn 77017 tokens, largest 104617 tokens
 Conductor context: first turn 77114 tokens, largest 153276 tokens
-Conductor context: first turn 77113 tokens, largest 136825 tokens
+Conductor context: first turn 77113 tokens, largest 138663 tokens
+Conductor context: first turn 77137 tokens, largest 141187 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -146,48 +147,93 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 126 | $0.05 | 151973 |
 | 127 | $0.05 | 152734 |
 | 128 | $0.04 | 153276 |
-| 129 | $0.48 | 77113 |
-| 130 | $0.06 | 83051 |
+| 129 | $0.49 | 77113 |
+| 130 | $0.07 | 83051 |
 | 131 | $0.05 | 86713 |
-| 132 | $0.02 | 87218 |
-| 133 | $0.03 | 88996 |
-| 134 | $0.04 | 91796 |
-| 135 | $0.05 | 96116 |
-| 136 | $0.02 | 96465 |
-| 137 | $0.02 | 96828 |
-| 138 | $0.02 | 97057 |
-| 139 | $0.02 | 97430 |
-| 140 | $0.02 | 97675 |
-| 141 | $0.02 | 98048 |
-| 142 | $0.02 | 98531 |
-| 143 | $0.02 | 98866 |
+| 132 | $0.03 | 87218 |
+| 133 | $0.04 | 88996 |
+| 134 | $0.05 | 91796 |
+| 135 | $0.06 | 96116 |
+| 136 | $0.03 | 96465 |
+| 137 | $0.03 | 96828 |
+| 138 | $0.03 | 97057 |
+| 139 | $0.03 | 97430 |
+| 140 | $0.03 | 97675 |
+| 141 | $0.03 | 98048 |
+| 142 | $0.03 | 98531 |
+| 143 | $0.04 | 98866 |
 | 144 | $0.03 | 99581 |
 | 145 | $0.03 | 100498 |
-| 146 | $0.02 | 100952 |
+| 146 | $0.04 | 100952 |
 | 147 | $0.03 | 101817 |
-| 148 | $0.02 | 102009 |
-| 149 | $0.13 | 115370 |
-| 150 | $0.03 | 116027 |
+| 148 | $0.03 | 102009 |
+| 149 | $0.14 | 115370 |
+| 150 | $0.04 | 116027 |
 | 151 | $0.03 | 116609 |
-| 152 | $0.03 | 117160 |
-| 153 | $0.03 | 117884 |
+| 152 | $0.04 | 117160 |
+| 153 | $0.04 | 117884 |
 | 154 | $0.03 | 118657 |
-| 155 | $0.03 | 119324 |
-| 156 | $0.03 | 119802 |
+| 155 | $0.04 | 119324 |
+| 156 | $0.04 | 119802 |
 | 157 | $0.03 | 120072 |
-| 158 | $0.03 | 121036 |
-| 159 | $0.03 | 122181 |
-| 160 | $0.03 | 123165 |
-| 161 | $0.03 | 123455 |
+| 158 | $0.04 | 121036 |
+| 159 | $0.04 | 122181 |
+| 160 | $0.04 | 123165 |
+| 161 | $0.04 | 123455 |
 | 162 | $0.06 | 127478 |
-| 163 | $0.03 | 128210 |
-| 164 | $0.03 | 128618 |
-| 165 | $0.03 | 129260 |
-| 166 | $0.03 | 130193 |
-| 167 | $0.03 | 130886 |
-| 168 | $0.03 | 131575 |
-| 169 | $0.03 | 132003 |
-| 170 | $0.06 | 136825 |
+| 163 | $0.04 | 128210 |
+| 164 | $0.04 | 128618 |
+| 165 | $0.04 | 129260 |
+| 166 | $0.04 | 130193 |
+| 167 | $0.04 | 130886 |
+| 168 | $0.04 | 131575 |
+| 169 | $0.04 | 132003 |
+| 170 | $0.07 | 136825 |
+| 171 | $0.05 | 137626 |
+| 172 | $0.04 | 138663 |
+| 173 | $0.48 | 77137 |
+| 174 | $0.06 | 83122 |
+| 175 | $0.05 | 86946 |
+| 176 | $0.03 | 88880 |
+| 177 | $0.04 | 92062 |
+| 178 | $0.03 | 93820 |
+| 179 | $0.02 | 94418 |
+| 180 | $0.02 | 94763 |
+| 181 | $0.02 | 95062 |
+| 182 | $0.02 | 95412 |
+| 183 | $0.03 | 96180 |
+| 184 | $0.05 | 100522 |
+| 185 | $0.03 | 101238 |
+| 186 | $0.03 | 102789 |
+| 187 | $0.03 | 103540 |
+| 188 | $0.02 | 103976 |
+| 189 | $0.02 | 104341 |
+| 190 | $0.03 | 105328 |
+| 191 | $0.03 | 106506 |
+| 192 | $0.03 | 107183 |
+| 193 | $0.02 | 107536 |
+| 194 | $0.03 | 108423 |
+| 195 | $0.03 | 109164 |
+| 196 | $0.03 | 109704 |
+| 197 | $0.03 | 110640 |
+| 198 | $0.15 | 126133 |
+| 199 | $0.03 | 126581 |
+| 200 | $0.03 | 127104 |
+| 201 | $0.03 | 127849 |
+| 202 | $0.07 | 133909 |
+| 203 | $0.03 | 134637 |
+| 204 | $0.03 | 135286 |
+| 205 | $0.03 | 135966 |
+| 206 | $0.03 | 136456 |
+| 207 | $0.03 | 136825 |
+| 208 | $0.03 | 137464 |
+| 209 | $0.03 | 137802 |
+| 210 | $0.03 | 138196 |
+| 211 | $0.03 | 138570 |
+| 212 | $0.04 | 139592 |
+| 213 | $0.03 | 140274 |
+| 214 | $0.03 | 140750 |
+| 215 | $0.03 | 141187 |
 
 #### Conductor comments, by family
 
@@ -197,38 +243,39 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ✅ Done | 0 | 0 | $0.00 |
 | 🔴 Red | 4 | 2108 | $0.04 |
 | 🟢 Green | 5 | 2704 | $0.05 |
-| 🛠️ Refactor | 3 | 1232 | $0.02 |
+| 🛠️ Refactor | 3 | 1611 | $0.03 |
 | 🔎 verify-green | 5 | 2704 | $0.05 |
-| 🔎 verify-refactor | 3 | 1232 | $0.02 |
+| 🔎 verify-refactor | 3 | 1611 | $0.03 |
 | 🔎 verify-<phase> (revised) | 1 | 458 | $0.01 |
 | 🗺️ Plan | 1 | 596 | $0.01 |
-| 🗺️ verify-plan | 3 | 1074 | $0.02 |
-| ▶️ Resuming | 2 | 466 | $0.01 |
-| ⛔ Bailed | 2 | 1099 | $0.02 |
+| 🗺️ verify-plan | 4 | 1489 | $0.03 |
+| ▶️ Resuming | 3 | 882 | $0.02 |
+| ⛔ Bailed | 3 | 1518 | $0.03 |
 | ⏹️ Stopped | 1 | 458 | $0.01 |
-| Total | 22 | 10195 | $0.20 |
+| Total | 25 | 11824 | $0.24 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 43 | 37 | 3 | 6 | 4912 | 0 | 68809 | 0.22 |
+| plan | 4 | 4 | 0 | 0 | 55 | 47 | 4 | 8 | 6122 | 0 | 91952 | 0.29 |
 | red | 12 | 4 | 0 | 0 | 355 | 214 | 62 | 118 | 27875 | 1320740 | 300448 | 1.16 |
 | pin | 6 | 4 | 2 | 0 | 169 | 90 | 27 | 54 | 10035 | 462898 | 104872 | 0.41 |
 | diff | 2 | 1 | 0 | 0 | 70 | 18 | 7 | 14 | 1569 | 110798 | 32220 | 0.11 |
 | green | 12 | 3 | 3 | 0 | 897 | 170 | 62 | 106 | 19501 | 1034036 | 230530 | 0.95 |
 | refactor | 5 | 2 | 0 | 0 | 98 | 37 | 16 | 32 | 3883 | 256854 | 91529 | 0.29 |
 | red-missing | 2 | 0 | 0 | 0 | 56 | 42 | 10 | 20 | 5888 | 214286 | 47131 | 0.20 |
-| prose | 8 | 0 | 0 | 0 | 151 | 127 | 8 | 16 | 19944 | 62080 | 213999 | 0.74 |
-| skill-edit | 2 | 0 | 0 | 0 | 28 | 22 | 9 | 18 | 2289 | 362344 | 83162 | 0.27 |
+| prose | 18 | 0 | 0 | 0 | 371 | 326 | 18 | 36 | 52425 | 88220 | 461522 | 1.69 |
+| skill-edit | 3 | 0 | 0 | 0 | 39 | 32 | 13 | 26 | 3242 | 429926 | 106463 | 0.34 |
+| rebase | 2 | 1 | 0 | 0 | 320 | 31 | 10 | 18 | 3530 | 144984 | 46452 | 0.17 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 22 | 17 | 5 | 0 | 990 | 273 | 78 | 156 | 30296 | 1293417 | 390245 | 1.41 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 443 | 276 | 86 | 156 | 36598 | 1716636 | 393752 | 1.52 |
+| verifier | claude-sonnet-5-5 | 24 | 19 | 5 | 0 | 1201 | 295 | 83 | 164 | 33047 | 1331955 | 435918 | 1.55 |
+| developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 564 | 295 | 92 | 168 | 38587 | 1823082 | 417674 | 1.61 |
 | developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 255 | 59 | 23 | 38 | 6769 | 389559 | 91542 | 0.41 |
 
 #### Rework and waste, by phase
@@ -244,6 +291,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -259,6 +307,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `suite-red-resume.sh insert` counts a red suite that a pending `⟦skill-edit⟧` step's unit owns through its `## Requirements` rows (`test_scripts_md_rows.py` for `skills/tdd/SCRIPTS.md`) as explained by that step, alongside graded suites: a branch-red file of graded suites plus `test_scripts_md_rows.py`, on a ledger whose consecutive pending `⟦skill-edit⟧` steps name the graded units and `skills/tdd/SCRIPTS.md`, inserts nothing, leaves the ledger byte-identical and exits 0, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code ⟦criterion 6⟧ | 17 | 4 | 4 | 0 | 0 | 0 | 274 | 81 | 150 | 33135 | 1551964 | 361074 | 1.47 | 1393 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: the `suite-red-resume.sh` entry states that `insert`, when every unit the red is explained by has a pending `⟦skill-edit⟧` step but a non-skill-edit unchecked step separates them, inserts nothing, leaves the ledger unchanged and exits 2 with a stderr line naming the skill-edit steps and `reorder-ledger-steps.sh` (a `⟦suite-repair⟧` step cannot regrade a signed unit), replacing its "does not count … inserted as before" wording; also that graded suites match by basename whether listed by basename or full path, and a red suite a pending skill-edit step's unit owns through its `## Requirements` rows counts as explained ⟦criterion 8⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 99 | 9 | 18 | 14996 | 334785 | 236433 | 0.77 | 144 | unknown | unknown | unknown |  |  | full |
 | ⟦skill-edit⟧ `skills/tdd/RESUME.md`: sub-step 4 states that when `insert` exits 2 naming a reorder of pending `⟦skill-edit⟧` steps, the resume bails with cause `no-verdict` carrying that stderr line and inserts no step ⟦criterion 8⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 50 | 8 | 16 | 7237 | 89639 | 60728 | 0.23 | 77 | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md`: the resume exception states that a separated pending `⟦skill-edit⟧` step needed to explain the red makes `suite-red-resume.sh insert` exit 2 with the reorder named, instead of inserting a `⟦suite-repair⟧` step ⟦criterion 8⟧ | 7 | 1 | 0 | 0 | 0 | 0 | 93 | 18 | 34 | 12793 | 231344 | 117593 | 0.45 | 2208 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -270,6 +319,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `suite-red-resume.sh insert` with a branch-red file listing the graded suites by full path (`skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py`, `skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py`), on a ledger whose unchecked steps start with consecutive pending `⟦skill-edit⟧` steps for the units those grades sign, inserts nothing, leaves the ledger byte-identical and exits 0, as it does with basenames, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code (which inserts a repair step) ⟦criterion 5⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 45 | 0.12 |
 | `suite-red-resume.sh insert` counts a red suite that a pending `⟦skill-edit⟧` step's unit owns through its `## Requirements` rows (`test_scripts_md_rows.py` for `skills/tdd/SCRIPTS.md`) as explained by that step, alongside graded suites: a branch-red file of graded suites plus `test_scripts_md_rows.py`, on a ledger whose consecutive pending `⟦skill-edit⟧` steps name the graded units and `skills/tdd/SCRIPTS.md`, inserts nothing, leaves the ledger byte-identical and exits 0, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.06 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
@@ -277,7 +330,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `suite-red-resume.sh insert` with a red explained only by the stale grades of units A and B together, on a ledger whose unchecked steps are a `⟦skill-edit⟧` step for A, a non-skill-edit step, then a `⟦skill-edit⟧` step for B, inserts no `⟦suite-repair⟧` step, leaves the ledger and `.tdd/issue-<n>-added.md` byte-identical, and exits 2 with one stderr line naming both skill-edit steps and `reorder-ledger-steps.sh`, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code (which inserts the repair step and exits 0) ⟦criterion 1⟧ | 1 | 1 | 0 | nothing-structural 1 |
 | `suite-red-resume.sh insert` with a branch-red file listing the graded suites by full path (`skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py`, `skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py`), on a ledger whose unchecked steps start with consecutive pending `⟦skill-edit⟧` steps for the units those grades sign, inserts nothing, leaves the ledger byte-identical and exits 0, as it does with basenames, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code (which inserts a repair step) ⟦criterion 5⟧ | 1 | 1 | 0 | nothing-structural 1 |
 | `suite-red-resume.sh insert` counts a red suite that a pending `⟦skill-edit⟧` step's unit owns through its `## Requirements` rows (`test_scripts_md_rows.py` for `skills/tdd/SCRIPTS.md`) as explained by that step, alongside graded suites: a branch-red file of graded suites plus `test_scripts_md_rows.py`, on a ledger whose consecutive pending `⟦skill-edit⟧` steps name the graded units and `skills/tdd/SCRIPTS.md`, inserts nothing, leaves the ledger byte-identical and exits 0, pinned by a small in-process case in skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py that fails on current code ⟦criterion 6⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 3 | 2 | 1 | nothing-left 1, nothing-structural 2 |
+| issue | 4 | ? | ? | nothing-left 1, nothing-structural 3 |
 
 #### Test-command seconds, by tier
 
@@ -286,9 +339,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | affected | 1 | 2 | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 1 | 3 | 2 | 2 | 2 | 3 | 2 | 2 |  |  |  |
 | target | 0 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 23 | 25 | 1 | 1 | 2 | 1 | 2 | 1 |
 | fast | 22 | 23 | 22 | 23 | 21 | 21 | 20 | 20 | 19 | 20 | 58 | 25 | 22 | 25 | 21 | 21 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 46 | 49 | 185 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 204 | 384 | 95896 | 3824036 | 1172700 | 13.79 (estimate) |
+| total | 229 | 432 | 134070 | 4062742 | 1513119 | 17.43 (estimate) |
