@@ -1,0 +1,2 @@
+- [ ] A new script `baseline-full-tier.sh <issue> <full-tier-command>` (logic in `veri/baseline_full_tier.py`, a `/bin/sh` shim, cases in `tests/py/unit/test_baseline_full_tier.py` driven in-process with `run_cli`), called with no argument, exits 2 with a usage line naming it on stderr ⟦criterion 1⟧
+- [ ] `baseline-full-tier.sh <issue> <full-tier-command>` prints `run` and exits 0 when `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 1⟧
