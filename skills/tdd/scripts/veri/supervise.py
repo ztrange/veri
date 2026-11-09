@@ -255,7 +255,7 @@ def mutation_records():
 def restore_mutation_records(before, role, env, name):
     after = mutation_records()
     step = re.sub(r"`[^`]*`|\"[^\"]*\"|(?<!\w)'[^']*'(?!\w)", "", tunables.read("VERI_STEP") or "")
-    named = re.findall(r"mutation-record:\s*(\S+)", step)
+    named = re.findall(r"mutation-record:\s*([^\s,;:)]*[^\s,.;:)])", step)
     for path in sorted(set(before) | set(after)):
         if before.get(path) == after.get(path) or path in named:
             continue
