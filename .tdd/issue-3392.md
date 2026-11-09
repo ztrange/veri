@@ -1,0 +1,5 @@
+# Plan for #3392 — make unit UNIT_TESTS= with two or more projects/dashboard/ paths runs the whole fast tier, the unit target's PY_TESTS being a single space
+
+- [ ] `make unit UNIT_TESTS="<two projects/dashboard/ paths>"` starts no veri pytest leg: a medium case (real `make` process, `@pytest.mark.process("<boundary>")`) in `skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py`, in the style of #3381's cases, running `make unit` over a planted tree whose fast-tier case logs when it runs and asserting the log is empty; it fails on current code ⟦criterion 1⟧
+- [ ] `make unit UNIT_TESTS="<one veri unit test path> <two projects/dashboard/ paths>"` runs the pytest leg on the veri path only: a medium case (real `make` process, process-marked) in `skills/tdd/scripts/tests/py/test_recipe_one_pytest_process.py`, same shape, asserting the named veri case ran and no other fast-tier case did ⟦criterion 2⟧
+- [ ] The `unit:` guard is exercised: with `Makefile`'s `unit: PY_TESTS` filtered list broken back to unstripped, the first case goes red (a manual mutation check, recorded by a human) ⟦human-owed⟧ ⟦criterion 3⟧
