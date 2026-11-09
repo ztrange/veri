@@ -796,3 +796,68 @@ def test_insert_leaves_the_ledger_untouched_and_exits_0_when_the_branch_red_list
     assert code == 0
     assert ledger.read_text() == text
     assert not list(tmp_path.glob("*-added.md"))
+
+
+def test_insert_leaves_the_ledger_untouched_and_exits_0_when_the_red_is_the_stale_graded_suites_plus_the_scripts_md_rows_suite_and_pending_skill_edit_steps_cover_all_three_units_3378(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    graded = ["skills/tdd/SUITE-REPAIR.md", "skills/tdd/SKILL.md"]
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", u) for u in graded], []))
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [])
+    ledger = tmp_path / "issue-7.md"
+    text = (
+        "# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n"
+        f"- [ ] ⟦skill-edit⟧ sign `{graded[0]}`\n"
+        f"- [ ] ⟦skill-edit⟧ sign `{graded[1]}`\n"
+        "- [ ] ⟦skill-edit⟧ add the SC99 row to `skills/tdd/SCRIPTS.md`\n"
+        "- [ ] b ⟦criterion 2⟧\n"
+    )
+    ledger.write_text(text)
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(
+        "skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py — FAIL stale GRADED\n"
+        "skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py — FAIL stale GRADED\n"
+        "skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py — FAIL no SC99 row\n"
+    )
+
+    code, _, err = run_cli(module, ["insert", str(ledger), str(branch)])
+
+    assert code == 0, err
+    assert ledger.read_text() == text
+    assert not list(tmp_path.glob("*-added.md"))
+
+
+def test_insert_adds_the_repair_step_for_a_scripts_md_rows_red_only_when_no_pending_skill_edit_step_owns_skills_tdd_scripts_md_3378(run_cli, tmp_path, monkeypatch):
+    module = importlib.import_module("veri.suite_red_resume")
+    graded = ["skills/tdd/SUITE-REPAIR.md", "skills/tdd/SKILL.md"]
+    for name in ("prose_owed", "veri.prose_owed"):
+        monkeypatch.setattr(importlib.import_module(name), "owed_listed", lambda path="REQUIREMENTS.md": ([("REQUIREMENTS.md", u) for u in graded], []))
+    for name in ("requirements", "veri.requirements"):
+        required = importlib.import_module(name)
+        monkeypatch.setattr(required, "lists", lambda path="REQUIREMENTS.md": [path])
+        monkeypatch.setattr(required, "listed_units", lambda path: [])
+    (tmp_path / "events.jsonl").write_text(json.dumps({"event": "bail", "cause": "revise-impossible"}) + "\n")
+    branch = tmp_path / "branch-red"
+    branch.write_text(
+        "skills/tdd/scripts/tests/py/unit/test_prd_015_prose_signed.py — FAIL stale GRADED\n"
+        "skills/tdd/scripts/tests/py/unit/test_prd_016_short_names.py — FAIL stale GRADED\n"
+        "skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py — FAIL no SC99 row\n"
+    )
+    head = "# Plan for #7\n\n- [x] a ⟦criterion 1⟧\n" + "".join(f"- [ ] ⟦skill-edit⟧ sign `{unit}`\n" for unit in graded)
+    owned = tmp_path / "owned.md"
+    owned_text = head + "- [ ] ⟦skill-edit⟧ add the SC99 row to `skills/tdd/SCRIPTS.md`\n- [ ] b ⟦criterion 2⟧\n"
+    owned.write_text(owned_text)
+    unowned = tmp_path / "unowned.md"
+    unowned.write_text(head + "- [ ] b ⟦criterion 2⟧\n")
+
+    owned_code, _, owned_err = run_cli(module, ["insert", str(owned), str(branch)])
+    unowned_code, _, unowned_err = run_cli(module, ["insert", str(unowned), str(branch)])
+
+    assert owned_code == 0, owned_err
+    assert owned.read_text() == owned_text
+    assert unowned_code == 0, unowned_err
+    assert unowned.read_text().count("⟦suite-repair⟧") == 1

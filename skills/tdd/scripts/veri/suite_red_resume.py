@@ -31,6 +31,7 @@ USAGE = (
 )
 SEPARATOR = " — "
 GRADE_SUITES = {"test_prd_015_prose_signed.py", "test_prd_016_short_names.py"}
+ROWS_SUITES = {"test_scripts_md_rows.py": "skills/tdd/SCRIPTS.md"}
 
 
 def complain(message):
@@ -76,10 +77,12 @@ def insert(ledger, branch_file):
     if any("fix the full-suite failure by editing" in line for line, tick in zip(steps, ticks) if tick != " "):
         return 1
     names = suites(text)
-    graded_only = {os.path.basename(name) for name in names} <= GRADE_SUITES
+    basenames = {os.path.basename(name) for name in names}
+    graded_only = basenames <= GRADE_SUITES | set(ROWS_SUITES)
     candidates = []
     if graded_only:
         candidates = [unit for _, unit in prose_owed.owed_listed()[0]]
+        candidates += [ROWS_SUITES[name] for name in basenames & set(ROWS_SUITES)]
     elif not set(names) & GRADE_SUITES and all(SEPARATOR in red for red in reds):
         listed = [unit for path in requirements.lists() for unit in requirements.listed_units(path)]
         candidates = [unit for unit in listed if all(unit in red for red in reds)]
