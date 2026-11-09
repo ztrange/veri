@@ -1525,3 +1525,17 @@ def test_main_prints_one_line_per_skip_naming_the_skipped_issue_the_overlapping_
         dispatch.main(["--target", "1"])
 
     assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+
+
+def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, waits = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/SCRIPTS.md"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py", "skills/tdd/SCRIPTS.md"]},
+        waits_before_stop=2)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, len(waits), "queue-empty" in capsys.readouterr().out) == ([], 2, False)
