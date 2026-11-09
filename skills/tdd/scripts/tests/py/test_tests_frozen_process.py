@@ -1277,6 +1277,38 @@ def test_check_earlier_exits_1_naming_the_old_case_and_its_step_when_an_earlier_
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_a_changed_case_in_a_file_whose_path_only_ends_with_a_guard_subject_3443(
+        tmp_path, run_cli, tests_frozen):
+    subject, other = "tests/test_guard.py", "projects/x/tests/test_guard.py"
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "projects/x/tests").mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    for name in (subject, other):
+        (tmp_path / name).write_text("def test_existing_3443():\n    assert 1 == 1\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests", "projects")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier = "step one ⟦guard-subject: %s⟧" % subject
+    current = "step two edits the case again"
+    for name in (subject, other):
+        (tmp_path / name).write_text("def test_existing_3443():\n    assert 1 == 2\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, subject, other], cwd=tmp_path)
+    git(tmp_path, "add", "tests", "projects")
+    git(tmp_path, "commit", "-q", "-m", "step one")
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    for name in (subject, other):
+        (tmp_path / name).write_text("def test_existing_3443():\n    assert 1 == 3\n")
+    git(tmp_path, "add", "tests", "projects")
+    git(tmp_path, "commit", "-q", "-m", "step two")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert code == 1
+    assert "test_existing_3443" in out and earlier in out
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_1_naming_exactly_one_case_when_two_identical_earlier_cases_are_removed_for_one_added_case_2419(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
