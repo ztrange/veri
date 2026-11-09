@@ -1737,3 +1737,34 @@ def test_page_landed_section_reads_none_when_no_journal_holds_a_merged_event_wit
     section = re.search(r"<h2>Landed</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
     lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
     assert [re.sub(r"<[^>]+>", "", l).strip() for l in lines] == ["none"]
+
+
+
+@pytest.mark.process("serve.py")
+def test_page_waiting_section_reads_none_when_no_journal_holds_a_bail_or_unmerged_done_pr(veri_home):
+    import re
+
+    (veri_home / "runs" / "3277.jsonl").unlink()
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    section = re.search(r"<h2>Waiting</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
+    lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
+    assert [re.sub(r"<[^>]+>", "", l).strip() for l in lines] == ["none"]

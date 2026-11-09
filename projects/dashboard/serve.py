@@ -90,7 +90,7 @@ def waiting_lines():
         prs = [i for i, e in enumerate(events) if e.get("event") == "done" and e.get("pr")]
         if prs and not any(e.get("event") == "merged" for e in events[prs[-1]:]):
             lines.append("<div>#%s PR %s ready to merge</div>" % (path.stem, events[prs[-1]]["pr"]))
-    return lines
+    return lines or ["<div>none</div>"]
 
 
 SCRIPT = """<script>
