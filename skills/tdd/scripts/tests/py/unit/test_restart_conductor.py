@@ -561,3 +561,26 @@ def test_3389_once_the_new_sessions_usage_records_land_after_an_init_record_grow
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert calls == [("stop", "at-ledger", "7")]
+
+
+def test_3384_a_watcher_armed_before_the_conductor_is_recorded_waits_for_it_and_goes_on_watching_instead_of_exiting_3(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    alive = iter([False, False, True, True])
+    now = [0.0]
+
+    def nap(seconds):
+        now[0] += seconds
+
+    class FakeClock:
+        sleep = staticmethod(nap)
+        time = staticmethod(lambda: now[0])
+        monotonic = staticmethod(lambda: now[0])
+
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: next(alive, False), raising=False)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+    monkeypatch.setattr(restart_conductor, "time", FakeClock, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.strip(), err) == (0, "restarts 7 0", "")
