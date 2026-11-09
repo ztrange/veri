@@ -1488,3 +1488,27 @@ def test_main_skips_a_solvable_issue_naming_a_path_an_open_run_draft_pr_changes_
         dispatch.main(["--target", "1"])
 
     assert launches == ["15"]
+
+
+def test_main_launches_an_issue_skipped_for_overlap_at_a_later_pass_once_no_open_run_draft_pr_changes_its_paths_issue_3478(
+        monkeypatch, tmp_path, dispatch):
+    open_prs = [{"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, {}, {}]
+    launched = []
+    launches, waits = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: [i for i in ["12", "15"] if i not in launched],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
+        lambda: open_prs[len(waits)], waits_before_stop=2)
+
+    def launch(issue):
+        launched.append(issue)
+        launches.append(issue)
+        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("- [ ] step\n")
+
+    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "2"])
+
+    assert waits == [["15"], ["15", "12"]]
