@@ -30,7 +30,12 @@ def run_with(contents, command):
                 path.unlink(missing_ok=True)
             else:
                 path.write_bytes(content)
-        return subprocess.run(command).returncode
+        journal = Path(".tdd/events.jsonl")
+        before = journal.read_bytes() if journal.exists() else None
+        returncode = subprocess.run(command).returncode
+        if before is not None and not journal.read_bytes().startswith(before):
+            journal.write_bytes(before)
+        return returncode
     finally:
         for path, content in saved.items():
             if content is None:
