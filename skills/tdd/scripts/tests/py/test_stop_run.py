@@ -908,3 +908,35 @@ def test_3375_stop_leaves_waits_the_kill_grace_the_env_names_between_the_term_an
 
     assert [e[0] for e in events] == ["killpg", "sleep", "killpg"]
     assert events[1][1] > 0
+
+
+def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detached_group_sent_kill_is_still_alive_and_0_when_the_group_dies_on_kill(
+        monkeypatch, tmp_path, capsys, stop_run):
+    import signal
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
+
+    def group_that(dies_on_kill):
+        alive = [True]
+
+        def killpg(group, sig):
+            if sig == signal.SIGKILL and dies_on_kill:
+                alive[0] = False
+            elif sig == 0 and not alive[0]:
+                raise ProcessLookupError
+        return killpg
+
+    monkeypatch.setattr(os, "killpg", group_that(dies_on_kill=True))
+    assert stop_run.stop_run(str(run), "now") == 0
+    capsys.readouterr()
+
+    monkeypatch.setattr(os, "killpg", group_that(dies_on_kill=False))
+    code = stop_run.stop_run(str(run), "now")
+    err = capsys.readouterr().err
+
+    assert code == 2
+    assert "777" in err and str(run) in err
