@@ -43,8 +43,20 @@ def test_3223_a_growth_knob_that_is_not_a_whole_number_of_at_least_1_exits_2_nam
     ) == ([2] * 5, [""] * 5, [(True, True)] * 5, [])
 
 
-def test_3223_a_run_with_no_live_conductor_when_it_starts_exits_3_printing_nothing(tmp_path, run_cli):
+def test_3223_a_run_with_no_live_conductor_when_it_starts_exits_3_printing_nothing(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
+    now = [0.0]
+
+    def nap(seconds):
+        now[0] += seconds
+
+    class FakeClock:
+        sleep = staticmethod(nap)
+        time = staticmethod(lambda: now[0])
+        monotonic = staticmethod(lambda: now[0])
+
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+    monkeypatch.setattr(restart_conductor, "time", FakeClock, raising=False)
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
