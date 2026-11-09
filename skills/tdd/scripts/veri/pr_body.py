@@ -22,7 +22,7 @@ def main(argv):
     if read.returncode != 0:
         print("pr-body.sh: cannot read the body of PR #%s" % argv[0], file=sys.stderr)
         return 2
-    current = json.loads(read.stdout)["body"]
+    current = json.loads(read.stdout)["body"] or ""
     with open(argv[1]) as f:
         mine = BEGIN + "\n" + f.read() + "\n" + END
     pattern = re.compile(re.escape(BEGIN) + ".*?" + re.escape(END), re.S)

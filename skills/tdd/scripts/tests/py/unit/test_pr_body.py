@@ -109,3 +109,14 @@ def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_wri
     assert code == 2
     assert "42" in err
     assert [c for c in calls if "PATCH" in c or any(a.startswith("body=") for a in c)] == []
+
+
+def test_main_on_a_null_body_treats_it_as_empty_and_writes_the_file_as_the_run_part_3453(run_cli, pr_body, monkeypatch, tmp_path):
+    written = fake_gh_pr_body(monkeypatch, None)
+    body_file = tmp_path / "body.md"
+    body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
+
+    code, out, err = run_cli(pr_body, ["42", str(body_file)])
+
+    assert code == 0, err
+    assert written == ["%s\n%s\n%s" % (BEGIN, "Closes #7 — ready: 5 of 5 steps done", END)]
