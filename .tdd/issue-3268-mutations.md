@@ -60,3 +60,62 @@ children = [i for i in cache["issues"] if True
 command 126
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_left_line_ignores_closed_children_of_the_prd
 
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 280
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 130
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+
+file 27
+projects/dashboard/serve.py
+old 69
+if any(i.get("lane") for i in cache["issues"] if i["state"] == "OPEN"
+new 79
+if any(i.get("lane") for i in cache["issues"] if i["state"] == "OPEN" and False
+command 130
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+
+file 27
+projects/dashboard/serve.py
+old 33
+ and i["number"] != prd["number"]
+new 0
+
+command 130
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+
+before 40
+9fc78558628ec9cb59f906bd849b37eab658a78a
+keep 47
+projects/dashboard/tests/test_serve_get_root.py
+command 295
+/private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+
+file 27
+projects/dashboard/serve.py
+old 78
+for i in cache["issues"] if i["state"] == "OPEN"
+               and prd_number
+new 62
+for i in cache["issues"] if True
+               and prd_number
+command 145
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+
+file 27
+projects/dashboard/serve.py
+old 35
+and prd_number(i["title"]) == n and
+new 12
+and True and
+command 145
+make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+
