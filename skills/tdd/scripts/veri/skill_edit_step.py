@@ -38,15 +38,18 @@ def _names_unit(heading, unit):
     return heading in (unit, unit + " (new)")
 
 
-def _issue_rows(issue, unit):
+def _unit_table_lines(issue, unit):
     rows = [line for heading, line in _requirements_lines(issue)
             if _names_unit(heading, unit) and line.startswith("|")]
-    return rows[2:]
+    return rows
+
+
+def _issue_rows(issue, unit):
+    return _unit_table_lines(issue, unit)[2:]
 
 
 def _headerless(issue, unit):
-    rows = [line for heading, line in _requirements_lines(issue)
-            if _names_unit(heading, unit) and line.startswith("|")]
+    rows = _unit_table_lines(issue, unit)
     return bool(rows) and [r.replace(" ", "") for r in rows[:2]] != [h.replace(" ", "") for h in TABLE_HEAD]
 
 
