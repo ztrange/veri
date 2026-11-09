@@ -1447,3 +1447,44 @@ def test_main_launches_the_next_issue_at_target_2_beside_one_live_run_and_a_work
         dispatch.main(["--target", "2"])
 
     assert launches == ["12"]
+
+
+@pytest.fixture(autouse=True)
+def no_open_run_prs(monkeypatch, dispatch):
+    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
+    monkeypatch.setattr(dispatch, "issue_paths", lambda issue: [], raising=False)
+
+
+def _overlap_case(monkeypatch, tmp_path, dispatch, solvable, named, prs, waits_before_stop=1):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(list(launches))
+        if len(waits) == waits_before_stop:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-09T10:00:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
+    monkeypatch.setattr(dispatch, "issue_paths", lambda issue: named.get(issue, []), raising=False)
+    monkeypatch.setattr(dispatch, "run_pr_paths", prs, raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    return launches, waits
+
+
+def test_main_skips_a_solvable_issue_naming_a_path_an_open_run_draft_pr_changes_and_launches_the_next_without_overlap_issue_3478(
+        monkeypatch, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert launches == ["15"]
