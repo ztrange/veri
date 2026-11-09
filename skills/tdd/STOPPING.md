@@ -10,6 +10,15 @@ leaves the run resumable. Run this sequence in order.
    an exit 3, as everywhere else — until it returns 0, 1 or 2. Under mode `now` that wait
    ends at once: `stop-run.sh` has already sent that supervisor its TERM, and
    `supervise.sh:350-355` recorded a 2 in the completion file.
+   The same holds for a detached command of the conductor's own (the baseline `fulltier`,
+   `fasttier`): under mode `now`, `detach-command.sh wait` on it also returns 2 at once,
+   because `stop-run.sh` has sent that command's whole process group TERM, then KILL after
+   a bounded grace (`VERI_STOP_KILL_GRACE`, default 5 seconds). That 2 is the stop being
+   carried out: go on to step 2, record it as a stop, never as a bail or a preflight
+   failure. If `stop-run.sh` could not signal a leaf or a detached command (a refused
+   signal, not a process already gone) it exits 2 naming the pid and the run, having still
+   written `.tdd/stop`; that process may still be alive, so do not treat the tree as free
+   until each wait has returned.
 2. **Settle the tree.** Ask first whether it is the run's to settle. If `git rev-parse
    --git-path rebase-merge` or `git rev-parse --git-path rebase-apply` names a directory
    that exists, or `MERGE_HEAD` resolves, an interrupted rebase or merge is in progress:
@@ -41,8 +50,8 @@ leaves the run resumable. Run this sequence in order.
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh stop mode=<mode> at=<at>
    ```
    That is the whole record of the pause, and it is never a `bail` mark: a stop has no
-   cause, so there is no system-versus-process label to derive and nothing to derive it
-   from. Both keys ride on the one line — `mode` says which checkpoint the operator's stop
+   cause, so there is no system-versus-process label to derive: `classify-bail.sh` is not
+   called, and there is nothing for it to derive from. Both keys ride on the one line — `mode` says which checkpoint the operator's stop
    was taken at, `at` says how far the work got — so a reader who asks "where did this run
    pause?" reads one mark, not two.
 5. **Report.** Render `$S/metrics.sh <n>` — after the mark, so it reads it — straight into
