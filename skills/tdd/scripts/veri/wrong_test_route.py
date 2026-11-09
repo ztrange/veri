@@ -32,12 +32,17 @@ def _test_files():
             yield root, name, py, go, js
 
 
-def _defining_file(case):
+def _defining_files(case):
     found = []
     for root, name, py_file, go_file, _ in _test_files():
         with open(os.path.join(root, name), encoding="utf-8", errors="replace") as handle:
             if defined_name(case, handle.read(), py_file, go_file):
                 found.append(os.path.relpath(os.path.join(root, name)))
+    return found
+
+
+def _defining_file(case):
+    found = _defining_files(case)
     return found[0] if found else None
 
 
@@ -314,7 +319,10 @@ def main(argv):
     if where is not None:
         for line in _lines_with(argv[0], "CONTRADICTS:"):
             given = re.search(r"(\S+)::" + re.escape(case) + r"\s*$", line)
-            where = given.group(1) if given else where
+            if given:
+                where = given.group(1)
+            elif len(_defining_files(case)) > 1:
+                return 2
     if case is None and len(older) == 1:
         case = older[0]
     fixture = None if case is not None or rerouted else _fixture(argv[0], argv[1])

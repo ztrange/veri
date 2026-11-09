@@ -3651,3 +3651,21 @@ def test_main_3367_prints_red_with_the_file_a_contradicts_id_gives_even_when_ano
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
 
     assert (code, stdout) == (0, "red tests/py/unit/test_zzz.py::%s\n" % contradicted)
+
+
+def test_main_3367_exits_2_printing_no_route_for_a_bare_contradicted_case_defined_in_more_than_one_test_file(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_usage_output_on_a_missing_argument_is_unchanged"
+    for name in ("test_aaa.py", "test_zzz.py"):
+        (suite / name).write_text("def %s():\n    pass\n" % contradicted)
+    (suite / "test_tick_ledger.py").write_text("def test_main_returns_zero():\n    pass\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nCONTRADICTS: %s\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, stdout) == (2, "")
