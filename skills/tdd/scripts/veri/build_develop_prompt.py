@@ -7,6 +7,7 @@ import shlex
 import sys
 
 import event
+import event_log
 import tunables
 from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
@@ -174,7 +175,14 @@ def main(argv):
                       before=False, after=False)
                 return 2
             values["ISSUE_NUMBER"] = issue.encode()
-            values["STEP_ARGUMENT"] = os.fsencode(shlex.quote(step))
+            try:
+                rerouted = [e.get("case") for e in event_log.read_events(".tdd/events.jsonl")
+                            if e.get("event") == "reroute" and e.get("step") == step
+                            and e.get("kind") in ("red", "repair", "supersede") and e.get("case")]
+            except OSError:
+                rerouted = []
+            values["STEP_ARGUMENT"] = os.fsencode(" ".join(
+                [shlex.quote(step)] + ["--except " + shlex.quote(c) for c in dict.fromkeys(rerouted)]))
         if b"{{NODE_ID_RULE}}" in text:
             values["NODE_ID_RULE"] = fragment(b"node-id-rule")
         if b"{{RED_LEAD}}" in text:

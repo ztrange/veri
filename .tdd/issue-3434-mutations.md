@@ -1,0 +1,7 @@
+before 40
+67a6e2259f3cedd44f17489851a2b20cf59efff3
+keep 72
+skills/tdd/scripts/tests/py/unit/test_revise_red_check_earlier_except.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_revise_red_check_earlier_except.py::test_3434_revise_red_prompt_excepts_a_supersede_case_once_and_skips_caseless_reroutes
+
