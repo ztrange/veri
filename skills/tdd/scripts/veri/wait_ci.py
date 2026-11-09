@@ -233,6 +233,7 @@ def main(argv):
     deadline = ""
     slice_end = None
     unread = 0
+    first_none = None
     while True:
         draft = False
         try:
@@ -271,6 +272,7 @@ def main(argv):
         if state == "none" and not explicit and no_pull_request_workflow(repo, head):
             warn("%s has no checks and no workflow triggers on pull_request; no check will come" % pr)
             return 0
+        none = state == "none"
         if state == "skipped":
             state = "pending"
         if mismatched:
@@ -283,6 +285,11 @@ def main(argv):
             return 1
         now = epoch()
         scope["now"] = now
+        if none and mergeable:
+            first_none = now if first_none is None else first_none
+            if now - first_none >= int(tunables.read("VERI_CI_NO_RUN_WAIT", unless_empty="120")):
+                warn("no CI run for %s" % head)
+                return 2
         if slice_end is None:
             try:
                 slice_end = now + arith(span, scope)
