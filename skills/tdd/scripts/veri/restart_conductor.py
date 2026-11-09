@@ -129,7 +129,10 @@ def main(argv):
             if asked:
                 os.remove(_run_file(run, "restart-pending"))
                 try:
-                    os.remove(_run_file(run, "stop"))
+                    with open(_run_file(run, "stop")) as f:
+                        written = f.read().strip() == "at-ledger"
+                    if written:
+                        os.remove(_run_file(run, "stop"))
                 except FileNotFoundError:
                     pass
             break
