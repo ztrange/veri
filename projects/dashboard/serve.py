@@ -81,6 +81,15 @@ def landed_lines():
     return lines
 
 
+def waiting_lines():
+    lines = []
+    for path, events in _journals():
+        for e in events:
+            if e.get("event") == "bail":
+                lines.append("<div>%s</div>" % " ".join(filter(None, ["#" + path.stem, e.get("cause")])))
+    return lines
+
+
 SCRIPT = """<script>
 setInterval(() => fetch("/running").then(r => r.text()).then(t => {
   document.getElementById("running").innerHTML = t;
@@ -176,7 +185,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             running = "\n".join(running_lines())
             body = ("<!doctype html><title>veri dashboard</title>\n<h2>Running</h2>\n<div id=running>\n"
-                    + running + "\n</div>\n<h2>Landed</h2>\n" + "\n".join(landed_lines()) + "\n" + SCRIPT).encode()
+                    + running + "\n</div>\n<h2>Landed</h2>\n" + "\n".join(landed_lines()) + "\n<h2>Waiting</h2>\n" + "\n".join(waiting_lines()) + "\n" + SCRIPT).encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.end_headers()

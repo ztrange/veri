@@ -1598,3 +1598,38 @@ def test_page_landed_section_lists_each_merged_tag_in_status_report_shape(veri_h
     )
     assert [l for l in lines if l.startswith("<p>")] == []
     assert [re.sub(r"<[^>]+>", "", l).strip() for l in lines if "v0.1136" in l] == [expected]
+
+
+@pytest.mark.process("serve.py")
+def test_page_waiting_section_lists_each_bail_as_run_and_cause_in_journal_order(veri_home):
+    import re
+
+    (veri_home / "runs" / "1200.jsonl").write_text(
+        json.dumps({"ts": 1794089519, "awake": 0, "issue": "1200", "event": "bail"}) + "\n"
+    )
+    port = _free_port()
+    proc = subprocess.Popen(
+        [sys.executable, str(SERVE), "--repo", str(veri_home), "--port", str(port)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        page = ""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as r:
+                    page = r.read().decode()
+                break
+            except OSError:
+                time.sleep(0.05)
+    finally:
+        proc.terminate()
+        proc.wait(timeout=5)
+
+    section = re.search(r"<h2>Waiting</h2>(.*?)(?:<h2|<script|\Z)", page, re.S)
+    lines = [l for l in (section.group(1).splitlines() if section else []) if l.strip()]
+    text = [re.sub(r"<[^>]+>", "", l).strip() for l in lines]
+    assert [l for l in lines if l.startswith("<p>")] == []
+    assert [t for t in text if t.startswith("#3277")] == ["#3277 untestable-criterion", "#3277 no-verdict"]
+    assert len([t for t in text if t.startswith("#1200")]) == 1
