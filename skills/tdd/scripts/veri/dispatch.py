@@ -101,18 +101,28 @@ def pr_state(pr_url):
     return "MERGED" if pull["merged"] else pull["state"].upper()
 
 
+def answered(what, read, *args):
+    """<read>(*args), a gh read; no answer is an unreadable queue naming <what>, so a rate limit waits for the reset."""
+    try:
+        return read(*args)
+    except github.NoAnswer as failure:
+        detail = " ".join(str(failure.answer).split()) or "no answer"
+        raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
+
+
 def issue_paths(issue):
     """The backticked words of <issue>'s body: the repo paths it names."""
-    return re.findall(r"`([^`\s]+)`", github.gh_issue_view(issue, "body"))
+    return re.findall(r"`([^`\s]+)`", answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body"))
 
 
 def run_pr_paths():
     """{url: changed paths} of every open run draft PR (head tdd/…), on any machine."""
     changed = {}
-    for pr in handoff_state.open_prs("number,url,isDraft,headRefName"):
+    for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName"):
         head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
         if pr["isDraft"] and head.startswith("tdd/"):
-            changed[pr.get("url") or pr.get("html_url")] = github.gh_pr_diff_names(pr["number"])
+            url = pr.get("url") or pr.get("html_url")
+            changed[url] = answered(f"{url}'s diff", github.gh_pr_diff_names, pr["number"])
     return changed
 
 

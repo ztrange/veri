@@ -1449,8 +1449,12 @@ def test_main_launches_the_next_issue_at_target_2_beside_one_live_run_and_a_work
     assert launches == ["12"]
 
 
+_REAL = {}
+
+
 @pytest.fixture(autouse=True)
 def no_open_run_prs(monkeypatch, dispatch):
+    _REAL.update({name: getattr(dispatch, name, None) for name in ("run_pr_paths", "issue_paths")})
     monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
     monkeypatch.setattr(dispatch, "issue_paths", lambda issue: [], raising=False)
 
@@ -1539,3 +1543,23 @@ def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_whe
         dispatch.main(["--target", "1"])
 
     assert (launches, len(waits), "queue-empty" in capsys.readouterr().out) == ([], 2, False)
+
+
+def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of_an_open_run_draft_pr_fails_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+    monkeypatch.setattr(dispatch.github.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 502: Bad Gateway\n"))
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    err = capsys.readouterr().err
+    assert (code, launches, "90" in err and "HTTP 502" in err) == (2, [], True)

@@ -279,7 +279,10 @@ def gh_json_page(fixture, path, *args):
 
 def gh_pr_diff_names(number):
     """The paths open PR <number> changes, from `gh pr diff --name-only`."""
-    return _gh("pr", "diff", str(number), "--name-only").stdout.split()
+    run = _gh("pr", "diff", str(number), "--name-only", stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer(run.stderr)
+    return run.stdout.split()
 
 
 def gh_issue_view(number, field):
