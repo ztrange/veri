@@ -540,9 +540,13 @@ three times over branches its ledger pinned on later lines.
    $S/push-branch.sh
    gh api repos/{owner}/{repo}/pulls -F draft=true -f base=<default-branch> -f head="$(git branch --show-current)" \
      -f title="WIP: <type>: <criterion summary> (#<n>)" \
-     -f body="Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth." \
+     -f body="<!-- veri:run-body -->
+Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth.
+<!-- /veri:run-body -->" \
      -q .html_url                         # → <pr-url>; <pr-number> is its last path segment
    ```
+   The body's first line starts `Closes #<n>`, inside the markers that set it apart as the run's own
+   part, the part `$S/pr-body.sh` rewrites; whatever else a body holds is not the run's.
    An open PR saying `Closes #<n>` is the claim every other machine can see, and the plan
    commit is the run's first — a PR needs a commit ahead of the base, so this is the
    earliest the claim can be made. Until it exists a second machine running `/tdd <scope>`
@@ -1005,8 +1009,12 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
-     gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f body="Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
+     $S/pr-body.sh <pr-number> <body-file>
      ```
+     The `<body-file>` holds `Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth.`
+     `pr-body.sh` rewrites only the run's marked part of the PR body and keeps every other part,
+     a section an operator appended included; the body is never replaced whole with
+     `gh api -X PATCH … -f body=…`.
      `<done>` is the ticked checkboxes of the run's ledger `.tdd/issue-<n>.md` and
      `<total>` all of its steps — of the records `$S/ledger-steps.sh < .tdd/issue-<n>.md`
      prints, those whose second field is `done` of all of them, counted after the tick above so the step just closed is in the number. The draft PR
