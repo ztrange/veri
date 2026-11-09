@@ -107,3 +107,16 @@ def test_growth_with_no_baseline_given_takes_the_first_turn_of_the_last_session_
         turn("b2", 64000),
     ]
     assert growth(records) == 64000 - 60000
+
+
+def test_growth_3389_returns_none_when_an_init_record_follows_the_last_usage_record_and_the_new_session_has_none_yet(growth):
+    usage = {
+        "input_tokens": 2,
+        "cache_read_input_tokens": 20000,
+        "cache_creation_input_tokens": 100,
+    }
+    records = [
+        {"type": "assistant", "message": {"id": "m1", "usage": usage}},
+        {"type": "system", "subtype": "init"},
+    ]
+    assert growth(records) is None

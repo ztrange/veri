@@ -21,6 +21,6 @@ def growth(records, baseline=None):
             )
             if first is None:
                 first = context
-    if context is None:
+    if first is None:
         return None
     return context - (first if baseline is None else baseline)
