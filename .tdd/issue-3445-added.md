@@ -1,1 +1,1 @@
-- [ ] `skills/tdd/SCRIPTS.md`: the skill-edit-step.sh entry lists, among its exit-2 causes, a unit's Requirements table that lacks its header and separator lines (refused before any author runs) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
+- [x] `skills/tdd/SCRIPTS.md`: the skill-edit-step.sh entry lists, among its exit-2 causes, a unit's Requirements table that lacks its header and separator lines (refused before any author runs) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧
