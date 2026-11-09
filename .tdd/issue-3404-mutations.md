@@ -14,3 +14,10 @@ and
 command 187
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_renders_a_diff_prompt_without_the_author_less_block_when_the_log_holds_no_event_for_this_issue_3404
 
+before 40
+22ae5363bd47efb651ed288fc7843e5afa2c4632
+keep 60
+skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py
+command 183
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_keeps_leaf_output_and_reason_files_out_of_a_diff_prompt_that_carries_the_author_less_block_3404
+
