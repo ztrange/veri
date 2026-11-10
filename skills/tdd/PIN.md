@@ -5,7 +5,8 @@ honest test passes against the unmodified code. That is an **outcome** of the st
 failure of it — the behaviour exists and what it wants is a **regression pin**. You reach
 this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASSES` and you
 ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
-`### 🔴 Red` / `### 🔎 verify-red` pair.
+`### 🔴 Red` / `### 🔎 verify-red` pair, the comments `$S/comment.sh <n> red` and
+`$S/comment.sh <n> verify-red` would otherwise post.
 
 `verify-pin`'s probe is recorded in `.tdd/issue-<n>-mutations.md` by the probe itself, and
 that file is committed with the pin's tick (the `git add -A` below takes it).
