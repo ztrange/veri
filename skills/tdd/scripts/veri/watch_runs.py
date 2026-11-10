@@ -24,9 +24,15 @@ def _starting():
     return pid_file.starting_runs(status.main_working_tree())
 
 
+def _pid_filed():
+    wt = os.path.join(status.main_working_tree(), ".tdd", "wt")
+    return [issue for issue in (os.listdir(wt) if os.path.isdir(wt) else [])
+            if pid_file.recorded_started(os.path.join(wt, issue))]
+
+
 def live_conductors():
     live = [str(run["issue"]) for run in _runs() if run.get("state") == "running"]
-    return live + [issue for issue in dict.fromkeys(_starting()) if issue not in live]
+    return live + [issue for issue in dict.fromkeys(_starting() + _pid_filed()) if issue not in live]
 
 
 def run_state(issue):
