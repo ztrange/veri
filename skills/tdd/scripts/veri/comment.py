@@ -144,7 +144,13 @@ def post_revised(issue, phase):
     return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — PASS\n\n{reason}")
 
 
+def post_verify_skipped(issue):
+    return post_and_record(issue, "verify-refactor", "### 🔎 verify-refactor — SKIPPED (nothing landed)")
+
+
 def main(argv):
+    if argv[1:] == ["verify-refactor", "--skipped"]:
+        return post_verify_skipped(argv[0])
     if len(argv) == 3 and argv[1] == "verify-revised":
         return post_revised(argv[0], argv[2])
     noted = {"green": post_green, "red": post_red, "refactor": post_refactor}
