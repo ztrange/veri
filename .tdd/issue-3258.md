@@ -9,5 +9,5 @@
 - [x] `skills/tdd/JOURNAL.md`'s `comment` event row names every kind comment.sh posts: `step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised`, `plan`, `verify-plan`, `resuming` and `done` ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/SCRIPTS.md` passes SC95 of this issue's `## Requirements`, regraded: the `comment.sh` entry names the new kinds and what each reads, `plan` (reads the ledger and the test command `detect-test-command.sh --tier fast` detects from the issue body), `verify-plan` (reads `.tdd/verify-plan.reason`) and `resuming` (takes `--note-file`) ⟦skill-edit⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/SKILL.md` passes PL28, PL39 and PL45 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧
-- [ ] `skills/tdd/DRAFT-PR.md` passes DP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧
+- [x] `skills/tdd/DRAFT-PR.md` passes DP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧
 - [ ] `skills/tdd/RESUME.md` passes RS26 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧
