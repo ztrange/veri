@@ -29,6 +29,13 @@ def with_note(body, note_file):
     return body
 
 
+def post_and_record(issue, kind, body, strip_url=False):
+    url = github.gh_issue_comment(issue, body)
+    if strip_url:
+        url = url.rstrip("\n")
+    return event.append("", {}, "comment", [f"kind={kind}", f"url={url}"])
+
+
 def post_done(issue):
     pr = None
     for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
@@ -50,8 +57,7 @@ def post_done(issue):
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
     if os.path.isfile(".tdd/stop"):
         metrics = f"{metrics.rstrip()}\nA stop arrived after the last step, so the run finished rather than pausing.\n"
-    url = github.gh_issue_comment(issue, f"### ✅ Done — {pr}\n\n{metrics}")
-    return event.append("", {}, "comment", ["kind=done", f"url={url}"])
+    return post_and_record(issue, "done", f"### ✅ Done — {pr}\n\n{metrics}")
 
 
 def post_red(issue, note_file=None):
@@ -66,15 +72,13 @@ def post_red(issue, note_file=None):
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
             f"PREDICTED_FAILURE: {report['PREDICTED_FAILURE']}\n\n{verdict}\n")
-    url = github.gh_issue_comment(issue, with_note(body, note_file))
-    return event.append("", {}, "comment", ["kind=red", f"url={url}"])
+    return post_and_record(issue, "red", with_note(body, note_file))
 
 
 def post_verify_red(issue):
     reason = read_or_empty(".tdd/verify-red.reason")
     verdict = "REJECT" if read_or_empty(".tdd/verdict-red.exit").strip() == "1" else "PASS"
-    url = github.gh_issue_comment(issue, f"### 🔎 verify-red — {verdict}\n\n{reason}")
-    return event.append("", {}, "comment", ["kind=verify-red", f"url={url}"])
+    return post_and_record(issue, "verify-red", f"### 🔎 verify-red — {verdict}\n\n{reason}")
 
 
 def main(argv):
@@ -93,8 +97,7 @@ def main(argv):
     with open(ledger_path(".", issue)) as f:
         done = [r for r in ledger_steps(f.read()) if r[1] == "done"]
     body = f"### ✅ Step done\n\n{done[-1][6]}\n"
-    url = github.gh_issue_comment(issue, with_note(body, argv[3] if len(argv) > 3 else None)).rstrip("\n")
-    return event.append("", {}, "comment", ["kind=step-done", f"url={url}"])
+    return post_and_record(issue, "step-done", with_note(body, argv[3] if len(argv) > 3 else None), strip_url=True)
 
 
 if __name__ == "__main__":
