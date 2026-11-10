@@ -120,7 +120,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
      first run `$S/pin-reject-route.sh .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`
      (`<target-test>` is the revised red's `TARGET_TEST`; with `--missing-reroute` on a step reached by a `missing` reroute), as PIN.md's REJECT branch
      directs, before attempt `k+1`: its exit 0 retires the step and ends the loop; exit 1 (also a failing target test) continues
-     as above; exit 2 bails.
+     as above; exit 2 bails (cause `unpinnable-missing`, a process failure, when the script printed that word; otherwise a system failure).
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
 **The `diff` phase.** A REJECT on a `⟦diff-checked⟧` step runs the same loop with `<phase>`

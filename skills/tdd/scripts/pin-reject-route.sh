@@ -6,7 +6,8 @@
 #          1 the reason does not say so (`revise` printed); 2 a missing argument (<target-test>
 #          included: usage on stderr), no answer or a <target-test> that never ran (its file path does not
 #          exist, or no tests ran: neither word printed), and with --missing-reroute a reason that says
-#          "stays green" (the step is left unticked, an unpinnable-missing event appended);
+#          "stays green" (`unpinnable-missing` printed instead of `retired`/`revise`, the step left
+#          unticked, an unpinnable-missing event appended);
 #          3 no unchecked step matched
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/pin_reject_route.py" "$@"
