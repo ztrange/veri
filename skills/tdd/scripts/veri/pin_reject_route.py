@@ -20,7 +20,7 @@ def main(argv):
     if missing:
         with open(argv[0], encoding="utf-8") as handle:
             reason = handle.read()
-        if "stays green" in reason:
+        if "stays green" in reason and "before-state" in reason:
             text = ledger.read_ledger(argv[1])
             _, new = ledger.ledger_tick(text, argv[2], False)
             if new == text:
@@ -30,6 +30,9 @@ def main(argv):
             event.append(tdd_parent, event.context(os.environ), "unpinnable-missing", ["step=" + step])
             print("unpinnable-missing")
             return 2
+        if "stays green" in reason:
+            print("revise")
+            return 1
     code = tick_ledger.main(["--unpinnable", argv[0], "--case", argv[3], argv[1], argv[2]])
     if code == 1 and missing:
         code = tick_ledger.main(["--already-holds", argv[0], "--case", argv[3], argv[1], argv[2]])
