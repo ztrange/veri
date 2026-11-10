@@ -41,7 +41,6 @@ def main(argv):
         if os.path.exists(spec):
             with open(spec, encoding="utf-8") as f:
                 spec_text = f.read()
-            headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
             skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
             if re.search(r"^## Requirements\s*$", spec_text, re.M):
                 headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
