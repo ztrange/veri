@@ -18,7 +18,7 @@ import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable)"
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable or an override line has fewer than 4 fields)"
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -193,6 +193,26 @@ def last_n(lines):
     return int([line for line in lines if line.startswith("n=")][-1][2:])
 
 
+class MalformedOverride(Exception):
+    pass
+
+
+def prioritize(free, lines):
+    named_before = set()
+    for line in lines:
+        if not line.startswith("override "):
+            continue
+        fields = line.split(None, 3)
+        if len(fields) < 4:
+            raise MalformedOverride(line)
+        named = re.search(r"\d+", fields[3])
+        if named and named.group() in free and named.group() not in named_before:
+            named_before.add(named.group())
+            free.remove(named.group())
+            free.insert(0, named.group())
+    return free
+
+
 def main(argv):
     if not argv:
         state = os.path.join(status.main_working_tree(), ".tdd", "role-dev.state")
@@ -278,10 +298,10 @@ def main(argv):
                 queue = solvable_issues()
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
-                for line in status.read_role_state("dev"):
-                    named = re.search(r"\d+", line.split(None, 3)[3]) if line.startswith("override ") else None
-                    if named and named.group() in free:
-                        free.insert(0, named.group())
+                free = prioritize(free, status.read_role_state("dev"))
+            except MalformedOverride as line:
+                sys.stderr.write(f"dispatch.sh: malformed override line in .tdd/role-dev.state: {line}\n")
+                return 2
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
