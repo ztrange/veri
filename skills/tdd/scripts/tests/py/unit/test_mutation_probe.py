@@ -1,7 +1,10 @@
 """In-process cases for veri/mutation_probe.py, the module mutation-probe.sh is a shim over."""
 import importlib
+import shlex
 
 import pytest
+
+from veri.pin_recheck import records
 
 
 @pytest.fixture
@@ -94,9 +97,8 @@ def test_main_appends_file_old_new_and_command_with_their_newlines_to_the_record
         env={"VERI_MUTATION_RECORD": str(record)},
     )
     assert code == 0
-    text = record.read_text()
-    for piece in (str(target), old, new, command):
-        assert piece in text
+    [fields] = records(record.read_text())
+    assert (fields["file"], fields["old"], fields["new"], fields["command"]) == (str(target), old, new, shlex.quote(command))
 
 
 def test_main_appends_nothing_to_the_record_when_the_command_stays_green_and_exits_1_2506(
@@ -256,7 +258,8 @@ def test_main_accepts_and_records_an_outside_address_when_the_address_domain_is_
     assert code == 0
     assert calls == ["x@outside.invalid\n"]
     assert target.read_text() == "alpha\n"
-    assert "x@outside.invalid" in record.read_text()
+    [fields] = records(record.read_text())
+    assert fields["new"] == "x@outside.invalid"
 
 
 @pytest.mark.parametrize("new", ["x@corp.invalid", "plain"], ids=["on-domain", "no-address"])
@@ -281,7 +284,8 @@ def test_main_accepts_and_records_an_on_domain_or_addressless_new_when_the_addre
     assert code == 0
     assert calls == [new + "\n"]
     assert target.read_text() == "alpha\n"
-    assert new in record.read_text()
+    [fields] = records(record.read_text())
+    assert fields["new"] == new
 
 
 def test_main_refuses_a_new_with_an_outside_address_when_the_address_domain_is_set_3330(
@@ -388,4 +392,5 @@ def test_main_records_the_full_source_line_holding_the_old_text_as_context_3331(
         env={"VERI_MUTATION_RECORD": str(record)},
     )
     assert code == 0
-    assert f"context {len(line)}\n{line}\n" in record.read_text()
+    [fields] = records(record.read_text())
+    assert fields["context"] == line
