@@ -116,7 +116,7 @@ def answered(what, read, *args):
             return read(*args)
         except github.NoAnswer as failure:
             detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
-            if "HTTP 5" in detail and retries < 3:
+            if ("HTTP 5" in detail or "error connecting to api.github.com" in detail) and retries < 3:
                 retries += 1
                 github.time.sleep(int(tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5")))
                 continue
