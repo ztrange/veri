@@ -280,7 +280,7 @@ def test_main_2878_routes_a_wrong_test_naming_another_existing_case_in_the_suite
 
 
 @pytest.mark.tree_audit("the repository's own tests directories, searched for the case a WRONG_TEST names")
-def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_suite_that_is_no_declared_case_name(
+def test_main_1621_prints_repair_of_its_own_case_when_a_wrong_test_quotes_a_string_in_a_real_suite_that_is_no_declared_case_name(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     monkeypatch.chdir(ROOT)
@@ -294,7 +294,7 @@ def test_main_1621_prints_revise_when_a_wrong_test_quotes_a_string_in_a_real_sui
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=ROOT)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (0, "repair test_main_returns_zero\n")
 
 
 def test_main_1621_routes_a_wrong_test_naming_a_case_in_a_repo_whose_tests_live_under_test_or_spec_to_red(
@@ -1570,7 +1570,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
-def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     suite = tmp_path / "src" / "__tests__"
@@ -1586,10 +1586,10 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_fi
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (3, "revise\n", "")
+    assert (code, stdout, stderr) == (0, "repair src/foo.test.ts::foo accepts a name\n", "")
 
 
-def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_non_test_source_files_such_as_config_ts_and_src_testing_config_js(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_non_test_source_files_such_as_config_ts_and_src_testing_config_js(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     testing = tmp_path / "src" / "testing"
@@ -1605,7 +1605,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_non_te
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (3, "revise\n", "")
+    assert (code, stdout, stderr) == (0, "repair src/foo.test.ts::foo accepts a name\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_call_in_a_js_ts_test_file_to_a_red_over_that_title(
@@ -1670,7 +1670,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
     assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
-def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     sibling = "rejects an empty name"
@@ -1687,7 +1687,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (3, "revise\n", "")
+    assert (code, stdout, stderr) == (0, "repair foo.test.ts::foo accepts a name\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_string_containing_slashes(
@@ -1710,7 +1710,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_s
     assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
-def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_inside_a_block_comment(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_a_call_inside_a_block_comment(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     sibling = "rejects an empty name"
@@ -1729,7 +1729,7 @@ def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (3, "revise\n", "")
+    assert (code, stdout, stderr) == (0, "repair foo.test.ts::foo accepts a name\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_in_double_quotes_the_title_of_a_js_ts_case_to_a_red_over_that_title(
@@ -1951,7 +1951,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_it_call_on_a_l
     assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
-def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_call_of_a_js_ts_test_file(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_only_in_an_emit_call_of_a_js_ts_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "foo.test.ts").write_text(
@@ -1967,10 +1967,10 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_c
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
 
 
-def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdown_file_under_a_tests_directory(
+def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_only_in_a_markdown_file_under_a_tests_directory(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "__tests__").mkdir()
@@ -1986,7 +1986,7 @@ def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdow
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
 
 
 def test_main_1957_prints_revise_when_the_named_title_is_the_tail_of_an_own_id_written_describe_gt_title(
@@ -2059,7 +2059,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     assert (code, bare_route(stdout), stderr) == (0, 'red says "hi" loudly\n', "")
 
 
-def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_the_step_own_case_and_the_wrong_test_line_names_no_case_that_routes(
+def test_main_1957_prints_repair_of_its_own_case_when_a_lone_superseded_cut_name_expands_to_the_step_own_case_and_the_wrong_test_line_names_no_case_that_routes(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "foo.test.ts").write_text(
@@ -2078,7 +2078,7 @@ def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_the_
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
 
 
 def test_main_1957_prints_revise_when_a_superseded_cut_name_on_the_repair_path_expands_to_the_step_own_case(
@@ -2228,7 +2228,7 @@ def test_main_2172_prints_fixture_with_the_test_file_path_when_a_wrong_test_name
     assert (code, stdout) == (0, "fixture backend/tests/test_router.py admin_on_clock\n")
 
 
-def test_main_2172_prints_revise_when_a_wrong_test_names_a_python_method_without_test_prefix_defined_only_in_a_test_class(
+def test_main_2172_prints_repair_of_its_own_case_when_a_wrong_test_names_a_python_method_without_test_prefix_defined_only_in_a_test_class(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "test_router.py").write_text(
@@ -2243,7 +2243,7 @@ def test_main_2172_prints_revise_when_a_wrong_test_names_a_python_method_without
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "test_session_expires"], cwd=tmp_path)
 
-    assert (code, stdout) == (3, "revise\n")
+    assert (code, stdout) == (0, "repair test_session_expires\n")
 
 
 def test_main_2172_prints_fixture_for_a_ts_function_helper_in_a_test_ts_file_and_revise_when_it_sits_only_in_a_non_test_ts_file(
@@ -3797,6 +3797,25 @@ def test_main_3543_prints_repair_for_a_wrong_test_whose_backticked_values_resolv
     report.write_text(
         "SUITE: make test\n"
         "WRONG_TEST: the fixture puts `zq7marker` in the `command` field, which is plain by design\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
+
+
+@pytest.mark.parametrize("value", ["zq7marker_old", "a b", "x.y"])
+def test_main_3543_prints_repair_of_its_own_case_for_a_wrong_test_whose_only_backticked_value_of_any_shape_resolves_to_no_defined_case(
+        run_cli, tmp_path, value):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def %s():\n    record = {'command': '%s'}\n" % (own, value))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the fixture puts `%s` in the plain `command` field, which is plain by design\n" % value)
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
