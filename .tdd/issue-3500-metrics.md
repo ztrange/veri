@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 3500
 
-Wall time for the issue: 9480 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 8703 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 9 of 11 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Steps done: 10 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3528.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $16.37 over 320 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $20.08 over 382 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78412 tokens, largest 145045 tokens
 Conductor context: first turn 78411 tokens, largest 149404 tokens
 Conductor context: first turn 78413 tokens, largest 153046 tokens
 Conductor context: first turn 78412 tokens, largest 178241 tokens
-Conductor context: first turn 78412 tokens, largest 208122 tokens
+Conductor context: first turn 78412 tokens, largest 210564 tokens
+Conductor context: first turn 78429 tokens, largest 152711 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -246,98 +247,160 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 225 | $0.08 | 176169 |
 | 226 | $0.05 | 177223 |
 | 227 | $0.06 | 178241 |
-| 228 | $0.49 | 78412 |
-| 229 | $0.06 | 84414 |
-| 230 | $0.03 | 85944 |
-| 231 | $0.05 | 89682 |
-| 232 | $0.02 | 90283 |
-| 233 | $0.03 | 91619 |
-| 234 | $0.03 | 93338 |
-| 235 | $0.03 | 94820 |
-| 236 | $0.03 | 96505 |
-| 237 | $0.04 | 99704 |
-| 238 | $0.02 | 100126 |
-| 239 | $0.02 | 100520 |
-| 240 | $0.02 | 100975 |
-| 241 | $0.02 | 101357 |
-| 242 | $0.03 | 102394 |
-| 243 | $0.02 | 102831 |
-| 244 | $0.04 | 104878 |
-| 245 | $0.04 | 107595 |
-| 246 | $0.04 | 109833 |
-| 247 | $0.04 | 112018 |
-| 248 | $0.03 | 112601 |
+| 228 | $0.50 | 78412 |
+| 229 | $0.07 | 84414 |
+| 230 | $0.04 | 85944 |
+| 231 | $0.06 | 89682 |
+| 232 | $0.04 | 90283 |
+| 233 | $0.04 | 91619 |
+| 234 | $0.04 | 93338 |
+| 235 | $0.04 | 94820 |
+| 236 | $0.05 | 96505 |
+| 237 | $0.05 | 99704 |
+| 238 | $0.04 | 100126 |
+| 239 | $0.03 | 100520 |
+| 240 | $0.04 | 100975 |
+| 241 | $0.04 | 101357 |
+| 242 | $0.04 | 102394 |
+| 243 | $0.03 | 102831 |
+| 244 | $0.05 | 104878 |
+| 245 | $0.05 | 107595 |
+| 246 | $0.06 | 109833 |
+| 247 | $0.05 | 112018 |
+| 248 | $0.04 | 112601 |
 | 249 | $0.04 | 114259 |
-| 250 | $0.03 | 115095 |
-| 251 | $0.04 | 116650 |
-| 252 | $0.03 | 117468 |
-| 253 | $0.03 | 118646 |
-| 254 | $0.03 | 119256 |
-| 255 | $0.03 | 120035 |
-| 256 | $0.04 | 121731 |
-| 257 | $0.03 | 122242 |
-| 258 | $0.03 | 122700 |
-| 259 | $0.03 | 123227 |
-| 260 | $0.03 | 123791 |
-| 261 | $0.03 | 124402 |
-| 262 | $0.03 | 125594 |
-| 263 | $0.03 | 126679 |
-| 264 | $0.03 | 127215 |
-| 265 | $0.03 | 127823 |
+| 250 | $0.04 | 115095 |
+| 251 | $0.05 | 116650 |
+| 252 | $0.04 | 117468 |
+| 253 | $0.05 | 118646 |
+| 254 | $0.04 | 119256 |
+| 255 | $0.04 | 120035 |
+| 256 | $0.05 | 121731 |
+| 257 | $0.04 | 122242 |
+| 258 | $0.04 | 122700 |
+| 259 | $0.04 | 123227 |
+| 260 | $0.04 | 123791 |
+| 261 | $0.04 | 124402 |
+| 262 | $0.05 | 125594 |
+| 263 | $0.04 | 126679 |
+| 264 | $0.04 | 127215 |
+| 265 | $0.05 | 127823 |
 | 266 | $0.04 | 129052 |
-| 267 | $0.04 | 130282 |
-| 268 | $0.04 | 131753 |
-| 269 | $0.03 | 132732 |
-| 270 | $0.03 | 133375 |
-| 271 | $0.04 | 134434 |
-| 272 | $0.04 | 135640 |
-| 273 | $0.03 | 136518 |
-| 274 | $0.04 | 137728 |
-| 275 | $0.03 | 138594 |
-| 276 | $0.03 | 139303 |
-| 277 | $0.04 | 140424 |
-| 278 | $0.04 | 141858 |
-| 279 | $0.04 | 143348 |
-| 280 | $0.04 | 144561 |
-| 281 | $0.04 | 145848 |
-| 282 | $0.10 | 154853 |
-| 283 | $0.03 | 155196 |
-| 284 | $0.04 | 156931 |
-| 285 | $0.04 | 157820 |
-| 286 | $0.04 | 158372 |
-| 287 | $0.05 | 160810 |
-| 288 | $0.04 | 161687 |
-| 289 | $0.05 | 163470 |
-| 290 | $0.04 | 164464 |
-| 291 | $0.04 | 164858 |
-| 292 | $0.05 | 166666 |
-| 293 | $0.04 | 167477 |
-| 294 | $0.04 | 168553 |
-| 295 | $0.04 | 169365 |
-| 296 | $0.04 | 170061 |
-| 297 | $0.04 | 170967 |
-| 298 | $0.04 | 172242 |
-| 299 | $0.16 | 188051 |
-| 300 | $0.04 | 188452 |
-| 301 | $0.04 | 188840 |
-| 302 | $0.04 | 189549 |
-| 303 | $0.05 | 190481 |
+| 267 | $0.05 | 130282 |
+| 268 | $0.05 | 131753 |
+| 269 | $0.05 | 132732 |
+| 270 | $0.04 | 133375 |
+| 271 | $0.05 | 134434 |
+| 272 | $0.05 | 135640 |
+| 273 | $0.04 | 136518 |
+| 274 | $0.05 | 137728 |
+| 275 | $0.05 | 138594 |
+| 276 | $0.04 | 139303 |
+| 277 | $0.05 | 140424 |
+| 278 | $0.05 | 141858 |
+| 279 | $0.05 | 143348 |
+| 280 | $0.05 | 144561 |
+| 281 | $0.05 | 145848 |
+| 282 | $0.12 | 154853 |
+| 283 | $0.04 | 155196 |
+| 284 | $0.06 | 156931 |
+| 285 | $0.05 | 157820 |
+| 286 | $0.05 | 158372 |
+| 287 | $0.06 | 160810 |
+| 288 | $0.05 | 161687 |
+| 289 | $0.06 | 163470 |
+| 290 | $0.05 | 164464 |
+| 291 | $0.05 | 164858 |
+| 292 | $0.06 | 166666 |
+| 293 | $0.05 | 167477 |
+| 294 | $0.05 | 168553 |
+| 295 | $0.06 | 169365 |
+| 296 | $0.05 | 170061 |
+| 297 | $0.05 | 170967 |
+| 298 | $0.06 | 172242 |
+| 299 | $0.17 | 188051 |
+| 300 | $0.05 | 188452 |
+| 301 | $0.05 | 188840 |
+| 302 | $0.06 | 189549 |
+| 303 | $0.06 | 190481 |
 | 304 | $0.05 | 191411 |
-| 305 | $0.04 | 192207 |
-| 306 | $0.05 | 193850 |
-| 307 | $0.04 | 194451 |
-| 308 | $0.05 | 195272 |
-| 309 | $0.05 | 196959 |
-| 310 | $0.04 | 197557 |
-| 311 | $0.05 | 198581 |
-| 312 | $0.04 | 199185 |
-| 313 | $0.04 | 199498 |
-| 314 | $0.04 | 199873 |
-| 315 | $0.04 | 200292 |
-| 316 | $0.05 | 201550 |
+| 305 | $0.06 | 192207 |
+| 306 | $0.06 | 193850 |
+| 307 | $0.06 | 194451 |
+| 308 | $0.06 | 195272 |
+| 309 | $0.06 | 196959 |
+| 310 | $0.06 | 197557 |
+| 311 | $0.06 | 198581 |
+| 312 | $0.05 | 199185 |
+| 313 | $0.06 | 199498 |
+| 314 | $0.05 | 199873 |
+| 315 | $0.06 | 200292 |
+| 316 | $0.06 | 201550 |
 | 317 | $0.05 | 202230 |
-| 318 | $0.05 | 203230 |
-| 319 | $0.08 | 208122 |
+| 318 | $0.07 | 203230 |
+| 319 | $0.09 | 208122 |
+| 320 | $0.06 | 209461 |
+| 321 | $0.06 | 210564 |
+| 322 | $0.49 | 78429 |
+| 323 | $0.07 | 84637 |
+| 324 | $0.03 | 86090 |
+| 325 | $0.03 | 87969 |
+| 326 | $0.05 | 91442 |
+| 327 | $0.06 | 96332 |
+| 328 | $0.04 | 98581 |
+| 329 | $0.03 | 99519 |
+| 330 | $0.03 | 100520 |
+| 331 | $0.02 | 100990 |
+| 332 | $0.02 | 101304 |
+| 333 | $0.02 | 101843 |
+| 334 | $0.02 | 102316 |
+| 335 | $0.02 | 102743 |
+| 336 | $0.02 | 103066 |
+| 337 | $0.02 | 103402 |
+| 338 | $0.02 | 103816 |
+| 339 | $0.03 | 104493 |
+| 340 | $0.03 | 105472 |
+| 341 | $0.03 | 106335 |
+| 342 | $0.02 | 106528 |
+| 343 | $0.03 | 107983 |
+| 344 | $0.03 | 108822 |
+| 345 | $0.02 | 109081 |
+| 346 | $0.03 | 109544 |
+| 347 | $0.02 | 109894 |
+| 348 | $0.03 | 110522 |
+| 349 | $0.03 | 111084 |
+| 350 | $0.03 | 112541 |
+| 351 | $0.03 | 113331 |
+| 352 | $0.03 | 114403 |
+| 353 | $0.15 | 130190 |
+| 354 | $0.03 | 130767 |
+| 355 | $0.03 | 131088 |
+| 356 | $0.03 | 131372 |
+| 357 | $0.03 | 131807 |
+| 358 | $0.03 | 132562 |
+| 359 | $0.04 | 133772 |
+| 360 | $0.03 | 134213 |
+| 361 | $0.04 | 135396 |
+| 362 | $0.03 | 136204 |
+| 363 | $0.03 | 136711 |
+| 364 | $0.03 | 136903 |
+| 365 | $0.03 | 137317 |
+| 366 | $0.10 | 146264 |
+| 367 | $0.03 | 146700 |
+| 368 | $0.04 | 147503 |
+| 369 | $0.03 | 147870 |
+| 370 | $0.03 | 148065 |
+| 371 | $0.03 | 148260 |
+| 372 | $0.03 | 148787 |
+| 373 | $0.04 | 149657 |
+| 374 | $0.03 | 149849 |
+| 375 | $0.03 | 150041 |
+| 376 | $0.03 | 150651 |
+| 377 | $0.03 | 150911 |
+| 378 | $0.03 | 151195 |
+| 379 | $0.03 | 151696 |
+| 380 | $0.03 | 152218 |
+| 381 | $0.03 | 152711 |
 
 #### Conductor comments, by family
 
@@ -345,41 +408,42 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 12 | 4345 | $0.09 |
-| 🟢 Green | 12 | 4758 | $0.10 |
-| 🛠️ Refactor | 6 | 2177 | $0.04 |
-| 🔎 verify-green | 11 | 3622 | $0.07 |
-| 🔎 verify-refactor | 6 | 2177 | $0.04 |
-| 🔎 verify-<phase> (revised) | 3 | 609 | $0.01 |
+| 🔴 Red | 12 | 6644 | $0.13 |
+| 🟢 Green | 12 | 6478 | $0.13 |
+| 🛠️ Refactor | 7 | 3339 | $0.07 |
+| 🔎 verify-green | 11 | 5920 | $0.12 |
+| 🔎 verify-refactor | 7 | 3339 | $0.07 |
+| 🔎 verify-<phase> (revised) | 4 | 1752 | $0.04 |
 | 🗺️ Plan | 1 | 755 | $0.02 |
-| 🗺️ verify-plan | 5 | 2273 | $0.05 |
-| ▶️ Resuming | 4 | 1510 | $0.03 |
-| ⛔ Bailed | 1 | 572 | $0.01 |
+| 🗺️ verify-plan | 6 | 2859 | $0.06 |
+| ▶️ Resuming | 5 | 2095 | $0.04 |
+| ⛔ Bailed | 2 | 1158 | $0.02 |
 | ⏹️ Stopped | 3 | 1685 | $0.03 |
-| Total | 47 | 18120 | $0.36 |
+| Total | 52 | 26779 | $0.54 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 5 | 0 | 0 | 84 | 61 | 5 | 10 | 6872 | 0 | 101845 | 0.32 |
+| plan | 6 | 6 | 0 | 0 | 99 | 73 | 6 | 12 | 8205 | 0 | 122653 | 0.39 |
 | diff | 4 | 2 | 0 | 0 | 902 | 97 | 25 | 48 | 11200 | 428044 | 101800 | 0.41 |
 | red | 21 | 9 | 1 | 0 | 2501 | 500 | 113 | 210 | 40698 | 2002970 | 490444 | 1.97 |
 | green | 31 | 7 | 6 | 0 | 8550 | 668 | 160 | 310 | 53248 | 2656712 | 587080 | 2.73 |
 | red-missing | 4 | 0 | 0 | 0 | 210 | 98 | 20 | 38 | 9811 | 491926 | 135987 | 0.49 |
 | pin | 5 | 5 | 0 | 0 | 198 | 96 | 18 | 36 | 6293 | 265869 | 74108 | 0.27 |
-| refactor | 8 | 1 | 0 | 0 | 217 | 79 | 25 | 50 | 4029 | 333927 | 155217 | 0.46 |
+| refactor | 9 | 1 | 0 | 0 | 225 | 83 | 27 | 54 | 4299 | 352205 | 173959 | 0.51 |
 | red-contradicted | 1 | 0 | 0 | 0 | 43 | 24 | 5 | 8 | 2711 | 70760 | 20881 | 0.09 |
 | exhausted | 1 | 0 | 0 | 0 | 181 | 16 | 3 | 6 | 1367 | 41459 | 13966 | 0.11 |
+| rebase | 4 | 1 | 1 | 0 | 4730 | 120 | 28 | 56 | 8397 | 428330 | 195389 | 0.93 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 36 | 29 | 7 | 0 | 8310 | 648 | 139 | 268 | 49343 | 1974449 | 655055 | 2.33 |
-| developer | claude-sonnet-5-5 | 41 | 0 | 0 | 0 | 4162 | 911 | 222 | 422 | 80679 | 4095319 | 969465 | 4.07 |
-| developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 414 | 80 | 13 | 26 | 6207 | 221899 | 56808 | 0.45 |
+| verifier | claude-sonnet-5-5 | 39 | 31 | 8 | 0 | 10818 | 693 | 147 | 284 | 52732 | 2027824 | 748372 | 2.60 |
+| developer | claude-sonnet-5-5 | 42 | 0 | 0 | 0 | 4170 | 915 | 224 | 426 | 80949 | 4113597 | 988207 | 4.12 |
+| developer | claude-opus-5-5 | 5 | 0 | 0 | 0 | 2651 | 167 | 34 | 68 | 12548 | 596854 | 179688 | 1.18 |
 
 #### Rework and waste, by phase
 
@@ -387,13 +451,14 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 682 | 0.72 | 507 | 0.25 |
-| green | 9420 | 3.76 | 2247 | 0.18 |
+| red | 682 | 0.72 | 78 | 0.11 |
+| green | 9420 | 3.76 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
-| refactor | 0 | 0.00 | 11 | 0.06 |
+| refactor | 0 | 0.00 | 0 | 0.00 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
 | exhausted | 0 | 0.00 | 0 | 0.00 |
+| rebase | 4730 | 0.93 | 0 | 0.00 |
 
 #### By step
 
@@ -409,7 +474,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 24 | 5 | 4 | 0 | 0 | 0 | 583 | 124 | 230 | 47793 | 2059318 | 460719 | 2.39 | 2666 | red 1/2, green 4/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_queued_merge_process.py — FAILED test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_reported_merge_commit_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372 (dash re-run exits 2, expected 0) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 37 | 7 | 14 | 2544 | 137952 | 27120 | 0.11 | unknown | unknown | unknown | unknown |  |  | full |
 | A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 84 | 22 | 42 | 6025 | 344485 | 93564 | 0.33 | 795 | unknown | 0/5 | nothing-left |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 71 | 17 | 34 | 5662 | 220068 | 120500 | 0.38 | unknown | unknown | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 10 | 3 | 1 | 0 | 0 | 0 | 195 | 47 | 94 | 14329 | 666676 | 334631 | 1.36 | 7682 | 1/2 | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -423,7 +488,11 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | When the PR already reads closed and unmerged (`state: closed`, `merged: false`) on that read after the fetch, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 129 | 0.10 |
 | A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.06 |
 | When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 24 | 0.07 |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.06 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 19 | 0.11 |
+
+#### Structural pass
+
+Stopped: nothing-structural
 
 #### Refactor totals
 
@@ -436,18 +505,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
 | When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 7 | 1 | 6 | nothing-left 4, nothing-structural 3 |
+| issue | 8 | ? | ? | nothing-left 4, nothing-structural 4 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 46 | 78 | 161 | 122 | 0 | 195 | 118 | 89 | 109 | 69 | 100 | 86 | 178 | 153 | 138 | 67 | 164 | 140 | 123 | 106 | 79 | 80 | 69 | 110 | 76 | 149 | 128 | 90 | 154 | 85 | 137 | 143 | 115 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 7 | 9 | 122 | 73 | 14 | 19 | 20 | 19 | 12 | 9 | 13 | 16 | 15 | 17 | 11 | 3 | 19 | 67 | 8 | 15 | 14 | 10 | 15 | 15 | 10 | 15 | 14 | 11 | 10 | 11 | 9 | 9 | 9 | 14 | 14 | 14 | 15 | 12 | 18 | 15 | 14 | 9 | 108 | 14 | 17 | 9 | 16 | 73 | 41 | 14 | 16 | 51 | 13 | 49 | 67 | 48 |
-| target | 4 | 10 | 6 | 7 | 0 | 5 | 14 | 14 | 7 | 7 | 8 | 2 | 9 | 9 | 8 | 10 | 9 | 5 | 5 | 4 | 5 | 6 | 2 | 7 | 6 | 6 | 17 | 21 | 9 | 8 | 8 | 3 | 6 | 6 | 4 | 2 | 4 | 2 | 7 | 7 | 7 | 5 | 6 | 6 | 5 | 13 | 12 | 6 | 6 | 4 | 9 | 4 |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 46 | 78 | 161 | 122 | 0 | 195 | 118 | 89 | 109 | 69 | 100 | 86 | 178 | 153 | 138 | 67 | 164 | 140 | 123 | 106 | 79 | 80 | 69 | 110 | 76 | 149 | 128 | 90 | 154 | 85 | 137 | 143 | 115 | 48 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 7 | 9 | 122 | 73 | 14 | 19 | 20 | 19 | 12 | 9 | 13 | 16 | 15 | 17 | 11 | 3 | 19 | 67 | 8 | 15 | 14 | 10 | 15 | 15 | 10 | 15 | 14 | 11 | 10 | 11 | 9 | 9 | 9 | 14 | 14 | 14 | 15 | 12 | 18 | 15 | 14 | 9 | 108 | 14 | 17 | 9 | 16 | 73 | 41 | 14 | 16 | 51 | 13 | 49 | 67 | 48 | 14 |
+| target | 4 | 10 | 6 | 7 | 0 | 5 | 14 | 14 | 7 | 7 | 8 | 2 | 9 | 9 | 8 | 10 | 9 | 5 | 5 | 4 | 5 | 6 | 2 | 7 | 6 | 6 | 17 | 21 | 9 | 8 | 8 | 3 | 6 | 6 | 4 | 2 | 4 | 2 | 7 | 7 | 7 | 5 | 6 | 6 | 5 | 13 | 12 | 6 | 6 | 4 | 9 | 4 | 3 |  |  |  |  |
+| all | 107 | 823 | 1630 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 374 | 716 | 136229 | 6291667 | 1681328 | 23.22 (estimate) |
+| total | 405 | 778 | 146229 | 6738275 | 1916267 | 27.98 (estimate) |
