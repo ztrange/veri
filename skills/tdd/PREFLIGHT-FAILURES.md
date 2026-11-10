@@ -36,6 +36,11 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
   two reasons, naming both: the default branch also changed it, or the branch's own work (a refactor,
   say) changed it with the default branch untouched; it also tells the two apart. Exit 2 bails
   `no-verdict`, a system failure (see `<base directory>/BAIL.md`).
+- `requirements-preflight.sh` exit 2 is a preflight refusal, before any leaf is launched. Its cause is
+  one of two defects, all named at once: a `## Requirements` row that clashes with a held ID (it needs
+  `<ID><reword>`), or a `⟦skill-edit⟧` step whose unit has no `### <path>` heading in the issue. Like every
+  other preflight refusal it writes a `preflight-refused` event and posts one issue comment naming the
+  check (`$S/preflight-refused.sh <n> <check>`). The fix is to correct the issue's `## Requirements`.
 - `detach-command.sh wait` answers 1 when it finished red with its code on stdout (a red suite: stop
   and report) and 2 when it died recording nothing. A 2 while `$S/stop-requested.sh` exits 0 and prints
   `now` is the stop being carried out: not a preflight failure and not a poisoned baseline. The
