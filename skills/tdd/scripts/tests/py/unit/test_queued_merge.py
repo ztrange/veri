@@ -418,7 +418,7 @@ def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_workt
     code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
 
     puts = [c for c in calls if "pulls/7/merge" in c]
-    assert (code, len(puts), cleaned(calls)) == (1, 1, [])
+    assert (code, len(puts), [("--keep" in c) for c in puts], cleaned(calls)) == (1, 1, [False], [])
 
 
 def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_rereads_it_across_the_settle_window_then_exits_non_zero_with_nothing_cleaned(fake_processes, run_cli):
