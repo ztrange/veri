@@ -22,6 +22,13 @@ def read_or_empty(path):
         return ""
 
 
+def with_note(body, note_file):
+    if note_file:
+        with open(note_file) as f:
+            body += f"\n{f.read()}"
+    return body
+
+
 def post_done(issue):
     pr = None
     for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
@@ -59,10 +66,7 @@ def post_red(issue, note_file=None):
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
             f"PREDICTED_FAILURE: {report['PREDICTED_FAILURE']}\n\n{verdict}\n")
-    if note_file:
-        with open(note_file) as f:
-            body += f"\n{f.read()}"
-    url = github.gh_issue_comment(issue, body)
+    url = github.gh_issue_comment(issue, with_note(body, note_file))
     return event.append("", {}, "comment", ["kind=red", f"url={url}"])
 
 
@@ -80,10 +84,7 @@ def main(argv):
     with open(ledger_path(".", issue)) as f:
         done = [r for r in ledger_steps(f.read()) if r[1] == "done"]
     body = f"### ✅ Step done\n\n{done[-1][6]}\n"
-    if len(argv) > 3:
-        with open(argv[3]) as f:
-            body += f"\n{f.read()}"
-    url = github.gh_issue_comment(issue, body).rstrip("\n")
+    url = github.gh_issue_comment(issue, with_note(body, argv[3] if len(argv) > 3 else None)).rstrip("\n")
     return event.append("", {}, "comment", ["kind=step-done", f"url={url}"])
 
 
