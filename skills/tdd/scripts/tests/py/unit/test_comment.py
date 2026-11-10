@@ -623,3 +623,21 @@ def test_the_posted_red_and_verify_red_headings_match_the_red_metrics_family_as_
     assert [body.splitlines()[0] for body in posted] == ["### 🔴 Red", "### 🔎 verify-red — PASS"]
     assert pattern
 
+
+def test_red_exits_2_naming_the_missing_develop_red_report_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+
+    code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert ".tdd/develop-red.out" in err
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
