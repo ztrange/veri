@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3560
 
-Wall time for the issue: 5815 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 3681 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 6 of 7 planned.
-Outcome: the run bailed — pr-ready-failed, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3570.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $5.93 over 129 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $8.59 over 189 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78650 tokens, largest 150626 tokens
-Conductor context: first turn 78668 tokens, largest 173647 tokens
+Conductor context: first turn 78668 tokens, largest 176575 tokens
+Conductor context: first turn 78667 tokens, largest 128128 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -66,85 +67,128 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 48 | $0.06 | 149585 |
 | 49 | $0.04 | 150069 |
 | 50 | $0.05 | 150626 |
-| 51 | $0.49 | 78668 |
-| 52 | $0.06 | 84819 |
-| 53 | $0.03 | 86532 |
-| 54 | $0.03 | 88077 |
-| 55 | $0.04 | 91110 |
-| 56 | $0.02 | 91628 |
-| 57 | $0.02 | 92131 |
-| 58 | $0.02 | 92649 |
-| 59 | $0.02 | 93399 |
-| 60 | $0.02 | 93810 |
-| 61 | $0.02 | 94195 |
-| 62 | $0.02 | 94735 |
-| 63 | $0.02 | 95094 |
-| 64 | $0.02 | 95822 |
-| 65 | $0.02 | 96230 |
+| 51 | $0.50 | 78668 |
+| 52 | $0.07 | 84819 |
+| 53 | $0.04 | 86532 |
+| 54 | $0.04 | 88077 |
+| 55 | $0.05 | 91110 |
+| 56 | $0.03 | 91628 |
+| 57 | $0.03 | 92131 |
+| 58 | $0.03 | 92649 |
+| 59 | $0.04 | 93399 |
+| 60 | $0.03 | 93810 |
+| 61 | $0.03 | 94195 |
+| 62 | $0.03 | 94735 |
+| 63 | $0.03 | 95094 |
+| 64 | $0.03 | 95822 |
+| 65 | $0.04 | 96230 |
 | 66 | $0.03 | 96980 |
 | 67 | $0.06 | 101464 |
-| 68 | $0.03 | 102364 |
-| 69 | $0.02 | 102805 |
-| 70 | $0.03 | 103614 |
-| 71 | $0.02 | 103955 |
-| 72 | $0.03 | 104585 |
+| 68 | $0.04 | 102364 |
+| 69 | $0.03 | 102805 |
+| 70 | $0.04 | 103614 |
+| 71 | $0.03 | 103955 |
+| 72 | $0.04 | 104585 |
 | 73 | $0.03 | 105284 |
-| 74 | $0.02 | 105663 |
-| 75 | $0.02 | 105950 |
-| 76 | $0.02 | 106153 |
+| 74 | $0.03 | 105663 |
+| 75 | $0.04 | 105950 |
+| 76 | $0.03 | 106153 |
 | 77 | $0.03 | 106830 |
-| 78 | $0.07 | 112855 |
-| 79 | $0.03 | 113297 |
+| 78 | $0.08 | 112855 |
+| 79 | $0.04 | 113297 |
 | 80 | $0.03 | 113830 |
-| 81 | $0.03 | 114261 |
+| 81 | $0.04 | 114261 |
 | 82 | $0.03 | 114658 |
-| 83 | $0.03 | 115271 |
-| 84 | $0.03 | 115795 |
+| 83 | $0.04 | 115271 |
+| 84 | $0.04 | 115795 |
 | 85 | $0.03 | 116578 |
-| 86 | $0.03 | 117161 |
-| 87 | $0.05 | 120851 |
-| 88 | $0.03 | 121691 |
-| 89 | $0.03 | 121939 |
+| 86 | $0.04 | 117161 |
+| 87 | $0.06 | 120851 |
+| 88 | $0.04 | 121691 |
+| 89 | $0.04 | 121939 |
 | 90 | $0.03 | 122372 |
-| 91 | $0.03 | 123135 |
-| 92 | $0.03 | 124168 |
+| 91 | $0.04 | 123135 |
+| 92 | $0.05 | 124168 |
 | 93 | $0.03 | 124847 |
-| 94 | $0.03 | 125365 |
-| 95 | $0.03 | 125856 |
-| 96 | $0.03 | 126943 |
-| 97 | $0.03 | 127227 |
-| 98 | $0.03 | 127906 |
-| 99 | $0.03 | 128490 |
-| 100 | $0.03 | 129407 |
-| 101 | $0.03 | 130051 |
-| 102 | $0.03 | 130721 |
-| 103 | $0.03 | 131191 |
-| 104 | $0.03 | 131774 |
-| 105 | $0.03 | 132727 |
-| 106 | $0.03 | 133354 |
-| 107 | $0.03 | 133966 |
-| 108 | $0.03 | 134657 |
-| 109 | $0.03 | 135603 |
-| 110 | $0.15 | 151393 |
-| 111 | $0.03 | 151966 |
-| 112 | $0.03 | 152290 |
-| 113 | $0.04 | 153507 |
-| 114 | $0.04 | 154057 |
-| 115 | $0.05 | 156333 |
-| 116 | $0.03 | 156681 |
-| 117 | $0.06 | 159994 |
+| 94 | $0.04 | 125365 |
+| 95 | $0.04 | 125856 |
+| 96 | $0.04 | 126943 |
+| 97 | $0.04 | 127227 |
+| 98 | $0.04 | 127906 |
+| 99 | $0.04 | 128490 |
+| 100 | $0.04 | 129407 |
+| 101 | $0.04 | 130051 |
+| 102 | $0.04 | 130721 |
+| 103 | $0.04 | 131191 |
+| 104 | $0.04 | 131774 |
+| 105 | $0.04 | 132727 |
+| 106 | $0.04 | 133354 |
+| 107 | $0.04 | 133966 |
+| 108 | $0.04 | 134657 |
+| 109 | $0.05 | 135603 |
+| 110 | $0.16 | 151393 |
+| 111 | $0.04 | 151966 |
+| 112 | $0.04 | 152290 |
+| 113 | $0.05 | 153507 |
+| 114 | $0.05 | 154057 |
+| 115 | $0.06 | 156333 |
+| 116 | $0.04 | 156681 |
+| 117 | $0.07 | 159994 |
 | 118 | $0.04 | 160828 |
-| 119 | $0.04 | 161256 |
+| 119 | $0.05 | 161256 |
 | 120 | $0.04 | 161715 |
-| 121 | $0.04 | 163096 |
-| 122 | $0.04 | 163930 |
-| 123 | $0.04 | 164772 |
-| 124 | $0.04 | 165483 |
-| 125 | $0.04 | 166284 |
+| 121 | $0.05 | 163096 |
+| 122 | $0.05 | 163930 |
+| 123 | $0.05 | 164772 |
+| 124 | $0.05 | 165483 |
+| 125 | $0.05 | 166284 |
 | 126 | $0.04 | 166843 |
-| 127 | $0.04 | 167382 |
-| 128 | $0.04 | 168605 |
-| 129 | $0.07 | 173647 |
+| 127 | $0.05 | 167382 |
+| 128 | $0.05 | 168605 |
+| 129 | $0.08 | 173647 |
+| 130 | $0.06 | 174810 |
+| 131 | $0.05 | 175574 |
+| 132 | $0.04 | 175701 |
+| 133 | $0.05 | 175974 |
+| 134 | $0.04 | 176100 |
+| 135 | $0.05 | 176227 |
+| 136 | $0.05 | 176575 |
+| 137 | $0.49 | 78667 |
+| 138 | $0.06 | 84810 |
+| 139 | $0.03 | 86492 |
+| 140 | $0.03 | 87972 |
+| 141 | $0.04 | 90767 |
+| 142 | $0.05 | 95110 |
+| 143 | $0.02 | 95735 |
+| 144 | $0.04 | 98922 |
+| 145 | $0.03 | 99617 |
+| 146 | $0.02 | 100058 |
+| 147 | $0.02 | 100344 |
+| 148 | $0.02 | 100556 |
+| 149 | $0.02 | 100877 |
+| 150 | $0.02 | 101167 |
+| 151 | $0.03 | 101921 |
+| 152 | $0.03 | 102790 |
+| 153 | $0.02 | 103333 |
+| 154 | $0.03 | 104025 |
+| 155 | $0.03 | 104668 |
+| 156 | $0.03 | 105498 |
+| 157 | $0.03 | 106057 |
+| 158 | $0.03 | 107106 |
+| 159 | $0.15 | 122932 |
+| 160 | $0.03 | 123529 |
+| 161 | $0.03 | 123822 |
+| 162 | $0.03 | 124185 |
+| 163 | $0.03 | 124496 |
+| 164 | $0.03 | 124911 |
+| 165 | $0.03 | 125372 |
+| 166 | $0.03 | 125998 |
+| 167 | $0.03 | 126306 |
+| 168 | $0.03 | 126674 |
+| 169 | $0.03 | 127063 |
+| 170 | $0.03 | 127432 |
+| 171 | $0.03 | 127802 |
+| 172 | $0.03 | 128128 |
 
 #### Conductor comments, by family
 
@@ -153,24 +197,24 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
 | 🔴 Red | 0 | 0 | $0.00 |
-| 🟢 Green | 3 | 1052 | $0.02 |
-| 🛠️ Refactor | 2 | 23 | $0.00 |
-| 🔎 verify-green | 3 | 1052 | $0.02 |
-| 🔎 verify-refactor | 2 | 23 | $0.00 |
+| 🟢 Green | 3 | 1477 | $0.03 |
+| 🛠️ Refactor | 2 | 882 | $0.02 |
+| 🔎 verify-green | 3 | 1477 | $0.03 |
+| 🔎 verify-refactor | 2 | 882 | $0.02 |
 | 🔎 verify-<phase> (revised) | 1 | 518 | $0.01 |
 | 🗺️ Plan | 1 | 518 | $0.01 |
-| 🗺️ verify-plan | 2 | 534 | $0.01 |
-| ▶️ Resuming | 1 | 3 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 3 | 975 | $0.02 |
+| ▶️ Resuming | 2 | 449 | $0.01 |
+| ⛔ Bailed | 1 | 441 | $0.01 |
 | ⏹️ Stopped | 1 | 518 | $0.01 |
-| Total | 11 | 3166 | $0.06 |
+| Total | 14 | 5778 | $0.12 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 23 | 18 | 2 | 4 | 2061 | 0 | 39425 | 0.12 |
+| plan | 3 | 3 | 0 | 0 | 35 | 27 | 3 | 6 | 3187 | 0 | 59110 | 0.18 |
 | red | 8 | 2 | 0 | 0 | 464 | 189 | 47 | 94 | 18876 | 954480 | 179148 | 0.73 |
 | pin | 5 | 5 | 0 | 0 | 139 | 69 | 22 | 44 | 6115 | 336123 | 79175 | 0.29 |
 | green | 8 | 2 | 2 | 0 | 2243 | 128 | 42 | 82 | 11971 | 705904 | 148345 | 0.63 |
@@ -185,7 +229,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 14 | 11 | 3 | 0 | 1791 | 195 | 57 | 114 | 17872 | 871767 | 242959 | 0.87 |
+| verifier | claude-sonnet-5-5 | 15 | 12 | 3 | 0 | 1803 | 204 | 58 | 116 | 18998 | 871767 | 262644 | 0.93 |
 | developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 1373 | 290 | 81 | 160 | 28091 | 1469470 | 325189 | 1.31 |
 
 #### Rework and waste, by phase
@@ -225,9 +269,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Structural pass
 
-| pass | refactor | stopped |
-| --- | ---: | --- |
-| issue | 0/10 | candidates-done |
+Stopped: nothing-structural
 
 #### Refactor totals
 
@@ -235,7 +277,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | ---: | --- |
 | With the faked gh pr diff of one open run draft PR answering HTTP 500 for the first K reads (K below the retry bound, the backoff delay injected through a VERI_* knob so no real sleeping happens) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | With the faked gh pr diff of one open run draft PR failing with a connection error (gh's error connecting to api.github.com) for the first K reads (K below the retry bound, no real sleeping) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case) | 1 | 0 | 1 | structural-owed 1 |
-| issue | 3 | 0 | 3 | candidates-done 1, nothing-left 1, structural-owed 1 |
+| issue | 3 | ? | ? | nothing-left 1, nothing-structural 1, structural-owed 1 |
 
 #### Test-command seconds, by tier
 
@@ -249,4 +291,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 138 | 274 | 45963 | 2341237 | 568148 | 8.11 (estimate) |
+| total | 139 | 276 | 47089 | 2341237 | 587833 | 10.84 (estimate) |
