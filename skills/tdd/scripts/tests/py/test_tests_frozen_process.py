@@ -7057,6 +7057,30 @@ def test_rerecord_refactored_refuses_a_green_when_the_committed_ledger_never_hel
     assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
 
 
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_refactored_skips_an_unmapped_suite_repair_line_and_accepts_a_later_valid_one_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    ledger = ".tdd/issue-9.md"
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / ledger).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "B green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    # A ticked suite-repair line the committed ledger never held, ahead of the valid one (uncommitted).
+    (tmp_path / ledger).write_text("- [x] ghost step ⟦suite-repair⟧\n" + (tmp_path / ledger).read_text())
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (0, 0)
+
+
 @pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
 def test_rerecord_refactored_refuses_a_case_a_later_commit_rewrote_again_after_a_suite_repair_green_3541(
         tmp_path, run_cli, tests_frozen, monkeypatch):
