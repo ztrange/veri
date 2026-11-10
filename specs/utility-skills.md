@@ -154,8 +154,8 @@ Considered and set aside: a separate `/veri-skill-edit` loop, run outside `/tdd`
 | M8 | A zero-step CI failure with a payments annotation goes to the human as billing. | |
 | M9 | It runs `make merge-gates` when the repo has that target, and refuses to merge while `$S/prose-owed.sh` lists any unit or gives no answer (T6). | A missing or failing check never reads as "nothing owed": in PR #2166 a wrong script path printed nothing and skipped the refusal. |
 | M10 | Deleting the branch, cutting the tag and removing the worktree each happen only after `state == MERGED` is read. | Deleting an open PR's head closes it (PR #74). |
-| M11 | The tag is `vN.M`, chosen with `--sort=-v:refname`, with the capability in the issue's words as its message. | Lexically `v0.9` > `v0.10`. |
-| M12 | It reports one line: PR url, merge sha, tag. | |
+| M11 | The tag step cuts `vN.M` (chosen with `--sort=-v:refname`, the capability in the issue's words as message) only for a feature/fix PR whose diff changes shipped behaviour, one minor bump per issue, and cuts none for a docs-only, test-only or refactor-only diff, classified by the diff, never by the issue label or the PR title prefix; a `fix:` title or `bug` label on a test-only or docs-only diff is no-tag. | CLAUDE.md "Versions are tags"; PR #3536 (test-only, labelled bug) and PR #3547 (docs-only) were hand-corrected. |
+| M12 | It reports one line: PR url, merge sha, and the tag or `no tag`. | A no-tag merge needs a defined report. |
 | M13 | It does not merge a run that ended with an open question for the human. | Merging would answer the question for them. |
 
 ## H: `veri-handoff`, reset a role's context without stopping runs
