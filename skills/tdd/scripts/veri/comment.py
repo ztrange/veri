@@ -61,6 +61,9 @@ def post_done(issue):
 
 
 def post_red(issue, note_file=None):
+    if not os.path.exists(".tdd/develop-red.out"):
+        print("comment.sh: .tdd/develop-red.out is missing", file=sys.stderr)
+        return 2
     report = {}
     for line in read_or_empty(".tdd/develop-red.out").splitlines():
         key, sep, value = line.partition(": ")
