@@ -1,0 +1,2 @@
+### `dispatch.sh --target 0` is accepted (no usage error, not exit 2) and, with solvable issues queued and no live runs, launches nothing: no `launched` line is appended to `.tdd/dispatch.log` (a unit case in skills/tdd/scripts/tests/py/unit/test_dispatch.py driving dispatch in-process, boundaries faked) ⟦criterion 1⟧
+- test-only | The older test `test_main_with_a_zero_or_non_integer_target_…` no longer includes zero, so its name misleads. It also overlaps the new negative/non-integer test, so the two could be merged and renamed.
