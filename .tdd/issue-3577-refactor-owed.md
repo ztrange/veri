@@ -2,3 +2,5 @@
 - test-only | the new 3577 case's inline fake-gh `run` could also be built from `_fake_gh_serving`, but I left it because its list payload and single-PR payload differ
 ### In skills/tdd/scripts/veri/status.py `recover_prs()`, a single-PR `pulls/<n>` read that GitHub refuses (non-zero exit) ends `status.sh --recover coord` with exit 2 and a clean `status.sh --recover:` refusal line on stderr naming the refused single pull request read, with no traceback ⟦added⟧ ⟦criterion 1⟧
 - extract a shared helper for the two "GitHub refused the … read" checks in `recover_prs()`; it removes duplication, but the saving is small and the transform is optional
+### In skills/tdd/scripts/veri/status.py `recover_prs()`, a single-PR `pulls/<n>` read that exits 0 but whose stdout is empty or not JSON ends `status.sh --recover coord` with exit 2 and a clean `status.sh --recover:` refusal line on stderr, with no traceback ⟦added⟧ ⟦criterion 1⟧
+- test-only | the two new #3577 cases in `test_status_recover.py` repeat their setup (the `listed` payload and the `run` fake); a shared helper could take it, and those assertion lines must arrive unchanged.
