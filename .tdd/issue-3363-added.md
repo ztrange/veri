@@ -1,0 +1,1 @@
+- [ ] pin-recheck.sh <base> --ledger given with no file after it exits 2 and replays nothing, never widening to all records ⟦added⟧ ⟦criterion 2⟧
