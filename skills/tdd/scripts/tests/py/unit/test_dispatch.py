@@ -1761,3 +1761,35 @@ def test_main_exits_2_naming_a_failed_pr_list_or_issue_body_read_and_launches_no
 
     err = capsys.readouterr().err
     assert (code, launches, f"reading {named} failed: gh: HTTP 502: Bad Gateway" in err) == (2, [], True)
+
+
+def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_url_and_rereads_the_diff_when_its_head_sha_changes_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    path = "skills/tdd/scripts/veri/dispatch.py"
+    times = [0, 70]
+    diff_reads = []
+    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
+                                    waits_before_stop=len(times))
+
+    def run(argv, **kw):
+        if argv[:3] == ["gh", "pr", "diff"]:
+            diff_reads.append(times[len(waits)])
+            return subprocess.CompletedProcess(argv, 0, stdout=path + "\n", stderr="")
+        if "/pulls" in argv[2]:
+            sha = "aaa" if times[len(waits)] < 70 else "bbb"
+            page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
+                   ' "head": {"ref": "tdd/80-other", "sha": "%s"}}]' % sha
+            return subprocess.CompletedProcess(argv, 0, stdout=page if argv[2].endswith("page=1") else "[]", stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout='{"body": "Change `%s`.", "labels": []}' % path, stderr="")
+
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, diff_reads, capsys.readouterr().out) == (
+        [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\n")
