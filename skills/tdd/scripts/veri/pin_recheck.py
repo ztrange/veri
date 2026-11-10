@@ -155,7 +155,7 @@ def mutated_file_of(record):
 
 
 def recheck(argv, looks):
-    if not argv:
+    if not argv or argv[1:] and (argv[1] != "--ledger" or len(argv) != 3):
         sys.stderr.write("usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
         return 2
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
@@ -164,7 +164,7 @@ def recheck(argv, looks):
         if "before" not in r and "file" not in r:
             sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
             return 2
-    only = argv[2] if argv[1:2] == ["--ledger"] else None
+    only = argv[2] if argv[1:] else None
     pins = [(f, r) for f, r in found if r.get("keep", r.get("file")) in touched and only in (None, f)]
     if not pins:
         return 3
