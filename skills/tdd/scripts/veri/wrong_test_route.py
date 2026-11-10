@@ -130,8 +130,26 @@ def _defined_anywhere(name):
     return False
 
 
-def _unparseable_claim(report):
-    if any(not re.fullmatch(r"[A-Za-z0-9]+", c) or _defined_anywhere(c) for c in _named_cases(report)):
+def _resolves(name):
+    for root, file, py_file, go_file, js_file in _test_files():
+        with open(os.path.join(root, file), encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+        if (defined_name(name, text, py_file, go_file) or js_file and live_titles(name, text)
+                or file.endswith(".test.sh") and ('name="%s"' % name) in text):
+            return True
+    return False
+
+
+def _names_a_case(name, own_id):
+    """A spelling counts as a named case when it is case-shaped (test_…, Test…: a misspelt or vanished case
+    still names one), is the own red case, or resolves to a defined case or helper; any other backticked or
+    quoted value is prose (#3543)."""
+    return (re.fullmatch(r"test_\w+|Test[A-Z]\w*", name) or _is_own(name, own_id) or _resolves(name)
+            or _defined_anywhere(name))
+
+
+def _unparseable_claim(report, own_id):
+    if any(_names_a_case(c, own_id) for c in _named_cases(report)):
         return False
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
@@ -356,14 +374,14 @@ def main(argv):
     if fixture is not None:
         write(sys.stdout, "fixture %s %s" % fixture)
         return 0
-    if _unparseable_claim(argv[0]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
+    if _unparseable_claim(argv[0], argv[1]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
     if case is None and not rerouted and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
         return 2
     if case is None and not rerouted and _unresolved_superseded(argv[0], step, argv[1]):
         return 2
-    if case is None and (_unparseable_claim(argv[0]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
+    if case is None and (_unparseable_claim(argv[0], argv[1]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         file, sep, _ = argv[1].partition("::")
         write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))
         return 0
