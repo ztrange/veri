@@ -1369,3 +1369,47 @@ def test_resuming_note_file_text_follows_the_rendered_resuming_comment_after_a_b
     assert len(posted) == 1
     assert "second step bravo" in posted[0]
     assert posted[0].rstrip("\n").endswith("\n\nstray paths discarded: scratch/zulu.txt")
+
+
+def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_is_classified_by_comment_class_as_the_hand_composed_heading_is_and_falls_in_its_metrics_family(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    comment_class = importlib.import_module("veri.comment_class")
+    metrics = importlib.import_module("metrics")
+    github = importlib.import_module("github")
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-99")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "## Problem\n\nbody of the issue\n")
+    (tmp_path / ".git").mkdir()
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "issue-7.md").write_text("# Plan for #7\n\n- [x] first step alpha\n- [ ] second step bravo\n")
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `bin/detected-fast -q`\n")
+    (tdd / "verify-plan.reason").write_text("fine\n")
+    calls = [(["plan"], None), (["verify-plan"], "0"), (["verify-plan"], "1"), (["resuming"], None)]
+    for argv, verdict in calls:
+        (tdd / "verdict-plan.exit").write_text((verdict or "0") + "\n")
+        assert run_cli(comment, ["7", *argv], cwd=tmp_path)[0] == 0
+
+    headings = [body.splitlines()[0] for body in posted]
+    hand = [
+        "### 🗺️ Plan",
+        "### 🗺️ verify-plan — PASS",
+        "### 🗺️ verify-plan — REJECT",
+        "### ▶️ Resuming",
+    ]
+    results = []
+    for name, lines in (("posted", headings), ("hand", hand)):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "headings.md").write_text("\n".join(lines) + "\n")
+        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
+        assert code == 0, err
+        results.append(out)
+    assert results[0] == results[1]
+
+    families = dict(metrics.COMMENT_FAMILIES)
+    for heading, hand_heading, family in zip(headings, hand, ["🗺️ Plan", "🗺️ verify-plan", "🗺️ verify-plan", "▶️ Resuming"]):
+        assert re.search(families[family], heading)
+        assert re.search(families[family], hand_heading)
