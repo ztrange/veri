@@ -3820,3 +3820,21 @@ def test_main_3543_prints_repair_of_its_own_case_for_a_wrong_test_whose_only_bac
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
+
+
+def test_main_3543_prints_revise_when_a_wrong_test_backticks_the_own_describe_qualified_title_no_file_spells_whole(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    (tmp_path / "foo.test.ts").write_text(
+        "describe('foo', () => {\n"
+        "  it('accepts a name', () => {});\n"
+        "});\n")
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `foo accepts a name` contradicts the criterion\n")
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
+
+    assert (code, stdout, stderr) == (3, "revise\n", "")
