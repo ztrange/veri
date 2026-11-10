@@ -1,2 +1,4 @@
 ### When the red leaf's report `.tdd/develop-red.out` has `PREDICTION: DIVERGED`, the `### 🔴 Red` comment `comment.sh <issue> red` posts carries the line `prediction diverged` in place of `prediction matched`, followed by the report's `PREDICTION_NOTE:` value ⟦criterion 1⟧
 - test-only | the two new red cases repeat the same arrangement (gh_issue_comment stub, `.git` and `.tdd` dirs, `develop-red.out` write). A shared helper could replace it, but frozen-case rules and the tests/ location rule out applying it here.
+### `comment.sh <issue> verify-red`, when `.tdd/verdict-red.exit` holds `1`, posts a comment whose first line is `### 🔎 verify-red — REJECT`, followed by the text of `.tdd/verify-red.reason` ⟦criterion 2⟧
+- extract the post-comment-then-append-`comment`-event sequence shared by post_done, post_red, post_verify_red and the step-done branch into one helper (step-done's `rstrip("\n")` on the URL differs, so it needs a decision)
