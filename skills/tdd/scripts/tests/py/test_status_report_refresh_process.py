@@ -10,8 +10,8 @@ from pathlib import Path
 import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[2]
-WAIT = 10
-EOF_WAIT = 20
+WAIT = 5
+EOF_WAIT = 10
 
 
 def release(fifo):
