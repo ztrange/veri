@@ -1609,3 +1609,14 @@ def test_main_adds_a_step_that_only_mentions_the_skill_edit_mark_in_its_prose_as
 
     added = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ] " + text)]
     assert (code, err, added) == (0, "", ["- [ ] " + text + " ⟦added⟧ ⟦criterion 2⟧"])
+
+
+def test_main_refuses_a_trailing_skill_edit_step_whose_unit_file_is_missing_naming_the_unit_without_a_traceback_3544(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### .tdd/issue-1.md\n")
+    text = "regrade `.tdd/issue-1.md` ⟦skill-edit⟧"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
+
+    assert (code, ".tdd/issue-1.md" in err, "Traceback" in err or "FileNotFoundError" in err, ledger.read_bytes()) == (2, True, False, LEDGER), err

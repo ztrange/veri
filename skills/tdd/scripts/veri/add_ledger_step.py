@@ -111,6 +111,10 @@ def spec_criteria(path):
     return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
 
 
+class MissingUnit(Exception):
+    pass
+
+
 def restates_list(path, unit):
     try:
         lines = requirements.read_lines(spec_path(path))
@@ -118,7 +122,10 @@ def restates_list(path, unit):
         return False
     rows = [requirements.table_cells(line)[:2] for heading, line in requirements.requirements_lines(lines)
             if heading == unit and line.startswith("|")][2:]
-    current = requirements.claims(skill_edit_guard.list_path(unit), unit)
+    try:
+        current = requirements.claims(skill_edit_guard.list_path(unit), unit)
+    except FileNotFoundError:
+        raise MissingUnit(unit)
     return sorted(current.splitlines()) == sorted("\t".join(row) for row in rows)
 
 
@@ -209,7 +216,11 @@ def main(argv):
         unit = unit_of(text)
         if unit is None:
             return refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
-        if restates_list(path, unit):
+        try:
+            restated = restates_list(path, unit)
+        except MissingUnit:
+            return refuse(f"add-ledger-step.sh: {unit}: the unit file does not exist")
+        if restated:
             return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line)]
