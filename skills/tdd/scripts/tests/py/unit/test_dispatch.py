@@ -877,6 +877,44 @@ def test_main_prints_stalled_for_a_deferred_run_whose_restart_marker_never_clear
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+def test_main_prints_no_stalled_line_for_a_stall_window_old_run_dir_with_a_dead_conductor_whose_issue_is_closed_issue_3551(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    (tdd / "restart-pending").write_text("")
+    events = tdd / "events.jsonl"
+    events.write_text('{"event": "leaf-start"}\n')
+    os.utime(events, (1000, 1000))
+    lives = [["7"], []]
+    ticks = [1000, 1000, 1000, 1003]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 8:
+            raise _StopWaiting
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "issue_states", lambda issues: {issue: "CLOSED" for issue in issues}, raising=False)
+    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    assert (code, capsys.readouterr().out) == ("looping", "")
+
+
 def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its_issue_has_no_comments_issue_3418(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
