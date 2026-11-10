@@ -60,6 +60,11 @@ def post_done(issue):
     return post_and_record(issue, "done", f"### ✅ Done — {pr}\n\n{metrics}")
 
 
+def missing_line(path, key):
+    print(f"comment.sh: {path} has no {key}: line", file=sys.stderr)
+    return 2
+
+
 def post_red(issue, note_file=None):
     red_out = ".tdd/develop-red.out"
     if not os.path.exists(red_out):
@@ -71,16 +76,14 @@ def post_red(issue, note_file=None):
         if sep:
             report[key] = value
     if "TEST_PATH" not in report:
-        print(f"comment.sh: {red_out} has no TEST_PATH: line", file=sys.stderr)
-        return 2
+        return missing_line(red_out, "TEST_PATH")
     verdict = "prediction matched"
     prediction = report.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", "."):
         prediction = prediction[:-1]
     if prediction == "DIVERGED":
         if "PREDICTION_NOTE" not in report:
-            print(f"comment.sh: {red_out} has no PREDICTION_NOTE: line", file=sys.stderr)
-            return 2
+            return missing_line(red_out, "PREDICTION_NOTE")
         verdict = f"prediction diverged\n\n{report['PREDICTION_NOTE']}"
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
