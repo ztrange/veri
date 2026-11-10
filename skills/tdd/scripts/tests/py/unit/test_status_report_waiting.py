@@ -152,7 +152,7 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
 
     def fake_run(argv, *a, **k):
-        out = "fix: something else (#2751)\nchore: mentions #2750 mid-subject\n" if argv[0] == "git" and "main" in argv else ""
+        out = "fix: something else (#2751)\nchore: mentions #2750 mid-subject\nfix: x (#2750) tail\n" if argv[0] == "git" and "main" in argv else ""
         return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
     monkeypatch.setattr(status.subprocess, "run", fake_run)
 
