@@ -102,6 +102,12 @@ def pr_state(pr_url):
     return "MERGED" if pull["merged"] else pull["state"].upper()
 
 
+def issue_states(issues):
+    listed = json.loads(github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state"))
+    states = {str(item["number"]): item["state"] for item in listed}
+    return {issue: states[issue] for issue in issues if issue in states}
+
+
 def answered(what, read, *args):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>, so a rate limit waits for the reset."""
     try:
