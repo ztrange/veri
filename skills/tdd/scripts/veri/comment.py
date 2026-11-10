@@ -114,18 +114,20 @@ def post_verify_red(issue):
     return post_and_record(issue, "verify-red", f"### 🔎 verify-red — {verdict}\n\n{reason}")
 
 
-def post_green(issue):
+def post_green(issue, note_file=None):
     green_out = ".tdd/develop-green.out"
     report, code = load_report(green_out, ("IMPL_PATH", "SUITE"))
     if report is None:
         return code
     body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
-    return post_and_record(issue, "green", body)
+    return post_and_record(issue, "green", with_note(body, note_file))
 
 
 def main(argv):
     if len(argv) == 2 and argv[1] == "green":
         return post_green(argv[0])
+    if len(argv) == 4 and argv[1] == "green" and argv[2] == "--note-file":
+        return post_green(argv[0], argv[3])
     if len(argv) == 2 and argv[1] == "verify-red":
         return post_verify_red(argv[0])
     if len(argv) == 2 and argv[1] == "red":
