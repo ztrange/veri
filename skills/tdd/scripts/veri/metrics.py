@@ -152,11 +152,11 @@ def conductor_sessions(issue, path):
                         names = [name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)]
                         if message.get("id") is not None:
                             earlier = seen_ids.get(message["id"])
-                            if earlier is not None and not (names and not set(names) & set(earlier)
-                                                              and not any(row[0] is earlier for row in open_turn_rows)):
+                            flushed = not any(row[0] is earlier for row in open_turn_rows)
+                            if earlier is not None and not (names and not set(names) & set(earlier) and flushed):
                                 added = [n for n in names if n not in earlier]
                                 earlier.extend(added)
-                                if not any(row[0] is earlier for row in open_turn_rows):
+                                if flushed:
                                     count_families(turn_rows, [(added, None, 0)], None)
                                 continue
                             seen_ids[message["id"]] = names
