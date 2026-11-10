@@ -98,7 +98,19 @@ def post_verify_red(issue):
     return post_and_record(issue, "verify-red", f"### 🔎 verify-red — {verdict}\n\n{reason}")
 
 
+def post_green(issue):
+    report = {}
+    for line in read_or_empty(".tdd/develop-green.out").splitlines():
+        key, sep, value = line.partition(": ")
+        if sep:
+            report[key] = value
+    body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
+    return post_and_record(issue, "green", body)
+
+
 def main(argv):
+    if len(argv) == 2 and argv[1] == "green":
+        return post_green(argv[0])
     if len(argv) == 2 and argv[1] == "verify-red":
         return post_verify_red(argv[0])
     if len(argv) == 2 and argv[1] == "red":
