@@ -2184,6 +2184,32 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_500_for_the_first_r
     assert (code, launches) == (None, ["12"])
 
 
+def test_main_goes_on_to_launch_when_the_open_pr_list_read_answers_http_500_for_the_first_reads_then_succeeds_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    list_reads = []
+
+    def open_prs(fields, *extra):
+        list_reads.append(fields)
+        if len(list_reads) <= 2:
+            raise dispatch.github.NoAnswer("", "HTTP 500\n")
+        return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}]
+
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: ["skills/tdd/SCRIPTS.md"])
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, launches) == (None, ["12"])
+
+
 def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_500_diff_read_issue_3560(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, _ = _overlap_case(
