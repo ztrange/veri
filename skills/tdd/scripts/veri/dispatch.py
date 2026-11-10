@@ -264,6 +264,9 @@ def main(argv):
     if target is None:
         sys.stderr.write(USAGE + "\n")
         return 2
+    if not tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5").isdigit():
+        sys.stderr.write("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
+        return 2
     previous = None
     seen = []
     absent = []
