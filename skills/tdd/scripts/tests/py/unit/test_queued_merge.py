@@ -431,6 +431,33 @@ def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_
     assert (code != 0, len(rereads), cleaned(calls)) == (True, 3, [])
 
 
+def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_and_rest_put_both_fail_while_the_pr_still_reads_open_exits_non_zero_with_a_put_that_keeps_no_lock_and_nothing_cleaned(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("pr merge", "pulls/7/merge"))
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "auto", "VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    puts = [c for c in calls if "PUT" in c and "pulls/7/merge" in c]
+    assert (code != 0, ["--keep" in c for c in puts], cleaned(calls)) == (True, [False], [])
+
+
+def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_fails_runs_it_through_the_releasing_gate_before_the_rest_fallback(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("pr merge", "pulls/7/merge"))
+
+    run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "auto", "VERI_MERGE_SETTLE_READS": "1", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    merges = [c for c in calls if "pr merge" in c]
+    assert ["--keep" in c for c in merges] == [False]
+
+
+def test_3500_queued_merge_whose_first_fetch_fails_exits_1_through_the_releasing_gate_and_makes_no_merge_call(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("fetch origin",))
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    fetches = [c for c in calls if c.endswith("fetch origin")]
+    assert (code, ["--keep" in c for c in fetches], [c for c in calls if "pr merge" in c or "pulls/7/merge" in c]) == (1, [False], [])
+
+
 def test_3500_queued_merge_whose_merge_call_fails_but_whose_pr_reads_merged_on_the_first_reread_exits_0_and_tags_deletes_the_branch_and_removes_the_worktree(fake_processes, run_cli):
     landed = []
 
