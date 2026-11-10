@@ -785,3 +785,30 @@ def test_red_with_an_unknown_flag_or_a_note_file_lacking_its_path_exits_2_with_u
         assert (code, err) == (2, USAGE), bad
     assert posted == []
     assert (tmp_path / ".tdd" / "events.jsonl").read_text() == events
+
+
+def test_green_posts_the_green_heading_with_the_implementation_and_suite_output_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-77"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-green.out").write_text(
+        "I made it spin.\n"
+        "IMPL_PATH: src/widget.py, src/spin.py\n"
+        "SUITE: GREEN 42 passed in 1.3s\n")
+
+    code, out, err = run_cli(comment, ["7", "green"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🟢 Green"
+    for carried in ("src/widget.py, src/spin.py", "GREEN 42 passed in 1.3s"):
+        assert carried in body, carried
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "green", url)]
