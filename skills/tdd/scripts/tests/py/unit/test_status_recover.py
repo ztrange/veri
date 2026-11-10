@@ -8,6 +8,16 @@ import subprocess
 HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
 
 
+def _fake_gh_serving(pulls):
+    def run(args, *a, **k):
+        out = ""
+        if args and args[0] == "gh":
+            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
+            out = json.dumps(single if single is not None else pulls)
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    return run
+
+
 def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
@@ -158,13 +168,7 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
               "title": "Teach the widget to sing", "body": "Closes #3600\n",
               "head": {"ref": "tdd/3600-teach-the-widget"}}]
 
-    def run(args, *a, **k):
-        out = ""
-        if args and args[0] == "gh":
-            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
-            out = json.dumps(single if single is not None else pulls)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -182,13 +186,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
               "title": "Teach the widget to dance", "body": "Closes #3601\n",
               "head": {"ref": "tdd/3601-teach-the-widget"}}]
 
-    def run(args, *a, **k):
-        out = ""
-        if args and args[0] == "gh":
-            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
-            out = json.dumps(single if single is not None else pulls)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -250,13 +248,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
              {"number": 4724, "draft": False, "state": "open", "mergeable_state": "clean",
               "title": "No issue", "body": "Just a tidy-up.\n", "head": {"ref": "feature/tidy"}}]
 
-    def run(args, *a, **k):
-        out = ""
-        if args and args[0] == "gh":
-            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
-            out = json.dumps(single if single is not None else pulls)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
