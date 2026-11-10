@@ -2450,3 +2450,15 @@ def test_issue_3288_a_reused_id_with_the_same_comment_names_opens_a_new_turn_whi
 
     assert len(turn_rows) == 2
     assert turn_rows.families["🟢 Green"][0] == 2
+
+
+def test_issue_3288_a_reused_name_less_id_opens_a_new_turn_of_its_own_session(tmp_path, metrics):
+    record = {"type": "assistant", "message": {"id": "m1", "content": [], "usage": {"output_tokens": 10}}}
+    result = {"type": "result", "usage": {"output_tokens": 10}}
+    records = [record, result, record, result]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert len(turn_rows) == 2
+    assert all(row[1].startswith("$") for row in turn_rows)
