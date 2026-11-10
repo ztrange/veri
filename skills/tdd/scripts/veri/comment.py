@@ -183,8 +183,6 @@ def post_resuming(issue, note_file=None):
 
 
 def main(argv):
-    if argv[1:2] == ["resuming"] and (len(argv) == 2 or (len(argv) == 4 and argv[2] == "--note-file")):
-        return post_resuming(argv[0], *argv[3:])
     if argv[1:] == ["verify-plan"]:
         return post_verify_plan(argv[0])
     if argv[1:] == ["plan"]:
@@ -193,7 +191,7 @@ def main(argv):
         return post_verify_skipped(argv[0])
     if len(argv) == 3 and argv[1] == "verify-revised":
         return post_revised(argv[0], argv[2])
-    noted = {"green": post_green, "red": post_red, "refactor": post_refactor}
+    noted = {"green": post_green, "red": post_red, "refactor": post_refactor, "resuming": post_resuming}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
     if len(argv) == 2 and argv[1] in ("verify-red", "verify-green", "verify-refactor"):
