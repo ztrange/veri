@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 
+import pytest
+
 
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
     restart_conductor = importlib.import_module("veri.restart_conductor")
@@ -1115,7 +1117,8 @@ def test_3477_a_conductor_whose_recorded_pid_is_dead_for_three_polls_ends_the_wa
     assert (code, out.splitlines()[-1:]) == (0, ["restarts 7 0"]), out
 
 
-def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_while_its_pid_answers_kill_0_is_watched_until_the_pid_is_dead(tmp_path, run_cli, monkeypatch):
+@pytest.mark.parametrize("unreadable", ["", None, False], ids=["empty-lstart", "ps-exits-nonzero", "ps-cannot-launch"])
+def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_while_its_pid_answers_kill_0_is_watched_until_the_pid_is_dead(tmp_path, run_cli, monkeypatch, unreadable):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     pid_file = importlib.import_module("pid_file")
     pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
@@ -1135,7 +1138,7 @@ def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_whil
 
     def ps(field, pid):
         if field == "lstart":
-            return "" if 1 <= naps[0] < 6 else "start-A"
+            return unreadable if 1 <= naps[0] < 6 else "start-A"
         if field == "ppid":
             return "100"
         if str(pid) == "100":
@@ -1152,9 +1155,11 @@ def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_whil
     assert (code, out.splitlines()[-1:], dead_read[0]) == (0, ["restarts 7 0"], True), out
 
 
-def test_3526_a_restarter_sent_sigterm_while_its_conductor_is_live_logs_the_signal_as_why_it_exits_and_does_not_print_restarts_7_0(tmp_path, run_cli, monkeypatch):
+@pytest.mark.parametrize("name", ["SIGTERM", "SIGHUP", "SIGINT"])
+def test_3526_a_restarter_sent_a_signal_while_its_conductor_is_live_logs_the_signal_as_why_it_exits_and_exits_2_without_printing_restarts_7_0(tmp_path, run_cli, monkeypatch, name):
     import signal
     restart_conductor = importlib.import_module("veri.restart_conductor")
+    sent = getattr(signal, name)
     handlers = {}
     naps = [0]
 
@@ -1163,8 +1168,8 @@ def test_3526_a_restarter_sent_sigterm_while_its_conductor_is_live_logs_the_sign
 
     def nap(seconds):
         naps[0] += 1
-        if naps[0] == 2 and signal.SIGTERM in handlers:
-            handlers[signal.SIGTERM](signal.SIGTERM, None)
+        if naps[0] == 2 and sent in handlers:
+            handlers[sent](sent, None)
         if naps[0] >= 30:
             raise SystemExit(99)
 
@@ -1175,4 +1180,4 @@ def test_3526_a_restarter_sent_sigterm_while_its_conductor_is_live_logs_the_sign
 
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    assert (code != 99, "restarts 7 0" in out, "SIGTERM" in out) == (True, False, True), (code, out, err)
+    assert (code, "restarts 7 0" in out, f"restarter exiting on {name}" in out) == (2, False, True), (code, out, err)
