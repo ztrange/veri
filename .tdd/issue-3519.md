@@ -1,4 +1,4 @@
 # Plan for #3519 — tests_frozen.py:825 'name not in subjects' survives a startswith mutant
 
 - [x] Inside the existing case test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subject_whose_path_it_ends_with_3485 in skills/tdd/scripts/tests/py/test_tests_frozen_process.py, an in-case contrast in which the earlier guard-subject step's record also holds a non-subject file whose path starts with the subject's path (projects/x/tests/test_guard.py.bak beside subject projects/x/tests/test_guard.py), and a change to that recorded file is still reported by check-earlier, not exempted, so the record check's subject filter in tests_frozen.py (`name not in subjects`) goes red when mutated to `not any(name.startswith(s) for s in subjects)`; the contrast amends that existing case and adds no new standalone case, no production change ⟦criterion 1⟧
-- [ ] The startswith mutant at tests_frozen.py's `name not in subjects` is applied by hand, watched red, and restored ⟦human-owed⟧ ⟦criterion 2⟧
+- [x] The startswith mutant at tests_frozen.py's `name not in subjects` is applied by hand, watched red, and restored ⟦human-owed⟧ ⟦criterion 2⟧
