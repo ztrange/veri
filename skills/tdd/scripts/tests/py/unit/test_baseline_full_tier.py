@@ -77,3 +77,31 @@ def test_main_takes_a_pinned_reuse_over_an_unset_environment_and_prints_reuse_an
     code, out, err = run_cli(baseline_full_tier, ["3436", "make test"], cwd=tmp_path)
 
     assert (code, out.strip()) == (0, "reuse 727")
+
+
+def test_main_takes_a_pinned_run_over_an_environment_set_to_reuse_and_prints_run_3436(
+        tmp_path, run_cli, baseline_full_tier):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    (tmp_path / ".git").mkdir()
+    code, _, _ = run_cli(full_tier_time, ["--record", "727", "make test"], cwd=tmp_path)
+    assert code == 0
+    (tmp_path / ".tdd" / "issue-3436-baseline-full-tier").write_text("run\n")
+
+    code, out, err = run_cli(baseline_full_tier, ["3436", "make test"],
+                             env={"VERI_BASELINE_FULL_TIER": "reuse"}, cwd=tmp_path)
+
+    assert (code, out.strip()) == (0, "run")
+
+
+def test_main_takes_a_pinned_reuse_over_an_environment_set_to_run_and_prints_reuse_and_the_seconds_3436(
+        tmp_path, run_cli, baseline_full_tier):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    (tmp_path / ".git").mkdir()
+    code, _, _ = run_cli(full_tier_time, ["--record", "727", "make test"], cwd=tmp_path)
+    assert code == 0
+    (tmp_path / ".tdd" / "issue-3436-baseline-full-tier").write_text("reuse\n")
+
+    code, out, err = run_cli(baseline_full_tier, ["3436", "make test"],
+                             env={"VERI_BASELINE_FULL_TIER": "run"}, cwd=tmp_path)
+
+    assert (code, out.strip()) == (0, "reuse 727")
