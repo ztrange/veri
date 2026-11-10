@@ -11,7 +11,7 @@ import event
 import event_log
 import github
 import metrics as metrics_module
-from ledger import ledger_path, ledger_steps
+from ledger import handed_out, ledger_path, ledger_steps
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]"
 
@@ -172,7 +172,16 @@ def post_verify_plan(issue):
     return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — {verdict}\n\n{reason}")
 
 
+def post_resuming(issue):
+    with open(ledger_path(".", issue)) as f:
+        steps = ledger_steps(f.read())
+    pending = next(r[6] for r in steps if handed_out(r))
+    return post_and_record(issue, "resuming", f"### ▶️ Resuming\n\n{pending}\n")
+
+
 def main(argv):
+    if argv[1:] == ["resuming"]:
+        return post_resuming(argv[0])
     if argv[1:] == ["verify-plan"]:
         return post_verify_plan(argv[0])
     if argv[1:] == ["plan"]:
