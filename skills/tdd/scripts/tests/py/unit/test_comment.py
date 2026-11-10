@@ -921,3 +921,76 @@ def test_verify_green_reject_posts_the_reject_heading_then_the_reason(monkeypatc
     body = posted[0][1]
     assert body.splitlines()[0] == "### 🔎 verify-green — REJECT"
     assert "the implementation hardcodes the expected value" in body.splitlines()[1:]
+
+
+def test_refactor_posts_the_refactor_heading_with_each_transform_in_order_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-88"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text(
+        "Tidied up.\n"
+        "RESULT: extracted spin_once from Widget.spin\n"
+        "RESULT: renamed tmp to angle in spin.py\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🛠️ Refactor"
+    first = "extracted spin_once from Widget.spin"
+    second = "renamed tmp to angle in spin.py"
+    assert first in body and second in body
+    assert body.index(first) < body.index(second)
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "refactor", url)]
+
+
+def test_refactor_comment_carries_each_transform_value_without_the_result_label(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-89")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text(
+        "Tidied up.\n"
+        "RESULT: extracted spin_once from Widget.spin\n"
+        "RESULT: renamed tmp to angle in spin.py\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 0
+    body = posted[0][1]
+    assert "extracted spin_once from Widget.spin" in body
+    assert "renamed tmp to angle in spin.py" in body
+    assert "RESULT:" not in body
+
+
+def test_refactor_comment_carries_the_transforms_and_leaves_out_the_leafs_other_lines(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-90")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text(
+        "Tidied up.\n"
+        "RESULT: extracted spin_once from Widget.spin\n"
+        "All suites green afterwards.\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 0
+    body = posted[0][1]
+    assert "extracted spin_once from Widget.spin" in body
+    assert "Tidied up." not in body
+    assert "All suites green afterwards." not in body

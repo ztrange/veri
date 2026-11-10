@@ -124,12 +124,21 @@ def post_green(issue, note_file=None):
     return post_and_record(issue, "green", with_note(body, note_file))
 
 
+def post_refactor(issue):
+    transforms = [line.removeprefix("RESULT: ") for line in read_or_empty(".tdd/develop-refactor.out").splitlines()
+                  if line.startswith("RESULT: ")]
+    body = "### 🛠️ Refactor\n\n" + "".join(f"- {t}\n" for t in transforms)
+    return post_and_record(issue, "refactor", body)
+
+
 def main(argv):
     noted = {"green": post_green, "red": post_red}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
     if len(argv) == 2 and argv[1] in ("verify-red", "verify-green"):
         return post_verify(argv[0], argv[1])
+    if len(argv) == 2 and argv[1] == "refactor":
+        return post_refactor(argv[0])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
     if len(argv) < 2 or argv[1] != "step-done" or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
