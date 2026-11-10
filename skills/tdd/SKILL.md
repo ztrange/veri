@@ -739,6 +739,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 1. **Develop.** Before the prompt is built, run `$S/refresh-spec.sh <n> .tdd/issue-<n>-spec.md`.
    Exit 0 and exit 3 go on, and exit 0 is named in the step's `### 🔴 Red` comment as a
    refreshed spec. Exit 2 goes on with the capture, and the `### 🔴 Red` comment says so.
+   Either note reaches the comment through `comment.sh red --note-file`.
    Exit 1 (the live criteria count differs from the capture's) **bails** with cause
    `needs-user`, naming both counts in the bail comment, before any leaf of the step
    launches (`Read` `<base directory>/BAIL.md`).
@@ -789,7 +790,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    $S/red-divergence.sh .tdd/red-prediction.md .tdd/red-run-output.txt < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
    ```
-   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
+   - **Exit 1 — prediction not written before the run:** the prediction file is missing or newer than the run's output. Narrate "prediction not written before the run" in the `### 🔴 Red` comment, passed to `comment.sh red` through `--note-file`, not a divergence, and write that line to `.tdd/verify-red.reason`. It still spends the attempt like a `REJECT`: skip verify-red and verify-pin and enter the revise loop for red (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
    - **Exit 3 — `PREDICTION: MATCHED`:** nothing was surprising. The script printed
      nothing; carry on with the verifier below.
    - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
@@ -869,13 +870,13 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
    overwrites it — the newest objection is the only one a revise leaf should answer.
-3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test, the
+3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment, by running `$S/comment.sh <n> red --note-file <path>`, with the test, the
    failing output, the leaf's `PREDICTED_FAILURE:` and whether the prediction **matched or
    diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: the
    prediction is what the failing output is read against, so a thread carrying only one of
    them cannot be read for divergence, and on a repository where the two keep diverging
-   that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment
-   carrying the verifier's reason.
+   that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment, posted by running
+   `$S/comment.sh <n> verify-red`, carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
    - **REJECT (exit 1) whose reason file `.tdd/verify-red.reason` begins with a `GATE:` line:**
      the step's Red is routed back to the Red phase, not into the revise loop. Launch the
