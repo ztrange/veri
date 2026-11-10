@@ -85,7 +85,7 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    --planned, stays `⟦added⟧` and counts. A conductor never sets or raises `VERI_STEP_GROWTH`,
    `REVISE_BUDGET`, `VERI_REFACTOR_BUDGET`, `VERI_STUCK_RETRIES` or `VERI_NO_VERDICT_RETRIES`
    mid-run, in its environment or in a scratch helper, and a budget it cannot fit inside is a bail.
-4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
+4. Post a `### ▶️ Resuming` comment by running `$S/comment.sh <n> resuming --note-file <path>`, naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current-or-last-done)" $S/event.sh resume` — then, when
