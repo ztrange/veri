@@ -831,3 +831,30 @@ def test_green_exits_2_naming_the_missing_develop_green_report_posting_and_journ
     assert ".tdd/develop-green.out" in err
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_green_exits_2_naming_the_missing_line_when_the_report_lacks_impl_path_or_suite_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    lines = {
+        "IMPL_PATH": "IMPL_PATH: src/widget.py\n",
+        "SUITE": "SUITE: GREEN 42 passed in 1.3s\n",
+    }
+    for missing in lines:
+        (tmp_path / ".tdd" / "develop-green.out").write_text(
+            "I made it spin.\n" + "".join(text for key, text in lines.items() if key != missing))
+
+        code, out, err = run_cli(comment, ["7", "green"], cwd=tmp_path)
+
+        assert code == 2, missing
+        assert out == "", missing
+        assert len(err.splitlines()) == 1, missing
+        assert f"{missing}:" in err, missing
+        assert ".tdd/develop-green.out" in err, missing
+        assert posted == [], missing
+        assert not (tmp_path / ".tdd" / "events.jsonl").exists(), missing

@@ -112,6 +112,9 @@ def post_green(issue):
     if not os.path.exists(green_out):
         return missing_file(green_out)
     report = read_report(green_out)
+    for key in ("IMPL_PATH", "SUITE"):
+        if key not in report:
+            return missing_line(green_out, key)
     body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
     return post_and_record(issue, "green", body)
 
