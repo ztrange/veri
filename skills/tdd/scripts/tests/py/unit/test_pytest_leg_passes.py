@@ -100,12 +100,56 @@ def test_a_subset_leg_whose_mark_expression_excludes_a_named_case_from_both_pass
         "@pytest.mark.slow\n"
         "def test_left_out():\n    pass\n"
     )
+    module = str(planted / "test_planted_unselected.py")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
     code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
-                             ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
+                             ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow",
+                              module + "::test_unmarked", module + "::test_serial", module + "::test_left_out"], env=env)
 
     assert (code != 0, "1 unselected" in out + err) == (True, True)
+
+
+def test_a_subset_leg_whose_own_mark_and_keyword_selection_leaves_cases_of_a_named_file_unrun_exits_zero_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "pytest.ini").write_text("[pytest]\nmarkers =\n    slow: a case the mark expression leaves out\n    serial: runs alone\n")
+    (planted / "test_planted_selection.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "def test_other():\n    pass\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+        "@pytest.mark.slow\n"
+        "def test_left_out():\n    pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow", "-k", "not other", str(planted)], env=env)
+
+    assert (code, "unselected" in out + err) == (0, False)
+
+
+def test_a_two_pass_leg_ends_with_one_line_counting_the_cases_named_run_passed_and_failed_across_both_passes_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "pytest.ini").write_text("[pytest]\nmarkers =\n    slow: a case the mark expression leaves out\n    serial: runs alone\n")
+    (planted / "test_planted_counts.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "def test_failing():\n    assert False\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+        "@pytest.mark.slow\n"
+        "def test_left_out():\n    pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
+
+    last = [line for line in out.splitlines() if line.strip()][-1]
+    assert (code, last) == (1, "4 named, 3 run, 2 passed, 1 failed across both passes")
 
 
 def test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_cases_leaving_none_unselected_3554(run_cli, tmp_path):
