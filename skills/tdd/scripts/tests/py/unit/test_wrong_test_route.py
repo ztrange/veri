@@ -3784,3 +3784,20 @@ def test_main_3543_prints_repair_for_a_wrong_test_backticking_a_defined_other_ca
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
 
     assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
+
+
+def test_main_3543_prints_repair_for_a_wrong_test_whose_backticked_values_resolve_to_no_defined_case(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own = "test_main_returns_zero"
+    (suite / ("test_" + "ledger" + ".py")).write_text("def %s():\n    pass\n" % own)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: the fixture puts `zq7marker` in the `command` field, which is plain by design\n")
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)

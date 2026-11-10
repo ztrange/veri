@@ -120,8 +120,18 @@ def _is_none(body):
     return re.match(r"none\b", body, re.IGNORECASE)
 
 
+def _defined_anywhere(name):
+    for root, file in _files():
+        py, go, js = file.endswith(".py"), file.endswith(".go"), file.endswith((".js", ".jsx", ".ts", ".tsx"))
+        if py or go or js:
+            with open(os.path.join(root, file), encoding="utf-8", errors="replace") as handle:
+                if defines_helper(name, handle.read(), py, go):
+                    return True
+    return False
+
+
 def _unparseable_claim(report):
-    if any(True for _ in _named_cases(report)):
+    if any(not re.fullmatch(r"[A-Za-z0-9]+", c) or _defined_anywhere(c) for c in _named_cases(report)):
         return False
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
