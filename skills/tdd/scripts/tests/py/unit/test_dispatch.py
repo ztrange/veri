@@ -984,6 +984,33 @@ def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_a
     assert (results, launches) == ([usage, usage, usage], [])
 
 
+def test_main_with_target_0_is_accepted_and_launches_nothing_appending_no_launched_line_with_issues_queued_issue_3520(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "0"])
+    except _StopWaiting:
+        code = None
+
+    captured = capsys.readouterr()
+    assert (code, captured.err, launches, (tmp_path / ".tdd" / "dispatch.log").exists()) == (None, "", [], False)
+
+
 def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
         monkeypatch, tmp_path, run_cli, dispatch):
     (tmp_path / ".tdd").mkdir()
