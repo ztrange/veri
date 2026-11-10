@@ -23,3 +23,21 @@ context 36
 command 170
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_the_red_metrics_family_pattern_matches_the_emoji_heading_text_each_red_and_verify_red_comment_posts
 
+before 40
+559053c95f14e77f1b8cd8397dfe7ee3de34f0d8
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_red_with_an_unknown_flag_or_a_note_file_lacking_its_path_exits_2_with_usage_posting_nothing_unlike_the_valid_call
+
+file 34
+skills/tdd/scripts/veri/comment.py
+old 64
+len(argv) == 4 and argv[1] == "red" and argv[2] == "--note-file"
+new 35
+len(argv) >= 3 and argv[1] == "red"
+context 72
+    if len(argv) == 4 and argv[1] == "red" and argv[2] == "--note-file":
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_red_with_an_unknown_flag_or_a_note_file_lacking_its_path_exits_2_with_usage_posting_nothing_unlike_the_valid_call
+
