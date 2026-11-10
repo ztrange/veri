@@ -75,8 +75,9 @@ def post_red(issue, note_file=None):
         key, sep, value = line.partition(": ")
         if sep:
             report[key] = value
-    if "TEST_PATH" not in report:
-        return missing_line(red_out, "TEST_PATH")
+    for key in ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"):
+        if key not in report:
+            return missing_line(red_out, key)
     verdict = "prediction matched"
     prediction = report.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", "."):

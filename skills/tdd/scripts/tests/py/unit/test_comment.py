@@ -692,3 +692,31 @@ def test_red_exits_2_naming_prediction_note_when_diverged_without_a_note_line_po
     assert "PREDICTION_NOTE:" in err
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_red_exits_2_naming_the_missing_line_when_the_report_lacks_target_test_fail_output_or_predicted_failure(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    lines = {
+        "TARGET_TEST": "TARGET_TEST: test_widget_spins_clockwise\n",
+        "FAIL_OUTPUT": "FAIL_OUTPUT: assert 'ccw' == 'cw'\n",
+        "PREDICTED_FAILURE": "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n",
+    }
+    for missing in lines:
+        report = "TEST_PATH: tests/py/unit/test_widget.py\n" + "".join(
+            text for key, text in lines.items() if key != missing) + "PREDICTION: MATCHED\n"
+        (tmp_path / ".tdd" / "develop-red.out").write_text(report)
+
+        code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+        assert code == 2, missing
+        assert out == "", missing
+        assert len(err.splitlines()) == 1, missing
+        assert f"{missing}:" in err, missing
+        assert posted == [], missing
+        assert not (tmp_path / ".tdd" / "events.jsonl").exists(), missing
