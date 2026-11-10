@@ -279,6 +279,7 @@ full-suite lock wait.
    than a shell's `$$`, which is gone when anyone reads the lock, so the guard is never dead on arrival
    or left naming a number since handed to a stranger. `run_conductor.py` deletes the lock when the run it launched ends; a crash
    or a `kill` that skips that leaves a lock no live process matches, which frees the worktree — never the issue, which its PR goes on holding — and a resume's `run_conductor.py` overwrites it with its own before preflight.
+   This step does not run `$S/stop-requested.sh --clear` itself: the stale-request clear is left to preflight.
    Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
    reads it — never from the caller's checkout, where preflight ran:
    ```
@@ -688,7 +689,7 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
-- **exit 0 — split.** The step is replaced by smaller ones:
+- **exit 0 — split.** The step is replaced by smaller ones. This bullet states the replacement split in full, a copy of no other path's split:
   `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`).
   Restore the tree first, so the step's uncommitted work cannot become the first replacement
   step's inherited start, then grow the plan in **one** call, then commit it before the run
@@ -996,8 +997,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    verifier on that green. Each such relaunch spends one `REVISE_BUDGET` attempt, the verdict
    axis, since a surviving named case is a mechanical rejection of the green; when the budget
    is spent the run bails with `cause=revise-exhausted` (`Read` `<base directory>/BAIL.md`).
-3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
-   `### 🔎 verify-green — PASS|REJECT` (the reason).
+3. **Narrate + branch.** Post `### 🟢 Green` by running `$S/comment.sh <n> green` (implementation + green suite output) and
+   `### 🔎 verify-green — PASS|REJECT` by running `$S/comment.sh <n> verify-green` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
      then commit the code **and** the ticked ledger in **one** commit so git and ledger
      never diverge. The tick carries `--refactor-pending`, which appends ` ⟂ refactor
@@ -1176,7 +1177,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    prints nothing — the leaf landed no transform, or the budget was 0 and no leaf ran —
    launch **no** verify-refactor: there is no change for it to judge. Record
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=nothing-landed`,
-   post `### 🔎 verify-refactor — SKIPPED (nothing landed)`, and treat the step as on a
+   post `### 🔎 verify-refactor — SKIPPED (nothing landed)` by running `$S/comment.sh <n> verify-refactor --skipped`, and treat the step as on a
    verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
    leaf's flags only.
    **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor
@@ -1192,8 +1193,8 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    — one verdict on the final state (the **fast tier** plus the **affected suites** still
    green, code up to standard, no smuggled generality).
-6. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
-   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED`.
+6. **Narrate + branch.** Post `### 🛠️ Refactor` by running `$S/comment.sh <n> refactor` (the transforms applied, or "no refactor
+   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT|SKIPPED` by running `$S/comment.sh <n> verify-refactor`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
    own account of what it did — against the budget, in `refactor-budget.sh`'s own shape
    (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor
