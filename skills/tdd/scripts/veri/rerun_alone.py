@@ -13,7 +13,7 @@ def main(argv):
         return 2
     with open(argv[1], errors="replace") as red:
         text = red.read()
-    files = re.findall(r"^(?:FAILED|ERROR) (\S+?\.py)::", text, re.M) or re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M)
+    files = re.findall(r"^(?:FAILED|ERROR) (\S+?\.py::\S+)", text, re.M) or re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M)
     files = list(dict.fromkeys(files))
     if not files:
         return 1

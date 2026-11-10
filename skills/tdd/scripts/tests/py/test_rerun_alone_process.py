@@ -89,11 +89,11 @@ def test_pytest_failed_summary_file_passing_alone_exits_0_and_writes_a_suite_fla
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_bar"]
     events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
-    assert "skills/tdd/scripts/tests/py/test_foo.py" in flakes[0]
+    assert "skills/tdd/scripts/tests/py/test_foo.py::test_bar" in flakes[0]
 
 
 @pytest.mark.process("rerun-alone.sh run on pytest red output whose only red case ERRORed, passing alone")
@@ -109,11 +109,11 @@ def test_pytest_error_summary_file_passing_alone_exits_0_and_writes_a_suite_flak
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_bar"]
     events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
-    assert "skills/tdd/scripts/tests/py/test_foo.py" in flakes[0]
+    assert "skills/tdd/scripts/tests/py/test_foo.py::test_bar" in flakes[0]
 
 
 @pytest.mark.process("rerun-alone.sh run on pytest red output with several summary lines naming one file")
@@ -134,11 +134,12 @@ def test_several_summary_lines_naming_one_file_run_it_alone_once_and_name_it_onc
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_a", "skills/tdd/scripts/tests/py/test_foo.py::test_b", "skills/tdd/scripts/tests/py/test_foo.py::test_c"]
     events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
-    assert flakes[0].count("skills/tdd/scripts/tests/py/test_foo.py") == 1
+    for t in ("test_a", "test_b", "test_c"):
+        assert flakes[0].count("skills/tdd/scripts/tests/py/test_foo.py::" + t) == 1
 
 
 @pytest.mark.process("rerun-alone.sh run on pytest red output whose summary names no test file")
@@ -168,7 +169,7 @@ def test_pytest_red_output_naming_two_files_one_still_red_alone_exits_1_and_writ
     (tmp_path / ".git").mkdir()
     ran_log = tmp_path / "alone-ran"
     alone = tmp_path / "alone-cmd.sh"
-    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\ncase \"$1\" in *test_bar.py) exit 1;; esac\nexit 0\n")
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\ncase \"$1\" in *test_bar.py::test_b) exit 1;; esac\nexit 0\n")
     alone.chmod(0o755)
     red = tmp_path / "red-output.txt"
     red.write_text(
@@ -181,8 +182,8 @@ def test_pytest_red_output_naming_two_files_one_still_red_alone_exits_1_and_writ
 
     assert ran.returncode == 1
     assert ran_log.read_text().splitlines() == [
-        "skills/tdd/scripts/tests/py/test_foo.py",
-        "skills/tdd/scripts/tests/py/test_bar.py",
+        "skills/tdd/scripts/tests/py/test_foo.py::test_a",
+        "skills/tdd/scripts/tests/py/test_bar.py::test_b",
     ]
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -200,11 +201,11 @@ def test_pytest_failed_line_naming_a_unit_file_reruns_it_alone_once_and_writes_o
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/unit/test_x.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/unit/test_x.py::test_a"]
     events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
-    assert "skills/tdd/scripts/tests/py/unit/test_x.py" in flakes[0]
+    assert "skills/tdd/scripts/tests/py/unit/test_x.py::test_a" in flakes[0]
 
 
 @pytest.mark.process("rerun-alone.sh run on red output naming a test_x.py file only as a bare path, passing alone")
@@ -262,11 +263,12 @@ def test_several_failed_lines_naming_one_unit_file_rerun_it_alone_once_and_list_
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/unit/test_x.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/unit/test_x.py::test_a", "skills/tdd/scripts/tests/py/unit/test_x.py::test_b", "skills/tdd/scripts/tests/py/unit/test_x.py::test_c"]
     events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
-    assert flakes[0].count("skills/tdd/scripts/tests/py/unit/test_x.py") == 1
+    for t in ("test_a", "test_b", "test_c"):
+        assert flakes[0].count("skills/tdd/scripts/tests/py/unit/test_x.py::" + t) == 1
 
 
 @pytest.mark.process("rerun-alone.sh run on red output listing one x.test.ts file twice, passing alone")
@@ -306,4 +308,29 @@ def test_pytest_failed_line_wins_over_a_test_path_in_the_output_body_3537(tmp_pa
     ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
 
     assert ran.returncode == 0
-    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py"]
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_bar"]
+
+
+@pytest.mark.process("rerun-alone.sh run on a pytest FAILED node id whose body also carries a foo.test.ts::x string")
+def test_pytest_failed_node_id_reruns_alone_exactly_that_node_id_and_writes_one_suite_flake_event_3537(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$@\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    node = "skills/tdd/scripts/tests/py/test_foo.py::test_bar"
+    red = tmp_path / "red-output.txt"
+    red.write_text(
+        "assert 'foo.test.ts::x' in out\n"
+        f"FAILED {node} - Failed: Timeout >30.0s\n"
+        "1 failed\n"
+    )
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert ran_log.read_text().splitlines() == [node]
+    events = (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+    flakes = [e for e in events if "suite-flake" in e]
+    assert len(flakes) == 1
+    assert node in flakes[0]
