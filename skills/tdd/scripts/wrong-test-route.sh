@@ -7,8 +7,11 @@
 # A fixture route is taken only when the helper is defined in the step's own test file, the one before the double colon in a <file>::<case> id; an id with no double colon (the Go and JS names) falls back to searching every test file.
 # Searches Python test files, bash suites and JS/TS test files: *.test.* / *.spec.* over .js .jsx .ts .tsx .mjs .cjs, and files under __tests__/, never .d.ts.
 # Reads a WRONG_TEST: name in backticks, double quotes, curly quotes, or as a test_\w+ name. A backticked or quoted
-# value counts as a named case only when it is spelled test_…/Test…, is <red-test-id>'s case, or resolves to a defined
-# test case or helper; any other value (zq7marker_old, x.y, a b) is prose, and a line naming no case routes repair.
+# value counts as a named case only when it is spelled test_…/Test…, is <red-test-id>'s case, resolves to a defined
+# test case or helper, or is seen in title position (the title argument of an it(…)/test(…) call, or inside emit(…))
+# in any file outside .git, .tdd, .venv and node_modules, live or not: a .d.ts, config, comment or markdown counts.
+# A SUPERSEDED: name that expands to <red-test-id>'s case also counts. Any other value (zq7marker_old, x.y, a b) is
+# prose, and a line naming no case routes repair.
 # Exit:    0 a route other than `revise` printed; 1 `missing-exhausted <behaviour>` printed; 2 bad arguments (`--spec` is required), an unreadable report, or an unreadable ledger behind a `LATER_STEP:` line — nothing on stdout; 3 `revise` printed
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/wrong_test_route.py" "$@"
