@@ -334,3 +334,24 @@ def test_pytest_failed_node_id_reruns_alone_exactly_that_node_id_and_writes_one_
     flakes = [e for e in events if "suite-flake" in e]
     assert len(flakes) == 1
     assert node in flakes[0]
+
+
+@pytest.mark.process("rerun-alone.sh run on pytest red output whose body holds a foo.test.ts string, the node id still red alone")
+def test_node_id_still_red_alone_with_a_test_string_in_the_body_exits_1_and_writes_no_suite_flake_event_3537(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$1\" >> {ran_log}\ncase \"$1\" in *test_foo.py::test_bar) exit 1;; esac\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text(
+        "E   AssertionError: foo.test.ts::rejects an empty name\n"
+        "FAILED skills/tdd/scripts/tests/py/test_foo.py::test_bar - Failed: Timeout >30.0s\n"
+        "1 failed\n"
+    )
+
+    ran = subprocess.run([RERUN, str(alone), str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 1
+    assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_bar"]
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
