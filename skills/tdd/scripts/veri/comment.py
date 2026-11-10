@@ -79,14 +79,21 @@ def missing_file(path):
     return 2
 
 
+def load_report(path, keys):
+    if not os.path.exists(path):
+        return None, missing_file(path)
+    report = read_report(path)
+    for key in keys:
+        if key not in report:
+            return None, missing_line(path, key)
+    return report, 0
+
+
 def post_red(issue, note_file=None):
     red_out = ".tdd/develop-red.out"
-    if not os.path.exists(red_out):
-        return missing_file(red_out)
-    report = read_report(red_out)
-    for key in ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"):
-        if key not in report:
-            return missing_line(red_out, key)
+    report, code = load_report(red_out, ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"))
+    if report is None:
+        return code
     verdict = "prediction matched"
     prediction = report.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", "."):
@@ -109,12 +116,9 @@ def post_verify_red(issue):
 
 def post_green(issue):
     green_out = ".tdd/develop-green.out"
-    if not os.path.exists(green_out):
-        return missing_file(green_out)
-    report = read_report(green_out)
-    for key in ("IMPL_PATH", "SUITE"):
-        if key not in report:
-            return missing_line(green_out, key)
+    report, code = load_report(green_out, ("IMPL_PATH", "SUITE"))
+    if report is None:
+        return code
     body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
     return post_and_record(issue, "green", body)
 
