@@ -53,7 +53,6 @@ def main(argv):
         if taken and not os.path.exists(os.path.join(root, named_path)):
             clashes.append(f"{named_path} is new but its basename exists at {taken}")
     if not clashes:
-        issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
         if issue:
             tdd = os.path.dirname(os.path.abspath(path))
             event.mark(os.path.dirname(tdd), event.context(tunables.with_values(VERI_ISSUE=issue.group(1))),
