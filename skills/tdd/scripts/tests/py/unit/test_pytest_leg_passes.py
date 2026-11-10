@@ -86,3 +86,23 @@ def test_a_leg_that_collects_a_serial_case_ends_with_one_line_counting_the_cases
 
     last = [line for line in out.splitlines() if line.strip()][-1]
     assert (code, "2 passed" in last, "deselected" in last) == (0, True, False)
+
+
+def test_a_subset_leg_whose_mark_expression_excludes_a_named_case_from_both_passes_exits_non_zero_naming_the_count_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "pytest.ini").write_text("[pytest]\nmarkers =\n    slow: a case the mark expression leaves out\n    serial: runs alone\n")
+    (planted / "test_planted_unselected.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+        "@pytest.mark.slow\n"
+        "def test_left_out():\n    pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
+
+    assert (code != 0, "1 unselected" in out + err) == (True, True)
