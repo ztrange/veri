@@ -534,7 +534,7 @@ def recover_prs():
             raise OSError("status.sh --recover: GitHub refused the single pull request read for #%d: %s"
                           % (pr["number"], single.stderr.strip()))
         try:
-            mergeable = json.loads(single.stdout)["mergeable_state"]
+            mergeable = json.loads(single.stdout)["mergeable_state"] or "unknown"
         except (ValueError, KeyError):
             raise OSError("status.sh --recover: GitHub returned an unreadable single pull request read for #%d"
                           % pr["number"])

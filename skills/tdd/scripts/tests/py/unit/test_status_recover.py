@@ -481,6 +481,30 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits
     assert err.startswith("status.sh --recover:") and "4730" in err and "Traceback" not in err, err
 
 
+def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_mergeable_state_and_exits_0(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
+               "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
+    single = dict(listed[0], mergeable_state=None)
+
+    def run(args, *a, **k):
+        out = ""
+        if args and args[0] == "gh":
+            out = json.dumps(single if args[-1].endswith("pulls/4730") else listed)
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord"])
+
+    assert code == 0, (code, err)
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
+    words = " ".join(prs).replace("#", "").split()
+    assert len(prs) == 1 and all(w in words for w in ("4730", "3602", "ready", "unknown")) and "clean" not in words, (code, prs)
+
+
 def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an_object_with_no_mergeable_state(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
