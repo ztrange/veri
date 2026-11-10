@@ -23,6 +23,11 @@ def no_unfaked_process_listing(monkeypatch, dispatch):
     monkeypatch.setattr(dispatch.subprocess, "run", run)
 
 
+@pytest.fixture(autouse=True)
+def every_issue_open(monkeypatch, dispatch):
+    monkeypatch.setattr(dispatch, "issue_states", lambda issues: {issue: "OPEN" for issue in issues}, raising=False)
+
+
 def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli, dispatch, monkeypatch, tmp_path):
     (tmp_path / ".tdd").mkdir()
     launches = []
