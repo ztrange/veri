@@ -1014,3 +1014,30 @@ def test_refactor_comment_says_no_refactor_warranted_when_the_leaf_reports_nothi
     body = posted[0][1]
     assert body.splitlines()[0] == "### 🛠️ Refactor"
     assert "no refactor warranted" in body.splitlines()
+
+
+def test_refactor_comment_flags_each_overfit_flags_line_and_none_of_another_class_or_none(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-92")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text(
+        "RESULT: renamed tmp to angle in spin.py\n"
+        "CANDIDATES: none\n"
+        "FLAGS: overfit: spin returns 4 for any input; add a case spinning 5\n"
+        "FLAGS: overfit: clamp hardcodes 0; add a case clamping -3\n"
+        "FLAGS: beyond-spec: spin also logs\n"
+        "FLAGS: none\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 0
+    lines = posted[0][1].splitlines()
+    flagged = [line for line in lines if line.startswith("triangulation flagged: ")]
+    assert flagged == [
+        "triangulation flagged: overfit: spin returns 4 for any input; add a case spinning 5",
+        "triangulation flagged: overfit: clamp hardcodes 0; add a case clamping -3",
+    ]
