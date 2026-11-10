@@ -44,7 +44,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
 
 A version is an annotated tag `vN.M` whose message is the capability, in the issue's words —
 no `VERSION` file, no changelog. One merged feature/fix issue is one minor bump, cut by the
-`merge` skill; docs, test and refactor PRs get no tag.
+`vmerge` skill; docs, test and refactor PRs get no tag.
 
 - **`git tag --sort=-v:refname`, never plain `sort`** — lexically `v0.9` outranks `v0.10`.
 - **Backfilling needs `GIT_COMMITTER_DATE`**, or retro-cut tags claim today's date.
