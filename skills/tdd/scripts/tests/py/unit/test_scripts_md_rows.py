@@ -49,6 +49,7 @@ UNCATALOGUED = frozenset(
     "refactor-touched.sh",
     "refactor-triage.sh",
     "replaces-case-survivors.sh",
+    "requirements-preflight.sh",
     "requirements.sh",
     "run-affordable.sh",
     "run-conductor.sh",
