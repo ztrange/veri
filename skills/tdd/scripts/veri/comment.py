@@ -124,7 +124,7 @@ def post_green(issue, note_file=None):
     return post_and_record(issue, "green", with_note(body, note_file))
 
 
-def post_refactor(issue):
+def post_refactor(issue, note_file=None):
     refactor_out = ".tdd/develop-refactor.out"
     if not os.path.exists(refactor_out):
         return missing_file(refactor_out)
@@ -136,17 +136,15 @@ def post_refactor(issue):
         content = "no refactor warranted\n"
     else:
         content = "".join(f"- {t}\n" for t in transforms)
-    return post_and_record(issue, "refactor", f"### 🛠️ Refactor\n\n{content}{flagged}")
+    return post_and_record(issue, "refactor", with_note(f"### 🛠️ Refactor\n\n{content}{flagged}", note_file))
 
 
 def main(argv):
-    noted = {"green": post_green, "red": post_red}
+    noted = {"green": post_green, "red": post_red, "refactor": post_refactor}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
     if len(argv) == 2 and argv[1] in ("verify-red", "verify-green"):
         return post_verify(argv[0], argv[1])
-    if len(argv) == 2 and argv[1] == "refactor":
-        return post_refactor(argv[0])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
     if len(argv) < 2 or argv[1] != "step-done" or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
