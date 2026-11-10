@@ -2412,3 +2412,19 @@ def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes
         dispatch.main(["--target", "1"])
 
     assert (launches, capsys.readouterr().out) == (["12"], f"skip 15 skills/tdd/scripts/veri/status.py {other}\n")
+
+
+def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_the_parked_check_reads_issue_3545(
+        monkeypatch, dispatch):
+    asked = []
+
+    def open_prs(fields, *extra):
+        asked.append(fields.split(","))
+        return []
+
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    monkeypatch.setattr(dispatch, "_reads", {})
+
+    _REAL["run_pr_paths"]()
+
+    assert len(asked) == 1 and "labels" in asked[0]
