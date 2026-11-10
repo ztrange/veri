@@ -17,3 +17,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 172
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty_and_keeps_waiting_issue_3520
 
+before 40
+8514dd9e40a9f57deae9ebfc8bd6a410b2c5ba8d
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_target_0_and_a_live_run_that_exits_prints_its_done_line_and_exits_0_launching_nothing_issue_3520
+

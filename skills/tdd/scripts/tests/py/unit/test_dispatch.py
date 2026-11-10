@@ -1038,6 +1038,35 @@ def test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty
     assert (code, capsys.readouterr().out, launches, waits) == (None, "", [], [1])
 
 
+def test_main_with_target_0_and_a_live_run_that_exits_prints_its_done_line_and_exits_0_launching_nothing_issue_3520(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+    lives = [["7"], []]
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment",
+                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "0"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches) == (0, "done 7 https://github.com/o/r/pull/9\n", [])
+
+
 def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
         monkeypatch, tmp_path, run_cli, dispatch):
     (tmp_path / ".tdd").mkdir()
