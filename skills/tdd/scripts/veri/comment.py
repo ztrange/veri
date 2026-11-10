@@ -61,16 +61,17 @@ def post_done(issue):
 
 
 def post_red(issue, note_file=None):
-    if not os.path.exists(".tdd/develop-red.out"):
-        print("comment.sh: .tdd/develop-red.out is missing", file=sys.stderr)
+    red_out = ".tdd/develop-red.out"
+    if not os.path.exists(red_out):
+        print(f"comment.sh: {red_out} is missing", file=sys.stderr)
         return 2
     report = {}
-    for line in read_or_empty(".tdd/develop-red.out").splitlines():
+    for line in read_or_empty(red_out).splitlines():
         key, sep, value = line.partition(": ")
         if sep:
             report[key] = value
     if "TEST_PATH" not in report:
-        print("comment.sh: .tdd/develop-red.out has no TEST_PATH: line", file=sys.stderr)
+        print(f"comment.sh: {red_out} has no TEST_PATH: line", file=sys.stderr)
         return 2
     verdict = "prediction matched"
     prediction = report.get("PREDICTION", "").partition(" ")[0]
