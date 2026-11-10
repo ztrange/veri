@@ -1,19 +1,20 @@
 ### 📊 Metrics — issue 3288
 
-Wall time for the issue: 1837 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 8309 s, excluded from it.
-Steps done: 3 of 5 planned.
+Wall time for the issue: 1419 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1505 s, excluded from it.
+Steps done: 4 of 6 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3514.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/test_status_report_refresh_process.py, skills/tdd/scripts/tests/py/test_verdict_chain.py.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $13.73 over 304 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $17.17 over 381 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78439 tokens, largest 159632 tokens
 Conductor context: first turn 78391 tokens, largest 158530 tokens
 Conductor context: first turn 78375 tokens, largest 129178 tokens
 Conductor context: first turn 78408 tokens, largest 128418 tokens
-Conductor context: first turn 78436 tokens, largest 159813 tokens
+Conductor context: first turn 78436 tokens, largest 161867 tokens
+Conductor context: first turn 78421 tokens, largest 148850 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -224,82 +225,158 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 202 | $0.04 | 127568 |
 | 203 | $0.04 | 128418 |
 | 204 | $0.49 | 78436 |
-| 205 | $0.06 | 84495 |
+| 205 | $0.08 | 84495 |
 | 206 | $0.03 | 85559 |
-| 207 | $0.03 | 87469 |
+| 207 | $0.04 | 87469 |
 | 208 | $0.04 | 89789 |
-| 209 | $0.02 | 90273 |
-| 210 | $0.02 | 90843 |
-| 211 | $0.02 | 91129 |
-| 212 | $0.02 | 91419 |
-| 213 | $0.02 | 91705 |
-| 214 | $0.02 | 92312 |
-| 215 | $0.05 | 96573 |
-| 216 | $0.03 | 98161 |
-| 217 | $0.02 | 98688 |
-| 218 | $0.02 | 99209 |
-| 219 | $0.02 | 99392 |
+| 209 | $0.03 | 90273 |
+| 210 | $0.03 | 90843 |
+| 211 | $0.03 | 91129 |
+| 212 | $0.03 | 91419 |
+| 213 | $0.03 | 91705 |
+| 214 | $0.03 | 92312 |
+| 215 | $0.06 | 96573 |
+| 216 | $0.04 | 98161 |
+| 217 | $0.03 | 98688 |
+| 218 | $0.03 | 99209 |
+| 219 | $0.03 | 99392 |
 | 220 | $0.03 | 100083 |
-| 221 | $0.03 | 101476 |
-| 222 | $0.02 | 102038 |
-| 223 | $0.02 | 102320 |
-| 224 | $0.03 | 102992 |
+| 221 | $0.04 | 101476 |
+| 222 | $0.03 | 102038 |
+| 223 | $0.03 | 102320 |
+| 224 | $0.04 | 102992 |
 | 225 | $0.03 | 103717 |
 | 226 | $0.03 | 104412 |
-| 227 | $0.03 | 106100 |
-| 228 | $0.02 | 106520 |
+| 227 | $0.05 | 106100 |
+| 228 | $0.03 | 106520 |
 | 229 | $0.03 | 107175 |
-| 230 | $0.03 | 108163 |
+| 230 | $0.04 | 108163 |
 | 231 | $0.04 | 110185 |
-| 232 | $0.03 | 110605 |
+| 232 | $0.04 | 110605 |
 | 233 | $0.03 | 111276 |
-| 234 | $0.03 | 111726 |
+| 234 | $0.04 | 111726 |
 | 235 | $0.03 | 112443 |
-| 236 | $0.03 | 112835 |
+| 236 | $0.04 | 112835 |
 | 237 | $0.03 | 113540 |
 | 238 | $0.03 | 113839 |
-| 239 | $0.03 | 114364 |
-| 240 | $0.03 | 115564 |
-| 241 | $0.15 | 131383 |
+| 239 | $0.04 | 114364 |
+| 240 | $0.04 | 115564 |
+| 241 | $0.16 | 131383 |
 | 242 | $0.03 | 131951 |
-| 243 | $0.03 | 132260 |
-| 244 | $0.03 | 132769 |
-| 245 | $0.04 | 134408 |
+| 243 | $0.04 | 132260 |
+| 244 | $0.04 | 132769 |
+| 245 | $0.05 | 134408 |
 | 246 | $0.05 | 136739 |
 | 247 | $0.04 | 137896 |
-| 248 | $0.04 | 139769 |
-| 249 | $0.03 | 140240 |
-| 250 | $0.03 | 140537 |
-| 251 | $0.03 | 141252 |
-| 252 | $0.03 | 141304 |
-| 253 | $0.03 | 142080 |
+| 248 | $0.05 | 139769 |
+| 249 | $0.04 | 140240 |
+| 250 | $0.04 | 140537 |
+| 251 | $0.04 | 141252 |
+| 252 | $0.04 | 141304 |
+| 253 | $0.04 | 142080 |
 | 254 | $0.04 | 143127 |
-| 255 | $0.03 | 143707 |
+| 255 | $0.05 | 143707 |
 | 256 | $0.03 | 144059 |
-| 257 | $0.03 | 144501 |
-| 258 | $0.05 | 147426 |
-| 259 | $0.03 | 147873 |
-| 260 | $0.03 | 148404 |
+| 257 | $0.04 | 144501 |
+| 258 | $0.06 | 147426 |
+| 259 | $0.05 | 147873 |
+| 260 | $0.04 | 148404 |
 | 261 | $0.04 | 149543 |
-| 262 | $0.03 | 149707 |
-| 263 | $0.03 | 150198 |
-| 264 | $0.03 | 150698 |
-| 265 | $0.04 | 151959 |
-| 266 | $0.04 | 152621 |
-| 267 | $0.03 | 153175 |
+| 262 | $0.04 | 149707 |
+| 263 | $0.04 | 150198 |
+| 264 | $0.04 | 150698 |
+| 265 | $0.05 | 151959 |
+| 266 | $0.05 | 152621 |
+| 267 | $0.04 | 153175 |
 | 268 | $0.04 | 153819 |
-| 269 | $0.04 | 154419 |
+| 269 | $0.05 | 154419 |
 | 270 | $0.04 | 155106 |
 | 271 | $0.04 | 155727 |
-| 272 | $0.04 | 156474 |
-| 273 | $0.03 | 156810 |
-| 274 | $0.03 | 157096 |
+| 272 | $0.05 | 156474 |
+| 273 | $0.04 | 156810 |
+| 274 | $0.04 | 157096 |
 | 275 | $0.04 | 157741 |
-| 276 | $0.04 | 158387 |
-| 277 | $0.03 | 158439 |
+| 276 | $0.05 | 158387 |
+| 277 | $0.04 | 158439 |
 | 278 | $0.04 | 159057 |
-| 279 | $0.03 | 159408 |
-| 280 | $0.04 | 159813 |
+| 279 | $0.04 | 159408 |
+| 280 | $0.05 | 159813 |
+| 281 | $0.04 | 160319 |
+| 282 | $0.04 | 160712 |
+| 283 | $0.05 | 161532 |
+| 284 | $0.04 | 161867 |
+| 285 | $0.49 | 78421 |
+| 286 | $0.06 | 84431 |
+| 287 | $0.03 | 85530 |
+| 288 | $0.03 | 87407 |
+| 289 | $0.04 | 90459 |
+| 290 | $0.05 | 94785 |
+| 291 | $0.02 | 95156 |
+| 292 | $0.02 | 95591 |
+| 293 | $0.02 | 95895 |
+| 294 | $0.02 | 96369 |
+| 295 | $0.03 | 97322 |
+| 296 | $0.02 | 97824 |
+| 297 | $0.02 | 98482 |
+| 298 | $0.03 | 99495 |
+| 299 | $0.02 | 100125 |
+| 300 | $0.03 | 100902 |
+| 301 | $0.03 | 101632 |
+| 302 | $0.02 | 101968 |
+| 303 | $0.02 | 102438 |
+| 304 | $0.03 | 103474 |
+| 305 | $0.02 | 103813 |
+| 306 | $0.03 | 104756 |
+| 307 | $0.03 | 105360 |
+| 308 | $0.02 | 105844 |
+| 309 | $0.03 | 106511 |
+| 310 | $0.02 | 106884 |
+| 311 | $0.03 | 107417 |
+| 312 | $0.03 | 108247 |
+| 313 | $0.03 | 109144 |
+| 314 | $0.03 | 109804 |
+| 315 | $0.03 | 110228 |
+| 316 | $0.02 | 110554 |
+| 317 | $0.02 | 110737 |
+| 318 | $0.03 | 111652 |
+| 319 | $0.04 | 114130 |
+| 320 | $0.02 | 114335 |
+| 321 | $0.03 | 115689 |
+| 322 | $0.03 | 116543 |
+| 323 | $0.03 | 116976 |
+| 324 | $0.03 | 117458 |
+| 325 | $0.03 | 117746 |
+| 326 | $0.03 | 118427 |
+| 327 | $0.03 | 119118 |
+| 328 | $0.03 | 119679 |
+| 329 | $0.03 | 119868 |
+| 330 | $0.03 | 120932 |
+| 331 | $0.03 | 121656 |
+| 332 | $0.03 | 121863 |
+| 333 | $0.03 | 122155 |
+| 334 | $0.03 | 122509 |
+| 335 | $0.03 | 123265 |
+| 336 | $0.03 | 123806 |
+| 337 | $0.03 | 124155 |
+| 338 | $0.03 | 124809 |
+| 339 | $0.03 | 125518 |
+| 340 | $0.03 | 126181 |
+| 341 | $0.03 | 126374 |
+| 342 | $0.03 | 126848 |
+| 343 | $0.03 | 127038 |
+| 344 | $0.03 | 127641 |
+| 345 | $0.03 | 128400 |
+| 346 | $0.03 | 128895 |
+| 347 | $0.03 | 129328 |
+| 348 | $0.03 | 130276 |
+| 349 | $0.15 | 146068 |
+| 350 | $0.03 | 146677 |
+| 351 | $0.03 | 147012 |
+| 352 | $0.03 | 147510 |
+| 353 | $0.03 | 147925 |
+| 354 | $0.03 | 148233 |
+| 355 | $0.03 | 148549 |
+| 356 | $0.03 | 148850 |
 
 #### Conductor comments, by family
 
@@ -307,38 +384,38 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 10 | 4925 | $0.10 |
-| 🟢 Green | 8 | 3941 | $0.08 |
-| 🛠️ Refactor | 3 | 1067 | $0.02 |
-| 🔎 verify-green | 7 | 3337 | $0.07 |
-| 🔎 verify-refactor | 3 | 1067 | $0.02 |
+| 🔴 Red | 11 | 5311 | $0.11 |
+| 🟢 Green | 9 | 4326 | $0.09 |
+| 🛠️ Refactor | 4 | 1413 | $0.03 |
+| 🔎 verify-green | 8 | 3722 | $0.07 |
+| 🔎 verify-refactor | 4 | 1413 | $0.03 |
 | 🔎 verify-<phase> (revised) | 4 | 2185 | $0.04 |
 | 🗺️ Plan | 2 | 1073 | $0.02 |
-| 🗺️ verify-plan | 6 | 2499 | $0.05 |
-| ▶️ Resuming | 4 | 1418 | $0.03 |
+| 🗺️ verify-plan | 7 | 2878 | $0.06 |
+| ▶️ Resuming | 5 | 1792 | $0.04 |
 | ⛔ Bailed | 2 | 1073 | $0.02 |
 | ⏹️ Stopped | 1 | 527 | $0.01 |
-| Total | 36 | 16446 | $0.33 |
+| Total | 41 | 18316 | $0.37 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 6 | 5 | 1 | 0 | 55 | 42 | 6 | 12 | 5032 | 5350 | 107048 | 0.32 |
-| red | 19 | 9 | 2 | 0 | 644 | 362 | 89 | 172 | 33736 | 1592202 | 356030 | 1.77 |
-| green | 18 | 3 | 5 | 0 | 1552 | 413 | 113 | 206 | 40833 | 1828265 | 287224 | 1.41 |
+| plan | 7 | 6 | 1 | 0 | 67 | 52 | 7 | 14 | 6022 | 5350 | 126544 | 0.38 |
+| red | 21 | 10 | 2 | 0 | 734 | 399 | 97 | 188 | 37001 | 1724156 | 397513 | 1.92 |
+| green | 20 | 4 | 5 | 0 | 1756 | 447 | 123 | 226 | 43579 | 1975470 | 334490 | 1.57 |
 | red-missing | 4 | 0 | 0 | 0 | 102 | 82 | 21 | 40 | 9163 | 362198 | 78606 | 0.32 |
 | pin | 3 | 1 | 2 | 0 | 53 | 38 | 9 | 18 | 3589 | 123263 | 43739 | 0.16 |
-| refactor | 4 | 1 | 0 | 0 | 60 | 25 | 14 | 28 | 2334 | 202224 | 61792 | 0.20 |
+| refactor | 5 | 1 | 0 | 0 | 67 | 30 | 16 | 32 | 2749 | 220263 | 82047 | 0.25 |
 | red-contradicted | 2 | 0 | 0 | 0 | 66 | 57 | 13 | 20 | 6018 | 183477 | 38780 | 0.18 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 19 | 10 | 0 | 1553 | 392 | 102 | 202 | 36576 | 1505322 | 414518 | 1.55 |
-| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 773 | 450 | 132 | 232 | 47716 | 2123877 | 426888 | 1.86 |
+| verifier | claude-sonnet-5-5 | 32 | 22 | 10 | 0 | 1775 | 425 | 110 | 218 | 39651 | 1587917 | 480700 | 1.76 |
+| developer | claude-sonnet-5-5 | 25 | 0 | 0 | 0 | 864 | 503 | 145 | 258 | 52057 | 2338480 | 489206 | 2.08 |
 | developer | claude-opus-5-5 | 5 | 0 | 0 | 0 | 206 | 177 | 31 | 62 | 16413 | 667780 | 131813 | 0.94 |
 
 #### Rework and waste, by phase
@@ -346,11 +423,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 462 | 1.11 | 252 | 0.70 |
-| green | 1507 | 1.47 | 471 | 0.39 |
+| red | 462 | 1.11 | 342 | 0.85 |
+| green | 1507 | 1.47 | 675 | 0.55 |
 | red-missing | 0 | 0.00 | 57 | 0.17 |
 | pin | 0 | 0.00 | 35 | 0.10 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
+| refactor | 0 | 0.00 | 7 | 0.06 |
 | red-contradicted | 0 | 0.00 | 24 | 0.08 |
 | verify-pin | 0 | 0.00 | 0 | 0.00 |
 
@@ -363,6 +440,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A conductor log stream of assistant id m1, a result record, assistant id m1 in the next session with its own comment tool_use, then a result record: the metrics count the second m1 as a new turn of its own session, counted and priced like any turn; in the same case, a duplicate record of an id still in the open turn (before any result) carrying a comment tool_use merges its names into that one turn, not a new row and not double counted (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 18 | 4 | 4 | 0 | 0 | 0 | 427 | 91 | 166 | 36998 | 1407627 | 307069 | 1.59 | 2118 | red 2/2, green 1/2 | 0/5 | nothing-left |  |  | full |
 | A conductor log stream of assistant id m1 carrying a Green comment tool_use, a result record, assistant id m1 in the next session carrying a Red comment tool_use, then a result record: the metrics give 2 turn rows, both counted and priced, Green and Red each counted once (today the seen_ids filter applied at each result in metrics.py keeps an id whose turn carried comment names, so the second m1 is dropped as a duplicate and only 1 row is given) (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 6 | 1 | 2 | 0 | 0 | 0 | 102 | 31 | 56 | 10774 | 493245 | 109406 | 0.43 | unknown | unknown | unknown | unknown |  |  | full |
 | A conductor log stream of assistant id m1 carrying a Green comment tool_use, a result record, assistant id m1 in the next session carrying a Red comment tool_use, a result record, then assistant id m1 in a third session carrying no comment tool_use and a result record: the metrics give 2 turn rows, both counted and priced, Green and Red each counted once — the reused m1 carrying comment names opens a new turn, while the later name-less m1 of the already-flushed id is a duplicate, not a third row (today the seen_ids filter applied at each result in metrics.py keeps an id whose turn carried comment names, so the Red m1 is dropped as a duplicate and only 1 row is given) (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 90 | 35 | 64 | 9557 | 584963 | 110726 | 0.43 | 466 | unknown | 1/5 | nothing-structural |  |  | full |
+| A conductor log stream of assistant id m1 carrying a Green comment tool_use X, a result record, assistant id m1 in the next session carrying the SAME comment tool_use X, then a result record: the metrics give 2 turn rows, Green counted twice, the reused id with the same names opening a new turn and not dropped as a duplicate; in the same case, a later name-less record of the already-flushed id m1 stays a duplicate, 1 row and not a new turn (today the guard in metrics.py not (names and not set(names) & set(earlier) and flushed) drops the second m1 because its names overlap the earlier record); the case must also kill the deletion of the seen_ids clear on result at metrics.py:145, since without it the reused id would stay seen and be dropped (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 76 | 20 | 40 | 6426 | 297198 | 109004 | 0.37 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -373,6 +451,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A conductor log stream of assistant record id m1 with no comment tool_use, a result record, then assistant record id m1 carrying a comment tool_use: the metrics comment-family counts include that later record's comment family (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.04 |
 | A conductor log stream of assistant id m1, a result record, assistant id m1 in the next session with its own comment tool_use, then a result record: the metrics count the second m1 as a new turn of its own session, counted and priced like any turn; in the same case, a duplicate record of an id still in the open turn (before any result) carrying a comment tool_use merges its names into that one turn, not a new row and not double counted (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
 | A conductor log stream of assistant id m1 carrying a Green comment tool_use, a result record, assistant id m1 in the next session carrying a Red comment tool_use, a result record, then assistant id m1 in a third session carrying no comment tool_use and a result record: the metrics give 2 turn rows, both counted and priced, Green and Red each counted once — the reused m1 carrying comment names opens a new turn, while the later name-less m1 of the already-flushed id is a duplicate, not a third row (today the seen_ids filter applied at each result in metrics.py keeps an id whose turn carried comment names, so the Red m1 is dropped as a duplicate and only 1 row is given) (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 48 | 0.10 |
+| A conductor log stream of assistant id m1 carrying a Green comment tool_use X, a result record, assistant id m1 in the next session carrying the SAME comment tool_use X, then a result record: the metrics give 2 turn rows, Green counted twice, the reused id with the same names opening a new turn and not dropped as a duplicate; in the same case, a later name-less record of the already-flushed id m1 stays a duplicate, 1 row and not a new turn (today the guard in metrics.py not (names and not set(names) & set(earlier) and flushed) drops the second m1 because its names overlap the earlier record); the case must also kill the deletion of the seen_ids clear on result at metrics.py:145, since without it the reused id would stay seen and be dropped (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
 
 #### Structural pass
 
@@ -385,18 +464,19 @@ Stopped: nothing-structural
 | A conductor log stream of assistant record id m1 with no comment tool_use, a result record, then assistant record id m1 carrying a comment tool_use: the metrics comment-family counts include that later record's comment family (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A conductor log stream of assistant id m1, a result record, assistant id m1 in the next session with its own comment tool_use, then a result record: the metrics count the second m1 as a new turn of its own session, counted and priced like any turn; in the same case, a duplicate record of an id still in the open turn (before any result) carrying a comment tool_use merges its names into that one turn, not a new row and not double counted (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A conductor log stream of assistant id m1 carrying a Green comment tool_use, a result record, assistant id m1 in the next session carrying a Red comment tool_use, a result record, then assistant id m1 in a third session carrying no comment tool_use and a result record: the metrics give 2 turn rows, both counted and priced, Green and Red each counted once — the reused m1 carrying comment names opens a new turn, while the later name-less m1 of the already-flushed id is a duplicate, not a third row (today the seen_ids filter applied at each result in metrics.py keeps an id whose turn carried comment names, so the Red m1 is dropped as a duplicate and only 1 row is given) (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 1 | 0 | nothing-structural 1 |
-| issue | 4 | ? | ? | nothing-left 2, nothing-structural 2 |
+| A conductor log stream of assistant id m1 carrying a Green comment tool_use X, a result record, assistant id m1 in the next session carrying the SAME comment tool_use X, then a result record: the metrics give 2 turn rows, Green counted twice, the reused id with the same names opening a new turn and not dropped as a duplicate; in the same case, a later name-less record of the already-flushed id m1 stays a duplicate, 1 row and not a new turn (today the guard in metrics.py not (names and not set(names) & set(earlier) and flushed) drops the second m1 because its names overlap the earlier record); the case must also kill the deletion of the seen_ids clear on result at metrics.py:145, since without it the reused id would stay seen and be dropped (a reproduction case in skills/tdd/scripts/tests/py/test_metrics.py, no git, no network) ⟦added⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 5 | ? | ? | nothing-left 3, nothing-structural 2 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 2 | 1 | 1 | 3 | 1 | 2 | 5 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 2 | 0 | 2 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 2 | 2 | 4 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 1 | 1 | 1 | 2 |
-| fast | 20 | 38 | 22 | 46 | 21 | 20 | 22 | 23 | 22 | 21 | 21 | 18 | 23 | 19 | 25 | 26 | 22 | 21 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 2 | 1 | 1 | 1 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 1 |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 2 | 1 | 1 | 3 | 1 | 2 | 5 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 2 | 0 | 2 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 2 | 2 | 4 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 | 1 | 1 | 1 | 2 | 4 | 4 | 2 | 3 |
+| fast | 20 | 38 | 22 | 46 | 21 | 20 | 22 | 23 | 22 | 21 | 21 | 18 | 23 | 19 | 25 | 26 | 22 | 21 | 22 | 22 | 474 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 2 | 1 | 1 | 1 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 265 | 496 | 100705 | 4296979 | 973219 | 18.08 (estimate) |
+| total | 286 | 538 | 108121 | 4594177 | 1101719 | 21.94 (estimate) |
