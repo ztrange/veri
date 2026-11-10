@@ -207,3 +207,29 @@ def test_a_named_node_id_deeper_than_a_cases_own_id_names_none_of_its_cases_3554
     pytest_leg, collected = _collected(tmp_path, ["test_deep.py::test_a::deeper"], ["test_deep.py::test_a"])
 
     assert pytest_leg.unrun_targets(collected, set()) == ([], [])
+
+
+def test_a_named_directory_whose_cases_went_unrun_is_reported_though_a_sibling_directory_sharing_its_name_prefix_ran_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["pkg"], ["pkg/test_x.py::test_x", "pkg2/test_y.py::test_y"])
+
+    unrun, targets = pytest_leg.unrun_targets(collected, {"pkg2/test_y.py::test_y"})
+
+    assert (unrun, len(targets)) == (["pkg/test_x.py::test_x"], 1)
+
+
+def test_a_named_base_node_id_whose_cases_went_unrun_is_reported_though_one_sharing_its_name_prefix_ran_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["test_param.py::test_p"],
+                                       ["test_param.py::test_p[1]", "test_param.py::test_pq"])
+
+    unrun, targets = pytest_leg.unrun_targets(collected, {"test_param.py::test_pq"})
+
+    assert (unrun, len(targets)) == (["test_param.py::test_p[1]"], 1)
+
+
+def test_a_named_class_whose_cases_went_unrun_is_reported_though_a_parametrized_class_of_that_name_ran_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["test_cls.py::TestA::test_m"],
+                                       ["test_cls.py::TestA::test_m", "test_cls.py::TestA[x]::test_m"])
+
+    unrun, targets = pytest_leg.unrun_targets(collected, {"test_cls.py::TestA[x]::test_m"})
+
+    assert (unrun, len(targets)) == (["test_cls.py::TestA::test_m"], 1)
