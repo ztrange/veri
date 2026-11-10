@@ -2694,3 +2694,28 @@ def test_3363_a_ledger_flag_with_no_file_after_it_exits_2_and_replays_nothing(tm
     ran = subprocess.run(["sh", RECHECK, base, "--ledger"], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists()) == (2, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run with --ledger naming a ledger whose recorded file the range leaves alone")
+def test_3363_a_ledger_flag_whose_ledger_has_no_touched_record_exits_3_and_replays_nothing(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard-a.txt").write_text("if guard\n")
+    (tmp_path / "guard-b.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-835-mutations.md", file="guard-a.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' guard-a.txt && touch ran-a.witness\"")
+    record(tmp_path / ".tdd" / "issue-836-mutations.md", file="guard-b.txt", old="if guard", new="if (true)",
+           command="sh -c \"echo result; grep -q 'if guard' guard-b.txt && touch ran-b.witness\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard-b.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard-b only")
+
+    ran = subprocess.run(["sh", RECHECK, base, "--ledger", ".tdd/issue-835-mutations.md"], cwd=tmp_path,
+                         capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "ran-a.witness").exists(), (tmp_path / "ran-b.witness").exists()) == (3, False, False), ran.stderr
