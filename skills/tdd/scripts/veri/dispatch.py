@@ -18,7 +18,7 @@ import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable or an override line has fewer than 4 fields)"
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -189,12 +189,30 @@ def parse_args(argv):
     return int(argv[1])
 
 
-def last_n(lines):
-    return int([line for line in lines if line.startswith("n=")][-1][2:])
-
-
 class MalformedOverride(Exception):
     pass
+
+
+class MalformedState(Exception):
+    pass
+
+
+def last_n(lines):
+    ns = [line for line in lines if line.startswith("n=")]
+    if not ns:
+        raise MalformedState("no n= line")
+    try:
+        return int(ns[-1][2:])
+    except ValueError:
+        raise MalformedState(f"malformed n line: {ns[-1]}")
+
+
+def timed_n(line):
+    try:
+        value, _, expiry = line.split(None, 3)[3].partition(" until ")
+        return int(value), datetime.fromisoformat(expiry).timestamp()
+    except (IndexError, ValueError):
+        raise MalformedState(f"malformed timed-n line: {line}")
 
 
 def prioritize(free, lines):
@@ -263,12 +281,16 @@ def main(argv):
                 return 0
         if not argv:
             lines = status.read_role_state("dev")
-            target = last_n(lines)
-            for line in lines:
-                if line.startswith("timed-n "):
-                    value, _, expiry = line.split(None, 3)[3].partition(" until ")
-                    if clock() < datetime.fromisoformat(expiry).timestamp():
-                        target = int(value)
+            try:
+                target = last_n(lines)
+                for line in lines:
+                    if line.startswith("timed-n "):
+                        value, expiry = timed_n(line)
+                        if clock() < expiry:
+                            target = value
+            except MalformedState as why:
+                sys.stderr.write(f"dispatch.sh: {why} in {os.path.join(status.main_working_tree(), '.tdd', 'role-dev.state')}\n")
+                return 2
         stall = int(stall_window())
         for issue in seen:
             tdd = os.path.join(run_dir(issue), ".tdd")
