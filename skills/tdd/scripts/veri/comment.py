@@ -164,7 +164,8 @@ def post_plan(issue):
 
 def post_verify_plan(issue):
     reason = read_or_empty(".tdd/verify-plan.reason")
-    return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — PASS\n\n{reason}")
+    verdict = "REJECT" if read_or_empty(".tdd/verdict-plan.exit").strip() == "1" else "PASS"
+    return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — {verdict}\n\n{reason}")
 
 
 def main(argv):

@@ -1303,3 +1303,23 @@ def test_verify_plan_pass_posts_the_pass_heading_then_the_reason_and_appends_a_c
     assert "every step fits one cycle except step four, which is tight" in body.splitlines()[1:]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-plan", url)]
+
+
+def test_verify_plan_reject_posts_the_reject_heading_then_the_reason(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-78"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-plan.exit").write_text("1\n")
+    (tmp_path / ".tdd" / "verify-plan.reason").write_text("step three bundles two behaviours\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-plan"], cwd=tmp_path)
+
+    assert code == 0, err
+    assert len(posted) == 1
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### 🗺️ verify-plan — REJECT"
+    assert "step three bundles two behaviours" in body.splitlines()[1:]
