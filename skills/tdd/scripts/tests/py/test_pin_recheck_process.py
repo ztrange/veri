@@ -2720,3 +2720,21 @@ def test_3363_a_ledger_flag_whose_ledger_has_no_touched_record_exits_3_and_repla
                          capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran-a.witness").exists(), (tmp_path / "ran-b.witness").exists()) == (3, False, False), ran.stderr
+
+
+USAGE_3363 = "usage: pin-recheck.sh <base-sha> [--ledger <file>]\n"
+
+
+@pytest.mark.process("pin-recheck.sh run with --ledger and no file")
+def test_3363_a_bare_ledger_flag_exits_2_with_the_usage_on_stderr_and_no_traceback(tmp_path):
+    ran = subprocess.run(["sh", RECHECK, "HEAD", "--ledger"], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", USAGE_3363)
+
+
+@pytest.mark.process("pin-recheck.sh run with an unknown option after the base sha")
+@pytest.mark.parametrize("extra", [["--ledgr", "x"], ["stray"], ["--ledger", "a", "stray"]])
+def test_3363_an_argument_after_the_base_sha_other_than_ledger_and_its_file_exits_2_with_the_usage(tmp_path, extra):
+    ran = subprocess.run(["sh", RECHECK, "HEAD", *extra], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", USAGE_3363)
