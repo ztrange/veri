@@ -13,10 +13,11 @@ WAIT = 8
 
 
 @pytest.mark.process("status.py started for real, with the system pgrep first on its PATH, beside a stub report-cache.sh, while an unrelated report-cache.sh refresh process the case starts is alive")
+@pytest.mark.tree_audit("copies the veri modules into a scratch scripts directory")
 def test_3521_report_with_a_stale_snapshot_launches_its_own_refresh_while_an_unrelated_refresh_is_alive(tmp_path):
     scripts = tmp_path / "scripts"
     scripts.mkdir()
-    (scripts / "veri").symlink_to(SCRIPTS / "veri")
+    shutil.copytree(SCRIPTS / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__"))
     started = tmp_path / "started"
     stub = scripts / "report-cache.sh"
     stub.write_text('#!/bin/sh\necho started > "%s"\n' % started)
