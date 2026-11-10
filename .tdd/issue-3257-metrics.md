@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 3257
 
-Wall time for the issue: 57 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 196 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 18 of 21 planned.
+Steps done: 19 of 21 planned.
 Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $20.00 over 377 turns, in 8 sessions, on opus (estimate).
+Conductor own spending: $21.75 over 410 turns, in 9 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78495 tokens, largest 150639 tokens
 Conductor context: first turn 78495 tokens, largest 144129 tokens
@@ -15,7 +15,8 @@ Conductor context: first turn 78492 tokens, largest 146316 tokens
 Conductor context: first turn 78493 tokens, largest 144528 tokens
 Conductor context: first turn 78495 tokens, largest 150970 tokens
 Conductor context: first turn 78562 tokens, largest 141359 tokens
-Conductor context: first turn 78476 tokens, largest 118430 tokens
+Conductor context: first turn 78476 tokens, largest 120840 tokens
+Conductor context: first turn 78478 tokens, largest 121604 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -373,31 +374,64 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 349 | $0.07 | 139220 |
 | 350 | $0.05 | 140264 |
 | 351 | $0.05 | 141359 |
-| 352 | $0.49 | 78476 |
-| 353 | $0.06 | 84552 |
+| 352 | $0.50 | 78476 |
+| 353 | $0.07 | 84552 |
 | 354 | $0.04 | 87193 |
-| 355 | $0.02 | 87698 |
-| 356 | $0.05 | 91831 |
-| 357 | $0.04 | 93954 |
-| 358 | $0.06 | 99334 |
-| 359 | $0.03 | 100688 |
+| 355 | $0.03 | 87698 |
+| 356 | $0.06 | 91831 |
+| 357 | $0.05 | 93954 |
+| 358 | $0.07 | 99334 |
+| 359 | $0.04 | 100688 |
 | 360 | $0.04 | 103001 |
-| 361 | $0.03 | 103576 |
+| 361 | $0.04 | 103576 |
 | 362 | $0.03 | 104119 |
-| 363 | $0.02 | 104411 |
-| 364 | $0.02 | 104692 |
-| 365 | $0.02 | 105022 |
-| 366 | $0.02 | 105347 |
-| 367 | $0.02 | 105821 |
-| 368 | $0.03 | 106510 |
+| 363 | $0.03 | 104411 |
+| 364 | $0.04 | 104692 |
+| 365 | $0.03 | 105022 |
+| 366 | $0.03 | 105347 |
+| 367 | $0.03 | 105821 |
+| 368 | $0.04 | 106510 |
 | 369 | $0.03 | 107296 |
-| 370 | $0.03 | 108058 |
-| 371 | $0.03 | 108616 |
+| 370 | $0.04 | 108058 |
+| 371 | $0.04 | 108616 |
 | 372 | $0.03 | 109548 |
-| 373 | $0.04 | 111355 |
+| 373 | $0.05 | 111355 |
 | 374 | $0.03 | 112110 |
-| 375 | $0.04 | 113712 |
-| 376 | $0.06 | 118430 |
+| 375 | $0.05 | 113712 |
+| 376 | $0.07 | 118430 |
+| 377 | $0.04 | 119642 |
+| 378 | $0.04 | 120840 |
+| 379 | $0.49 | 78478 |
+| 380 | $0.06 | 84553 |
+| 381 | $0.04 | 87202 |
+| 382 | $0.02 | 87725 |
+| 383 | $0.06 | 92700 |
+| 384 | $0.02 | 93355 |
+| 385 | $0.04 | 95406 |
+| 386 | $0.04 | 97553 |
+| 387 | $0.02 | 98082 |
+| 388 | $0.02 | 98652 |
+| 389 | $0.02 | 99005 |
+| 390 | $0.02 | 99377 |
+| 391 | $0.02 | 99705 |
+| 392 | $0.02 | 100076 |
+| 393 | $0.02 | 100485 |
+| 394 | $0.03 | 101196 |
+| 395 | $0.05 | 105506 |
+| 396 | $0.03 | 106266 |
+| 397 | $0.03 | 106970 |
+| 398 | $0.03 | 107495 |
+| 399 | $0.03 | 108424 |
+| 400 | $0.03 | 109683 |
+| 401 | $0.03 | 110167 |
+| 402 | $0.02 | 110525 |
+| 403 | $0.04 | 112475 |
+| 404 | $0.03 | 113797 |
+| 405 | $0.03 | 114455 |
+| 406 | $0.03 | 114950 |
+| 407 | $0.03 | 115558 |
+| 408 | $0.03 | 116785 |
+| 409 | $0.06 | 121604 |
 
 #### Conductor comments, by family
 
@@ -412,30 +446,32 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 14 | 7367 | $0.15 |
 | 🔎 verify-<phase> (revised) | 3 | 1499 | $0.03 |
 | 🗺️ Plan | 1 | 610 | $0.01 |
-| 🗺️ verify-plan | 8 | 3657 | $0.07 |
-| ▶️ Resuming | 7 | 3039 | $0.06 |
-| ⛔ Bailed | 1 | 444 | $0.01 |
+| 🗺️ verify-plan | 9 | 4088 | $0.08 |
+| ▶️ Resuming | 8 | 3461 | $0.07 |
+| ⛔ Bailed | 2 | 871 | $0.02 |
 | ⏹️ Stopped | 6 | 3197 | $0.06 |
-| Total | 54 | 27022 | $0.54 |
+| Total | 57 | 28302 | $0.57 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 8 | 8 | 0 | 0 | 123 | 105 | 12 | 22 | 10718 | 66250 | 181641 | 0.57 |
+| plan | 9 | 9 | 0 | 0 | 134 | 115 | 13 | 24 | 11946 | 66250 | 204373 | 0.64 |
 | red | 33 | 14 | 0 | 0 | 1091 | 647 | 165 | 318 | 54602 | 2874882 | 607737 | 2.57 |
 | green | 34 | 14 | 3 | 0 | 1933 | 556 | 157 | 304 | 40804 | 2669738 | 533925 | 2.09 |
 | refactor | 19 | 5 | 0 | 0 | 376 | 215 | 61 | 122 | 12194 | 881243 | 312991 | 0.99 |
 | pin | 5 | 5 | 0 | 0 | 87 | 65 | 17 | 34 | 6349 | 249758 | 74695 | 0.28 |
 | red-missing | 2 | 0 | 0 | 0 | 42 | 32 | 9 | 16 | 4008 | 137772 | 35079 | 0.14 |
 | diff | 2 | 1 | 0 | 0 | 947 | 24 | 10 | 18 | 2173 | 109481 | 48706 | 0.15 |
+| prose | 4 | 0 | 0 | 0 | 86 | 80 | 4 | 8 | 12653 | 52592 | 202671 | 0.64 |
+| skill-edit | 1 | 0 | 0 | 0 | 14 | 12 | 4 | 8 | 1052 | 252695 | 85242 | 0.25 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 50 | 47 | 3 | 0 | 2125 | 692 | 175 | 346 | 54405 | 2667541 | 810676 | 2.84 |
+| verifier | claude-sonnet-5-5 | 51 | 48 | 3 | 0 | 2136 | 702 | 176 | 348 | 55633 | 2667541 | 833408 | 2.91 |
 | developer | claude-sonnet-5-5 | 47 | 0 | 0 | 0 | 2262 | 808 | 221 | 420 | 62749 | 3694766 | 856794 | 3.14 |
 | developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 212 | 144 | 35 | 68 | 13694 | 626817 | 127304 | 0.82 |
 
@@ -450,6 +486,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 0 | 0.00 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -474,6 +511,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `comment.sh <issue> verify-refactor --skipped` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🔎 verify-refactor — SKIPPED (nothing landed)`, reading neither `.tdd/verdict-refactor.exit` nor `.tdd/verify-refactor.reason`, and appends one `comment` event with `kind=verify-refactor` and `url=<the posted comment's url>` ⟦criterion 2⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 91 | 34 | 62 | 9105 | 527231 | 113218 | 0.50 | 848 | 1/2 | 0/5 | nothing-left |  |  | full |
 | A new case in `skills/tdd/scripts/tests/py/unit/test_comment.py` pins that each heading `comment.sh` posts for `green`, `verify-green`, `refactor`, `verify-refactor` (PASS, REJECT and `--skipped`) and `verify-revised` is classified by `comment-class.sh` (`veri/comment_class.py`, run in-process) exactly as the same hand-composed heading is today; behaviour that already holds, so a pin step, production untouched ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 54 | 13 | 26 | 5314 | 291379 | 42228 | 0.19 | unknown | unknown | unknown | unknown |  |  | pin |
 | `skills/tdd/JOURNAL.md`'s `comment` event row names every kind comment.sh posts: `step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised` and `done` ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 24 | 10 | 18 | 2173 | 109481 | 48706 | 0.15 | 1029 | n/a | n/a | n/a |  |  | full |
+| skills/tdd/SCRIPTS.md's `comment.sh` entry (SC95) names the new kinds and the files each reads: `green` (takes `--note-file`; reads `.tdd/develop-green.out`), `verify-green` (reads `.tdd/verdict-green.exit` and `.tdd/verify-green.reason`), `refactor` (takes `--note-file`; reads `.tdd/develop-refactor.out`), `verify-refactor` (reads `.tdd/verdict-refactor.exit` and `.tdd/verify-refactor.reason`, or takes `--skipped`) and `verify-revised <phase>` (reads `.tdd/verify-<phase>.reason`), and in its exit-2 clause a missing report file or line for `green` and `refactor`, regraded ⟦skill-edit⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 92 | 8 | 16 | 13705 | 305287 | 287913 | 0.89 | 138 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -528,4 +566,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 431 | 834 | 130848 | 6989124 | 1794774 | 26.80 (estimate) |
+| total | 440 | 852 | 145781 | 7294411 | 2105419 | 29.50 (estimate) |
