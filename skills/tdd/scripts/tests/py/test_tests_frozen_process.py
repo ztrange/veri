@@ -6954,3 +6954,48 @@ def test_rerecord_refactored_still_refuses_a_case_an_ordinary_green_rewrote_3541
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_refactored_refuses_a_case_an_ordinary_green_rewrote_while_an_unrelated_earlier_suite_repair_step_is_ticked_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    ledger = ".tdd/issue-9.md"
+    repair = STEPS[0] + " ⟦suite-repair⟧"
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    (tmp_path / ledger).write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (repair, step, STEPS[2]))
+    _commit(tmp_path, "A red, the suite-repair step ticked")
+    (tmp_path / ledger).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (repair, step, STEPS[2]))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "B ordinary green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_refactored_refuses_a_case_the_green_of_an_unticked_suite_repair_step_rewrote_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    ledger = ".tdd/issue-9.md"
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / ledger).write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (STEPS[0], step, repair))
+    _commit(tmp_path, "A red, the suite-repair step listed but not ticked")
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "B green of the unticked step, the ledger untouched")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_suite.py test_one")) == (1, 1)
