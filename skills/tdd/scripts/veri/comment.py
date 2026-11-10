@@ -127,6 +127,8 @@ def post_green(issue, note_file=None):
 def post_refactor(issue):
     transforms = [line.removeprefix("RESULT: ") for line in read_or_empty(".tdd/develop-refactor.out").splitlines()
                   if line.startswith("RESULT: ")]
+    if transforms == ["nothing left to tidy"]:
+        return post_and_record(issue, "refactor", "### 🛠️ Refactor\n\nno refactor warranted\n")
     body = "### 🛠️ Refactor\n\n" + "".join(f"- {t}\n" for t in transforms)
     return post_and_record(issue, "refactor", body)
 
