@@ -1123,3 +1123,22 @@ def test_verify_refactor_pass_posts_the_pass_heading_then_the_reason_and_appends
     assert "the transforms keep behaviour and the suite is green" in body.splitlines()[1:]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]
+
+
+def test_verify_refactor_reject_posts_the_reject_heading_then_the_reason(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-94")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-refactor.exit").write_text("1\n")
+    (tmp_path / ".tdd" / "verify-refactor.reason").write_text("the rename changed the public name of spin\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-refactor"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### 🔎 verify-refactor — REJECT"
+    assert "the rename changed the public name of spin" in body.splitlines()[1:]
