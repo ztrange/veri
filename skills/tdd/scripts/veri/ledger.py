@@ -117,6 +117,12 @@ def unphased(text):
     return re.sub(r" ⟂ \S+ done", "", text.removesuffix(PENDING_MARK))
 
 
+def unit_of(text):
+    """The unit a skill-edit step names: its first backticked span, or None."""
+    found = re.search(r"`([^`]+)`", text)
+    return found.group(1) if found else None
+
+
 def carries_mark(text, name):
     """True when ⟦name⟧ occurs anywhere in text."""
     return f"⟦{name}⟧" in text

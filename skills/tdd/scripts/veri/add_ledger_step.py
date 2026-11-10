@@ -13,10 +13,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -109,11 +109,6 @@ def spec_criteria(path):
     body = section.group(1) if section else ""
     boxes = [line for line in body.split("\n") if ledger_steps(line)]
     return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
-
-
-def unit_of(text):
-    found = re.search(r"`([^`]+)`", text)
-    return found.group(1) if found else None
 
 
 def restates_list(path, unit):

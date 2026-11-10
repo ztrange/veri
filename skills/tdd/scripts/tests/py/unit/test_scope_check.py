@@ -127,3 +127,23 @@ def test_3509_a_skill_edit_ledger_passes_when_the_spec_has_no_requirements_secti
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3509_a_skill_edit_step_backticking_a_non_unit_token_after_its_unit_is_not_refused(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3509.md"
+    ledger.write_text(
+        "- [ ] regrade `skills/tdd/PIN.md` with `--change` and `skills/tdd/scripts/x.py` ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3509-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
