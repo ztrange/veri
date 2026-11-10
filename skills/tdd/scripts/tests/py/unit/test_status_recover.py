@@ -441,6 +441,26 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
 
 
+def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_when_github_refuses_it(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
+               "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
+
+    def run(args, *a, **k):
+        if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
+            return subprocess.CompletedProcess(args, 1, stdout="", stderr="gh: HTTP 502: bad gateway")
+        out = json.dumps(listed) if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, _out, err = run_cli(status, ["--recover", "coord"])
+
+    assert code == 2, (code, err)
+    assert err.startswith("status.sh --recover:") and "4730" in err and "Traceback" not in err, err
+
+
 def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_naming_that_read(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
