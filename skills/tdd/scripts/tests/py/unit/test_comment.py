@@ -812,3 +812,22 @@ def test_green_posts_the_green_heading_with_the_implementation_and_suite_output_
         assert carried in body, carried
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "green", url)]
+
+
+def test_green_exits_2_naming_the_missing_develop_green_report_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+
+    code, out, err = run_cli(comment, ["7", "green"], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert ".tdd/develop-green.out" in err
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
