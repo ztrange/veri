@@ -159,7 +159,10 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
               "head": {"ref": "tdd/3600-teach-the-widget"}}]
 
     def run(args, *a, **k):
-        out = json.dumps(pulls) if args and args[0] == "gh" else ""
+        out = ""
+        if args and args[0] == "gh":
+            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
+            out = json.dumps(single if single is not None else pulls)
         return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
     monkeypatch.setattr(status.subprocess, "run", run)
 
@@ -180,7 +183,10 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
               "head": {"ref": "tdd/3601-teach-the-widget"}}]
 
     def run(args, *a, **k):
-        out = json.dumps(pulls) if args and args[0] == "gh" else ""
+        out = ""
+        if args and args[0] == "gh":
+            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
+            out = json.dumps(single if single is not None else pulls)
         return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
     monkeypatch.setattr(status.subprocess, "run", run)
 
@@ -221,7 +227,10 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
               "title": "No issue", "body": "Just a tidy-up.\n", "head": {"ref": "feature/tidy"}}]
 
     def run(args, *a, **k):
-        out = json.dumps(pulls) if args and args[0] == "gh" else ""
+        out = ""
+        if args and args[0] == "gh":
+            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
+            out = json.dumps(single if single is not None else pulls)
         return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
     monkeypatch.setattr(status.subprocess, "run", run)
 
