@@ -70,7 +70,15 @@ def post_red(issue, note_file=None):
     return event.append("", {}, "comment", ["kind=red", f"url={url}"])
 
 
+def post_verify_red(issue):
+    reason = read_or_empty(".tdd/verify-red.reason")
+    url = github.gh_issue_comment(issue, f"### 🔎 verify-red — PASS\n\n{reason}")
+    return event.append("", {}, "comment", ["kind=verify-red", f"url={url}"])
+
+
 def main(argv):
+    if len(argv) == 2 and argv[1] == "verify-red":
+        return post_verify_red(argv[0])
     if len(argv) == 2 and argv[1] == "red":
         return post_red(argv[0])
     if len(argv) == 4 and argv[1] == "red" and argv[2] == "--note-file":
