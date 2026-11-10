@@ -512,8 +512,11 @@ def recover_runs():
     lines = []
     for run in glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")):
         n = os.path.basename(run)
-        with open(ledger_path(run, n)) as f:
-            heading = f.readline().rstrip("\n")
+        try:
+            with open(ledger_path(run, n)) as f:
+                heading = f.readline().rstrip("\n")
+        except FileNotFoundError:
+            continue
         title = heading.split(" — ", 1)[-1]
         lines.append("#%s %s %s" % (n, title, recorded_alive(run) or "dead"))
     return lines
