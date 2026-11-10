@@ -26,3 +26,10 @@ skills/tdd/scripts/tests/py/unit/test_comment.py
 command 134
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_verify_refactor_reject_posts_the_reject_heading_then_the_reason
 
+before 40
+5ed44b81f96b6618729e0afd33bb7e9a07dce246
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 205
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_every_heading_comment_sh_posts_for_the_green_refactor_and_revised_kinds_is_classified_by_comment_class_as_the_hand_composed_heading_is
+

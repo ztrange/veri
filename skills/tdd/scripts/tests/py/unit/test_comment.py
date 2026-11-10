@@ -1189,3 +1189,48 @@ def test_verify_refactor_skipped_posts_the_skipped_heading_without_reading_the_v
     assert "a stale reason from an earlier step" not in body
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]
+
+
+def test_every_heading_comment_sh_posts_for_the_green_refactor_and_revised_kinds_is_classified_by_comment_class_as_the_hand_composed_heading_is(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    comment_class = importlib.import_module("veri.comment_class")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-97")
+    (tmp_path / ".git").mkdir()
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "develop-green.out").write_text("IMPL_PATH: src/widget.py\nSUITE: GREEN 42 passed\n")
+    (tdd / "develop-refactor.out").write_text("RESULT: extracted spin_once\n")
+    (tdd / "verify-green.reason").write_text("fine\n")
+    (tdd / "verify-refactor.reason").write_text("fine\n")
+    calls = [(["green"], None), (["verify-green"], "0"), (["verify-green"], "1"),
+             (["refactor"], None), (["verify-refactor"], "0"), (["verify-refactor"], "1"),
+             (["verify-refactor", "--skipped"], None), (["verify-revised", "green"], None)]
+    for argv, verdict in calls:
+        for phase in ("green", "refactor"):
+            (tdd / f"verdict-{phase}.exit").write_text((verdict or "0") + "\n")
+        assert run_cli(comment, ["7", *argv], cwd=tmp_path)[0] == 0
+
+    headings = [body.splitlines()[0] for body in posted]
+    hand = [
+        "### 🟢 Green",
+        "### 🔎 verify-green — PASS",
+        "### 🔎 verify-green — REJECT",
+        "### 🛠️ Refactor",
+        "### 🔎 verify-refactor — PASS",
+        "### 🔎 verify-refactor — REJECT",
+        "### 🔎 verify-refactor — SKIPPED (nothing landed)",
+        "### 🔎 verify-green (revised) — PASS",
+    ]
+    results = []
+    for name, lines in (("posted", headings), ("hand", hand)):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "headings.md").write_text("\n".join(lines) + "\n")
+        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
+        assert code == 0, err
+        results.append(out)
+
+    assert results[0] == results[1]
