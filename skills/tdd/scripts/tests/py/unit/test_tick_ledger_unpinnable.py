@@ -228,3 +228,32 @@ def test_main_unpinnable_with_a_bare_case_flag_exits_2_with_the_usage_line_and_t
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (2, before, False), err
     assert "usage: tick-ledger.sh" in err
+
+
+def test_main_unpinnable_dropping_a_record_leaves_the_remaining_encoded_records_byte_for_byte_3471(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    suite = tmp_path / "tests" / "test_thing.py"
+    suite.parent.mkdir()
+    suite.write_text("def test_written():\n    pass\n")
+    missing = "make test TESTS=tests/test_thing.py::test_never_written"
+    present = "make test TESTS=tests/test_thing.py::test_written"
+    dropped = (
+        "file 8\nthing.py\nold-b64 4\nb2xk\nnew-b64 4\nbmV3\ncontext-b64 4\nY3R4\n"
+        f"command {len(missing)}\n{missing}\n\n")
+    kept = (
+        "file 8\nthing.py\nold-b64 8\nb2xkLWIy\nnew-b64 8\nbmV3LWIy\ncontext-b64 8\nY3R4LWIy\n"
+        f"command {len(present)}\n{present}\n\n")
+    record = ledger.parent / "issue-42-mutations.md"
+    record.write_text(dropped + kept)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the hand mutation stays green\n")
+
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, record.read_bytes()) == (0, kept.encode()), err
