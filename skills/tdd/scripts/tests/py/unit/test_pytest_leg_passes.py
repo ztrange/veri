@@ -174,3 +174,36 @@ def test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_
 
     last = [line for line in out.splitlines() if line.strip()][-1]
     assert (code, "4 passed" in last, "unselected" in out + err) == (0, True, False)
+
+
+def _collected(tmp_path, args, cases):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    collected = pytest_leg.Collected()
+    collected.root = str(tmp_path)
+    collected.args = [str(tmp_path / arg) if "::" not in arg else str(tmp_path / arg.split("::", 1)[0]) + "::" + arg.split("::", 1)[1] for arg in args]
+    collected.cases = [(nodeid, str(tmp_path / nodeid.split("::")[0])) for nodeid in cases]
+    return pytest_leg, collected
+
+
+def test_a_named_file_whose_every_case_went_unrun_is_reported_though_another_named_file_ran_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["test_dropped.py", "test_ran.py"],
+                                       ["test_dropped.py::test_a", "test_ran.py::test_b"])
+
+    unrun, targets = pytest_leg.unrun_targets(collected, {"test_ran.py::test_b"})
+
+    assert (unrun, [target.rsplit("/", 1)[-1] for target in targets]) == (["test_dropped.py::test_a"], ["test_dropped.py"])
+
+
+def test_a_named_base_node_id_whose_parametrized_cases_all_went_unrun_is_reported_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["test_param.py::test_p"],
+                                       ["test_param.py::test_p[1]", "test_param.py::test_p[2]"])
+
+    unrun, targets = pytest_leg.unrun_targets(collected, set())
+
+    assert (unrun, len(targets)) == (["test_param.py::test_p[1]", "test_param.py::test_p[2]"], 1)
+
+
+def test_a_named_node_id_deeper_than_a_cases_own_id_names_none_of_its_cases_3554(tmp_path):
+    pytest_leg, collected = _collected(tmp_path, ["test_deep.py::test_a::deeper"], ["test_deep.py::test_a"])
+
+    assert pytest_leg.unrun_targets(collected, set()) == ([], [])
