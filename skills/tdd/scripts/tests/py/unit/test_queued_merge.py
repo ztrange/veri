@@ -1059,6 +1059,38 @@ def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_e
     assert (code, "closed" in err, moved) == (2, True, [])
 
 
+def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_releases_the_merge_lock_once(fake_processes, run_cli):
+    def closed_unmerged(answer):
+        def wrapped(line, **kw):
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return 0, json.dumps({"state": "closed", "merged": False}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(closed_unmerged)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, len(released)) == (2, 1)
+
+
+def test_3500_queued_merge_of_an_open_pr_whose_head_is_already_an_ancestor_of_origin_main_releases_the_merge_lock_once(fake_processes, run_cli):
+    def head_on_main(answer):
+        def wrapped(line, **kw):
+            if line.endswith("merge-base --is-ancestor 9999999 origin/main"):
+                return 0, "", ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(head_on_main)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, len(released)) == (2, 1)
+
+
 def test_3500_queued_merge_whose_pr_read_fails_after_the_fetch_exits_2_naming_it_on_stderr_before_any_rebase_or_push_and_frees_the_lock(fake_processes, run_cli, monkeypatch):
     monkeypatch.setattr(queued_merge, "_pull", lambda repo, pr: None)
 
