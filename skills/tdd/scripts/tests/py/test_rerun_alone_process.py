@@ -355,3 +355,21 @@ def test_node_id_still_red_alone_with_a_test_string_in_the_body_exits_1_and_writ
     assert ran.returncode == 1
     assert ran_log.read_text().splitlines() == ["skills/tdd/scripts/tests/py/test_foo.py::test_bar"]
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+@pytest.mark.process("rerun-alone.sh run on a pytest FAILED line whose parametrized node id holds a space, passing alone")
+def test_pytest_failed_node_id_with_a_space_reruns_alone_whole_as_one_argument_and_names_it_in_the_event_3537(tmp_path):
+    (tmp_path / ".git").mkdir()
+    ran_log = tmp_path / "alone-ran"
+    alone = tmp_path / "alone-cmd.sh"
+    alone.write_text(f"#!/bin/sh\necho \"$#:$1\" >> {ran_log}\nexit 0\n")
+    alone.chmod(0o755)
+    red = tmp_path / "red-output.txt"
+    red.write_text("FAILED tests/test_x.py::test_y[a b] - assert 0\n1 failed\n")
+
+    ran = subprocess.run([RERUN, f'{alone} "$1"', str(red)], cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert ran_log.read_text().splitlines() == ["1:tests/test_x.py::test_y[a b]"]
+    event = (tmp_path / ".tdd" / "events.jsonl").read_text()
+    assert '"files": "tests/test_x.py::test_y[a b]"' in event

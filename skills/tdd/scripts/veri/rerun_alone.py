@@ -13,7 +13,7 @@ def main(argv):
         return 2
     with open(argv[1], errors="replace") as red:
         text = red.read()
-    targets = re.findall(r"^(?:FAILED|ERROR) (\S+?\.py::\S+)", text, re.M) or re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M)
+    targets = re.findall(r"^(?:FAILED|ERROR) (\S+?\.py::.+?)(?: - .*)?$", text, re.M) or re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M)
     targets = list(dict.fromkeys(targets))
     if not targets:
         return 1
