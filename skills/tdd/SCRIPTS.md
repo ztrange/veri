@@ -209,7 +209,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   names the tag, and one bad text inserts none of the batch), or a step text carrying
   `⟦diff-checked⟧` with no `⟦criterion k⟧`, whether given by `--criterion` or inherited from
   the anchor (nothing inserted), with the ledger left
-  byte-identical. A `<text>` holding the refactor-pending delimiter (a space, `⟂` U+27C2, a
+  byte-identical. A step counts as a skill-edit step only when its text starts with `⟦skill-edit⟧` or carries it in its trailing tag run; a step that merely mentions `⟦skill-edit⟧` in prose is not one. A skill-edit step is refused with **exit 2**, nothing inserted, when it names no unit path in backticks, when the unit file it names does not exist (stderr `<unit>: the unit file does not exist`), or when the issue's Requirements restate no row that differs from the unit's list (stderr `restate no row that differs`). A `<text>` holding the refactor-pending delimiter (a space, `⟂` U+27C2, a
   space) is also refused with **exit 2**, stderr naming that token, before the ledger is read,
   so the ledger is left untouched and a batch holding one such text inserts none of them; a
   text with U+27C2 but no surrounding spaces is still inserted. Every text
