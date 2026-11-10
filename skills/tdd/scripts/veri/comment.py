@@ -60,6 +60,15 @@ def post_done(issue):
     return post_and_record(issue, "done", f"### ✅ Done — {pr}\n\n{metrics}")
 
 
+def read_report(path):
+    report = {}
+    for line in read_or_empty(path).splitlines():
+        key, sep, value = line.partition(": ")
+        if sep:
+            report[key] = value
+    return report
+
+
 def missing_line(path, key):
     print(f"comment.sh: {path} has no {key}: line", file=sys.stderr)
     return 2
@@ -70,11 +79,7 @@ def post_red(issue, note_file=None):
     if not os.path.exists(red_out):
         print(f"comment.sh: {red_out} is missing", file=sys.stderr)
         return 2
-    report = {}
-    for line in read_or_empty(red_out).splitlines():
-        key, sep, value = line.partition(": ")
-        if sep:
-            report[key] = value
+    report = read_report(red_out)
     for key in ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"):
         if key not in report:
             return missing_line(red_out, key)
@@ -99,11 +104,7 @@ def post_verify_red(issue):
 
 
 def post_green(issue):
-    report = {}
-    for line in read_or_empty(".tdd/develop-green.out").splitlines():
-        key, sep, value = line.partition(": ")
-        if sep:
-            report[key] = value
+    report = read_report(".tdd/develop-green.out")
     body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
     return post_and_record(issue, "green", body)
 
