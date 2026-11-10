@@ -139,7 +139,14 @@ def post_refactor(issue, note_file=None):
     return post_and_record(issue, "refactor", with_note(f"### 🛠️ Refactor\n\n{content}{flagged}", note_file))
 
 
+def post_revised(issue, phase):
+    reason = read_or_empty(f".tdd/verify-{phase}.reason")
+    return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — PASS\n\n{reason}")
+
+
 def main(argv):
+    if len(argv) == 3 and argv[1] == "verify-revised":
+        return post_revised(argv[0], argv[2])
     noted = {"green": post_green, "red": post_red, "refactor": post_refactor}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
