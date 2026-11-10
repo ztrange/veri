@@ -82,7 +82,9 @@ run it. A preflight that passes never reads it.
    when it exists (as on a resume). It checks every row of every `### <path>` table in the
    issue's `## Requirements` against that unit's `REQUIREMENTS.md` list, and each `⟦skill-edit⟧`
    step's unit against the issue's `### <path>` tables. **Exit 2** is a preflight refusal: it
-   names every defect at once, so fix them together. On a fresh run the ledger does not exist
+   names every defect at once, so fix them together. Like every other preflight refusal, it
+   sends the run to `<base directory>/PREFLIGHT-FAILURES.md`: `Read` it then and not before,
+   and run it. On a fresh run the ledger does not exist
    yet, so `scope-check.sh` checks the skill-edit units at the plan commit instead.
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
    and run it through `$S/detach-command.sh start <name> <cmd>`, then `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
