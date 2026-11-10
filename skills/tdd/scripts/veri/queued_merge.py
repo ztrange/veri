@@ -311,14 +311,17 @@ def main(argv):
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
     driver = tunables.read("VERI_GH_DRIVER", None)
+    # The merge call keeps the lock even when it errors: an errored call may have landed, and the
+    # settle window below re-reads the PR while still holding it, so a landed merge reaches _cleanup
+    # with the lock its release expects, and no other merge takes the lock mid-window.
     if driver == "graphql":
-        code = _gate(pid, *gh_merge)
+        code = _gate(pid, *gh_merge, keep=True)
     elif driver == "auto":
-        code = _gate(pid, *gh_merge)
+        code = _gate(pid, *gh_merge, keep=True)
         if code:
-            code = _gate(pid, *rest_merge)
+            code = _gate(pid, *rest_merge, keep=True)
     else:
-        code = _gate(pid, *rest_merge)
+        code = _gate(pid, *rest_merge, keep=True)
     pull = None
     if code:
         for _ in range(int(tunables.read("VERI_MERGE_SETTLE_READS") or "10")):
@@ -327,6 +330,8 @@ def main(argv):
             if pull is not None:
                 break
         if pull is None:
+            _say("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code))
+            _release(pid)
             return code
     else:
         pull = _merged(repo, pr)
