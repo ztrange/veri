@@ -2363,3 +2363,32 @@ def test_the_comment_family_table_total_row_counts_a_comment_matching_two_famili
 
     rows = {row["family"]: row["turns"] for row in table(out, "#### Conductor comments, by family")}
     assert rows.get("Total") == "1"
+
+
+def test_issue_3288_a_later_record_of_a_message_id_after_the_result_that_flushed_its_turn_still_counts_its_comment_family(tmp_path, metrics):
+    def record(content):
+        return {"type": "assistant", "message": {"id": "m1", "content": content, "usage": {"output_tokens": 10}}}
+
+    comment = [{"type": "tool_use", "name": "Bash", "input": {"command": "gh issue comment 1 --body '🟢 Green'"}}]
+    records = [record([]), {"type": "result", "usage": {"output_tokens": 10}}, record(comment)]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert turn_rows.families["🟢 Green"][0] == 1
+
+
+def test_issue_3288_a_later_record_after_the_flushing_result_counts_a_new_family_once_and_a_repeated_family_not_again(tmp_path, metrics):
+    def record(command):
+        content = [{"type": "tool_use", "name": "Bash", "input": {"command": command}}]
+        return {"type": "assistant", "message": {"id": "m1", "content": content, "usage": {"output_tokens": 10}}}
+
+    green = "gh issue comment 1 --body '🟢 Green'"
+    red = "gh issue comment 1 --body '🔴 Red'"
+    records = [record(green), {"type": "result", "usage": {"output_tokens": 10}}, record(green + "; " + red)]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert turn_rows.families["🔴 Red"][0] == 1
+    assert turn_rows.families["🟢 Green"][0] == 1

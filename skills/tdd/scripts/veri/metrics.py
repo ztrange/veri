@@ -151,7 +151,11 @@ def conductor_sessions(issue, path):
                         names = [name for name, pattern in COMMENT_FAMILIES if re.search(pattern, calls)]
                         if message.get("id") is not None:
                             if message["id"] in seen_ids:
-                                seen_ids[message["id"]].extend(n for n in names if n not in seen_ids[message["id"]])
+                                earlier = seen_ids[message["id"]]
+                                added = [n for n in names if n not in earlier]
+                                earlier.extend(added)
+                                if not any(row[0] is earlier for row in open_turn_rows):
+                                    count_families(turn_rows, [(added, None, 0)], None)
                                 continue
                             seen_ids[message["id"]] = names
                         open_turns += 1
