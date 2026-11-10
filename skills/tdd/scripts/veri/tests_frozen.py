@@ -580,6 +580,26 @@ def _helpers_in(text, body, legacy=False):
     return "\n".join(helpers)
 
 
+def _is_suite_repair_green(lines, green):
+    """True when `green` is one of the own commits of a ticked ⟦suite-repair⟧ step of the ledger `lines`: only
+    then may a frozen case's body at `green^` stand for its record. A suite-repair step ticked elsewhere in the
+    ledger vouches for its own commits, never for another step's green; any lookup that fails refuses."""
+    try:
+        sha = _git_out("rev-parse", "--verify", "--quiet", green + "^{commit}").strip()
+    except OSError:
+        return False
+    for line in lines:
+        match = ledger.ITEM_RE.match(line)
+        if not match or match.group(1) == " " or not carries_mark(trailing_markers(match.group(2)), "suite-repair"):
+            continue
+        try:
+            if sha in _step_commits(match.group(2)):
+                return True
+        except (LookupError, OSError):
+            continue
+    return False
+
+
 def rerecord_refactored(ledger, green):
     with open(ledger, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
@@ -600,7 +620,7 @@ def rerecord_refactored(ledger, green):
         return record
 
     seen = {}
-    repaired = any(l.startswith("- [x]") and "⟦suite-repair⟧" in l for l in lines)
+    repaired = _is_suite_repair_green(lines, green)
 
     def nth(rev, name, case, k):
         found = _bodies_of(_text_at(rev, name, subprocess.DEVNULL), case)
