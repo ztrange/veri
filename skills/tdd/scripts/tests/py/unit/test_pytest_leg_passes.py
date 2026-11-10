@@ -260,3 +260,36 @@ def test_a_leg_nested_in_a_run_that_holds_failed_case_records_leaves_those_recor
             record = getattr(records, name)
             record.clear()
             record.update(before[name]) if isinstance(record, set) else record.extend(before[name])
+
+
+def test_a_leg_without_subset_whose_mark_expression_excludes_a_named_case_prints_no_unselected_line_and_exits_zero_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "pytest.ini").write_text("[pytest]\nmarkers =\n    slow: a case the mark expression leaves out\n    serial: runs alone\n")
+    (planted / "test_planted_plain.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "@pytest.mark.slow\n"
+        "def test_left_out():\n    pass\n"
+    )
+    module = str(planted / "test_planted_plain.py")
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["-q", "-p", "no:cacheprovider", "-m", "not slow", module + "::test_unmarked", module + "::test_left_out"], env=env)
+
+    assert (code, "unselected" in out + err) == (0, False)
+
+
+def test_a_subset_leg_with_no_mark_expression_whose_stop_at_first_failure_leaves_a_named_file_unrun_prints_no_unselected_line_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_planted_first.py").write_text("def test_failing():\n    assert False\n")
+    (planted / "test_planted_second.py").write_text("def test_never_reached():\n    pass\n")
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["--subset", "-q", "-x", "-p", "no:cacheprovider",
+                              str(planted / "test_planted_first.py"), str(planted / "test_planted_second.py")], env=env)
+
+    assert (code, "unselected" in out + err) == (1, False)
