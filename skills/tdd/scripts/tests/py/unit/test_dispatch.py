@@ -2384,6 +2384,27 @@ def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exit
     assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
 
 
+@pytest.mark.parametrize("sleep", ["soon", "-5", "1.5"])
+def test_main_with_a_bad_retry_sleep_names_the_variable_on_stderr_and_exits_2_before_any_read_issue_3560(
+        monkeypatch, tmp_path, run_cli, dispatch, sleep):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    reads = []
+
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", sleep)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: reads.append("live") or [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: reads.append("merges") or [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: reads.append("solvable") or ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out, "VERI_DISPATCH_RETRY_SLEEP" in err, "Traceback" in err, reads, launches) == (
+        2, "", True, False, [], [])
+
+
 def _real_overlap_reads(monkeypatch, dispatch, prs, bodies, diffs):
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
     monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
