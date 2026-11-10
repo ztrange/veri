@@ -110,8 +110,8 @@ run it. A preflight that passes never reads it.
    bounds work nobody does: that is how #300's green leaf was killed at the 900 s floor
    twice over while it was working. It is timed here, with the same single-measurement rule,
    and costs one full-tier run the Draft PR gate pays for anyway. If it is red but every red
-   test file passes when run alone (`--alone`), as for the baseline, it is a flake: a
-   `suite-flake` event names the files, and preflight goes on.
+   test target (a failing pytest node id, else a test file) passes when run alone (`--alone`), as for the baseline, it is a flake: a
+   `suite-flake` event names the targets, and preflight goes on.
 
    `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`. The fast-tier baseline
    runs in both modes. Settle the mode by running
