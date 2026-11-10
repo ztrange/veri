@@ -238,7 +238,13 @@ def main(argv):
                 sys.stdout.write(line + "\n")
                 return 0
         if not argv:
-            target = int([line for line in status.read_role_state("dev") if line.startswith("n=")][-1][2:])
+            lines = status.read_role_state("dev")
+            target = int([line for line in lines if line.startswith("n=")][-1][2:])
+            for line in lines:
+                if line.startswith("timed-n "):
+                    value, _, expiry = line.split(None, 3)[3].partition(" until ")
+                    if clock() < datetime.fromisoformat(expiry).timestamp():
+                        target = int(value)
         stall = int(stall_window())
         for issue in seen:
             tdd = os.path.join(run_dir(issue), ".tdd")

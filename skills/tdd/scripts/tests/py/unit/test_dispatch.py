@@ -1,4 +1,5 @@
 """In-process cases for veri/dispatch.py, the module dispatch.sh is a shim over."""
+from datetime import datetime
 import importlib
 import sys
 
@@ -101,6 +102,62 @@ def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_t
         pass
 
     assert (launches, waits) == (["12"], [1, 1])
+
+
+def test_main_with_no_target_applies_the_n_of_a_role_dev_state_timed_n_change_whose_expiry_has_not_passed(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text(
+        "n=1\ntimed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00\n")
+    launches = []
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 10, 30).timestamp())
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main([])
+    except _StopWaiting:
+        pass
+
+    assert launches == ["12"]
+
+
+def test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_timed_n_change_has_expired(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text(
+        "n=1\ntimed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00\n")
+
+    def decide(at):
+        launches = []
+
+        def wait():
+            raise _StopWaiting
+
+        monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+        monkeypatch.setattr(dispatch, "clock", lambda: at.timestamp())
+        monkeypatch.setattr(dispatch, "now", lambda: at.isoformat(), raising=False)
+        monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+        monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+        monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+        monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+        monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+        try:
+            dispatch.main([])
+        except _StopWaiting:
+            pass
+        return launches
+
+    assert (decide(datetime(2026, 11, 7, 10, 30)), decide(datetime(2026, 11, 7, 11, 30))) == (["12"], [])
 
 
 def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_before_the_first_solvable_issue(
