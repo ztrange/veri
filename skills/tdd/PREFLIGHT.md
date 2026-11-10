@@ -80,7 +80,7 @@ run it. A preflight that passes never reads it.
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
    and run it through `$S/detach-command.sh start <name> <cmd>`, then `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
    `<alone-cmd>` is the repo's own runner for one test target, with the target as `$1`: a test file, or a pytest node id `path::name` when the red output has `FAILED`/`ERROR` lines (`make test TESTS="$1"` on veri, named here with `detach-command.sh`). With `--alone`, a command that finished red has each failing test its output names re-run alone once, as a pytest node id when it has them and else as a test file, through the shared `rerun_alone` helper: when every one passes alone, `detach-command.sh wait` answers 0 and has itself written the one `suite-flake` event naming the files, so preflight goes on as on a green baseline.
-   `detach-command.sh wait` answers 0 the command passed (or every red file passed alone), 3 still running (call again).
+   `detach-command.sh wait` answers 0 the command passed (or every red test target passed alone), 3 still running (call again).
    A resume whose baseline is red only in suites that are red on the branch head but green on the
    default branch is the exception, checked with `suite-red-resume.sh check` (`Read` `<base directory>/RESUME.md`).
    On such a resume `suite-red-resume.sh insert` inserts no `⟦suite-repair⟧` step when the union of
