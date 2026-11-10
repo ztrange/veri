@@ -113,7 +113,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    -f`s matter in this loop: every attempt re-verifies the **same** phase, so the previous
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
-     with the reason, and resume the cycle from where that phase's PASS would continue.
+     with the reason by running `$S/comment.sh <n> verify-revised <phase>`, and resume the cycle from where that phase's PASS would continue.
      When `<phase>` is red, first run `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>` — a revised red's PASS records the step's test files to the step's own record, as the Red section's does; tests-frozen exit 1 (the step's own Red case is gone: it names the deleted case on stdout and writes no record) is a verify-red REJECT that spends `REVISE_BUDGET`, its stdout written to `.tdd/verify-red.reason`; tests-frozen exit 2 is a bail.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
      When the re-verify was a verify-pin (a revised red whose report said `AGAINST_UNMODIFIED: PASSES`),
