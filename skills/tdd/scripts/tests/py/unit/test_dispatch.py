@@ -967,6 +967,23 @@ def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_e
     assert (results, launches) == ([usage, usage], [])
 
 
+def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing_issue_3520(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+
+    results = [run_cli(dispatch, ["--target", value]) for value in ("-1", "abc", "1.5")]
+
+    usage = (2, "", "usage: dispatch.sh --target <N>\n")
+    assert (results, launches) == ([usage, usage, usage], [])
+
+
 def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
         monkeypatch, tmp_path, run_cli, dispatch):
     (tmp_path / ".tdd").mkdir()
