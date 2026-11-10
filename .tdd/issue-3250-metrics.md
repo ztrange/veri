@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3250
 
-Wall time for the issue: 12403 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 3563 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 3 of 5 planned.
-Outcome: the run bailed — ci-timeout, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3573.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.72 over 100 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $11.38 over 144 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78652 tokens, largest 177474 tokens
-Conductor context: first turn 177859 tokens, largest 184003 tokens
+Conductor context: first turn 177859 tokens, largest 186090 tokens
+Conductor context: first turn 78666 tokens, largest 138260 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -113,9 +114,53 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 95 | $0.05 | 174064 |
 | 96 | $0.07 | 177156 |
 | 97 | $0.05 | 177474 |
-| 98 | $0.04 | 177859 |
-| 99 | $0.05 | 179223 |
-| 100 | $0.07 | 184003 |
+| 98 | $0.96 | 177859 |
+| 99 | $0.97 | 179223 |
+| 100 | $1.00 | 184003 |
+| 101 | $0.97 | 185239 |
+| 102 | $0.97 | 186090 |
+| 103 | $0.49 | 78666 |
+| 104 | $0.07 | 85046 |
+| 105 | $0.03 | 86366 |
+| 106 | $0.04 | 88648 |
+| 107 | $0.05 | 92854 |
+| 108 | $0.02 | 93127 |
+| 109 | $0.05 | 97449 |
+| 110 | $0.02 | 98061 |
+| 111 | $0.03 | 99563 |
+| 112 | $0.03 | 100685 |
+| 113 | $0.03 | 101795 |
+| 114 | $0.03 | 103069 |
+| 115 | $0.05 | 106304 |
+| 116 | $0.02 | 106633 |
+| 117 | $0.03 | 107596 |
+| 118 | $0.15 | 123384 |
+| 119 | $0.03 | 124095 |
+| 120 | $0.03 | 124874 |
+| 121 | $0.03 | 125686 |
+| 122 | $0.03 | 126324 |
+| 123 | $0.03 | 126647 |
+| 124 | $0.03 | 127103 |
+| 125 | $0.03 | 127470 |
+| 126 | $0.03 | 128140 |
+| 127 | $0.03 | 128722 |
+| 128 | $0.03 | 129567 |
+| 129 | $0.03 | 130202 |
+| 130 | $0.04 | 131626 |
+| 131 | $0.03 | 132373 |
+| 132 | $0.03 | 132913 |
+| 133 | $0.03 | 133138 |
+| 134 | $0.03 | 133668 |
+| 135 | $0.03 | 133957 |
+| 136 | $0.03 | 134685 |
+| 137 | $0.03 | 135386 |
+| 138 | $0.03 | 135687 |
+| 139 | $0.03 | 136022 |
+| 140 | $0.03 | 136364 |
+| 141 | $0.03 | 136755 |
+| 142 | $0.03 | 137226 |
+| 143 | $0.03 | 137669 |
+| 144 | $0.03 | 138260 |
 
 #### Conductor comments, by family
 
@@ -130,18 +175,18 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 2 | 890 | $0.02 |
 | 🔎 verify-<phase> (revised) | 1 | 445 | $0.01 |
 | 🗺️ Plan | 1 | 445 | $0.01 |
-| 🗺️ verify-plan | 1 | 445 | $0.01 |
-| ▶️ Resuming | 0 | 0 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 2 | 461 | $0.01 |
+| ▶️ Resuming | 1 | 3 | $0.00 |
+| ⛔ Bailed | 1 | 622 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 7 | 3115 | $0.06 |
+| Total | 10 | 3756 | $0.08 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 1 | 1 | 0 | 0 | 9 | 7 | 1 | 2 | 728 | 0 | 18955 | 0.05 |
+| plan | 2 | 2 | 0 | 0 | 24 | 16 | 2 | 4 | 1736 | 0 | 37893 | 0.11 |
 | red | 6 | 2 | 0 | 0 | 393 | 101 | 29 | 56 | 11487 | 504535 | 122451 | 0.47 |
 | green | 8 | 2 | 2 | 0 | 1681 | 117 | 43 | 82 | 11210 | 704026 | 110769 | 0.59 |
 | refactor | 3 | 1 | 0 | 0 | 161 | 26 | 10 | 20 | 2024 | 138435 | 46169 | 0.15 |
@@ -151,7 +196,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 10 | 7 | 3 | 0 | 1420 | 132 | 40 | 80 | 12045 | 626086 | 136776 | 0.53 |
+| verifier | claude-sonnet-5-5 | 11 | 8 | 3 | 0 | 1435 | 141 | 41 | 82 | 13053 | 626086 | 155714 | 0.58 |
 | developer | claude-sonnet-5-5 | 7 | 0 | 0 | 0 | 326 | 114 | 37 | 68 | 12521 | 609221 | 139879 | 0.54 |
 | developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 572 | 40 | 15 | 30 | 4019 | 252241 | 52222 | 0.32 |
 
@@ -207,4 +252,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 92 | 178 | 28585 | 1487548 | 328877 | 6.10 (estimate) |
+| total | 93 | 180 | 29593 | 1487548 | 347815 | 12.82 (estimate) |
