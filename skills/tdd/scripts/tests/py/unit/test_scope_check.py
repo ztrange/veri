@@ -107,3 +107,23 @@ def test_3509_a_ledger_whose_every_skill_edit_unit_has_its_heading_or_new_headin
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3509_a_skill_edit_ledger_passes_when_the_spec_has_no_requirements_section(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3509.md"
+    ledger.write_text(
+        "- [ ] regrade `skills/tdd/PIN.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3509-spec.md").write_text(
+        "## What happened\n\nnothing about requirements\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")

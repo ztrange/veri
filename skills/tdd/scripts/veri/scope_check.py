@@ -40,8 +40,10 @@ def main(argv):
         spec = os.path.join(os.path.dirname(os.path.abspath(path)), f"issue-{issue.group(1)}-spec.md")
         if os.path.exists(spec):
             with open(spec, encoding="utf-8") as f:
-                headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", f.read(), re.M))
-            for step in (record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")):
+                spec_text = f.read()
+            headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
+            has_requirements = re.search(r"^## Requirements\s*$", spec_text, re.M)
+            for step in (record[-1] for record in steps if has_requirements and ledger.carries_mark(record[-1], "skill-edit")):
                 for unit in re.findall(r"`([^`]+)`", step):
                     if unit not in headings:
                         print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
