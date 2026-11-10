@@ -768,12 +768,13 @@ def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_
 def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_exits_2_naming_the_line_makes_no_merge_call_and_frees_the_lock(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
-    (worktree / ".tdd").mkdir(parents=True)
-    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    worktree.mkdir()
     body = json.dumps({"body": "## Review fixes\n- tidy\n"})
 
     def with_body(answer):
         def wrapped(line, **kwargs):
+            if "diff --name-only origin/main...HEAD" in line:
+                return 0, ".tdd/issue-3255.md\n", ""
             if "pr view" in line:
                 return 0, body, ""
             return answer(line, **kwargs)
@@ -791,12 +792,13 @@ def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_ex
 def test_3422_queued_merge_of_a_pr_whose_only_closing_line_is_for_a_longer_issue_number_sharing_the_runs_number_as_a_prefix_exits_2_and_makes_no_merge_call(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
-    (worktree / ".tdd").mkdir(parents=True)
-    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    worktree.mkdir()
     body = json.dumps({"body": "Closes #32550 — another capability\n"})
 
     def with_body(answer):
         def wrapped(line, **kwargs):
+            if "diff --name-only origin/main...HEAD" in line:
+                return 0, ".tdd/issue-3255.md\n", ""
             if "pr view" in line:
                 return 0, body, ""
             return answer(line, **kwargs)
@@ -837,12 +839,13 @@ def test_3422_queued_merge_on_a_worktree_holding_other_issues_ledgers_and_their_
 def test_3452_queued_merge_whose_pr_body_read_fails_exits_2_naming_the_pr_frees_the_lock_and_makes_no_merge_call_while_a_successful_read_of_a_closes_body_merges(
         fake_processes, run_cli, tmp_path):
     worktree = tmp_path / "wt"
-    (worktree / ".tdd").mkdir(parents=True)
-    (worktree / ".tdd" / "issue-3255.md").write_text("# issue\n")
+    worktree.mkdir()
 
     def run(read):
         def with_body(answer):
             def wrapped(line, **kwargs):
+                if "diff --name-only origin/main...HEAD" in line:
+                    return 0, ".tdd/issue-3255.md\n", ""
                 if "pr view" in line:
                     return read
                 return answer(line, **kwargs)

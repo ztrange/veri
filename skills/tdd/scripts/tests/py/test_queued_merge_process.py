@@ -550,3 +550,64 @@ def test_queued_merge_lease_push_from_a_detached_head_updates_the_remote_branch_
     raced = git(remote, "rev-parse", "refs/heads/feature")
 
     assert (pushed, refused.returncode, raced == git(mover, "rev-parse", "HEAD"), raced != before) == (True, 1, True, True)
+
+
+FAKE_GH_CLOSING_200 = """#!/bin/sh
+echo "gh $*" >> "$CALL_LOG"
+head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
+case "$*" in
+  *"pr view"*) echo '{"body": "Closes #200"}' ;;
+  *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "success"}]}' ;;
+  *check-runs*) echo '{"check_runs": []}' ;;
+  *"/status"*) echo '{"statuses": []}' ;;
+  *"/pulls/"*) echo "{\\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}" ;;
+  *) echo '[]' ;;
+esac
+exit 0
+"""
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a non-tdd branch, with gh planted on PATH")
+def test_queued_merge_on_a_non_tdd_branch_demands_closes_only_for_the_ledgers_the_pr_adds_not_those_already_on_main_3490(tmp_path):
+    real_git = shutil.which("git")
+    ident = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+
+    def git(repo, *args):
+        done = subprocess.run([real_git, "-C", str(repo), *ident, *args], check=True, capture_output=True, text=True, cwd=tmp_path)
+        return done.stdout.strip()
+
+    remote = tmp_path / "remote.git"
+    subprocess.run([real_git, "init", "-q", "--bare", "-b", "main", str(remote)], check=True, cwd=tmp_path)
+    seed = tmp_path / "seed"
+    subprocess.run([real_git, "clone", "-q", str(remote), str(seed)], check=True, capture_output=True, cwd=tmp_path)
+    git(seed, "checkout", "-q", "-b", "main")
+    (seed / ".tdd").mkdir()
+    (seed / ".tdd" / "issue-100.md").write_text("old ledger\n")
+    git(seed, "add", ".")
+    git(seed, "commit", "-q", "-m", "initial")
+    git(seed, "push", "-q", "origin", "main")
+    git(seed, "checkout", "-q", "-b", "claude/x")
+    (seed / ".tdd" / "issue-200.md").write_text("new ledger\n")
+    (seed / "docs").mkdir()
+    (seed / "docs" / "issue-300.md").write_text("a doc, not a ledger\n")
+    git(seed, "add", ".")
+    git(seed, "commit", "-q", "-m", "claude work")
+    git(seed, "push", "-q", "origin", "claude/x")
+    worktree = tmp_path / "wt"
+    subprocess.run([real_git, "clone", "-q", "-b", "claude/x", str(remote), str(worktree)], check=True, capture_output=True, cwd=tmp_path)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    plant(bin_dir, "gh", FAKE_GH_CLOSING_200)
+    call_log = tmp_path / "calls.log"
+    call_log.write_text("")
+    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "WORKTREE": str(worktree),
+           "CALL_LOG": str(call_log), "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0", "GIT_CONFIG_GLOBAL": "/dev/null",
+           "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+           "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
+
+    run = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "claude/x", "-"],
+                         cwd=worktree, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                         text=True, timeout=30)
+
+    put_merge = [c for c in call_log.read_text().splitlines() if c.startswith("gh api") and "-X PUT" in c and "/merge" in c]
+    assert ("lacks the line" in run.stderr, len(put_merge)) == (False, 1), run.stderr
