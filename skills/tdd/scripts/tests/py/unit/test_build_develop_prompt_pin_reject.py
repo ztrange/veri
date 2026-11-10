@@ -15,7 +15,7 @@ def test_revise_red_for_a_verify_pin_reason_saying_stays_green_builds_no_prompt_
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n")
     reason = tmp_path / "verify-pin.reason"
-    reason.write_bytes(b"VERDICT: REJECT\nREASON: the mutation `< 2` to `< 1` stays green\n")
+    reason.write_bytes(b"VERDICT: REJECT\nREASON: the real before-state stays green\n")
 
     code = build_develop_prompt.main(["revise", "red", str(spec), "9", "make unit", str(reason)])
 
