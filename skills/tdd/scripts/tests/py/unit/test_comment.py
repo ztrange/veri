@@ -720,3 +720,35 @@ def test_red_exits_2_naming_the_missing_line_when_the_report_lacks_target_test_f
         assert f"{missing}:" in err, missing
         assert posted == [], missing
         assert not (tmp_path / ".tdd" / "events.jsonl").exists(), missing
+
+
+def test_the_red_metrics_family_pattern_matches_the_emoji_heading_text_each_red_and_verify_red_comment_posts(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    metrics = importlib.import_module("metrics")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-60")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: assert 'ccw' == 'cw'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: MATCHED\n")
+    (tmp_path / ".tdd" / "verdict-red.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-red.reason").write_text("the case fails for the criterion\n")
+
+    assert run_cli(comment, ["7", "red"], cwd=tmp_path)[0] == 0
+    assert run_cli(comment, ["7", "verify-red"], cwd=tmp_path)[0] == 0
+
+    pattern = dict(metrics.COMMENT_FAMILIES)["🔴 Red"]
+    headings = [body.splitlines()[0] for body in posted]
+    assert headings == ["### 🔴 Red", "### 🔎 verify-red — PASS"]
+    matched = [re.search(pattern, heading).group(0) for heading in headings]
+    assert matched == ["🔴 Red", "🔎 verify-red"]
+    assert all(heading.startswith("### " + text) for heading, text in zip(headings, matched))
+    assert not re.search(pattern, "### Red")
+    assert not re.search(pattern, "### verify-red — PASS")
