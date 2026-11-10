@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3567
 
-Wall time for the issue: 1654 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1393 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 6 of 11 planned.
-Outcome: the run bailed — ci-timeout, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3572.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.00 over 186 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $15.64 over 221 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78660 tokens, largest 255554 tokens
 Conductor context: first turn 78674 tokens, largest 163856 tokens
-Conductor context: first turn 164459 tokens, largest 170533 tokens
+Conductor context: first turn 164459 tokens, largest 172548 tokens
+Conductor context: first turn 78714 tokens, largest 140979 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -199,9 +200,43 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 180 | $0.04 | 160209 |
 | 181 | $0.07 | 163460 |
 | 182 | $0.04 | 163856 |
-| 183 | $0.04 | 164459 |
-| 184 | $0.04 | 165795 |
-| 185 | $0.07 | 170533 |
+| 183 | $0.61 | 164459 |
+| 184 | $0.61 | 165795 |
+| 185 | $0.64 | 170533 |
+| 186 | $0.61 | 171765 |
+| 187 | $0.61 | 172548 |
+| 188 | $0.50 | 78714 |
+| 189 | $0.07 | 85092 |
+| 190 | $0.04 | 87367 |
+| 191 | $0.03 | 89345 |
+| 192 | $0.05 | 92794 |
+| 193 | $0.05 | 97147 |
+| 194 | $0.02 | 97594 |
+| 195 | $0.02 | 97991 |
+| 196 | $0.02 | 98312 |
+| 197 | $0.02 | 98633 |
+| 198 | $0.02 | 99039 |
+| 199 | $0.03 | 99713 |
+| 200 | $0.03 | 100442 |
+| 201 | $0.03 | 101247 |
+| 202 | $0.02 | 101635 |
+| 203 | $0.07 | 107827 |
+| 204 | $0.03 | 108867 |
+| 205 | $0.15 | 124665 |
+| 206 | $0.03 | 125123 |
+| 207 | $0.03 | 125616 |
+| 208 | $0.03 | 126011 |
+| 209 | $0.03 | 126591 |
+| 210 | $0.11 | 136630 |
+| 211 | $0.03 | 137068 |
+| 212 | $0.03 | 137629 |
+| 213 | $0.03 | 138271 |
+| 214 | $0.03 | 138702 |
+| 215 | $0.03 | 139348 |
+| 216 | $0.03 | 139943 |
+| 217 | $0.03 | 140199 |
+| 218 | $0.03 | 140540 |
+| 219 | $0.03 | 140979 |
 
 #### Conductor comments, by family
 
@@ -216,34 +251,34 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 3 | 1929 | $0.04 |
 | 🔎 verify-<phase> (revised) | 3 | 1929 | $0.04 |
 | 🗺️ Plan | 1 | 643 | $0.01 |
-| 🗺️ verify-plan | 3 | 1669 | $0.03 |
-| ▶️ Resuming | 1 | 383 | $0.01 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 4 | 1677 | $0.03 |
+| ▶️ Resuming | 2 | 391 | $0.01 |
+| ⛔ Bailed | 1 | 562 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 21 | 12463 | $0.25 |
+| Total | 24 | 13041 | $0.26 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 2 | 1 | 0 | 54 | 46 | 8 | 16 | 5417 | 117758 | 60927 | 0.22 |
-| prose | 19 | 0 | 0 | 0 | 547 | 504 | 19 | 38 | 81358 | 50015 | 622017 | 2.37 |
+| plan | 4 | 3 | 1 | 0 | 68 | 57 | 9 | 18 | 6839 | 117758 | 82015 | 0.29 |
+| prose | 23 | 0 | 0 | 0 | 713 | 661 | 23 | 46 | 106610 | 56555 | 829412 | 3.15 |
 | skill-edit | 3 | 0 | 0 | 0 | 44 | 36 | 13 | 26 | 3314 | 228550 | 57999 | 0.20 |
 | diff | 6 | 3 | 0 | 0 | 231 | 70 | 28 | 54 | 6045 | 401850 | 84253 | 0.31 |
 | red | 12 | 4 | 0 | 0 | 333 | 191 | 48 | 90 | 22011 | 770141 | 226286 | 0.86 |
 | green | 18 | 3 | 6 | 0 | 2619 | 323 | 100 | 192 | 31524 | 1817360 | 270295 | 1.32 |
 | refactor | 4 | 1 | 0 | 0 | 68 | 32 | 11 | 22 | 2396 | 150565 | 63317 | 0.20 |
 | pin | 4 | 4 | 0 | 0 | 113 | 85 | 23 | 44 | 8005 | 397281 | 71287 | 0.30 |
-| rebase | 4 | 1 | 1 | 0 | 1054 | 88 | 29 | 54 | 8345 | 515498 | 104847 | 0.54 |
+| rebase | 6 | 2 | 1 | 0 | 1338 | 130 | 43 | 82 | 12005 | 742568 | 147733 | 0.71 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 26 | 18 | 8 | 0 | 3391 | 447 | 125 | 240 | 43770 | 2103983 | 420871 | 1.70 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 423 | 240 | 70 | 134 | 25558 | 1147428 | 289248 | 1.09 |
-| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 658 | 148 | 52 | 98 | 14415 | 919042 | 171093 | 0.96 |
+| verifier | claude-sonnet-5-5 | 28 | 20 | 8 | 0 | 3618 | 477 | 131 | 252 | 46982 | 2175785 | 463314 | 1.85 |
+| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 859 | 312 | 95 | 184 | 32105 | 1642672 | 367730 | 1.55 |
+| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 293 | 99 | 36 | 66 | 9738 | 579066 | 114142 | 0.59 |
 
 #### Rework and waste, by phase
 
@@ -257,7 +292,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | green | 4905 | 3.19 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 29 | 0.07 |
-| rebase | 1054 | 0.54 | 0 | 0.00 |
+| rebase | 1338 | 0.71 | 0 | 0.00 |
 
 #### By step
 
@@ -268,7 +303,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A new script `requirements-preflight.sh <issue-body-file> [<ledger>]`, a /bin/sh shim over module veri/requirements_preflight.py run from the repo root, exits 0 on an issue whose `## Requirements` rows are all new, identical to the unit's `REQUIREMENTS.md` list, or `<reword>`-marked. Its no-argument usage line and exit 2 are pinned by the existing missing-argument audit, not a new case. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 3⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 145 | 46 | 88 | 14279 | 843690 | 147244 | 0.67 | 1791 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `requirements-preflight.sh` checks every row of every `### <path>` table in the issue's `## Requirements` against that unit's `REQUIREMENTS.md` list by calling skill_edit_step.py's own clash comparison (never a copy), and exits 2 naming every clashing ID (a plain ID the list holds with different text) at once, across every table; the same case asserts, as an in-case contrast, that an issue whose rows are all new, identical or `<reword>`-marked exits 0. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 1⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 146 | 40 | 78 | 14023 | 696380 | 142938 | 0.57 | 570 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | Given a ledger, `requirements-preflight.sh` names every skill-edit step (a ledger line marked skill-edit) whose unit has no `### <path>` table in the issue's `## Requirements` in the same exit-2 refusal as the clashing IDs. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 2⟧ | 20 | 6 | 4 | 0 | 0 | 0 | 302 | 86 | 164 | 31512 | 1443493 | 298597 | 1.28 | 1343 | 1/2 | 1/5 | nothing-left |  |  | already-satisfied |
-| The comparison is skill_edit_step.py's, called, not copied: the clash test (a listed ID whose text differs from the incoming row's) appears once in skills/tdd/scripts/veri/ ⟦diff-checked⟧ ⟦criterion 5⟧ | 6 | 2 | 1 | 0 | 0 | 0 | 113 | 38 | 72 | 10365 | 652687 | 132657 | 0.65 | 5977 | 1/2 | unknown | unknown |  |  | pin |
+| The comparison is skill_edit_step.py's, called, not copied: the clash test (a listed ID whose text differs from the incoming row's) appears once in skills/tdd/scripts/veri/ ⟦diff-checked⟧ ⟦criterion 5⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 155 | 52 | 100 | 14025 | 879757 | 175543 | 0.81 | 5977 | 1/2 | unknown | unknown |  |  | pin |
 | Pin step, test-only, no production change: a case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py where one issue holds 2 or more skill-edit ledger steps whose unit has no `### <path>` heading and, in one unit, 2 or more clashing row IDs, asserting stderr names every missing unit and every clash, so a `[:1]` truncation of the missing list or of a unit's clash list goes red; it already passes ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 10 | 18 | 4122 | 151784 | 42406 | 0.16 | unknown | unknown | unknown | unknown |  |  | already-satisfied |
 | `skills/tdd/PREFLIGHT-FAILURES.md` gains an entry for requirements-preflight.sh exit 2 (a clash or a missing unit heading) that writes the `preflight-refused` event and posts the issue comment through `$S/preflight-refused.sh <n> <check>` like every other preflight refusal, as row PF59 requires ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 46 | 9 | 18 | 6863 | 96355 | 50042 | 0.20 | unknown | unknown | unknown | unknown |  |  | full |
 | `skills/tdd/PREFLIGHT.md` lines 80-86 align with that entry: the requirements-preflight.sh exit 2 is a preflight refusal that sends the run to PREFLIGHT-FAILURES.md, as every other refusal does ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 54 | 6 | 12 | 8035 | 80099 | 53451 | 0.22 | unknown | unknown | unknown | unknown |  |  | full |
@@ -304,10 +339,10 @@ Stopped: nothing-structural
 | fast | 22 | 21 | 24 | 21 | 25 | 22 | 23 | 23 | 22 | 25 | 24 | 25 | 25 | 24 | 25 | 23 | 22 | 24 | 23 | 23 | 23 | 23 | 27 | 23 |  |  |  |  |  |  |  |  |  |
 | affected | 1 | 2 | 1 | 203 | 195 | 1 | 1 | 1 | 2 | 15 | 2 | 1 | 16 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 224 | 1 | 1 | 1 |
 | target | 1 | 2 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |
-| all | 31 | 29 | 212 | 206 | 226 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 31 | 29 | 212 | 206 | 226 | 22 | 22 | 192 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 279 | 536 | 168415 | 4449018 | 1561228 | 17.32 (estimate) |
+| total | 298 | 574 | 198749 | 4682628 | 1832597 | 22.97 (estimate) |
