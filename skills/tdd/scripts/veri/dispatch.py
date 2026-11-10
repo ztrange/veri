@@ -319,7 +319,11 @@ def main(argv):
                     for f in (events, log, *glob.glob(os.path.join(tdd, "*.out")))
                     if os.path.exists(f)) >= stall:
                 if states is None:
-                    states = issue_states(seen)
+                    try:
+                        states = answered("issue states", issue_states, seen)
+                    except watch_runs.QueueUnreadable as failure:
+                        sys.stderr.write(str(failure))
+                        return 2
                 if states.get(issue) == "CLOSED":
                     continue
                 sys.stdout.write(f"stalled {issue}\n")
