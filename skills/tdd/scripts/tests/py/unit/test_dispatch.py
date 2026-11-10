@@ -32,6 +32,17 @@ def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli
     assert str(tmp_path / ".tdd" / "role-dev.state") in err
 
 
+def test_main_with_no_target_and_an_unreadable_role_dev_state_exits_2_naming_the_file_and_launches_nothing(
+        run_cli, dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd" / "role-dev.state").mkdir(parents=True)
+    launches = []
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "launch", launches.append)
+    code, out, err = run_cli(dispatch, [])
+    assert (code, out, launches) == (2, "", [])
+    assert str(tmp_path / ".tdd" / "role-dev.state") in err
+
+
 class _StopWaiting(Exception):
     pass
 

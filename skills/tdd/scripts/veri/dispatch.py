@@ -192,7 +192,7 @@ def parse_args(argv):
 def main(argv):
     if not argv:
         state = os.path.join(status.main_working_tree(), ".tdd", "role-dev.state")
-        if not os.access(state, os.R_OK):
+        if not os.path.isfile(state) or not os.access(state, os.R_OK):
             sys.stderr.write(f"dispatch.sh: cannot read {state}\n")
             return 2
     target = parse_args(argv)
