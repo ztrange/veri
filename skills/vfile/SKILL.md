@@ -61,6 +61,9 @@ reads the plan out of these headings.
   a `## Requirements` section, placed after `## Blocked by`. Each unit sits under a
   **`### <path>` heading** (the bare path), or `### <path> (new)` only for a file that does not
   exist yet; a `##` heading is not read as a unit. For example: `### skills/vfile/SKILL.md`.
+  Each unit's rows sit under the table header **`| ID | Requirement | Why |`** followed by
+  **`|---|---|---|`**; any other header (such as `Rationale`) is refused by
+  `skill-edit-step.sh` (exit 2).
   A row that amends an existing row writes its ID cell as **`<ID><reword>`** (for example
   `SC85<reword>`) with its **full new text**. A row new to the unit uses **`<prefix><next>`** (for
   example `SC<next>`) or an ID no row of the unit holds. A **bare ID that already exists with
