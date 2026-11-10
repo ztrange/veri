@@ -858,3 +858,23 @@ def test_green_exits_2_naming_the_missing_line_when_the_report_lacks_impl_path_o
         assert ".tdd/develop-green.out" in err, missing
         assert posted == [], missing
         assert not (tmp_path / ".tdd" / "events.jsonl").exists(), missing
+
+
+def test_green_note_file_text_follows_the_rendered_green_comment_after_a_blank_line(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-green.out").write_text(
+        "IMPL_PATH: src/widget.py\nSUITE: GREEN 42 passed in 1.3s\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the conductor note xray\n")
+
+    code, out, err = run_cli(comment, ["7", "green", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    assert posted[0].startswith("### 🟢 Green")
+    assert "GREEN 42 passed in 1.3s\n\nthe conductor note xray" in posted[0]
