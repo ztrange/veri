@@ -454,9 +454,9 @@ def waiting_lines():
                 pr = e["pr"]
             elif e.get("event") == "merged":
                 pr = None
-        issue = os.path.basename(path)[:-len(".jsonl")]
-        if pr is not None and not any(t.endswith("(#%s)" % issue) for t in subjects):
-            lines.append("%s PR %s ready to merge" % (run_name(path), pr))
+        name = run_name(path)
+        if pr is not None and not any(t.endswith("(%s)" % name) for t in subjects):
+            lines.append("%s PR %s ready to merge" % (name, pr))
     return "\n".join(lines) or "none"
 
 
