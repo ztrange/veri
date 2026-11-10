@@ -64,3 +64,85 @@ def test_3567_a_unit_whose_heading_repeats_in_the_issue_names_each_clashing_id_o
     code, out, err = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
 
     assert code == 2 and err.count("A1") == 1 and "A2" not in err, (code, out, err)
+
+
+def test_3567_a_ledger_skill_edit_step_whose_unit_has_no_issue_table_is_named_with_the_clashing_ids_in_one_exit_2(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is green. | because |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text(
+        "- [ ] ⟦skill-edit⟧ regrade `unit.md` against A1\n"
+        "- [ ] ⟦skill-edit⟧ regrade `missing/NOTES.md` against A1\n"
+        "- [ ] plain step touching `plain/ignored.md`\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and "A1" in err and "missing/NOTES.md" in err and "unit.md\n" not in err.replace("A1", "") and "plain/ignored.md" not in err, (code, out, err)
+
+
+def test_3567_a_ledger_skill_edit_step_whose_unit_has_no_issue_table_alone_exits_2_naming_that_unit(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is blue. | because |\n")
+    covered = "- [ ] regrade `unit.md` against A1 ⟦skill-edit⟧ ⟦criterion 1⟧\n"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text(covered)
+    assert run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)[::2] == (0, "")
+
+    ledger.write_text(covered + "- [ ] regrade `missing/NOTES.md` ⟦skill-edit⟧ ⟦criterion 2⟧\n"
+                      "- [ ] plain step touching `plain/ignored.md` ⟦criterion 3⟧\n")
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and "missing/NOTES.md" in err and "plain/ignored.md" not in err and "A1" not in err, (code, out, err)
+
+
+def test_3567_a_ledger_line_with_the_skill_edit_marker_that_is_not_a_checkbox_is_ignored_by_the_unit_heading_check(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is blue. | because |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("Note: ⟦skill-edit⟧ steps cover `notes/PROSE.md` too.\n"
+                      "  ⟦skill-edit⟧ indented mention of `notes/INDENT.md`\n"
+                      "- [ ] regrade `missing/NOTES.md` ⟦skill-edit⟧\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and "missing/NOTES.md" in err and "notes/PROSE.md" not in err and "notes/INDENT.md" not in err, (code, out, err)
+
+
+def test_3567_a_missing_unit_heading_prints_no_clash_line_while_a_real_clashing_id_does(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is green. | because |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] regrade `missing/NOTES.md` ⟦skill-edit⟧\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    clash_lines = [l for l in err.splitlines() if l.startswith("Requirement row ID already held")]
+    assert code == 2 and "missing/NOTES.md" in err and len(clash_lines) == 1 and clash_lines[0].endswith(": A1"), (code, out, err)
