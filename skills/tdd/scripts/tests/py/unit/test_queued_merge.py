@@ -431,6 +431,50 @@ def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_
     assert (code != 0, len(rereads), cleaned(calls)) == (True, 3, [])
 
 
+def test_3500_queued_merge_whose_merge_call_fails_but_whose_pr_reads_merged_on_the_first_reread_exits_0_and_tags_deletes_the_branch_and_removes_the_worktree(fake_processes, run_cli):
+    landed = []
+
+    def landing(answer):
+        def wrapped(line, **kw):
+            if "pulls/7/merge" in line:
+                landed.append(line)
+                return 1, "", "502 Bad Gateway"
+            if landed and line.endswith("gh api repos/o/r/pulls/7"):
+                return 0, json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(landing)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, len(cleaned(calls))) == (0, 3)
+
+
+def test_3500_queued_merge_whose_pr_reads_merged_on_a_reread_after_a_failed_merge_call_keeps_that_answer_when_a_later_read_would_say_open(fake_processes, run_cli):
+    landed = []
+    reads = []
+
+    def landing(answer):
+        def wrapped(line, **kw):
+            if "pulls/7/merge" in line:
+                landed.append(line)
+                return 1, "", "502 Bad Gateway"
+            if landed and line.endswith("gh api repos/o/r/pulls/7"):
+                reads.append(line)
+                if len(reads) == 1:
+                    return 0, json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA}), ""
+                return 0, json.dumps({"state": "open", "merged": False}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(landing)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, len(cleaned(calls)), len(reads)) == (0, 3, 1)
+
+
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
     waits = []

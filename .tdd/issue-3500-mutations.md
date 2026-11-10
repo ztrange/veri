@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_queued_merge.py
 command 181
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait
 
+before 40
+3997409c97ef0c9af7cc296ce2af723e76adfea7
+keep 53
+skills/tdd/scripts/tests/py/unit/test_queued_merge.py
+command 204
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_whose_pr_reads_merged_on_a_reread_after_a_failed_merge_call_keeps_that_answer_when_a_later_read_would_say_open
+
