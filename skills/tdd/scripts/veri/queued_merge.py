@@ -99,23 +99,25 @@ def _synced(worktree, lease):
             and not _git(worktree, "merge", "--ff-only", lease).returncode)
 
 
-def _merged(repo, pr):
-    """GitHub's pull record when it answers merged: true; None when it answers anything else."""
+def _pull(repo, pr):
+    """GitHub's pull record for <pr> as a dict; None when it cannot be read."""
     run = gh_api("repos/%s/pulls/%s" % (repo, _number(pr)))
     try:
         pull = json.loads(run.stdout) if run.returncode == 0 else None
     except ValueError:
         return None
-    return pull if isinstance(pull, dict) and pull.get("merged") is True else None
+    return pull if isinstance(pull, dict) else None
+
+
+def _merged(repo, pr):
+    """GitHub's pull record when it answers merged: true; None when it answers anything else."""
+    pull = _pull(repo, pr)
+    return pull if pull and pull.get("merged") is True else None
 
 
 def _closed(repo, pr):
-    run = gh_api("repos/%s/pulls/%s" % (repo, _number(pr)))
-    try:
-        pull = json.loads(run.stdout) if run.returncode == 0 else None
-    except ValueError:
-        return False
-    return isinstance(pull, dict) and pull.get("state") == "closed" and pull.get("merged") is False
+    pull = _pull(repo, pr)
+    return bool(pull) and pull.get("state") == "closed" and pull.get("merged") is False
 
 
 def _merge_commit(worktree, pull, pr):
