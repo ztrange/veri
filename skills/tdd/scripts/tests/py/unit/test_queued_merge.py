@@ -1,7 +1,6 @@
 """veri/queued_merge.py in-process, every process boundary (merge-lock.sh, wait-ci.sh, git, gh) faked."""
 import json
 import os
-import subprocess
 
 import pytest
 
@@ -1063,7 +1062,7 @@ def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_e
 def test_3500_scenario_fixture_answers_not_an_ancestor_for_a_strictly_behind_pr_head_against_origin_main(fake_processes):
     scenario(fake_processes, behind=True)
 
-    ran = subprocess.run(["git", "-C", "/wt", "merge-base", "--is-ancestor", "9999999", "origin/main"], capture_output=True, text=True)
+    ran = queued_merge._git("/wt", "merge-base", "--is-ancestor", "9999999", "origin/main")
 
     assert ran.returncode == 1
 
