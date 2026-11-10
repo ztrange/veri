@@ -994,3 +994,23 @@ def test_refactor_comment_carries_the_transforms_and_leaves_out_the_leafs_other_
     assert "extracted spin_once from Widget.spin" in body
     assert "Tidied up." not in body
     assert "All suites green afterwards." not in body
+
+
+def test_refactor_comment_says_no_refactor_warranted_when_the_leaf_reports_nothing_left_to_tidy(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://github.com/o/r/issues/7#issuecomment-91")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text(
+        "Looked it over.\n"
+        "RESULT: nothing left to tidy\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 0
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### 🛠️ Refactor"
+    assert "no refactor warranted" in body.splitlines()
