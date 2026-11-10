@@ -142,6 +142,7 @@ def conductor_sessions(issue, path):
                         if open_contexts:
                             turn_rows.session_contexts.append(open_contexts)
                         open_contexts = []
+                        seen_ids = {key: kept for key, kept in seen_ids.items() if kept}
                     elif record.get("type") == "assistant":
                         message = record.get("message") or {}
                         usage = message.get("usage") or {}
