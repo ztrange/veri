@@ -1577,3 +1577,39 @@ def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_i
         902: {"number": 902, "title": "old one", "state": "CLOSED", "labels": [], "closedAt": "2026-01-02T00:00:00Z",
               "updatedAt": "2026-01-02T00:00:00Z", "blockedBy": [4], "links": [4, 9], "wallSeconds": None, "lane": None},
     })
+
+
+def test_refresh_fetches_comments_of_an_issue_closed_6_days_ago_and_not_of_one_closed_8_days_ago_3279(run_cli, monkeypatch, tmp_path):
+    import datetime
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    now = datetime.datetime.now(datetime.timezone.utc)
+    inside = (now - datetime.timedelta(days=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    outside = (now - datetime.timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    metrics = "### 📊 Metrics\n\nWall time for the issue: 120 s\nLane: mu\n"
+    paged = [
+        {"number": 910, "title": "inside", "state": "CLOSED", "labels": [], "closedAt": inside,
+         "updatedAt": inside, "body": ""},
+        {"number": 911, "title": "outside", "state": "CLOSED", "labels": [], "closedAt": outside,
+         "updatedAt": outside, "body": ""},
+    ]
+    comments = [{"body": "see #5\n\n" + metrics}]
+
+    def fake_gh_issue_list(*args):
+        if args[args.index("--json") + 1] != "number,comments":
+            return json.dumps(paged)
+        search = args[args.index("--search") + 1]
+        if not search.startswith("closed:>="):
+            return json.dumps([])
+        since = search[len("closed:>="):]
+        return json.dumps([{"number": i["number"], "comments": comments} for i in paged if i["closedAt"][:10] >= since])
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    issues = {i["number"]: i for i in json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]}
+    assert (code, [(n, issues[n]["links"], issues[n]["wallSeconds"]) for n in (910, 911)]) == (
+        0, [(910, [5], 120), (911, [], None)])
