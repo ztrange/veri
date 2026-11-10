@@ -212,6 +212,10 @@ def main(argv):
     code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
     if code:
         return code
+    if _merged(repo, pr) is not None:
+        _say("%s is already merged; nothing rebased or pushed" % pr)
+        _release(pid)
+        return 2
     lease = _rev(worktree, "refs/remotes/origin/%s" % branch)
     if not lease:
         _say("origin/%s does not resolve; no lease to pin" % branch)

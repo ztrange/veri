@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_queued_merge.py
 command 231
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_whose_pr_reads_open_on_the_first_reread_after_a_failed_merge_call_but_merged_on_a_later_one_within_the_settle_reads_exits_0_and_cleans_up
 
+before 40
+3997409c97ef0c9af7cc296ce2af723e76adfea7
+keep 53
+skills/tdd/scripts/tests/py/unit/test_queued_merge.py
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_of_a_pr_already_reading_merged_after_the_fetch_releases_the_merge_lock_once
+
