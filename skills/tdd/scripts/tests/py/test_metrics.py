@@ -2392,3 +2392,26 @@ def test_issue_3288_a_later_record_after_the_flushing_result_counts_a_new_family
 
     assert turn_rows.families["🔴 Red"][0] == 1
     assert turn_rows.families["🟢 Green"][0] == 1
+
+
+def test_issue_3288_a_message_id_reused_in_the_next_session_counts_as_a_new_turn_while_a_duplicate_inside_an_open_turn_merges(tmp_path, metrics):
+    def record(message_id, command=None):
+        content = [] if command is None else [{"type": "tool_use", "name": "Bash", "input": {"command": command}}]
+        return {"type": "assistant", "message": {"id": message_id, "content": content, "usage": {"output_tokens": 10}}}
+
+    result = {"type": "result", "usage": {"output_tokens": 10}}
+    green = "gh issue comment 1 --body '🟢 Green'"
+    red = "gh issue comment 1 --body '🔴 Red'"
+    records = [record("m1"), result, record("m1", green), result,
+               record("m2"), record("m2", red), result]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert len(turn_rows) == 3
+    assert [row[0] for row in turn_rows] == ["1", "2", "3"]
+    assert all(row[1].startswith("$") for row in turn_rows)
+    assert turn_rows.families["🟢 Green"][0] == 1
+    assert turn_rows.families["🔴 Red"][0] == 1
+    assert turn_rows.families["Total"][0] == 2
+
