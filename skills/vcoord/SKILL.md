@@ -70,7 +70,8 @@ You own, and only you change:
 
 File every issue through `/vfile`, and groom through `/vgroom`. A split or criteria rewrite
 passes `vjudge` like any other decision, and is not shown to the human first; one that weakens a
-criterion surfaces (`vjudge`'s always-surface list). A clear-cut `vjudge` decision counts as the
+guarantee the human stated surfaces (`vjudge`'s always-surface list), one that rewrites a
+criterion an agent wrote does not. A clear-cut `vjudge` decision counts as the
 human's "go" for a `vgroom` run.
 
 **A bug found in your lane is filed into your lane.** When a run in your lane (or the dev
@@ -125,7 +126,10 @@ asked by the human", "resume #N once with a raised budget", "#N is parked, do no
 It never receives a decision to make. **Every question you would put to the human passes
 `vjudge` first** (run through a subagent, above). A clear-cut one you decide, act on and state in
 one line naming the principle and the alternative not taken. Only `vjudge`'s surface outcomes
-reach the human: for those you lay out the options in words, with what each costs, and wait.
+reach the human: for those you lay out the options in words, with what each costs, once, as
+plain text (*Stopping*). Never use a question tool (`AskUserQuestion`) or put the question in
+the end-of-turn box. Do not repeat it on later turns; when the human's next message arrives,
+whatever it is about, answer it and then restate every pending decision in full.
 Applying `priority` stays the human's yes, whatever `vjudge` says.
 
 Send every instruction yourself with `SendMessage` to the dev session, self-contained (P13),

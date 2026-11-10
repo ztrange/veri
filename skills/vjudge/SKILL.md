@@ -1,8 +1,8 @@
 ---
 name: vjudge
 description: >-
-  Decide a veri question the way the owner would, or surface it to them only when their principles
-  do not settle it: `/vjudge <the question>`, or `/vjudge`. Use before any operator session
+  Decide a veri question the way the owner would, or surface it to them only when the call is
+  theirs by nature or cannot be undone: `/vjudge <the question>`, or `/vjudge`. Use before any operator session
   (coordinator, dev session) asks the human anything — a ruling, an option menu, a "should I".
 ---
 
@@ -16,8 +16,7 @@ The owner's principles, mined from their rulings and corrections across every ve
 questions an operator session wanted to ask were already answered by one of them — the most
 frequent replies on record are "go with your recommendation", "agree all", "why did you ask
 again?". This skill turns such a question into a decision you make and state, and keeps the
-human's attention for the questions where their principles pull apart or the call is theirs by
-nature.
+human's attention for the calls that are theirs by nature or cannot be undone.
 
 ## The procedure
 
@@ -29,7 +28,7 @@ Run it on every question before it reaches the human.
    and never offer an "(a) do it / (b) hold" menu. A merge is not one of these: it follows
    `vmerge` and the caveat rule — every caveat the review found goes to the coordinator, and
    the merge waits for a reply that names each one.
-2. **Is it on the always-surface list below?** Then surface it (step 5), whatever the
+2. **Is it on the always-surface list below?** Then surface it (step 6), whatever the
    principles seem to say.
 3. **Run it through the principles, J1 to J12.** Name every principle that applies and what each
    says to do.
@@ -38,12 +37,24 @@ Run it on every question before it reaches the human.
    `Decided: hand-fixed the missing case on the branch (J1: close the loop); not a follow-up issue.`
    Reversible means a later run or a revert undoes it without loss; a merge to the default branch
    that CI and review passed counts.
-5. **They disagree, the material difference is money or a guarantee, or step 2 matched** →
-   surface it, once, in the format below.
+5. **They disagree, and the choice is reversible inside the project repo** → break the tie in
+   this order: **simplicity**, then **quality** (robustness, then maintainability: how easily
+   the next change lands), then **cheapness**. The first axis on which the options differ
+   decides. Decide, act, and report it in one line naming the axis and the option not taken:
+   `Decided: kept one script (simplicity over J3's cheaper split); not two entry points.`
+6. **Step 2 matched, or the choice is not reversible inside the project repo** → surface it,
+   once, in the format below.
 
-When unsure whether a case is clear-cut, it is not: surface it. A wrong guess on a tension costs
-more than one question; a question the principles answer costs the owner's attention and has
-been corrected every time.
+When unsure, decide by step 5's order and say which axis decided; an operator session that
+stops to ask stops every other thread with it. The owner observes behaviour and corrects it;
+a question the principles or the order answer costs their attention and has been corrected
+every time.
+
+**Criteria and prose an agent wrote are not the owner's guarantees.** Acceptance criteria,
+requirement rows and skill prose are mostly agent-written; the owner adjusts them by observing
+behaviour, not by reviewing each. When the option the order picks contradicts one, the criterion
+is what changes: rewrite it openly (in the issue, the rows or the PR body, with a one-line
+reason), never merge over a silent gap and never surface it for that reason alone.
 
 ## The principles
 
@@ -125,8 +136,10 @@ a principle seems to answer them.
   current cap, any new recurring spend (runner, cron, paid API), a bigger CI runner.
 - **Product direction**: the next PRD or milestone, a PRD's shape, dropping or keeping a platform
   or a dependency rule, closing a PRD, opening a lane.
-- **Weakening a guarantee the owner asked for**: merging with a criterion gap, accepting a
-  narrower fix than the issue states, relaxing an ADR or a requirement row.
+- **Weakening a guarantee the owner stated**: one in their own words (an issue or PRD they
+  wrote, a decision they settled in `vplan`, a standing rule, an ADR they approved) — merging
+  with a gap in it, accepting a narrower fix than it states, relaxing it. A criterion, row or
+  prose an agent wrote is not one (above).
 - **What becomes of a parked run**: the dev session resumes a first bail once and parks a
   second, with one issue comment giving the cause and what would unblock it; it never asks.
   Whether a parked run on product code is resumed with a raised budget, merged as is or closed
@@ -134,22 +147,22 @@ a principle seems to answer them.
 - **Preempting a running run** to land another issue sooner.
 - **A first-of-kind precedent**: the first run of a new kind of change, whose review sets the
   bar for the ones after it.
-- **Requirement rows for a graded unit**, and any change to them.
 - **Deleting code whose only caller is its own test**, or functionality no one calls.
 - **Anything outside the project repo, a push to the default branch, a machine or security
   setting, the repository's visibility or ruleset.**
-- **Two principles in material tension**, typically: J2 or J3 (speed, cost) against a
-  guarantee (coverage, a review bar); J1 (fix on the branch) against J5 (veri fixes veri) when
-  the fix touches product code; J4 (use capacity) against J3 (cheapest tier) for a costly run.
 
 ## Surfacing a decision
 
 Once, when it arises, in full (P4), and never again on routine events:
 
 - **What is decided**, in one sentence, naming the issue or PR and what it is.
-- **Why it is not clear-cut**: the principles that pull apart, or the always-surface item it is.
+- **Why it is not clear-cut**: the always-surface item it is, or what makes it irreversible.
 - **The options**, each in words with its cost (money, time, a guarantee given up).
 - **The recommendation**, and the principle it leans on.
 
 No option letters without their words, no pointer to an earlier message, no "reply a/b/c".
-While it waits, keep every other thread moving (J10).
+Write it as plain text in the turn. Never use a question tool (`AskUserQuestion`) and never
+put it in an end-of-turn box as a blocking question: either stops the session until the human
+answers. While it waits, only that decision waits; keep every other thread moving (J10). Do not
+repeat it on later turns; when the human's next message arrives, whatever it is about, answer
+that message and then restate every pending decision in full.
