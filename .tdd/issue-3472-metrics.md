@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3472
 
-Wall time for the issue: 314 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 6 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Wall time for the issue: 8810 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 6 of 6 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3497.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $6.30 over 124 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $9.54 over 190 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78028 tokens, largest 144674 tokens
 Conductor context: first turn 78100 tokens, largest 139492 tokens
-Conductor context: first turn 78100 tokens, largest 122671 tokens
+Conductor context: first turn 78100 tokens, largest 125082 tokens
+Conductor context: first turn 78131 tokens, largest 166869 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -109,38 +110,104 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 90 | $0.12 | 137432 |
 | 91 | $0.04 | 138630 |
 | 92 | $0.05 | 139492 |
-| 93 | $0.48 | 78100 |
-| 94 | $0.06 | 84121 |
-| 95 | $0.03 | 86175 |
+| 93 | $0.49 | 78100 |
+| 94 | $0.08 | 84121 |
+| 95 | $0.04 | 86175 |
 | 96 | $0.04 | 88652 |
-| 97 | $0.03 | 90605 |
-| 98 | $0.02 | 91268 |
-| 99 | $0.02 | 91567 |
-| 100 | $0.02 | 92028 |
-| 101 | $0.02 | 92287 |
-| 102 | $0.02 | 92983 |
-| 103 | $0.02 | 93266 |
-| 104 | $0.02 | 93667 |
-| 105 | $0.03 | 95040 |
+| 97 | $0.05 | 90605 |
+| 98 | $0.03 | 91268 |
+| 99 | $0.03 | 91567 |
+| 100 | $0.03 | 92028 |
+| 101 | $0.03 | 92287 |
+| 102 | $0.03 | 92983 |
+| 103 | $0.03 | 93266 |
+| 104 | $0.03 | 93667 |
+| 105 | $0.04 | 95040 |
 | 106 | $0.06 | 99716 |
-| 107 | $0.03 | 100375 |
-| 108 | $0.02 | 100970 |
-| 109 | $0.02 | 101484 |
+| 107 | $0.04 | 100375 |
+| 108 | $0.03 | 100970 |
+| 109 | $0.04 | 101484 |
 | 110 | $0.03 | 102517 |
-| 111 | $0.03 | 103703 |
-| 112 | $0.02 | 104203 |
-| 113 | $0.02 | 104658 |
+| 111 | $0.04 | 103703 |
+| 112 | $0.03 | 104203 |
+| 113 | $0.04 | 104658 |
 | 114 | $0.03 | 105342 |
-| 115 | $0.03 | 106280 |
-| 116 | $0.03 | 106861 |
+| 115 | $0.04 | 106280 |
+| 116 | $0.04 | 106861 |
 | 117 | $0.03 | 107355 |
-| 118 | $0.03 | 108092 |
+| 118 | $0.04 | 108092 |
 | 119 | $0.03 | 108807 |
-| 120 | $0.03 | 110178 |
-| 121 | $0.07 | 116755 |
-| 122 | $0.03 | 117493 |
+| 120 | $0.04 | 110178 |
+| 121 | $0.09 | 116755 |
+| 122 | $0.04 | 117493 |
 | 123 | $0.03 | 117760 |
-| 124 | $0.06 | 122671 |
+| 124 | $0.07 | 122671 |
+| 125 | $0.05 | 124206 |
+| 126 | $0.04 | 125082 |
+| 127 | $0.48 | 78131 |
+| 128 | $0.06 | 84104 |
+| 129 | $0.04 | 86722 |
+| 130 | $0.03 | 87776 |
+| 131 | $0.08 | 95885 |
+| 132 | $0.03 | 96910 |
+| 133 | $0.03 | 98146 |
+| 134 | $0.02 | 98579 |
+| 135 | $0.02 | 98864 |
+| 136 | $0.02 | 99222 |
+| 137 | $0.02 | 99473 |
+| 138 | $0.02 | 99767 |
+| 139 | $0.02 | 100057 |
+| 140 | $0.03 | 100767 |
+| 141 | $0.06 | 105137 |
+| 142 | $0.03 | 105654 |
+| 143 | $0.02 | 106075 |
+| 144 | $0.03 | 106806 |
+| 145 | $0.03 | 107316 |
+| 146 | $0.03 | 108164 |
+| 147 | $0.03 | 109350 |
+| 148 | $0.07 | 115638 |
+| 149 | $0.03 | 116266 |
+| 150 | $0.03 | 117122 |
+| 151 | $0.03 | 117555 |
+| 152 | $0.03 | 118102 |
+| 153 | $0.03 | 119315 |
+| 154 | $0.15 | 134948 |
+| 155 | $0.03 | 135260 |
+| 156 | $0.03 | 135473 |
+| 157 | $0.03 | 135791 |
+| 158 | $0.03 | 136002 |
+| 159 | $0.03 | 136666 |
+| 160 | $0.09 | 144366 |
+| 161 | $0.03 | 145130 |
+| 162 | $0.04 | 145994 |
+| 163 | $0.04 | 146820 |
+| 164 | $0.10 | 155806 |
+| 165 | $0.03 | 156265 |
+| 166 | $0.04 | 156890 |
+| 167 | $0.04 | 158526 |
+| 168 | $0.04 | 159051 |
+| 169 | $0.03 | 159226 |
+| 170 | $0.03 | 159486 |
+| 171 | $0.04 | 159989 |
+| 172 | $0.03 | 160205 |
+| 173 | $0.03 | 160464 |
+| 174 | $0.04 | 160830 |
+| 175 | $0.03 | 161023 |
+| 176 | $0.04 | 161448 |
+| 177 | $0.03 | 161724 |
+| 178 | $0.03 | 162027 |
+| 179 | $0.04 | 162524 |
+| 180 | $0.04 | 163010 |
+| 181 | $0.04 | 163345 |
+| 182 | $0.03 | 163563 |
+| 183 | $0.03 | 163847 |
+| 184 | $0.04 | 164267 |
+| 185 | $0.04 | 164965 |
+| 186 | $0.04 | 165479 |
+| 187 | $0.04 | 165999 |
+| 188 | $0.04 | 166238 |
+| 189 | $0.03 | 166456 |
+| 190 | $0.04 | 166869 |
 
 #### Conductor comments, by family
 
@@ -153,33 +220,35 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🛠️ Refactor | 1 | 544 | $0.01 |
 | 🔎 verify-green | 2 | 1088 | $0.02 |
 | 🔎 verify-refactor | 1 | 544 | $0.01 |
-| 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
+| 🔎 verify-<phase> (revised) | 1 | 8 | $0.00 |
 | 🗺️ Plan | 1 | 544 | $0.01 |
-| 🗺️ verify-plan | 3 | 932 | $0.02 |
-| ▶️ Resuming | 2 | 380 | $0.01 |
-| ⛔ Bailed | 1 | 372 | $0.01 |
+| 🗺️ verify-plan | 4 | 1377 | $0.03 |
+| ▶️ Resuming | 3 | 821 | $0.02 |
+| ⛔ Bailed | 2 | 813 | $0.02 |
 | ⏹️ Stopped | 1 | 544 | $0.01 |
-| Total | 13 | 5492 | $0.11 |
-Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
+| Total | 17 | 6827 | $0.14 |
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 49 | 37 | 5 | 10 | 3477 | 40927 | 62875 | 0.20 |
+| plan | 4 | 4 | 0 | 0 | 59 | 44 | 6 | 12 | 4370 | 40927 | 83238 | 0.26 |
 | red | 5 | 2 | 0 | 0 | 392 | 85 | 21 | 40 | 6365 | 330785 | 89733 | 0.32 |
 | green | 4 | 2 | 0 | 0 | 611 | 56 | 19 | 30 | 3998 | 234507 | 61369 | 0.22 |
 | refactor | 2 | 0 | 0 | 0 | 38 | 33 | 5 | 8 | 766 | 43218 | 35413 | 0.10 |
 | pin | 1 | 1 | 0 | 0 | 37 | 19 | 4 | 8 | 1963 | 62865 | 15896 | 0.07 |
-| prose | 8 | 0 | 0 | 0 | 102 | 73 | 8 | 16 | 10701 | 35565 | 86104 | 0.33 |
-| skill-edit | 2 | 0 | 0 | 0 | 33 | 25 | 8 | 14 | 1742 | 112650 | 38852 | 0.13 |
+| prose | 21 | 0 | 0 | 0 | 440 | 364 | 21 | 42 | 57458 | 97594 | 582544 | 2.04 |
+| skill-edit | 3 | 0 | 0 | 0 | 46 | 34 | 12 | 22 | 2756 | 346031 | 117539 | 0.36 |
+| rebase | 3 | 1 | 0 | 0 | 2086 | 93 | 25 | 48 | 7566 | 437439 | 88990 | 0.46 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 8 | 8 | 0 | 0 | 719 | 111 | 23 | 46 | 8546 | 314082 | 140522 | 0.47 |
+| verifier | claude-sonnet-5-5 | 10 | 10 | 0 | 0 | 2376 | 132 | 28 | 54 | 10565 | 332906 | 197475 | 0.63 |
 | developer | claude-sonnet-5-5 | 7 | 0 | 0 | 0 | 408 | 119 | 31 | 50 | 8023 | 398220 | 124764 | 0.43 |
+| developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 439 | 79 | 21 | 42 | 6440 | 418615 | 52400 | 0.36 |
 
 #### Rework and waste, by phase
 
@@ -192,6 +261,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -202,6 +272,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `pin-reject-route.sh --missing-reroute` with fewer than four further arguments still exits 2 printing nothing on stdout and a usage line on stderr ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 9 | 16 | 3908 | 132686 | 33979 | 0.14 | unknown | unknown | unknown | unknown |  |  | pin |
 | ⟦skill-edit⟧ `skills/tdd/BAIL.md`: the cause list gains an `unpinnable-missing` bullet — a missing-reroute's demanded case is green on the before-state and cannot be pinned; a **process** failure ⟦criterion 3⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 46 | 7 | 14 | 5718 | 61583 | 67755 | 0.23 | 116 | unknown | unknown | unknown |  |  | full |
 | ⟦skill-edit⟧ `skills/tdd/PIN.md`: the REJECT branch bails with cause `unpinnable-missing`, a process failure, when `pin-reject-route.sh --missing-reroute` exits 2 printing `unpinnable-missing`, and keeps the system bail only for a bare exit 2 (no longer saying the stays-green case prints neither) ⟦criterion 3⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 52 | 9 | 16 | 6725 | 86632 | 57201 | 0.22 | 105 | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: the `pin-reject-route.sh` entry (and its SC87 row) says that under `--missing-reroute` a reason saying `stays green` prints `unpinnable-missing` on stdout with its exit 2 and its one event, while bad arguments still print nothing on stdout | 8 | 1 | 0 | 0 | 0 | 0 | 200 | 33 | 64 | 24483 | 719120 | 354010 | 1.32 | 7848 | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -212,24 +283,29 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `classify-bail.sh unpinnable-missing` prints `process` and exits 0 (a small in-process case in the classify_bail unit suite) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.04 |
 | `pin-reject-route.sh --missing-reroute` on a reason saying `stays green` prints `unpinnable-missing` on stdout, still exits 2, writes exactly one `unpinnable-missing` event and leaves the ledger untouched ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 31 | 0.06 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | `classify-bail.sh unpinnable-missing` prints `process` and exits 0 (a small in-process case in the classify_bail unit suite) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `pin-reject-route.sh --missing-reroute` on a reason saying `stays green` prints `unpinnable-missing` on stdout, still exits 2, writes exactly one `unpinnable-missing` event and leaves the ledger untouched ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 2 | 0 | 2 | nothing-left 2 |
+| issue | 3 | ? | ? | nothing-left 2, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | affected | 6 | 5 | 2 | 2 | 6 | 6 | 8 | 4 | 4 |
-| fast | 92 | 56 | 137 | 79 |  |  |  |  |  |
+| fast | 92 | 56 | 137 | 79 | 53 |  |  |  |  |
 | target | 2 | 6 | 3 | 3 |  |  |  |  |  |
+| all | 137 | 126 | 1630 |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 70 | 126 | 29012 | 860517 | 390242 | 7.65 (estimate) |
+| total | 113 | 210 | 85242 | 1593366 | 1074722 | 13.37 (estimate) |
