@@ -64,7 +64,7 @@ conductor exit:
 1. Apply any change the coordinator sent since the last decision — a new N (including a timed
    one now due or expired) or an order override — and send the coordinator no reply for it (P13).
    Write the change to the role state file (*Role state*): `dispatch.sh`, run without `--target`,
-   reads N, an unexpired timed N and the order overrides from `.tdd/role-dev.state` at each slot
+   reads N, an unexpired timed N and the order overrides from `.tdd/role-dev.state` (`.tdd/role-dev-<lane>.state` in a lane) at each slot
    decision, so an N change or an override needs no restart. An N of 0 in that file holds
    dispatch: it launches nothing and keeps watching exits; a later positive N resumes launching.
 2. Count live conductors. While fewer than N are live, launch the next issue (below). When N
@@ -111,7 +111,7 @@ since your last turn as `Started #<n> — <title>`, the title read from
 
 Wait on the blocking watch of P3: `$S/dispatch.sh`, run as one background command,
 never under a Monitor and never a hand-written script. It takes N and the launch order from
-`.tdd/role-dev.state` (*The slot decision*); `--target <N>` replaces only N with a fixed value
+`.tdd/role-dev.state`, or `.tdd/role-dev-<lane>.state` in a lane (*The slot decision*); `--target <N>` replaces only N with a fixed value
 (order overrides still apply), and `--target 0` holds dispatch: the watch keeps reporting exits
 and launches nothing. It launches and re-arms without printing,
 and prints one line per event:
