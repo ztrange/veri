@@ -5,9 +5,11 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.di
 # Exit:    0 pytest passed, 1 any other pytest status
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
+import contextlib
 import fcntl
 import hashlib
 import importlib.util
+import io
 import json
 import marshal
 import os
@@ -269,6 +271,39 @@ def split_marks(argv):
     return rest, selected
 
 
+def names(arg, root, nodeid, path):
+    target, *parts = arg.split("::")
+    where = os.path.realpath(os.path.join(root, target))
+    here = os.path.realpath(path)
+    if here != where and not here.startswith(where.rstrip(os.sep) + os.sep):
+        return False
+    held = nodeid.split("::")[1:]
+    return len(held) >= len(parts) and all(
+        own == part or (index == len(parts) - 1 and own.startswith(part + "["))
+        for index, (own, part) in enumerate(zip(held, parts)))
+
+
+class Collected:
+    """Records, per collect-only session, the cases left after the run's own -k selection and the targets named."""
+    def __init__(self):
+        self.cases, self.args, self.root = [], [], ""
+
+    def pytest_collection_finish(self, session):
+        self.cases = [(item.nodeid, str(item.path)) for item in session.items]
+        self.args = list(session.config.args)
+        self.root = str(session.config.invocation_params.dir)
+
+
+def unrun_targets(collected, reported):
+    unrun, targets = [], []
+    for arg in collected.args:
+        cases = [nodeid for nodeid, path in collected.cases if names(arg, collected.root, nodeid, path)]
+        if cases and not any(nodeid in reported for nodeid in cases):
+            targets.append(arg)
+            unrun.extend(nodeid for nodeid in cases if nodeid not in unrun)
+    return unrun, targets
+
+
 def refuse_below_floor(floor, numbers, subject, version):
     if numbers >= [int(part) for part in floor.split(".")[:2]]:
         return False
@@ -307,6 +342,11 @@ def main(argv):
     os.environ["TMPDIR"] = PINNED_TMPDIR
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
     sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    outer = sys.modules.get("failed_cases")
+    records = (outer.NODEIDS, outer.PASSED, outer.REPORTED, outer.NAMED) if outer else ()
+    saved = [list(record) for record in records]
+    for record in records:
+        record.clear()
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)
@@ -338,33 +378,32 @@ def main(argv):
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
-            if "failed_cases" in sys.modules:
-                sys.modules["failed_cases"].PASSED.clear()
-                sys.modules["failed_cases"].REPORTED.clear()
             statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
             import failed_cases
+            combined = None
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
-                if failed_cases.PASSED:
-                    sys.stdout.write("%d passed across both passes\n" % len(failed_cases.PASSED))
+                if failed_cases.NAMED or failed_cases.REPORTED:
+                    combined = "%d named, %d run, %d passed, %d failed across both passes\n" % (
+                        len(failed_cases.NAMED), len(failed_cases.REPORTED), len(set(failed_cases.PASSED)), len(set(failed_cases.NODEIDS)))
             if subset and selected:
-                class Collected:
-                    nodeids = []
-
-                    def pytest_collection_modifyitems(self, items):
-                        self.nodeids = [item.nodeid for item in items]
-
                 collected = Collected()
-                pytest.main(["--collect-only", "-q", "-p", "no:cacheprovider", "--basetemp=" + base] + rest, plugins=[collected])
-                unselected = [n for n in collected.nodeids if n not in failed_cases.REPORTED]
-                if unselected:
-                    sys.stdout.write("%d unselected: named cases that neither pass ran\n" % len(unselected))
+                with contextlib.redirect_stdout(io.StringIO()):
+                    pytest.main(["--collect-only", "-p", "no:cacheprovider", "--basetemp=" + base] + rest, plugins=[collected])
+                unrun, targets = unrun_targets(collected, failed_cases.REPORTED)
+                if unrun:
+                    sys.stdout.write("%d unselected: named cases that neither pass ran (%s)\n" % (len(unrun), " ".join(targets)))
                     statuses.append(pytest.ExitCode.TESTS_FAILED)
+            if combined:
+                sys.stdout.write(combined)
             if pytest.ExitCode.INTERNAL_ERROR in statuses:
                 sys.stderr.write("the leg was cut short by an internal error; cases that had failed by then:\n")
                 for nodeid in failed_cases.NODEIDS:
                     sys.stderr.write(nodeid + "\n")
     finally:
+        for record, kept in zip(records, saved):
+            record.clear()
+            record.update(kept) if isinstance(record, set) else record.extend(kept)
         if serial_seen is None:
             os.environ.pop("PYTEST_LEG_SERIAL_SEEN", None)
         else:
