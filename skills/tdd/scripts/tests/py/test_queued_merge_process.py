@@ -312,6 +312,7 @@ def test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_r
 
     def queued(message):
         call_log.write_text("")
+        (bin_dir / ".merge-landed").unlink(missing_ok=True)
         proc = subprocess.Popen(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(repo), "feature", message],
                                 start_new_session=True, **run)
         started.append(proc)
