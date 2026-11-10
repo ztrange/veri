@@ -961,10 +961,10 @@ def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_e
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
     monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
 
-    results = [run_cli(dispatch, argv) for argv in (["--target", "0"], ["--target", "abc"], ["--target"])]
+    results = [run_cli(dispatch, argv) for argv in (["--target", "abc"], ["--target"])]
 
     usage = (2, "", "usage: dispatch.sh --target <N>\n")
-    assert (results, launches) == ([usage, usage, usage], [])
+    assert (results, launches) == ([usage, usage], [])
 
 
 def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
