@@ -306,12 +306,16 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
     lives = [["7"], []]
     waits = []
 
+    elapsed = [1000]
+
     def wait():
         waits.append(1)
-        if len(waits) == 2:
+        elapsed[0] += 31
+        if len(waits) > 6:
             raise _StopWaiting
 
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -459,6 +463,7 @@ def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker
         raise ProcessLookupError(pid)
 
     monkeypatch.setattr(dispatch.os, "kill", dead)
+    monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -466,10 +471,12 @@ def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
     waits = []
+    elapsed = [1000]
 
     def wait():
         waits.append(1)
-        if len(waits) == 3:
+        elapsed[0] += 31
+        if len(waits) > 8:
             raise _StopWaiting
 
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
@@ -489,18 +496,21 @@ def test_main_reports_a_deferred_run_once_its_restart_marker_goes_stale_after_se
     marker.write_text("")
     lives = [["7"], []]
     waits = []
+    elapsed = [1000]
 
     def wait():
         waits.append(1)
+        elapsed[0] += 31
         if len(waits) == 3:
             marker.write_text("4242\n")
-        if len(waits) > 8:
+        if len(waits) > 12:
             raise _StopWaiting
 
     def kill(pid, sig):
         raise ProcessLookupError(pid)
 
     monkeypatch.setattr(dispatch.os, "kill", kill)
+    monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -561,12 +571,16 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
     lives = [["7"], []]
     waits = []
 
+    elapsed = [1000]
+
     def wait():
         waits.append(1)
-        if len(waits) == 2:
+        elapsed[0] += 31
+        if len(waits) > 6:
             raise _StopWaiting
 
     monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
