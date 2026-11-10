@@ -2109,6 +2109,28 @@ def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of
     assert (code, launches, "90" in err and "HTTP 502" in err) == (2, [], True)
 
 
+def test_main_exits_2_naming_the_diff_read_when_gh_pr_diff_answers_http_500_on_every_read_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+    monkeypatch.setattr(dispatch.github.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 500\n"))
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    err = capsys.readouterr().err
+    assert (code, launches, "reading https://github.com/o/r/pull/90's diff failed" in err) == (2, [], True)
+
+
 def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_process_not_on_every_pass_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     _overlap_case(
