@@ -176,15 +176,15 @@ def post_verify_plan(issue):
     return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — {verdict}\n\n{reason}")
 
 
-def post_resuming(issue):
+def post_resuming(issue, note_file=None):
     steps = read_steps(issue)
     pending = next(r[6] for r in steps if handed_out(r))
-    return post_and_record(issue, "resuming", f"### ▶️ Resuming\n\n{pending}\n")
+    return post_and_record(issue, "resuming", with_note(f"### ▶️ Resuming\n\n{pending}\n", note_file))
 
 
 def main(argv):
-    if argv[1:] == ["resuming"]:
-        return post_resuming(argv[0])
+    if argv[1:2] == ["resuming"] and (len(argv) == 2 or (len(argv) == 4 and argv[2] == "--note-file")):
+        return post_resuming(argv[0], *argv[3:])
     if argv[1:] == ["verify-plan"]:
         return post_verify_plan(argv[0])
     if argv[1:] == ["plan"]:
