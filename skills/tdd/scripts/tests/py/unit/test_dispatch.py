@@ -1793,3 +1793,20 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
 
     assert (launches, diff_reads, capsys.readouterr().out) == (
         [], [0, 70], f"skip 12 {path} https://github.com/o/r/pull/90\n")
+
+
+def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_the_poll_hold_expires_issue_3478(
+        monkeypatch, capsys, tmp_path, dispatch):
+    times = [0, 70, 140]
+    queue_reads = []
+    _, waits = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: queue_reads.append(times[len(waits)]) or ["12"],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, waits_before_stop=len(times))
+    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (queue_reads, capsys.readouterr().out) == (
+        [0, 70, 140], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")

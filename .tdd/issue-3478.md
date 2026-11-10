@@ -15,5 +15,5 @@
 - [x] a failed open-PR list read and a failed issue-body read each exit 2 naming the failure and launch nothing, each pinned by a case that goes red when the failure is swallowed ⟦added⟧ ⟦criterion 1⟧
 - [x] a rate-limited PR-list or issue-body read pins the wait through a gh fake that returns stderr only when the caller pipes it, so dropping the capture goes red ⟦added⟧ ⟦criterion 1⟧
 - [x] an overlap through the REST PR shape (head.ref, head.sha, html_url) is skipped naming the real PR url, and a changed head sha re-reads the diff ⟦added⟧ ⟦criterion 1⟧
-- [ ] the same (issue, path, PR) overlap seen again after the poll hold expires prints no second skip line ⟦added⟧ ⟦criterion 3⟧
+- [x] the same (issue, path, PR) overlap seen again after the poll hold expires prints no second skip line ⟦added⟧ ⟦criterion 3⟧
 - [x] ⟦skill-edit⟧ skills/vdev/SKILL.md: Launching states the skip ⟦criterion 5⟧
