@@ -43,8 +43,8 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
   and no `bail`, and posts no preflight refusal. A wait that exits 2 while no `now` stop is pending is
   still read as the failure it reports.
 - A red baseline stops the run as a preflight failure, whatever state the caller's checkout is in. A red
-  output naming no file, or any file still red alone, stops the run.
-- A red full tier stops the run. A red output naming no file, or any file still red alone, stops the run.
+  output naming no test target, or any target still red alone, stops the run.
+- A red full tier stops the run. A red output naming no test target, or any target still red alone, stops the run.
 - A red baseline on the rebased tip resets the branch to `<pre-rebase-sha>` before the run bails.
 - **The one exception: a resume with a suite-only red baseline.** When the resume's baseline is red only
   in suites that are red on the branch head but green on the default branch, preflight does not refuse,
