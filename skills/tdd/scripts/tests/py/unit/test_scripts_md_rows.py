@@ -5,12 +5,12 @@ import pytest
 
 from conftest import SCRIPTS
 
-SKILL = SCRIPTS.parent
+TDD_DIR = SCRIPTS.parent
 
 
 def test_every_scripts_md_bullet_has_an_sc_row_2486():
-    catalogue = (SKILL / "SCRIPTS.md").read_text()
-    requirements = (SKILL / "REQUIREMENTS.md").read_text()
+    catalogue = (TDD_DIR / "SCRIPTS.md").read_text()
+    requirements = (TDD_DIR / "REQUIREMENTS.md").read_text()
     section = requirements.split("\n## skills/tdd/SCRIPTS.md\n", 1)[1]
     section = re.split(r"^## ", section, maxsplit=1, flags=re.M)[0]
     rows = [line for line in section.splitlines() if re.match(r"\| SC\d+ \|", line)]
@@ -79,7 +79,7 @@ def _scripts_without_bullet(scripts_dir, catalogue, excluded):
 
 @pytest.mark.tree_audit("lists skills/tdd/scripts/*.sh and a scratch scripts dir")
 def test_every_script_has_a_scripts_md_bullet_3549(tmp_path):
-    catalogue = (SKILL / "SCRIPTS.md").read_text()
+    catalogue = (TDD_DIR / "SCRIPTS.md").read_text()
     unbulleted = _scripts_without_bullet(SCRIPTS, catalogue, UNCATALOGUED)
     assert not unbulleted, f"scripts with no `- $S/<name>.sh` bullet in SCRIPTS.md: {unbulleted}"
 
@@ -88,3 +88,18 @@ def test_every_script_has_a_scripts_md_bullet_3549(tmp_path):
     for name in ("known-gap.sh", "new-entry.sh"):
         (scratch / name).write_text("#!/bin/sh\nexit 0\n")
     assert _scripts_without_bullet(scratch, "", frozenset({"known-gap.sh"})) == ["new-entry.sh"]
+
+
+def test_scripts_md_bullet_guard_is_not_read_as_a_red_subsection_reader_3549():
+    import importlib.util
+    from pathlib import Path
+
+    from conftest import TestFile
+
+    here = Path(__file__).resolve()
+    spec = importlib.util.spec_from_file_location("red_readers_3549", here.parent / "test_skill_red_readers.py")
+    readers = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(readers)
+    subsection, rest = readers._subsection_and_rest()
+    flagged = readers._readers(TestFile(here), subsection, rest)
+    assert not [n for n in flagged if n.endswith("_3549")], f"read as a Red-subsection reader: {flagged}"
