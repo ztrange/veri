@@ -257,7 +257,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   so each is prescribed below at the point the matching narration is, and the run's context
   (`VERI_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
   the call in the environment. The log is run state: it is ignored, never committed, and
-  goes with the worktree.
+  goes with the worktree. With `VERI_STATE_LABEL_ISSUE=<n>` set, `resume` also re-claims a released
+  issue: it adds `taken:<lane>` (the text after the last `:` of `VERI_LABEL`, `main` without one) and
+  removes the opt-in label, besides removing `bailed`, so dispatch does not relaunch it.
 - `$S/metrics.sh <n>` — the event log's **reader**: prints on stdout one markdown
   `### 📊 Metrics` report of what solving issue `<n>` cost — attempts, verdicts, kills,
   retries and budgets spent, per phase and per step. A non-empty pinned `.tdd/issue-<n>-skip-verify` adds the line
@@ -348,8 +350,8 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/solvable-issues.sh [--repo <owner/name>] [--not-running]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
-  saying `Closes #<n>` (a PR on the issue's own run branch, `tdd/<n>-…`, claims nothing: a
-  released issue's resume continues it, ADR-0036) — one per line, in four bands: the `bug`s labelled `priority` first,
+  saying `Closes #<n>` (a still-draft PR on the issue's own run branch, `tdd/<n>-…`, claims nothing: a
+  released issue's resume continues it, ADR-0036; the same PR once readied, not a draft, claims it again, since the run is Done) — one per line, in four bands: the `bug`s labelled `priority` first,
   then the other issues labelled `priority`, then the `bug`s, then the rest, each band ascending by number. A bug labelled `low-risk` counts
   as the rest, and `priority` outranks `low-risk`. An issue also **inherits** the band of every
   open issue that names it under `## Blocked by`, transitively, and takes the better of its own

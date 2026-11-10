@@ -145,8 +145,8 @@ than one computer and `origin` is all they share. The conductor opens that draft
 first act after its plan commit, so it stands for the whole run rather than for its last
 minutes, and a bailed run leaves it open: the issue stays claimed until a human looks, which is
 what a bail is for. A human hands it back with `release-issue.sh`, which restores the opt-in
-label: from then its own draft PR, on `tdd/<n>-…`, claims nothing, and the resume continues it
-(ADR-0036). The lock `.tdd/wt/<n>/.tdd/conductor.pid` is not a second claim but the
+label: from then its own draft PR, on `tdd/<n>-…`, claims nothing, and the resume continues it,
+re-claiming the issue; once readied, not a draft, that PR claims it again (ADR-0036). The lock `.tdd/wt/<n>/.tdd/conductor.pid` is not a second claim but the
 worktree **guard**, and only on the one machine that wrote it: while the pid in there still
 answers `kill -0`, no second conductor there may enter that live worktree and `git reset
 --hard` the running leaf's uncommitted work away (#170). A pid is meaningless on any other
