@@ -2047,3 +2047,37 @@ def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_la
         dispatch.main(["--target", "3"])
 
     assert (launches, (tmp_path / ".tdd" / "dispatch.log").exists()) == ([], False)
+
+
+def test_main_at_target_1_launches_nothing_with_a_live_pid_file_whose_ledger_and_journal_exist_but_whose_process_tree_does_not_match_issue_3525(
+        monkeypatch, tmp_path, dispatch):
+    import pid_file
+    run = tmp_path / ".tdd" / "wt" / "1" / ".tdd"
+    run.mkdir(parents=True)
+    (run / "conductor.pid").write_text("101\nstarted-at\n")
+    (run / "issue-1.md").write_text("# Plan for #1 — title\n- [ ] step\n")
+    (run / "events.jsonl").write_text('{"event": "leaf-start", "ts": 1000}\n')
+    launches = []
+
+    def ps(field, pid):
+        return {"lstart": "started-at", "ppid": "500", "command": "vim notes"}[field] if int(pid) == 101 \
+            else "bash unrelated.sh"
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
+    monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "_conductors", lambda: [])
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [])
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["99"])
+    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {})
+    monkeypatch.setattr(dispatch, "launch", launches.append)
+    monkeypatch.setattr(dispatch, "wait", wait)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert launches == []
