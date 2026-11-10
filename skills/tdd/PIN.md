@@ -37,14 +37,14 @@ Every other step takes the verdict as follows:
   the tree holds only the new test and the ticked ledger):
   Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 first run
   `$S/rerun-alone.sh '<alone-cmd>' .tdd/verify-pin.reason`, where `<alone-cmd>` is the value of
-  the repo CLAUDE.md's `veri: one test file:` line (the repo's own runner for one test file,
-  taking the file as `$1`: `make test TESTS="$1"` on veri), read with
+  the repo CLAUDE.md's `veri: one test file:` line (the repo's own runner for one test target,
+  a test file or a pytest node id, taking the target as `$1`: `make test TESTS="$1"` on veri), read with
   `$S/detect-test-command.sh --tier "one test file"`. When the repo declares no such line
   (that call exits 3), skip `rerun-alone.sh` and, on `pin-fast-tier.sh` exit 1, enter the
   revise loop for red exactly as on a `rerun-alone.sh` exit 1 below, never guessing a runner. On
-  its exit 0 every file the red output names passed alone, and the script itself has written
-  the one `suite-flake` event naming them: tick and commit
-  `test: pin` as below. On its exit 1 (a file stays red, or the output names none) the pin
+  its exit 0 every target the red output names (a failing pytest node id, else a file) passed alone, and the script itself has written
+  the one `suite-flake` event naming those targets: tick and commit
+  `test: pin` as below. On its exit 1 (a target stays red, or the output names none) the pin
   tripped a fast-tier guard, so commit nothing and enter the revise loop for red with
   `.tdd/verify-pin.reason` (the fast tier's output) as the reason, spending a `REVISE_BUDGET`
   attempt as a verify-pin REJECT does (when a verifier answers `REJECT`, `Read`
