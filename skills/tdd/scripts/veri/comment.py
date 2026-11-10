@@ -31,6 +31,11 @@ def with_note(body, note_file):
     return body
 
 
+def read_steps(issue):
+    with open(ledger_path(".", issue)) as f:
+        return ledger_steps(f.read())
+
+
 def post_and_record(issue, kind, body, strip_url=False):
     url = github.gh_issue_comment(issue, body)
     if strip_url:
@@ -155,8 +160,7 @@ def post_verify_skipped(issue):
 
 
 def post_plan(issue):
-    with open(ledger_path(".", issue)) as f:
-        steps = ledger_steps(f.read())
+    steps = read_steps(issue)
     with tempfile.TemporaryDirectory() as scratch:
         body_file = os.path.join(scratch, "body")
         with open(body_file, "w") as f:
@@ -173,8 +177,7 @@ def post_verify_plan(issue):
 
 
 def post_resuming(issue):
-    with open(ledger_path(".", issue)) as f:
-        steps = ledger_steps(f.read())
+    steps = read_steps(issue)
     pending = next(r[6] for r in steps if handed_out(r))
     return post_and_record(issue, "resuming", f"### ▶️ Resuming\n\n{pending}\n")
 
@@ -201,8 +204,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     issue = argv[0]
-    with open(ledger_path(".", issue)) as f:
-        done = [r for r in ledger_steps(f.read()) if r[1] == "done"]
+    done = [r for r in read_steps(issue) if r[1] == "done"]
     body = f"### ✅ Step done\n\n{done[-1][6]}\n"
     return post_and_record(issue, "step-done", with_note(body, argv[3] if len(argv) > 3 else None), strip_url=True)
 
