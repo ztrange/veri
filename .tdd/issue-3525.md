@@ -1,0 +1,5 @@
+# Plan for #3525 — dispatch.sh launches past --target when re-armed with slots full
+
+- [ ] At `dispatch.sh --target 3`, with three runs under `.tdd/wt/<n>` whose `.tdd/conductor.pid` names a live pid with a matching start time (one of them hand-launched, its ledger not yet written and no `run_conductor.py` process listed for it), dispatch launches nothing and writes no `launched` line to `.tdd/dispatch.log` (a small in-process case faking pid liveness, never a real process) ⟦criterion 1⟧
+- [ ] A run whose `.tdd/conductor.pid` names a live pid counts toward dispatch's slots whatever its ledger or journal state: with a ledger heading and an events journal but a process tree that does not match `run_conductor.py` (so the run listing does not call it `running`), dispatch at `--target 1` with only that run launches nothing (a small in-process case faking pid liveness) ⟦criterion 2⟧
+- [ ] The case of the previous step was broken by hand (that run left out of the count), watched red, and restored ⟦human-owed⟧ ⟦criterion 2⟧
