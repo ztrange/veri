@@ -1,5 +1,6 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import base64
 import contextlib
 import glob
 import os
@@ -27,6 +28,9 @@ def records(text):
             name, size = text[i:end].split()
             record[name] = text[end + 1:end + 1 + int(size)]
             i = end + 2 + int(size)
+        for name in ("old", "new", "context"):
+            if name + "-b64" in record:
+                record[name] = base64.b64decode(record.pop(name + "-b64")).decode()
         out.append(record)
     return out
 
