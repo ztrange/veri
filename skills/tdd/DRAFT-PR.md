@@ -89,7 +89,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    sub-step 2 of `<base directory>/RESUME.md`. For a pending step sub-step 2 also
    re-enters that step's refactor loop. With **no step pending and none unchecked** the
    reset is the whole remedy: sub-steps 2 and 3 both exit 3, sub-step 4's `### ▶️ Resuming`
-   comment names the paths the reset discarded, and the run comes back here and readies the
+   comment (`comment.sh resuming --note-file`) names the paths the reset discarded, and the run comes back here and readies the
    PR — refusing the same tree for ever is not an outcome, discarding it loudly is.
    Once both have gone quiet, bring the branch up to the default one, which may have moved
    while the run worked:
