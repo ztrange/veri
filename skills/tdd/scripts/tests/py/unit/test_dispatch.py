@@ -103,6 +103,59 @@ def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_t
     assert (launches, waits) == (["12"], [1, 1])
 
 
+def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_before_the_first_solvable_issue(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\noverride dev-1 2026-11-07T10:00:00 take #15 first\n")
+    launches = []
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main([])
+    except _StopWaiting:
+        pass
+
+    assert launches == ["15"]
+
+
+def test_main_with_no_target_ignores_a_role_dev_state_override_naming_an_issue_not_among_the_solvable_ones_and_launches_the_next_override_issue(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text(
+        "n=1\n"
+        "override dev-1 2026-11-07T10:00:00 take #99 first\n"
+        "override dev-2 2026-11-07T10:01:00 take #15 first\n")
+    launches = []
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main([])
+    except _StopWaiting:
+        pass
+
+    assert launches == ["15"]
+
+
 def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3435(
         monkeypatch, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
