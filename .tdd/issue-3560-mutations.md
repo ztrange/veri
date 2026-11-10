@@ -11,3 +11,21 @@ context 50
 command 163
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_naming_the_diff_read_when_gh_pr_diff_answers_http_500_on_every_read_issue_3560
 
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old 74
+    try:
+        return read(*args)
+    except github.NoAnswer as failure:
+new 154
+    try:
+        try:
+            return read(*args)
+        except github.NoAnswer:
+            return read(*args)
+    except github.NoAnswer as failure:
+context 8
+    try:
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_naming_the_diff_read_after_one_read_when_gh_pr_diff_answers_http_404_issue_3560
+
