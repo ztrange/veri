@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3567
 
-Wall time for the issue: 1393 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 96 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 11 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3572.
+Steps done: 6 of 12 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $15.64 over 221 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $17.34 over 249 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78660 tokens, largest 255554 tokens
 Conductor context: first turn 78674 tokens, largest 163856 tokens
 Conductor context: first turn 164459 tokens, largest 172548 tokens
-Conductor context: first turn 78714 tokens, largest 140979 tokens
+Conductor context: first turn 78714 tokens, largest 146843 tokens
+Conductor context: first turn 78648 tokens, largest 119964 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -205,38 +206,65 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 185 | $0.64 | 170533 |
 | 186 | $0.61 | 171765 |
 | 187 | $0.61 | 172548 |
-| 188 | $0.50 | 78714 |
+| 188 | $0.51 | 78714 |
 | 189 | $0.07 | 85092 |
 | 190 | $0.04 | 87367 |
-| 191 | $0.03 | 89345 |
-| 192 | $0.05 | 92794 |
-| 193 | $0.05 | 97147 |
-| 194 | $0.02 | 97594 |
-| 195 | $0.02 | 97991 |
-| 196 | $0.02 | 98312 |
-| 197 | $0.02 | 98633 |
-| 198 | $0.02 | 99039 |
+| 191 | $0.04 | 89345 |
+| 192 | $0.06 | 92794 |
+| 193 | $0.06 | 97147 |
+| 194 | $0.03 | 97594 |
+| 195 | $0.03 | 97991 |
+| 196 | $0.03 | 98312 |
+| 197 | $0.03 | 98633 |
+| 198 | $0.03 | 99039 |
 | 199 | $0.03 | 99713 |
-| 200 | $0.03 | 100442 |
+| 200 | $0.04 | 100442 |
 | 201 | $0.03 | 101247 |
-| 202 | $0.02 | 101635 |
-| 203 | $0.07 | 107827 |
-| 204 | $0.03 | 108867 |
+| 202 | $0.03 | 101635 |
+| 203 | $0.08 | 107827 |
+| 204 | $0.04 | 108867 |
 | 205 | $0.15 | 124665 |
-| 206 | $0.03 | 125123 |
-| 207 | $0.03 | 125616 |
+| 206 | $0.04 | 125123 |
+| 207 | $0.04 | 125616 |
 | 208 | $0.03 | 126011 |
-| 209 | $0.03 | 126591 |
+| 209 | $0.04 | 126591 |
 | 210 | $0.11 | 136630 |
-| 211 | $0.03 | 137068 |
-| 212 | $0.03 | 137629 |
-| 213 | $0.03 | 138271 |
-| 214 | $0.03 | 138702 |
-| 215 | $0.03 | 139348 |
-| 216 | $0.03 | 139943 |
-| 217 | $0.03 | 140199 |
-| 218 | $0.03 | 140540 |
-| 219 | $0.03 | 140979 |
+| 211 | $0.04 | 137068 |
+| 212 | $0.04 | 137629 |
+| 213 | $0.04 | 138271 |
+| 214 | $0.04 | 138702 |
+| 215 | $0.04 | 139348 |
+| 216 | $0.04 | 139943 |
+| 217 | $0.04 | 140199 |
+| 218 | $0.04 | 140540 |
+| 219 | $0.04 | 140979 |
+| 220 | $0.04 | 141751 |
+| 221 | $0.05 | 143316 |
+| 222 | $0.05 | 145114 |
+| 223 | $0.05 | 146566 |
+| 224 | $0.04 | 146843 |
+| 225 | $0.49 | 78648 |
+| 226 | $0.06 | 84796 |
+| 227 | $0.03 | 87029 |
+| 228 | $0.03 | 89018 |
+| 229 | $0.05 | 92506 |
+| 230 | $0.02 | 93046 |
+| 231 | $0.02 | 93482 |
+| 232 | $0.02 | 93785 |
+| 233 | $0.02 | 94129 |
+| 234 | $0.02 | 94724 |
+| 235 | $0.02 | 95291 |
+| 236 | $0.05 | 99720 |
+| 237 | $0.04 | 101624 |
+| 238 | $0.02 | 102148 |
+| 239 | $0.03 | 102722 |
+| 240 | $0.02 | 103224 |
+| 241 | $0.03 | 104252 |
+| 242 | $0.04 | 106915 |
+| 243 | $0.06 | 111182 |
+| 244 | $0.03 | 112402 |
+| 245 | $0.04 | 114612 |
+| 246 | $0.07 | 119964 |
 
 #### Conductor comments, by family
 
@@ -251,19 +279,19 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 3 | 1929 | $0.04 |
 | 🔎 verify-<phase> (revised) | 3 | 1929 | $0.04 |
 | 🗺️ Plan | 1 | 643 | $0.01 |
-| 🗺️ verify-plan | 4 | 1677 | $0.03 |
-| ▶️ Resuming | 2 | 391 | $0.01 |
+| 🗺️ verify-plan | 5 | 2074 | $0.04 |
+| ▶️ Resuming | 3 | 780 | $0.02 |
 | ⛔ Bailed | 1 | 562 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 24 | 13041 | $0.26 |
+| Total | 26 | 13827 | $0.28 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 3 | 1 | 0 | 68 | 57 | 9 | 18 | 6839 | 117758 | 82015 | 0.29 |
-| prose | 23 | 0 | 0 | 0 | 713 | 661 | 23 | 46 | 106610 | 56555 | 829412 | 3.15 |
+| plan | 5 | 4 | 1 | 0 | 82 | 69 | 10 | 20 | 8368 | 117758 | 103231 | 0.35 |
+| prose | 24 | 0 | 0 | 0 | 731 | 676 | 24 | 48 | 109131 | 57204 | 842912 | 3.20 |
 | skill-edit | 3 | 0 | 0 | 0 | 44 | 36 | 13 | 26 | 3314 | 228550 | 57999 | 0.20 |
 | diff | 6 | 3 | 0 | 0 | 231 | 70 | 28 | 54 | 6045 | 401850 | 84253 | 0.31 |
 | red | 12 | 4 | 0 | 0 | 333 | 191 | 48 | 90 | 22011 | 770141 | 226286 | 0.86 |
@@ -276,7 +304,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 28 | 20 | 8 | 0 | 3618 | 477 | 131 | 252 | 46982 | 2175785 | 463314 | 1.85 |
+| verifier | claude-sonnet-5-5 | 29 | 21 | 8 | 0 | 3632 | 489 | 132 | 254 | 48511 | 2175785 | 484530 | 1.91 |
 | developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 859 | 312 | 95 | 184 | 32105 | 1642672 | 367730 | 1.55 |
 | developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 293 | 99 | 36 | 66 | 9738 | 579066 | 114142 | 0.59 |
 
@@ -285,7 +313,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| prose | 0 | 0.00 | 91 | 0.31 |
+| prose | 0 | 0.00 | 109 | 0.36 |
 | skill-edit | 0 | 0.00 | 30 | 0.12 |
 | diff | 0 | 0.00 | 81 | 0.11 |
 | red | 0 | 0.00 | 22 | 0.09 |
@@ -308,6 +336,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `skills/tdd/PREFLIGHT-FAILURES.md` gains an entry for requirements-preflight.sh exit 2 (a clash or a missing unit heading) that writes the `preflight-refused` event and posts the issue comment through `$S/preflight-refused.sh <n> <check>` like every other preflight refusal, as row PF59 requires ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 46 | 9 | 18 | 6863 | 96355 | 50042 | 0.20 | unknown | unknown | unknown | unknown |  |  | full |
 | `skills/tdd/PREFLIGHT.md` lines 80-86 align with that entry: the requirements-preflight.sh exit 2 is a preflight refusal that sends the run to PREFLIGHT-FAILURES.md, as every other refusal does ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 54 | 6 | 12 | 8035 | 80099 | 53451 | 0.22 | unknown | unknown | unknown | unknown |  |  | full |
 | Doc step, no production change: the Exit line at skills/tdd/scripts/requirements-preflight.sh:5 names exit 2 for a clash or a missing unit heading, as well as bad arguments ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 22 | 9 | 18 | 1983 | 129325 | 31005 | 0.11 | unknown | n/a | n/a | n/a |  |  | full |
+| `skills/tdd/PREFLIGHT-FAILURES.md` drops the duplicate row PF62 in skills/tdd/REQUIREMENTS.md (identical text to PF61) and keeps PF61 under its `### skills/tdd/PREFLIGHT-FAILURES.md` heading, not under PREFLIGHT.md, then regrades ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 15 | 1 | 2 | 2521 | 649 | 13500 | 0.06 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -345,4 +374,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 298 | 574 | 198749 | 4682628 | 1832597 | 22.97 (estimate) |
+| total | 300 | 578 | 202799 | 4683277 | 1867313 | 24.80 (estimate) |
