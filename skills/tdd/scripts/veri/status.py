@@ -530,6 +530,9 @@ def recover_prs():
         closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
         state = "draft" if pr["draft"] else "ready"
         single = github.gh_probe("api", "repos/{owner}/{repo}/pulls/%d" % pr["number"])
+        if single.returncode != 0:
+            raise OSError("status.sh --recover: GitHub refused the single pull request read for #%d: %s"
+                          % (pr["number"], single.stderr.strip()))
         mergeable = json.loads(single.stdout)["mergeable_state"]
         lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, mergeable))
     return lines
