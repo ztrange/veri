@@ -1,0 +1,7 @@
+# Plan for #3551 — dispatch.sh reports stalled for a leftover run dir whose issue is closed
+
+- [ ] `dispatch.issue_states(issues)` answers each named issue's state (OPEN or CLOSED) from one GitHub read whatever the number of issues named, pinned by a small in-process case in a new file `skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py` faking only the github read ⟦criterion 3⟧
+- [ ] the existing cases of `skills/tdd/scripts/tests/py/unit/test_dispatch.py` get an autouse fixture faking `dispatch.issue_states` (monkeypatch with raising=False) so every issue reads OPEN, so a stall check that reads issue states leaves them unchanged; test-only, no production change ⟦diff-checked⟧
+- [ ] a stall-window-old run dir with a dead conductor whose issue is CLOSED (per `dispatch.issue_states`) produces no `stalled` line, while in the same case a dead-pid run dir of an open, claimed issue still prints `stalled <n>`; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py` that fails on current code ⟦criterion 1⟧
+- [ ] the case pinning the closed-issue run dir's missing `stalled` line holds, in that same case, a dead-pid run dir of an open, claimed issue that is reported `stalled` (the contrast) ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] with several stall-window-old run dirs of closed issues over several polls, dispatch reads issue states at most once per poll, never once per run dir, pinned by a small in-process case counting `dispatch.issue_states` calls through a spy ⟦criterion 3⟧
