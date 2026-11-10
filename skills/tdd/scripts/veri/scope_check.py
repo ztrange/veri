@@ -35,6 +35,17 @@ def main(argv):
     if refusal:
         print("scope-check.sh: " + refusal, file=sys.stderr)
         return 1
+    issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
+    if issue:
+        spec = os.path.join(os.path.dirname(os.path.abspath(path)), f"issue-{issue.group(1)}-spec.md")
+        if os.path.exists(spec):
+            with open(spec, encoding="utf-8") as f:
+                headings = set(re.findall(r"^### (.+?)\s*$", f.read(), re.M))
+            for step in (record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")):
+                for unit in re.findall(r"`([^`]+)`", step):
+                    if unit not in headings:
+                        print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
+                        return 2
     named = NAMED.findall(text)
     clashes = []
     for named_path in dict.fromkeys(named):
