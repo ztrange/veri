@@ -105,6 +105,10 @@ def _listed_texts(path, unit):
     return dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
 
 
+def clashes(rows, texts):
+    return [r for r in rows if _row_id(r) in texts and _row_text(r) != texts[_row_id(r)]]
+
+
 def _listed_ids(path, unit):
     return set(_listed_texts(path, unit))
 
@@ -310,12 +314,11 @@ def main(argv):
 
     listed = _listed_ids(path, unit)
     texts = _listed_texts(path, unit)
-    clashes = [r for r in issue_rows if _row_id(r) in texts
-               and _row_text(r) != texts[_row_id(r)]]
-    for r in clashes:
+    clashing = clashes(issue_rows, texts)
+    for r in clashing:
         print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
               % (_row_id(r), texts[_row_id(r)], _row_text(r)), file=sys.stderr)
-    if clashes:
+    if clashing:
         return 2
     fresh = any(_row_id(r) not in listed or _row_text(r) != texts.get(_row_id(r))
                 for r in issue_rows)
