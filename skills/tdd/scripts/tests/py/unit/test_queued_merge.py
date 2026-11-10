@@ -890,3 +890,25 @@ def test_3452_queued_merge_on_a_branch_not_named_tdd_n_whose_worktree_holds_a_me
     beside = run("beside", ("issue-3255-metrics.md",))
 
     assert (beside, alone) == ((0, 1), (0, 1))
+
+
+def test_3490_queued_merge_on_a_branch_not_named_tdd_n_whose_diff_holds_only_a_metrics_file_numbered_unlike_any_ledger_demands_no_closes_for_it_and_merges(
+        fake_processes, run_cli, tmp_path):
+    worktree = tmp_path / "wt"
+    (worktree / ".tdd").mkdir(parents=True)
+    (worktree / ".tdd" / "issue-400-metrics.md").write_text("# metrics\n")
+
+    def with_body(answer):
+        def wrapped(line, **kwargs):
+            if "diff --name-only origin/main...HEAD" in line:
+                return 0, ".tdd/issue-400-metrics.md\n", ""
+            if "pr view" in line:
+                return 0, json.dumps({"body": "the capability\n"}), ""
+            return answer(line, **kwargs)
+        return fake_processes(wrapped)
+
+    calls = scenario(with_body)
+    code, _, err = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "graphql"})
+
+    merges = [c for c in calls if "pr merge" in c]
+    assert (code, len(merges), "Closes #400" in err) == (0, 1, False)
