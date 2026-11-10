@@ -231,7 +231,12 @@ def main(argv):
         _say("%s is closed and unmerged; nothing rebased or pushed" % pr)
         _release(pid)
         return 2
-    head_sha = _pull(repo, pr)["head"]["sha"]
+    pull = _pull(repo, pr)
+    head_sha = ((pull or {}).get("head") or {}).get("sha")
+    if not isinstance(head_sha, str) or not head_sha:
+        _say("could not read the head of %s from GitHub; nothing rebased or pushed" % pr)
+        _release(pid)
+        return 2
     if not _git(worktree, "merge-base", "--is-ancestor", head_sha, "origin/main").returncode:
         _say("the head %s of %s is already on origin/main; nothing rebased or pushed" % (head_sha, pr))
         _release(pid)
