@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3500
 
-Wall time for the issue: 4311 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 9480 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 7 of 8 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 9 of 11 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $11.21 over 226 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $16.37 over 320 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78412 tokens, largest 145045 tokens
 Conductor context: first turn 78411 tokens, largest 149404 tokens
 Conductor context: first turn 78413 tokens, largest 153046 tokens
-Conductor context: first turn 78412 tokens, largest 176169 tokens
+Conductor context: first turn 78412 tokens, largest 178241 tokens
+Conductor context: first turn 78412 tokens, largest 208122 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -162,87 +163,181 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 142 | $0.04 | 144364 |
 | 143 | $0.11 | 152494 |
 | 144 | $0.04 | 153046 |
-| 145 | $0.49 | 78412 |
-| 146 | $0.06 | 84423 |
-| 147 | $0.03 | 85914 |
-| 148 | $0.02 | 86319 |
-| 149 | $0.04 | 89699 |
-| 150 | $0.06 | 95283 |
-| 151 | $0.02 | 95671 |
-| 152 | $0.02 | 96331 |
-| 153 | $0.02 | 96746 |
-| 154 | $0.02 | 97198 |
-| 155 | $0.02 | 97582 |
-| 156 | $0.02 | 98033 |
-| 157 | $0.03 | 98831 |
-| 158 | $0.03 | 99612 |
+| 145 | $0.50 | 78412 |
+| 146 | $0.07 | 84423 |
+| 147 | $0.04 | 85914 |
+| 148 | $0.03 | 86319 |
+| 149 | $0.06 | 89699 |
+| 150 | $0.07 | 95283 |
+| 151 | $0.04 | 95671 |
+| 152 | $0.03 | 96331 |
+| 153 | $0.04 | 96746 |
+| 154 | $0.03 | 97198 |
+| 155 | $0.04 | 97582 |
+| 156 | $0.03 | 98033 |
+| 157 | $0.04 | 98831 |
+| 158 | $0.04 | 99612 |
 | 159 | $0.03 | 100285 |
-| 160 | $0.02 | 100888 |
-| 161 | $0.02 | 101433 |
-| 162 | $0.02 | 101901 |
-| 163 | $0.03 | 103249 |
-| 164 | $0.02 | 103666 |
-| 165 | $0.03 | 105047 |
-| 166 | $0.02 | 105496 |
-| 167 | $0.03 | 106260 |
-| 168 | $0.03 | 107061 |
-| 169 | $0.02 | 107499 |
-| 170 | $0.03 | 108515 |
-| 171 | $0.02 | 108884 |
-| 172 | $0.03 | 109669 |
-| 173 | $0.03 | 110108 |
-| 174 | $0.03 | 110901 |
-| 175 | $0.03 | 112337 |
-| 176 | $0.05 | 115909 |
-| 177 | $0.03 | 116772 |
-| 178 | $0.03 | 117417 |
-| 179 | $0.03 | 118694 |
-| 180 | $0.03 | 119552 |
-| 181 | $0.03 | 120078 |
-| 182 | $0.03 | 120712 |
-| 183 | $0.03 | 121135 |
-| 184 | $0.03 | 121911 |
-| 185 | $0.03 | 122429 |
-| 186 | $0.03 | 123208 |
-| 187 | $0.03 | 123922 |
-| 188 | $0.03 | 124695 |
-| 189 | $0.04 | 126743 |
-| 190 | $0.03 | 127672 |
-| 191 | $0.03 | 128704 |
-| 192 | $0.04 | 130316 |
-| 193 | $0.03 | 131179 |
-| 194 | $0.03 | 132219 |
-| 195 | $0.03 | 133256 |
-| 196 | $0.03 | 134019 |
-| 197 | $0.03 | 134608 |
+| 160 | $0.04 | 100888 |
+| 161 | $0.04 | 101433 |
+| 162 | $0.03 | 101901 |
+| 163 | $0.04 | 103249 |
+| 164 | $0.04 | 103666 |
+| 165 | $0.04 | 105047 |
+| 166 | $0.04 | 105496 |
+| 167 | $0.04 | 106260 |
+| 168 | $0.04 | 107061 |
+| 169 | $0.03 | 107499 |
+| 170 | $0.04 | 108515 |
+| 171 | $0.04 | 108884 |
+| 172 | $0.04 | 109669 |
+| 173 | $0.04 | 110108 |
+| 174 | $0.04 | 110901 |
+| 175 | $0.04 | 112337 |
+| 176 | $0.06 | 115909 |
+| 177 | $0.04 | 116772 |
+| 178 | $0.04 | 117417 |
+| 179 | $0.05 | 118694 |
+| 180 | $0.04 | 119552 |
+| 181 | $0.04 | 120078 |
+| 182 | $0.04 | 120712 |
+| 183 | $0.04 | 121135 |
+| 184 | $0.04 | 121911 |
+| 185 | $0.04 | 122429 |
+| 186 | $0.05 | 123208 |
+| 187 | $0.04 | 123922 |
+| 188 | $0.04 | 124695 |
+| 189 | $0.05 | 126743 |
+| 190 | $0.05 | 127672 |
+| 191 | $0.04 | 128704 |
+| 192 | $0.05 | 130316 |
+| 193 | $0.05 | 131179 |
+| 194 | $0.04 | 132219 |
+| 195 | $0.05 | 133256 |
+| 196 | $0.04 | 134019 |
+| 197 | $0.05 | 134608 |
 | 198 | $0.04 | 135752 |
-| 199 | $0.04 | 137729 |
+| 199 | $0.06 | 137729 |
 | 200 | $0.04 | 138672 |
-| 201 | $0.04 | 140737 |
-| 202 | $0.03 | 141503 |
-| 203 | $0.03 | 142083 |
-| 204 | $0.03 | 142486 |
-| 205 | $0.03 | 143034 |
+| 201 | $0.06 | 140737 |
+| 202 | $0.05 | 141503 |
+| 203 | $0.04 | 142083 |
+| 204 | $0.04 | 142486 |
+| 205 | $0.05 | 143034 |
 | 206 | $0.04 | 143885 |
-| 207 | $0.04 | 145801 |
-| 208 | $0.04 | 146724 |
-| 209 | $0.04 | 147547 |
-| 210 | $0.10 | 156483 |
+| 207 | $0.06 | 145801 |
+| 208 | $0.05 | 146724 |
+| 209 | $0.05 | 147547 |
+| 210 | $0.11 | 156483 |
 | 211 | $0.04 | 157016 |
-| 212 | $0.04 | 157890 |
-| 213 | $0.05 | 159599 |
-| 214 | $0.04 | 160551 |
-| 215 | $0.05 | 162560 |
-| 216 | $0.04 | 163080 |
-| 217 | $0.04 | 164350 |
-| 218 | $0.05 | 166330 |
-| 219 | $0.04 | 166749 |
-| 220 | $0.04 | 167325 |
-| 221 | $0.05 | 168997 |
-| 222 | $0.04 | 169410 |
-| 223 | $0.04 | 170327 |
-| 224 | $0.04 | 171422 |
-| 225 | $0.07 | 176169 |
+| 212 | $0.05 | 157890 |
+| 213 | $0.06 | 159599 |
+| 214 | $0.05 | 160551 |
+| 215 | $0.06 | 162560 |
+| 216 | $0.05 | 163080 |
+| 217 | $0.05 | 164350 |
+| 218 | $0.06 | 166330 |
+| 219 | $0.05 | 166749 |
+| 220 | $0.05 | 167325 |
+| 221 | $0.06 | 168997 |
+| 222 | $0.05 | 169410 |
+| 223 | $0.05 | 170327 |
+| 224 | $0.06 | 171422 |
+| 225 | $0.08 | 176169 |
+| 226 | $0.05 | 177223 |
+| 227 | $0.06 | 178241 |
+| 228 | $0.49 | 78412 |
+| 229 | $0.06 | 84414 |
+| 230 | $0.03 | 85944 |
+| 231 | $0.05 | 89682 |
+| 232 | $0.02 | 90283 |
+| 233 | $0.03 | 91619 |
+| 234 | $0.03 | 93338 |
+| 235 | $0.03 | 94820 |
+| 236 | $0.03 | 96505 |
+| 237 | $0.04 | 99704 |
+| 238 | $0.02 | 100126 |
+| 239 | $0.02 | 100520 |
+| 240 | $0.02 | 100975 |
+| 241 | $0.02 | 101357 |
+| 242 | $0.03 | 102394 |
+| 243 | $0.02 | 102831 |
+| 244 | $0.04 | 104878 |
+| 245 | $0.04 | 107595 |
+| 246 | $0.04 | 109833 |
+| 247 | $0.04 | 112018 |
+| 248 | $0.03 | 112601 |
+| 249 | $0.04 | 114259 |
+| 250 | $0.03 | 115095 |
+| 251 | $0.04 | 116650 |
+| 252 | $0.03 | 117468 |
+| 253 | $0.03 | 118646 |
+| 254 | $0.03 | 119256 |
+| 255 | $0.03 | 120035 |
+| 256 | $0.04 | 121731 |
+| 257 | $0.03 | 122242 |
+| 258 | $0.03 | 122700 |
+| 259 | $0.03 | 123227 |
+| 260 | $0.03 | 123791 |
+| 261 | $0.03 | 124402 |
+| 262 | $0.03 | 125594 |
+| 263 | $0.03 | 126679 |
+| 264 | $0.03 | 127215 |
+| 265 | $0.03 | 127823 |
+| 266 | $0.04 | 129052 |
+| 267 | $0.04 | 130282 |
+| 268 | $0.04 | 131753 |
+| 269 | $0.03 | 132732 |
+| 270 | $0.03 | 133375 |
+| 271 | $0.04 | 134434 |
+| 272 | $0.04 | 135640 |
+| 273 | $0.03 | 136518 |
+| 274 | $0.04 | 137728 |
+| 275 | $0.03 | 138594 |
+| 276 | $0.03 | 139303 |
+| 277 | $0.04 | 140424 |
+| 278 | $0.04 | 141858 |
+| 279 | $0.04 | 143348 |
+| 280 | $0.04 | 144561 |
+| 281 | $0.04 | 145848 |
+| 282 | $0.10 | 154853 |
+| 283 | $0.03 | 155196 |
+| 284 | $0.04 | 156931 |
+| 285 | $0.04 | 157820 |
+| 286 | $0.04 | 158372 |
+| 287 | $0.05 | 160810 |
+| 288 | $0.04 | 161687 |
+| 289 | $0.05 | 163470 |
+| 290 | $0.04 | 164464 |
+| 291 | $0.04 | 164858 |
+| 292 | $0.05 | 166666 |
+| 293 | $0.04 | 167477 |
+| 294 | $0.04 | 168553 |
+| 295 | $0.04 | 169365 |
+| 296 | $0.04 | 170061 |
+| 297 | $0.04 | 170967 |
+| 298 | $0.04 | 172242 |
+| 299 | $0.16 | 188051 |
+| 300 | $0.04 | 188452 |
+| 301 | $0.04 | 188840 |
+| 302 | $0.04 | 189549 |
+| 303 | $0.05 | 190481 |
+| 304 | $0.05 | 191411 |
+| 305 | $0.04 | 192207 |
+| 306 | $0.05 | 193850 |
+| 307 | $0.04 | 194451 |
+| 308 | $0.05 | 195272 |
+| 309 | $0.05 | 196959 |
+| 310 | $0.04 | 197557 |
+| 311 | $0.05 | 198581 |
+| 312 | $0.04 | 199185 |
+| 313 | $0.04 | 199498 |
+| 314 | $0.04 | 199873 |
+| 315 | $0.04 | 200292 |
+| 316 | $0.05 | 201550 |
+| 317 | $0.05 | 202230 |
+| 318 | $0.05 | 203230 |
+| 319 | $0.08 | 208122 |
 
 #### Conductor comments, by family
 
@@ -250,31 +345,31 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 8 | 1507 | $0.03 |
-| 🟢 Green | 9 | 1967 | $0.04 |
-| 🛠️ Refactor | 4 | 1052 | $0.02 |
-| 🔎 verify-green | 7 | 1939 | $0.04 |
-| 🔎 verify-refactor | 4 | 1052 | $0.02 |
-| 🔎 verify-<phase> (revised) | 1 | 3 | $0.00 |
+| 🔴 Red | 12 | 4345 | $0.09 |
+| 🟢 Green | 12 | 4758 | $0.10 |
+| 🛠️ Refactor | 6 | 2177 | $0.04 |
+| 🔎 verify-green | 11 | 3622 | $0.07 |
+| 🔎 verify-refactor | 6 | 2177 | $0.04 |
+| 🔎 verify-<phase> (revised) | 3 | 609 | $0.01 |
 | 🗺️ Plan | 1 | 755 | $0.02 |
-| 🗺️ verify-plan | 4 | 1701 | $0.03 |
-| ▶️ Resuming | 3 | 940 | $0.02 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 5 | 2273 | $0.05 |
+| ▶️ Resuming | 4 | 1510 | $0.03 |
+| ⛔ Bailed | 1 | 572 | $0.01 |
 | ⏹️ Stopped | 3 | 1685 | $0.03 |
-| Total | 32 | 9607 | $0.19 |
+| Total | 47 | 18120 | $0.36 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 4 | 0 | 0 | 68 | 50 | 4 | 8 | 5460 | 0 | 81205 | 0.26 |
+| plan | 5 | 5 | 0 | 0 | 84 | 61 | 5 | 10 | 6872 | 0 | 101845 | 0.32 |
 | diff | 4 | 2 | 0 | 0 | 902 | 97 | 25 | 48 | 11200 | 428044 | 101800 | 0.41 |
-| red | 14 | 6 | 1 | 0 | 1574 | 337 | 77 | 140 | 28433 | 1367661 | 335189 | 1.40 |
-| green | 19 | 4 | 3 | 0 | 4108 | 448 | 102 | 202 | 34184 | 1761542 | 384004 | 1.76 |
-| red-missing | 3 | 0 | 0 | 0 | 155 | 69 | 15 | 28 | 6917 | 405605 | 111039 | 0.39 |
-| pin | 4 | 4 | 0 | 0 | 165 | 82 | 14 | 28 | 4971 | 205482 | 59421 | 0.22 |
-| refactor | 5 | 1 | 0 | 0 | 171 | 47 | 17 | 34 | 3068 | 237470 | 90807 | 0.28 |
+| red | 21 | 9 | 1 | 0 | 2501 | 500 | 113 | 210 | 40698 | 2002970 | 490444 | 1.97 |
+| green | 31 | 7 | 6 | 0 | 8550 | 668 | 160 | 310 | 53248 | 2656712 | 587080 | 2.73 |
+| red-missing | 4 | 0 | 0 | 0 | 210 | 98 | 20 | 38 | 9811 | 491926 | 135987 | 0.49 |
+| pin | 5 | 5 | 0 | 0 | 198 | 96 | 18 | 36 | 6293 | 265869 | 74108 | 0.27 |
+| refactor | 8 | 1 | 0 | 0 | 217 | 79 | 25 | 50 | 4029 | 333927 | 155217 | 0.46 |
 | red-contradicted | 1 | 0 | 0 | 0 | 43 | 24 | 5 | 8 | 2711 | 70760 | 20881 | 0.09 |
 | exhausted | 1 | 0 | 0 | 0 | 181 | 16 | 3 | 6 | 1367 | 41459 | 13966 | 0.11 |
 
@@ -282,9 +377,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 25 | 21 | 4 | 0 | 4078 | 470 | 95 | 184 | 33260 | 1341126 | 474934 | 1.65 |
-| developer | claude-sonnet-5-5 | 23 | 0 | 0 | 0 | 2594 | 485 | 128 | 244 | 46087 | 2463005 | 561351 | 2.22 |
-| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 695 | 215 | 39 | 74 | 18964 | 713892 | 162027 | 1.04 |
+| verifier | claude-sonnet-5-5 | 36 | 29 | 7 | 0 | 8310 | 648 | 139 | 268 | 49343 | 1974449 | 655055 | 2.33 |
+| developer | claude-sonnet-5-5 | 41 | 0 | 0 | 0 | 4162 | 911 | 222 | 422 | 80679 | 4095319 | 969465 | 4.07 |
+| developer | claude-opus-5-5 | 3 | 0 | 0 | 0 | 414 | 80 | 13 | 26 | 6207 | 221899 | 56808 | 0.45 |
 
 #### Rework and waste, by phase
 
@@ -292,13 +387,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 476 | 0.56 |
-| green | 3291 | 1.06 | 414 | 0.57 |
+| red | 682 | 0.72 | 507 | 0.25 |
+| green | 9420 | 3.76 | 2247 | 0.18 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
-| red-contradicted | 0 | 0.00 | 43 | 0.09 |
-| exhausted | 0 | 0.00 | 181 | 0.11 |
+| refactor | 0 | 0.00 | 11 | 0.06 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -311,7 +406,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | When the merge call exits non-zero and the PR reads open on the first re-read but merged on a later re-read still within VERI_MERGE_SETTLE_READS, queued-merge keeps re-reading (waiting VERI_MERGE_SETTLE_SLEEP between reads) and treats the PR as merged: exit 0 with tag, branch delete and worktree removal; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli with VERI_MERGE_SETTLE_SLEEP=0 ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 44 | 11 | 20 | 4044 | 198764 | 37788 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
 | When the PR already reads merged (`merged: true`) on a read of `gh api repos/<o>/<r>/pulls/<n>` made after the fetch of origin, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 169 | 45 | 86 | 12554 | 763666 | 176880 | 0.64 | 1746 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | When the PR already reads closed and unmerged (`state: closed`, `merged: false`) on that read after the fetch, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 90 | 29 | 56 | 7770 | 479607 | 105498 | 0.39 | 1014 | unknown | 1/5 | nothing-structural |  |  | full |
-| When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 11 | 2 | 1 | 0 | 0 | 0 | 317 | 59 | 108 | 25518 | 988179 | 239527 | 1.32 | unknown | red 1/2, green 2/2 | unknown | unknown |  |  | full |
+| When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 24 | 5 | 4 | 0 | 0 | 0 | 583 | 124 | 230 | 47793 | 2059318 | 460719 | 2.39 | 2666 | red 1/2, green 4/2 | 0/5 | nothing-left |  |  | already-satisfied |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_queued_merge_process.py — FAILED test_queued_merge_after_a_confirmed_merge_cuts_the_next_version_tag_on_the_reported_merge_commit_with_the_message_and_pushes_it_but_cuts_none_for_a_dash_2372 (dash re-run exits 2, expected 0) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 37 | 7 | 14 | 2544 | 137952 | 27120 | 0.11 | unknown | unknown | unknown | unknown |  |  | full |
+| A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 84 | 22 | 42 | 6025 | 344485 | 93564 | 0.33 | 795 | unknown | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 71 | 17 | 34 | 5662 | 220068 | 120500 | 0.38 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -323,6 +421,9 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | When the merge call exits non-zero and the PR reads merged (`merged: true`) on the first re-read after it, queued-merge treats the PR as merged: it exits 0 and runs the tag, branch delete and worktree removal as on a clean merge; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli with VERI_MERGE_SETTLE_SLEEP=0 ⟦criterion 1⟧ | 1 | 0/5 | nothing-structural | skipped | 0 | 12 | 0.06 |
 | When the PR already reads merged (`merged: true`) on a read of `gh api repos/<o>/<r>/pulls/<n>` made after the fetch of origin, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 15 | 0.06 |
 | When the PR already reads closed and unmerged (`state: closed`, `merged: false`) on that read after the fetch, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 129 | 0.10 |
+| A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.06 |
+| When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 24 | 0.07 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.06 |
 
 #### Refactor totals
 
@@ -332,18 +433,21 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | When the merge call exits non-zero and the PR reads merged (`merged: true`) on the first re-read after it, queued-merge treats the PR as merged: it exits 0 and runs the tag, branch delete and worktree removal as on a clean merge; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli with VERI_MERGE_SETTLE_SLEEP=0 ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-structural 1 |
 | When the PR already reads merged (`merged: true`) on a read of `gh api repos/<o>/<r>/pulls/<n>` made after the fetch of origin, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
 | When the PR already reads closed and unmerged (`state: closed`, `merged: false`) on that read after the fetch, queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 1 | 0 | nothing-structural 1 |
-| issue | 4 | 1 | 3 | nothing-left 1, nothing-structural 3 |
+| A strictly-behind PR whose head is not on origin/main reads as not an ancestor: repairs the fixture 'scenario' in skills/tdd/scripts/tests/py/unit/test_queued_merge.py, so that with behind=True it answers exit 1 to `git merge-base --is-ancestor <head.sha> origin/main` ahead of its behind branch, reproduced by a case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py ⟦fixture-repair⟧ ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| When the PR's head (the pull record's `head.sha`) is already an ancestor of origin/main (`git merge-base --is-ancestor <head.sha> origin/main` exits 0; any other exit is not an ancestor), queued-merge refuses with exit 2 naming it on stderr, before any rebase or push; a small case in skills/tdd/scripts/tests/py/unit/test_queued_merge.py driven through run_cli ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_fast_tier_guard.py — FAILED test_every_guard_clean_pytest_file_lives_under_tests_py_unit_and_every_file_the_guard_names_stays_outside_it (unit/test_queued_merge.py:1037 starts a process through subprocess, inside the fast tier) ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 7 | 1 | 6 | nothing-left 4, nothing-structural 3 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 46 | 78 | 161 | 122 | 0 | 195 | 118 | 89 | 109 | 69 | 100 | 86 | 178 | 153 | 138 | 67 | 164 | 140 | 123 | 106 | 79 | 80 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| affected | 7 | 9 | 122 | 73 | 14 | 19 | 20 | 19 | 12 | 9 | 13 | 16 | 15 | 17 | 11 | 3 | 19 | 67 | 8 | 15 | 14 | 10 | 15 | 15 | 10 | 15 | 14 | 11 | 10 | 11 | 9 | 9 | 9 | 14 | 14 | 14 | 15 | 12 |
-| target | 4 | 10 | 6 | 7 | 0 | 5 | 14 | 14 | 7 | 7 | 8 | 2 | 9 | 9 | 8 | 10 | 9 | 5 | 5 | 4 | 5 | 6 | 2 | 7 | 6 | 6 | 17 | 21 | 9 | 8 | 8 | 3 | 6 | 6 | 4 | 2 | 4 |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| fast | 46 | 78 | 161 | 122 | 0 | 195 | 118 | 89 | 109 | 69 | 100 | 86 | 178 | 153 | 138 | 67 | 164 | 140 | 123 | 106 | 79 | 80 | 69 | 110 | 76 | 149 | 128 | 90 | 154 | 85 | 137 | 143 | 115 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| affected | 7 | 9 | 122 | 73 | 14 | 19 | 20 | 19 | 12 | 9 | 13 | 16 | 15 | 17 | 11 | 3 | 19 | 67 | 8 | 15 | 14 | 10 | 15 | 15 | 10 | 15 | 14 | 11 | 10 | 11 | 9 | 9 | 9 | 14 | 14 | 14 | 15 | 12 | 18 | 15 | 14 | 9 | 108 | 14 | 17 | 9 | 16 | 73 | 41 | 14 | 16 | 51 | 13 | 49 | 67 | 48 |
+| target | 4 | 10 | 6 | 7 | 0 | 5 | 14 | 14 | 7 | 7 | 8 | 2 | 9 | 9 | 8 | 10 | 9 | 5 | 5 | 4 | 5 | 6 | 2 | 7 | 6 | 6 | 17 | 21 | 9 | 8 | 8 | 3 | 6 | 6 | 4 | 2 | 4 | 2 | 7 | 7 | 7 | 5 | 6 | 6 | 5 | 13 | 12 | 6 | 6 | 4 | 9 | 4 |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 262 | 502 | 98311 | 4518023 | 1198312 | 16.12 (estimate) |
+| total | 374 | 716 | 136229 | 6291667 | 1681328 | 23.22 (estimate) |
