@@ -4,7 +4,9 @@ import contextlib
 import io
 import os
 import sys
+import tempfile
 
+import detect_test_command
 import event
 import event_log
 import github
@@ -148,7 +150,21 @@ def post_verify_skipped(issue):
     return post_and_record(issue, "verify-refactor", "### 🔎 verify-refactor — SKIPPED (nothing landed)")
 
 
+def post_plan(issue):
+    with open(ledger_path(".", issue)) as f:
+        steps = ledger_steps(f.read())
+    with tempfile.TemporaryDirectory() as scratch:
+        body_file = os.path.join(scratch, "body")
+        with open(body_file, "w") as f:
+            f.write(github.gh_issue_view(issue, "body"))
+        command = detect_test_command.resolved("fast", body_file, ".")
+    listed = "".join(f"- {r[6]}\n" for r in steps)
+    return post_and_record(issue, "plan", f"### 🗺️ Plan\n\n{listed}\nTest command: {os.fsdecode(command)}\n")
+
+
 def main(argv):
+    if argv[1:] == ["plan"]:
+        return post_plan(argv[0])
     if argv[1:] == ["verify-refactor", "--skipped"]:
         return post_verify_skipped(argv[0])
     if len(argv) == 3 and argv[1] == "verify-revised":
