@@ -153,7 +153,7 @@ def conductor_sessions(issue, path):
                         if message.get("id") is not None:
                             earlier = seen_ids.get(message["id"])
                             flushed = not any(row[0] is earlier for row in open_turn_rows)
-                            if earlier is not None and not (names and not set(names) & set(earlier) and flushed):
+                            if earlier is not None and not (names and flushed and (not set(names) & set(earlier) or set(names) == set(earlier))):
                                 added = [n for n in names if n not in earlier]
                                 earlier.extend(added)
                                 if flushed:
