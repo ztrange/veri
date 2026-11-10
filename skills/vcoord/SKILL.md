@@ -16,6 +16,12 @@ project specific (labels, test commands, where PRDs live).
 
 ## Starting
 
+**Recover first.** When a state file for your role and lane exists, you recover: read it through
+`$S/status.sh --recover coord [--lane <lane>]` and read nothing else before your first action.
+Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
+with `$S/role-state.sh coord [--lane <lane>] recovered`. With no state file for your role and
+lane, start fresh: steps 1–4 below read the state as they do today.
+
 1. Invoked as `/vcoord [<lane>] [--resume <file>]`. The optional first word names the
    lane: `/vcoord mu` runs every read and every launch with
    `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. State the lane
@@ -135,6 +141,18 @@ a report that needs none gets no reply (P13). A routine report still gets no tex
 **Unattended** — the human away, or `afk` given — send the dev session only the message kinds
 the human approved. With no approval stated, that is one kind: refill an empty slot. Everything
 else waits for the human, written down as a pending decision.
+
+## Role state
+
+Write each of these through `$S/role-state.sh coord [--lane <lane>]` at the moment it changes,
+never at reset time:
+
+- each change to N, and each timed N change with its expiry;
+- each order override, with who asked for it;
+- each pending human decision, in full;
+- each message sent to the dev session and not yet confirmed.
+
+Drop the item when the decision is answered, the change expires or the message is confirmed.
 
 ## Stopping
 
