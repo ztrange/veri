@@ -2185,6 +2185,36 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_5xx_for_the_first_r
     assert (code, launches) == (None, ["12"])
 
 
+@pytest.mark.parametrize("failures, expected", [(3, (None, ["12"], 4, False)), (4, (2, [], 4, True))])
+def test_main_retries_a_pr_diff_read_three_times_then_exits_2_naming_it_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch, failures, expected):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+    reads = []
+
+    def gh_pr_diff_names(number):
+        reads.append(number)
+        if len(reads) <= failures:
+            raise dispatch.github.NoAnswer("", "HTTP 503\n")
+        return ["skills/tdd/SCRIPTS.md"]
+
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", gh_pr_diff_names)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    err = capsys.readouterr().err
+    named = "reading https://github.com/o/r/pull/90's diff failed" in err
+    assert (code, list(launches), len(reads), named) == expected
+
+
 def test_main_goes_on_to_launch_when_the_open_pr_list_read_answers_http_500_for_the_first_reads_then_succeeds_issue_3560(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, _ = _overlap_case(
