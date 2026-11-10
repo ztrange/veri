@@ -475,6 +475,30 @@ def test_3500_queued_merge_whose_pr_reads_merged_on_a_reread_after_a_failed_merg
     assert (code, len(cleaned(calls)), len(reads)) == (0, 3, 1)
 
 
+def test_3500_queued_merge_whose_pr_reads_open_on_the_first_reread_after_a_failed_merge_call_but_merged_on_a_later_one_within_the_settle_reads_exits_0_and_cleans_up(fake_processes, run_cli):
+    landed = []
+    reads = []
+
+    def landing(answer):
+        def wrapped(line, **kw):
+            if "pulls/7/merge" in line:
+                landed.append(line)
+                return 1, "", "502 Bad Gateway"
+            if landed and line.endswith("gh api repos/o/r/pulls/7"):
+                reads.append(line)
+                if len(reads) < 3:
+                    return 0, json.dumps({"state": "open", "merged": False}), ""
+                return 0, json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(landing)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "5", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    assert (code, len(cleaned(calls)), len(reads)) == (0, 3, 3)
+
+
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
     waits = []
