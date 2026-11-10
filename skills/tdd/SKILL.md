@@ -1287,8 +1287,10 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      **Only after that PASS, and before the step's ledger commit**, re-record the frozen cases
      the refactor changed, an earlier step's included, with
      `$S/tests-frozen.sh rerecord-refactored .tdd/issue-<n>.md <green-sha>`: a case is
-     re-recorded only when it kept its title and its assertion lines modulo whitespace, and one
-     that did not is left as recorded, so `check-earlier` still refuses it. Its exit 1 is a
+     re-recorded only when it kept its title and its assertion lines modulo whitespace, and its
+     record matched its body at `<green-sha>`, or at `<green-sha>^` when `<green-sha>` is one of
+     the own commits of a ticked `⟦suite-repair⟧` step (the verified repair green that rewrote it;
+     another step's `⟦suite-repair⟧` tick does not count); one that did not is left as recorded, so `check-earlier` still refuses it. Its exit 1 is a
      **bail** with cause `needs-user`, a process failure, quoting each `skipped:` line it printed, and its
      exit 2 is a **bail** as a system failure; neither
      `clear-refactor-pending.sh` nor the step's ledger commit follows either (`Read` `<base directory>/BAIL.md`):
