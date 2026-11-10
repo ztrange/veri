@@ -3766,3 +3766,21 @@ def test_main_3367_prints_supersede_with_the_file_of_each_of_two_js_ts_titles_a_
 
     assert (code, stdout, stderr) == (
         0, "supersede foo.test.ts::rejects an empty name foo.test.ts::rejects a long name\n", "")
+
+
+def test_main_3543_prints_repair_for_a_wrong_test_backticking_a_defined_other_case_beside_backticked_non_case_values(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    own, other = "test_main_returns_zero", "test_main_keeps_other"
+    (suite / ("test_" + "ledger" + ".py")).write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (own, other))
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: `%s` asserts no `zq7marker` in the `command` field, which is plain by design\n" % other)
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), own], cwd=tmp_path)
+
+    assert (code, bare_route(stdout)) == (0, "repair %s\n" % own)
