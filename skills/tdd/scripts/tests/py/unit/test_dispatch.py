@@ -22,9 +22,14 @@ def no_unfaked_process_listing(monkeypatch, dispatch):
     monkeypatch.setattr(dispatch.subprocess, "run", run)
 
 
-def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli, dispatch):
+def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli, dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "launch", launches.append)
     code, out, err = run_cli(dispatch, [])
-    assert (code, out, err) == (2, "", "usage: dispatch.sh --target <N>  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing)\n")
+    assert (code, out, launches) == (2, "", [])
+    assert str(tmp_path / ".tdd" / "role-dev.state") in err
 
 
 class _StopWaiting(Exception):
