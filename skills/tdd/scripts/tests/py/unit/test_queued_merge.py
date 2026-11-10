@@ -1059,6 +1059,18 @@ def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_e
     assert (code, "closed" in err, moved) == (2, True, [])
 
 
+def test_3500_queued_merge_whose_pr_read_fails_after_the_fetch_exits_2_naming_it_on_stderr_before_any_rebase_or_push_and_frees_the_lock(fake_processes, run_cli, monkeypatch):
+    monkeypatch.setattr(queued_merge, "_pull", lambda repo, pr: None)
+
+    calls = scenario(fake_processes)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if "rebase" in c or " push " in c]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "could not read" in err, moved, len(released)) == (2, True, [], 1)
+
+
 def test_3500_scenario_fixture_answers_not_an_ancestor_for_a_strictly_behind_pr_head_against_origin_main(fake_processes):
     scenario(fake_processes, behind=True)
 
