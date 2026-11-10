@@ -85,3 +85,25 @@ def test_3509_a_skill_edit_step_whose_unit_has_no_requirements_heading_is_refuse
     assert code == 2
     assert "skills/tdd/SCRIPTS.md" in err
     assert not (tdd / "events.jsonl").exists()
+
+
+def test_3509_a_ledger_whose_every_skill_edit_unit_has_its_heading_or_new_heading_passes(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3509.md"
+    ledger.write_text(
+        "- [ ] regrade `skills/tdd/PIN.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n"
+        "- [ ] add `skills/tdd/SCRIPTS.md` ⟦skill-edit⟧ ⟦criterion 2⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3509-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n"
+        "### skills/tdd/SCRIPTS.md (new)\n\n| a | b |\n|---|---|\n| 3 | 4 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
