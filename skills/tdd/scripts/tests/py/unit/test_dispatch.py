@@ -361,6 +361,36 @@ def test_main_prints_no_exit_line_and_keeps_looping_when_a_seen_run_with_a_workt
     assert (code, capsys.readouterr().out) == ("looping", "")
 
 
+def test_main_prints_no_exit_line_when_a_seen_run_is_absent_for_several_passes_spanning_under_30_seconds_then_live_again_issue_3516(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+    lives = [["7"], [], [], [], [], ["7"]]
+    waits = []
+    elapsed = [1000]
+
+    def wait():
+        waits.append(1)
+        elapsed[0] += 5
+        if len(waits) == 7:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    assert (code, capsys.readouterr().out) == ("looping", "")
+
+
 def test_main_prints_no_exit_line_and_keeps_looping_when_an_absent_run_has_a_restart_pending_marker_in_its_worktree_issue_3370(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
