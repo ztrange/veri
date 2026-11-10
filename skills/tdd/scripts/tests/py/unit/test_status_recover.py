@@ -23,6 +23,7 @@ def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-coord.state").write_text("")
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
