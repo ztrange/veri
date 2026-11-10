@@ -1,0 +1,7 @@
+before 40
+410cd6716ffd7ccbfcbaf9d8e8548445f4ea6502
+keep 53
+skills/tdd/scripts/tests/py/unit/test_queued_merge.py
+command 181
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait
+
