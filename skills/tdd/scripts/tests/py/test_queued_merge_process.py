@@ -552,11 +552,11 @@ def test_queued_merge_lease_push_from_a_detached_head_updates_the_remote_branch_
     assert (pushed, refused.returncode, raced == git(mover, "rev-parse", "HEAD"), raced != before) == (True, 1, True, True)
 
 
-FAKE_GH_CLOSING_200 = """#!/bin/sh
+FAKE_GH_WITH_BODY = """#!/bin/sh
 echo "gh $*" >> "$CALL_LOG"
 head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
 case "$*" in
-  *"pr view"*) echo '{"body": "Closes #200"}' ;;
+  *"pr view"*) echo "{\\"body\\": \\"$PR_BODY\\"}" ;;
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "success"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
@@ -566,9 +566,9 @@ esac
 exit 0
 """
 
-
-@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a non-tdd branch, with gh planted on PATH")
-def test_queued_merge_on_a_non_tdd_branch_demands_closes_only_for_the_ledgers_the_pr_adds_not_those_already_on_main_3490(tmp_path):
+def queued_merge_on_a_non_tdd_branch(tmp_path, pr_body):
+    """claude/x adds ledger .tdd/issue-200.md over a main that already holds .tdd/issue-100.md;
+    returns the run and the merge PUTs gh saw."""
     real_git = shutil.which("git")
     ident = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
 
@@ -597,12 +597,12 @@ def test_queued_merge_on_a_non_tdd_branch_demands_closes_only_for_the_ledgers_th
     subprocess.run([real_git, "clone", "-q", "-b", "claude/x", str(remote), str(worktree)], check=True, capture_output=True, cwd=tmp_path)
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    plant(bin_dir, "gh", FAKE_GH_CLOSING_200)
+    plant(bin_dir, "gh", FAKE_GH_WITH_BODY)
     call_log = tmp_path / "calls.log"
     call_log.write_text("")
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "WORKTREE": str(worktree),
-           "CALL_LOG": str(call_log), "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0", "GIT_CONFIG_GLOBAL": "/dev/null",
-           "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+           "CALL_LOG": str(call_log), "PR_BODY": pr_body, "VERI_MERGE_LOCK_POLL": "0.05", "VERI_POLL": "0",
+           "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
            "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test"}
 
     run = subprocess.run(["/bin/sh", str(SCRIPTS / "queued-merge.sh"), "https://github.com/o/r/pull/7", str(worktree), "claude/x", "-"],
@@ -610,4 +610,19 @@ def test_queued_merge_on_a_non_tdd_branch_demands_closes_only_for_the_ledgers_th
                          text=True, timeout=30)
 
     put_merge = [c for c in call_log.read_text().splitlines() if c.startswith("gh api") and "-X PUT" in c and "/merge" in c]
+    return run, put_merge
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a non-tdd branch, with gh planted on PATH")
+def test_queued_merge_on_a_non_tdd_branch_demands_closes_only_for_the_ledgers_the_pr_adds_not_those_already_on_main_3490(tmp_path):
+    run, put_merge = queued_merge_on_a_non_tdd_branch(tmp_path, "Closes #200")
+
     assert ("lacks the line" in run.stderr, len(put_merge)) == (False, 1), run.stderr
+
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a non-tdd branch, with gh planted on PATH")
+def test_queued_merge_on_a_non_tdd_branch_whose_pr_body_lacks_closes_for_the_ledger_it_adds_exits_2_and_merges_nothing_3490(tmp_path):
+    run, put_merge = queued_merge_on_a_non_tdd_branch(tmp_path, "Closes #999")
+
+    assert (run.returncode, "lacks the line" in run.stderr, len(put_merge)) == (2, True, 0), run.stderr
+
