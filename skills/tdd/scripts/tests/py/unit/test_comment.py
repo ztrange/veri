@@ -666,3 +666,29 @@ def test_red_exits_2_naming_test_path_when_the_report_has_no_test_path_line_post
     assert "TEST_PATH:" in err
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_red_exits_2_naming_prediction_note_when_diverged_without_a_note_line_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: KeyError: 'spin'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: DIVERGED\n")
+
+    code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert "PREDICTION_NOTE:" in err
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
