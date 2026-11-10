@@ -725,6 +725,40 @@ def test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover
 
     assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
 
+    root = tmp_path / "contrast"
+    marker = root / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
+    marker.parent.mkdir(parents=True)
+    marker.write_text(f"{os.getpid()}\n")
+    contrast_launches = []
+    contrast_waits = []
+
+    def contrast_launch(issue):
+        contrast_launches.append(issue)
+        ledger = root / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("- [ ] step\n")
+
+    def contrast_wait():
+        contrast_waits.append(1)
+        if len(contrast_waits) == 2:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(root))
+    monkeypatch.setattr(dispatch, "live_conductors",
+                        lambda: ["5", "7", "8"] if not contrast_waits else ["5"] + contrast_launches,
+                        raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15"] if i not in contrast_launches], raising=False)
+    monkeypatch.setattr(dispatch, "launch", contrast_launch, raising=False)
+    monkeypatch.setattr(dispatch, "wait", contrast_wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "3"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, contrast_launches) == (None, "", ["12"])
+
 
 def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker_naming_a_dead_restarter_issue_3370(
         monkeypatch, capsys, tmp_path, dispatch):
