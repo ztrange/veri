@@ -13,12 +13,13 @@ import github
 import handoff_state
 import json_documents
 import paths
+from role_state import state_path
 import status
 import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -231,9 +232,17 @@ def prioritize(free, lines):
     return free
 
 
+def lane():
+    return tunables.lane_of(tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent"))
+
+
+def state_file():
+    return state_path(status.main_working_tree(), "dev", lane())
+
+
 def main(argv):
     if not argv:
-        state = os.path.join(status.main_working_tree(), ".tdd", "role-dev.state")
+        state = state_file()
         if not os.path.isfile(state) or not os.access(state, os.R_OK):
             sys.stderr.write(f"dispatch.sh: cannot read {state}\n")
             return 2
@@ -280,7 +289,7 @@ def main(argv):
                 sys.stdout.write(line + "\n")
                 return 0
         if not argv:
-            lines = status.read_role_state("dev")
+            lines = status.read_role_state("dev", lane())
             try:
                 target = last_n(lines)
                 for line in lines:
@@ -289,7 +298,7 @@ def main(argv):
                         if clock() < expiry:
                             target = value
             except MalformedState as why:
-                sys.stderr.write(f"dispatch.sh: {why} in {os.path.join(status.main_working_tree(), '.tdd', 'role-dev.state')}\n")
+                sys.stderr.write(f"dispatch.sh: {why} in {state_file()}\n")
                 return 2
         stall = int(stall_window())
         for issue in seen:
@@ -320,9 +329,9 @@ def main(argv):
                 queue = solvable_issues()
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
-                free = prioritize(free, status.read_role_state("dev"))
+                free = prioritize(free, status.read_role_state("dev", lane()))
             except MalformedOverride as line:
-                sys.stderr.write(f"dispatch.sh: malformed override line in .tdd/role-dev.state: {line}\n")
+                sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):

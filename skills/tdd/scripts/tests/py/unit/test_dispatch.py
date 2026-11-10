@@ -1125,7 +1125,7 @@ def test_main_with_a_non_integer_stall_window_prints_the_usage_on_stderr_and_exi
 
     code, out, err = run_cli(dispatch, ["--target", "1"])
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
 
 
 def test_main_prints_queue_empty_and_exits_3_when_solvable_issues_exits_3_and_no_conductor_is_live(
@@ -1250,7 +1250,7 @@ def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_e
 
     results = [run_cli(dispatch, argv) for argv in (["--target", "abc"], ["--target"])]
 
-    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
+    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
     assert (results, launches) == ([usage, usage], [])
 
 
@@ -1267,7 +1267,7 @@ def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_a
 
     results = [run_cli(dispatch, ["--target", value]) for value in ("-1", "abc", "1.5")]
 
-    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
+    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
     assert (results, launches) == ([usage, usage, usage], [])
 
 
@@ -1364,7 +1364,7 @@ def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launch
 
     code, out, err = run_cli(dispatch, ["--target", "1", "--frobnicate"])
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
 
 
 def test_main_with_an_unknown_flag_in_the_first_position_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
@@ -1380,7 +1380,7 @@ def test_main_with_an_unknown_flag_in_the_first_position_prints_the_usage_on_std
 
     code, out, err = run_cli(dispatch, ["--frobnicate", "5"])
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
 
 
 def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing_and_reading_no_queue(
@@ -1401,14 +1401,14 @@ def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing
 
     code, out, err = run_cli(dispatch, ["--help"])
 
-    assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "", [], [])
+    assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "", [], [])
 
 
 def test_main_with_help_writes_exactly_one_usage_line_to_the_stdout_descriptor_and_nothing_to_stderr(
         run_cli, dispatch):
     code, out, err = run_cli(dispatch, ["--help"])
 
-    assert (code, out, err) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "")
+    assert (code, out, err) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "")
 
 
 def test_last_comment_returns_the_body_of_the_issues_last_comment_read_through_the_github_port_without_starting_a_gh_process(
@@ -2010,7 +2010,7 @@ def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exit
 
     code, out, err = run_cli(dispatch, ["--target", "1"])
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
 
 
 def _real_overlap_reads(monkeypatch, dispatch, prs, bodies, diffs):
@@ -2328,3 +2328,32 @@ def test_main_with_no_target_and_a_malformed_timed_n_line_exits_2_naming_the_lin
     assert (code, out, launches) == (2, "", [])
     assert "malformed timed-n line" in err
     assert "timed-n dev-1 2026-11-07T10:00:00" in err
+
+
+def test_main_with_no_target_under_a_lane_label_reads_that_lanes_role_dev_state_not_the_unlaned_file(
+        run_cli, monkeypatch, tmp_path, dispatch):
+    launches = []
+    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=0\n", ["12", "15"], launches)
+    (tmp_path / ".tdd" / "role-dev-mu.state").write_text("n=1\noverride dev-1 2026-11-07T10:00:00 take #15 first\n")
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    code, out, err = run_cli(dispatch, [])
+    assert launches == ["15"]
+
+
+def test_main_with_no_target_under_a_lane_label_and_no_state_file_for_that_lane_exits_2_naming_the_lane_file(
+        run_cli, monkeypatch, tmp_path, dispatch):
+    launches = []
+    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=1\n", ["12"], launches)
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    code, out, err = run_cli(dispatch, [])
+    assert (code, out, launches) == (2, "", [])
+    assert str(tmp_path / ".tdd" / "role-dev-mu.state") in err
+
+
+def test_main_with_no_target_and_a_non_numeric_n_line_exits_2_naming_the_line_and_launches_nothing(
+        run_cli, monkeypatch, tmp_path, dispatch):
+    launches = []
+    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=two\n", ["12"], launches)
+    code, out, err = run_cli(dispatch, [])
+    assert (code, out, launches) == (2, "", [])
+    assert "malformed n line: n=two" in err

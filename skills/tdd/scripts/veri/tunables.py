@@ -11,8 +11,13 @@ def read(name, default="", unless_empty=None):
     return value if value or unless_empty is None else unless_empty
 
 
+def lane_of(opt_in):
+    """The lane an opt-in label names (`ready-for-agent:mu` -> `mu`), None for a plain one."""
+    return opt_in.rpartition(":")[2] if ":" in opt_in else None
+
+
 def taken_label(opt_in):
-    return "taken:" + (opt_in.rpartition(":")[2] if ":" in opt_in else "main")
+    return "taken:" + (lane_of(opt_in) or "main")
 
 
 def pop(name, default=""):
