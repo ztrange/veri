@@ -77,6 +77,13 @@ run it. A preflight that passes never reads it.
    ```
    body="$(mktemp)" && gh api repos/{owner}/{repo}/issues/<n> -q .body > "$body"
    ```
+   Then, before any leaf is launched, check the issue's requirements:
+   `$S/requirements-preflight.sh "$body" [<ledger>]`, passing the ledger `.tdd/issue-<n>.md`
+   when it exists (as on a resume). It checks every row of every `### <path>` table in the
+   issue's `## Requirements` against that unit's `REQUIREMENTS.md` list, and each `⟦skill-edit⟧`
+   step's unit against the issue's `### <path>` tables. **Exit 2** is a preflight refusal: it
+   names every defect at once, so fix them together. On a fresh run the ledger does not exist
+   yet, so `scope-check.sh` checks the skill-edit units at the plan commit instead.
    Then, for `detach-command.sh`, get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"` (see *Detecting the test command*),
    and run it through `$S/detach-command.sh start <name> <cmd>`, then `VERI_ISSUE=<n> $S/detach-command.sh wait <name> --alone '<alone-cmd>'` in the foreground with no max-seconds argument and the Bash tool's `timeout` of 600000 ms, calling `wait` again each time it returns 3 (never background it and end the turn).
    `<alone-cmd>` is the repo's own runner for one test target, with the target as `$1`: a test file, or a pytest node id `path::name` when the red output has `FAILED`/`ERROR` lines (`make test TESTS="$1"` on veri, named here with `detach-command.sh`). With `--alone`, a command that finished red has each failing test its output names re-run alone once, as a pytest node id when it has them and else as a test file, through the shared `rerun_alone` helper: when every one passes alone, `detach-command.sh wait` answers 0 and has itself written the one `suite-flake` event naming the targets, so preflight goes on as on a green baseline.
