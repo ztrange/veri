@@ -20,7 +20,7 @@ def complain(message):
 
 
 def run_case(case):
-    detect = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "detect-test-command.sh")
+    detect = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
     if not command:

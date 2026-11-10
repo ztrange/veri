@@ -305,8 +305,8 @@ def main(argv):
         return 2
     import pytest
     os.environ["TMPDIR"] = PINNED_TMPDIR
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+    sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases"]))
     def terminate(signum, frame):
         sys.exit(128 + signum)

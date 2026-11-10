@@ -474,7 +474,7 @@ def refresh_if_stale():
     except OSError:
         return
     if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")) and not refresh_running():
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "report-cache.sh")
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "report-cache.sh")
         subprocess.Popen([script, "refresh"], start_new_session=True, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -526,7 +526,7 @@ def recover_prs():
 
 
 def recover_lock():
-    holder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "merge-lock.sh")
+    holder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "merge-lock.sh")
     out = subprocess.run([holder, "holder"], capture_output=True, text=True).stdout.strip()
     if out.startswith("stale"):
         return ["stale"]
