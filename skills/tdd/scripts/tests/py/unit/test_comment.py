@@ -1349,3 +1349,23 @@ def test_resuming_posts_the_resuming_heading_naming_the_next_unchecked_step_and_
     assert "third step charlie" not in body
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "resuming", url)]
+
+
+def test_resuming_note_file_text_follows_the_rendered_resuming_comment_after_a_blank_line(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-92")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] first step alpha\n- [ ] second step bravo\n")
+    note = tmp_path / "note.txt"
+    note.write_text("stray paths discarded: scratch/zulu.txt\n")
+
+    code, out, err = run_cli(comment, ["7", "resuming", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    assert len(posted) == 1
+    assert "second step bravo" in posted[0]
+    assert posted[0].rstrip("\n").endswith("\n\nstray paths discarded: scratch/zulu.txt")
