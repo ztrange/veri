@@ -96,7 +96,7 @@ def test_main_missing_reroute_reject_saying_stays_green_exits_2_and_ticks_nothin
     ledger.parent.mkdir()
     ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
     reason = tmp_path / "reason.txt"
-    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    reason.write_text("VERDICT: REJECT\nREASON: the real before-state stays green\n")
 
     code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -113,7 +113,7 @@ def test_main_missing_reroute_stays_green_matching_no_open_step_exits_3_and_writ
     body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n"
     ledger.write_text(body)
     reason = tmp_path / "reason.txt"
-    reason.write_text("VERDICT: REJECT\nREASON: the mutation stays green\n")
+    reason.write_text("VERDICT: REJECT\nREASON: the real before-state stays green\n")
 
     code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "no such step", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -163,7 +163,7 @@ def test_main_missing_reroute_stays_green_records_one_unpinnable_missing_event_a
     ledger.write_text(body)
     ledger_bytes = ledger.read_bytes()
     reason = tmp_path / "reason.txt"
-    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    reason.write_text("VERDICT: REJECT\nREASON: the real before-state stays green\n")
 
     code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
@@ -185,7 +185,7 @@ def test_main_missing_reroute_stays_green_prints_unpinnable_missing_and_exits_2_
     ledger.write_text(body)
     ledger_bytes = ledger.read_bytes()
     reason = tmp_path / "reason.txt"
-    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    reason.write_text("VERDICT: REJECT\nREASON: the real before-state stays green\n")
 
     code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
