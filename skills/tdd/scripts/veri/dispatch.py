@@ -243,6 +243,8 @@ def main(argv):
                     if os.path.exists(f)) >= stall:
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
+        for issue in live:
+            missing.pop(issue, None)
         absent = [issue for issue in absent if issue not in live]
         pending = [issue for issue in pending if issue not in live and issue not in absent]
         seen = live + absent + pending
