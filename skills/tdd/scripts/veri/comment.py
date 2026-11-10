@@ -125,7 +125,10 @@ def post_green(issue, note_file=None):
 
 
 def post_refactor(issue):
-    report = read_or_empty(".tdd/develop-refactor.out").splitlines()
+    refactor_out = ".tdd/develop-refactor.out"
+    if not os.path.exists(refactor_out):
+        return missing_file(refactor_out)
+    report = read_or_empty(refactor_out).splitlines()
     transforms = [line.removeprefix("RESULT: ") for line in report if line.startswith("RESULT: ")]
     flagged = "".join(f"triangulation flagged: {line.removeprefix('FLAGS: ')}\n"
                       for line in report if line.startswith(("FLAGS: overfit:", "FLAGS: overfit |")))

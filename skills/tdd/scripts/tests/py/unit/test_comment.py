@@ -1060,3 +1060,22 @@ def test_refactor_comment_flags_an_overfit_flags_line_in_the_pipe_report_format(
     assert code == 0
     lines = posted[0][1].splitlines()
     assert "triangulation flagged: overfit | spin.py:12 | test_spin_returns_four" in lines
+
+
+def test_refactor_exits_2_naming_the_missing_develop_refactor_report_posting_and_journaling_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+
+    code, out, err = run_cli(comment, ["7", "refactor"], cwd=tmp_path)
+
+    assert code == 2
+    assert out == ""
+    assert len(err.splitlines()) == 1
+    assert ".tdd/develop-refactor.out" in err
+    assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
