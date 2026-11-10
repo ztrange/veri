@@ -2415,3 +2415,22 @@ def test_issue_3288_a_message_id_reused_in_the_next_session_counts_as_a_new_turn
     assert turn_rows.families["🔴 Red"][0] == 1
     assert turn_rows.families["Total"][0] == 2
 
+
+
+def test_issue_3288_a_reused_id_carrying_comment_names_opens_a_new_turn_while_a_later_name_less_record_of_a_flushed_id_is_a_duplicate(tmp_path, metrics):
+    def record(command=None):
+        content = [] if command is None else [{"type": "tool_use", "name": "Bash", "input": {"command": command}}]
+        return {"type": "assistant", "message": {"id": "m1", "content": content, "usage": {"output_tokens": 10}}}
+
+    result = {"type": "result", "usage": {"output_tokens": 10}}
+    green = "gh issue comment 1 --body '🟢 Green'"
+    red = "gh issue comment 1 --body '🔴 Red'"
+    records = [record(green), result, record(red), result, record(), result]
+    (tmp_path / "conductor-108.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+
+    _, turn_rows = metrics.conductor_sessions("108", str(tmp_path / "events.jsonl"))
+
+    assert len(turn_rows) == 2
+    assert all(row[1].startswith("$") for row in turn_rows)
+    assert turn_rows.families["🟢 Green"][0] == 1
+    assert turn_rows.families["🔴 Red"][0] == 1
