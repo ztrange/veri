@@ -2,9 +2,18 @@
 import importlib
 import json
 import os
+import signal
 import subprocess
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def recorded_signal_handlers(monkeypatch):
+    """main() installs SIGTERM/SIGHUP/SIGINT handlers; record them so none outlives a case in the worker."""
+    handlers = {}
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: handlers.__setitem__(signum, handler))
+    return handlers
 
 
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
