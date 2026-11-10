@@ -78,7 +78,7 @@ def _recorded(path):
     if pid is None:
         return None, "pid dead"
     if not start_matches(_pid_path(path), pid):
-        return None, "lstart mismatch"
+        return None, "lstart unreadable" if _ps("lstart", pid) == "" else "lstart mismatch"
     return pid, None
 
 

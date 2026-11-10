@@ -132,7 +132,7 @@ def main(argv):
             if not conductor_alive(run):
                 misses += 1
                 reasons.append(pid_file.not_live_reason(_run_dir(run)))
-                if misses >= 3 and reasons[-1] in ("parent command", "own command"):
+                if misses >= 3 and reasons[-1] in ("parent command", "own command", "lstart unreadable"):
                     misses = 0
                 sleep(1)
                 continue
