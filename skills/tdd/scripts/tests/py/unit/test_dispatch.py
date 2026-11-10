@@ -2391,3 +2391,24 @@ def test_main_with_no_target_and_a_non_numeric_n_line_exits_2_naming_the_line_an
     code, out, err = run_cli(dispatch, [])
     assert (code, out, launches) == (2, "", [])
     assert "malformed n line: n=two" in err
+
+
+def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes_while_a_non_parked_draft_pr_still_skips_issue_3545(
+        monkeypatch, capsys, tmp_path, dispatch):
+    parked, other = "https://github.com/o/r/pull/90", "https://github.com/o/r/pull/91"
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["15", "12"],
+        {"12": ["skills/tdd/SCRIPTS.md"], "15": ["skills/tdd/scripts/veri/status.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": parked, "isDraft": True, "headRefName": "tdd/80-parked", "headRefOid": "a1",
+         "labels": [{"name": "parked"}]},
+        {"number": 91, "url": other, "isDraft": True, "headRefName": "tdd/81-live", "headRefOid": "b2",
+         "labels": []}])
+    diffs = {90: ["skills/tdd/SCRIPTS.md"], 91: ["skills/tdd/scripts/veri/status.py"]}
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: diffs[number])
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert (launches, capsys.readouterr().out) == (["12"], f"skip 15 skills/tdd/scripts/veri/status.py {other}\n")
