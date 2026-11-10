@@ -1,5 +1,6 @@
 """In-process cases for veri/dispatch.py, the module dispatch.sh is a shim over."""
 import importlib
+import sys
 
 import pytest
 
@@ -1696,7 +1697,8 @@ _RATE_LIMITED = "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n"
 
 
 def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, reads, refusal=_RATE_LIMITED):
-    """Fake gh at the process boundary over REST: the open-PR list (one run draft PR changing other.py),
+    """Fake gh at the process boundary over REST, handing back a refusal's stderr only to a caller that pipes it,
+    as subprocess does: the open-PR list (one run draft PR changing other.py),
     issue 12's body naming dispatch.py and the PR's diff; <limited_read> is refused as rate-limited until
     <limited_until>, and every read of it is recorded in <reads>."""
     import subprocess
@@ -1708,8 +1710,10 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
         if what == limited_read and not argv[2].endswith("page=2"):
             reads.append(times[len(waits)])
             if times[len(waits)] < limited_until:
+                if kw.get("stderr") != subprocess.PIPE:
+                    sys.stderr.write(refusal)
                 return subprocess.CompletedProcess(argv, 1, stdout='{"message": "API rate limit exceeded"}',
-                                                   stderr=refusal)
+                                                   stderr=refusal if kw.get("stderr") == subprocess.PIPE else None)
         if what == "list":
             page = '[{"number": 90, "html_url": "https://github.com/o/r/pull/90", "draft": true,' \
                    ' "head": {"ref": "tdd/80-other", "sha": "aaa"}}]'
