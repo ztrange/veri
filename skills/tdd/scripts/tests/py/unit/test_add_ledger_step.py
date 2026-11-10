@@ -1597,3 +1597,15 @@ def test_main_refuses_a_diff_checked_step_that_would_carry_no_criterion_naming_t
     capsys.readouterr()
     record = [r for r in ledger_steps(ledger.read_text()) if "x ⟦diff-checked⟧" in r[6]]
     assert (code, [(r[2], r[4], r[5]) for r in record]) == (0, [("diff-checked", "1", "2")])
+
+
+def test_main_adds_a_step_that_only_mentions_the_skill_edit_mark_in_its_prose_as_a_plain_step_3544(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### .tdd/issue-1.md\n")
+    text = "document the ⟦skill-edit⟧ marker in `.tdd/issue-1.md`"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
+
+    added = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ] " + text)]
+    assert (code, err, added) == (0, "", ["- [ ] " + text + " ⟦added⟧ ⟦criterion 2⟧"])

@@ -204,10 +204,12 @@ def main(argv):
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
     for text in texts:
+        if not (text.strip().startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(text), "skill-edit")):
+            continue
         unit = unit_of(text)
-        if carries_mark(text, "skill-edit") and unit is None:
+        if unit is None:
             return refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
-        if carries_mark(text, "skill-edit") and restates_list(path, unit):
+        if restates_list(path, unit):
             return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line)]
