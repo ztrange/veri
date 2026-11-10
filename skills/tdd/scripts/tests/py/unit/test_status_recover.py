@@ -8,11 +8,12 @@ import subprocess
 HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
 
 
-def _fake_gh_serving(pulls):
+def _fake_gh_serving(pulls, states):
     def run(args, *a, **k):
         out = ""
         if args and args[0] == "gh":
-            single = {str(pr["number"]): pr for pr in pulls}.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
+            singles = {str(pr["number"]): dict(pr, mergeable_state=states[pr["number"]]) for pr in pulls}
+            single = singles.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
             out = json.dumps(single if single is not None else pulls)
         return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
     return run
@@ -164,11 +165,11 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
-    pulls = [{"number": 4721, "draft": True, "state": "open", "mergeable_state": "blocked",
+    pulls = [{"number": 4721, "draft": True, "state": "open",
               "title": "Teach the widget to sing", "body": "Closes #3600\n",
               "head": {"ref": "tdd/3600-teach-the-widget"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4721: "blocked"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -182,11 +183,11 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
-    pulls = [{"number": 4722, "draft": False, "state": "open", "mergeable_state": "clean",
+    pulls = [{"number": 4722, "draft": False, "state": "open",
               "title": "Teach the widget to dance", "body": "Closes #3601\n",
               "head": {"ref": "tdd/3601-teach-the-widget"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4722: "clean"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -243,12 +244,12 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
-    pulls = [{"number": 4723, "draft": True, "state": "open", "mergeable_state": "unstable",
+    pulls = [{"number": 4723, "draft": True, "state": "open",
               "title": "No body", "body": None, "head": {"ref": "feature/no-body"}},
-             {"number": 4724, "draft": False, "state": "open", "mergeable_state": "clean",
+             {"number": 4724, "draft": False, "state": "open",
               "title": "No issue", "body": "Just a tidy-up.\n", "head": {"ref": "feature/tidy"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls))
+    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4723: "unstable", 4724: "clean"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
