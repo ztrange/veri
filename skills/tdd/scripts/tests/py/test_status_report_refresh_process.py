@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -10,6 +11,7 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 WAIT = 10
+EOF_WAIT = 20
 
 
 def release(fifo):
@@ -40,17 +42,20 @@ def test_2750_report_with_a_stale_snapshot_ends_its_captured_stdout_while_the_re
     proc = subprocess.Popen([sys.executable, str(scripts / "veri" / "status.py"), "--report"], cwd=repo,
                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        try:
-            out, err = proc.communicate(timeout=WAIT)
-            ended = True
-        except subprocess.TimeoutExpired:
-            ended = False
+        chunks = []
+        reader = threading.Thread(target=lambda: chunks.append(proc.stdout.read()), daemon=True)
+        reader.start()
+        reader.join(EOF_WAIT)
+        ended = not reader.is_alive()
         deadline = time.monotonic() + WAIT
         while not started.exists() and time.monotonic() < deadline:
             time.sleep(0.05)
         blocked = started.exists()
-        assert (ended, blocked) == (True, True), "the captured report did not reach EOF while the refresh was blocked"
-        assert proc.returncode == 0, err
+        assert ended, "the captured report did not reach EOF while the refresh was blocked"
+        assert blocked, "the stub report-cache.sh refresh was never started"
+        out = chunks[0]
+        err = proc.stderr.read()
+        assert proc.wait(timeout=WAIT) == 0, err
         assert "Queue" in out
     finally:
         release(fifo)
