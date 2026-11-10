@@ -322,7 +322,7 @@ full-suite lock wait.
    `/tdd` without waiting for this one's PR to merge.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
-   comment naming the next unchecked step, and go straight to the cycle loop (step 3), once you `Read` and follow `<base directory>/RESUME.md`.
+   comment naming the next unchecked step, by running `$S/comment.sh <n> resuming`, and go straight to the cycle loop (step 3), once you `Read` and follow `<base directory>/RESUME.md`.
    A resume skips verify-plan only when the ledger's plan is unchanged since its last verify-plan PASS: when
    `$S/plan-reverify.sh .tdd/issue-<n>.md` exits 0, a `plan:` commit is at or after that PASS, so run step 2c's
    verify-plan before the cycle loop; on exit 3 skip it.
@@ -557,7 +557,7 @@ Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.m
    reads the issue as free and takes it again, as four unseen runs did on 2026-09-14. The
    title says **WIP** because a draft branch that reads as finished work is a second way to
    be misread; step 4 is where the PR is retitled and readied.
-4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
+4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment, by running `$S/comment.sh <n> plan`, listing the steps,
    naming the test command preflight detected and every leaf will run, and noting that the
    ledger is the source of truth and each step will be blind-verified. The test command is
    in that comment so a wrong one is visible on the thread before the first leaf starts,
@@ -605,7 +605,7 @@ $S/wait-leaf.sh verdict-plan     # foreground; on exit 3 call it again
 The third positional is the **ledger**, where the other phases pass a test path, and there
 is no `--step`: the plan has no step under judgement yet. Note the wait's exit code — the
 verdict — and read the reason back out of `.tdd/verify-plan.reason` to narrate it. Post a
-`### 🗺️ verify-plan — PASS|REJECT` comment carrying that reason; it names any step the
+`### 🗺️ verify-plan — PASS|REJECT` comment, by running `$S/comment.sh <n> verify-plan`, carrying that reason; it names any step the
 verifier judged too big for one cycle whichever way the verdict went, so that observation
 reaches the thread even on a PASS.
 
