@@ -1,2 +1,4 @@
 ### with several stall-window-old run dirs of closed issues over several polls, dispatch reads issue states at most once per poll, never once per run dir, pinned by a small in-process case counting `dispatch.issue_states` calls through a spy ⟦criterion 3⟧
 - test-only | extract the shared stall-window-old run-dir and monkeypatch setup repeated across the three new #3551 cases into a helper
+### dispatch ends with exit 2 and a stderr line naming the failure when the stall-check issue read (`dispatch.issue_states` in main) hits a gh failure or a rate limit, as the other dispatch reads do through `answered()` (QueueUnreadable), never a traceback; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py` faking the github read to raise `github.NoAnswer`, which fails on current code ⟦added⟧ ⟦criterion 1⟧
+- test-only | the two new 3551 cases repeat the same monkeypatch setup block (could share a helper)
