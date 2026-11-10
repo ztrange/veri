@@ -34,3 +34,10 @@ context 76
 command 166
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_timed_n_change_has_expired
 
+before 40
+8154d977edf8b56807db15db4e7766255677184a
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_no_target_does_not_apply_an_expired_role_dev_state_timed_n_change_lowering_the_n_line
+
