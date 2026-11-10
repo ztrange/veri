@@ -189,6 +189,10 @@ def parse_args(argv):
     return int(argv[1])
 
 
+def last_n(lines):
+    return int([line for line in lines if line.startswith("n=")][-1][2:])
+
+
 def main(argv):
     if not argv:
         state = os.path.join(status.main_working_tree(), ".tdd", "role-dev.state")
@@ -239,7 +243,7 @@ def main(argv):
                 return 0
         if not argv:
             lines = status.read_role_state("dev")
-            target = int([line for line in lines if line.startswith("n=")][-1][2:])
+            target = last_n(lines)
             for line in lines:
                 if line.startswith("timed-n "):
                     value, _, expiry = line.split(None, 3)[3].partition(" until ")
