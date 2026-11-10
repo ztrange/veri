@@ -2210,6 +2210,31 @@ def test_main_goes_on_to_launch_when_the_open_pr_list_read_answers_http_500_for_
     assert (code, launches) == (None, ["12"])
 
 
+def test_main_goes_on_to_launch_when_the_issue_body_read_answers_http_500_for_the_first_reads_then_succeeds_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, lambda: {"https://github.com/o/r/pull/90": ["a.py"]})
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    reads = []
+
+    def gh_issue_view(issue, field):
+        reads.append(issue)
+        if len(reads) <= 2:
+            raise dispatch.github.NoAnswer("", "HTTP 500\n")
+        return "Edits `skills/tdd/SCRIPTS.md`."
+
+    monkeypatch.setattr(dispatch.github, "gh_issue_view", gh_issue_view)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, launches) == (None, ["12"])
+
+
 def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_500_diff_read_issue_3560(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, _ = _overlap_case(
