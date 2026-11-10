@@ -215,3 +215,17 @@ def test_2916_after_reroute_later_next_unchecked_hands_over_the_moved_step_and_n
     assert handed == (0, "charlie step\n", "")
     events = [json.loads(line) for line in (tdd / "events.jsonl").read_text().splitlines()]
     assert [e["event"] for e in events if e["event"] == "revise"] == []
+
+
+def test_reorder_ledger_steps_3338_shim_header_states_it_does_not_commit_from_its_exit_line_on():
+    import pathlib
+
+    shim = pathlib.Path(__file__).resolve().parents[3] / "reorder-ledger-steps.sh"
+    header = []
+    for line in shim.read_text().splitlines():
+        if not line.startswith("#"):
+            break
+        header.append(line)
+    exit_at = next(i for i, line in enumerate(header) if line.startswith("# Exit"))
+
+    assert any("does not commit" in line for line in header[exit_at:])
