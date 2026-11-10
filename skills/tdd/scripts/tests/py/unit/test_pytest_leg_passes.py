@@ -233,3 +233,30 @@ def test_a_named_class_whose_cases_went_unrun_is_reported_though_a_parametrized_
     unrun, targets = pytest_leg.unrun_targets(collected, {"test_cls.py::TestA[x]::test_m"})
 
     assert (unrun, len(targets)) == (["test_cls.py::TestA::test_m"], 1)
+
+
+def test_a_leg_nested_in_a_run_that_holds_failed_case_records_leaves_those_records_as_they_were_3554(run_cli, monkeypatch, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_planted_unmarked.py").write_text("def test_unmarked():\n    pass\n")
+    records = importlib.import_module("veri.failed_cases")
+    monkeypatch.setitem(sys.modules, "failed_cases", records)
+    names = ("NODEIDS", "PASSED", "REPORTED", "NAMED")
+    outer = {"NODEIDS": ["outer::failed"], "PASSED": ["outer::passed"], "REPORTED": {"outer::failed", "outer::passed"}, "NAMED": ["outer::failed", "outer::passed"]}
+    before = {name: list(getattr(records, name)) if isinstance(getattr(records, name), list) else set(getattr(records, name)) for name in names}
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    try:
+        for name in names:
+            record = getattr(records, name)
+            record.clear()
+            record.update(outer[name]) if isinstance(record, set) else record.extend(outer[name])
+
+        run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+
+        after = {name: getattr(records, name) for name in names}
+        assert after == outer
+    finally:
+        for name in names:
+            record = getattr(records, name)
+            record.clear()
+            record.update(before[name]) if isinstance(record, set) else record.extend(before[name])
