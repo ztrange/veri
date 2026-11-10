@@ -494,6 +494,37 @@ def test_red_posts_prediction_diverged_with_the_prediction_note_in_place_of_pred
     assert body.index("prediction diverged") < body.index("the fixture lacked a spin key")
 
 
+def test_red_reads_the_prediction_by_its_first_word_with_trailing_punctuation_stripped(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-57")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    for prediction, diverged in (("DIVERGED.", True), ("DIVERGED, wrong key", True), ("MATCHED", False)):
+        (tmp_path / ".tdd" / "develop-red.out").write_text(
+            "TEST_PATH: tests/py/unit/test_widget.py\n"
+            "TARGET_TEST: test_widget_spins_clockwise\n"
+            "AGAINST_UNMODIFIED: FAILS\n"
+            "FAIL_OUTPUT: KeyError: 'spin'\n"
+            "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+            f"PREDICTION: {prediction}\n"
+            "PREDICTION_NOTE: a KeyError fired first\n")
+
+        code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+        body = posted[-1]
+        assert code == 0, prediction
+        if diverged:
+            assert "prediction diverged" in body.splitlines(), prediction
+            assert "prediction matched" not in body, prediction
+            assert "a KeyError fired first" in body, prediction
+        else:
+            assert "prediction matched" in body.splitlines(), prediction
+            assert "prediction diverged" not in body, prediction
+
+
 def test_red_note_file_text_follows_the_rendered_red_comment_after_a_blank_line(monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
     posted = []
@@ -591,3 +622,4 @@ def test_the_posted_red_and_verify_red_headings_match_the_red_metrics_family_as_
     assert families == [["🔴 Red"], ["🔴 Red"]]
     assert [body.splitlines()[0] for body in posted] == ["### 🔴 Red", "### 🔎 verify-red — PASS"]
     assert pattern
+
