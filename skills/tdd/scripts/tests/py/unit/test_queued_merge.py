@@ -1,6 +1,7 @@
 """veri/queued_merge.py in-process, every process boundary (merge-lock.sh, wait-ci.sh, git, gh) faked."""
 import json
 import os
+import subprocess
 
 import pytest
 
@@ -32,10 +33,10 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
         is_put = "gh api" in line and "pulls/7/merge" in line
         if is_put and gh_code == 0:
             state["merged"] = True
-        if behind and "merge-base --is-ancestor" in line:
-            return (1 if line.endswith(" HEAD") else 0), "", ""
         if "merge-base --is-ancestor" in line and "origin/main" in line:
             return 1, "", ""
+        if behind and "merge-base --is-ancestor" in line:
+            return (1 if line.endswith(" HEAD") else 0), "", ""
         if dirty and "status --porcelain" in line:
             return 0, " M file\n", ""
         if "merge-base --is-ancestor" in line and (ORIGIN_SHA in line or "origin/feature" in line):
@@ -1057,3 +1058,11 @@ def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_e
 
     moved = [c for c in calls if "rebase" in c or " push " in c]
     assert (code, "closed" in err, moved) == (2, True, [])
+
+
+def test_3500_scenario_fixture_answers_not_an_ancestor_for_a_strictly_behind_pr_head_against_origin_main(fake_processes):
+    scenario(fake_processes, behind=True)
+
+    ran = subprocess.run(["git", "-C", "/wt", "merge-base", "--is-ancestor", "9999999", "origin/main"], capture_output=True, text=True)
+
+    assert ran.returncode == 1
