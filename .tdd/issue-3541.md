@@ -1,0 +1,4 @@
+# Plan for #3541 — rerecord-refactored refuses a frozen case a verified suite-repair green changed (body digest matches neither green nor HEAD), bailing the run needs-user
+
+- [ ] tests-frozen.sh rerecord-refactored re-records an earlier step's frozen case whose body a later ticked suite-repair-marked step's green commit rewrote (same assertion), its record still holding the body from before that green: the record is rewritten to the HEAD body, no `skipped:` line is printed, and it exits 0 so check-earlier accepts the case and the run does not bail needs-user ⟦criterion 1⟧
+- [ ] tests-frozen.sh rerecord-refactored still refuses an earlier step's frozen case whose body was changed by a commit belonging to no ticked suite-repair-marked step (an ordinary feat: step's green, say): it prints `skipped: <file> <case> (body digest matches neither green nor HEAD)`, leaves the record as it was, and exits 1 ⟦criterion 2⟧
