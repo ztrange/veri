@@ -1,0 +1,2 @@
+### After a pytest leg run that collects at least one `serial` case (so both the not-serial and the serial pass run), the leg's output ends with one combined line giving the cases run and passed across both passes, not the serial pass's `N deselected` line alone ⟦criterion 1⟧
+- hoist or share the duplicated function-local `import failed_cases` in pytest_leg.py main (the serial-pass summary and the internal-error branch); skipped because moving the import could change plugin load order
