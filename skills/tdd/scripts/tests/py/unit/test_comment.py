@@ -1142,3 +1142,26 @@ def test_verify_refactor_reject_posts_the_reject_heading_then_the_reason(monkeyp
     body = posted[0][1]
     assert body.splitlines()[0] == "### 🔎 verify-refactor — REJECT"
     assert "the rename changed the public name of spin" in body.splitlines()[1:]
+
+
+def test_verify_revised_posts_the_revised_pass_heading_then_the_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-95"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.reason").write_text("the revised implementation now meets the spec\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-revised", "green"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔎 verify-green (revised) — PASS"
+    assert "the revised implementation now meets the spec" in body.splitlines()[1:]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-revised", url)]
