@@ -73,7 +73,10 @@ def fetch_comments():
     by_number = {}
     for search in ("PRD in:title", "closed:>=" + week_ago):
         args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,comments", "--search", search)
-        for row in json.loads(github.gh_issue_list(*args)):
+        rows = json.loads(github.gh_issue_list(*args))
+        if len(rows) >= SEARCH_CAP:
+            raise github.NoAnswer("the comments search hit the %d-row cap" % SEARCH_CAP)
+        for row in rows:
             by_number[row["number"]] = row.get("comments", [])
     return by_number
 

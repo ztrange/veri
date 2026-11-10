@@ -1613,3 +1613,25 @@ def test_refresh_fetches_comments_of_an_issue_closed_6_days_ago_and_not_of_one_c
     issues = {i["number"]: i for i in json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())["issues"]}
     assert (code, [(n, issues[n]["links"], issues[n]["wallSeconds"]) for n in (910, 911)]) == (
         0, [(910, [5], 120), (911, [], None)])
+
+
+def test_refresh_whose_comments_search_returns_search_cap_rows_exits_2_and_writes_no_cache_3279(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    paged = [{"number": 7, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
+              "updatedAt": "2026-10-20T10:00:00Z", "body": ""}]
+
+    def fake_gh_issue_list(*args):
+        if args[args.index("--json") + 1] != "number,comments":
+            return json.dumps(paged)
+        if args[args.index("--search") + 1] != "PRD in:title":
+            return json.dumps([])
+        return json.dumps([{"number": n, "comments": []} for n in range(1, report_cache.SEARCH_CAP + 1)])
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, False)
