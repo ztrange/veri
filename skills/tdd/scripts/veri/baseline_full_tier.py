@@ -10,7 +10,7 @@ USAGE = "usage: baseline-full-tier.sh <issue> <full-tier-command>"
 
 
 def main(argv):
-    if not argv:
+    if len(argv) < 2:
         print(USAGE, file=sys.stderr)
         return 2
     pin = os.path.join(os.path.dirname(full_tier_time.record_path()), "issue-%s-baseline-full-tier" % argv[0])
