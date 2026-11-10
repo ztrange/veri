@@ -146,3 +146,24 @@ def test_3567_a_missing_unit_heading_prints_no_clash_line_while_a_real_clashing_
 
     clash_lines = [l for l in err.splitlines() if l.startswith("Requirement row ID already held")]
     assert code == 2 and "missing/NOTES.md" in err and len(clash_lines) == 1 and clash_lines[0].endswith(": A1"), (code, out, err)
+
+
+def test_3567_two_missing_skill_edit_units_and_two_clashing_ids_in_one_unit_are_all_named_in_one_exit_2(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is green. | because |\n"
+        "| A2 | The widget is square. | shape |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] regrade `missing/ONE.md` ⟦skill-edit⟧\n"
+                      "- [ ] regrade `missing/TWO.md` ⟦skill-edit⟧\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and all(n in err for n in ("missing/ONE.md", "missing/TWO.md", "A1", "A2")), (code, out, err)
