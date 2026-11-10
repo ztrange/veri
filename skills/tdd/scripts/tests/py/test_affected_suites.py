@@ -1082,10 +1082,13 @@ def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(
 def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_read_that_section_2980(
         monkeypatch, capsys, affected, tmp_path):
     base = cli_git(["skills/tdd/SKILL.md"])
+    skill_lines = (ROOT / "skills/tdd/SKILL.md").read_text().splitlines()
+    in_draft_pr = skill_lines.index("### 4. Draft PR") + 3
 
     def run(args, **kwargs):
         if list(args[:3]) == ["git", "diff", "-U0"]:
-            return subprocess.CompletedProcess(args, 0, "@@ -1380 +1380 @@\n-old\n+new\n", "")
+            return subprocess.CompletedProcess(
+                args, 0, "@@ -%d +%d @@\n-old\n+new\n" % (in_draft_pr, in_draft_pr), "")
         return base(args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", run)
