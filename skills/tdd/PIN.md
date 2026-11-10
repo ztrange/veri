@@ -86,7 +86,8 @@ Every other step takes the verdict as follows:
   `unpinnable-missing` (only under `--missing-reroute`) **bail** with `cause=unpinnable-missing`
   as a **process** failure, and on any other (bare) exit **2** **bail** as a
   **system** failure. Exit 2 still means bad arguments (a missing `<target-test>` included) or
-  no answer: read exit 1 as the methodology speaking and exit 2 as the plumbing breaking.
+  no answer: read exit 1 as the methodology speaking and exit 2 as the plumbing breaking, except
+  when it prints `unpinnable-missing`, which is the methodology speaking (a process failure).
   The revise loop: enter it for the **red** phase, building the prompt as
   `revise red … .tdd/verify-pin.reason` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). The phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
