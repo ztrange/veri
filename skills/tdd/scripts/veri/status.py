@@ -465,7 +465,15 @@ def unjournaled_notes():
 
 
 def refresh_running():
-    return bool(subprocess.run(["pgrep", "-f", "report-cache.sh refresh"], capture_output=True, text=True).stdout.split())
+    pids = subprocess.run(["pgrep", "-f", "report-cache.sh refresh"], capture_output=True, text=True).stdout.split()
+    if not pids:
+        return False
+    own = os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    listing = subprocess.run(["ps", "-p", ",".join(pids), "-o", "pid=,command="], capture_output=True, text=True).stdout
+    for m in re.finditer(r"(\S*)/report-cache\.sh refresh", listing):
+        if os.path.basename(m.group(1)) == own:
+            return True
+    return False
 
 
 def refresh_if_stale():
