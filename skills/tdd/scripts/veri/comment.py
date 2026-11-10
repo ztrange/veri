@@ -72,7 +72,8 @@ def post_red(issue, note_file=None):
 
 def post_verify_red(issue):
     reason = read_or_empty(".tdd/verify-red.reason")
-    url = github.gh_issue_comment(issue, f"### 🔎 verify-red — PASS\n\n{reason}")
+    verdict = "REJECT" if read_or_empty(".tdd/verdict-red.exit").strip() == "1" else "PASS"
+    url = github.gh_issue_comment(issue, f"### 🔎 verify-red — {verdict}\n\n{reason}")
     return event.append("", {}, "comment", ["kind=verify-red", f"url={url}"])
 
 
