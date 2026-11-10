@@ -517,3 +517,27 @@ def test_red_note_file_text_follows_the_rendered_red_comment_after_a_blank_line(
     assert len(posted) == 1
     assert posted[0].splitlines()[0] == "### 🔴 Red"
     assert "prediction matched\n\nthe conductor note yankee" in posted[0]
+
+
+def test_verify_red_pass_posts_the_pass_heading_then_the_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-57"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-red.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-red.reason").write_text("the case fails on the missing spin key, as the criterion says\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-red"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔎 verify-red — PASS"
+    assert "the case fails on the missing spin key, as the criterion says" in body.splitlines()[1:]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-red", url)]
