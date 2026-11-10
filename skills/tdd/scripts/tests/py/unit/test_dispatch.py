@@ -160,6 +160,33 @@ def test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_tim
     assert (decide(datetime(2026, 11, 7, 10, 30)), decide(datetime(2026, 11, 7, 11, 30))) == (["12"], [])
 
 
+def test_main_with_no_target_does_not_apply_an_expired_role_dev_state_timed_n_change_lowering_the_n_line(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text(
+        "n=2\ntimed-n dev-1 2026-11-07T10:00:00 1 until 2026-11-07T11:00:00\n")
+    launches = []
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 11, 30).timestamp())
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T11:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main([])
+    except _StopWaiting:
+        pass
+
+    assert launches == ["12"]
+
+
 def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_before_the_first_solvable_issue(
         monkeypatch, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
