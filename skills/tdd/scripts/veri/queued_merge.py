@@ -231,6 +231,11 @@ def main(argv):
         _say("%s is closed and unmerged; nothing rebased or pushed" % pr)
         _release(pid)
         return 2
+    head_sha = _pull(repo, pr)["head"]["sha"]
+    if not _git(worktree, "merge-base", "--is-ancestor", head_sha, "origin/main").returncode:
+        _say("the head %s of %s is already on origin/main; nothing rebased or pushed" % (head_sha, pr))
+        _release(pid)
+        return 2
     lease = _rev(worktree, "refs/remotes/origin/%s" % branch)
     if not lease:
         _say("origin/%s does not resolve; no lease to pin" % branch)
