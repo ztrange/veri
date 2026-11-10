@@ -10,5 +10,4 @@
 - [x] `skills/tdd/PREFLIGHT.md` lines 80-86 align with that entry: the requirements-preflight.sh exit 2 is a preflight refusal that sends the run to PREFLIGHT-FAILURES.md, as every other refusal does ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧
 - [x] Doc step, no production change: the Exit line at skills/tdd/scripts/requirements-preflight.sh:5 names exit 2 for a clash or a missing unit heading, as well as bad arguments ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧
 - [x] Go-red: with the check removed or broken on purpose (say, comparing only the first clash), the criterion-1 case goes red; restored, green ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] `skills/tdd/PREFLIGHT-FAILURES.md` drops the duplicate row PF62 in skills/tdd/REQUIREMENTS.md (identical text to PF61) and keeps PF61 under its `### skills/tdd/PREFLIGHT-FAILURES.md` heading, not under PREFLIGHT.md, then regrades ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧
 - [x] The comparison is skill_edit_step.py's, called, not copied: the clash test (a listed ID whose text differs from the incoming row's) appears once in skills/tdd/scripts/veri/ ⟦diff-checked⟧ ⟦criterion 5⟧
