@@ -291,6 +291,9 @@ def main(argv):
     else:
         code = _gate(pid, *rest_merge)
     if code:
+        for _ in range(int(tunables.read("VERI_MERGE_SETTLE_READS") or "10")):
+            time.sleep(float(tunables.read("VERI_MERGE_SETTLE_SLEEP") or "3"))
+            _merged(repo, pr)
         return code
     pull = _merged(repo, pr)
     if pull is None:

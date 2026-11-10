@@ -421,6 +421,28 @@ def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_workt
     assert (code, len(puts), cleaned(calls)) == (1, 1, [])
 
 
+def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_rereads_it_across_the_settle_window_then_exits_non_zero_with_nothing_cleaned(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("pulls/7/merge",))
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    put = first(calls, "pulls/7/merge")
+    rereads = [c for c in calls[put + 1:] if c.endswith("gh api repos/o/r/pulls/7")]
+    assert (code != 0, len(rereads), cleaned(calls)) == (True, 3, [])
+
+
+def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
+    calls = scenario(fake_processes, fail=("pulls/7/merge",))
+    waits = []
+    monkeypatch.setattr(queued_merge.time, "sleep", waits.append)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    put = first(calls, "pulls/7/merge")
+    rereads = [c for c in calls[put + 1:] if c.endswith("gh api repos/o/r/pulls/7")]
+    assert (code != 0, len(rereads), waits, cleaned(calls)) == (True, 10, [3.0] * 10, [])
+
+
 def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_match_head_commit_and_makes_no_rest_put(fake_processes, run_cli):
     calls = scenario(fake_processes)
 
