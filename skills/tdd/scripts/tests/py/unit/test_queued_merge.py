@@ -29,8 +29,13 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             state["rebased"] = True
         if "pr merge" in line:
             state["merged"] = True
+        is_put = "gh api" in line and "pulls/7/merge" in line
+        if is_put and gh_code == 0:
+            state["merged"] = True
         if behind and "merge-base --is-ancestor" in line:
             return (1 if line.endswith(" HEAD") else 0), "", ""
+        if "merge-base --is-ancestor" in line and "origin/main" in line:
+            return 1, "", ""
         if dirty and "status --porcelain" in line:
             return 0, " M file\n", ""
         if "merge-base --is-ancestor" in line and (ORIGIN_SHA in line or "origin/feature" in line):
@@ -49,6 +54,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, "/main/.git\n", ""
         if "tag --sort=-v:refname" in line:
             return 0, "v0.10\nv0.9\n", ""
+        if "gh api" in line and not is_put and not state["merged"]:
+            return 0, json.dumps({"state": "open", "merged": False, "head": {"sha": "9999999"}}), ""
         if line.startswith("gh api"):
             return gh_code, merged, ""
         return 0, "", ""
@@ -408,10 +415,10 @@ def test_2585_queued_merge_by_default_merges_through_one_rest_put_of_the_pushed_
 def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_worktree_removal_when_the_rest_merge_is_refused_because_the_head_moved(fake_processes, run_cli):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
 
-    code, _, _ = run_cli(queued_merge, ARGV)
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
 
     puts = [c for c in calls if "pulls/7/merge" in c]
-    assert (code, len(puts), ["--keep" in c for c in puts], cleaned(calls), first(calls, "pulls/7 ")) == (1, 1, [False], [], None)
+    assert (code, len(puts), cleaned(calls)) == (1, 1, [])
 
 
 def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_match_head_commit_and_makes_no_rest_put(fake_processes, run_cli):
