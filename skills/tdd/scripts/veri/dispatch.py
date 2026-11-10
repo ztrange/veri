@@ -268,6 +268,10 @@ def main(argv):
                 queue = solvable_issues()
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
+                for line in status.read_role_state("dev"):
+                    named = re.search(r"\d+", line.split(None, 3)[3]) if line.startswith("override ") else None
+                    if named and named.group() in free:
+                        free.insert(0, named.group())
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
