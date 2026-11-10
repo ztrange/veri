@@ -2797,3 +2797,29 @@ def test_3471_an_encoded_record_whose_command_goes_red_under_its_mutation_exits_
 
     out = ran.stdout + ran.stderr
     assert (ran.returncode, "pin stayed green" in out, "needs a look" in out) == (0, False, False), out
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range with a record in the old plain-text form whose mutation stays green")
+def test_3471_a_plain_text_record_whose_command_stays_green_under_its_mutation_is_flagged_and_exits_1(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3471-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           context="if guard", command="grep -q throws guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
+    git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation" in ran.stdout + ran.stderr,
+            (tmp_path / "guard.txt").read_bytes()) == (1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
