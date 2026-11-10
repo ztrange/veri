@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3521
 
-Wall time for the issue: 1974 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 647 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 4 of 6 planned.
 Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $10.66 over 195 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $13.15 over 247 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78378 tokens, largest 222831 tokens
 Conductor context: first turn 78379 tokens, largest 145303 tokens
-Conductor context: first turn 78381 tokens, largest 105460 tokens
+Conductor context: first turn 78381 tokens, largest 108353 tokens
+Conductor context: first turn 78379 tokens, largest 157698 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -199,19 +200,71 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 180 | $0.04 | 144682 |
 | 181 | $0.05 | 145303 |
 | 182 | $0.49 | 78381 |
-| 183 | $0.06 | 84396 |
-| 184 | $0.03 | 86062 |
-| 185 | $0.03 | 87905 |
+| 183 | $0.08 | 84396 |
+| 184 | $0.04 | 86062 |
+| 185 | $0.04 | 87905 |
 | 186 | $0.04 | 90466 |
-| 187 | $0.05 | 94810 |
-| 188 | $0.02 | 95408 |
+| 187 | $0.06 | 94810 |
+| 188 | $0.04 | 95408 |
 | 189 | $0.03 | 96236 |
 | 190 | $0.04 | 98289 |
-| 191 | $0.03 | 99148 |
-| 192 | $0.02 | 99621 |
-| 193 | $0.06 | 104393 |
+| 191 | $0.04 | 99148 |
+| 192 | $0.03 | 99621 |
+| 193 | $0.07 | 104393 |
 | 194 | $0.03 | 105111 |
-| 195 | $0.02 | 105460 |
+| 195 | $0.03 | 105460 |
+| 196 | $0.05 | 106912 |
+| 197 | $0.04 | 108353 |
+| 198 | $0.49 | 78379 |
+| 199 | $0.06 | 84393 |
+| 200 | $0.03 | 86085 |
+| 201 | $0.03 | 87635 |
+| 202 | $0.04 | 90748 |
+| 203 | $0.03 | 91708 |
+| 204 | $0.05 | 95262 |
+| 205 | $0.04 | 97620 |
+| 206 | $0.02 | 98190 |
+| 207 | $0.02 | 98609 |
+| 208 | $0.04 | 100912 |
+| 209 | $0.03 | 101541 |
+| 210 | $0.02 | 101873 |
+| 211 | $0.03 | 102581 |
+| 212 | $0.02 | 102939 |
+| 213 | $0.03 | 103697 |
+| 214 | $0.06 | 108120 |
+| 215 | $0.03 | 109077 |
+| 216 | $0.03 | 109675 |
+| 217 | $0.03 | 110300 |
+| 218 | $0.03 | 111495 |
+| 219 | $0.03 | 112137 |
+| 220 | $0.02 | 112449 |
+| 221 | $0.03 | 113001 |
+| 222 | $0.03 | 113867 |
+| 223 | $0.08 | 120770 |
+| 224 | $0.03 | 121776 |
+| 225 | $0.03 | 122636 |
+| 226 | $0.03 | 122998 |
+| 227 | $0.03 | 123991 |
+| 228 | $0.03 | 124452 |
+| 229 | $0.03 | 125292 |
+| 230 | $0.03 | 126182 |
+| 231 | $0.03 | 126888 |
+| 232 | $0.10 | 136384 |
+| 233 | $0.04 | 137360 |
+| 234 | $0.04 | 138695 |
+| 235 | $0.03 | 139514 |
+| 236 | $0.04 | 140604 |
+| 237 | $0.04 | 141740 |
+| 238 | $0.03 | 142436 |
+| 239 | $0.03 | 143013 |
+| 240 | $0.03 | 143327 |
+| 241 | $0.03 | 143861 |
+| 242 | $0.04 | 144992 |
+| 243 | $0.04 | 146383 |
+| 244 | $0.04 | 147914 |
+| 245 | $0.05 | 150271 |
+| 246 | $0.04 | 151503 |
+| 247 | $0.08 | 157698 |
 
 #### Conductor comments, by family
 
@@ -219,52 +272,55 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | --- | ---: | ---: | ---: |
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
-| 🔴 Red | 7 | 3063 | $0.06 |
-| 🟢 Green | 5 | 2190 | $0.04 |
-| 🛠️ Refactor | 1 | 439 | $0.01 |
+| 🔴 Red | 8 | 3068 | $0.06 |
+| 🟢 Green | 6 | 2210 | $0.04 |
+| 🛠️ Refactor | 2 | 459 | $0.01 |
 | 🔎 verify-green | 3 | 1312 | $0.03 |
-| 🔎 verify-refactor | 1 | 439 | $0.01 |
-| 🔎 verify-<phase> (revised) | 4 | 1751 | $0.04 |
+| 🔎 verify-refactor | 2 | 459 | $0.01 |
+| 🔎 verify-<phase> (revised) | 5 | 1756 | $0.04 |
 | 🗺️ Plan | 1 | 439 | $0.01 |
-| 🗺️ verify-plan | 2 | 873 | $0.02 |
-| ▶️ Resuming | 1 | 434 | $0.01 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| 🗺️ verify-plan | 3 | 889 | $0.02 |
+| ▶️ Resuming | 2 | 442 | $0.01 |
+| ⛔ Bailed | 1 | 421 | $0.01 |
 | ⏹️ Stopped | 1 | 434 | $0.01 |
-| Total | 18 | 7872 | $0.16 |
+| Total | 24 | 8362 | $0.17 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 23 | 19 | 2 | 4 | 2358 | 0 | 39564 | 0.12 |
-| red | 11 | 4 | 2 | 0 | 642 | 363 | 59 | 112 | 28272 | 998160 | 273542 | 1.52 |
-| green | 11 | 2 | 2 | 0 | 1924 | 331 | 72 | 138 | 29068 | 1201894 | 387993 | 1.88 |
+| plan | 3 | 3 | 0 | 0 | 37 | 30 | 3 | 6 | 3579 | 0 | 59627 | 0.18 |
+| red | 14 | 5 | 2 | 0 | 849 | 474 | 78 | 148 | 38267 | 1348321 | 339209 | 1.96 |
+| green | 12 | 2 | 2 | 0 | 1995 | 353 | 78 | 148 | 30430 | 1292975 | 405892 | 1.95 |
 | red-missing | 2 | 0 | 0 | 0 | 126 | 77 | 17 | 32 | 9346 | 350969 | 49533 | 0.25 |
-| pin | 1 | 0 | 1 | 0 | 29 | 21 | 3 | 6 | 1342 | 38203 | 21824 | 0.07 |
-| refactor | 1 | 0 | 0 | 0 | 7 | 4 | 2 | 4 | 324 | 24441 | 14485 | 0.04 |
+| pin | 2 | 0 | 2 | 0 | 55 | 41 | 7 | 14 | 2550 | 102080 | 38066 | 0.13 |
+| refactor | 2 | 0 | 0 | 0 | 13 | 8 | 4 | 8 | 555 | 42979 | 33663 | 0.09 |
 | diff | 6 | 3 | 0 | 0 | 317 | 115 | 23 | 46 | 7456 | 330906 | 79068 | 0.31 |
+| red-contradicted | 1 | 0 | 0 | 0 | 53 | 45 | 7 | 14 | 4905 | 159620 | 24293 | 0.13 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 16 | 11 | 5 | 0 | 1928 | 352 | 65 | 126 | 23798 | 925557 | 326216 | 1.15 |
-| developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 472 | 288 | 45 | 90 | 26950 | 907355 | 259377 | 1.81 |
-| developer | claude-sonnet-5-5 | 12 | 0 | 0 | 0 | 668 | 290 | 68 | 126 | 27418 | 1111661 | 280416 | 1.24 |
+| verifier | claude-sonnet-5-5 | 19 | 13 | 6 | 0 | 2072 | 426 | 77 | 150 | 29069 | 1122579 | 381838 | 1.36 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 575 | 356 | 57 | 112 | 34103 | 1124371 | 305727 | 2.16 |
+| developer | claude-sonnet-5-5 | 15 | 0 | 0 | 0 | 798 | 361 | 83 | 154 | 33916 | 1380900 | 341786 | 1.49 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 379 | 1.02 | 263 | 0.51 |
-| green | 1152 | 2.01 | 1160 | 0.19 |
+| red | 379 | 1.02 | 470 | 0.94 |
+| green | 1152 | 2.01 | 1231 | 0.26 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
-| pin | 29 | 0.07 | 0 | 0.00 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
+| pin | 29 | 0.07 | 26 | 0.06 |
+| refactor | 0 | 0.00 | 6 | 0.05 |
 | diff | 0 | 0.00 | 0 | 0.00 |
+| red-contradicted | 0 | 0.00 | 53 | 0.13 |
 | preflight | 0 | 0.00 | 0 | 0.00 |
+| verify-pin | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -273,8 +329,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | status.py --report with a stale snapshot still launches its own sibling report-cache.sh refresh while an unrelated `report-cache.sh refresh` process at a different path is alive on the machine (only a refresh of its own sibling script counts as already running), pinned by a new process case in skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py that starts that unrelated process itself and stops it; the existing unit case test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running stays green ⟦criterion 1⟧ | 20 | 4 | 4 | 0 | 0 | 0 | 577 | 123 | 232 | 54316 | 2106133 | 603583 | 3.07 | 1824 | red 2/2, green 2/2 | 0/5 | nothing-left |  |  | full |
 | In skills/tdd/scripts/tests/py/test_status_report_refresh_process.py, test_2750 reads its EOF from the report closing its captured stdout within a bound of its own rather than a fixed 10 s wait, so a stand-in delay before status.py --report closes stdout, shorter than that bound, still passes; test-only, no production change, the case stays a process case ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 52 | 6 | 12 | 2232 | 79417 | 25607 | 0.09 | 155 | n/a | n/a | n/a |  |  | full |
 | In skills/tdd/scripts/tests/py/test_status_report_refresh_process.py, test_2750 asserts its two conditions separately, so with status.py changed to hold stdout open until the refresh ends it goes red with a message naming no EOF, and a stub that never started fails with a message naming the stub not started; test-only, no production change ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 9 | 18 | 2676 | 136004 | 27023 | 0.11 | 217 | n/a | n/a | n/a |  |  | full |
-| In skills/tdd/scripts/tests/py/test_status_report_refresh_process.py, every wait inside test_2750 (the stdout wait, the stub-started wait and the cleanup wait together) is bounded below VERI_PYTEST_TIMEOUT (30 s default), so its failure paths are reachable before pytest-timeout fires; test-only, no production change ⟦diff-checked⟧ ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 29 | 8 | 16 | 2548 | 115485 | 26438 | 0.10 | 142 | n/a | n/a | n/a |  |  | full |
-| fix the full-suite failure: skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py — test_3521_report_with_a_stale_snapshot_launches_its_own_refresh_while_an_unrelated_refresh_is_alive: AssertionError: the stale report did not launch its own refresh while an unrelated refresh was alive; skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — test_no_veri_module_locates_itself_through_abspath_of_file_3501: assert {'status.py': [471]} == {} ⟦suite-repair⟧ ⟦criterion 1⟧ | 6 | 2 | 1 | 0 | 0 | 0 | 219 | 30 | 60 | 14036 | 507534 | 143794 | 0.70 | unknown | 1/2 | unknown | unknown |  |  | full |
+| In skills/tdd/scripts/tests/py/test_status_report_refresh_process.py, every wait inside test_2750 (the stdout wait, the stub-started wait and the cleanup wait together) is bounded below VERI_PYTEST_TIMEOUT (30 s default), so its failure paths are reachable before pytest-timeout fires; test-only, no production change ⟦diff-checked⟧ ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 29 | 8 | 16 | 2548 | 115485 | 26438 | 0.10 | 6576 | n/a | n/a | n/a |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py — test_3521_report_with_a_stale_snapshot_launches_its_own_refresh_while_an_unrelated_refresh_is_alive: AssertionError: the stale report did not launch its own refresh while an unrelated refresh was alive; skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — test_no_veri_module_locates_itself_through_abspath_of_file_3501: assert {'status.py': [471]} == {} ⟦suite-repair⟧ ⟦criterion 1⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 223 | 32 | 64 | 14267 | 526072 | 162972 | 0.75 | unknown | 1/2 | 0/5 | nothing-left |  |  | full |
+| In skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py, the scoping case's unrelated refresh lives at <tmp>/other/scripts/report-cache.sh (a directory also named scripts, not the old elsewhere), and the same case contrasts it with this script's own sibling report-cache.sh refresh being detected as already running (no second refresh launched): status.py --report with a stale snapshot still launches its own refresh while the unrelated <tmp>/other/scripts/report-cache.sh refresh is alive; production (skills/tdd/scripts/veri/status.py refresh_running, lines 468-476) compares the full resolved path of the matched script against this script's own scripts/report-cache.sh, not the basename of its directory, and the case must go red when that comparison is loosened back to the directory basename (a process case, no network) ⟦added⟧ ⟦criterion 1⟧ | 6 | 1 | 1 | 0 | 0 | 0 | 198 | 36 | 68 | 17470 | 664739 | 124101 | 0.69 | unknown | 1/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -283,6 +340,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | step | pass | refactor | stopped | verdict | revise | wall s | $ |
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | status.py --report with a stale snapshot still launches its own sibling report-cache.sh refresh while an unrelated `report-cache.sh refresh` process at a different path is alive on the machine (only a refresh of its own sibling script counts as already running), pinned by a new process case in skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py that starts that unrelated process itself and stops it; the existing unit case test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running stays green ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.04 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py — test_3521_report_with_a_stale_snapshot_launches_its_own_refresh_while_an_unrelated_refresh_is_alive: AssertionError: the stale report did not launch its own refresh while an unrelated refresh was alive; skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — test_no_veri_module_locates_itself_through_abspath_of_file_3501: assert {'status.py': [471]} == {} ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.05 |
 
 #### Structural pass
 
@@ -293,18 +351,19 @@ Stopped: nothing-structural
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | status.py --report with a stale snapshot still launches its own sibling report-cache.sh refresh while an unrelated `report-cache.sh refresh` process at a different path is alive on the machine (only a refresh of its own sibling script counts as already running), pinned by a new process case in skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py that starts that unrelated process itself and stops it; the existing unit case test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running stays green ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 2 | ? | ? | nothing-left 1, nothing-structural 1 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/test_status_refresh_scope_process.py — test_3521_report_with_a_stale_snapshot_launches_its_own_refresh_while_an_unrelated_refresh_is_alive: AssertionError: the stale report did not launch its own refresh while an unrelated refresh was alive; skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — test_no_veri_module_locates_itself_through_abspath_of_file_3501: assert {'status.py': [471]} == {} ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 3 | ? | ? | nothing-left 2, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 9 | 2 | 10 | 10 | 1 | 10 | 17 | 18 | 9 | 2 | 2 | 4 | 3 | 9 | 573 | 1 | 2 | 1 | 2 | 2 | 3 | 1 | 1 | 9 | 10 | 2 | 3 | 2 | 2 | 3 | 3 |
-| fast | 21 | 21 | 22 | 31 | 456 | 32 | 23 | 22 | 22 | 22 | 21 | 22 | 47 | 23 | 21 | 26 | 32 | 32 | 30 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 9 | 2 | 10 | 10 | 1 | 10 | 17 | 18 | 9 | 2 | 2 | 4 | 3 | 9 | 573 | 1 | 2 | 1 | 2 | 2 | 3 | 1 | 1 | 9 | 10 | 2 | 3 | 2 | 2 | 3 | 3 | 9 | 10 | 10 | 4 | 4 |
+| fast | 21 | 21 | 22 | 31 | 456 | 32 | 23 | 22 | 22 | 22 | 21 | 22 | 47 | 23 | 21 | 26 | 32 | 32 | 30 | 21 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 3 | 1 | 2 | 1 | 1 | 2 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 178 | 342 | 78166 | 2944573 | 866009 | 14.86 (estimate) |
+| total | 217 | 416 | 97088 | 3627850 | 1029351 | 18.15 (estimate) |
