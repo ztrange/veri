@@ -871,8 +871,12 @@ def test_3452_queued_merge_on_a_branch_not_named_tdd_n_whose_worktree_holds_a_me
         for file in ("issue-3255.md",) + extra:
             (worktree / ".tdd" / file).write_text("# issue\n")
 
+        changed = "".join(".tdd/%s\n" % file for file in ("issue-3255.md",) + extra)
+
         def with_body(answer):
             def wrapped(line, **kwargs):
+                if "diff --name-only origin/main...HEAD" in line:
+                    return 0, changed, ""
                 if "pr view" in line:
                     return 0, json.dumps({"body": "Closes #3255 — the capability\n"}), ""
                 return answer(line, **kwargs)
