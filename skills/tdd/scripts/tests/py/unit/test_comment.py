@@ -878,3 +878,27 @@ def test_green_note_file_text_follows_the_rendered_green_comment_after_a_blank_l
     assert len(posted) == 1
     assert posted[0].startswith("### 🟢 Green")
     assert "GREEN 42 passed in 1.3s\n\nthe conductor note xray" in posted[0]
+
+
+def test_verify_green_pass_posts_the_pass_heading_then_the_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-91"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-green.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-green.reason").write_text("the implementation is minimal and the suite is green\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-green"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔎 verify-green — PASS"
+    assert "the implementation is minimal and the suite is green" in body.splitlines()[1:]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-green", url)]

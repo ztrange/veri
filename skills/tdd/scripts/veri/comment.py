@@ -108,10 +108,11 @@ def post_red(issue, note_file=None):
     return post_and_record(issue, "red", with_note(body, note_file))
 
 
-def post_verify_red(issue):
-    reason = read_or_empty(".tdd/verify-red.reason")
-    verdict = "REJECT" if read_or_empty(".tdd/verdict-red.exit").strip() == "1" else "PASS"
-    return post_and_record(issue, "verify-red", f"### 🔎 verify-red — {verdict}\n\n{reason}")
+def post_verify(issue, kind):
+    phase = kind.removeprefix("verify-")
+    reason = read_or_empty(f".tdd/{kind}.reason")
+    verdict = "REJECT" if read_or_empty(f".tdd/verdict-{phase}.exit").strip() == "1" else "PASS"
+    return post_and_record(issue, kind, f"### 🔎 {kind} — {verdict}\n\n{reason}")
 
 
 def post_green(issue, note_file=None):
@@ -127,8 +128,8 @@ def main(argv):
     noted = {"green": post_green, "red": post_red}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
-    if len(argv) == 2 and argv[1] == "verify-red":
-        return post_verify_red(argv[0])
+    if len(argv) == 2 and argv[1] in ("verify-red", "verify-green"):
+        return post_verify(argv[0], argv[1])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
     if len(argv) < 2 or argv[1] != "step-done" or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
