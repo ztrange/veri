@@ -6910,3 +6910,26 @@ def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subje
     assert [subject_changed[:2], other_changed[:2], prefixed_changed[:2],
             "projects/x/tests/test_guard.py.bak" in recorded_changed[1].splitlines()] == [
         (0, ""), (1, "test_other_case (%s)\n" % earlier), (1, "test_bak_case (%s)\n" % earlier), True]
+
+
+@pytest.mark.process("a real git repository under tmp_path, its history walked from the green commit to HEAD")
+def test_rerecord_refactored_re_records_a_case_a_later_suite_repair_green_rewrote_with_the_same_assertion_3541(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite, step = tmp_path / "test_suite.py", STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    suite.write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
+    _commit(tmp_path, "A red")
+    ledger = ".tdd/issue-9.md"
+    repair = STEPS[2] + " ⟦suite-repair⟧"
+    (tmp_path / ledger).write_text("- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, repair))
+    suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
+    _commit(tmp_path, "B green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", ledger, "--step", "step C"], cwd=tmp_path)[:2]
+
+    assert (code, _skip_lines(err, "test_suite.py test_one"), checked) == (0, 0, (0, ""))
