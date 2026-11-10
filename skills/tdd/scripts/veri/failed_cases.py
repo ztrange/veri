@@ -1,7 +1,15 @@
-"""The pytest leg's record plugin: keeps the node id of each case that failed, in this process."""
+"""The pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported."""
+import pytest
+
 NODEIDS = []
 PASSED = []
 REPORTED = set()
+NAMED = []
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items):
+    NAMED[:] = [item.nodeid for item in items]
 
 
 def pytest_runtest_logreport(report):
