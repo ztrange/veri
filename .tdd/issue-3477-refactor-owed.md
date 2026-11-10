@@ -1,0 +1,2 @@
+### When `restart_conductor.main` leaves its inner watch loop after 3 consecutive not-live reads, restart-conductor.sh writes to its log (its stdout, `.tdd/restart-<n>.log`) which `live_conductor` condition read not-live on each of the 3 misses — pid file unreadable, pid dead, lstart mismatch, parent command, or own command — driven in-process with faked reads, small case ⟦criterion 1⟧
+- `pid_file._reading` repeats `recorded_started`'s pid-read, alive and lstart checks; share them so each check is written once
