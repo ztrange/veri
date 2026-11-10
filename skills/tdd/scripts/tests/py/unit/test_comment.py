@@ -561,3 +561,33 @@ def test_verify_red_reject_posts_the_reject_heading_then_the_reason_when_the_ver
     assert len(posted) == 1
     assert posted[0][1].splitlines()[0] == "### 🔎 verify-red — REJECT"
     assert "the case asserts a mechanism, not the criterion" in posted[0][1].splitlines()[1:]
+
+
+def test_the_posted_red_and_verify_red_headings_match_the_red_metrics_family_as_hand_composed_ones_do(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    metrics = importlib.import_module("metrics")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-59")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: assert 'ccw' == 'cw'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: MATCHED\n")
+    (tmp_path / ".tdd" / "verdict-red.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-red.reason").write_text("the case fails for the criterion\n")
+
+    assert run_cli(comment, ["7", "red"], cwd=tmp_path)[0] == 0
+    assert run_cli(comment, ["7", "verify-red"], cwd=tmp_path)[0] == 0
+
+    pattern = dict(metrics.COMMENT_FAMILIES)["🔴 Red"]
+    families = [[name for name, rx in metrics.COMMENT_FAMILIES if re.search(rx, body.splitlines()[0])]
+                for body in posted]
+    assert families == [["🔴 Red"], ["🔴 Red"]]
+    assert [body.splitlines()[0] for body in posted] == ["### 🔴 Red", "### 🔎 verify-red — PASS"]
+    assert pattern
