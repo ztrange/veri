@@ -1,0 +1,4 @@
+# Plan for #3518 — dispatch.py counts a run both live and restart-marked twice toward the slots; no case pins it
+
+- [ ] At --target 3, with tick 1 live runs [5, 7, 8] and tick 2 live [5] plus run 7's restart marker held by a live pid, dispatch launches exactly [12] — added as an in-case contrast inside the existing case test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover_marker_and_a_never_seen_restarting_run_issue_3495 in skills/tdd/scripts/tests/py/unit/test_dispatch.py (case name unchanged, its existing assertions kept, a small unit case with no real process), not a new standalone case ⟦criterion 1⟧
+- [ ] A mutant that counts a run both live and marker-holding twice at dispatch.py:173-179 goes red; applied by hand, watched red, restored ⟦human-owed⟧ ⟦criterion 2⟧
