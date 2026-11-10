@@ -71,11 +71,19 @@ def _ps(field, pid):
     return ps.stdout.strip() if ps.returncode == 0 else None
 
 
-def recorded_started(path):
+def _recorded(path):
+    if number_in(_pid_path(path)) is None:
+        return None, "pid file unreadable"
     pid = recorded_alive(path)
     if pid is None:
-        return None
-    return pid if start_matches(_pid_path(path), pid) else None
+        return None, "pid dead"
+    if not start_matches(_pid_path(path), pid):
+        return None, "lstart mismatch"
+    return pid, None
+
+
+def recorded_started(path):
+    return _recorded(path)[0]
 
 
 def start_matches(file, pid):
@@ -86,13 +94,9 @@ def start_matches(file, pid):
 
 
 def _reading(path):
-    pid = number_in(_pid_path(path))
+    pid, reason = _recorded(path)
     if pid is None:
-        return None, "pid file unreadable"
-    if recorded_alive(path) is None:
-        return None, "pid dead"
-    if not start_matches(_pid_path(path), pid):
-        return None, "lstart mismatch"
+        return None, reason
     parent = _ps("ppid", pid)
     parent_command = _ps("command", parent) if parent else ""
     if parent_command and "run_conductor.py" not in parent_command:
