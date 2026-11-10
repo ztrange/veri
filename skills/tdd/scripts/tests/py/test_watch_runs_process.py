@@ -12,12 +12,15 @@ from conftest import SCRIPTS
 SHIM = SCRIPTS / "watch-runs.sh"
 
 
-def make_run(repo, issue, pid):
+RECYCLED = "Thu Jan  1 00:00:00 1970"
+
+
+def make_run(repo, issue, pid, started=None):
     run = repo / ".tdd" / "wt" / str(issue) / ".tdd"
     run.mkdir(parents=True)
     (run / ("issue-%s.md" % issue)).write_text("# Plan for #%s — title\n" % issue)
     (run / "events.jsonl").write_text(json.dumps({"event": "launch", "ts": 1, "step": 1, "issue": str(issue)}) + "\n")
-    (run / "conductor.pid").write_text("%d\n" % pid)
+    (run / "conductor.pid").write_text("%d\n" % pid + ("%s\n" % started if started else ""))
 
 
 class Conductor:
@@ -110,7 +113,7 @@ def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_
         wait_for_snapshot(watcher, marker, bound=20)
         second.terminate()
         second.wait()
-        (repo / ".tdd" / "wt" / "103" / ".tdd" / "conductor.pid").write_text("%d\n" % reused.pid)
+        (repo / ".tdd" / "wt" / "103" / ".tdd" / "conductor.pid").write_text("%d\n%s\n" % (reused.pid, RECYCLED))
         out, err = watcher.communicate(timeout=45)
     finally:
         if watcher.poll() is None:
@@ -146,7 +149,7 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
     try:
         make_run(repo, 101, first.pid)
         make_run(repo, 102, second.pid)
-        make_run(repo, 103, reused.pid)
+        make_run(repo, 103, reused.pid, started=RECYCLED)
 
         def watch(*args, timeout=30):
             return subprocess.run([str(scripts / "watch-runs.sh"), *args], cwd=repo, stdin=subprocess.DEVNULL,
