@@ -105,3 +105,16 @@ def test_main_takes_a_pinned_reuse_over_an_environment_set_to_run_and_prints_reu
                              env={"VERI_BASELINE_FULL_TIER": "run"}, cwd=tmp_path)
 
     assert (code, out.strip()) == (0, "reuse 727")
+
+
+@pytest.mark.parametrize("mode", ["run", "reuse"])
+def test_main_called_with_only_the_issue_prints_the_usage_line_to_stderr_and_exits_2_3436(
+        tmp_path, run_cli, baseline_full_tier, mode):
+    (tmp_path / ".git").mkdir()
+
+    code, out, err = run_cli(baseline_full_tier, ["3436"],
+                             env={"VERI_BASELINE_FULL_TIER": mode}, cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert "usage: baseline-full-tier.sh <issue> <full-tier-command>" in err
+    assert "Traceback" not in err
