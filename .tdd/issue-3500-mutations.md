@@ -26,3 +26,10 @@ skills/tdd/scripts/tests/py/unit/test_queued_merge.py
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_of_a_pr_already_reading_merged_after_the_fetch_releases_the_merge_lock_once
 
+before 40
+3997409c97ef0c9af7cc296ce2af723e76adfea7
+keep 53
+skills/tdd/scripts/tests/py/unit/test_queued_merge.py
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_queued_merge.py::test_3500_queued_merge_of_an_open_pr_whose_pull_record_carries_no_head_sha_exits_2_before_any_rebase_or_push
+

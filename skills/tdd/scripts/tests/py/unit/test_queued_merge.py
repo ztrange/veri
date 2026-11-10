@@ -1066,3 +1066,35 @@ def test_3500_scenario_fixture_answers_not_an_ancestor_for_a_strictly_behind_pr_
     ran = subprocess.run(["git", "-C", "/wt", "merge-base", "--is-ancestor", "9999999", "origin/main"], capture_output=True, text=True)
 
     assert ran.returncode == 1
+
+
+def test_3500_queued_merge_of_an_open_pr_whose_head_is_already_an_ancestor_of_origin_main_exits_2_naming_it_on_stderr_before_any_rebase_or_push(fake_processes, run_cli):
+    def head_on_main(answer):
+        def wrapped(line, **kw):
+            if line.endswith("merge-base --is-ancestor 9999999 origin/main"):
+                return 0, "", ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(head_on_main)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if "rebase" in c or " push " in c]
+    assert (code, "9999999" in err, moved) == (2, True, [])
+
+
+def test_3500_queued_merge_of_an_open_pr_whose_pull_record_carries_no_head_sha_exits_2_before_any_rebase_or_push(fake_processes, run_cli):
+    def no_head(answer):
+        def wrapped(line, **kw):
+            if line.startswith("gh api") and "pulls/7" in line and "/merge" not in line:
+                return 0, json.dumps({"state": "open", "merged": False}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(no_head)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if "rebase" in c or " push " in c]
+    assert (code, bool(err), moved) == (2, True, [])
