@@ -74,11 +74,15 @@ def missing_line(path, key):
     return 2
 
 
+def missing_file(path):
+    print(f"comment.sh: {path} is missing", file=sys.stderr)
+    return 2
+
+
 def post_red(issue, note_file=None):
     red_out = ".tdd/develop-red.out"
     if not os.path.exists(red_out):
-        print(f"comment.sh: {red_out} is missing", file=sys.stderr)
-        return 2
+        return missing_file(red_out)
     report = read_report(red_out)
     for key in ("TEST_PATH", "TARGET_TEST", "FAIL_OUTPUT", "PREDICTED_FAILURE"):
         if key not in report:
@@ -106,8 +110,7 @@ def post_verify_red(issue):
 def post_green(issue):
     green_out = ".tdd/develop-green.out"
     if not os.path.exists(green_out):
-        print(f"comment.sh: {green_out} is missing", file=sys.stderr)
-        return 2
+        return missing_file(green_out)
     report = read_report(green_out)
     body = f"### 🟢 Green\n\nImplementation: {report['IMPL_PATH']}\n\nSuite: {report['SUITE']}\n"
     return post_and_record(issue, "green", body)
