@@ -338,9 +338,14 @@ def main(argv):
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
+            if "failed_cases" in sys.modules:
+                sys.modules["failed_cases"].PASSED.clear()
             statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
+                import failed_cases
+                if failed_cases.PASSED:
+                    sys.stdout.write("%d passed across both passes\n" % len(failed_cases.PASSED))
             if pytest.ExitCode.INTERNAL_ERROR in statuses:
                 import failed_cases
                 sys.stderr.write("the leg was cut short by an internal error; cases that had failed by then:\n")
