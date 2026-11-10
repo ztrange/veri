@@ -18,7 +18,7 @@ import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh --target <N>  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing)"
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree: its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable)"
 
 
 solvable_issues = watch_runs.solvable_issues
