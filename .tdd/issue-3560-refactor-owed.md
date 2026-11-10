@@ -1,0 +1,3 @@
+### With the faked gh pr diff of one open run draft PR failing with a connection error (gh's error connecting to api.github.com) for the first K reads (K below the retry bound, no real sleeping) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case)
+- `answered` in dispatch.py hard-codes the retry bound 3 and the transient-text test. It could be a named constant or predicate, but no test asks for that.
+- test-only | extract the repeated retry-case setup in test_dispatch.py (the `_overlap_case` call, the `VERI_DISPATCH_RETRY_SLEEP` env and sleep stubs, the `open_prs` stub, and the try/except `_StopWaiting` main call) into a helper
