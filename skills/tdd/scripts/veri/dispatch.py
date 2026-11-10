@@ -309,6 +309,7 @@ def main(argv):
                 sys.stderr.write(f"dispatch.sh: {why} in {state_file()}\n")
                 return 2
         stall = int(stall_window())
+        states = None
         for issue in seen:
             tdd = os.path.join(run_dir(issue), ".tdd")
             events = os.path.join(tdd, "events.jsonl")
@@ -317,7 +318,9 @@ def main(argv):
                     os.path.getmtime(f)
                     for f in (events, log, *glob.glob(os.path.join(tdd, "*.out")))
                     if os.path.exists(f)) >= stall:
-                if issue_states(seen).get(issue) == "CLOSED":
+                if states is None:
+                    states = issue_states(seen)
+                if states.get(issue) == "CLOSED":
                     continue
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0

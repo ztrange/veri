@@ -2511,3 +2511,47 @@ def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_t
     _REAL["run_pr_paths"]()
 
     assert len(asked) == 1 and "labels" in asked[0]
+
+
+def test_main_reads_issue_states_at_most_once_per_poll_with_several_stall_window_old_closed_issue_run_dirs_issue_3551(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    for issue in ("5", "6", "8"):
+        tdd = tmp_path / ".tdd" / "wt" / issue / ".tdd"
+        tdd.mkdir(parents=True)
+        (tdd / "restart-pending").write_text("")
+        events = tdd / "events.jsonl"
+        events.write_text('{"event": "leaf-start"}\n')
+        os.utime(events, (1000, 1000))
+    lives = [["5", "6", "8"], []]
+    ticks = [1000, 1000, 1000, 1003]
+    waits = []
+    reads_per_poll = {}
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 4:
+            raise _StopWaiting
+
+    def spy(issues):
+        reads_per_poll[len(waits)] = reads_per_poll.get(len(waits), 0) + 1
+        return {issue: "CLOSED" for issue in issues}
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "issue_states", spy, raising=False)
+    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    assert (code, capsys.readouterr().out, max(reads_per_poll.values())) == ("looping", "", 1)
