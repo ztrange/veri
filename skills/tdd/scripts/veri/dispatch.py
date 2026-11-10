@@ -195,7 +195,7 @@ def main(argv):
         if not os.path.isfile(state) or not os.access(state, os.R_OK):
             sys.stderr.write(f"dispatch.sh: cannot read {state}\n")
             return 2
-    target = parse_args(argv)
+    target = parse_args(argv) if argv else 0
     if target is None:
         sys.stderr.write(USAGE + "\n")
         return 2
@@ -237,6 +237,8 @@ def main(argv):
                     continue
                 sys.stdout.write(line + "\n")
                 return 0
+        if not argv:
+            target = int([line for line in status.read_role_state("dev") if line.startswith("n=")][-1][2:])
         stall = int(stall_window())
         for issue in seen:
             tdd = os.path.join(run_dir(issue), ".tdd")

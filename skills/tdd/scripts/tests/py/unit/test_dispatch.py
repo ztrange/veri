@@ -73,6 +73,36 @@ def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_i
     assert (launches, waits, code, capsys.readouterr().out) == (["12"], [1], None, "")
 
 
+def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_the_second_slot_decision(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.write_text("n=1\n")
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 2:
+            raise _StopWaiting
+        state.write_text("n=1\nn=2\n")
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main([])
+    except _StopWaiting:
+        pass
+
+    assert (launches, waits) == (["12"], [1, 1])
+
+
 def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3435(
         monkeypatch, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
