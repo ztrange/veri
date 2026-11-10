@@ -1165,3 +1165,27 @@ def test_verify_revised_posts_the_revised_pass_heading_then_the_reason_and_appen
     assert "the revised implementation now meets the spec" in body.splitlines()[1:]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-revised", url)]
+
+
+def test_verify_refactor_skipped_posts_the_skipped_heading_without_reading_the_verdict_or_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-96"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-refactor.exit").write_text("1\n")
+    (tmp_path / ".tdd" / "verify-refactor.reason").write_text("a stale reason from an earlier step\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-refactor", "--skipped"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔎 verify-refactor — SKIPPED (nothing landed)"
+    assert "a stale reason from an earlier step" not in body
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]
