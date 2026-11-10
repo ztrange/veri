@@ -6,7 +6,7 @@ import pytest
 
 from veri.popen_command import command_basename, command_words
 
-VERI = os.path.dirname(os.path.abspath(__file__))
+VERI = os.path.dirname(os.path.realpath(__file__))
 
 
 def refused(args):

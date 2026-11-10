@@ -24,7 +24,7 @@ except ImportError:
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
 REFRESH_RETRIES = 10
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "veri/merge_lock.py",
                  "veri/tunables.py", "veri/entry.py", "veri/pycache_prefix.py")
