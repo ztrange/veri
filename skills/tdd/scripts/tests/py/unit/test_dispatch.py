@@ -2011,3 +2011,39 @@ def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_t
 
     assert (queue_reads, capsys.readouterr().out) == (
         [0, 70, 140], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")
+
+
+def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_launched_issue_3525(
+        monkeypatch, tmp_path, dispatch):
+    import pid_file
+    (tmp_path / ".tdd").mkdir()
+    parents = {101: "500", 102: "500", 103: "501"}
+    commands = {"500": "python3 veri/run_conductor.py 1", "501": "bash run-conductor.sh 3"}
+    for pid, issue in ((101, "1"), (102, "2"), (103, "3")):
+        run = tmp_path / ".tdd" / "wt" / issue / ".tdd"
+        run.mkdir(parents=True)
+        (run / "conductor.pid").write_text(f"{pid}\nstarted-at\n")
+    launches = []
+
+    def ps(field, pid):
+        return {"lstart": "started-at", "ppid": parents[int(pid)], "command": "claude"}[field] \
+            if int(pid) in parents else commands[str(pid)]
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
+    monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "_conductors", lambda: [])
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [])
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["99"])
+    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {})
+    monkeypatch.setattr(dispatch, "launch", launches.append)
+    monkeypatch.setattr(dispatch, "wait", wait)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "3"])
+
+    assert (launches, (tmp_path / ".tdd" / "dispatch.log").exists()) == ([], False)
