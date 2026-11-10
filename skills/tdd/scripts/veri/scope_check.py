@@ -42,9 +42,10 @@ def main(argv):
             with open(spec, encoding="utf-8") as f:
                 spec_text = f.read()
             headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
-            has_requirements = re.search(r"^## Requirements\s*$", spec_text, re.M)
-            for step in (record[-1] for record in steps if has_requirements and ledger.carries_mark(record[-1], "skill-edit")):
-                for unit in re.findall(r"`([^`]+)`", step):
+            skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
+            if re.search(r"^## Requirements\s*$", spec_text, re.M):
+                headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
+                for unit in (u for step in skill_edits for u in re.findall(r"`([^`]+)`", step)):
                     if unit not in headings:
                         print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
                         return 2
