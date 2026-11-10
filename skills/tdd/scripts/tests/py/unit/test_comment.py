@@ -464,3 +464,31 @@ def test_red_posts_the_red_heading_with_the_test_failure_and_matched_prediction_
         assert carried in body, carried
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "red", url)]
+
+
+def test_red_posts_prediction_diverged_with_the_prediction_note_in_place_of_prediction_matched(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-56")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: KeyError: 'spin'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: DIVERGED\n"
+        "PREDICTION_NOTE: the fixture lacked a spin key so a KeyError fired first\n")
+
+    code, out, err = run_cli(comment, ["7", "red"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    body = posted[0]
+    assert "prediction diverged" in body.splitlines()
+    assert "prediction matched" not in body
+    assert "the fixture lacked a spin key so a KeyError fired first" in body
+    assert body.index("prediction diverged") < body.index("the fixture lacked a spin key")

@@ -53,9 +53,12 @@ def post_red(issue):
         key, sep, value = line.partition(": ")
         if sep:
             report[key] = value
+    verdict = "prediction matched"
+    if report.get("PREDICTION") == "DIVERGED":
+        verdict = f"prediction diverged\n\n{report['PREDICTION_NOTE']}"
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
-            f"PREDICTED_FAILURE: {report['PREDICTED_FAILURE']}\n\nprediction matched\n")
+            f"PREDICTED_FAILURE: {report['PREDICTED_FAILURE']}\n\n{verdict}\n")
     url = github.gh_issue_comment(issue, body)
     return event.append("", {}, "comment", ["kind=red", f"url={url}"])
 
