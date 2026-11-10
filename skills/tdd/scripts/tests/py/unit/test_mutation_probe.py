@@ -394,3 +394,23 @@ def test_main_records_the_full_source_line_holding_the_old_text_as_context_3331(
     assert code == 0
     [fields] = records(record.read_text())
     assert fields["context"] == line
+
+
+def test_main_records_neither_the_old_nor_the_new_text_verbatim_context_included_3471(
+    run_cli, mutation_probe, monkeypatch, tmp_path
+):
+    target = tmp_path / "target.txt"
+    target.write_text("head\nsee OLDMARKER3471 here\ntail\n")
+    record = tmp_path / "mutations.md"
+    monkeypatch.setattr(
+        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+    )
+    code, out, err = run_cli(
+        mutation_probe,
+        [str(target), "OLDMARKER3471", "NEWMARKER3471", "--", "check"],
+        env={"VERI_MUTATION_RECORD": str(record)},
+    )
+    assert code == 0
+    data = record.read_bytes()
+    assert b"OLDMARKER3471" not in data
+    assert b"NEWMARKER3471" not in data

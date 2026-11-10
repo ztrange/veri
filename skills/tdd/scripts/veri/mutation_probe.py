@@ -1,5 +1,6 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import base64
 import re
 import shlex
 import signal
@@ -19,6 +20,8 @@ def append_record(fields):
     if record:
         with open(record, "a") as f:
             for name, value in fields:
+                if name in ("old", "new", "context"):
+                    name, value = name + "-b64", base64.b64encode(value.encode()).decode()
                 f.write(f"{name} {len(value)}\n{value}\n")
             f.write("\n")
 
