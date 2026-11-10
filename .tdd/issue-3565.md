@@ -1,0 +1,3 @@
+# Plan for #3565 — SCRIPTS.md bullet guard accepts a bullet whose name merely contains, or is contained in, a script's name
+
+- [ ] In skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py, one case drives the SCRIPTS.md bullet guard (_scripts_without_bullet) over a scratch scripts dir under tmp_path holding new-entry.sh, with a catalogue whose only bullets are for x-new-entry.sh and entry.sh, and asserts the guard names new-entry.sh as missing; in the same case, adding a bullet for new-entry.sh itself clears it (in-case contrast, not a standalone negative test). The case goes red under either containment mutant of the matching (script in bullet name, or bullet name in script). Test-only: no production change ⟦criterion 1⟧
