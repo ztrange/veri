@@ -1275,7 +1275,9 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      process failure, naming each unit, with the refactor-pending mark left in place (`Read`
      `<base directory>/BAIL.md`). **Also before the clear, run
      `$S/pin-recheck.sh "$(git rev-parse <green-sha>~1)"`**, the commit before the step's green
-     commit, so the range holds the step's code: a step can disarm an earlier pin and still
+     commit, so the range holds the step's code; the call names no `--ledger <file>` selector, so
+     every ledger's touched records are replayed (the selector and its exit codes are in the
+     `pin-recheck.sh` entry of `SCRIPTS.md`): a step can disarm an earlier pin and still
      pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
      green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and so is a mutation pin green under its mutation on the base too, printed `stale: <record file> <mutated file>`; neither changes the exit): treat it as a verify-refactor REJECT naming that pin,
      write its reason to `.tdd/verify-refactor.reason`, spend `REVISE_BUDGET` (when a verifier
