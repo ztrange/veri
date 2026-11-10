@@ -6,6 +6,7 @@ import sys
 
 import event
 import ledger
+import requirements
 import tunables
 
 USAGE = "usage: scope-check.sh <ledger> <repo-root>"
@@ -43,7 +44,9 @@ def main(argv):
                 spec_text = f.read()
             skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
             if re.search(r"^## Requirements\s*$", spec_text, re.M):
-                headings = set(re.findall(r"^### (.+?)(?: \(new\))?\s*$", spec_text, re.M))
+                headings = {re.sub(r" \(new\)$", "", heading)
+                            for heading, line in requirements.requirements_lines(spec_text.splitlines())
+                            if line.startswith("### ")}
                 for unit in (ledger.unit_of(step) for step in skill_edits):
                     if unit is not None and unit not in headings:
                         print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
