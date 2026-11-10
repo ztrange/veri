@@ -1,2 +1,3 @@
 ### With no `--target`, `dispatch.sh` takes N from the last `n=<N>` line of `.tdd/role-dev.state`, read through PRD 012.4's reader (`status.read_role_state`, never a second parser of the file) afresh at each slot decision, so an N changed in the file between two slot decisions is the one the second slot decision applies (a small case, no real process) ⟦criterion 1⟧
 - extract the inline last-`n=` parsing in `dispatch.main` into a named helper (single use, no duplication, so not applied)
+applied | 08ab60397dcdca4da74a3b02f01f87a407f99888 | extract the inline last-`n=` parsing in `dispatch.main` into a named helper (single use, no duplication, so not applied)	refactor: extract last-n= parsing in dispatch.main into last_n (#3229)
