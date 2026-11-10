@@ -574,13 +574,17 @@ def test_queued_merge_lease_push_from_a_detached_head_updates_the_remote_branch_
 
 FAKE_GH_WITH_BODY = """#!/bin/sh
 echo "gh $*" >> "$CALL_LOG"
+marker="$(dirname "$0")/.merge-landed"
+for a in "$@"; do
+  case "$a" in merge|*/merge) : > "$marker" ;; esac
+done
 head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
 case "$*" in
   *"pr view"*) echo "{\\"body\\": \\"$PR_BODY\\"}" ;;
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "success"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
-  *"/pulls/"*) echo "{\\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}" ;;
+  *"/pulls/"*) if [ -e "$marker" ]; then echo "{\\"merged\\": true, \\"merge_commit_sha\\": \\"fedcba9\\", \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; else echo "{\\"state\\": \\"open\\", \\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; fi ;;
   *) echo '[]' ;;
 esac
 exit 0
