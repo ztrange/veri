@@ -9,5 +9,5 @@
 - [x] A resumed `run-conductor.sh <n>` launch (skill commit recorded, `VERI_NEW_SKILL` not 1) leaves `.tdd/issue-<n>-baseline-full-tier` as the first launch wrote it, even when its own `VERI_BASELINE_FULL_TIER` differs ⟦criterion 2⟧ ⟂ retired already holds
 - [x] `baseline-full-tier.sh <issue> <command>` takes the run's pinned value from `.tdd/issue-<issue>-baseline-full-tier` (in the main checkout's `.tdd/`, where `run-conductor.sh` writes it) in preference to its own environment: a pinned `reuse` with a recorded time prints `reuse <seconds>` while `VERI_BASELINE_FULL_TIER` is unset ⟦criterion 2⟧
 - [x] skills/tdd/SCRIPTS.md catalogues `$S/baseline-full-tier.sh <issue> <full-tier-command>` (its output `reuse <seconds>` or `run`, the pinned per-run value it reads, its exit codes) with an SC row in REQUIREMENTS.md ⟦skill-edit⟧
-- [ ] skills/tdd/PREFLIGHT.md step 3 tells the conductor to run `$S/baseline-full-tier.sh` and follow its output, graded by PF35 as the issue rewords it ⟦skill-edit⟧ ⟦criterion 3⟧
+- [x] skills/tdd/PREFLIGHT.md step 3 tells the conductor to run `$S/baseline-full-tier.sh` and follow its output, graded by PF35 as the issue rewords it ⟦skill-edit⟧ ⟦criterion 3⟧
 - [ ] Guard's go-red: with the script's `reuse` branch broken, the case of criterion 1 goes red ⟦human-owed⟧ ⟦criterion 4⟧
