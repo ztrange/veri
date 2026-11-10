@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -120,6 +121,12 @@ def main(argv):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
     run = argv[0]
+
+    def on_term(signum, frame):
+        print(f"restart-conductor.sh: run {run} restarter exiting on {signal.Signals(signum).name}")
+        sys.exit(128 + signum)
+
+    signal.signal(signal.SIGTERM, on_term)
     if not conductor_alive(run) and not _new_conductor_appears(run):
         return 3
     restarts = 0

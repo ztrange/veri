@@ -1150,3 +1150,29 @@ def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_whil
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[-1:], dead_read[0]) == (0, ["restarts 7 0"], True), out
+
+
+def test_3526_a_restarter_sent_sigterm_while_its_conductor_is_live_logs_the_signal_as_why_it_exits_and_does_not_print_restarts_7_0(tmp_path, run_cli, monkeypatch):
+    import signal
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    handlers = {}
+    naps = [0]
+
+    def register(signum, handler):
+        handlers[signum] = handler
+
+    def nap(seconds):
+        naps[0] += 1
+        if naps[0] == 2 and signal.SIGTERM in handlers:
+            handlers[signal.SIGTERM](signal.SIGTERM, None)
+        if naps[0] >= 30:
+            raise SystemExit(99)
+
+    monkeypatch.setattr(signal, "signal", register)
+    monkeypatch.setattr(restart_conductor, "conductor_alive", lambda run: True)
+    monkeypatch.setattr(restart_conductor, "_growth", lambda run, offset=0: None)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code != 99, "restarts 7 0" in out, "SIGTERM" in out) == (True, False, True), (code, out, err)
