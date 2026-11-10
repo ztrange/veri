@@ -201,6 +201,7 @@ def main(argv):
     merges = []
     resume_at = 0
     reported = set()
+    missing = {}
     held_at = None
     _reads.clear()
     while True:
@@ -224,7 +225,12 @@ def main(argv):
                     if issue not in pending:
                         pending.append(issue)
                     continue
-                sys.stdout.write(exit_line(issue) + "\n")
+                line = exit_line(issue)
+                if line.startswith("silent-exit") and clock() - missing.setdefault(issue, clock()) < 30:
+                    if issue not in pending:
+                        pending.append(issue)
+                    continue
+                sys.stdout.write(line + "\n")
                 return 0
         stall = int(stall_window())
         for issue in seen:
