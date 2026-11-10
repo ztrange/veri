@@ -593,3 +593,21 @@ def test_3224_usage_strings_name_every_verb_and_flag(run_cli):
         assert word in err, word
     assert code == 2
     assert "--recover <coord|dev> [--lane <lane>]" in status.USAGE
+
+
+def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_seven_sections_with_exit_0(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd" / "wt" / "fix-2898-pin").mkdir(parents=True)
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    assert code == 0, (code, err)
+    assert [line for line in lines if line in HEADINGS] == HEADINGS, lines
+    assert lines[lines.index("Runs") + 1:lines.index("Bailed")] == ["none"], lines
