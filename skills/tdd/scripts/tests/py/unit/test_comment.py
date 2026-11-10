@@ -1099,3 +1099,27 @@ def test_refactor_note_file_text_follows_the_rendered_refactor_comment_after_a_b
     assert len(posted) == 1
     assert posted[0].startswith("### 🛠️ Refactor")
     assert "renamed tmp to angle in spin.py\n\nthe conductor note whiskey" in posted[0]
+
+
+def test_verify_refactor_pass_posts_the_pass_heading_then_the_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-93"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-refactor.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-refactor.reason").write_text("the transforms keep behaviour and the suite is green\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-refactor"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🔎 verify-refactor — PASS"
+    assert "the transforms keep behaviour and the suite is green" in body.splitlines()[1:]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-refactor", url)]

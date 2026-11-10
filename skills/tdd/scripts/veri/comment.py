@@ -143,7 +143,7 @@ def main(argv):
     noted = {"green": post_green, "red": post_red, "refactor": post_refactor}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
-    if len(argv) == 2 and argv[1] in ("verify-red", "verify-green"):
+    if len(argv) == 2 and argv[1] in ("verify-red", "verify-green", "verify-refactor"):
         return post_verify(argv[0], argv[1])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
