@@ -1234,3 +1234,48 @@ def test_every_heading_comment_sh_posts_for_the_green_refactor_and_revised_kinds
         results.append(out)
 
     assert results[0] == results[1]
+
+
+def test_plan_posts_the_plan_heading_listing_every_ledger_step_and_the_detected_test_command_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    url = "https://github.com/o/r/issues/7#issuecomment-42"
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append((str(number), body)) or url)
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "## Problem\n\nbody of the issue\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text(
+        "# Plan for #7\n\n- [x] first step alpha\n- [ ] second step bravo\n- [ ] third step charlie\n")
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `bin/detected-fast -q`\n")
+
+    code, out, err = run_cli(comment, ["7", "plan"], cwd=tmp_path, env={"VERI_TEST_CMD": "bin/from-the-environment"})
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🗺️ Plan"
+    assert body.index("first step alpha") < body.index("second step bravo") < body.index("third step charlie")
+    assert "bin/detected-fast -q" in body
+    assert "bin/from-the-environment" not in body
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "plan", url)]
+
+
+def test_plan_names_the_test_command_as_plain_text_on_its_own_test_command_line(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append(body) or "https://x/7#c-1")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "## Problem\n\nbody of the issue\n")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] only step\n")
+    (tmp_path / "CLAUDE.md").write_text("# notes\n\nveri: fast tests: `bin/detected-fast -q`\n")
+
+    code, out, err = run_cli(comment, ["7", "plan"], cwd=tmp_path)
+
+    assert code == 0, err
+    assert [l for l in posted[0].split("\n") if l.startswith("Test command:")] == ["Test command: bin/detected-fast -q"]
