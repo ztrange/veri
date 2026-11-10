@@ -1,9 +1,10 @@
+<!-- veri:run-body -->
 Closes #3541 — `tests-frozen.sh rerecord-refactored` no longer refuses an earlier step's frozen case whose body a ticked `⟦suite-repair⟧` step's green rewrote. It accepts a record that matches the case as it stood just before green, and the existing assertion and helper checks still apply. A case changed outside any suite-repair step still refuses. The run took 2 steps from the committed ledger `.tdd/issue-3541.md`:
 
 1. Re-record a case a ticked suite-repair green rewrote (red → green, blind-verified; refactor: nothing left to tidy).
 2. A case changed by an ordinary green still refuses: a regression pin, blind-verified by mutation (`repaired = True` turns it red).
 
-The guard is scoped: `green^` stands for the record only when `green` is one of the own commits of a ticked `⟦suite-repair⟧` step of the ledger (`_is_suite_repair_green` in `skills/tdd/scripts/veri/tests_frozen.py`), not when any such step is ticked elsewhere in it. Own commits come from the committed ledger, as in `_step_commits`. A lookup that fails refuses, and cases pin an unrelated ticked step, an unticked step, a ledger line the committed ledger never held, and a later commit that rewrites the case again with a changed assertion. The `git rev-parse` refusal for a non-commit green is unreachable from outside: `green^` then fails too, so the case is skipped anyway.
+The guard is scoped: `_is_suite_repair_green` counts the body at `green^` only when `<green-sha>` is one of the commits of a ticked `⟦suite-repair⟧` step in the ledger; an ordinary green, an unticked suite-repair step, a ticked one that did not make this green, and any failed lookup all refuse.
 
 ### 📊 Metrics — issue 3541
 
@@ -182,3 +183,13 @@ pin-recheck flagged these for a look after step 1:
 - needs a look: skills/tdd/scripts/veri/tests_frozen.py (old text gone) ×36
 - needs a look: skills/tdd/scripts/veri/tests_frozen.py (old text occurs more than once) ×3
 - needs a look: skills/tdd/scripts/veri/tests_frozen.py (base run failed)
+
+<!-- /veri:run-body -->
+
+
+**Correction (review, 6a180062f0):** the guard is no longer "any ticked suite-repair step". `_is_suite_repair_green` counts the body at `green^` only when `<green-sha>` is one of the commits `_step_commits` assigns to a ticked `⟦suite-repair⟧` step; any lookup failure refuses (ab28355ce2, pinned by 3f2c7c9b28 for an unrelated ticked step and an unticked one).
+
+
+
+**Review (4d0d33b938, NOT OK, not merged):** probes (ordinary green, unticked suite-repair, unrelated ticked suite-repair, later assertion change, green not among the step's commits) all refuse; the `_is_suite_repair_green` rev-parse `except` (tests_frozen.py:590) is an equivalent mutant (non-commit green gives identical output). Survivor: dropping the `not match or` guard (tests_frozen.py:593) passes every case, yet a ledger with a `# Plan` header line makes `rerecord-refactored` exit 2 with AttributeError; no case feeds a non-item ledger line through this path. Needs a case with a header/blank ledger line, watched red. Also the correction above cites pre-rebase shas.
+
