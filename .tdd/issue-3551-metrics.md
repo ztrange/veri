@@ -1,16 +1,17 @@
 ### 📊 Metrics — issue 3551
 
-Wall time for the issue: 1359 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 834 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 7 planned.
+Steps done: 7 of 8 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3575.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $8.67 over 157 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $10.84 over 196 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78825 tokens, largest 187660 tokens
 Conductor context: first turn 78833 tokens, largest 152524 tokens
-Conductor context: first turn 78833 tokens, largest 136863 tokens
+Conductor context: first turn 78833 tokens, largest 148717 tokens
+Conductor context: first turn 78835 tokens, largest 135674 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -146,34 +147,72 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 127 | $0.04 | 151290 |
 | 128 | $0.04 | 151812 |
 | 129 | $0.05 | 152524 |
-| 130 | $0.49 | 78833 |
-| 131 | $0.06 | 84972 |
-| 132 | $0.03 | 86094 |
+| 130 | $0.50 | 78833 |
+| 131 | $0.07 | 84972 |
+| 132 | $0.04 | 86094 |
 | 133 | $0.03 | 87330 |
-| 134 | $0.05 | 91379 |
-| 135 | $0.05 | 95520 |
-| 136 | $0.05 | 99961 |
+| 134 | $0.06 | 91379 |
+| 135 | $0.06 | 95520 |
+| 136 | $0.07 | 99961 |
 | 137 | $0.03 | 100645 |
-| 138 | $0.02 | 101214 |
-| 139 | $0.02 | 101570 |
-| 140 | $0.02 | 101969 |
-| 141 | $0.02 | 102243 |
-| 142 | $0.03 | 103181 |
-| 143 | $0.02 | 103613 |
-| 144 | $0.03 | 105102 |
-| 145 | $0.03 | 106147 |
-| 146 | $0.15 | 121974 |
+| 138 | $0.03 | 101214 |
+| 139 | $0.04 | 101570 |
+| 140 | $0.03 | 101969 |
+| 141 | $0.03 | 102243 |
+| 142 | $0.04 | 103181 |
+| 143 | $0.03 | 103613 |
+| 144 | $0.04 | 105102 |
+| 145 | $0.04 | 106147 |
+| 146 | $0.16 | 121974 |
 | 147 | $0.03 | 122609 |
-| 148 | $0.03 | 123169 |
-| 149 | $0.03 | 123936 |
-| 150 | $0.09 | 132598 |
-| 151 | $0.03 | 133372 |
-| 152 | $0.03 | 134183 |
-| 153 | $0.03 | 135125 |
-| 154 | $0.03 | 135616 |
-| 155 | $0.03 | 135953 |
-| 156 | $0.03 | 136413 |
-| 157 | $0.03 | 136863 |
+| 148 | $0.04 | 123169 |
+| 149 | $0.04 | 123936 |
+| 150 | $0.10 | 132598 |
+| 151 | $0.05 | 133372 |
+| 152 | $0.04 | 134183 |
+| 153 | $0.04 | 135125 |
+| 154 | $0.04 | 135616 |
+| 155 | $0.04 | 135953 |
+| 156 | $0.04 | 136413 |
+| 157 | $0.04 | 136863 |
+| 158 | $0.04 | 137496 |
+| 159 | $0.11 | 146779 |
+| 160 | $0.05 | 147855 |
+| 161 | $0.04 | 148267 |
+| 162 | $0.04 | 148717 |
+| 163 | $0.49 | 78835 |
+| 164 | $0.07 | 84991 |
+| 165 | $0.04 | 88276 |
+| 166 | $0.03 | 89246 |
+| 167 | $0.05 | 93017 |
+| 168 | $0.04 | 96061 |
+| 169 | $0.02 | 96528 |
+| 170 | $0.02 | 96848 |
+| 171 | $0.02 | 97357 |
+| 172 | $0.02 | 97709 |
+| 173 | $0.02 | 98126 |
+| 174 | $0.02 | 98746 |
+| 175 | $0.03 | 99469 |
+| 176 | $0.05 | 103737 |
+| 177 | $0.03 | 104457 |
+| 178 | $0.03 | 105296 |
+| 179 | $0.03 | 105890 |
+| 180 | $0.03 | 106818 |
+| 181 | $0.06 | 111935 |
+| 182 | $0.03 | 112887 |
+| 183 | $0.03 | 113669 |
+| 184 | $0.03 | 114222 |
+| 185 | $0.03 | 114766 |
+| 186 | $0.03 | 115933 |
+| 187 | $0.15 | 131792 |
+| 188 | $0.03 | 132299 |
+| 189 | $0.03 | 132602 |
+| 190 | $0.03 | 133138 |
+| 191 | $0.03 | 133973 |
+| 192 | $0.03 | 134409 |
+| 193 | $0.03 | 134866 |
+| 194 | $0.03 | 135342 |
+| 195 | $0.03 | 135674 |
 
 #### Conductor comments, by family
 
@@ -188,32 +227,32 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
 | 🗺️ Plan | 2 | 1082 | $0.02 |
-| 🗺️ verify-plan | 4 | 1549 | $0.03 |
-| ▶️ Resuming | 2 | 459 | $0.01 |
+| 🗺️ verify-plan | 5 | 1993 | $0.04 |
+| ▶️ Resuming | 3 | 903 | $0.02 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 1 | 451 | $0.01 |
-| Total | 9 | 3541 | $0.07 |
+| Total | 11 | 4429 | $0.09 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 3 | 1 | 0 | 50 | 42 | 4 | 8 | 5431 | 5350 | 71158 | 0.23 |
+| plan | 5 | 4 | 1 | 0 | 64 | 53 | 5 | 10 | 6701 | 5350 | 92634 | 0.30 |
 | red | 10 | 4 | 0 | 0 | 336 | 197 | 51 | 96 | 22344 | 912121 | 205836 | 0.83 |
 | green | 10 | 4 | 1 | 0 | 624 | 150 | 54 | 102 | 14005 | 839446 | 152356 | 0.61 |
 | pin | 2 | 2 | 0 | 0 | 37 | 24 | 7 | 14 | 2377 | 98834 | 27642 | 0.10 |
 | refactor | 4 | 0 | 0 | 0 | 26 | 17 | 9 | 18 | 861 | 115222 | 58708 | 0.17 |
 | diff | 2 | 1 | 0 | 0 | 81 | 23 | 9 | 18 | 2143 | 132727 | 24774 | 0.10 |
-| prose | 3 | 0 | 0 | 0 | 140 | 134 | 3 | 6 | 22176 | 3919 | 242202 | 0.83 |
-| skill-edit | 1 | 0 | 0 | 0 | 13 | 11 | 4 | 8 | 826 | 264826 | 80917 | 0.24 |
+| prose | 8 | 0 | 0 | 0 | 291 | 274 | 8 | 16 | 44123 | 59676 | 534016 | 1.78 |
+| skill-edit | 2 | 0 | 0 | 0 | 24 | 20 | 8 | 14 | 1572 | 438263 | 168155 | 0.48 |
 | rebase | 2 | 1 | 0 | 0 | 381 | 34 | 12 | 22 | 3077 | 164179 | 43755 | 0.16 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 17 | 15 | 2 | 0 | 960 | 220 | 61 | 116 | 22313 | 827729 | 271886 | 0.99 |
+| verifier | claude-sonnet-5-5 | 18 | 16 | 2 | 0 | 974 | 231 | 62 | 118 | 23583 | 827729 | 293362 | 1.05 |
 | developer | claude-sonnet-5-5 | 17 | 0 | 0 | 0 | 575 | 267 | 85 | 162 | 27925 | 1440150 | 312343 | 1.20 |
 
 #### Rework and waste, by phase
@@ -241,6 +280,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | with several stall-window-old run dirs of closed issues over several polls, dispatch reads issue states at most once per poll, never once per run dir, pinned by a small in-process case counting `dispatch.issue_states` calls through a spy ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 73 | 22 | 44 | 7012 | 363530 | 84129 | 0.32 | 370 | unknown | 0/5 | nothing-left |  |  | full |
 | dispatch ends with exit 2 and a stderr line naming the failure when the stall-check issue read (`dispatch.issue_states` in main) hits a gh failure or a rate limit, as the other dispatch reads do through `answered()` (QueueUnreadable), never a traceback; one small in-process case in `skills/tdd/scripts/tests/py/unit/test_dispatch.py` faking the github read to raise `github.NoAnswer`, which fails on current code ⟦added⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 65 | 22 | 42 | 7193 | 358312 | 91190 | 0.34 | 470 | unknown | 0/5 | nothing-left |  |  | full |
 | ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: the `dispatch.sh` entry (and REQUIREMENTS rows SC89, SC110, SC115, each amended as `<ID><reword>`) says a run dir whose issue is closed is skipped by the stall check instead of ending as `stalled <n>` (SC110: a stuck restart no longer ends the dispatch for a closed issue), and that dispatch makes one `gh issue list --state all` read per poll ⟦added⟧ ⟦criterion 1⟧ | 5 | 1 | 0 | 0 | 0 | 0 | 133 | 18 | 34 | 18510 | 432275 | 285375 | 0.94 | unknown | unknown | unknown | unknown |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md`: amend skills/tdd/REQUIREMENTS.md rows SC89, SC110, SC115 (under the skills/tdd/SCRIPTS.md unit), each as <ID><reword>, so they state the closed-issue run dir skip, the one `gh issue list --state all` read per poll, and exit 2 on a failed read; drop SC110's claim that every never-clearing marker ends as `stalled <n>`; then regrade ⟦added⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 116 | 8 | 14 | 17407 | 227559 | 298312 | 0.94 | 148 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -280,4 +320,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 153 | 292 | 73240 | 2536624 | 907348 | 11.92 (estimate) |
+| total | 163 | 310 | 97203 | 2765818 | 1307876 | 15.36 (estimate) |
