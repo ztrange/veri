@@ -1,5 +1,6 @@
 """Process case for veri.status --report: a stale snapshot's refresh never holds a captured report."""
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -22,10 +23,11 @@ def release(fifo):
 
 
 @pytest.mark.process("status.py started for real beside a stub report-cache.sh that blocks on a fifo the case controls")
+@pytest.mark.tree_audit("copies the veri modules into a scratch scripts directory")
 def test_2750_report_with_a_stale_snapshot_ends_its_captured_stdout_while_the_refresh_is_still_running(tmp_path):
     scripts = tmp_path / "scripts"
     scripts.mkdir()
-    (scripts / "veri").symlink_to(SCRIPTS / "veri")
+    shutil.copytree(SCRIPTS / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__"))
     fifo, started = tmp_path / "gate", tmp_path / "started"
     os.mkfifo(fifo)
     stub = scripts / "report-cache.sh"
