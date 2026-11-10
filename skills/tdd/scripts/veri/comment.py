@@ -124,16 +124,11 @@ def post_green(issue, note_file=None):
 
 
 def main(argv):
-    if len(argv) == 2 and argv[1] == "green":
-        return post_green(argv[0])
-    if len(argv) == 4 and argv[1] == "green" and argv[2] == "--note-file":
-        return post_green(argv[0], argv[3])
+    noted = {"green": post_green, "red": post_red}
+    if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
+        return noted[argv[1]](argv[0], *argv[3:])
     if len(argv) == 2 and argv[1] == "verify-red":
         return post_verify_red(argv[0])
-    if len(argv) == 2 and argv[1] == "red":
-        return post_red(argv[0])
-    if len(argv) == 4 and argv[1] == "red" and argv[2] == "--note-file":
-        return post_red(argv[0], argv[3])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
     if len(argv) < 2 or argv[1] != "step-done" or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
