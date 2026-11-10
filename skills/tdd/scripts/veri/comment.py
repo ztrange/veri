@@ -47,7 +47,7 @@ def post_done(issue):
     return event.append("", {}, "comment", ["kind=done", f"url={url}"])
 
 
-def post_red(issue):
+def post_red(issue, note_file=None):
     report = {}
     for line in read_or_empty(".tdd/develop-red.out").splitlines():
         key, sep, value = line.partition(": ")
@@ -59,6 +59,9 @@ def post_red(issue):
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
             f"PREDICTED_FAILURE: {report['PREDICTED_FAILURE']}\n\n{verdict}\n")
+    if note_file:
+        with open(note_file) as f:
+            body += f"\n{f.read()}"
     url = github.gh_issue_comment(issue, body)
     return event.append("", {}, "comment", ["kind=red", f"url={url}"])
 
@@ -66,6 +69,8 @@ def post_red(issue):
 def main(argv):
     if len(argv) == 2 and argv[1] == "red":
         return post_red(argv[0])
+    if len(argv) == 4 and argv[1] == "red" and argv[2] == "--note-file":
+        return post_red(argv[0], argv[3])
     if len(argv) == 2 and argv[1] == "done":
         return post_done(argv[0])
     if len(argv) < 2 or argv[1] != "step-done" or (len(argv) > 2 and (argv[2] != "--note-file" or len(argv) != 4)):
