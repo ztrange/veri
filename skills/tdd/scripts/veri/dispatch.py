@@ -110,11 +110,17 @@ def issue_states(issues):
 
 def answered(what, read, *args):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>, so a rate limit waits for the reset."""
-    try:
-        return read(*args)
-    except github.NoAnswer as failure:
-        detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
-        raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
+    retries = 0
+    while True:
+        try:
+            return read(*args)
+        except github.NoAnswer as failure:
+            detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
+            if "HTTP 5" in detail and retries < 3:
+                retries += 1
+                github.time.sleep(int(tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5")))
+                continue
+            raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
 
 
 def overlap_poll():
