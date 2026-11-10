@@ -35,6 +35,15 @@ def records(text):
     return out
 
 
+def encoded(record):
+    out = {}
+    for k, v in record.items():
+        if k in ("old", "new", "context"):
+            k, v = k + "-b64", base64.b64encode(v.encode()).decode()
+        out[k] = v
+    return out
+
+
 def current_wrapper(command):
     head, _, rest = command.partition(" ")
     if head.endswith("/timed-test-run.sh") and not Path(head).exists():
@@ -200,7 +209,7 @@ def recheck(argv, looks):
             event.append("", {}, "pin-retired", [f"reason={reason}"])
             pin["retired"] = reason
             Path(ledger).write_text("".join(
-                "".join(f"{k} {len(v)}\n{v}\n" for k, v in r.items()) + "\n" for f, r in found if f == ledger))
+                "".join(f"{k} {len(v)}\n{v}\n" for k, v in encoded(r).items()) + "\n" for f, r in found if f == ledger))
             continue
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
         gone = [n for n in named if n.split("::")[0] in deleted]
