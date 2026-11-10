@@ -44,10 +44,11 @@ def test_2506_a_record_naming_a_file_the_range_does_not_touch_exits_3_and_runs_n
 
 
 @pytest.mark.process("pin-recheck.sh run with no argument")
-def test_2506_no_argument_exits_2_prints_nothing_on_stdout_and_its_usage_line_on_stderr(tmp_path):
+def test_3363_no_argument_exits_2_prints_nothing_on_stdout_and_its_usage_line_naming_the_optional_ledger_on_stderr(tmp_path):
     ran = subprocess.run(["sh", RECHECK], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", "usage: pin-recheck.sh <base-sha>\n")
+    assert (ran.returncode, ran.stdout, ran.stderr) == (
+        2, "", "usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
 
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range that touches the recorded file")

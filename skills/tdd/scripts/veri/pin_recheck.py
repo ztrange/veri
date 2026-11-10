@@ -156,7 +156,7 @@ def mutated_file_of(record):
 
 def recheck(argv, looks):
     if not argv:
-        sys.stderr.write("usage: pin-recheck.sh <base-sha>\n")
+        sys.stderr.write("usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
         return 2
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
     found = [(f, r) for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())]
