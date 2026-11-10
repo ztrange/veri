@@ -1041,3 +1041,19 @@ def test_3500_queued_merge_of_a_pr_already_reading_merged_after_the_fetch_releas
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, len(released)) == (2, 1)
+
+
+def test_3500_queued_merge_of_a_pr_reading_closed_and_unmerged_after_the_fetch_exits_2_naming_it_on_stderr_before_any_rebase_or_push(fake_processes, run_cli):
+    def closed_unmerged(answer):
+        def wrapped(line, **kw):
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return 0, json.dumps({"state": "closed", "merged": False}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(closed_unmerged)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if "rebase" in c or " push " in c]
+    assert (code, "closed" in err, moved) == (2, True, [])
