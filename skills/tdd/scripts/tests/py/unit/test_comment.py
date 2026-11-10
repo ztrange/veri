@@ -752,3 +752,36 @@ def test_the_red_metrics_family_pattern_matches_the_emoji_heading_text_each_red_
     assert all(heading.startswith("### " + text) for heading, text in zip(headings, matched))
     assert not re.search(pattern, "### Red")
     assert not re.search(pattern, "### verify-red — PASS")
+
+
+def test_red_with_an_unknown_flag_or_a_note_file_lacking_its_path_exits_2_with_usage_posting_nothing_unlike_the_valid_call(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-58")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: tests/py/unit/test_widget.py\n"
+        "TARGET_TEST: test_widget_spins_clockwise\n"
+        "AGAINST_UNMODIFIED: FAILS\n"
+        "FAIL_OUTPUT: assert 'ccw' == 'cw'\n"
+        "PREDICTED_FAILURE: assert spin == 'cw' fires with 'ccw'\n"
+        "PREDICTION: MATCHED\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the conductor note yankee\n")
+
+    code, out, err = run_cli(comment, ["7", "red", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert [b.splitlines()[0] for b in posted] == ["### 🔴 Red"]
+    posted.clear()
+    events = (tmp_path / ".tdd" / "events.jsonl").read_text()
+
+    for bad in (["--bogus", str(note)], ["--note-file"]):
+        code, out, err = run_cli(comment, ["7", "red", *bad], cwd=tmp_path)
+
+        assert (code, err) == (2, USAGE), bad
+    assert posted == []
+    assert (tmp_path / ".tdd" / "events.jsonl").read_text() == events
