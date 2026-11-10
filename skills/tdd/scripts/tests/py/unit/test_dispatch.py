@@ -2157,8 +2157,9 @@ def test_main_exits_2_naming_the_diff_read_after_one_read_when_gh_pr_diff_answer
     assert (code, launches, len(reads), "reading https://github.com/o/r/pull/90's diff failed" in err) == (2, [], 1, True)
 
 
-def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_500_for_the_first_reads_then_succeeds_issue_3560(
-        monkeypatch, capsys, tmp_path, dispatch):
+@pytest.mark.parametrize("status", ["500", "502", "503"])
+def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_5xx_for_the_first_reads_then_succeeds_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch, status):
     launches, _ = _overlap_case(
         monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
         _REAL["run_pr_paths"])
@@ -2171,7 +2172,7 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_500_for_the_first_r
     def gh_pr_diff_names(number):
         reads.append(number)
         if len(reads) <= 2:
-            raise dispatch.github.NoAnswer("", "HTTP 500\n")
+            raise dispatch.github.NoAnswer("", f"HTTP {status}\n")
         return ["skills/tdd/SCRIPTS.md"]
 
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", gh_pr_diff_names)
