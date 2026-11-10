@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/test_metrics.py
 command 174
 make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_issue_3288_a_later_record_after_the_flushing_result_counts_a_new_family_once_and_a_repeated_family_not_again
 
+before 40
+e2bdb98a1eaddfb6e56da3693ce250c338e5a3c1
+keep 43
+skills/tdd/scripts/tests/py/test_metrics.py
+command 134
+make test TESTS=skills/tdd/scripts/tests/py/test_metrics.py::test_issue_3288_a_reused_name_less_id_opens_a_new_turn_of_its_own_session
+
