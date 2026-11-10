@@ -1113,3 +1113,40 @@ def test_3477_a_conductor_whose_recorded_pid_is_dead_for_three_polls_ends_the_wa
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, out.splitlines()[-1:]) == (0, ["restarts 7 0"]), out
+
+
+def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_while_its_pid_answers_kill_0_is_watched_until_the_pid_is_dead(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    pid_path.parent.mkdir(parents=True)
+    pid_path.write_text("4242\nstart-A\n")
+    naps = [0]
+    dead_read = [False]
+
+    def nap(seconds):
+        naps[0] += 1
+        assert naps[0] < 200, "the watch never saw the pid die"
+
+    def kill(pid, sig):
+        if naps[0] >= 6:
+            dead_read[0] = True
+            raise ProcessLookupError(pid)
+
+    def ps(field, pid):
+        if field == "lstart":
+            return "" if 1 <= naps[0] < 6 else "start-A"
+        if field == "ppid":
+            return "100"
+        if str(pid) == "100":
+            return "python3 run_conductor.py 7"
+        return "claude --print"
+
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+
+    code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert (code, out.splitlines()[-1:], dead_read[0]) == (0, ["restarts 7 0"], True), out
