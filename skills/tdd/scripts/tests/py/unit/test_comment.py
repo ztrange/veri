@@ -541,3 +541,23 @@ def test_verify_red_pass_posts_the_pass_heading_then_the_reason_and_appends_a_co
     assert "the case fails on the missing spin key, as the criterion says" in body.splitlines()[1:]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-red", url)]
+
+
+def test_verify_red_reject_posts_the_reject_heading_then_the_reason_when_the_verdict_exit_is_1(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-58"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-red.exit").write_text("1\n")
+    (tmp_path / ".tdd" / "verify-red.reason").write_text("the case asserts a mechanism, not the criterion\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-red"], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    assert posted[0][1].splitlines()[0] == "### 🔎 verify-red — REJECT"
+    assert "the case asserts a mechanism, not the criterion" in posted[0][1].splitlines()[1:]
