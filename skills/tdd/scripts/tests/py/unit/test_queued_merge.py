@@ -100,7 +100,7 @@ def test_2372_queued_merge_waits_for_ci_through_wait_ci_on_the_pushed_head_after
     merges = [c for c in calls if "pr merge" in c]
     assert (code, push is not None and wait is not None and push < wait, waits, merges) == (
         0, True, ["merge-lock.sh gate --pid %s -- %s %s 540  %s" % (PID, WAIT_CI, PR, PUSHED_HEAD)],
-        ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
+        ["merge-lock.sh gate --keep --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
 
 
 def test_2372_queued_merge_on_red_ci_exits_1_through_the_releasing_gate_and_never_merges(fake_processes, run_cli):
@@ -145,7 +145,7 @@ def test_2372_queued_merge_proceeds_to_tag_and_cleanup_only_on_an_observed_merge
     code, _, err = run_cli(queued_merge, ARGV)
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
-    assert (code != 0, PR in err, cleaned(calls), len(released)) == (True, True, [], 1)
+    assert (code, PR in err, cleaned(calls), len(released)) == (1, True, [], 1)
 
 
 @pytest.mark.parametrize("failing, named", [
@@ -415,38 +415,60 @@ def test_2585_queued_merge_by_default_merges_through_one_rest_put_of_the_pushed_
 def test_2585_queued_merge_by_default_exits_1_with_no_tag_branch_delete_or_worktree_removal_when_the_rest_merge_is_refused_because_the_head_moved(fake_processes, run_cli):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
 
-    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     puts = [c for c in calls if "pulls/7/merge" in c]
-    assert (code, len(puts), [("--keep" in c) for c in puts], cleaned(calls)) == (1, 1, [False], [])
+    assert (code, len(puts), cleaned(calls)) == (1, 1, [])
 
 
-def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_rereads_it_across_the_settle_window_then_exits_non_zero_with_nothing_cleaned(fake_processes, run_cli):
+def test_3500_queued_merge_whose_merge_call_fails_and_never_lands_holds_the_lock_through_the_settle_reads_and_releases_it_exactly_once_after_the_last(fake_processes, run_cli):
     calls = scenario(fake_processes, fail=("pulls/7/merge",))
 
     code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     put = first(calls, "pulls/7/merge")
+    reads = [i for i, c in enumerate(calls) if i > put and c.endswith("gh api repos/o/r/pulls/7")]
+    released = [i for i, c in enumerate(calls) if c.startswith("merge-lock.sh release")]
+    assert (code, "--keep" in calls[put], len(reads), len(released), bool(reads) and released[-1:] > reads[-1:]) == (
+        1, True, 3, 1, True)
+
+
+def test_3500_queued_merge_whose_merge_call_fails_while_the_pr_still_reads_open_rereads_it_across_the_settle_window_then_exits_with_the_merge_calls_own_code_with_nothing_cleaned(fake_processes, run_cli):
+    def failing_with_4(answer):
+        def wrapped(line, **kw):
+            if "pulls/7/merge" in line:
+                return 4, "", "HTTP 502"
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(failing_with_4)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    put = first(calls, "pulls/7/merge")
     rereads = [c for c in calls[put + 1:] if c.endswith("gh api repos/o/r/pulls/7")]
-    assert (code != 0, len(rereads), cleaned(calls)) == (True, 3, [])
+    assert (code, len(rereads), cleaned(calls)) == (4, 3, [])
 
 
-def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_and_rest_put_both_fail_while_the_pr_still_reads_open_exits_non_zero_with_a_put_that_keeps_no_lock_and_nothing_cleaned(fake_processes, run_cli):
+def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_and_rest_put_both_fail_while_the_pr_still_reads_open_exits_1_releasing_the_lock_once_after_the_settle_reads_and_nothing_cleaned(fake_processes, run_cli):
     calls = scenario(fake_processes, fail=("pr merge", "pulls/7/merge"))
 
     code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "auto", "VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
-    puts = [c for c in calls if "PUT" in c and "pulls/7/merge" in c]
-    assert (code != 0, ["--keep" in c for c in puts], cleaned(calls)) == (True, [False], [])
+    put = first(calls, "PUT")
+    reads = [i for i, c in enumerate(calls) if put is not None and i > put and c.endswith("gh api repos/o/r/pulls/7")]
+    released = [i for i, c in enumerate(calls) if c.startswith("merge-lock.sh release")]
+    assert (code, "--keep" in calls[put], len(reads), len(released), bool(reads) and released[-1:] > reads[-1:], cleaned(calls)) == (
+        1, True, 2, 1, True, [])
 
 
-def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_fails_runs_it_through_the_releasing_gate_before_the_rest_fallback(fake_processes, run_cli):
+def test_3500_queued_merge_under_the_auto_driver_whose_gh_pr_merge_fails_runs_it_through_the_keeping_gate_so_the_rest_fallback_still_holds_the_lock(fake_processes, run_cli):
     calls = scenario(fake_processes, fail=("pr merge", "pulls/7/merge"))
 
     run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": "auto", "VERI_MERGE_SETTLE_READS": "1", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     merges = [c for c in calls if "pr merge" in c]
-    assert ["--keep" in c for c in merges] == [False]
+    assert ["--keep" in c for c in merges] == [True]
 
 
 def test_3500_queued_merge_whose_first_fetch_fails_exits_1_through_the_releasing_gate_and_makes_no_merge_call(fake_processes, run_cli):
@@ -535,7 +557,7 @@ def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_ti
 
     put = first(calls, "pulls/7/merge")
     rereads = [c for c in calls[put + 1:] if c.endswith("gh api repos/o/r/pulls/7")]
-    assert (code != 0, len(rereads), waits, cleaned(calls)) == (True, 10, [3.0] * 10, [])
+    assert (code, len(rereads), waits, cleaned(calls)) == (1, 10, [3.0] * 10, [])
 
 
 def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_match_head_commit_and_makes_no_rest_put(fake_processes, run_cli):
@@ -546,7 +568,7 @@ def test_2585_queued_merge_under_the_graphql_driver_merges_with_gh_pr_merge_matc
     merges = [c for c in calls if "pr merge" in c]
     puts = [c for c in calls if "PUT" in c or "pulls/7/merge" in c]
     assert (code, merges, puts) == (
-        0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)], [])
+        0, ["merge-lock.sh gate --keep --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)], [])
 
 
 def test_2585_queued_merge_under_the_auto_driver_tries_gh_pr_merge_first_and_when_it_fails_falls_back_to_one_rest_put_of_the_pushed_head_then_tags_and_exits_0(fake_processes, run_cli):
@@ -886,7 +908,7 @@ def test_3422_queued_merge_of_a_pr_whose_body_carries_closes_for_the_runs_issue_
     code, _, _ = run_cli(queued_merge, [PR, str(worktree), "feature", "the capability"], env={"VERI_GH_DRIVER": "graphql"})
 
     merges = [c for c in calls if "pr merge" in c]
-    assert (code, merges) == (0, ["merge-lock.sh gate --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
+    assert (code, merges) == (0, ["merge-lock.sh gate --keep --pid %s -- gh pr merge %s --rebase --match-head-commit %s" % (PID, PR, PUSHED_HEAD)])
 
 
 def test_3422_queued_merge_of_a_pr_whose_body_lacks_closes_for_the_runs_issue_exits_2_naming_the_line_makes_no_merge_call_and_frees_the_lock(
