@@ -106,3 +106,27 @@ def test_a_subset_leg_whose_mark_expression_excludes_a_named_case_from_both_pass
                              ["--subset", "-q", "-p", "no:cacheprovider", "-m", "not slow", str(planted)], env=env)
 
     assert (code != 0, "1 unselected" in out + err) == (True, True)
+
+
+def test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_cases_leaving_none_unselected_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "pytest.ini").write_text(
+        "[pytest]\nmarkers =\n    process: starts a process\n    tree_audit: sweeps a tree\n    serial: runs alone\n")
+    (planted / "test_planted_marks.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "@pytest.mark.process('x')\n"
+        "def test_process():\n    pass\n"
+        "@pytest.mark.tree_audit('x')\n"
+        "def test_tree_audit():\n    pass\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["--subset", "-q", "-p", "no:cacheprovider", str(planted)], env=env)
+
+    last = [line for line in out.splitlines() if line.strip()][-1]
+    assert (code, "4 passed" in last, "unselected" in out + err) == (0, True, False)

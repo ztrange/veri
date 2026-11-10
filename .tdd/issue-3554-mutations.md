@@ -1,0 +1,7 @@
+before 40
+b969410b28974995cfb6052b2b4b2c2ec3eaa984
+keep 58
+skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_cases_leaving_none_unselected_3554
+
