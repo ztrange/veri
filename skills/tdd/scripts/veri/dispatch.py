@@ -18,7 +18,7 @@ import tunables
 import watch_runs
 from ledger import ledger_path
 
-USAGE = "usage: dispatch.sh --target <N>"
+USAGE = "usage: dispatch.sh --target <N>  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing)"
 
 
 solvable_issues = watch_runs.solvable_issues
