@@ -3,7 +3,7 @@ Closes #3541 — `tests-frozen.sh rerecord-refactored` no longer refuses an earl
 1. Re-record a case a ticked suite-repair green rewrote (red → green, blind-verified; refactor: nothing left to tidy).
 2. A case changed by an ordinary green still refuses: a regression pin, blind-verified by mutation (`repaired = True` turns it red).
 
-Follow-up worth a look: the guard is "the ledger holds any ticked `⟦suite-repair⟧` step" and compares against the case at `green^`, not "the suite-repair step that rewrote this case". The green leaf flagged this as wider than strictly needed.
+The guard is scoped: `green^` stands for the record only when `green` is one of the own commits of a ticked `⟦suite-repair⟧` step of the ledger (`_is_suite_repair_green` in `skills/tdd/scripts/veri/tests_frozen.py`), not when any such step is ticked elsewhere in it. Own commits come from the committed ledger, as in `_step_commits`. A lookup that fails refuses, and cases pin an unrelated ticked step, an unticked step, a ledger line the committed ledger never held, and a later commit that rewrites the case again with a changed assertion. The `git rev-parse` refusal for a non-commit green is unreachable from outside: `green^` then fails too, so the case is skipped anyway.
 
 ### 📊 Metrics — issue 3541
 
