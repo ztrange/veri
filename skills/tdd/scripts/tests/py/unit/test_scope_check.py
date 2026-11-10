@@ -147,3 +147,26 @@ def test_3509_a_skill_edit_step_backticking_a_non_unit_token_after_its_unit_is_n
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3509_a_skill_edit_unit_whose_heading_sits_after_the_requirements_section_ends_is_refused_with_exit_2(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3509.md"
+    ledger.write_text(
+        "- [ ] regrade `skills/tdd/PIN.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3509-spec.md").write_text(
+        "## Requirements\n\n### other\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n"
+        "## Notes\n\n### skills/tdd/PIN.md\n\nnot a requirement\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 2
+    assert "skills/tdd/PIN.md" in err
+    assert not (tdd / "events.jsonl").exists()
