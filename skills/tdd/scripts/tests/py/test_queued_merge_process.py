@@ -27,6 +27,7 @@ FAKE_GIT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
+  *"diff --name-only origin/main...HEAD"*) exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -77,6 +78,7 @@ FAKE_GIT_CONFLICT = """#!/bin/sh
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
+  *"diff --name-only origin/main...HEAD"*) exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -124,6 +126,7 @@ esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
+  *"diff --name-only origin/main...HEAD"*) exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -173,6 +176,7 @@ echo "git $*" >> "$CALL_LOG"
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
+  *"diff --name-only origin/main...HEAD"*) exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -264,6 +268,7 @@ esac
 case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
+  *"diff --name-only origin/main...HEAD"*) exit 0 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -566,7 +571,15 @@ esac
 exit 0
 """
 
-def queued_merge_on_a_non_tdd_branch(tmp_path, pr_body):
+FAKE_GIT_FAILING_LEDGER_DIFF = """#!/bin/sh
+case "$*" in
+  *"diff --name-only origin/main...HEAD"*) echo "fatal: bad revision 'origin/main...HEAD'" >&2; exit 128 ;;
+esac
+exec "$REAL_GIT" "$@"
+"""
+
+
+def queued_merge_on_a_non_tdd_branch(tmp_path, pr_body, failing_diff=False):
     """claude/x adds ledger .tdd/issue-200.md over a main that already holds .tdd/issue-100.md;
     returns the run and the merge PUTs gh saw."""
     real_git = shutil.which("git")
@@ -598,6 +611,8 @@ def queued_merge_on_a_non_tdd_branch(tmp_path, pr_body):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     plant(bin_dir, "gh", FAKE_GH_WITH_BODY)
+    if failing_diff:
+        plant(bin_dir, "git", FAKE_GIT_FAILING_LEDGER_DIFF)
     call_log = tmp_path / "calls.log"
     call_log.write_text("")
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REAL_GIT": real_git, "WORKTREE": str(worktree),
@@ -626,3 +641,9 @@ def test_queued_merge_on_a_non_tdd_branch_whose_pr_body_lacks_closes_for_the_led
 
     assert (run.returncode, "lacks the line" in run.stderr, len(put_merge)) == (2, True, 0), run.stderr
 
+
+@pytest.mark.process("queued-merge.sh runs as a /bin/sh shim against real git, a scratch bare remote and a non-tdd branch, with gh and git planted on PATH")
+def test_queued_merge_on_a_non_tdd_branch_whose_ledger_diff_fails_exits_2_naming_the_diff_and_merges_nothing_3490(tmp_path):
+    run, put_merge = queued_merge_on_a_non_tdd_branch(tmp_path, "Closes #999", failing_diff=True)
+
+    assert (run.returncode, "git diff" in run.stderr, len(put_merge)) == (2, True, 0), run.stderr

@@ -258,6 +258,11 @@ def main(argv):
         paths = glob.glob(ledger_path(worktree, own.group(1)))
     else:
         changed = _git(worktree, "diff", "--name-only", "origin/main...HEAD", "--", ".tdd/issue-*.md")
+        if changed.returncode:
+            _say("git diff --name-only origin/main...HEAD failed (exit %d): %s; not merged" % (
+                changed.returncode, changed.stderr.strip()))
+            _release(pid)
+            return 2
         paths = changed.stdout.split()
     for path in paths:
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
