@@ -317,6 +317,8 @@ def main(argv):
                     os.path.getmtime(f)
                     for f in (events, log, *glob.glob(os.path.join(tdd, "*.out")))
                     if os.path.exists(f)) >= stall:
+                if issue_states(seen).get(issue) == "CLOSED":
+                    continue
                 sys.stdout.write(f"stalled {issue}\n")
                 return 0
         for issue in live:
