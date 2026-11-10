@@ -2738,3 +2738,34 @@ def test_3363_an_argument_after_the_base_sha_other_than_ledger_and_its_file_exit
     ran = subprocess.run(["sh", RECHECK, "HEAD", *extra], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, ran.stdout, ran.stderr) == (2, "", USAGE_3363)
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range with a record in the encoded form whose mutation stays green")
+def test_3471_an_encoded_record_whose_command_stays_green_under_its_mutation_exits_1_naming_the_pin(tmp_path):
+    import base64
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+
+    def b64(text):
+        return base64.b64encode(text.encode()).decode()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3471-mutations.md", file="guard.txt", **{"old-b64": b64("if guard"),
+           "new-b64": b64("if (true)"), "context-b64": b64("if guard")}, command="grep -q throws guard.txt")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nthrows\nsafe\n")
+    git("commit", "-q", "-am", "later commit makes the test pass with the guard reverted")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "pin stayed green under its mutation" in ran.stdout + ran.stderr,
+            (tmp_path / "guard.txt").read_bytes()) == (1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
