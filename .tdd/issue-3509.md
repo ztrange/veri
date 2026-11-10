@@ -1,0 +1,6 @@
+# Plan for #3509 — A skill-edit step whose unit has no ### heading in ## Requirements is refused only mid-run, not at plan or preflight
+
+- [ ] scope-check.sh refuses (exit 2) a ledger `.tdd/issue-<n>.md` holding a `⟦skill-edit⟧` step whose backticked unit has no `### <unit>` heading under `## Requirements` in the issue spec `.tdd/issue-<n>-spec.md` beside it, its stderr naming the unit, and writes no `plan` event — a small case in skills/tdd/scripts/tests/py/unit/test_scope_check.py driving the CLI in-process with run_cli ⟦criterion 1⟧
+- [ ] scope-check.sh exits 0 on a ledger whose every `⟦skill-edit⟧` unit has its `### <unit>` or `### <unit> (new)` heading under the spec's `## Requirements`, as before the check — a small case in skills/tdd/scripts/tests/py/unit/test_scope_check.py driving the CLI in-process with run_cli ⟦criterion 2⟧
+- [ ] scope-check.sh exits 0 on a ledger with a `⟦skill-edit⟧` step when the spec beside it has no `## Requirements` section at all, as skill-edit-step.sh then reads the unit's existing list and does not refuse — a small case in skills/tdd/scripts/tests/py/unit/test_scope_check.py driving the CLI in-process with run_cli
+- [ ] With the missing-heading check broken on purpose (it accepts the missing heading), the first criterion's case goes red, recorded by a human ⟦human-owed⟧ ⟦criterion 2⟧
