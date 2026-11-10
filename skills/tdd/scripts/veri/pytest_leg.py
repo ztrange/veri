@@ -2,7 +2,12 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.dirname(__file__) + "/pycache_prefix.py")
 # Usage:   pytest_leg.py [--subset] [pytest-args...]
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken
-# Exit:    0 pytest passed, 1 any other pytest status
+#          Cases run in two pytest passes, non-`serial` then `serial`; when both run, the output ends with one line
+#          `<named> named, <run> run, <passed> passed, <failed> failed across both passes`.
+# Exit:    0 pytest passed, 1 any other pytest status, or a --subset run handed -m left a named target (file, directory
+#            or node id) with cases its -k keeps of which neither pass ran one: it prints
+#            `<n> unselected: named cases that neither pass ran (<targets>)`; cases the run's own -m/-k deselects from a
+#            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
 import contextlib
