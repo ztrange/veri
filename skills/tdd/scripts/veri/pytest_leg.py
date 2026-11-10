@@ -342,14 +342,12 @@ def main(argv):
                 sys.modules["failed_cases"].PASSED.clear()
                 sys.modules["failed_cases"].REPORTED.clear()
             statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
+            import failed_cases
             if not os.path.exists(seen) or "serial" in open(seen).read().split():
                 statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
-                import failed_cases
                 if failed_cases.PASSED:
                     sys.stdout.write("%d passed across both passes\n" % len(failed_cases.PASSED))
             if subset and selected:
-                import failed_cases
-
                 class Collected:
                     nodeids = []
 
@@ -363,7 +361,6 @@ def main(argv):
                     sys.stdout.write("%d unselected: named cases that neither pass ran\n" % len(unselected))
                     statuses.append(pytest.ExitCode.TESTS_FAILED)
             if pytest.ExitCode.INTERNAL_ERROR in statuses:
-                import failed_cases
                 sys.stderr.write("the leg was cut short by an internal error; cases that had failed by then:\n")
                 for nodeid in failed_cases.NODEIDS:
                     sys.stderr.write(nodeid + "\n")
