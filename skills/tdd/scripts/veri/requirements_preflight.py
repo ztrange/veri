@@ -19,19 +19,21 @@ def main(argv):
     for heading, line in skill_edit_step._requirements_lines(issue):
         if line.startswith("### ") and heading not in units:
             units.append(heading)
-    defects = []
+    clashing = []
     for unit in units:
         texts = skill_edit_step._listed_texts(skill_edit_guard.list_path(unit), unit)
-        defects += [skill_edit_step._row_id(r) for r in skill_edit_step.clashes(skill_edit_step._issue_rows(issue, unit), texts)]
+        clashing += [skill_edit_step._row_id(r) for r in skill_edit_step.clashes(skill_edit_step._issue_rows(issue, unit), texts)]
+    missing = []
     if len(argv) > 1:
         for line in open(argv[1]):
             m = re.search(r"`([^`]+)`", line) if line.startswith("- [") and "⟦skill-edit⟧" in line else None
             if m and not any(skill_edit_step._names_unit(h, m.group(1)) for h in units):
-                sys.stderr.write("## Requirements has no ### heading for unit: %s\n" % m.group(1))
-                defects.append(None)
-    for row_id in filter(None, defects):
+                missing.append(m.group(1))
+    for unit in missing:
+        sys.stderr.write("## Requirements has no ### heading for unit: %s\n" % unit)
+    for row_id in clashing:
         sys.stderr.write("Requirement row ID already held with different text: %s\n" % row_id)
-    return 2 if defects else 0
+    return 2 if clashing or missing else 0
 
 
 if __name__ == "__main__":
