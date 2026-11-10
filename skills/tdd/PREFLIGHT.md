@@ -114,9 +114,11 @@ run it. A preflight that passes never reads it.
    `suite-flake` event names the files, and preflight goes on.
 
    `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`. The fast-tier baseline
-   runs in both modes. Under `reuse`, `full` is taken from `$S/full-tier-time.sh` when it
-   holds a time for this run's full-tier command, and the full tier is not run; when it has
-   no usable time, the full tier runs anyway, as above. A green full-tier run records its
+   runs in both modes. Settle the mode by running
+   `$S/baseline-full-tier.sh <n> <full-tier-command>` and follow its output: `reuse <seconds>`
+   means `full` is that many seconds (taken from `$S/full-tier-time.sh`, which holds a time for
+   this run's full-tier command) and the full tier is not run; `run` means the full tier runs,
+   as above, including when `reuse` had no usable time. A green full-tier run records its
    elapsed whole seconds through `$S/full-tier-time.sh`, so a later run can reuse it.
 4. **Default branch.** Capture it for the PR base:
    `gh api repos/{owner}/{repo} -q .default_branch`.
