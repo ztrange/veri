@@ -1570,7 +1570,7 @@ def test_main_1957_routes_a_wrong_test_naming_an_it_title_to_a_red_when_the_file
     assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_dts_files_since_a_dts_file_is_never_a_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     suite = tmp_path / "src" / "__tests__"
@@ -1586,10 +1586,10 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_foun
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "repair src/foo.test.ts::foo accepts a name\n", "")
+    assert (code, stdout, stderr) == (3, "revise\n", "")
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_non_test_source_files_such_as_config_ts_and_src_testing_config_js(
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_non_test_source_files_such_as_config_ts_and_src_testing_config_js(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     testing = tmp_path / "src" / "testing"
@@ -1605,7 +1605,7 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_foun
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "src/foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "repair src/foo.test.ts::foo accepts a name\n", "")
+    assert (code, stdout, stderr) == (3, "revise\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_double_quoted_test_call_in_a_js_ts_test_file_to_a_red_over_that_title(
@@ -1670,7 +1670,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_the_call_after_an_eac
     assert (code, bare_route(stdout)) == (0, "red %s\n" % sibling)
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_commented_out_with_slashes(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     sibling = "rejects an empty name"
@@ -1687,7 +1687,7 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_foun
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "repair foo.test.ts::foo accepts a name\n", "")
+    assert (code, stdout, stderr) == (3, "revise\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_string_containing_slashes(
@@ -1710,7 +1710,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_call_after_a_s
     assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_found_only_in_a_call_inside_a_block_comment(
+def test_main_1957_prints_revise_when_the_named_it_title_is_found_only_in_a_call_inside_a_block_comment(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     sibling = "rejects an empty name"
@@ -1729,7 +1729,7 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_it_title_is_foun
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout, stderr) == (0, "repair foo.test.ts::foo accepts a name\n", "")
+    assert (code, stdout, stderr) == (3, "revise\n", "")
 
 
 def test_main_1957_routes_a_wrong_test_naming_in_double_quotes_the_title_of_a_js_ts_case_to_a_red_over_that_title(
@@ -1951,7 +1951,7 @@ def test_main_1957_routes_a_wrong_test_naming_the_title_of_a_live_it_call_on_a_l
     assert (code, bare_route(stdout), stderr) == (0, "red %s\n" % sibling, "")
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_only_in_an_emit_call_of_a_js_ts_test_file(
+def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_an_emit_call_of_a_js_ts_test_file(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "foo.test.ts").write_text(
@@ -1967,10 +1967,10 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_o
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
+    assert (code, stdout) == (3, "revise\n")
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_only_in_a_markdown_file_under_a_tests_directory(
+def test_main_1957_prints_revise_when_the_named_title_is_found_only_in_a_markdown_file_under_a_tests_directory(
         run_cli, tmp_path):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "__tests__").mkdir()
@@ -1986,7 +1986,7 @@ def test_main_1957_prints_repair_of_its_own_case_when_the_named_title_is_found_o
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
+    assert (code, stdout) == (3, "revise\n")
 
 
 def test_main_1957_prints_revise_when_the_named_title_is_the_tail_of_an_own_id_written_describe_gt_title(
@@ -2059,7 +2059,7 @@ def test_main_1957_prints_red_over_the_whole_title_when_a_cut_name_expands_to_a_
     assert (code, bare_route(stdout), stderr) == (0, 'red says "hi" loudly\n', "")
 
 
-def test_main_1957_prints_repair_of_its_own_case_when_a_lone_superseded_cut_name_expands_to_the_step_own_case_and_the_wrong_test_line_names_no_case_that_routes(
+def test_main_1957_prints_revise_when_a_lone_superseded_cut_name_expands_to_the_step_own_case_and_the_wrong_test_line_names_no_case_that_routes(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
     (tmp_path / "foo.test.ts").write_text(
@@ -2078,7 +2078,7 @@ def test_main_1957_prints_repair_of_its_own_case_when_a_lone_superseded_cut_name
     code, stdout, stderr = run_cli(
         wrong_test_route, SPEC + [str(report), "foo.test.ts::foo accepts a name"], cwd=tmp_path)
 
-    assert (code, stdout) == (0, "repair foo.test.ts::foo accepts a name\n")
+    assert (code, stdout) == (3, "revise\n")
 
 
 def test_main_1957_prints_revise_when_a_superseded_cut_name_on_the_repair_path_expands_to_the_step_own_case(
