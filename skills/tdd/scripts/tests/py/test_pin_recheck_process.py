@@ -2823,3 +2823,48 @@ def test_3471_a_plain_text_record_whose_command_stays_green_under_its_mutation_i
 
     assert (ran.returncode, "pin stayed green under its mutation" in ran.stdout + ran.stderr,
             (tmp_path / "guard.txt").read_bytes()) == (1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step retires one pin of a ledger holding encoded records")
+def test_3471_a_retire_rewrite_leaves_the_surviving_encoded_records_encoded_and_replayable(tmp_path):
+    import base64
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+
+    def b64(text):
+        return base64.b64encode(text.encode()).decode()
+    git("init", "-q")
+    (tmp_path / "gone.txt").write_text("if gone\n")
+    (tmp_path / "guard.txt").write_text("if MARKEROLD3471\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "guard.txt").write_text("if MARKEROLD3471\nthrows\n")
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-3471-mutations.md"
+    record(ledger, file="gone.txt", **{"old-b64": b64("if gone"), "new-b64": b64("if (true)"),
+           "context-b64": b64("if gone")}, command="true")
+    with ledger.open("a") as f:
+        f.write("".join(f"{k} {len(v)}\n{v}\n" for k, v in {
+            "file": "guard.txt", "old-b64": b64("MARKEROLD3471"), "new-b64": b64("MARKERNEW3471"),
+            "context-b64": b64("if MARKEROLD3471"), "command": "grep -q throws guard.txt"}.items()) + "\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "gone.txt").write_text("if gone\nmore\n")
+    (tmp_path / "guard.txt").write_text("if MARKEROLD3471\nthrows\nsafe\n")
+    (tmp_path / ".tdd" / "issue-900.md").write_text(
+        "- [x] step\n  retire-pin: .tdd/issue-3471-mutations.md gone.txt -- a later design drops it\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "retire the gone.txt pin")
+
+    first = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+    rewritten = ledger.read_text()
+    second = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    plain_fields = [line for line in rewritten.splitlines() if line.startswith(("old ", "new ", "context "))]
+    assert ("MARKEROLD3471" in rewritten, "MARKERNEW3471" in rewritten, plain_fields, "old-b64 " in rewritten,
+            second.returncode, "pin stayed green under its mutation" in second.stdout + second.stderr) == (
+        False, False, [], True, 1, True), first.stderr + second.stderr
