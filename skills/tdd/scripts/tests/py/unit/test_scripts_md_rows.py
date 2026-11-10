@@ -110,3 +110,12 @@ def test_bullet_matches_only_its_exact_script_name_3549(tmp_path):
     (tmp_path / "new-entry.sh").write_text("#!/bin/sh\nexit 0\n")
     catalogue = "- `$S/new-other.sh` does something\n"
     assert _scripts_without_bullet(tmp_path, catalogue, frozenset()) == ["new-entry.sh"]
+
+
+@pytest.mark.tree_audit("lists a scratch scripts dir")
+def test_bullet_names_are_compared_whole_not_by_containment_3565(tmp_path):
+    (tmp_path / "new-entry.sh").write_text("#!/bin/sh\nexit 0\n")
+    catalogue = "- `$S/x-new-entry.sh` a\n- `$S/entry.sh` b\n"
+    assert _scripts_without_bullet(tmp_path, catalogue, frozenset()) == ["new-entry.sh"]
+    catalogue += "- `$S/new-entry.sh` c\n"
+    assert _scripts_without_bullet(tmp_path, catalogue, frozenset()) == []
