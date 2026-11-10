@@ -9,3 +9,14 @@ context 689
 command 72
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py
 
+file 56
+skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py
+old 42
+return sorted(listed - bullets - excluded)
+new 87
+return sorted(n for n in listed - excluded if not any(b[:4] == n[:4] for b in bullets))
+context 46
+    return sorted(listed - bullets - excluded)
+command 125
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_scripts_md_rows.py::test_bullet_matches_only_its_exact_script_name_3549
+

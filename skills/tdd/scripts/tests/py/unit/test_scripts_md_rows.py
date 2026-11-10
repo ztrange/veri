@@ -103,3 +103,10 @@ def test_scripts_md_bullet_guard_is_not_read_as_a_red_subsection_reader_3549():
     subsection, rest = readers._subsection_and_rest()
     flagged = readers._readers(TestFile(here), subsection, rest)
     assert not [n for n in flagged if n.endswith("_3549")], f"read as a Red-subsection reader: {flagged}"
+
+
+@pytest.mark.tree_audit("lists a scratch scripts dir")
+def test_bullet_matches_only_its_exact_script_name_3549(tmp_path):
+    (tmp_path / "new-entry.sh").write_text("#!/bin/sh\nexit 0\n")
+    catalogue = "- `$S/new-other.sh` does something\n"
+    assert _scripts_without_bullet(tmp_path, catalogue, frozenset()) == ["new-entry.sh"]
