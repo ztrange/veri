@@ -1079,3 +1079,23 @@ def test_refactor_exits_2_naming_the_missing_develop_refactor_report_posting_and
     assert ".tdd/develop-refactor.out" in err
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def test_refactor_note_file_text_follows_the_rendered_refactor_comment_after_a_blank_line(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://example/c/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-refactor.out").write_text("RESULT: renamed tmp to angle in spin.py\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the conductor note whiskey\n")
+
+    code, out, err = run_cli(comment, ["7", "refactor", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    assert posted[0].startswith("### 🛠️ Refactor")
+    assert "renamed tmp to angle in spin.py\n\nthe conductor note whiskey" in posted[0]
