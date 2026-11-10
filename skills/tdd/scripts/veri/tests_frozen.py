@@ -600,6 +600,7 @@ def rerecord_refactored(ledger, green):
         return record
 
     seen = {}
+    repaired = any(l.startswith("- [x]") and "⟦suite-repair⟧" in l for l in lines)
 
     def nth(rev, name, case, k):
         found = _bodies_of(_text_at(rev, name, subprocess.DEVNULL), case)
@@ -610,8 +611,10 @@ def rerecord_refactored(ledger, green):
         verified = nth(green, name, case, k)
         head = nth("HEAD", name, case, k)
         green_text = _text_at(green, name, subprocess.DEVNULL)
+        before = nth(green + "^", name, case, k) if repaired else None
         if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
-                _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case))}:
+                _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case)),
+                *([_body_digest(before)] if before else [])}:
             return skip(name, case, record, "body digest matches neither green nor HEAD")
         green_helpers = _helper_digest(green_text, verified)
         if (digest != _body_digest(head) or digest == _body_digest(verified)) and recorded_helpers.get(
