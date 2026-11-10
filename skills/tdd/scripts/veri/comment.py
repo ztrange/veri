@@ -67,7 +67,10 @@ def post_red(issue, note_file=None):
         if sep:
             report[key] = value
     verdict = "prediction matched"
-    if report.get("PREDICTION") == "DIVERGED":
+    prediction = report.get("PREDICTION", "").partition(" ")[0]
+    if prediction[-1:] in (",", "."):
+        prediction = prediction[:-1]
+    if prediction == "DIVERGED":
         verdict = f"prediction diverged\n\n{report['PREDICTION_NOTE']}"
     body = (f"### 🔴 Red\n\nTest: {report['TEST_PATH']} :: {report['TARGET_TEST']}\n\n"
             f"Failing output: {report['FAIL_OUTPUT']}\n\n"
