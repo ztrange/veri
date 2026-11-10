@@ -378,3 +378,21 @@ def test_install_links_sh_links_vready_into_the_project_pointing_at_the_clone_an
     lines = [line.strip().strip("/") for line in exclude.read_text().splitlines()] if exclude.exists() else []
     assert (done.returncode, target, lines.count(".claude/skills/vready")) == (
         0, str(clone / "skills" / "vready"), 1)
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run through a <symlink>/../tdd path")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_invoked_through_a_skill_symlink_dotdot_path_links_the_skills_3501(tmp_path):
+    clone, _ = _clone(tmp_path)
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / "vinstall").symlink_to(clone / "skills" / "vdev")
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    through = str(home / "vinstall") + "/../tdd/scripts/install-links.sh"
+    done = subprocess.run(["/bin/sh", through, str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    skills = project / ".claude" / "skills"
+    entries = sorted(p.name for p in skills.iterdir()) if skills.is_dir() else []
+    assert (done.returncode, entries) == (0, LINKED)
