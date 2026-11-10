@@ -116,3 +116,20 @@ def test_3395_a_changed_record_that_no_marker_names_is_restored_and_emits_the_ev
         b"mutation: a\n",
         [("mutation-record-restored", "name=develop-red-1", f"file={unnamed}")],
     )
+
+
+def test_3471_a_develop_leaf_that_alters_an_encoded_mutation_record_has_its_exact_bytes_restored_and_the_event_emitted(tmp_path, monkeypatch):
+    record = ".tdd/issue-3471-mutations.md"
+    encoded = b"old-b64 8\nb2xkdGV4dA==\nnew-b64 8\nbmV3dGV4dA==\ncontext-b64 4\nY3R4\n\n"
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / record).write_bytes(b"old-b64 4\nXXXX\n\n")
+    monkeypatch.setenv("VERI_STEP", "Pin the guard")
+    events = []
+    monkeypatch.setattr(supervise, "mark", lambda role, env, *fields: events.append(fields))
+    supervise.restore_mutation_records({record: encoded}, "role", {}, "develop-red-1")
+
+    assert ((tmp_path / record).read_bytes(), events) == (
+        encoded,
+        [("mutation-record-restored", "name=develop-red-1", f"file={record}")],
+    )
