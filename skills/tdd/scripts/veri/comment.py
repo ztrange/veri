@@ -69,6 +69,9 @@ def post_red(issue, note_file=None):
         key, sep, value = line.partition(": ")
         if sep:
             report[key] = value
+    if "TEST_PATH" not in report:
+        print("comment.sh: .tdd/develop-red.out has no TEST_PATH: line", file=sys.stderr)
+        return 2
     verdict = "prediction matched"
     prediction = report.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", "."):
