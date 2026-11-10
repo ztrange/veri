@@ -2,7 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
 import frozen_record
-from case_reader import cut_prefix, defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
+from case_reader import _js_title_pattern, cut_prefix, defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
@@ -140,16 +140,40 @@ def _resolves(name):
     return False
 
 
+def _seen_as_title(name):
+    """True when name is the title argument of an it(…)/test(…) call, or sits inside an emit(…) call, in any
+    searched file, live or not: a .d.ts, a config file, a comment and markdown count (#1957, #3543)."""
+    title = _js_title_pattern(name)
+    emit = re.compile(r"\bemit\([^)\n]*?" + re.escape(name))
+    for root, file in _files():
+        with open(os.path.join(root, file), encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+        if name in text and (title.search(text) or emit.search(text)):
+            return True
+    return False
+
+
 def _names_a_case(name, own_id):
     """A spelling counts as a named case when it is case-shaped (test_…, Test…: a misspelt or vanished case
-    still names one), is the own red case, or resolves to a defined case or helper; any other backticked or
-    quoted value is prose (#3543)."""
+    still names one), is the own red case, resolves to a defined case or helper, or is seen in title position
+    (an it(…)/test(…) title or inside emit(…)) anywhere in the searched files; any other backticked or quoted
+    value is prose (#3543)."""
     return (re.fullmatch(r"test_\w+|Test[A-Z]\w*", name) or _is_own(name, own_id) or _resolves(name)
-            or _defined_anywhere(name))
+            or _defined_anywhere(name) or _seen_as_title(name))
+
+
+def _supersedes_own(report, own_id):
+    """A SUPERSEDED: name that expands to the own red case names a case: #1957 owns revise for it."""
+    for line in _lines_with(report, "SUPERSEDED:"):
+        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+        found = case and _exists(case)
+        if found and _is_own(found, own_id):
+            return True
+    return False
 
 
 def _unparseable_claim(report, own_id):
-    if any(_names_a_case(c, own_id) for c in _named_cases(report)):
+    if any(_names_a_case(c, own_id) for c in _named_cases(report)) or _supersedes_own(report, own_id):
         return False
     for line in _lines_with(report, "WRONG_TEST:"):
         if not _is_none(line.partition(":")[2].strip()):
