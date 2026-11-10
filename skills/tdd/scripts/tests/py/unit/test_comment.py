@@ -1279,3 +1279,27 @@ def test_plan_names_the_test_command_as_plain_text_on_its_own_test_command_line(
 
     assert code == 0, err
     assert [l for l in posted[0].split("\n") if l.startswith("Test command:")] == ["Test command: bin/detected-fast -q"]
+
+
+def test_verify_plan_pass_posts_the_pass_heading_then_the_reason_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-77"
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-plan.exit").write_text("0\n")
+    (tmp_path / ".tdd" / "verify-plan.reason").write_text("every step fits one cycle except step four, which is tight\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-plan"], cwd=tmp_path)
+
+    assert code == 0, err
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### 🗺️ verify-plan — PASS"
+    assert "every step fits one cycle except step four, which is tight" in body.splitlines()[1:]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-plan", url)]

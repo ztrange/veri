@@ -162,7 +162,14 @@ def post_plan(issue):
     return post_and_record(issue, "plan", f"### 🗺️ Plan\n\n{listed}\nTest command: {os.fsdecode(command)}\n")
 
 
+def post_verify_plan(issue):
+    reason = read_or_empty(".tdd/verify-plan.reason")
+    return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — PASS\n\n{reason}")
+
+
 def main(argv):
+    if argv[1:] == ["verify-plan"]:
+        return post_verify_plan(argv[0])
     if argv[1:] == ["plan"]:
         return post_plan(argv[0])
     if argv[1:] == ["verify-refactor", "--skipped"]:
