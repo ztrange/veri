@@ -195,7 +195,8 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
             returncode, stdout, stderr = pages[args[2]]
             if kwargs.get("stderr") is None:
                 sys.stderr.write(stderr)
-            return subprocess.CompletedProcess(args, returncode, stdout, None)
+            return subprocess.CompletedProcess(args, returncode, stdout,
+                                               stderr if kwargs.get("stderr") == subprocess.PIPE else None)
         raise AssertionError("unexpected command: %r" % (args,))
 
     monkeypatch.setattr(subprocess, "run", fake_run)
