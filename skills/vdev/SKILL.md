@@ -49,7 +49,9 @@ conductor exit:
 
 1. Apply any change the coordinator sent since the last decision — a new N (including a timed
    one now due or expired) or an order override — and send the coordinator no reply for it (P13).
-   An N change restarts `dispatch.sh` with the new `--target`.
+   An N change restarts `dispatch.sh` with the new `--target`. An N of 0 restarts it with
+   `--target 0`, which holds dispatch while it keeps watching exits; a later positive N restarts
+   it with that `--target`, which resumes launching.
 2. Count live conductors. While fewer than N are live, launch the next issue (below). When N
    went down, stop nothing: a live run finishes, and its slot is simply not refilled (P8).
 3. When `$S/solvable-issues.sh` exits 3 and no run is live, the queue is empty: say so and stop.
@@ -93,7 +95,8 @@ since your last turn as `Started #<n> — <title>`, the title read from
 ## Watching
 
 Wait on the blocking watch of P3: `$S/dispatch.sh --target <N>`, run as one background command,
-never under a Monitor and never a hand-written script. It launches and re-arms without printing,
+never under a Monitor and never a hand-written script. `--target 0` holds dispatch: the watch
+keeps reporting exits and launches nothing. It launches and re-arms without printing,
 and prints one line per event:
 
 - `done <n> <pr-url>`
