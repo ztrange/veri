@@ -38,6 +38,20 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
   awaiting merge, N and any timed change, overrides and permissions with their expiry); the
   rules are this skill's. Re-read that state live before the first slot decision.
 
+**Recovery.** When a state file for this role and lane exists, recover: read it through
+`$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
+decision. An `N` on the invocation wins over the file's and is written to it (see *Role state*).
+Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
+with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. With no state
+file for this role and lane, start fresh.
+
+## Role state
+
+Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
+at reset time: N, each timed N change (with its expiry) and order override the coordinator
+sends, each pending human decision (in full), and each message sent to the coordinator and not
+yet confirmed. Drop the item when it ends.
+
 ## Live conductors and the slot decision
 
 A conductor is **live** when `.tdd/wt/<n>/.tdd/conductor.pid` exists and its pid answers
