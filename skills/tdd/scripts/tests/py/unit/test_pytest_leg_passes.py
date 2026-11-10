@@ -69,3 +69,20 @@ def test_a_leg_run_on_a_host_whose_tmpdir_is_elsewhere_gives_its_cases_tmp_as_th
     run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
 
     assert seen.read_text() == "/tmp"
+
+
+def test_a_leg_that_collects_a_serial_case_ends_with_one_line_counting_the_cases_passed_across_both_passes_3554(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_planted_both.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+
+    last = [line for line in out.splitlines() if line.strip()][-1]
+    assert (code, "2 passed" in last, "deselected" in last) == (0, True, False)
