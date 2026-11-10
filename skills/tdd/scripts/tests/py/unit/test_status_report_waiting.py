@@ -161,3 +161,28 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
     lines = [line.strip() for line in out.splitlines()]
     waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
     assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
+
+
+def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    events = [{"ts": 1793600000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"},
+              {"ts": 1793600050, "awake": 50, "event": "done", "pr": "https://github.com/acme/widgets/pull/2911"}]
+    (runs / "2826.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+
+    def fake_run(argv, *a, **k):
+        out = "fix: something (#2911)\n" if argv[0] == "git" and "main" in argv else ""
+        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(status, ["--report"])
+
+    lines = [line.strip() for line in out.splitlines()]
+    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
+    assert (code, waiting) == (0, []), (waiting, err)

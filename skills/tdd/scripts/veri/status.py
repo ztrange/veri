@@ -455,7 +455,8 @@ def waiting_lines():
             elif e.get("event") == "merged":
                 pr = None
         name = run_name(path)
-        if pr is not None and not any(t.endswith("(%s)" % name) for t in subjects):
+        numbers = {name, "#" + str(pr).rsplit("/", 1)[-1]}
+        if pr is not None and not any(t.endswith("(%s)" % n) for t in subjects for n in numbers):
             lines.append("%s PR %s ready to merge" % (name, pr))
     return "\n".join(lines) or "none"
 
