@@ -10,3 +10,10 @@ context 32
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing_issue_3520
 
+before 40
+8514dd9e40a9f57deae9ebfc8bd6a410b2c5ba8d
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 172
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty_and_keeps_waiting_issue_3520
+

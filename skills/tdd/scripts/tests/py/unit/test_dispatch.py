@@ -1011,6 +1011,33 @@ def test_main_with_target_0_is_accepted_and_launches_nothing_appending_no_launch
     assert (code, captured.err, launches, (tmp_path / ".tdd" / "dispatch.log").exists()) == (None, "", [], False)
 
 
+def test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty_and_keeps_waiting_issue_3520(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 3, stdout="", stderr=""))
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "0"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out, launches, waits) == (None, "", [], [1])
+
+
 def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
         monkeypatch, tmp_path, run_cli, dispatch):
     (tmp_path / ".tdd").mkdir()
