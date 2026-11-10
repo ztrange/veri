@@ -1,0 +1,2 @@
+### install-links.sh invoked as `<symlink-to-a-veri-skill>/../tdd/scripts/install-links.sh` against a target git repo exits 0 and links the operator skills, pinned by one process case in skills/tdd/scripts/tests/py/test_install_links_process.py (a real /bin/sh run through a symlink made in tmp_path, marked `process`) that fails on the current code ⟦criterion 1⟧
+- out-of-bounds | `scripts_of` in paths.py still uses abspath, so its 16 call sites have the same bug. This is covered by the issue's other acceptance criteria.
