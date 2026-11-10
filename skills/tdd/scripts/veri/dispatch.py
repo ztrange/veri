@@ -134,8 +134,10 @@ def run_prs():
     listed = _reads.get("listed")
     if listed is None or clock() - listed[0] >= int(overlap_poll()):
         prs = []
-        for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName,headRefOid"):
+        for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName,headRefOid,labels"):
             head = pr.get("head") or {}
+            if "parked" in {label.get("name") for label in pr.get("labels") or []}:
+                continue
             if pr["isDraft"] and (pr.get("headRefName") or head.get("ref") or "").startswith("tdd/"):
                 prs.append((pr.get("url") or pr.get("html_url"), pr["number"], pr.get("headRefOid") or head.get("sha")))
         listed = _reads["listed"] = (clock(), prs)
