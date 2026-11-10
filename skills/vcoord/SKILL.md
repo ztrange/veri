@@ -159,3 +159,8 @@ Drop the item when the decision is answered, the change expires or the message i
 Stop only when the queue is empty and no run is live, or on a pending human decision you name
 in full (P5) — once, in the turn that first stops on it. Stopping the coordinator stops no
 conductor.
+
+**A pending human decision blocks only the item it concerns.** Write the decision in your
+message text, never as a blocking question that marks the session waiting on the human. Meanwhile
+keep ruling on caveats, sending merge instructions and answering the dev session for every
+other item.
