@@ -13,11 +13,15 @@ import pytest
 SCRIPTS = Path(__file__).resolve().parents[2]
 
 FAKE_GH = """#!/bin/sh
+marker="$(dirname "$0")/.merge-landed"
+for a in "$@"; do
+  case "$a" in merge|*/merge) : > "$marker" ;; esac
+done
 case "$*" in
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "failure"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
-  *"/pulls/"*) echo '{"merged": true, "merge_commit_sha": "fedcba9", "mergeable": true, "draft": false, "head": {"sha": "abc1234abc1234abc1234abc1234abc1234abcde"}}' ;;
+  *"/pulls/"*) if [ -e "$marker" ]; then echo '{"merged": true, "merge_commit_sha": "fedcba9", "mergeable": true, "draft": false, "head": {"sha": "abc1234abc1234abc1234abc1234abc1234abcde"}}'; else echo '{"state": "open", "merged": false, "mergeable": true, "draft": false, "head": {"sha": "abc1234abc1234abc1234abc1234abc1234abcde"}}'; fi ;;
   *) echo '[]' ;;
 esac
 exit 0
@@ -28,6 +32,7 @@ case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"diff --name-only origin/main...HEAD"*) exit 0 ;;
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -79,6 +84,7 @@ case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"diff --name-only origin/main...HEAD"*) exit 0 ;;
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -127,6 +133,7 @@ case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"diff --name-only origin/main...HEAD"*) exit 0 ;;
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -177,6 +184,7 @@ case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"diff --name-only origin/main...HEAD"*) exit 0 ;;
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -269,6 +277,7 @@ case "$*" in
   *"rev-parse --verify refs/remotes/origin/"*) echo 1111111; exit 0 ;;
   *"rev-parse --verify HEAD"*) echo abc1234abc1234abc1234abc1234abc1234abcde; exit 0 ;;
   *"diff --name-only origin/main...HEAD"*) exit 0 ;;
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *"merge-base --is-ancestor"*|*"cat-file -e"*|*"branch -D"*) exit 0 ;;
 esac
 for word in "$@"; do
@@ -475,12 +484,16 @@ def test_queued_merge_whose_merge_lock_release_cannot_be_started_names_release_i
 
 
 FAKE_GH_HEAD_OF_WORKTREE = """#!/bin/sh
+marker="$(dirname "$0")/.merge-landed"
+for a in "$@"; do
+  case "$a" in merge|*/merge) : > "$marker" ;; esac
+done
 head=$("$REAL_GIT" -C "$WORKTREE" rev-parse HEAD)
 case "$*" in
   *"check-runs?page=1"*) echo '{"check_runs": [{"name": "CI", "status": "completed", "conclusion": "failure"}]}' ;;
   *check-runs*) echo '{"check_runs": []}' ;;
   *"/status"*) echo '{"statuses": []}' ;;
-  *"/pulls/"*) echo "{\\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}" ;;
+  *"/pulls/"*) if [ -e "$marker" ]; then echo "{\\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; else echo "{\\"state\\": \\"open\\", \\"merged\\": false, \\"mergeable\\": true, \\"draft\\": false, \\"head\\": {\\"sha\\": \\"$head\\"}}"; fi ;;
   *) echo '[]' ;;
 esac
 exit 0
@@ -489,6 +502,7 @@ exit 0
 
 FAKE_GIT_MOVING_REMOTE = """#!/bin/sh
 case "$*" in
+  *"merge-base --is-ancestor"*"origin/main"*) exit 1 ;;
   *" rebase "*)
     "$REAL_GIT" "$@" || exit $?
     if [ -n "$MOVE_REMOTE" ]; then
