@@ -1371,6 +1371,24 @@ def test_resuming_note_file_text_follows_the_rendered_resuming_comment_after_a_b
     assert posted[0].rstrip("\n").endswith("\n\nstray paths discarded: scratch/zulu.txt")
 
 
+def test_resuming_with_no_unchecked_step_posts_the_heading_then_the_note_file_text_and_no_step_line(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-93")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] first step alpha\n- [x] second step bravo\n")
+    note = tmp_path / "note.txt"
+    note.write_text("stray paths discarded: scratch/zulu.txt\n")
+
+    code, out, err = run_cli(comment, ["7", "resuming", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    assert posted == ["### ▶️ Resuming\n\nstray paths discarded: scratch/zulu.txt\n"]
+
+
 def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_is_classified_by_comment_class_as_the_hand_composed_heading_is_and_falls_in_its_metrics_family(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")

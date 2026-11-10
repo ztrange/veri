@@ -178,8 +178,9 @@ def post_verify_plan(issue):
 
 def post_resuming(issue, note_file=None):
     steps = read_steps(issue)
-    pending = next(r[6] for r in steps if handed_out(r))
-    return post_and_record(issue, "resuming", with_note(f"### ▶️ Resuming\n\n{pending}\n", note_file))
+    pending = next((r[6] for r in steps if handed_out(r)), None)
+    heading = "### ▶️ Resuming\n" if pending is None else f"### ▶️ Resuming\n\n{pending}\n"
+    return post_and_record(issue, "resuming", with_note(heading, note_file))
 
 
 def main(argv):
