@@ -78,7 +78,7 @@ def open_listing(fixture, path, *args):
 
 
 def own_run_branch(pr, number):
-    """Whether <pr> is issue <number>'s own run branch, tdd/<number>-…: a released run's draft PR, which its resume continues."""
+    """Whether <pr> is issue <number>'s own run branch, tdd/<number>-…: a released run's PR, which claims nothing while a draft (its resume continues it) and claims again once readied."""
     head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
     return head.startswith("tdd/%s-" % number)
 

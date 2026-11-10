@@ -37,3 +37,12 @@ sat that way on 2026-11-08 after its blocker #3357 landed.
 A PR a human opens by hand on another branch still claims its issue. Two machines could both
 take a released issue inside the claim window ADR-0024 already accepts; the first claim's
 `taken:<lane>` closes it as before.
+
+## Amendment 2026-11-09: only while the PR is a draft (#3460)
+
+A run that finished (Done) readies its own-branch PR, and its resume had never re-claimed the
+issue, so the opt-in label stayed and dispatch relaunched the issue, wiping a reviewer's
+worktree. Two changes: selection treats an own-run-branch PR as no claim **only while it is a
+draft**; a readied one claims its issue like any other open `Closes #<n>` PR. And `event.sh
+resume` (with `VERI_STATE_LABEL_ISSUE`) re-claims a released issue, adding `taken:<lane>` and
+removing the opt-in label besides removing `bailed`. "Claims nothing" above reads as "while a draft".
