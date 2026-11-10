@@ -110,10 +110,14 @@ def post_red(issue, note_file=None):
     return post_and_record(issue, "red", with_note(body, note_file))
 
 
+def verdict_word(phase):
+    return "REJECT" if read_or_empty(f".tdd/verdict-{phase}.exit").strip() == "1" else "PASS"
+
+
 def post_verify(issue, kind):
     phase = kind.removeprefix("verify-")
     reason = read_or_empty(f".tdd/{kind}.reason")
-    verdict = "REJECT" if read_or_empty(f".tdd/verdict-{phase}.exit").strip() == "1" else "PASS"
+    verdict = verdict_word(phase)
     return post_and_record(issue, kind, f"### 🔎 {kind} — {verdict}\n\n{reason}")
 
 
@@ -164,7 +168,7 @@ def post_plan(issue):
 
 def post_verify_plan(issue):
     reason = read_or_empty(".tdd/verify-plan.reason")
-    verdict = "REJECT" if read_or_empty(".tdd/verdict-plan.exit").strip() == "1" else "PASS"
+    verdict = verdict_word("plan")
     return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — {verdict}\n\n{reason}")
 
 
