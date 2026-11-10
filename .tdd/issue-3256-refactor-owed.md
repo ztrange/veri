@@ -1,0 +1,2 @@
+### When the red leaf's report `.tdd/develop-red.out` has `PREDICTION: DIVERGED`, the `### 🔴 Red` comment `comment.sh <issue> red` posts carries the line `prediction diverged` in place of `prediction matched`, followed by the report's `PREDICTION_NOTE:` value ⟦criterion 1⟧
+- test-only | the two new red cases repeat the same arrangement (gh_issue_comment stub, `.git` and `.tdd` dirs, `develop-red.out` write). A shared helper could replace it, but frozen-case rules and the tests/ location rule out applying it here.
