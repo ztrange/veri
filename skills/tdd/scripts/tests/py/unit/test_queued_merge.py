@@ -1009,3 +1009,35 @@ def test_3490_queued_merge_on_a_branch_not_named_tdd_n_whose_diff_holds_only_a_m
 
     merges = [c for c in calls if "pr merge" in c]
     assert (code, len(merges), "Closes #400" in err) == (0, 1, False)
+
+
+def test_3500_queued_merge_of_a_pr_already_reading_merged_after_the_fetch_exits_2_naming_it_on_stderr_before_any_rebase_or_push(fake_processes, run_cli):
+    def already_merged(answer):
+        def wrapped(line, **kw):
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return 0, json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(already_merged)
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    moved = [c for c in calls if "rebase" in c or " push " in c]
+    assert (code, "merged" in err, moved) == (2, True, [])
+
+
+def test_3500_queued_merge_of_a_pr_already_reading_merged_after_the_fetch_releases_the_merge_lock_once(fake_processes, run_cli):
+    def already_merged(answer):
+        def wrapped(line, **kw):
+            if line.endswith("gh api repos/o/r/pulls/7"):
+                return 0, json.dumps({"merged": True, "merge_commit_sha": MERGE_SHA}), ""
+            return answer(line, **kw)
+        return fake_processes(wrapped)
+
+    calls = scenario(already_merged)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, len(released)) == (2, 1)
