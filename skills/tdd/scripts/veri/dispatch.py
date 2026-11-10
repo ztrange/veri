@@ -184,7 +184,6 @@ def parse_args(argv):
         or len(argv) != 2
         or argv[0] != "--target"
         or not argv[1].isdigit()
-        or int(argv[1]) == 0
     ):
         return None
     return int(argv[1])
