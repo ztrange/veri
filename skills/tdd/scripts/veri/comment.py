@@ -128,7 +128,7 @@ def post_refactor(issue):
     report = read_or_empty(".tdd/develop-refactor.out").splitlines()
     transforms = [line.removeprefix("RESULT: ") for line in report if line.startswith("RESULT: ")]
     flagged = "".join(f"triangulation flagged: {line.removeprefix('FLAGS: ')}\n"
-                      for line in report if line.startswith("FLAGS: overfit:"))
+                      for line in report if line.startswith(("FLAGS: overfit:", "FLAGS: overfit |")))
     if transforms == ["nothing left to tidy"]:
         content = "no refactor warranted\n"
     else:
