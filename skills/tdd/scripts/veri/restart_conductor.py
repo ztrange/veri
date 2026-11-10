@@ -122,11 +122,12 @@ def main(argv):
         return 2
     run = argv[0]
 
-    def on_term(signum, frame):
+    def on_signal(signum, frame):
         print(f"restart-conductor.sh: run {run} restarter exiting on {signal.Signals(signum).name}")
-        sys.exit(128 + signum)
+        sys.exit(2)
 
-    signal.signal(signal.SIGTERM, on_term)
+    for signum in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(signum, on_signal)
     if not conductor_alive(run) and not _new_conductor_appears(run):
         return 3
     restarts = 0
