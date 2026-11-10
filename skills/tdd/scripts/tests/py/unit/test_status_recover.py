@@ -198,6 +198,30 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
     assert code == 0 and "ready" in words and "draft" not in words and all(w in words for w in ("4722", "3601", "clean")), (code, prs)
 
 
+def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the_single_pr_read_when_the_list_carries_none(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
+               "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
+    single = dict(listed[0], mergeable_state="behind")
+
+    def run(args, *a, **k):
+        out = ""
+        if args and args[0] == "gh":
+            out = json.dumps(single if args[-1].endswith("pulls/4730") else listed)
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord"])
+
+    assert code == 0, (code, err)
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
+    words = " ".join(prs).replace("#", "").split()
+    assert len(prs) == 1 and all(w in words for w in ("4730", "3602", "ready", "behind")), (code, prs)
+
+
 def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lock_holder_names_one(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
