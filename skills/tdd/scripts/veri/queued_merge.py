@@ -109,6 +109,15 @@ def _merged(repo, pr):
     return pull if isinstance(pull, dict) and pull.get("merged") is True else None
 
 
+def _closed(repo, pr):
+    run = gh_api("repos/%s/pulls/%s" % (repo, _number(pr)))
+    try:
+        pull = json.loads(run.stdout) if run.returncode == 0 else None
+    except ValueError:
+        return False
+    return isinstance(pull, dict) and pull.get("state") == "closed" and pull.get("merged") is False
+
+
 def _merge_commit(worktree, pull, pr):
     """The merge commit GitHub reports for <pr>, fetched into <worktree>; "" when either step fails."""
     sha = pull.get("merge_commit_sha") or ""
@@ -214,6 +223,10 @@ def main(argv):
         return code
     if _merged(repo, pr) is not None:
         _say("%s is already merged; nothing rebased or pushed" % pr)
+        _release(pid)
+        return 2
+    if _closed(repo, pr):
+        _say("%s is closed and unmerged; nothing rebased or pushed" % pr)
         _release(pid)
         return 2
     lease = _rev(worktree, "refs/remotes/origin/%s" % branch)
