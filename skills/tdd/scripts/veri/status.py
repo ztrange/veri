@@ -529,7 +529,9 @@ def recover_prs():
     for pr in json.loads(answer.stdout):
         closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
         state = "draft" if pr["draft"] else "ready"
-        lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, pr["mergeable_state"]))
+        single = github.gh_probe("api", "repos/{owner}/{repo}/pulls/%d" % pr["number"])
+        mergeable = json.loads(single.stdout)["mergeable_state"]
+        lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, mergeable))
     return lines
 
 
