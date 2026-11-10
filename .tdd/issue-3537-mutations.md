@@ -1,0 +1,7 @@
+before 40
+afd0965d28d4299f2b53fd7cf58c090737cac26c
+keep 55
+skills/tdd/scripts/tests/py/test_rerun_alone_process.py
+command 177
+make test TESTS=skills/tdd/scripts/tests/py/test_rerun_alone_process.py::test_node_id_still_red_alone_with_a_test_string_in_the_body_exits_1_and_writes_no_suite_flake_event_3537
+
