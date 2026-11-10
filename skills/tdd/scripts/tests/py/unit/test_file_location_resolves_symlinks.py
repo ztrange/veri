@@ -3,7 +3,7 @@ import pathlib
 
 import pytest
 
-VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
+VERI = pathlib.Path(__file__).resolve().parents[3] / "veri"
 
 
 def is_call(node, name):

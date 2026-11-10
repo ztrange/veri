@@ -1,5 +1,6 @@
 """Cases for ready-check.sh that start the real entry point."""
 import os
+import shutil
 import re
 import subprocess
 
@@ -331,7 +332,9 @@ def test_issue_3055_ready_check_where_detect_test_command_exits_2_fails_the_tier
     fake = tmp_path / "scripts"
     fake.mkdir()
     for entry in SCRIPTS.iterdir():
-        if entry.name != "detect-test-command.sh":
+        if entry.name == "veri":
+            shutil.copytree(entry, fake / "veri", ignore=shutil.ignore_patterns("__pycache__"))
+        elif entry.name != "detect-test-command.sh":
             (fake / entry.name).symlink_to(entry)
     detect = fake / "detect-test-command.sh"
     detect.write_text("#!/bin/sh\nexit 2\n")
