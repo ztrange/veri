@@ -435,9 +435,15 @@ def running_lines():
     return "\n".join(blocks) or "none"
 
 
+def main_subjects():
+    return subprocess.run(["git", "-C", main_working_tree(), "log", "main", "--format=%s"],
+                          capture_output=True, text=True).stdout.splitlines()
+
+
 def waiting_lines():
     since = status_last_time() or 0
     lines = []
+    subjects = main_subjects()
     for path, events in journals():
         for e in events:
             if e.get("event") == "bail" and e["ts"] > since:
@@ -448,7 +454,8 @@ def waiting_lines():
                 pr = e["pr"]
             elif e.get("event") == "merged":
                 pr = None
-        if pr is not None:
+        issue = os.path.basename(path)[:-len(".jsonl")]
+        if pr is not None and not any(t.endswith("(#%s)" % issue) for t in subjects):
             lines.append("%s PR %s ready to merge" % (run_name(path), pr))
     return "\n".join(lines) or "none"
 
