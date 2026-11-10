@@ -1,0 +1,2 @@
+- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` update the skill-edit-guard.sh entry (SCRIPTS.md:430) to name .tdd/issue-<n>-pr-body.md among the files the guard ignores, beside the ledger, -added.md and -mutations.md, amend REQUIREMENTS.md row SC43 as SC43<reword> to add .tdd/issue-<n>-pr-body.md to the exempted files, cite the pinning case in test_skill_edit_guard_process.py, then regrade ⟦added⟧ ⟦criterion 2⟧
+- [ ] ⟦diff-checked⟧ skill-edit-guard.sh:5 Exit/usage-comment line names -pr-body.md among the exempt files ⟦added⟧ ⟦criterion 2⟧
