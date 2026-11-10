@@ -88,7 +88,7 @@ The harness may report this skill's base dir as a symlink. Resolve it first, wit
 subagent to read the skill at that path and to return at most 10 lines.
 
 **Load `vhandoff` yourself**, by reading `<resolved base dir>/../vhandoff/SKILL.md` (base dir resolved as above).
-Once your own context passes 200k tokens, or the harness warns that context is nearly full, reset
+Once your own context passes 15% of your context window (150k tokens of a 1M window), or the harness warns that context is nearly full, reset
 yourself with `/vhandoff coord` at the next point where no human decision is pending and no run
 awaits your ruling or merge instruction (between batches), never in the middle of an instruction.
 
