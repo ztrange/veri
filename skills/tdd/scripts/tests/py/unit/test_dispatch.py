@@ -2157,6 +2157,61 @@ def test_main_exits_2_naming_the_diff_read_after_one_read_when_gh_pr_diff_answer
     assert (code, launches, len(reads), "reading https://github.com/o/r/pull/90's diff failed" in err) == (2, [], 1, True)
 
 
+def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_500_for_the_first_reads_then_succeeds_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+    reads = []
+
+    def gh_pr_diff_names(number):
+        reads.append(number)
+        if len(reads) <= 2:
+            raise dispatch.github.NoAnswer("", "HTTP 500\n")
+        return ["skills/tdd/SCRIPTS.md"]
+
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", gh_pr_diff_names)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, launches) == (None, ["12"])
+
+
+def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_500_diff_read_issue_3560(
+        monkeypatch, capsys, tmp_path, dispatch):
+    launches, _ = _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "7")
+    sleeps = []
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+        {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
+    reads = []
+
+    def gh_pr_diff_names(number):
+        reads.append(number)
+        if len(reads) <= 2:
+            raise dispatch.github.NoAnswer("", "HTTP 500\n")
+        return ["skills/tdd/SCRIPTS.md"]
+
+    monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", gh_pr_diff_names)
+
+    try:
+        dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        pass
+
+    assert (sleeps, launches) == ([7, 7], ["12"])
+
+
 def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_process_not_on_every_pass_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     _overlap_case(
