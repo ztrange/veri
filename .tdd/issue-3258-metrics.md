@@ -1,42 +1,210 @@
 ### 📊 Metrics — issue 3258
 
-Wall time for the issue: 465 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1468 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: unknown of unknown planned.
-Outcome: the run bailed — needs-user, a process failure.
+Steps done: 11 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3580.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $1.29 over 23 turns, in 1 sessions, on opus (estimate).
+Conductor own spending: $9.80 over 187 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
-Conductor context: first turn 78836 tokens, largest 124463 tokens
+Conductor context: first turn 78836 tokens, largest 127606 tokens
+Conductor context: first turn 78835 tokens, largest 154729 tokens
+Conductor context: first turn 78837 tokens, largest 152685 tokens
+Conductor context: first turn 78837 tokens, largest 153159 tokens
+The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
 
 | turn | dollars | context |
 | --- | ---: | ---: |
-| 1 | $0.49 | 78836 |
+| 1 | $0.50 | 78836 |
 | 2 | $0.07 | 85216 |
-| 3 | $0.03 | 87325 |
-| 4 | $0.02 | 87798 |
-| 5 | $0.04 | 91043 |
-| 6 | $0.02 | 91456 |
-| 7 | $0.02 | 91834 |
-| 8 | $0.02 | 92270 |
-| 9 | $0.02 | 92616 |
-| 10 | $0.02 | 92896 |
-| 11 | $0.02 | 93375 |
-| 12 | $0.02 | 93634 |
-| 13 | $0.02 | 94334 |
-| 14 | $0.03 | 96159 |
-| 15 | $0.05 | 99906 |
-| 16 | $0.04 | 102928 |
-| 17 | $0.03 | 103973 |
-| 18 | $0.05 | 107737 |
-| 19 | $0.03 | 108703 |
-| 20 | $0.08 | 116436 |
-| 21 | $0.04 | 118469 |
-| 22 | $0.03 | 119478 |
-| 23 | $0.06 | 124463 |
+| 3 | $0.05 | 87325 |
+| 4 | $0.03 | 87798 |
+| 5 | $0.05 | 91043 |
+| 6 | $0.03 | 91456 |
+| 7 | $0.03 | 91834 |
+| 8 | $0.03 | 92270 |
+| 9 | $0.03 | 92616 |
+| 10 | $0.03 | 92896 |
+| 11 | $0.03 | 93375 |
+| 12 | $0.03 | 93634 |
+| 13 | $0.03 | 94334 |
+| 14 | $0.04 | 96159 |
+| 15 | $0.06 | 99906 |
+| 16 | $0.05 | 102928 |
+| 17 | $0.04 | 103973 |
+| 18 | $0.06 | 107737 |
+| 19 | $0.04 | 108703 |
+| 20 | $0.09 | 116436 |
+| 21 | $0.05 | 118469 |
+| 22 | $0.04 | 119478 |
+| 23 | $0.07 | 124463 |
+| 24 | $0.05 | 126193 |
+| 25 | $0.03 | 126537 |
+| 26 | $0.04 | 127606 |
+| 27 | $0.50 | 78835 |
+| 28 | $0.07 | 84984 |
+| 29 | $0.05 | 87973 |
+| 30 | $0.04 | 89896 |
+| 31 | $0.04 | 90728 |
+| 32 | $0.04 | 92723 |
+| 33 | $0.03 | 93747 |
+| 34 | $0.04 | 94354 |
+| 35 | $0.03 | 94754 |
+| 36 | $0.03 | 95006 |
+| 37 | $0.03 | 95276 |
+| 38 | $0.03 | 95526 |
+| 39 | $0.03 | 95918 |
+| 40 | $0.03 | 96554 |
+| 41 | $0.04 | 98232 |
+| 42 | $0.04 | 99032 |
+| 43 | $0.07 | 104028 |
+| 44 | $0.10 | 113351 |
+| 45 | $0.05 | 115578 |
+| 46 | $0.05 | 117634 |
+| 47 | $0.04 | 118853 |
+| 48 | $0.05 | 121267 |
+| 49 | $0.04 | 121777 |
+| 50 | $0.04 | 122331 |
+| 51 | $0.03 | 122778 |
+| 52 | $0.04 | 123087 |
+| 53 | $0.04 | 124678 |
+| 54 | $0.10 | 132946 |
+| 55 | $0.04 | 133623 |
+| 56 | $0.04 | 133934 |
+| 57 | $0.04 | 134249 |
+| 58 | $0.04 | 135363 |
+| 59 | $0.05 | 135954 |
+| 60 | $0.03 | 136332 |
+| 61 | $0.11 | 145227 |
+| 62 | $0.04 | 145754 |
+| 63 | $0.05 | 146595 |
+| 64 | $0.04 | 147109 |
+| 65 | $0.04 | 147891 |
+| 66 | $0.05 | 148264 |
+| 67 | $0.04 | 148870 |
+| 68 | $0.04 | 149754 |
+| 69 | $0.05 | 150437 |
+| 70 | $0.04 | 150965 |
+| 71 | $0.04 | 151533 |
+| 72 | $0.06 | 153820 |
+| 73 | $0.04 | 154223 |
+| 74 | $0.05 | 154729 |
+| 75 | $0.50 | 78837 |
+| 76 | $0.07 | 84990 |
+| 77 | $0.06 | 88026 |
+| 78 | $0.04 | 89942 |
+| 79 | $0.05 | 92349 |
+| 80 | $0.06 | 96853 |
+| 81 | $0.03 | 97402 |
+| 82 | $0.04 | 97872 |
+| 83 | $0.03 | 98163 |
+| 84 | $0.03 | 98454 |
+| 85 | $0.03 | 98746 |
+| 86 | $0.04 | 99314 |
+| 87 | $0.03 | 100054 |
+| 88 | $0.04 | 101050 |
+| 89 | $0.04 | 102238 |
+| 90 | $0.03 | 102426 |
+| 91 | $0.03 | 102618 |
+| 92 | $0.04 | 103296 |
+| 93 | $0.03 | 103633 |
+| 94 | $0.04 | 104339 |
+| 95 | $0.03 | 104873 |
+| 96 | $0.04 | 105605 |
+| 97 | $0.03 | 106091 |
+| 98 | $0.04 | 106411 |
+| 99 | $0.03 | 107124 |
+| 100 | $0.04 | 107693 |
+| 101 | $0.04 | 108377 |
+| 102 | $0.03 | 108824 |
+| 103 | $0.04 | 109415 |
+| 104 | $0.04 | 109973 |
+| 105 | $0.03 | 110891 |
+| 106 | $0.04 | 111324 |
+| 107 | $0.04 | 111990 |
+| 108 | $0.04 | 112783 |
+| 109 | $0.04 | 114601 |
+| 110 | $0.07 | 118834 |
+| 111 | $0.04 | 119115 |
+| 112 | $0.03 | 119694 |
+| 113 | $0.04 | 120339 |
+| 114 | $0.04 | 120649 |
+| 115 | $0.04 | 121400 |
+| 116 | $0.04 | 122154 |
+| 117 | $0.04 | 122674 |
+| 118 | $0.04 | 123514 |
+| 119 | $0.04 | 124355 |
+| 120 | $0.04 | 124653 |
+| 121 | $0.04 | 125503 |
+| 122 | $0.04 | 125745 |
+| 123 | $0.03 | 126271 |
+| 124 | $0.05 | 127569 |
+| 125 | $0.04 | 127861 |
+| 126 | $0.04 | 128145 |
+| 127 | $0.03 | 128530 |
+| 128 | $0.07 | 132768 |
+| 129 | $0.04 | 132994 |
+| 130 | $0.04 | 133777 |
+| 131 | $0.04 | 134026 |
+| 132 | $0.04 | 134598 |
+| 133 | $0.06 | 136967 |
+| 134 | $0.04 | 137823 |
+| 135 | $0.05 | 138739 |
+| 136 | $0.04 | 139551 |
+| 137 | $0.05 | 140155 |
+| 138 | $0.05 | 142364 |
+| 139 | $0.06 | 145038 |
+| 140 | $0.05 | 145756 |
+| 141 | $0.04 | 146225 |
+| 142 | $0.06 | 149317 |
+| 143 | $0.05 | 149803 |
+| 144 | $0.04 | 150326 |
+| 145 | $0.04 | 150907 |
+| 146 | $0.05 | 151734 |
+| 147 | $0.05 | 152685 |
+| 148 | $0.49 | 78837 |
+| 149 | $0.06 | 84989 |
+| 150 | $0.04 | 88018 |
+| 151 | $0.05 | 91600 |
+| 152 | $0.03 | 93341 |
+| 153 | $0.14 | 108296 |
+| 154 | $0.03 | 108804 |
+| 155 | $0.02 | 109109 |
+| 156 | $0.02 | 109414 |
+| 157 | $0.03 | 109859 |
+| 158 | $0.03 | 110505 |
+| 159 | $0.06 | 115020 |
+| 160 | $0.03 | 115616 |
+| 161 | $0.03 | 116216 |
+| 162 | $0.03 | 116789 |
+| 163 | $0.03 | 117405 |
+| 164 | $0.03 | 118298 |
+| 165 | $0.03 | 119406 |
+| 166 | $0.03 | 119858 |
+| 167 | $0.03 | 120270 |
+| 168 | $0.07 | 125427 |
+| 169 | $0.03 | 125988 |
+| 170 | $0.03 | 126366 |
+| 171 | $0.03 | 126776 |
+| 172 | $0.03 | 127428 |
+| 173 | $0.04 | 128695 |
+| 174 | $0.03 | 129449 |
+| 175 | $0.04 | 130605 |
+| 176 | $0.03 | 131322 |
+| 177 | $0.04 | 132599 |
+| 178 | $0.03 | 133140 |
+| 179 | $0.04 | 134351 |
+| 180 | $0.15 | 149536 |
+| 181 | $0.03 | 149889 |
+| 182 | $0.03 | 150177 |
+| 183 | $0.03 | 150794 |
+| 184 | $0.04 | 152128 |
+| 185 | $0.03 | 152512 |
+| 186 | $0.03 | 152873 |
+| 187 | $0.03 | 153159 |
 
 #### Conductor comments, by family
 
@@ -50,37 +218,100 @@ Conductor context: first turn 78836 tokens, largest 124463 tokens
 | 🔎 verify-green | 0 | 0 | $0.00 |
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
-| 🗺️ Plan | 1 | 8 | $0.00 |
-| 🗺️ verify-plan | 0 | 0 | $0.00 |
-| ▶️ Resuming | 0 | 0 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
-| ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 1 | 8 | $0.00 |
+| 🗺️ Plan | 3 | 1290 | $0.03 |
+| 🗺️ verify-plan | 4 | 1376 | $0.03 |
+| ▶️ Resuming | 3 | 978 | $0.02 |
+| ⛔ Bailed | 1 | 422 | $0.01 |
+| ⏹️ Stopped | 2 | 926 | $0.02 |
+| Total | 11 | 4124 | $0.08 |
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| plan | 3 | 3 | 0 | 0 | 44 | 37 | 6 | 12 | 4304 | 65919 | 67232 | 0.22 |
+| red | 12 | 5 | 0 | 0 | 403 | 182 | 56 | 108 | 19301 | 1032240 | 235296 | 0.88 |
+| green | 14 | 5 | 2 | 0 | 798 | 216 | 72 | 138 | 21317 | 1305122 | 244693 | 1.05 |
+| pin | 2 | 2 | 0 | 0 | 39 | 26 | 8 | 16 | 2451 | 132113 | 33195 | 0.12 |
+| refactor | 8 | 3 | 0 | 0 | 178 | 69 | 27 | 54 | 5888 | 426090 | 132713 | 0.43 |
+| diff | 2 | 1 | 0 | 0 | 369 | 30 | 11 | 22 | 2532 | 172081 | 32833 | 0.12 |
+| prose | 21 | 0 | 0 | 0 | 612 | 568 | 21 | 42 | 90488 | 176449 | 869223 | 3.10 |
+| skill-edit | 4 | 0 | 0 | 0 | 52 | 43 | 18 | 28 | 3422 | 707451 | 235707 | 0.69 |
+
+#### By model
+
+| role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| verifier | claude-sonnet-5-5 | 21 | 19 | 2 | 0 | 919 | 254 | 75 | 150 | 24073 | 1218270 | 354568 | 1.25 |
+| developer | claude-sonnet-5-5 | 20 | 0 | 0 | 0 | 912 | 306 | 105 | 200 | 31720 | 1915295 | 391394 | 1.58 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
+| plan | 0 | 0.00 | 0 | 0.00 |
+| red | 0 | 0.00 | 0 | 0.00 |
+| green | 802 | 1.07 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+| refactor | 0 | 0.00 | 0 | 0.00 |
+| diff | 0 | 0.00 | 0 | 0.00 |
+| prose | 0 | 0.00 | 0 | 0.00 |
+| skill-edit | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
 | step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
+| `comment.sh <issue> plan` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ Plan`, listing every step of the run's ledger `.tdd/issue-<issue>.md` (each step's text, in ledger order) and naming the test command, and appends one `comment` event with `kind=plan` and `url=<the posted comment's url>`; the test command is the one `detect-test-command.sh --tier fast --issue <body-file> .` prints (its module `veri/detect_test_command.py`, run in-process, never as a subprocess) on the issue's body, which comment.sh reads itself through `github.py`, so a `VERI_TEST_CMD` set in the environment to another command is not what the comment names; the usage line stays `usage: comment.sh <issue> <kind> [--note-file <path>]`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 1⟧ | 11 | 3 | 2 | 0 | 0 | 0 | 181 | 55 | 110 | 17844 | 1057436 | 207663 | 0.89 | 1131 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `0`, posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ verify-plan — PASS`, followed by the text of `.tdd/verify-plan.reason`, and appends one `comment` event with `kind=verify-plan` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 62 | 20 | 40 | 6239 | 358169 | 92624 | 0.33 | 339 | unknown | 0/5 | nothing-left |  |  | full |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `1`, posts a comment whose first line is `### 🗺️ verify-plan — REJECT`, followed by the text of `.tdd/verify-plan.reason` ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 62 | 23 | 46 | 5894 | 375607 | 95347 | 0.33 | 340 | unknown | 1/5 | nothing-left |  |  | full |
+| `comment.sh <issue> resuming` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### ▶️ Resuming` and which names the next unchecked step of the run's ledger `.tdd/issue-<issue>.md` (the step `next-unchecked.sh` would hand over, its text read from the ledger), and appends one `comment` event with `kind=resuming` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 70 | 24 | 46 | 6706 | 399439 | 106022 | 0.37 | 386 | unknown | 1/5 | nothing-left |  |  | full |
+| `comment.sh <issue> resuming --note-file <path>` appends the note file's text (the stray paths a reset discarded) under the rendered `### ▶️ Resuming` comment after a blank line, as `step-done` and `red` do with their note file ⟦criterion 3⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 75 | 29 | 50 | 7659 | 428895 | 100108 | 0.37 | 370 | unknown | 1/5 | nothing-left |  |  | full |
+| A new case in `skills/tdd/scripts/tests/py/unit/test_comment.py` pins that each heading `comment.sh` posts for `plan`, `verify-plan` (PASS and REJECT) and `resuming` is classified by `comment-class.sh` (`veri/comment_class.py`, run in-process) exactly as the same hand-composed heading is today, and falls in the same `metrics.py` `COMMENT_FAMILIES` family (`🗺️ Plan`, `🗺️ verify-plan`, `▶️ Resuming`) as the hand-composed heading does; behaviour that already holds, so a pin step, production untouched ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 12 | 24 | 4615 | 276019 | 44133 | 0.18 | unknown | unknown | unknown | unknown |  |  | pin |
+| `skills/tdd/JOURNAL.md`'s `comment` event row names every kind comment.sh posts: `step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised`, `plan`, `verify-plan`, `resuming` and `done` ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 11 | 22 | 2532 | 172081 | 32833 | 0.12 | 1104 | n/a | n/a | n/a |  |  | full |
+| `skills/tdd/SCRIPTS.md` passes SC95 of this issue's `## Requirements`, regraded: the `comment.sh` entry names the new kinds and what each reads, `plan` (reads the ledger and the test command `detect-test-command.sh --tier fast` detects from the issue body), `verify-plan` (reads `.tdd/verify-plan.reason`) and `resuming` (takes `--note-file`) ⟦skill-edit⟧ ⟦criterion 1⟧ | 6 | 0 | 0 | 0 | 0 | 0 | 101 | 9 | 18 | 14457 | 315631 | 343553 | 1.04 | 143 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/SKILL.md` passes PL28, PL39 and PL45 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 184 | 12 | 16 | 28547 | 382481 | 353144 | 1.21 | 213 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/DRAFT-PR.md` passes DP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 103 | 7 | 14 | 15529 | 111769 | 120373 | 0.47 | 128 | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/RESUME.md` passes RS26 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 47 | 7 | 14 | 6589 | 68465 | 60835 | 0.22 | 80 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
+#### By refactor pass
+
+| step | pass | refactor | stopped | verdict | revise | wall s | $ |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| `comment.sh <issue> plan` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ Plan`, listing every step of the run's ledger `.tdd/issue-<issue>.md` (each step's text, in ledger order) and naming the test command, and appends one `comment` event with `kind=plan` and `url=<the posted comment's url>`; the test command is the one `detect-test-command.sh --tier fast --issue <body-file> .` prints (its module `veri/detect_test_command.py`, run in-process, never as a subprocess) on the issue's body, which comment.sh reads itself through `github.py`, so a `VERI_TEST_CMD` set in the environment to another command is not what the comment names; the usage line stays `usage: comment.sh <issue> <kind> [--note-file <path>]`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `0`, posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ verify-plan — PASS`, followed by the text of `.tdd/verify-plan.reason`, and appends one `comment` event with `kind=verify-plan` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.05 |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `1`, posts a comment whose first line is `### 🗺️ verify-plan — REJECT`, followed by the text of `.tdd/verify-plan.reason` ⟦criterion 2⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 52 | 0.11 |
+| `comment.sh <issue> resuming` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### ▶️ Resuming` and which names the next unchecked step of the run's ledger `.tdd/issue-<issue>.md` (the step `next-unchecked.sh` would hand over, its text read from the ledger), and appends one `comment` event with `kind=resuming` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 3⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 52 | 0.11 |
+| `comment.sh <issue> resuming --note-file <path>` appends the note file's text (the stray paths a reset discarded) under the rendered `### ▶️ Resuming` comment after a blank line, as `step-done` and `red` do with their note file ⟦criterion 3⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 60 | 0.11 |
+
+#### Structural pass
+
+Stopped: nothing-structural
+
+#### Refactor totals
+
+| step | passes | transforms | landed nothing | stopped |
+| --- | ---: | ---: | ---: | --- |
+| `comment.sh <issue> plan` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ Plan`, listing every step of the run's ledger `.tdd/issue-<issue>.md` (each step's text, in ledger order) and naming the test command, and appends one `comment` event with `kind=plan` and `url=<the posted comment's url>`; the test command is the one `detect-test-command.sh --tier fast --issue <body-file> .` prints (its module `veri/detect_test_command.py`, run in-process, never as a subprocess) on the issue's body, which comment.sh reads itself through `github.py`, so a `VERI_TEST_CMD` set in the environment to another command is not what the comment names; the usage line stays `usage: comment.sh <issue> <kind> [--note-file <path>]`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `0`, posts to issue `<issue>`, through `github.py`, a comment whose first line is `### 🗺️ verify-plan — PASS`, followed by the text of `.tdd/verify-plan.reason`, and appends one `comment` event with `kind=verify-plan` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
+| `comment.sh <issue> verify-plan`, when `.tdd/verdict-plan.exit` holds `1`, posts a comment whose first line is `### 🗺️ verify-plan — REJECT`, followed by the text of `.tdd/verify-plan.reason` ⟦criterion 2⟧ | 1 | 1 | 0 | nothing-left 1 |
+| `comment.sh <issue> resuming` posts to issue `<issue>`, through `github.py`, a comment whose first line is `### ▶️ Resuming` and which names the next unchecked step of the run's ledger `.tdd/issue-<issue>.md` (the step `next-unchecked.sh` would hand over, its text read from the ledger), and appends one `comment` event with `kind=resuming` and `url=<the posted comment's url>`; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 3⟧ | 1 | 1 | 0 | nothing-left 1 |
+| `comment.sh <issue> resuming --note-file <path>` appends the note file's text (the stray paths a reset discarded) under the rendered `### ▶️ Resuming` comment after a blank line, as `step-done` and `red` do with their note file ⟦criterion 3⟧ | 1 | 1 | 0 | nothing-left 1 |
+| issue | 6 | ? | ? | nothing-left 5, nothing-structural 1 |
+
 #### Test-command seconds, by tier
 
-| tier |
-| --- |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 2 | 2 | 3 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 0 | 2 | 1 | 2 | 3 | 1 | 2 | 2 | 2 | 3 | 2 | 2 | 2 | 2 | 273 | 3 |
+| fast | 36 | 48 | 25 | 22 | 22 | 22 | 27 | 29 | 23 | 23 | 24 | 0 | 35 | 26 | 24 | 35 | 27 | 27 | 29 | 28 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 2 | 1 | 2 | 2 | 2 | 2 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 3 | 2 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 0 | 0 | 0 | 0 | 0 | 1.29 (estimate) |
+| total | 219 | 420 | 149703 | 4017465 | 1850892 | 16.42 (estimate) |
