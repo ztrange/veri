@@ -494,8 +494,11 @@ three times over branches its ledger pinned on later lines.
    two modules of one basename) and its stderr names both paths, so rename the step's module with
    a `_process` or `_cli` suffix and run it again. It also exits 1 when a step line carries more than
    one `⟦criterion k⟧` tag, naming the line on stderr: rewrite the plan so each such step serves one
-   criterion, splitting it where needed, and run the check again. The plan is never committed with a
-   multi-tag step:
+   criterion, splitting it where needed, and run the check again. It exits 2, naming the unit on stderr and
+   writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first backticked span) has no
+   `### <unit>` heading (or `### <unit> (new)`) in the spec's `## Requirements`, the refusal `skill-edit-step.sh`
+   would otherwise make mid-run; the plan is not committed, and a spec with no `## Requirements` section is not
+   checked. The plan is never committed with a multi-tag step:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
