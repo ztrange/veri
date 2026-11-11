@@ -226,7 +226,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         out = out.replace(b"{{" + placeholder + b"}}", value)
     if phase == "diff":
         out += _author_less_block(tunables.read("VERI_ISSUE"))
-    return 0, out + b"\n"
+    return 0, out + b"\n\n" + _read(f"{prompts}/_verify-output-contract.md") + b"\n"
 
 
 if __name__ == "__main__":
