@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -36,8 +37,8 @@ def read_steps(issue):
         return ledger_steps(f.read())
 
 
-def post_and_record(issue, kind, body, strip_url=False):
-    url = github.gh_issue_comment(issue, body)
+def post_and_record(issue, kind, body, strip_url=False, target=None):
+    url = github.gh_issue_comment(target or issue, body)
     if strip_url:
         url = url.rstrip("\n")
     return event.append("", {}, "comment", [f"kind={kind}", f"url={url}"])
@@ -183,7 +184,17 @@ def post_resuming(issue, note_file=None):
     return post_and_record(issue, "resuming", with_note(heading, note_file))
 
 
-def post_bailed(issue, note_file):
+def current_branch():
+    head = read_or_empty(".git/HEAD").strip()
+    return head.removeprefix("ref: refs/heads/")
+
+
+def run_pr_number():
+    path = f"repos/{{owner}}/{{repo}}/pulls?head={{owner}}:{current_branch()}"
+    return json.loads(github.gh_api(path).stdout)[0]["number"]
+
+
+def post_bailed(issue, note_file, pr=False):
     bail = None
     for e in event_log.read_events(".tdd/events.jsonl"):
         if e.get("event") == "bail":
@@ -192,10 +203,13 @@ def post_bailed(issue, note_file):
         print("comment.sh: no bail event in .tdd/events.jsonl", file=sys.stderr)
         return 2
     heading = f"### ⛔ Bailed — {bail['phase']} ({bail['classification']} failure)\n"
-    return post_and_record(issue, "bailed", with_note(heading, note_file))
+    target = run_pr_number() if pr else None
+    return post_and_record(issue, "bailed", with_note(heading, note_file), target=target)
 
 
 def main(argv):
+    if len(argv) == 5 and argv[1:4] == ["bailed", "--pr", "--note-file"]:
+        return post_bailed(argv[0], argv[4], pr=True)
     if len(argv) == 4 and argv[1] == "bailed" and argv[2] == "--note-file":
         return post_bailed(argv[0], argv[3])
     if argv[1:] == ["verify-plan"]:
