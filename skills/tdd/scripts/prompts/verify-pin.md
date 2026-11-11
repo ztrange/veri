@@ -17,11 +17,14 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
 2. **It fails without the behavior.** First run
    `{{MUTATION_PROBE}} --before {{BRANCH_BASE}} --keep '{{TEST_PATH}}' -- <command that runs the target test>`.
    It restores the production files the branch changed to the branch point, runs the target
-   test and restores the tree: the target test must **FAIL**. Only when that probe exits 2
-   because no file differs from the branch point, break the production code yourself with a
-   minimal edit (remove the guard, invert the condition, drop the branch) through
+   test and restores the tree: the target test must **FAIL**. Break the production code
+   yourself with a minimal edit (remove the guard, invert the condition, drop the branch) in
+   two cases only: that probe exits 2 because no file differs from the branch point, or it
+   exits 1 and the guard the step pins is code this branch's own diff added (it appears in
+   `git diff {{BRANCH_BASE}}`). Do it through
    `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the target test>`,
    which edits, runs the command against the mutation and restores the file: the target test must **FAIL**.
+   For a branch-added guard, that red under the mutation is the pin's proof: a PASS, not a REJECT.
    If that probe exits 2 and its stderr names an allowed address domain, any email address in
    `<old>`/`<new>` must be on that domain: retry with one that is.
    That exit 2 can also mean `<old>` is absent from the working-tree file or the command
@@ -29,9 +32,12 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    such an exit as a PASS.
    A probe exiting 2 gives no verdict, and one exiting 1 (the command still passed) is never a PASS.
    Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes on the real
-   before-state, or with the behavior removed by hand when no before-state exists, pins
-   nothing: that is a REJECT naming which run stayed green ("the real before-state stays
-   green", or "the hand mutation stays green").
+   before-state and is not a branch-added guard, or with the behavior removed by hand when
+   the hand mutation is the proof, pins nothing: that is a REJECT naming which run stayed
+   green ("the real before-state stays green", or "the hand mutation stays green"). A test
+   green on the real before-state that also stays green with the branch-added guard mutated
+   away is a REJECT whose reason says both: "the real before-state stays green" and "the
+   guard mutation stays green".
    Make both of those runs — the one in check 1 and the one after the mutation — through
    the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it
    belongs to:
