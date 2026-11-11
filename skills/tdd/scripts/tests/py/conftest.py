@@ -816,8 +816,9 @@ def run_cli(monkeypatch, capfd):
         except SystemExit as exit:
             code = exit.code
         finally:
-            os.environ.clear()
-            os.environ.update(environ)
+            if dict(os.environ) != environ:
+                os.environ.clear()
+                os.environ.update(environ)
             os.chdir(start)
         if code is not None and not isinstance(code, int):
             sys.stderr.write("%s\n" % (code,))
