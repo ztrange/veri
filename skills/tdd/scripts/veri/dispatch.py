@@ -15,6 +15,7 @@ import json_documents
 import paths
 from role_state import state_path
 import status
+import timed_n_format
 import tunables
 import watch_runs
 from ledger import ledger_path
@@ -239,8 +240,7 @@ def last_n(lines):
 
 def timed_n(line):
     try:
-        value, _, expiry = line.split(None, 3)[3].partition(" until ")
-        return int(value), datetime.fromisoformat(expiry).timestamp()
+        return timed_n_format.parse(line.split(None, 3)[3])
     except (IndexError, ValueError):
         raise MalformedState(f"malformed timed-n line: {line}")
 
