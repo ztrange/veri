@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
 command 163
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_before_state_green_reject_without_stays_green_retires_the_step_unpinnable_3644
 
+before 40
+f0b559b882ab6e5e4ce151694155910ae0be3c4c
+keep 57
+skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_missing_reroute_before_state_green_without_stays_green_routes_unpinnable_missing_3644
+
