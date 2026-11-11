@@ -10,3 +10,15 @@ def test_dev_set_coordinator_records_the_session_id_in_the_dev_state_file(tmp_pa
 
     state = (tmp_path / ".tdd" / "role-dev.state").read_text()
     assert (code, "coordinator=sess-1234" in state.splitlines()) == (0, True)
+
+
+def test_dev_drop_coordinator_removes_every_coordinator_line_and_keeps_the_rest(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.write_text("n=2\ncoordinator=sess-old\nlane=mu\ncoordinator=sess-new\n")
+
+    code, _, _ = run_cli(role_state, ["dev", "drop", "coordinator"])
+
+    assert (code, state.read_text()) == (0, "n=2\nlane=mu\n")
