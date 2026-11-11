@@ -478,3 +478,11 @@ def test_skill_md_preflight_leaf_model_calls_name_a_leaf_leaf_role_accepts(
         problems.append("the Preflight section of PREFLIGHT.md holds no leaf-model.sh call to check")
 
     assert problems == []
+
+
+def test_main_with_no_model_variable_set_prints_opus_for_an_adjudicate_leaf_and_the_shim_header_names_veri_model_adjudicator(
+        capsys, leaf_model):
+    code = leaf_model.main(["adjudicate-ci-timeout"])
+    captured = capsys.readouterr()
+    header = (Path(__file__).resolve().parents[3] / "leaf-model.sh").read_text()
+    assert (code, captured.out, "VERI_MODEL_ADJUDICATOR" in header) == (0, "opus\n", True)
