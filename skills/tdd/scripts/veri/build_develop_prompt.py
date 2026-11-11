@@ -100,7 +100,7 @@ def main(argv):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return _refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
     if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
-            and any("stays green" in line and BEFORE_STATE_GREEN.search(line)
+            and any(BEFORE_STATE_GREEN.search(line)
                     for line in _read(args[3]).decode("utf-8", "replace").splitlines()
                     if line.startswith("REASON:"))):
         return _refuse("build-develop-prompt: a verify-pin rejection saying 'stays green' is routed "

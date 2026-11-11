@@ -105,4 +105,4 @@ def test_revise_red_for_a_verify_pin_reason_naming_a_green_before_state_without_
     code = build_develop_prompt.main(["revise", "red", str(spec), "9", "make unit", str(reason)])
 
     out, err = capsysbinary.readouterr()
-    assert (code, bool(out), b"pin-reject-route.sh" in err) == (0, True, False)
+    assert (code, bool(out), b"pin-reject-route.sh" in err) == (2, False, True)
