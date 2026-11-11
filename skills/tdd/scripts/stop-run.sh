@@ -6,7 +6,10 @@
 #
 # `--mode now` also signals a detached command (a `.tdd/<name>.pid` session leader that is not a
 # supervisor, only while the pid still runs the command veri recorded): TERM to its whole process
-# group, then KILL after `VERI_STOP_KILL_GRACE` (default 5 seconds).
+# group, then KILL after `VERI_STOP_KILL_GRACE` (default 5 seconds). A `.tdd/<name>.pid` is
+# signalled, supervisor or detached command, only when its line 2 holds the start time of the
+# process now at that pid; a file with no line 2 (written by an older skill snapshot) is left
+# alone with one stderr line naming it, and a different start time (a reused pid) silently.
 #
 # usage: stop-run.sh [--mode <mode>] <issue> | --all
 # Exits:   0 the stopped runs printed | 2 arguments that name no run, no mode this script
