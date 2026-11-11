@@ -173,3 +173,29 @@ def test_a_refusal_comment_alone_does_not_make_an_issue_preflight_refused_3627(r
         "unclaimed": (3, False),
         "comments unreadable": (3, False),
     }
+
+
+def test_a_preflight_release_cut_short_by_a_silent_gh_is_finished_by_running_it_again_3627(release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+    silent = {"claim": True}
+    monkeypatch.setattr(
+        release_issue.github, "gh_issue_view",
+        lambda number, field: "### ⛔ Preflight refused — requirements clash" if field == "comments" else "\n".join(labels))
+    monkeypatch.setattr(release_issue.github, "gh_issue_add_label", lambda number, label: labels.append(label))
+
+    def remove(number, label):
+        if label == "taken:main" and silent["claim"]:
+            raise release_issue.github.NoAnswer("")
+        if label in labels:
+            labels.remove(label)
+
+    monkeypatch.setattr(release_issue.github, "gh_issue_remove_label", remove)
+
+    first, _, _ = run_cli(release_issue, ["3621"])
+    silent["claim"] = False
+    code, out, err = run_cli(release_issue, ["3621"])
+
+    assert first == 2
+    assert (code, err) == (0, "")
+    assert sorted(labels) == ["bug", "ready-for-agent"]
