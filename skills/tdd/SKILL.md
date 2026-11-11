@@ -500,7 +500,7 @@ three times over branches its ledger pinned on later lines.
    a `_process` or `_cli` suffix and run it again. It also exits 1 when a step line carries more than
    one `⟦criterion k⟧` tag, naming the line on stderr: rewrite the plan so each such step serves one
    criterion, splitting it where needed, and run the check again. It exits 2, naming the unit on stderr and
-   writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first backticked span) has no
+   writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first path-shaped backticked token: one containing a `/` or ending in `.md`) has no
    `### <unit>` heading (or `### <unit> (new)`) in the spec's `## Requirements`, the refusal `skill-edit-step.sh`
    would otherwise make mid-run; the plan is not committed, and a spec with no `## Requirements` section is not
    checked. The plan is never committed with a multi-tag step:
