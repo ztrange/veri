@@ -7,6 +7,7 @@ import sys
 import time
 
 import detach
+import pid_file as pid_file_module
 import rerun_alone
 import tunables
 
@@ -104,8 +105,7 @@ def main(argv):
         pass
     with open(f".tdd/{name}.out", "w") as out:
         pid = detach.start(["sh", "-c", WRAPPER, exit_file, *rest], subprocess.DEVNULL, out, out)
-    with open(pid_file, "w") as handle:
-        handle.write(f"{pid}\n")
+    pid_file_module.record(pid_file, pid)
     return 0
 
 

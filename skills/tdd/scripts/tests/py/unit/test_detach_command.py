@@ -7,6 +7,13 @@ import time
 import pytest
 
 USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]\n"
+STARTED = "Thu Nov 11 09:00:00 2026"
+
+
+def fake_start_time(monkeypatch):
+    """Answer pid_file's ps lstart read with STARTED for any pid."""
+    for name in ("pid_file", "veri.pid_file"):
+        monkeypatch.setattr(importlib.import_module(name), "_ps", lambda field, pid: STARTED, raising=True)
 
 
 @pytest.fixture
@@ -27,6 +34,7 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
             launches.append(args)
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_start_time(monkeypatch)
     now = [1000.0]
 
     def fake_sleep(seconds):
@@ -41,7 +49,7 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
 
     code = detach_command.main(["start", "x", "true"])
     assert (code, capsys.readouterr(), len(launches)) == (0, ("", ""), 1)
-    assert (tmp_path / ".tdd" / "x.pid").read_text() == "4242\n"
+    assert (tmp_path / ".tdd" / "x.pid").read_text() == "4242\n" + STARTED + "\n"
 
     (tmp_path / ".tdd" / "x.pid").unlink()
     (tmp_path / ".tdd" / "x.exit").write_text("7\n")
@@ -72,6 +80,7 @@ def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_pr
             at_launch.append(((tdd / "x.exit").exists(), (tdd / "x.out").read_text()))
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_start_time(monkeypatch)
 
     (tdd / "x.exit").write_text("7\n")
     (tdd / "x.out").write_text("old output\n")
@@ -82,7 +91,7 @@ def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_pr
     assert (code, capsys.readouterr()) == (0, ("", ""))
     assert at_launch == [(False, "")]
     assert ((tdd / "x.out").stat().st_ino, (tdd / "x.pid").stat().st_ino) == inodes
-    assert ((tdd / "x.pid").read_text(), (tdd / "x.exit").exists()) == ("4242\n", False)
+    assert ((tdd / "x.pid").read_text(), (tdd / "x.exit").exists()) == ("4242\n" + STARTED + "\n", False)
 
     code = detach_command.main(["start", "x", "true"])
     assert (code, capsys.readouterr(), at_launch[1:]) == (0, ("", ""), [(False, "")])
@@ -107,6 +116,7 @@ def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_
             launches.append((args, null))
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_start_time(monkeypatch)
 
     code = detach_command.main(["start", "x", "printf", "%s", "a b"])
     wrapper = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
@@ -509,6 +519,7 @@ def _fake_popen(monkeypatch):
             pass
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_start_time(monkeypatch)
 
 
 def test_start_returns_at_once_wait_gives_the_recorded_code_3_while_running_and_2_for_a_death(
@@ -612,6 +623,7 @@ def test_start_passes_a_trailing_alone_and_its_value_to_the_command_unchanged_29
             launches.append(args)
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_start_time(monkeypatch)
 
     code = run("start", "x", "sh", "-c", 'printf %s "$*"', "_", "--alone", "x")[0]
 

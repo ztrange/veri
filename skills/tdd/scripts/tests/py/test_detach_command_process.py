@@ -50,7 +50,7 @@ def test_start_still_runs_its_command_in_a_session_of_its_own_records_exit_and_o
     lines = (tdd / "whole.out").read_text().splitlines()
     sid = [line[4:] for line in lines if line.startswith("sid ")]
     assert (code, (tdd / "whole.exit").read_text().strip(), "out-line" in lines,
-            sid == [(tdd / "whole.pid").read_text().strip()]) == (0, "0", True, True)
+            sid == [(tdd / "whole.pid").read_text().splitlines()[0]]) == (0, "0", True, True)
 
 
 @pytest.mark.process("the symlinked shim run from another working directory with a real detached child")

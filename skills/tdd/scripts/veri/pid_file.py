@@ -71,6 +71,13 @@ def _ps(field, pid):
     return ps.stdout.strip() if ps.returncode == 0 else None
 
 
+def record(path, pid):
+    """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has."""
+    started = _ps("lstart", pid)
+    with open(path, "w") as handle:
+        handle.write(f"{pid}\n{started}\n" if started else f"{pid}\n")
+
+
 def _recorded(path):
     if number_in(_pid_path(path)) is None:
         return None, "pid file unreadable"
