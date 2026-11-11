@@ -76,8 +76,9 @@ Every other step takes the verdict as follows:
   the revise loop for red (or park the step when the revise budget is spent), never retiring
   it by hand. It prints `retired`
   or `revise`, except that under `--missing-reroute` a reason saying the added case is green
-  on the step's before-state prints `unpinnable-missing`, ticks nothing and exits 2: only the
-  added missing case is unpinnable, not the step. A reason reporting a surviving mutant of the
+  on the step's before-state and `stays green` prints `unpinnable-missing`, ticks nothing and exits 2: only the
+  added missing case is unpinnable, not the step. A reason saying only that the case is green on
+  the before-state, without `stays green`, retires the step via `--already-holds`. A reason reporting a surviving mutant of the
   added case (`stays green`, the target red on the before-state) is not that: it is exit 1 and
   enters the revise loop for red. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
