@@ -126,6 +126,21 @@ def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a
     ]
 
 
+def test_main_returns_2_not_a_type_error_when_a_failing_gh_api_leaves_stderr_unset_3582(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["gh", "api"]:
+            return subprocess.CompletedProcess(args, 1, "", None)
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = capture_spec.main(["7"])
+
+    assert (code, capsys.readouterr().out) == (2, "")
+
+
 PLAIN_BODY = """## What to build
 
 tick-ledger.sh grows a `--dry-run` flag.
