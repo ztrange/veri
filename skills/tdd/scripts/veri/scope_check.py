@@ -1,4 +1,4 @@
-"""scope-check.sh's plan checks, run in-process: pytest basename collisions, multi-tag steps, skill-edit units with no Requirements heading."""
+"""scope-check.sh's plan checks, run in-process: pytest basename collisions, multi-tag steps, skill-edit units with no Requirements heading or no path-shaped unit."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import re

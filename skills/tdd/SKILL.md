@@ -502,7 +502,7 @@ three times over branches its ledger pinned on later lines.
    criterion, splitting it where needed, and run the check again. It exits 2, naming the unit on stderr and
    writing no `plan` event, when a `⟦skill-edit⟧` step's unit (the step's first path-shaped backticked token: one containing a `/` or ending in `.md`) has no
    `### <unit>` heading (or `### <unit> (new)`) in the spec's `## Requirements`, the refusal `skill-edit-step.sh`
-   would otherwise make mid-run; the plan is not committed, and a spec with no `## Requirements` section is not
+   would otherwise make mid-run, or when a `⟦skill-edit⟧` step carries no path-shaped backticked token at all (stderr `no path-shaped unit for skill-edit step: <step>`); the plan is not committed, and a spec with no `## Requirements` section is not
    checked. The plan is never committed with a multi-tag step:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
