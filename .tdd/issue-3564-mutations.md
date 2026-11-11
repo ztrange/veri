@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py
 command 188
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_main_refuses_a_restating_skill_edit_step_naming_the_path_shaped_unit_and_never_an_earlier_non_path_token_3564
 
+before 40
+94eba9c62bd6d9077640900702e3015604eef8d1
+keep 56
+skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py
+command 205
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_main_refuses_a_skill_edit_step_whose_path_shaped_unit_file_is_missing_naming_the_unit_and_never_an_earlier_non_path_token_3564
+
