@@ -1,0 +1,1 @@
+- [ ] classify-bail.sh skill-edit-refused prints process and exits 0 ⟦added⟧ ⟦criterion 1⟧
