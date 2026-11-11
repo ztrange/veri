@@ -9,3 +9,10 @@ ICAgICAgICAgICAgbSA9IHJlLnNlYXJjaChyImAoW15gXSspYCIsIGxpbmUpIGlmIGxpbmUuc3RhcnRz
 command 210
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py::test_3634_a_ledger_step_carrying_the_skill_edit_marker_in_its_trailing_tag_run_whose_unit_has_no_heading_exits_2_naming_that_unit
 
+before 40
+e0856af5bfcf3819c23e2af634e54b8b396cf108
+keep 63
+skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py
+command 192
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py::test_3634_a_ledger_step_that_mentions_the_skill_edit_marker_only_in_its_prose_is_not_checked_for_a_unit_heading
+
