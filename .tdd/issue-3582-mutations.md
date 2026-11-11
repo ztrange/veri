@@ -51,3 +51,10 @@ ICAgICAgICBpZiBkb25lLnJldHVybmNvZGUgPT0gMCBvciBub3QgbWFya2VkOg==
 command 197
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_main_exits_2_on_the_first_issue_body_read_with_no_sleep_when_a_403_carries_only_a_permissions_message_issue_3582
 
+before 40
+7c5c912c13193716a2818dcf41370ea2033d29ab
+keep 62
+skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_main_waits_out_a_403_secondary_rate_limit_on_the_stall_check_issue_states_read_and_goes_on_issue_3582
+
