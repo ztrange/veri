@@ -122,6 +122,8 @@ def reopen(ledger, needle, change):
         with open(added_file(ledger), "ab") as f:
             f.write(record_lines([step]))
         return 0
+    print(f"ledger-growth.sh: no step matches: {needle}", file=sys.stderr)
+    return 3
 
 
 def unreadable(error):

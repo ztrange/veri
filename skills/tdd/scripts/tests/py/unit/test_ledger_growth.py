@@ -329,6 +329,15 @@ def test_3427_reopen_of_a_passed_plain_step_exits_2_naming_the_step_and_leaves_t
         2, True, text, False)
 
 
+def test_3427_reopen_with_no_step_matching_the_needle_exits_3_leaving_the_ledger_and_the_record_untouched(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    text = "# Plan for #42\n\n- [x] ⟦skill-edit⟧ regrade the doc ⟦criterion 1⟧ ⟂ refactor pending\n"
+    ledger.write_text(text)
+    code = run_cli(ledger_growth, ["reopen", str(ledger), "no such step", "a change"])[0]
+    assert (code, ledger.read_text(), (tmp_path / "issue-42-added.md").exists()) == (3, text, False)
+
+
 def test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_against_the_original_plan_exits_0_silently(
         tmp_path, run_cli, ledger_growth):
     plan = tmp_path / "plan.md"
