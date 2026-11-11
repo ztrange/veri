@@ -376,3 +376,31 @@ def test_main_waits_out_a_429_marked_only_by_an_x_ratelimit_remaining_zero_heade
         code = "looping"
 
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
+
+
+def test_issue_paths_waits_out_a_403_secondary_rate_limit_on_a_graphql_issue_body_read_and_goes_on_issue_3582(
+        monkeypatch):
+    import subprocess
+    dispatch = importlib.import_module("veri.dispatch")
+    reads = []
+
+    def run(argv, *args, **kw):
+        assert argv[:3] == ["gh", "issue", "view"], argv
+        reads.append(argv)
+        if len(reads) <= 2:
+            return subprocess.CompletedProcess(
+                argv, 1, "", "HTTP 403: You have exceeded a secondary rate limit. Please wait a few minutes "
+                             "before you try again. (https://api.github.com/graphql)\n")
+        return subprocess.CompletedProcess(argv, 0, "touches `skills/tdd/a.py`\n", "")
+
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setattr(dispatch, "_reads", {})
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+
+    try:
+        paths = dispatch.issue_paths("12")
+    except dispatch.watch_runs.QueueUnreadable as failure:
+        paths = str(failure)
+
+    assert paths == ["skills/tdd/a.py"]
