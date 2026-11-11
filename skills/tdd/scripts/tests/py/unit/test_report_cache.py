@@ -1777,3 +1777,39 @@ def test_refresh_whose_git_tag_list_cannot_start_still_writes_the_cache_with_an_
 
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     assert (code, [i["number"] for i in cache["issues"]], cache.get("landed")) == (0, [7], [])
+
+
+@pytest.mark.process("git started for real over a scratch repository holding annotated tags")
+def test_refresh_records_the_since_time_of_status_last_and_the_no_cut_default_0_when_there_is_none(run_cli, monkeypatch, tmp_path):
+    import calendar
+    import json
+    import os
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    real_run = subprocess.run
+    real_run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "init", "-q"], cwd=tmp_path, check=True)
+    real_run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "first"],
+             cwd=tmp_path, check=True)
+    real_run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "tag", "-a", "v0.1", "-m", "Old"],
+             cwd=tmp_path, check=True)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "status-last").write_text(json.dumps({"time": "2026-06-01T00:00:00Z"}))
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "list"]:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def recorded():
+        code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+        return code, json.loads((tmp_path / ".tdd" / "report-cache.json").read_text()).get("since")
+
+    with_file = recorded()
+    os.remove(tmp_path / ".tdd" / "status-last")
+    without_file = recorded()
+
+    assert (with_file, without_file) == ((0, calendar.timegm((2026, 6, 1, 0, 0, 0))), (0, 0))
