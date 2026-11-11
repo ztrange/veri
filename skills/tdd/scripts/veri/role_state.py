@@ -7,7 +7,7 @@ import time
 from full_tier_time import main_tree
 import timed_n_format
 
-USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane> <value>"
+USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator> <value>"
          " | add <decision|message|override|timed-n> <text>"
          " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
 
@@ -70,7 +70,7 @@ def do_recovered(path, argv):
 
 
 def do_set(path, argv):
-    if len(argv) != 4 or argv[2] not in ("n", "lane"):
+    if len(argv) != 4 or argv[2] not in ("n", "lane", "coordinator"):
         return usage()
     if argv[2] == "n" and not argv[3].isdigit():
         return usage()
