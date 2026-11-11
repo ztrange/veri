@@ -33,10 +33,11 @@ def resolve(name):
         return None
     actor = role["VERI_ACTOR"]
     revise = is_revise(name)
+    adjudicate = name.startswith("adjudicate-")
     model = ((_env("VERI_MODEL_REVISE") if revise else "")
              or _env("VERI_MODEL_" + actor.upper()) or _env("VERI_MODEL"))
     if not model:
-        model = "opus" if revise else "sonnet"
+        model = "opus" if revise or adjudicate else "sonnet"
     if any(c in WHITESPACE for c in model):
         write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return None
