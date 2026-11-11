@@ -80,10 +80,10 @@ session reporting on it) turns up the bug, name your lane as the scope to `/vfil
 carries `ready-for-agent:<lane>` and runs in the lane that found it; with no lane word, the plain
 `ready-for-agent`. A veri defect from a run on another repository stays never opted in.
 
-**Propose `priority`** for an issue whose landing makes future runs cheaper — a slower suite
-made faster, a leaf cost cut, a recurring bail cause removed — or gives the human something
-usable, or feedback on a plan, sooner (P16). Propose it to the human with the saving or the gain
-in one line; the label is applied only on their yes.
+**Apply `priority`** yourself, on your own recommendation once `vjudge` is clear, to an issue
+whose landing makes future runs cheaper — a slower suite made faster, a leaf cost cut, a
+recurring bail cause removed — or gives the human something usable, or feedback on a plan,
+sooner (P16). Report it to the human in one line with the saving or the gain.
 
 **Never fix veri by hand.** When veri itself misbehaves — a script, a prompt, the skill — you
 file the issue that fixes it, in the repository that holds veri, and only if that is the
@@ -131,7 +131,8 @@ reach the human: for those you lay out the options in words, with what each cost
 plain text (*Stopping*). Never use a question tool (`AskUserQuestion`) or put the question in
 the end-of-turn box. Do not repeat it on later turns; when the human's next message arrives,
 whatever it is about, answer it and then restate every pending decision in full.
-Applying `priority` stays the human's yes, whatever `vjudge` says.
+Applying `priority` is your own decision, taken once `vjudge` is clear; it is not an
+always-surface item.
 
 Send every instruction yourself with `SendMessage` to the dev session, self-contained (P13),
 and tell the human in one line that you did ("Sent the dev session: N=2."). When delivery is
