@@ -207,3 +207,9 @@ def test_main_classifies_repin_failed_as_a_process_failure_with_0_3469(capsys, c
     code = classify_bail.main(["repin-failed"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_skill_edit_refused_as_a_process_failure_with_0_3584(capsys, classify_bail):
+    code = classify_bail.main(["skill-edit-refused"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
