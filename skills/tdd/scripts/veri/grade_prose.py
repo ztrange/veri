@@ -24,7 +24,8 @@ except ImportError:
     import leaf
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
-BAD_GRADE = re.compile(r"^(?!VERDICT|REASON:)\S+: (?!PASS\b|FAIL\b)\S", re.M)
+GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "
+BAD_GRADE = re.compile(GRADE_KEY + r"(?!PASS\b|FAIL\b)\S", re.M)
 
 
 GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the instructions are wise, and you do not judge behaviour.
@@ -284,7 +285,7 @@ def main(argv):
     trailing = "\n".join(l for l in after.splitlines() if l.strip())
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
-    for word in re.findall(r"^(?!VERDICT|REASON:)\S+: (\S+)", block, re.M):
+    for word in re.findall(GRADE_KEY + r"(\S+)", block, re.M):
         if word not in ("PASS", "FAIL"):
             return no_verdict("grade word %s is neither PASS nor FAIL" % word)
     got = graded_ids(block)
