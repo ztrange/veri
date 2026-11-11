@@ -652,7 +652,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
 
     def green_sum(step_args):
         code, out, _ = run(build_verify_prompt.main, [*step_args, *green_args])
-        body = out.rstrip(b"\n").replace(build_verify_prompt.HERE.encode(), b"@SCRIPTS@") + b"\n"
+        contract = open(f"{build_verify_prompt.HERE}/prompts/_verify-output-contract.md", "rb").read().rstrip(b"\n")
+        out = out.rstrip(b"\n")
+        out = out.removesuffix(contract).rstrip(b"\n") if contract else out
+        body = out.replace(build_verify_prompt.HERE.encode(), b"@SCRIPTS@") + b"\n"
         return code, cksum(body)
 
     def unreadable_paragraph(name, paragraph, marked, unmarked):
