@@ -121,7 +121,8 @@ suites, or script run as a subprocess.
 (`PROCESS_CASE_TIMEOUT` in `tests/py/conftest.py`), since load stretches a real process; an explicit mark wins; a wait inside a case bounds itself below `VERI_PYTEST_TIMEOUT` (30 s by default), or its failure path is unreachable because pytest-timeout fires first; the bytecode cache
 (`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the Makefile sets when unset) persists between runs, and a manifest of source hashes keeps a changed module,
 a same-second mutation included, from being served a stale `.pyc`: before importing, the leg drops
-every `.pyc` the manifest does not vouch for, and pytest-rewritten and `.opt-N` files always
+every `.pyc` the manifest does not vouch for by the hash of its source, and `.opt-N` files always; a pytest-rewritten `.pyc` is
+vouched for like any other, recorded only when its header carries its source's mtime and size and the source did not change after the run began
 (#1127, #2054). A shim run has no manifest, so `shim-python.sh` clears the prefix and sets `PYTHONDONTWRITEBYTECODE=1`, and `veri/pycache_prefix.py`, which a module's first line runs before any veri import, compiles veri's modules from source: the run neither reads nor poisons a cache (#2406, #2439), while the standard library keeps its own `.pyc` files, since a prefix would recompile them on every start.
 A veri module run directly as `python3 <module>` with bytecode writing on takes the shared prefix from the same file. Cases run across pytest-xdist
 workers: `make unit` 4 (each worker pays its own start-up); `make test` the cores other running
