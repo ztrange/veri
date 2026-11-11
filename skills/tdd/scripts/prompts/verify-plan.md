@@ -40,17 +40,20 @@ rather than a step:
 
 - A criterion whose only observable is that the repository's test command passes — "the
   suites are green" — is one `⟦full-suite⟧ ⟦criterion k⟧` line, covered by the full-suite run.
-- A criterion whose deliverable is the record of a manual check — each suite broken on
-  purpose, watched going red, the output recorded — is owed by a human, not by code, so it is
-  one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever handed.
+- A criterion whose deliverable is the record of a manual check only a person can make is owed
+  by a human, so it is one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever
+  handed. A go-red guard (a guard broken on purpose, watched going red, restored) is not that
+  shape: an agent can do that check, and it is never marked `⟦human-owed⟧`.
 
 For check 1, a `⟦full-suite⟧ ⟦criterion k⟧` or `⟦human-owed⟧ ⟦criterion k⟧` line delivers
-criterion k by itself: such a criterion is owed no step, and its line is never a reason to REJECT.
+criterion k by itself, except that a `⟦human-owed⟧` line on a go-red guard delivers nothing.
+Such a criterion is owed no step, and its line is never a reason to REJECT.
 
 REJECT a plan that turns either shape — the test command or the suites passing, or the record
-of a manual check — into a Red/Green step instead of its `⟦full-suite⟧` or `⟦human-owed⟧`
-line, even where check 1 alone would pass it: a Red leaf handed that step can only answer
-`UNTESTABLE`, and the run bails.
+of a manual check only a person can make — into a Red/Green step instead of its `⟦full-suite⟧`
+or `⟦human-owed⟧` line, even where check 1 alone would pass it: a Red leaf handed that step can
+only answer `UNTESTABLE`, and the run bails. Also REJECT a plan that marks a go-red guard step
+`⟦human-owed⟧`: that leaves a check an agent can do waiting on a human.
 
 A third shape has no test to leave behind: a diff-property criterion, one that is a property
 of the branch's own diff — something removed, something left unchanged, a change confined to
