@@ -1813,3 +1813,37 @@ def test_refresh_records_the_since_time_of_status_last_and_the_no_cut_default_0_
     without_file = recorded()
 
     assert (with_file, without_file) == ((0, calendar.timegm((2026, 6, 1, 0, 0, 0))), (0, 0))
+
+
+def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issues_fetches_incrementally_and_writes_the_record(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    before = {"fetched_at": "2026-10-01T00:00:00Z", "cache_format": 2, "issues": [
+        {"number": 7, "title": "kept", "state": "OPEN", "labels": [], "closedAt": None,
+         "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []},
+    ]}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(before))
+    asked = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[0] == "git":
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        if args[args.index("--json") + 1] != "number,comments":
+            asked.append([term for i, arg in enumerate(args) if arg == "--search"
+                          for term in args[i + 1].split() if term.startswith("updated:>=")])
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, err, asked, [i["number"] for i in cache["issues"]], cache.get("landed"), cache.get("since")) == (
+        0, "", [["updated:>=2026-10-01T00:00:00Z"]], [7], [], 0)
