@@ -338,6 +338,33 @@ def test_2246_the_inherited_tmpdir_guard_fails_planted_cases_that_create_in_it_t
         assert str(inherited / leak) in output
 
 
+def test_the_inherited_tmpdir_guard_lets_a_module_that_is_not_a_test_file_create_in_it_through_mkdir_open_or_os_open(pytester, monkeypatch, tmp_path):
+    inherited = tmp_path / "inherited"
+    inherited.mkdir()
+    monkeypatch.setenv("TMPDIR", str(inherited))
+    monkeypatch.setattr(conftest.tempfile, "tempdir", str(inherited))
+    pytester.makepyfile(planted_helper="""
+        import os
+
+        def leak(inherited):
+            os.mkdir(os.path.join(inherited, "leak-mkdir"))
+            with open(os.path.join(inherited, "leak-open"), "w") as handle:
+                handle.write("x")
+            os.close(os.open(os.path.join(inherited, "leak-os-open"), os.O_CREAT | os.O_WRONLY))
+    """)
+    pytester.makepyfile(test_planted="""
+        import planted_helper
+
+        def test_a_helper_leaks():
+            planted_helper.leak(%r)
+    """ % str(inherited))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(passed=1)
+    assert sorted(path.name for path in inherited.iterdir()) == ["leak-mkdir", "leak-open", "leak-os-open"]
+
+
 def test_the_real_pycache_guard_fails_a_planted_case_that_adds_changes_or_removes_a_file_in_veri_pycache_while_a_case_leaving_it_alone_passes_issue_3002(pytester, monkeypatch, tmp_path):
     scripts = tmp_path / "scripts"
     cache = scripts / "veri" / "__pycache__"
