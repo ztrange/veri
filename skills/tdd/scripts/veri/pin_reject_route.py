@@ -48,7 +48,7 @@ def main(argv):
     if missing:
         with open(argv[0], encoding="utf-8") as handle:
             reason = handle.read()
-        if "stays green" in reason and BEFORE_STATE_GREEN.search(reason):
+        if BEFORE_STATE_GREEN.search(reason):
             text = ledger.read_ledger(argv[1])
             _, new = ledger.ledger_tick(text, argv[2], False)
             if new == text:
