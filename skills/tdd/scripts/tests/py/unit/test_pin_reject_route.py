@@ -311,3 +311,19 @@ def test_main_missing_reroute_hand_mutation_stays_green_reason_prints_revise_exi
 
     assert (code, out.strip(), ledger.read_bytes(), (ledger.parent / "events.jsonl").exists()) == (
         1, "revise", body.encode(), False), err
+
+
+def test_main_missing_reroute_target_red_on_before_state_but_mutant_stays_green_prints_revise_exits_1_and_leaves_ledger_and_events_untouched_3458(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the target is red on the before-state, but the mutation (a-z to a-y) stays green\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_bytes(), (ledger.parent / "events.jsonl").exists()) == (
+        1, "revise", body.encode(), False), err
