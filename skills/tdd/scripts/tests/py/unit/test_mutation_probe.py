@@ -414,7 +414,7 @@ def test_main_records_neither_the_old_nor_the_new_text_verbatim_context_included
     target.write_text("head\nsee OLDMARKER3471 here\ntail\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     code, out, err = run_cli(
         mutation_probe,
