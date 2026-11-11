@@ -3,6 +3,18 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+SNAPSHOT_MARKER = ".veri-snapshot"
+
+
+def snapshot_made_for(recorded, worktree):
+    """Whether <recorded>, the text of a .snapshot-dir file, names a directory whose marker names <worktree>."""
+    try:
+        with open(os.path.join(recorded, SNAPSHOT_MARKER)) as served:
+            named = served.read().rstrip("\n")
+    except OSError:
+        return False
+    return os.path.realpath(named) == os.path.realpath(worktree)
+
 
 def main(argv):
     if not argv:

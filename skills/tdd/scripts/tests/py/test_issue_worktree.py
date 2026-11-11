@@ -273,6 +273,22 @@ def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_wo
     assert (code, err, snapshot.exists()) == (0, "", False)
 
 
+def refusal_of(tmp_path, snapshot):
+    return "issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (
+        snapshot, run_worktree_of(tmp_path))
+
+
+def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = tmp_path / "tmpa1b2c3"
+    snapshot.mkdir()
+    (snapshot / "precious.txt").write_text("not veri's\n")
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+
+    assert (code, err, (snapshot / "precious.txt").exists()) == (0, refusal_of(tmp_path, snapshot), True)
+
+
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
 def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
         monkeypatch, capfd, tmp_path, issue_worktree, run_cli):

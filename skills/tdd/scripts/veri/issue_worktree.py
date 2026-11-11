@@ -10,6 +10,7 @@ import tempfile
 
 import event_log
 import paths
+import pinned_scripts
 import tunables
 from git import git, symref_default
 import github
@@ -147,9 +148,12 @@ def main(argv):
                 snapshot = where.read()
         except OSError:
             snapshot = ""
+        ours = pinned_scripts.snapshot_made_for(snapshot, path)
         removed = subprocess.run(["git", "worktree", "remove", path], stdout=sys.stderr, stderr=sys.stderr)
-        if removed.returncode == 0 and snapshot:
+        if removed.returncode == 0 and ours:
             shutil.rmtree(snapshot, ignore_errors=True)
+        elif removed.returncode == 0 and snapshot:
+            sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (snapshot, path))
         return to_contract(removed.returncode)
     path = wt_path(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):
