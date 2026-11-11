@@ -350,7 +350,7 @@ def main(argv):
                         return 2
                 if states.get(issue) == "CLOSED":
                     continue
-                sys.stdout.write(f"stalled {issue}\n")
+                say(f"stalled {issue}\n")
                 return 0
         for issue in live:
             missing.pop(issue, None)
