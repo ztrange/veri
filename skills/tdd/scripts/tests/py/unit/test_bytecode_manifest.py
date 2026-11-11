@@ -65,6 +65,28 @@ def test_a_run_started_after_a_test_file_changed_drops_its_rewritten_pyc_even_at
     assert (os.path.exists(kept), os.path.exists(dropped)) == (True, False)
 
 
+def test_the_record_after_a_run_leaves_out_a_rewritten_pyc_whose_header_names_another_source_size_2054(tmp_path, monkeypatch):
+    pytest_leg = importlib.import_module("veri.pytest_leg")
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    source = tmp_path / "test_grown.py"
+    source.write_text("def test_value():\n    assert 1 == 1\n")
+    an_hour_ago = time.time() - 3600
+    os.utime(source, (an_hour_ago, an_hour_ago))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    rewritten = importlib.util.cache_from_source(str(source))[:-len(".pyc")] + "-pytest-8.3.4.pyc"
+
+    run = pytest_leg.check_bytecode_cache(str(prefix))
+    py_compile.compile(str(source), cfile=rewritten, doraise=True)
+    a_minute_on = time.time() + 60
+    os.utime(rewritten, (a_minute_on, a_minute_on))
+    source.write_text("def test_value():\n    assert 1 == 1  # longer\n")
+    os.utime(source, (an_hour_ago, an_hour_ago))
+    pytest_leg.record_bytecode_cache(str(prefix), run)
+
+    assert pytest_leg.read_manifest(str(prefix)) == {}
+
+
 def test_the_check_treats_a_pyc_another_run_already_removed_as_dropped_and_carries_on_2054(tmp_path, monkeypatch):
     pytest_leg = importlib.import_module("veri.pytest_leg")
     prefix = tmp_path / "prefix"
