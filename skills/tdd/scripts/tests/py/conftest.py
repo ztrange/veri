@@ -22,6 +22,7 @@ import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
+ROOT_NAME = str(ROOT)
 
 
 def bare_route(stdout):
@@ -309,20 +310,25 @@ CWD_OUTSIDE_REPOSITORY = {
 
 @pytest.fixture(autouse=True)
 def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
-    offline = {name: value for name, value in os.environ.items()
-               if name in ("GIT_CONFIG_COUNT", "GIT_TEMPLATE_DIR", "GIT_EXEC_PATH")
-               or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
-    for name in list(os.environ):
+    offline, doomed = {}, []
+    for name, value in os.environ.items():
+        if (name in ("GIT_CONFIG_COUNT", "GIT_TEMPLATE_DIR", "GIT_EXEC_PATH")
+                or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))):
+            offline[name] = value
         if name.startswith(("VERI_", "CLAUDE_", "GH_", "GIT_")) and name != "VERI_VENV":
-            monkeypatch.delenv(name)
+            doomed.append(name)
         elif name == "LANG" or name.startswith("LC_"):
-            monkeypatch.delenv(name)
+            doomed.append(name)
         elif name in ("PYTEST_PLUGINS", "PYTEST_XDIST_WORKER"):
-            monkeypatch.delenv(name)
+            doomed.append(name)
+    for name in doomed:
+        monkeypatch.delenv(name)
     if request.node.path.name in CWD_OUTSIDE_REPOSITORY:
         monkeypatch.chdir(tmp_path)
-    elif at_or_under_root(pathlib.Path.cwd().resolve()):
-        monkeypatch.chdir(ROOT)
+    else:
+        cwd = os.path.realpath(os.getcwd())
+        if cwd == ROOT_NAME or cwd.startswith(ROOT_NAME + os.sep):
+            monkeypatch.chdir(ROOT)
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
