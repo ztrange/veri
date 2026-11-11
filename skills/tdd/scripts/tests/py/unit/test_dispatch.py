@@ -3045,3 +3045,31 @@ def test_main_reads_the_queue_and_proceeds_when_the_graphql_adapters_first_gh_ca
         code = None
 
     assert (code, waits, capsys.readouterr().err) == (None, [1], "")
+
+
+def test_main_goes_on_to_launch_when_the_rest_adapters_issue_read_fails_once_with_an_http_503_then_answers_issue_3651(
+        monkeypatch, tmp_path, dispatch):
+    import subprocess
+    launches, _ = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, lambda: {})
+    monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+    gh_calls = []
+
+    def gh(argv, *args, **kw):
+        assert argv[0] == "gh"
+        gh_calls.append(list(argv))
+        if len(gh_calls) == 1:
+            return subprocess.CompletedProcess(
+                argv, 1, stdout="", stderr="HTTP 503: No server is currently available to service your request\n")
+        return subprocess.CompletedProcess(argv, 0, stdout='{"body": "Edits `a.py`.", "labels": []}', stderr="")
+
+    monkeypatch.setattr(dispatch.github.subprocess, "run", gh)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, launches) == (None, ["12"])
