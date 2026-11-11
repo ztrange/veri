@@ -69,13 +69,14 @@ def probe_ceiling(problems, text):
     probe(problems, text, "comment beside the timeout does not name the 6-hour default ceiling", r"(6[ -]?h|six[ -]?hour)")
 
 
-def test_ci_yml_gates_timeout_minutes_8_with_a_comment_citing_the_ceiling_the_measurement_and_the_temporary_raise():
+def test_ci_yml_gates_timeout_minutes_10_with_a_comment_citing_the_ceiling_the_measurements_and_the_temporary_raise():
     problems = []
-    text = timeout_comment(CI_YML, "gates", 8, problems)
+    text = timeout_comment(CI_YML, "gates", 10, problems)
     if text is not None:
         probe_ceiling(problems, text)
-        probe(problems, text, "comment does not cite the measured 160-175 s the job takes", r"(^|[^0-9])(1[5-9][0-9])[ -]?s")
-        probe(problems, text, "comment does not say the 8 is temporary, naming what has to land first", "temporar", r"(#282|#290)")
+        probe(problems, text, "comment does not cite the measured 160-175 s the job once took", r"(^|[^0-9])(1[5-9][0-9])[ -]?s")
+        probe(problems, text, "comment does not cite the measured 245-381 s the job now takes", r"(24[0-9]|3[0-9][0-9])[ -]?s")
+        probe(problems, text, "comment does not say the raise is temporary, naming what has to land first", "temporar", r"(#282|#290)")
 
     assert problems == []
 
