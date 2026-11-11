@@ -33,7 +33,7 @@ def _recorded(exit_file, alone=None):
 
 def _alive(pid_file):
     try:
-        pid = _read(pid_file)
+        pid = _read(pid_file).split("\n")[0]
         if not re.fullmatch(r"\s*[-+]?[0-9]+\s*", pid):
             return False
         os.kill(int(pid), 0)

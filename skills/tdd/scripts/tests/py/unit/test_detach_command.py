@@ -647,3 +647,18 @@ def test_wait_returns_2_within_one_poll_when_stop_holds_now_and_keeps_waiting_ot
     slept.clear()
     code = detach_command.main(["wait", "x", "100"])
     assert (code, sum(slept) <= 1, capsys.readouterr().err) == (2, True, "")
+
+
+def test_wait_reads_the_pid_from_line_1_of_a_pid_file_whose_line_2_holds_a_start_time(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\nThu Nov 11 09:00:00 2026\n")
+    kills = []
+    monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    code = detach_command.main(["wait", "x", "0"])
+
+    assert (code, capsys.readouterr(), kills) == (3, ("", ""), [(4242, 0)])
