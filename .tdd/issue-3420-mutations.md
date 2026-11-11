@@ -1,0 +1,11 @@
+file 43
+skills/tdd/scripts/veri/suite_red_resume.py
+old-b64 44
+cmV0dXJuIGJvb2woY2FuZGlkYXRlcykgYW5kIGFsbCg=
+new-b64 28
+cmV0dXJuIFRydWUgb3IgYWxsKA==
+context-b64 132
+ICAgICAgICByZXR1cm4gYm9vbChjYW5kaWRhdGVzKSBhbmQgYWxsKGFueSh1bml0IGluIGxpbmUgZm9yIGxpbmUgaW4gbGluZXMpIGZvciB1bml0IGluIGNhbmRpZGF0ZXMp
+command 221
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_suite_red_resume.py::test_insert_still_adds_the_suite_repair_step_for_a_red_mixing_the_stale_graded_suites_with_a_non_graded_suite_no_pending_skill_edit_step_owns_3420
+
