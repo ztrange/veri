@@ -120,7 +120,7 @@ def unphased(text):
 def unit_of(text):
     """The unit a skill-edit step names: its first path-shaped backticked span, or None."""
     for span in re.findall(r"`([^`]+)`", text):
-        if "/" in span:
+        if "/" in span or span.endswith(".md"):
             return span
     return None
 
