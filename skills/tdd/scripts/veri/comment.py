@@ -253,9 +253,9 @@ def post_stopped(issue, note_file):
         body += f"push=rejected sha={before['remote_sha']}\n"
     if restart_pending():
         body += "The conductor is being restarted for context growth.\n"
-        return post_and_record(issue, "stopped", with_note(body, note_file))
-    scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
+    else:
+        scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
     return post_and_record(issue, "stopped", with_note(body, note_file))
 
 
