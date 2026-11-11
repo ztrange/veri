@@ -484,3 +484,47 @@ def test_issue_paths_waits_out_a_403_marked_only_by_x_ratelimit_remaining_zero_o
         paths = str(failure)
 
     assert paths == ["skills/tdd/a.py"]
+
+
+def test_main_exits_2_on_the_first_issue_body_read_with_no_sleep_when_a_403_carries_only_a_permissions_message_issue_3582(
+        monkeypatch, capsys, tmp_path):
+    import itertools
+    import subprocess
+    dispatch = importlib.import_module("veri.dispatch")
+    ticks = itertools.count(1000, 100)
+    waits = []
+    sleeps = []
+    body_reads = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 20:
+            raise _StopWaiting
+
+    def run(argv, *args, **kw):
+        assert argv[:2] == ["gh", "api"], argv
+        if argv[2] == "rate_limit":
+            return subprocess.CompletedProcess(argv, 0, "1000\n", "")
+        body_reads.append(argv)
+        return subprocess.CompletedProcess(
+            argv, 1, "", "HTTP 403: Resource not accessible by integration "
+                         "(https://api.github.com/repos/o/r/issues/12)\n")
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.watch_runs.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.github.time, "sleep", sleeps.append)
+    monkeypatch.setattr(dispatch, "clock", lambda: next(ticks), raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    assert (code, len(body_reads), sleeps, waits) == (2, 1, [], [])

@@ -40,3 +40,14 @@ skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
 command 206
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_issue_paths_waits_out_a_403_marked_only_by_x_ratelimit_remaining_zero_on_a_graphql_issue_body_read_and_goes_on_issue_3582
 
+file 33
+skills/tdd/scripts/veri/github.py
+old-b64 52
+aWYgZG9uZS5yZXR1cm5jb2RlID09IDAgb3Igbm90IG1hcmtlZDo=
+new-b64 32
+aWYgZG9uZS5yZXR1cm5jb2RlID09IDA6
+context-b64 64
+ICAgICAgICBpZiBkb25lLnJldHVybmNvZGUgPT0gMCBvciBub3QgbWFya2VkOg==
+command 197
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_main_exits_2_on_the_first_issue_body_read_with_no_sleep_when_a_403_carries_only_a_permissions_message_issue_3582
+
