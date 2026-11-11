@@ -321,3 +321,17 @@ def test_add_timed_n_with_unparseable_text_exits_2_naming_the_form_and_writes_no
     code, out, err = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
     wrote = (repo / ".tdd" / "role-dev.state").exists()
     assert (code, "<n> until <ISO-8601 datetime>" in err, wrote) == (2, True, False)
+
+
+@pytest.mark.process("git")
+def test_add_timed_n_with_well_formed_text_appends_the_line_and_prints_its_id_3583(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    text = "4 until 2026-11-10T20:00:00"
+    code, out, _ = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
+    state = repo / ".tdd" / "role-dev.state"
+    lines = state.read_text().splitlines() if state.exists() else []
+    stored = [l for l in lines if l.startswith("timed-n 1 ") and l.endswith(" " + text)]
+    assert (code, out.strip(), len(stored)) == (0, "1", 1)
