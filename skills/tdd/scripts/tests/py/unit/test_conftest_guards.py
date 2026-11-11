@@ -489,11 +489,18 @@ def test_a_process_cases_supervisor_polls_at_a_sub_second_interval_whether_the_c
         @pytest.mark.process("a child")
         def test_sets_its_own():
             subprocess.Popen(["true-set"], env={"PATH": "/bin", "VERI_POLL": "1"})
+
+        @pytest.mark.process("a child")
+        def test_clears_it(monkeypatch):
+            monkeypatch.delenv("VERI_POLL", raising=False)
+            subprocess.Popen(["true-clear"], env={"PATH": "/bin"})
+            subprocess.Popen(["true-clear-inherited"])
     """)
 
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
 
-    result.assert_outcomes(passed=3)
+    result.assert_outcomes(passed=4)
     envs = {args[0]: env for args, env in started}
+    assert envs["true-clear"] == {"PATH": "/bin"} and envs["true-clear-inherited"] is None
     assert float(envs["true-own"]["VERI_POLL"]) < 1 and envs["true-own"]["PATH"] == "/bin"
     assert envs["true-set"]["VERI_POLL"] == "1"

@@ -678,6 +678,7 @@ def test_after_the_pairs_check_exits_2_a_mutation_that_does_not_apply_a_bash_sui
 
 @pytest.mark.process("a bash suite and python3 started by failed_cases(), run with a VERI_* tunable set in the caller")
 def test_1667_bash_suite_row_sees_no_veri_or_claude_variable_from_the_caller_except_veri_venv(tmp_path, monkeypatch, run_cli):
+    monkeypatch.delenv("VERI_POLL", raising=False)
     monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
     monkeypatch.setenv("CLAUDE_BIN", "/nonexistent")
     monkeypatch.setenv("VERI_VENV", str(tmp_path / "venv"))
@@ -707,6 +708,7 @@ def test_1667_bash_suite_row_sees_no_veri_or_claude_variable_from_the_caller_exc
 
 @pytest.mark.process("pytest and python3 started by pytest() and node_fails(), run with a VERI_* tunable set in the caller")
 def test_1667_pytest_case_row_sees_no_veri_or_claude_variable_from_the_caller_except_veri_venv(tmp_path, monkeypatch, run_cli):
+    monkeypatch.delenv("VERI_POLL", raising=False)
     monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
     monkeypatch.setenv("CLAUDE_BIN", "/nonexistent")
     source = tmp_path / MODULE

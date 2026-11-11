@@ -323,7 +323,8 @@ def process_case_supervisor_polls_sub_second(request, monkeypatch):
 
     def polling(self, args, *rest, **kwargs):
         env = kwargs.get("env")
-        if env is not None and "VERI_POLL" not in env:
+        # A case that deleted or changed the suite's VERI_POLL opted out: nothing is injected for it.
+        if env is not None and "VERI_POLL" not in env and os.environ.get("VERI_POLL") == SUPERVISOR_POLL:
             kwargs["env"] = {**env, "VERI_POLL": SUPERVISOR_POLL}
         return real(self, args, *rest, **kwargs)
 
