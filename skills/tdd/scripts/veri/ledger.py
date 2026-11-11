@@ -118,9 +118,11 @@ def unphased(text):
 
 
 def unit_of(text):
-    """The unit a skill-edit step names: its first backticked span, or None."""
-    found = re.search(r"`([^`]+)`", text)
-    return found.group(1) if found else None
+    """The unit a skill-edit step names: its first path-shaped backticked span, or None."""
+    for span in re.findall(r"`([^`]+)`", text):
+        if "/" in span:
+            return span
+    return None
 
 
 def carries_mark(text, name):
