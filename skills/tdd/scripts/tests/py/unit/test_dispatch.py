@@ -509,6 +509,8 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
 
     try:
@@ -539,6 +541,8 @@ def test_main_prints_no_exit_line_and_keeps_looping_when_a_seen_run_with_a_workt
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
 
     try:
@@ -569,6 +573,8 @@ def test_main_prints_no_exit_line_when_a_seen_run_is_absent_for_several_passes_s
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
 
     try:
@@ -599,6 +605,8 @@ def test_main_prints_no_exit_line_on_the_first_pass_of_a_new_absence_when_the_ru
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
 
     try:
@@ -782,6 +790,8 @@ def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     waits = []
     elapsed = [1000]
 
@@ -829,6 +839,8 @@ def test_main_reports_a_deferred_run_once_its_restart_marker_goes_stale_after_se
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "comment_bodies",
+                        lambda issue: ["Earlier note.", "### 🔧 Working on it\n\nbody"], raising=False)
     monkeypatch.setattr(dispatch, "wait", wait, raising=False)
 
     try:
@@ -2842,3 +2854,14 @@ def test_exit_line_returns_bail_when_the_skill_drift_note_follows_the_bailed_com
     monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
 
     assert dispatch.exit_line("3589") == "bail 3589"
+
+
+def test_exit_line_returns_done_when_a_plain_follow_up_note_follows_the_done_comment_issue_3593(monkeypatch, dispatch):
+    bodies = [
+        "### ✅ Done — https://github.com/o/r/pull/77\n\nbody",
+        "Thanks, follow-up note.",
+    ]
+    monkeypatch.setattr(dispatch, "comment_bodies", lambda issue: bodies, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: bodies[-1], raising=False)
+
+    assert dispatch.exit_line("3589") == "done 3589 https://github.com/o/r/pull/77"
