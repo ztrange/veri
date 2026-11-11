@@ -197,6 +197,28 @@ def test_main_missing_reroute_stays_green_prints_unpinnable_missing_and_exits_2_
         2, "unpinnable-missing", 1, ledger_bytes), err
 
 
+@pytest.mark.parametrize("unpinnable_clause", [
+    "the before-state is green",
+    "the before-state case passes",
+    "on the before-state the case passes",
+    "the case passes on the before-state",
+    "green on the before-state",
+    "the case is green on the before-state",
+])
+def test_main_missing_reroute_every_before_state_green_wording_routes_unpinnable_missing_3458(
+        tmp_path, run_cli, pin_reject_route, unpinnable_clause):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation stays green. " + unpinnable_clause + "\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip()) == (2, "unpinnable-missing"), err
+
+
 def test_main_stays_green_reject_with_failing_target_test_prints_revise_and_leaves_line_unticked_3305(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
     ran = []
