@@ -7,11 +7,14 @@ import sys
 USAGE = "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <leaf-output>"
 
 
+def budget():
+    return os.environ.get("VERI_ADJUDICATE_BUDGET", "2")
+
+
 def main(argv):
     if argv == ["--check-budget"]:
-        budget = os.environ.get("VERI_ADJUDICATE_BUDGET", "2")
-        if not budget.isdigit():
-            print(f"VERI_ADJUDICATE_BUDGET must be a non-negative whole number, got {budget!r}", file=sys.stderr)
+        if not budget().isdigit():
+            print(f"VERI_ADJUDICATE_BUDGET must be a non-negative whole number, got {budget()!r}", file=sys.stderr)
             return 2
         return 0
     if len(argv) == 2 and argv[0] == "left":
@@ -25,7 +28,7 @@ def main(argv):
                     spent = 0
                 elif e.get("event") == "adjudicated":
                     spent += 1
-        if spent < int(os.environ.get("VERI_ADJUDICATE_BUDGET", "2")):
+        if spent < int(budget()):
             return 0
     print(USAGE, file=sys.stderr)
     return 2
