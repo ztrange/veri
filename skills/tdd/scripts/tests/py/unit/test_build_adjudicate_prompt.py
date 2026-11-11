@@ -78,3 +78,20 @@ def test_the_prompt_carries_the_exit_code_argument(run_cli, build_adjudicate_pro
     )
     assert code == 0
     assert "124" in out
+
+
+def test_a_stderr_file_of_more_than_50_lines_carries_exactly_its_last_50(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("".join(f"errline-{i:02d}\n" for i in range(1, 61)))
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "ci-timeout", "2", str(stderr_file), "wait-ci.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert code == 0
+    carried = [f"errline-{i:02d}" for i in range(1, 61) if f"errline-{i:02d}" in out]
+    assert carried == [f"errline-{i:02d}" for i in range(11, 61)]
