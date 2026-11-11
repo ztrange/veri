@@ -11,9 +11,12 @@ TESTS :=
 UNIT_TESTS :=
 TESTS_NAMED := $(filter command line,$(origin TESTS))
 UNIT_TESTS_NAMED := $(filter command line,$(origin UNIT_TESTS))
-rwildcard = $(foreach d,$(wildcard $(1)/*),$(call rwildcard,$(d),$(2))$(if $(filter $(2),$(notdir $(d))),$(d)))
-PY_ALL := $(sort $(call rwildcard,skills/tdd/scripts/tests/py,test_%.py))
-PY_UNIT := $(sort $(wildcard skills/tdd/scripts/tests/py/unit/test_*.py))
+# The defaults are one directory each, not every test file in it: pytest 8.4 collects quadratically in
+# the number of path arguments (235 files cost 16.5 s CPU per worker, the directory 4.4 s), and the
+# directory selects the same cases, since pytest's own python_files (test_*.py) matches the files the
+# old wildcard listed and no file in the tree is named otherwise.
+PY_ALL := skills/tdd/scripts/tests/py
+PY_UNIT := skills/tdd/scripts/tests/py/unit
 DASH_PATH := projects/dashboard/%
 DASH_RUN = $(MAKE) -C projects/dashboard test
 py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(if $(filter $(DASH_PATH),$(t)),,$(t)))),$(3))
