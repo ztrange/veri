@@ -731,6 +731,25 @@ def test_a_child_process_given_a_hand_built_env_whose_path_holds_a_curl_outside_
     assert ran.returncode != 0
 
 
+def test_a_parallel_pass_lets_an_idle_worker_take_cases_queued_on_a_busy_one_and_a_one_worker_run_hands_pytest_no_distribution(pytest_leg, run_cli, monkeypatch):
+    calls = []
+
+    def spy(args):
+        calls.append([a for a in args if not a.startswith("--basetemp=")])
+        return pytest.ExitCode.OK
+
+    def dist_of(args):
+        return [args[i + 1] for i, a in enumerate(args) if a == "--dist"] + [a for a in args if a.startswith("--dist=")]
+
+    monkeypatch.setattr(pytest, "main", spy)
+    assert run_cli(pytest_leg, ["some/dir"], env=leg_env(VERI_PYTEST_WORKERS="2"))[0] == 0
+    assert dist_of(calls[0]) == ["worksteal"]
+
+    calls.clear()
+    assert run_cli(pytest_leg, ["some/dir"], env=leg_env(VERI_PYTEST_WORKERS="1"))[0] == 0
+    assert [dist_of(c) for c in calls] == [[]] * len(calls)
+
+
 def test_a_serial_marked_case_is_scheduled_in_a_pass_of_its_own_after_the_parallel_pass_keeping_the_m_selection_and_exiting_0_only_when_both_pass_2092(pytest_leg, run_cli, monkeypatch):
     from _pytest.mark.expression import Expression
 
