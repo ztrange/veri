@@ -3,7 +3,6 @@ import builtins
 import contextlib
 import dataclasses
 import errno
-import glob
 import importlib
 import io
 import json
@@ -17,6 +16,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+from time import time_ns
 
 import pytest
 
@@ -369,13 +369,38 @@ def fail_unbacked_push(request):
     pytest.fail("%s reached the push backoff without setting VERI_PUSH_BACKOFF" % request.node.nodeid, pytrace=False)
 
 
+# A file whose mtime or ctime lies within this window of the snapshot may be rewritten into the same
+# stat fingerprint (a coarse kernel clock, a same-size rewrite), so the snapshot keeps its bytes (#3002).
+RACY_NS = 2_000_000_000
+# The unmarked-case guard swaps os.scandir for one that refuses repository directories; the snapshot lists one.
+REAL_SCANDIR = os.scandir
+
+
 def veri_pycache_snapshot(cache):
-    parent = os.open(cache.parent, os.O_RDONLY)
+    """name -> (inode, size, mtime_ns, ctime_ns), plus the bytes of each racy file; no file is opened but a racy one."""
+    now = time_ns()
+    stats, racy = {}, {}
     try:
-        names = glob.glob(os.path.join(cache.name, "*"), dir_fd=parent)
-    finally:
-        os.close(parent)
-    return {name: (cache.parent / name).read_bytes() for name in names}
+        entries = [entry for entry in REAL_SCANDIR(cache) if not entry.name.startswith(".")]
+    except FileNotFoundError:
+        return stats, racy
+    for entry in entries:
+        found = entry.stat()
+        name = f"{cache.name}/{entry.name}"
+        stats[name] = (found.st_ino, found.st_size, found.st_mtime_ns, found.st_ctime_ns)
+        if now - max(found.st_mtime_ns, found.st_ctime_ns) < RACY_NS:
+            racy[name] = (cache.parent / name).read_bytes()
+    return stats, racy
+
+
+def veri_pycache_changed(cache, before, after):
+    """The names whose file differs between two snapshots: a stat fingerprint that moved, or a racy file's bytes."""
+    (stats_before, racy_before), (stats_after, _) = before, after
+    changed = {name for name in stats_before.keys() | stats_after.keys() if stats_before.get(name) != stats_after.get(name)}
+    for name, content in racy_before.items():
+        if name not in changed and (cache.parent / name).read_bytes() != content:
+            changed.add(name)
+    return sorted(changed)
 
 
 @pytest.hookimpl(wrapper=True)
@@ -383,9 +408,8 @@ def pytest_runtest_call(item):
     cache = SCRIPTS / "veri" / "__pycache__"
     before = veri_pycache_snapshot(cache)
     result = yield
-    after = veri_pycache_snapshot(cache)
-    if after != before:
-        changed = sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name))
+    changed = veri_pycache_changed(cache, before, veri_pycache_snapshot(cache))
+    if changed:
         raise AssertionError(f"the case left {cache} changed: {', '.join(changed)}")
     return result
 

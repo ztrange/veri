@@ -7,6 +7,8 @@ import posix
 import pathlib
 import subprocess
 
+import pytest
+
 import conftest
 import small_case_guard
 
@@ -371,3 +373,27 @@ def test_the_real_pycache_guard_fails_a_planted_case_that_adds_changes_or_remove
     (cache / "doomed.pyc").write_bytes(b"doomed")
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-k", "leaves_alone", plugins=[conftest])
     result.assert_outcomes(passed=1)
+
+
+@pytest.mark.parametrize("racy_window", [conftest.RACY_NS, 0], ids=["racy-bytes", "stat-fingerprint-only"])
+def test_the_real_pycache_guard_fails_a_same_size_rewrite_of_a_veri_pycache_file_that_restores_its_mtime_issue_3002(pytester, monkeypatch, tmp_path, racy_window):
+    scripts = tmp_path / "scripts"
+    cache = scripts / "veri" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "kept.pyc").write_bytes(b"AAAA")
+    monkeypatch.setattr(conftest, "SCRIPTS", scripts)
+    monkeypatch.setattr(conftest, "RACY_NS", racy_window)
+    pytester.makepyfile(test_planted="""
+        import os
+        import pathlib
+
+        def test_rewrites_same_size_keeping_mtime():
+            path = pathlib.Path(%r) / "kept.pyc"
+            seen = path.stat()
+            path.write_bytes(b"BBBB")
+            os.utime(path, ns=(seen.st_atime_ns, seen.st_mtime_ns))
+    """ % str(cache))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines(["*the case left * changed: __pycache__/kept.pyc*"])
