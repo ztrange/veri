@@ -31,3 +31,10 @@ def test_main_on_a_file_with_no_adjudication_line_exits_2_with_nothing_on_stdout
     leaf.write_text("thinking\nno verdict here\n")
     code, out, err = run_cli(parse_adjudication, [str(leaf)])
     assert (code, out) == (2, "")
+
+
+def test_main_on_a_last_line_with_an_outcome_other_than_retry_bail_or_route_exits_2_with_nothing_on_stdout(run_cli, parse_adjudication, tmp_path):
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: retry — fine\nADJUDICATION: shrug — no idea\n")
+    code, out, err = run_cli(parse_adjudication, [str(leaf)])
+    assert (code, out) == (2, "")
