@@ -1,6 +1,7 @@
 # Plan for #3579 — vmerge leaves veri-merge-<pr>.token behind after every merge: removal is prose-only
 
 - [x] merge-lock.sh `release` by the owner that took the lock with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding that token: take with an owner and a token file, release, the file is gone ⟦criterion 1⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py ⟦suite-repair⟧ ⟦criterion 1⟧
 - [ ] merge-lock.sh `release --force` of a lock taken with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding the token the freed holder record named ⟦criterion 1⟧
 - [ ] merge-lock.sh `gate --pid <pid> --owner <token> -- <cmd>` whose command fails (an exit other than 0 or 3) releases the lock and removes the `veri-merge-<pr>.token` file in the git common dir holding that token ⟦criterion 1⟧
 - [ ] merge-lock.sh `release` by a different owner token (exit 1, the lock not freed) leaves the holder's `veri-merge-<pr>.token` file in the git common dir untouched ⟦criterion 3⟧
