@@ -190,8 +190,13 @@ def current_branch():
 
 
 def run_pr_number():
-    path = f"repos/{{owner}}/{{repo}}/pulls?head={{owner}}:{current_branch()}"
-    return json.loads(github.gh_api(path).stdout)[0]["number"]
+    branch = current_branch()
+    path = f"repos/{{owner}}/{{repo}}/pulls?head={{owner}}:{branch}"
+    prs = json.loads(github.gh_api(path).stdout)
+    if not prs:
+        print(f"comment.sh: no PR has {branch} as its head", file=sys.stderr)
+        return None
+    return prs[0]["number"]
 
 
 def post_bailed(issue, note_file, pr=False):
@@ -204,6 +209,8 @@ def post_bailed(issue, note_file, pr=False):
         return 2
     heading = f"### ⛔ Bailed — {bail['phase']} ({bail['classification']} failure)\n"
     target = run_pr_number() if pr else None
+    if pr and target is None:
+        return 2
     return post_and_record(issue, "bailed", with_note(heading, note_file), target=target)
 
 
