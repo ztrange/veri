@@ -158,6 +158,21 @@ def _numbered(rows, have):
     return out
 
 
+def _full_text(row):
+    return tuple(requirements.split_cells(row)[2:4])
+
+
+def _held_texts(lines, unit):
+    in_unit = False
+    held = set()
+    for line in lines:
+        if line.startswith("## "):
+            in_unit = line[3:] == unit
+        elif in_unit and line.startswith("|"):
+            held.add(_full_text(line))
+    return held
+
+
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
@@ -174,9 +189,10 @@ def apply(issue, unit):
         return moved
     have = _listed_ids(path, unit)
     rows = _numbered(rows, have | {_row_id(r) for r in rows})
-    new = [r for r in rows if _row_id(r) not in have]
-    reworded = {_row_id(r): r for r in rows}
     lines = requirements.read_lines(path)
+    held = _held_texts(lines, unit)
+    new = [r for r in rows if _row_id(r) not in have and _full_text(r) not in held]
+    reworded = {_row_id(r): r for r in rows}
     last = None
     in_unit = False
     for number, line in enumerate(lines):

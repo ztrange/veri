@@ -2252,3 +2252,22 @@ def test_a_requirements_table_with_the_separator_line_but_a_wrong_header_line_ex
         outcomes[name] = (code == 2 and "unit.md" in err, len(launched) > 0)
 
     assert outcomes == {"wrong": (True, False), "exact": (False, True)}, outcomes
+
+
+def test_apply_skips_an_explicit_new_id_row_whose_text_the_unit_already_holds_under_another_id_3589(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    held = (
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PF60 | The widget is round. | shape |\n"
+        "| PF61 | The widget is blue. | because |\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(held)
+    (tmp_path / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n"
+        "| PF62 | The widget is blue. | because |\n")
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == held
