@@ -278,9 +278,44 @@ def sweep_dead_runs():
                 pid = int(record.read())
             os.kill(pid, 0)
         except ProcessLookupError:
+            remove_scratch_mirror(sys.pycache_prefix, folder)
             shutil.rmtree(folder, ignore_errors=True)
         except (ValueError, OSError):
             continue
+
+
+def remove_scratch_mirror(prefix, folder):
+    """Removes the trees under the bytecode prefix that mirror `folder`, a scratch directory this leg made or proved dead.
+
+    CPython writes a source's .pyc under <prefix>/<the source's absolute directory>, so a source a case creates under the
+    run's directory leaves a tree there that nothing reads again. Fails closed: a tree goes only when it resolves to
+    exactly the mirror of `folder` (as spelled, or resolved) inside the prefix, so a symlink in the way, or a prefix that
+    is not a directory, leaves everything alone; a tree it cannot remove is reported, never skipped silently."""
+    if not prefix or not os.path.isdir(prefix):
+        return
+    real_prefix = os.path.realpath(prefix)
+    spellings = {folder, os.path.realpath(folder)}
+    expected = {os.path.join(real_prefix, spelling.lstrip(os.sep)) for spelling in spellings}
+    for spelling in sorted(spellings):
+        mirror = os.path.join(prefix, spelling.lstrip(os.sep))
+        resolved = os.path.realpath(mirror)
+        if resolved not in expected or os.path.islink(mirror) or not os.path.isdir(resolved):
+            continue
+        try:
+            shutil.rmtree(resolved)
+        except FileNotFoundError:
+            pass
+        except OSError as error:
+            sys.stderr.write("cannot remove the bytecode cache tree %s: %s\n" % (resolved, error))
+
+
+@contextlib.contextmanager
+def run_directory():
+    with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
+        try:
+            yield run
+        finally:
+            remove_scratch_mirror(sys.pycache_prefix, run)
 
 
 def split_marks(argv):
@@ -389,7 +424,7 @@ def main(argv):
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
         sweep_dead_runs()
-        with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
+        with run_directory() as run:
             base = os.path.join(run, "base")
             os.mkdir(base)
             with open(os.path.join(run, "pid"), "w") as record:
