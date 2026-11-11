@@ -272,7 +272,7 @@ def gh_list(path, *args):
 
 def gh_issue_list(*args):
     _select("list")
-    run = _gh("issue", "list", *args, stderr=subprocess.PIPE)
+    run = _retry_refused(lambda: _gh("issue", "list", *args, stderr=subprocess.PIPE), "stderr")
     if run.returncode != 0:
         raise NoAnswer(" ".join(run.stderr.split()))
     return run.stdout
