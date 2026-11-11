@@ -486,3 +486,12 @@ def test_main_with_no_model_variable_set_prints_opus_for_an_adjudicate_leaf_and_
     captured = capsys.readouterr()
     header = (Path(__file__).resolve().parents[3] / "leaf-model.sh").read_text()
     assert (code, captured.out, "VERI_MODEL_ADJUDICATOR" in header) == (0, "opus\n", True)
+
+
+def test_main_with_both_veri_model_adjudicator_and_veri_model_set_prints_veri_model_adjudicator_for_an_adjudicate_leaf(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL", "haiku")
+    monkeypatch.setenv("VERI_MODEL_ADJUDICATOR", "sonnet")
+    code = leaf_model.main(["adjudicate-ci-timeout"])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (0, "sonnet\n")
