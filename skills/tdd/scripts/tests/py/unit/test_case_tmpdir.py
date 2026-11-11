@@ -76,3 +76,28 @@ def test_2246_a_conductor_killed_before_its_cleanup_leaves_its_veri_run_director
 
     result.assert_outcomes(passed=1)
     assert sorted(os.listdir(inherited)) == []
+
+
+def test_two_cases_of_one_run_get_different_tmpdirs_each_beside_its_own_tmp_path(pytester, tmp_path):
+    seen = tmp_path / "seen"
+    pytester.makepyfile(test_planted=(
+        "import os\n"
+        "\n"
+        "def record(tmp_path):\n"
+        "    with open(%r, 'a') as seen:\n"
+        "        seen.write(os.environ['TMPDIR'] + ' ' + str(tmp_path.parent) + '\\n')\n"
+        "\n"
+        "def test_first(tmp_path):\n"
+        "    record(tmp_path)\n"
+        "\n"
+        "def test_second(tmp_path):\n"
+        "    record(tmp_path)\n"
+    ) % str(seen))
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(passed=2)
+    (first_dir, first_parent), (second_dir, second_parent) = [line.split() for line in seen.read_text().splitlines()]
+    assert first_dir != second_dir
+    assert pathlib.Path(first_dir).parent == pathlib.Path(first_parent)
+    assert pathlib.Path(second_dir).parent == pathlib.Path(second_parent)
