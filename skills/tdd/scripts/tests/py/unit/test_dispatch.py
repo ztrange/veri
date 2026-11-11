@@ -3073,3 +3073,40 @@ def test_main_goes_on_to_launch_when_the_rest_adapters_issue_read_fails_once_wit
         code = None
 
     assert (code, launches) == (None, ["12"])
+
+
+def test_main_reads_the_queue_and_proceeds_when_the_graphql_adapters_gh_calls_fail_with_an_http_503_four_times_issue_3651(
+        monkeypatch, tmp_path, capsys, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    gh_calls = []
+    waits = []
+
+    def gh(argv, *args, **kw):
+        assert argv[0] == "gh"
+        gh_calls.append(list(argv))
+        if len(gh_calls) <= 4:
+            return subprocess.CompletedProcess(
+                argv, 1, stdout="", stderr="HTTP 503: No server is currently available to service your request\n")
+        return subprocess.CompletedProcess(argv, 0, stdout="[]", stderr="")
+
+    def wait():
+        waits.append(1)
+        raise _StopWaiting
+
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(dispatch.github.subprocess, "run", gh)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, waits, capsys.readouterr().err) == (None, [1], "")
