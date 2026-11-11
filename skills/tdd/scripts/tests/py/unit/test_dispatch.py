@@ -2995,3 +2995,16 @@ def test_exit_line_returns_done_when_a_plain_follow_up_note_follows_the_done_com
     monkeypatch.setattr(dispatch, "last_comment", lambda issue: bodies[-1], raising=False)
 
     assert dispatch.exit_line("3589") == "done 3589 https://github.com/o/r/pull/77"
+
+
+def test_exit_line_returns_done_when_the_newest_done_comment_follows_an_older_bailed_comment_issue_3612(
+    monkeypatch, dispatch
+):
+    bodies = [
+        "### ⛔ Bailed — green (process failure)\n\nbody",
+        "### ✅ Done — https://github.com/o/r/pull/77\n\nbody",
+    ]
+    monkeypatch.setattr(dispatch, "comment_bodies", lambda issue: bodies, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: bodies[-1], raising=False)
+
+    assert dispatch.exit_line("3589") == "done 3589 https://github.com/o/r/pull/77"
