@@ -2,6 +2,8 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+ELIGIBLE_ROUTES = {"ci-timeout": ()}
+
 USAGE = "usage: parse-adjudication.sh <leaf-output>"
 
 
@@ -12,6 +14,11 @@ def main(argv):
     with open(argv[0]) as f:
         lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
     outcome, _, reason = lines[-1][len("ADJUDICATION:"):].strip().partition(" — ")
+    kind, _, token = outcome.partition(" ")
+    if kind == "route" and any(token in t for t in ELIGIBLE_ROUTES.values()):
+        print(outcome)
+        print(reason)
+        return 0
     if outcome not in ("retry", "bail", "route"):
         return 2
     print(outcome)

@@ -73,3 +73,39 @@ skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
 command 153
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_file_with_no_adjudication_line_exits_2_with_nothing_on_stdout
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 59
+skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_route_line_whose_token_the_cause_does_not_list_exits_2_with_nothing_on_stdout
+
+file 45
+skills/tdd/scripts/veri/parse_adjudication.py
+old-b64 36
+aWYga2luZCA9PSAicm91dGUiIGFuZCBhbnk=
+new-b64 24
+aWYgRmFsc2UgYW5kIGFueQ==
+context-b64 104
+ICAgIGlmIGtpbmQgPT0gInJvdXRlIiBhbmQgYW55KHRva2VuIGluIHQgZm9yIHQgaW4gRUxJR0lCTEVfUk9VVEVTLnZhbHVlcygpKTo=
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_route_line_whose_token_the_cause_does_not_list_exits_2_with_nothing_on_stdout
+
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 59
+skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_non_route_outcome_followed_by_a_listed_route_token_exits_2_with_nothing_on_stdout
+
+file 45
+skills/tdd/scripts/veri/parse_adjudication.py
+old-b64 36
+aWYga2luZCA9PSAicm91dGUiIGFuZCBhbnk=
+new-b64 8
+aWYgYW55
+context-b64 104
+ICAgIGlmIGtpbmQgPT0gInJvdXRlIiBhbmQgYW55KHRva2VuIGluIHQgZm9yIHQgaW4gRUxJR0lCTEVfUk9VVEVTLnZhbHVlcygpKTo=
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_non_route_outcome_followed_by_a_listed_route_token_exits_2_with_nothing_on_stdout
+
