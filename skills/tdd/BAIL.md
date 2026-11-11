@@ -69,6 +69,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 - `repair-reroutes-exhausted` — a step's `WRONG_TEST` naming no case took its `repair` once
   more after the free reroute, and the next such report still names no case → **process**
   failure (the methodology spoke: the verifier still cannot say which test is wrong).
+- `repin-failed` — `pin-reject-route.sh --recheck` printed `repin-failed <file>`: a `⟦diff-checked⟧` re-pin
+  step for that file already ran and `pin-recheck.sh` still finds the pin disarmed → **process** failure (the
+  methodology spoke: the re-pin did not arm the pin, and the plumbing did not break).
 - `graded-edit-outside-skill-edit` — a step not marked `⟦skill-edit⟧` changed a unit listed
   in a `GRADED` file (`graded-changed.sh` exited **1**) → **process** failure (the step
   edited graded prose by a route other than the ⟦skill-edit⟧ runner, and the plumbing did
