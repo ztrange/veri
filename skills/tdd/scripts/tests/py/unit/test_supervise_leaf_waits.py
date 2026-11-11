@@ -4,6 +4,12 @@ import pytest
 from leaf_waits import leaf_left, leaf_started
 
 
+@pytest.fixture
+def no_ps(monkeypatch):
+    """The `ps` probe of a pid that is no child of ours, answered as it would for pid 4242: not a zombie."""
+    monkeypatch.setattr("leaf_waits._zombie", lambda pid: False)
+
+
 class FakeClock:
     def __init__(self):
         self.now = 0.0
@@ -15,13 +21,13 @@ class FakeClock:
         self.now += seconds
 
 
-def test_a_leaf_that_dies_after_more_than_2_s_reads_as_no_leaf_left():
+def test_a_leaf_that_dies_after_more_than_2_s_reads_as_no_leaf_left(no_ps):
     clock = FakeClock()
     left = leaf_left(4242, lambda _pid: clock.now < 7.5, clock.sleep, clock)
     assert (left, clock.now >= 7.5) == (False, True)
 
 
-def test_a_leaf_that_never_dies_reads_as_left():
+def test_a_leaf_that_never_dies_reads_as_left(no_ps):
     clock = FakeClock()
     assert leaf_left(4242, lambda _pid: True, clock.sleep, clock) is True
 
@@ -37,7 +43,7 @@ def test_a_leaf_that_never_starts_fails_with_the_leaf_never_started():
         leaf_started(lambda: None, clock.sleep, clock)
 
 
-def test_a_leaf_that_dies_after_more_than_the_old_30_s_bound_reads_as_gone_2940():
+def test_a_leaf_that_dies_after_more_than_the_old_30_s_bound_reads_as_gone_2940(no_ps):
     clock = FakeClock()
     assert leaf_left(4242, lambda _pid: clock.now < 45.0, clock.sleep, clock) is False
 
