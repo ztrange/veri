@@ -8,7 +8,7 @@ On exit 0 or 3, tick the step and commit the ticked ledger.
 
 On exit 1, bail with `cause=revise-exhausted`, as an exhausted revise.
 
-On exit 2 (a bad argument, budget or heading, or no answer), bail at once as a system failure with `cause=no-verdict`, and never relaunch the runner or spend `VERI_STUCK_RETRIES` on it.
+On exit 2 (a bad argument, budget or heading, or no answer), bail at once, and never relaunch the runner or spend `VERI_STUCK_RETRIES` on it. When the runner printed a refusal message, the bail is a process failure with `cause=skill-edit-refused`, naming the refusal; a bare exit 2 with no refusal message bails as a system failure with `cause=no-verdict`.
 
 A killed or stuck author leaf is still retried under `VERI_STUCK_RETRIES` by the `supervise.sh` launch inside the runner, before that exit 2 reaches the conductor.
 
