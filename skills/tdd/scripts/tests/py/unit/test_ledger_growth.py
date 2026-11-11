@@ -338,6 +338,27 @@ def test_3427_reopen_with_no_step_matching_the_needle_exits_3_leaving_the_ledger
     assert (code, ledger.read_text(), (tmp_path / "issue-42-added.md").exists()) == (3, text, False)
 
 
+def test_3427_reopen_with_a_needle_matching_two_steps_exits_2_naming_both_and_changes_nothing(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    text = ("# Plan for #42\n\n"
+            "- [x] ⟦skill-edit⟧ regrade the doc ⟦criterion 1⟧ ⟂ refactor pending\n"
+            "- [x] ⟦skill-edit⟧ regrade the scripts ⟦criterion 2⟧ ⟂ refactor pending\n")
+    ledger.write_text(text)
+    code, out, err = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "a change"])
+    assert (code, "regrade the doc" in err, "regrade the scripts" in err, ledger.read_text(),
+            (tmp_path / "issue-42-added.md").exists()) == (2, True, True, text, False)
+
+
+def test_3427_reopen_of_an_unticked_skill_edit_step_exits_3_and_appends_no_added_record(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    text = "# Plan for #42\n\n- [ ] ⟦skill-edit⟧ regrade the doc ⟦criterion 1⟧\n"
+    ledger.write_text(text)
+    code = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "a change"])[0]
+    assert (code, ledger.read_text(), (tmp_path / "issue-42-added.md").exists()) == (3, text, False)
+
+
 def test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_against_the_original_plan_exits_0_silently(
         tmp_path, run_cli, ledger_growth):
     plan = tmp_path / "plan.md"
