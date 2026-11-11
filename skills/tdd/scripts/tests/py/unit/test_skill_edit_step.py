@@ -2285,3 +2285,15 @@ def test_apply_run_twice_on_one_prefix_next_row_leaves_the_section_byte_identica
 
     assert (tmp_path / "REQUIREMENTS.md").read_text() == after_first
     assert after_first.count("The widget is blue.") == 1, after_first
+
+
+def test_apply_still_appends_a_prefix_next_row_whose_requirement_text_differs_from_every_held_row_under_the_next_free_id_3589(tmp_path, monkeypatch):
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PF60 | The widget is round. | shape |"],
+        ["| PF<next> | The widget is blue. | because |"])
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PF")]
+    assert rows == ["| PF60 | The widget is round. | shape |", "| PF61 | The widget is blue. | because |"], rows
