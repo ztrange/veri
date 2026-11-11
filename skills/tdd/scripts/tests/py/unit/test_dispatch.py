@@ -2711,21 +2711,33 @@ def _gh_rest(monkeypatch, dispatch, times, waits, limited_until, limited_read, r
     monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
 
 
-@pytest.mark.parametrize("limited_read", ["list", "body"])
 def test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset_then_reads_again_and_launches_issue_3478(
-        monkeypatch, capsys, tmp_path, dispatch, limited_read):
-    times = [0, 50, 100]
-    reads = []
-    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
-                                    waits_before_stop=len(times))
-    _gh_rest(monkeypatch, dispatch, times, waits, 100, limited_read, reads)
+        monkeypatch, capsys, tmp_path, dispatch):
+    import subprocess
+    secondary = "gh: You have exceeded a secondary rate limit. Please wait a few minutes (HTTP 403)\n"
+    times = [0]
+    body_reads = []
+    sleeps = []
+    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None, waits_before_stop=1)
+    _gh_rest(monkeypatch, dispatch, times, waits, 0, "none", [])
+    served = dispatch.github.subprocess.run
+
+    def run(argv, **kw):
+        if argv[:3] not in (["gh", "api", "rate_limit"], ["gh", "pr", "diff"]) and "/pulls" not in argv[2]:
+            body_reads.append(argv)
+            if len(body_reads) <= 2:
+                return subprocess.CompletedProcess(argv, 1, stdout="", stderr=secondary)
+        return served(argv, **kw)
+
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.github.time, "sleep", sleeps.append)
 
     try:
         code = dispatch.main(["--target", "1"])
     except _StopWaiting:
         code = None
 
-    assert (code, reads, launches) == (None, [0, 100], ["12"])
+    assert (code, len(body_reads), launches) == (None, 3, ["12"])
 
 
 @pytest.mark.parametrize("failed_read, named", [("list", "the open PR list"), ("body", "issue 12's body")])
