@@ -20,3 +20,10 @@ ICAgICAgICBpZiAiLyIgaW4gc3BhbiBvciBzcGFuLmVuZHN3aXRoKCIubWQiKTo=
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_scope_check.py::test_3636_a_skill_edit_step_whose_first_backticked_token_is_not_path_shaped_passes_when_the_path_has_its_heading
 
+before 40
+e0856af5bfcf3819c23e2af634e54b8b396cf108
+keep 52
+skills/tdd/scripts/tests/py/unit/test_scope_check.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_scope_check.py::test_3636_a_skill_edit_step_with_no_path_shaped_token_is_refused_on_its_own_not_as_a_missing_none_heading
+
