@@ -308,6 +308,18 @@ def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says
         0, refusal_of(tmp_path, link), True, True)
 
 
+def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_conforming_snapshot(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    first = made_snapshot(tmp_path / "veri-snapshot-first", run_worktree_of(tmp_path))
+    second = made_snapshot(tmp_path / "veri-snapshot-second", run_worktree_of(tmp_path))
+    recorded = "%s\n%s" % (first, second)
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, recorded)
+
+    assert (code, err, (first / "status.sh").exists(), (second / "status.sh").exists()) == (
+        0, refusal_of(tmp_path, recorded), True, True)
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
