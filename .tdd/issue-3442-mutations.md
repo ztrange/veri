@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_report_cache.py
 command 178
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_report_cache.py::test_refresh_whose_git_tag_list_cannot_start_still_writes_the_cache_with_an_empty_landed_record_and_exits_0
 
+before 40
+4d52a53d0f94805b67b806c5f805f585959d01d6
+keep 53
+skills/tdd/scripts/tests/py/unit/test_report_cache.py
+command 192
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_report_cache.py::test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issues_fetches_incrementally_and_writes_the_record
+
