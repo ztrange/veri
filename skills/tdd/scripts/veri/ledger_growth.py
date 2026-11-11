@@ -106,24 +106,32 @@ def reopen(ledger, needle, change):
         lines = read_ledger(ledger).split("\n")
     except OSError as error:
         return unreadable(error)
-    for i, line in enumerate(lines):
-        match = STEP_RE.fullmatch(line)
-        if not match or needle not in line:
-            continue
-        body = match.group(4).split(" ⟂ ", 1)[0]
-        if "⟦skill-edit⟧" not in body:
-            print(f"ledger-growth.sh: not a skill-edit step: {body}", file=sys.stderr)
-            return 2
-        head, tag, k = body.rpartition(" " + CRITERION_TAG)
-        head = head.removesuffix(" " + ADDED_MARK)
-        step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
-        lines[i] = f"- [ ] {step}"
-        replace_ledger(ledger, "\n".join(lines))
-        with open(added_file(ledger), "ab") as f:
-            f.write(record_lines([step]))
-        return 0
-    print(f"ledger-growth.sh: no step matches: {needle}", file=sys.stderr)
-    return 3
+    hits = [(i, STEP_RE.fullmatch(line)) for i, line in enumerate(lines)
+            if STEP_RE.fullmatch(line) and needle in line]
+    if not hits:
+        print(f"ledger-growth.sh: no step matches: {needle}", file=sys.stderr)
+        return 3
+    if len(hits) > 1:
+        print(f"ledger-growth.sh: needle matches {len(hits)} steps: {needle}", file=sys.stderr)
+        for _, match in hits:
+            print(f"  {match.group(4)}", file=sys.stderr)
+        return 2
+    i, match = hits[0]
+    body = match.group(4).split(" ⟂ ", 1)[0]
+    if "⟦skill-edit⟧" not in body:
+        print(f"ledger-growth.sh: not a skill-edit step: {body}", file=sys.stderr)
+        return 2
+    if match.group(2) == " ":
+        print(f"ledger-growth.sh: step is not ticked: {body}", file=sys.stderr)
+        return 3
+    head, tag, k = body.rpartition(" " + CRITERION_TAG)
+    head = head.removesuffix(" " + ADDED_MARK)
+    step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
+    lines[i] = f"- [ ] {step}"
+    replace_ledger(ledger, "\n".join(lines))
+    with open(added_file(ledger), "ab") as f:
+        f.write(record_lines([step]))
+    return 0
 
 
 def unreadable(error):
