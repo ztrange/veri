@@ -2271,3 +2271,17 @@ def test_apply_skips_an_explicit_new_id_row_whose_text_the_unit_already_holds_un
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     assert (tmp_path / "REQUIREMENTS.md").read_text() == held
+
+
+def test_apply_run_twice_on_one_prefix_next_row_leaves_the_section_byte_identical_to_after_the_first_run_3589(tmp_path, monkeypatch):
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PF60 | The widget is round. | shape |"],
+        ["| PF<next> | The widget is blue. | because |"])
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+    after_first = (tmp_path / "REQUIREMENTS.md").read_text()
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == after_first
+    assert after_first.count("The widget is blue.") == 1, after_first
