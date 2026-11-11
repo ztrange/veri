@@ -404,3 +404,31 @@ def test_issue_paths_waits_out_a_403_secondary_rate_limit_on_a_graphql_issue_bod
         paths = str(failure)
 
     assert paths == ["skills/tdd/a.py"]
+
+
+def test_issue_paths_waits_out_a_403_secondary_rate_limit_on_a_rest_issue_body_read_and_goes_on_issue_3582(
+        monkeypatch):
+    import subprocess
+    dispatch = importlib.import_module("veri.dispatch")
+    reads = []
+
+    def run(argv, *args, **kw):
+        assert argv[:2] == ["gh", "api"], argv
+        reads.append(argv)
+        if len(reads) <= 2:
+            return subprocess.CompletedProcess(
+                argv, 1, "", "HTTP 403: You have exceeded a secondary rate limit. Please wait a few minutes "
+                             "before you try again. (https://api.github.com/repos/o/r/issues/12)\n")
+        return subprocess.CompletedProcess(argv, 0, json.dumps({"body": "touches `skills/tdd/a.py`"}), "")
+
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.setattr(dispatch, "_reads", {})
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+
+    try:
+        paths = dispatch.issue_paths("12")
+    except dispatch.watch_runs.QueueUnreadable as failure:
+        paths = str(failure)
+
+    assert paths == ["skills/tdd/a.py"]

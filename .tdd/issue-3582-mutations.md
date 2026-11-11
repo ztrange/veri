@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
 command 217
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_main_waits_out_a_429_marked_only_by_an_x_ratelimit_remaining_zero_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582
 
+before 40
+5b2f0803889f3e8f123ff012add314294d2c004e
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset_then_reads_again_and_launches_issue_3478
+

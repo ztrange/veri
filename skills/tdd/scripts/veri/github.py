@@ -135,7 +135,7 @@ class RestAdapter:
             page += 1
 
     def issue_view(self, number, field):
-        rest = _gh_api_said(_issue(number))
+        rest = _retry_refused(lambda: _gh_api_said(_issue(number)), "stderr")
         try:
             issue = json.loads(rest.stdout)
         except json.JSONDecodeError as error:
