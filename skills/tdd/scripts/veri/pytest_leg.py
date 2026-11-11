@@ -485,7 +485,7 @@ def main(argv):
                 count = worker_count(workers)
             else:
                 count, entry = claim()
-            parallel = ["-n", str(count)] if count >= 2 else []
+            parallel = ["-n", str(count), "--dist", "worksteal"] if count >= 2 else []
             rest, selected = split_marks(argv)
             seen = os.path.join(run, "serial-seen")
             os.environ["PYTEST_LEG_SERIAL_SEEN"] = seen
