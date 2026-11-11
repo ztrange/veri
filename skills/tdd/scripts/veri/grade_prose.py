@@ -24,7 +24,7 @@ except ImportError:
     import leaf
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
-BAD_GRADE = re.compile(r"^(?!VERDICT)\S+: (?!PASS\b|FAIL\b)\S", re.M)
+BAD_GRADE = re.compile(r"^(?!VERDICT|REASON:)\S+: (?!PASS\b|FAIL\b)\S", re.M)
 
 
 GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the instructions are wise, and you do not judge behaviour.
