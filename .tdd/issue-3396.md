@@ -5,7 +5,7 @@
 - [x] Baseline fails: in mutate mode, with the command exiting non-zero on the unmutated file, mutation-probe.sh exits 2, writes no record to VERI_MUTATION_RECORD and leaves the file byte-identical; pinned by a medium case (real mutation-probe.sh process) in skills/tdd/scripts/tests/py/test_mutation_probe_process.py ⟦criterion 1⟧
 - [x] Baseline order: in mutate mode the baseline run happens before the mutation is applied, so the command's first run sees the unmutated file holding old and its second run sees the mutated file (a command that passes only while the file still holds old passes the baseline, fails the mutant, and the probe exits 0 with one record) ⟦criterion 2⟧ ⟂ retired unpinnable
 - [x] Absent old: in mutate mode, with old absent from the working-tree file, mutation-probe.sh exits 2, writes no record, leaves the file untouched and never runs the command, not even for the baseline ⟦criterion 3⟧
-- [ ] Surviving mutant: in mutate mode, with the baseline run exiting 0 and the mutated run exiting 0, mutation-probe.sh exits 1 and writes no record ⟦criterion 4⟧
+- [x] Surviving mutant: in mutate mode, with the baseline run exiting 0 and the mutated run exiting 0, mutation-probe.sh exits 1 and writes no record ⟦criterion 4⟧
 - [ ] Recorded mutant: in mutate mode, with the baseline run exiting 0 and the mutated run exiting non-zero, mutation-probe.sh exits 0 and appends exactly one record ⟦criterion 5⟧
 - [ ] Go-red guard: removing the baseline run from mutation_probe.py on purpose turns the Baseline fails case red, then the code is restored ⟦human-owed⟧ ⟦criterion 6⟧
 - [ ] --before mode behaves as before: its existing cases stay green ⟦full-suite⟧ ⟦criterion 7⟧
