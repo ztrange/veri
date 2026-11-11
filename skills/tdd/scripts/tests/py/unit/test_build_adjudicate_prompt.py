@@ -112,3 +112,40 @@ def test_a_cause_adjudicate_md_does_not_list_exits_2_with_nothing_on_stdout_and_
     assert code == 2
     assert out == ""
     assert "killed-stuck" in err
+
+
+def test_ci_timeout_prompt_carries_the_word_none_as_its_route_tokens(run_cli, build_adjudicate_prompt, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("still pending\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "ci-timeout", "2", str(stderr_file), "wait-ci.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert code == 0
+    assert "Routes: none\n" in out
+
+
+def test_a_cause_whose_bullet_lists_route_tokens_prints_them_unquoted_and_comma_separated(
+    run_cli, build_adjudicate_prompt, tmp_path, monkeypatch
+):
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "ADJUDICATE.md").write_text(
+        "### Eligible causes\n\n- `some-cause`: `route-a`, `route-b`\n- `ci-timeout`: none\n"
+    )
+    monkeypatch.setattr(build_adjudicate_prompt, "__file__", str(skill / "scripts" / "veri" / "build_adjudicate_prompt.py"))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("still pending\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "some-cause", "2", str(stderr_file), "wait-ci.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert code == 0
+    assert "Routes: route-a, route-b\n" in out
+    assert "`" not in out.split("Stderr:")[0]
