@@ -85,11 +85,13 @@ def test_coord_add_to_each_list_prints_an_id_and_show_lists_the_text(tmp_path, r
     repo.mkdir()
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
     lists = ["decision", "message", "override", "timed-n"]
-    added = [run_cli(role_state, ["coord", "add", name, "text-of-" + name], cwd=repo) for name in lists]
+    texts = {name: "text-of-" + name for name in lists}
+    texts["timed-n"] = "4 until 2026-11-10T20:00:00"
+    added = [run_cli(role_state, ["coord", "add", name, texts[name]], cwd=repo) for name in lists]
     _, shown, _ = run_cli(role_state, ["coord", "show"], cwd=repo)
     codes = [code for code, _, _ in added]
     printed_ids = [out.strip() != "" for _, out, _ in added]
-    listed = ["text-of-" + name in shown for name in lists]
+    listed = [texts[name] in shown for name in lists]
     assert (codes, printed_ids, listed) == ([0] * 4, [True] * 4, [True] * 4)
 
 

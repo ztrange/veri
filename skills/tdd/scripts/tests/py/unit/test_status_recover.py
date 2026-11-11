@@ -572,7 +572,7 @@ def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_a
 
     values = {"n": "9", "lane": "roundtrip-lane"}
     items = {"decision": "hold the roundtrip release?", "message": "told the roundtrip dev to rebase",
-             "override": "take roundtrip 12 first", "timed-n": "raise roundtrip N to 4"}
+             "override": "take roundtrip 12 first", "timed-n": "4 until 2026-11-10T20:00:00"}
     codes = [run_cli(role_state, ["coord", "set", field, value])[0] for field, value in values.items()]
     codes += [run_cli(role_state, ["coord", "add", lst, text])[0] for lst, text in items.items()]
     assert codes == [0] * 6, codes
