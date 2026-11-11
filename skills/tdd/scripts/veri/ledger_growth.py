@@ -120,7 +120,7 @@ def reopen(ledger, needle, change):
         lines[i] = f"- [ ] {step}"
         replace_ledger(ledger, "\n".join(lines))
         with open(added_file(ledger), "ab") as f:
-            f.write(f"- [ ] {step}\n".encode())
+            f.write(record_lines([step]))
         return 0
 
 
