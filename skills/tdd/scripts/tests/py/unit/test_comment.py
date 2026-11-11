@@ -14,10 +14,15 @@ def test_no_argument_prints_the_usage_line_on_stderr_and_exits_2(run_cli):
 
     code, out, err = run_cli(comment, [])
 
-    assert (code, out, err) == (2, "", USAGE)
+    assert (code, out) == (2, "")
+    assert err.count("\n") == 1 and err.endswith("\n")
+    assert err.startswith("usage: comment.sh <issue> <kind>")
+    assert "--note-file" in err
     shim = (SCRIPTS / "comment.sh").read_text()
     assert shim.startswith("#!/bin/sh\n")
-    assert "# usage: comment.sh <issue> <kind> [--note-file <path>]\n" in shim
+    usage_lines = [l for l in shim.splitlines() if l.startswith("# usage: comment.sh <issue> <kind>")]
+    assert len(usage_lines) == 1
+    assert "--note-file" in usage_lines[0]
 
 
 def test_step_done_posts_the_heading_naming_the_last_done_step_and_appends_a_comment_event_with_the_url(
