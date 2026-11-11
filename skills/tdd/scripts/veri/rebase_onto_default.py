@@ -10,6 +10,8 @@ try:
 except ImportError:
     from .git import git, symref_default
 
+USAGE = "usage: rebase-onto-default.sh [--graded-only]"
+
 
 def output(*args, **kwargs):
     return git(*args, text=True, stdout=subprocess.PIPE, **kwargs).stdout.rstrip("\n")
