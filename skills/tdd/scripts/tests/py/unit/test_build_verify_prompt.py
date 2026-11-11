@@ -40,6 +40,17 @@ def build_verify_prompt():
     return importlib.import_module("veri.build_verify_prompt")
 
 
+CLOSING = b"STUB-CLOSING-CONTRACT\n"
+
+
+def split_closing(out, fragment=CLOSING):
+    tail = fragment.rstrip(b"\n")
+    text = out.rstrip(b"\n")
+    if text.endswith(tail) and out.count(tail) == 1:
+        return text.removesuffix(tail).rstrip(b"\n") + b"\n", True
+    return out, False
+
+
 def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phase_and_a_green_or_diff_call_without_fast_cmd_with_exit_2_and_its_message_then_the_usage_line(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -179,6 +190,7 @@ def test_main_checks_readability_before_any_output_in_the_order_template_shared_
     loader.loader.exec_module(module)
     prompts = scripts / "prompts"
     prompts.mkdir()
+    (prompts / "_verify-output-contract.md").write_bytes(CLOSING)
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n")
     bug_spec = tmp_path / "bug.md"
@@ -215,7 +227,7 @@ def test_main_checks_readability_before_any_output_in_the_order_template_shared_
     assert run(plan) == unreadable(ledger)
 
     transform = run(["transform", str(spec), str(missing), "0123abc"])
-    assert (transform[0], transform[2]) == (0, b"")
+    assert (transform[0], transform[2], split_closing(transform[1])) == (0, b"", (b"verify-transform.md\n", True))
 
     with pytest.raises(IsADirectoryError):
         module.main(["red", str(tmp_path), "t"])
@@ -232,6 +244,7 @@ def test_main_renders_a_red_prompt_with_shared_the_spec_the_test_path_the_target
         b"{{SHARED}}\n{{STEP}}spec:\n{{ISSUE_SPEC}}\npath {{TEST_PATH}} target {{TARGET_TEST}}\n"
         b"run {{TIMED_TEST_RUN}} affected\n\n\n")
     (scripts / "prompts" / "_shared.md").write_bytes(b"shared rules\n\n")
+    (scripts / "prompts" / "_verify-output-contract.md").write_bytes(CLOSING)
     linked = tmp_path / "linked"
     linked.symlink_to(scripts, target_is_directory=True)
     loader = importlib.util.spec_from_file_location(
@@ -243,9 +256,14 @@ def test_main_renders_a_red_prompt_with_shared_the_spec_the_test_path_the_target
     for name in ("VERI_STEP", "VERI_TEST_CMD", "VERI_PREDICTED_FAILURE", "VERI_RATIONALE"):
         monkeypatch.setenv(name, "ambient " + name)
 
+    closed = []
+
     def run(argv):
         code = module.main(argv)
-        return (code, *capsysbinary.readouterr())
+        out, err = capsysbinary.readouterr()
+        body, ok = split_closing(out)
+        closed.append(ok)
+        return (code, body, err)
 
     timed = str(linked / "timed-test-run.sh").encode()
     step_block = (b"### The step under judgement\n\nthe step\n\n"
@@ -258,6 +276,7 @@ def test_main_renders_a_red_prompt_with_shared_the_spec_the_test_path_the_target
         (0, b"shared rules\n" + step_block + b"spec:\n# spec\n\nthe criteria\npath tests/a.test.sh target case one\n"
             b"run " + timed + b" affected\n", b""),
     ]
+    assert closed == [True, True]
 
 
 def test_main_resolves_includes_recursively_before_substitution_in_the_template_shared_and_the_replaces_case_and_suite_repair_paragraphs_leaves_them_literal_elsewhere_and_refuses_a_missing_or_self_including_partial(
@@ -276,6 +295,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         "_a.md": b"a[{{INCLUDE:_b.md}}{{INCLUDE:_b.md}}] {{TEST_PATH}}\n",
         "_b.md": b"b={{TARGET_TEST}}\n",
         "_shared.md": b"shared {{INCLUDE:_b.md}}\n",
+        "_verify-output-contract.md": CLOSING,
         "_verify-red-bug.md": b"repro {{INCLUDE:_b.md}}\n",
         "verify-green.md": b"g{{REPLACES_CASE}}{{SUITE_REPAIR}}\n",
         "_verify-green-replaces-case.md": b"rc {{INCLUDE:_b.md}}\n",
@@ -298,10 +318,15 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes(b"ledger {{INCLUDE:_b.md}}\n")
     p = str(prompts).encode()
+    closed = []
 
     def run(argv):
         code = module.main(argv)
-        return (code, *capsysbinary.readouterr())
+        out, err = capsysbinary.readouterr()
+        body, ok = split_closing(out)
+        if code == 0:
+            closed.append(ok)
+        return (code, body, err)
 
     assert [
         run(["--step", "step {{INCLUDE:_b.md}}", "red", str(bug_spec), "tp", "tid"]),
@@ -323,6 +348,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         (2, b"", b"partial includes itself: " + p + b"/_loop1.md\n"),
         (0, b"xy\n", b"cat: " + p + b"/: Is a directory\n"),
     ]
+    assert closed == [True] * 5
     no_base = run(["pin", str(spec), "t"])
     assert (no_base[0], no_base[1], b"--branch-base" in no_base[2]) == (2, b"", True)
 
@@ -355,6 +381,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     for phase in ("red", "green", "plan", "rebase", "diff"):
         (prompts / f"verify-{phase}.md").write_bytes(template)
     (prompts / "_shared.md").write_bytes(b"sh\n")
+    (prompts / "_verify-output-contract.md").write_bytes(CLOSING)
     (prompts / "_verify-green-replaces-case.md").write_bytes(b"rc\n")
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"spec {{TEST_PATH}} {{STEP}} {{SHARED}} {{BASE_SHA}} & \\1\n")
@@ -362,9 +389,16 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
     ledger.write_bytes(b"ledger & \\1 {{STEP}}\n\n")
     timed = str(scripts / "timed-test-run.sh").encode()
 
+    closed = []
+
     def run(main, argv):
         code = main(argv)
-        return (code, *capsysbinary.readouterr())
+        out, err = capsysbinary.readouterr()
+        if main is not module.main:
+            return (code, out, err)
+        body, ok = split_closing(out)
+        closed.append(ok)
+        return (code, body, err)
 
     def block(step):
         return (b"### The step under judgement\n\n" + step + b"\n\n"
@@ -392,6 +426,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
         (0, rendered(b"sh", block("⟦replaces-case⟧".encode()), b"spec tp {{STEP}} {{SHARED}} tid & \\1", b"", b"",
                      b"\n\nrc", b"", b"", b"tp", b"tid", b"tid", b"", b"m", b"", b""), b""),
     ]
+    assert closed == [True] * 5
 
     code, out, err = run(build_verify_prompt.main, ["--step", "s", "--fast-cmd", "make unit && a/b", "diff",
                                                     str(spec), "0123abc", "4567def"])
@@ -414,18 +449,22 @@ def test_main_passes_a_non_utf8_byte_in_the_spec_and_in_the_step_value_through_t
     (scripts / "prompts").mkdir()
     (scripts / "prompts" / "verify-red.md").write_bytes(b"{{STEP}}spec:{{ISSUE_SPEC}}\n")
     (scripts / "prompts" / "_shared.md").write_bytes(b"")
+    (scripts / "prompts" / "_verify-output-contract.md").write_bytes(CLOSING)
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"spec \xff\xfe end\n")
 
     code = module.main(["--step", "step \udcff end", "red", str(spec), "tp"])
+    out, err = capsysbinary.readouterr()
+    body, ok = split_closing(out)
 
-    assert (code, *capsysbinary.readouterr()) == (
+    assert (code, body, err, ok) == (
         0,
         b"### The step under judgement\n\nstep \xff end\n\n"
         b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
         b"criteria belong to other steps of the plan.\n\n"
         b"spec:spec \xff\xfe end\n",
         b"",
+        True,
     )
 
 
@@ -683,6 +722,10 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "_probe-cycle-a.md": b"a {{INCLUDE:_probe-cycle-b.md}}\n",
         "_probe-cycle-b.md": b"b {{INCLUDE:_probe-cycle-a.md}}\n"})
     red_args = ["red", s, testpath, "test_slugify_lowercases"]
+    include_run = run(included.main, red_args)
+    real_contract = (SCRIPTS / "prompts" / "_verify-output-contract.md").read_bytes()
+    include_body, include_ok = split_closing(include_run[1], real_contract)
+    include_closed = (include_run[0], include_body, include_run[2], include_ok)
     dangling_run = run(dangling.main, red_args)
     cycle_run = run(cycle.main, red_args)
 
@@ -709,7 +752,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
             [green_args, ["--step", repair_step, "red", s, "skills/tdd/scripts/tests/zorblat.test.sh",
                           "zorblat frobs a nitz"]]),
         "#671 byte-identity": [green_sum(["--step", unmarked_step]), green_sum([])],
-        "#703 include": run(included.main, red_args),
+        "#703 include": include_closed,
         "#703 missing partial": (dangling_run[0], dangling_run[1],
                                  str(dangling_prompts / "_probe-absent.md").encode() in dangling_run[2]),
         "#703 self-including partial": (cycle_run[0], cycle_run[1], b"_probe-cycle-a.md" in cycle_run[2]),
@@ -722,7 +765,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
         "#671 byte-identity": [(0, "2281127406 9627"), (0, "3449014854 9351")],
-        "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
+        "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b"", True),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
     }
@@ -1555,3 +1598,31 @@ def test_main_keeps_leaf_output_and_reason_files_out_of_a_diff_prompt_that_carri
     prompt = out.decode("utf-8", "surrogateescape")
 
     assert (code, "already present" in " ".join(prompt.split()), "ZEBRA-RATIONALE" in prompt) == (0, True, False)
+
+
+def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_exactly_once_3621(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec, ledger = tmp_path / "spec.md", tmp_path / "ledger.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    ledger.write_bytes("# Plan for #3621\n\n- [ ] zorblat frobs a nitz ⟦criterion 1⟧\n".encode())
+    s, sha, fast, test = str(spec), "0123abc", ["--fast-cmd", "make unit"], "tests/py/test_zorblat.py"
+    argvs = {
+        "red": ["red", s, test, "zorblat frobs a nitz"],
+        "green": [*fast, "green", s, test, "zorblat frobs a nitz"],
+        "refactor": [*fast, "refactor", s, test, sha],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, test, "zorblat frobs a nitz"],
+        "plan": ["plan", s, str(ledger)],
+        "rebase": ["rebase", s, sha, "4567def"],
+        "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
+        "diff": ["--step", "zorblat frobs a nitz", *fast, "diff", s, sha, "4567def"],
+        **{phase: [*fast, phase, s, test, sha]
+           for phase in ("expand", "cover-new", "migrate", "contract-a", "contract-b", "beside", "dual-stub")},
+    }
+    fragment = (SCRIPTS / "prompts" / "_verify-output-contract.md").read_bytes().rstrip(b"\n")
+
+    def verdict(argv):
+        code = build_verify_prompt.main(argv)
+        out, _ = capsysbinary.readouterr()
+        return code, out.rstrip(b"\n").endswith(fragment), out.count(fragment)
+
+    assert {phase: verdict(argv) for phase, argv in argvs.items()} == dict.fromkeys(argvs, (0, True, 1))
