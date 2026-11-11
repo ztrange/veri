@@ -8,6 +8,8 @@ SNAPSHOT_MARKER = ".veri-snapshot"
 
 def snapshot_made_for(recorded, worktree):
     """Whether <recorded>, the text of a .snapshot-dir file, names a directory whose marker names <worktree>."""
+    if not os.path.isabs(recorded):
+        return False
     try:
         with open(os.path.join(recorded, SNAPSHOT_MARKER)) as served:
             named = served.read().rstrip("\n")
