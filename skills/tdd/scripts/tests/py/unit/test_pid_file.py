@@ -561,3 +561,21 @@ def test_starting_runs_names_no_issue_for_a_process_that_only_mentions_run_condu
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     assert pid_file.starting_runs(str(root)) == []
+
+
+def test_starting_runs_names_the_issue_of_a_run_conductor_script_started_under_bin_sh_3448(tmp_path, monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    root = tmp_path / "repo"
+    (root / ".tdd" / "wt" / "777" / ".tdd").mkdir(parents=True)
+    ps = "  500 /bin/sh /x/run_conductor.py 777 /tmp/claude.pid\n"
+
+    def fake_run(argv, *args, **kwargs):
+        if argv[0] == "ps":
+            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % root, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert pid_file.starting_runs(str(root)) == ["777"]
