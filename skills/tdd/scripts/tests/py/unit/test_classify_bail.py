@@ -201,3 +201,9 @@ def test_main_classifies_unpinnable_missing_as_process_with_0_3472(capsys, class
     code = classify_bail.main(["unpinnable-missing"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_repin_failed_as_a_process_failure_with_0_3469(capsys, classify_bail):
+    code = classify_bail.main(["repin-failed"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
