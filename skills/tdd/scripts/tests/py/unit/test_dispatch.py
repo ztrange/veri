@@ -2109,6 +2109,32 @@ def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_
     assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"]
 
 
+def test_main_has_the_merge_failed_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    url = "https://github.com/o/r/pull/9"
+    listings = [[url], []]
+    out = tmp_path / "dispatch.out"
+
+    def wait():
+        pass
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges",
+                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
+    monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "CLOSED", raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    with open(out, "w", buffering=8192) as redirected:
+        monkeypatch.setattr(sys, "stdout", redirected)
+        code = dispatch.main(["--target", "1"])
+        in_file_on_return = out.read_text()
+
+    assert (code, in_file_on_return) == (0, f"merge-failed {url}\n")
+
+
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, waits = _overlap_case(

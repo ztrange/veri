@@ -294,6 +294,7 @@ def main(argv):
         for pr_url in merges:
             if pr_url not in running and pr_state(pr_url) not in ("MERGED", "UNRESOLVED"):
                 sys.stdout.write(f"merge-failed {pr_url}\n")
+                sys.stdout.flush()
                 return 0
         merges = running
         for issue in seen:
