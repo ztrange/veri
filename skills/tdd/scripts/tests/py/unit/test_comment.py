@@ -1760,3 +1760,22 @@ def test_every_heading_comment_sh_posts_for_bailed_and_stopped_is_classified_by_
                                 lambda path, *a, text=text, **kw: json.dumps([{"body": text + "\n\nnote\n"}]),
                                 raising=False)
             assert dispatch.exit_line("7") == "bail 7"
+
+
+def test_a_bare_stopped_posts_the_noted_comment_body_without_the_note(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped xray\n")
+
+    bare_code, _, bare_err = run_cli(comment, ["7", "stopped"], cwd=tmp_path)
+    noted_code, _, noted_err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert (bare_code, noted_code) == (0, 0), (bare_err, noted_err)
+    assert len(posted) == 2
+    bare, noted = posted[0][1], posted[1][1]
+    assert bare.splitlines()[0] == "### ⏹️ Stopped — graceful"
+    assert noted == bare + "\ndropped xray\n"
