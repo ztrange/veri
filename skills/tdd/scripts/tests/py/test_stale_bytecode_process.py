@@ -266,3 +266,20 @@ def test_direct_pytest_leg_run_writes_its_bytecode_under_veri_pycache_not_the_tr
     in_tree = sorted(p.name for p in veri.rglob("*.pyc"))
     cached = ran.stdout.strip().splitlines()[-1:] if ran.stdout.strip() else []
     assert (in_tree, [c.startswith(str(tmp_path / "pycache")) for c in cached]) == ([], [True])
+
+
+@pytest.mark.tree_audit("a copy of veri/ made into tmp_path")
+@pytest.mark.process("python3 run directly on a copy of veri/run_conductor.py with bytecode writing on and a scratch pycache prefix, then the prefix listed")
+def test_run_conductor_run_as_the_entry_point_writes_no_bytecode_for_the_modules_it_imports_after_switching_writes_off(tmp_path):
+    veri = tmp_path / "veri"
+    shutil.copytree(SCRIPTS / "veri", veri, ignore=shutil.ignore_patterns("__pycache__"))
+    prefix = tmp_path / "prefix"
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
+    env["VERI_PYCACHE"] = str(prefix)
+
+    ran = subprocess.run([sys.executable, str(veri / "run_conductor.py"), "--help"], env=env, cwd=tmp_path,
+                         capture_output=True, text=True)
+
+    written = sorted(p.name.split(".")[0] for p in prefix.rglob("*.pyc"))
+    assert (ran.returncode, "context_limits" in written, "run_end" in written, "github" in written) == (0, False, False, False)
+    assert "paths" in written, "the modules imported before the switch are expected to write: written=%r" % written
