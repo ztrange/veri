@@ -2087,6 +2087,28 @@ def test_main_prints_one_line_per_skip_naming_the_skipped_issue_the_overlapping_
     assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
 
 
+def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_its_next_wait_begins_issue_3613(
+        monkeypatch, tmp_path, dispatch):
+    _overlap_case(
+        monkeypatch, tmp_path, dispatch, lambda: ["12"],
+        {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
+        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+    out = tmp_path / "dispatch.out"
+    seen_at_wait = []
+
+    def wait():
+        seen_at_wait.append(out.read_text())
+        raise _StopWaiting
+
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    with open(out, "w", buffering=8192) as redirected:
+        monkeypatch.setattr(sys, "stdout", redirected)
+        with pytest.raises(_StopWaiting):
+            dispatch.main(["--target", "1"])
+
+    assert seen_at_wait == ["skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"]
+
+
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, waits = _overlap_case(
