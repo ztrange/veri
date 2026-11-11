@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
 command 162
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3427_reopen_skips_header_and_prose_lines_holding_the_needle_and_reopens_the_step_line
 
+before 40
+620c1052de1a007f632019c438c6493a083d1396
+keep 54
+skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
+command 184
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_against_the_original_plan_exits_0_silently
+
