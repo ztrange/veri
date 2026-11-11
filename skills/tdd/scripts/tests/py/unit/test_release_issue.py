@@ -213,3 +213,16 @@ def test_a_preflight_refused_issue_claimed_by_another_lane_exits_2_and_nothing_i
     assert code == 2
     assert writes(calls) == []
     assert "taken:mu" in err
+
+
+def test_a_claimed_unopted_issue_with_only_other_comments_still_exits_3_and_nothing_is_written_3627(release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+    monkeypatch.setattr(
+        release_issue.github, "gh_issue_view",
+        lambda number, field: "### Plan\nstep 1 done" if field == "comments" else "\n".join(labels))
+
+    code, out, err = run_cli(release_issue, ["3621"])
+
+    assert code == 3
+    assert writes(calls) == []
