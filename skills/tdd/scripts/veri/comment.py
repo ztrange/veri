@@ -44,6 +44,13 @@ def post_and_record(issue, kind, body, strip_url=False, target=None):
     return event.append("", {}, "comment", [f"kind={kind}", f"url={url}"])
 
 
+def render_metrics(issue):
+    rendered = io.StringIO()
+    with contextlib.redirect_stdout(rendered):
+        code = metrics_module.main([issue])
+    return code, rendered.getvalue()
+
+
 def post_done(issue):
     pr = None
     for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
@@ -54,10 +61,7 @@ def post_done(issue):
         return 2
     metrics = read_or_empty(f".tdd/issue-{issue}-metrics.md")
     if not metrics.startswith("### 📊 Metrics"):
-        rendered = io.StringIO()
-        with contextlib.redirect_stdout(rendered):
-            code = metrics_module.main([issue])
-        metrics = rendered.getvalue()
+        code, metrics = render_metrics(issue)
         if code != 0 or not metrics.startswith("### 📊 Metrics"):
             metrics = f"metrics could not be rendered: metrics.sh exited {code}"
     pinned = read_or_empty(f".tdd/issue-{issue}-skip-verify").strip()
@@ -243,10 +247,8 @@ def post_stopped(issue, note_file):
     if stop is None:
         print("comment.sh: no stop event in .tdd/events.jsonl", file=sys.stderr)
         return 2
-    rendered = io.StringIO()
-    with contextlib.redirect_stdout(rendered):
-        code = metrics_module.main([issue])
-    metrics = rendered.getvalue() if code == 0 else f"metrics could not be rendered: metrics.sh exited {code}\n"
+    code, rendered = render_metrics(issue)
+    metrics = rendered if code == 0 else f"metrics could not be rendered: metrics.sh exited {code}\n"
     body = f"### ⏹️ Stopped — {stop['mode']}\n\n{metrics}\nat={stop['at']}\n"
     before = event_before_last("stop")
     if before is not None and before.get("event") == "push-rejected":
