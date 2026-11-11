@@ -1199,3 +1199,18 @@ def test_gh_pr_ready_with_a_negative_veri_gh_refusal_retries_is_a_no_answer_nami
     with pytest.raises(github.NoAnswer):
         github.gh_pr_ready("12")
     assert "VERI_GH_REFUSAL_RETRIES" in capsys.readouterr().err
+
+
+def test_a_failed_graphql_gh_call_carries_gh_stderr_in_the_no_answer_detail_only_when_the_call_asked_for_it_piped_3651(monkeypatch, github):
+    """The fake honours the stderr argument like the real subprocess: no text unless PIPE was passed, so a
+    caller that stops capturing stderr loses the 'HTTP 503' that dispatch.sh's retry reads from the detail."""
+    def fake_run(args, **kwargs):
+        said = "gh: Service Unavailable (HTTP 503)\n" if kwargs.get("stderr") == subprocess.PIPE else None
+        return subprocess.CompletedProcess(args, 1, "", said)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer) as no_answer:
+        github.GraphQLAdapter().list("pr", "list", "--json", "number")
+
+    assert no_answer.value.detail == "gh: Service Unavailable (HTTP 503)\n"
