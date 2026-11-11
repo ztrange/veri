@@ -262,6 +262,8 @@ def post_stopped(issue, note_file):
 
 
 def main(argv):
+    if len(argv) == 2 and argv[1] == "stopped":
+        return post_stopped(argv[0], None)
     if len(argv) == 4 and argv[1] == "stopped" and argv[2] == "--note-file":
         return post_stopped(argv[0], argv[3])
     if len(argv) == 5 and argv[1:4] == ["bailed", "--pr", "--note-file"]:
