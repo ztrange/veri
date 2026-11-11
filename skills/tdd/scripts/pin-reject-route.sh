@@ -7,7 +7,7 @@
 #          case red on the before-state (`revise` printed); 2 a missing argument (<target-test>
 #          included: usage on stderr), no answer or a <target-test> that never ran (its file path does not
 #          exist, or no tests ran: neither word printed), and with --missing-reroute a reason with
-#          a before-state-green clause (a clause naming the before-state and green or pass, no fail/red/not/after in it) (`unpinnable-missing` printed instead of `retired`/`revise`, the step left
+#          a before-state-green clause (a clause naming the before-state and green or pass, no fail/red/not/n't/after in it) (`unpinnable-missing` printed instead of `retired`/`revise`, the step left
 #          unticked, an unpinnable-missing event appended);
 #          3 no unchecked step matched
 #
