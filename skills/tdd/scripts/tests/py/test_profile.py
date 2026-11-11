@@ -311,7 +311,7 @@ def test_the_shim_run_through_a_symlink_from_another_directory_reads_a_relative_
 def test_make_n_profile_names_the_same_suites_as_make_n_test_in_the_same_offline_environment():
     test_code, test_recipe = make_n("test")
     profile_code, profile_recipe = make_n("profile")
-    pytest_files = lambda recipe: sorted(set(re.findall(r"skills/tdd/scripts/tests/py/[\w/]*test_\w+\.py", recipe)))
+    pytest_files = lambda recipe: sorted(set(re.findall(r"skills/tdd/scripts/tests/py(?= <)", recipe)))
 
     assert (test_code, profile_code) == (0, 0)
     assert suites_named(test_recipe) == [] and suites_named(profile_recipe) == []
@@ -394,7 +394,8 @@ def test_this_file_runs_no_clock_and_profiles_only_fixtures_under_tmp_path_and_m
 
     assert (clocks, unfixtured) == ([], [])
     assert calls > 0
-    assert (code, "skills/tdd/scripts/tests/py/test_profile.py" in test_recipe) == (0, True)
+    assert (code, "skills/tdd/scripts/tests/py <" in test_recipe) == (0, True)
+    assert os.path.dirname(os.path.abspath(__file__)) == str(ROOT / "skills/tdd/scripts/tests/py")
 
 
 @pytest.mark.process("make profile run on the real Makefile over a pytest fixture file")
