@@ -1181,3 +1181,21 @@ def test_3247_main_never_prints_an_exited_line_whose_state_is_running_for_a_run_
 
     out = capsys.readouterr().out
     assert [line for line in out.splitlines() if line.startswith("exited ") and line.endswith(" running")] == []
+
+
+def test_3448_live_conductors_names_no_run_for_a_process_that_only_mentions_run_conductor_py_with_the_issue_number(
+        monkeypatch, tmp_path, watch_runs):
+    (tmp_path / ".tdd" / "wt" / "103" / ".tdd").mkdir(parents=True)
+
+    def ps(argv, **kwargs):
+        if argv[0] == "lsof":
+            return subprocess.CompletedProcess(argv, 0, stdout=f"p500\nn{tmp_path}/.tdd/wt/103\n", stderr="")
+        return subprocess.CompletedProcess(
+            argv, 0, stdout="  500 claude -p review run_conductor.py 103 now\n", stderr="")
+
+    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
+    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs, "_runs", lambda: [])
+    monkeypatch.setattr(watch_runs, "_starting", lambda: watch_runs.pid_file.starting_runs(str(tmp_path)))
+
+    assert watch_runs.live_conductors() == []
