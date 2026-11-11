@@ -1,1 +1,2 @@
 - [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py ⟦suite-repair⟧ ⟦criterion 1⟧
+- [ ] fast tier (skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py, in-process, `os.mkfifo` in tmp_path, no real process): merge-lock.sh `release --force` whose holder record is a FIFO (a non-regular file) returns without blocking on the read, pinning the regular-file guard in `_release` ⟦added⟧ ⟦criterion 1⟧
