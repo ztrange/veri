@@ -574,6 +574,8 @@ def recover_items(role, lane, prefix):
 
 
 def recover_state(role, lane=None):
+    if not os.path.exists(state_path(main_working_tree(), role, lane)):
+        return ["no state file"]
     fields = dict(line.partition("=")[::2] for line in read_role_state(role, lane))
     return ["%s %s" % (key, fields[key]) for key in ("n", "lane") if key in fields] + recover_items(
         role, lane, ("timed-n ", "override "))
