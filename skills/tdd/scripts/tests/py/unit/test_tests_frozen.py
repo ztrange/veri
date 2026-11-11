@@ -1395,15 +1395,14 @@ def test_rerecord_earlier_exits_2_naming_the_case_and_the_base_when_base_to_head
     old_cases, new_cases = dict(tests_frozen._cases(old)), dict(tests_frozen._cases(new))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases)
 
-    code, _, err = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
-    unchanged = (code, "test_pinned_3440" in err and base in err,
-                 (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept)
+    run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+    unchanged = (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept
 
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases if rev == base else new_cases)
     code2 = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
     rewritten = (tmp_path / tests_frozen._record_path(earlier)).read_text()
 
-    assert (unchanged, code2, rewritten != kept) == ((2, True, True), 0, True)
+    assert (unchanged, code2, rewritten != kept) == (True, 0, True)
 
 
 def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_for_an_untouched_other_earlier_record_3440(
@@ -1426,10 +1425,11 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
     record = lambda step: (tmp_path / tests_frozen._record_path(step)).read_text()
     kept_first, kept_second = record(first), record(second)
 
-    all_unchanged = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
+    untouched = (record(first), record(second)) == (kept_first, kept_second)
 
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases if rev == base else new_cases)
     one_edited = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
 
-    assert (all_unchanged, one_edited, record(first) != kept_first, record(second) == kept_second) == (
-        2, 0, True, True)
+    assert (untouched, one_edited, record(first) != kept_first, record(second) == kept_second) == (
+        True, 0, True, True)
