@@ -1,0 +1,18 @@
+before 40
+f0b559b882ab6e5e4ce151694155910ae0be3c4c
+keep 60
+skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py
+command 171
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_exactly_once_3621
+
+file 46
+skills/tdd/scripts/veri/build_verify_prompt.py
+old-b64 96
+b3V0ICsgYiJcblxuIiArIF9yZWFkKGYie3Byb21wdHN9L192ZXJpZnktb3V0cHV0LWNvbnRyYWN0Lm1kIikgKyBiIlxuIg==
+new-b64 16
+b3V0ICsgYiJcbiI=
+context-b64 112
+ICAgIHJldHVybiAwLCBvdXQgKyBiIlxuXG4iICsgX3JlYWQoZiJ7cHJvbXB0c30vX3ZlcmlmeS1vdXRwdXQtY29udHJhY3QubWQiKSArIGIiXG4i
+command 171
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py::test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_exactly_once_3621
+
