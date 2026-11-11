@@ -1,4 +1,4 @@
-"""In-process cases for release-issue.sh: a parked or bailed issue goes back to the queue in one call."""
+"""In-process cases for release-issue.sh: a parked, bailed or preflight-refused issue goes back to the queue in one call."""
 import importlib
 
 import pytest
