@@ -267,3 +267,40 @@ def test_3439_record_rewrite_appends_no_line_for_a_step_an_existing_record_cover
     code = run_cli(ledger_growth, ["record-rewrite", str(pre), str(ledger)])[0]
     assert (code, records.read_text()) == (0, "- [ ] covered step ⟦added⟧ ⟦criterion 1⟧\n"
                                               "- [ ] new step ⟦added⟧ ⟦criterion 1⟧\n")
+
+
+def test_3427_reopen_unticks_a_passed_skill_edit_step_with_the_change_and_added_mark_and_records_it(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [x] ⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 ⟦criterion 2⟧ ⟂ refactor pending\n")
+    code, out, err = run_cli(ledger_growth, [
+        "reopen", str(ledger), "regrade `skills/tdd/SCRIPTS.md`", "extend it with the reopen"])
+    step = ("⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 change: extend it with the reopen"
+            " ⟦added⟧ ⟦criterion 2⟧")
+    added = tmp_path / "issue-42-added.md"
+    assert (code, ledger.read_text(), added.read_text() if added.exists() else None) == (
+        0,
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n- [ ] " + step + "\n",
+        "- [ ] " + step + "\n")
+
+
+def test_3427_reopen_on_an_unreadable_ledger_exits_2_naming_the_ledger_file_on_stderr(
+        tmp_path, run_cli, ledger_growth):
+    missing = tmp_path / "issue-42.md"
+    code, out, err = run_cli(ledger_growth, ["reopen", str(missing), "regrade", "a change"])
+    assert (code, out, str(missing) in err, (tmp_path / "issue-42-added.md").exists()) == (2, "", True, False)
+
+
+def test_3427_reopen_skips_header_and_prose_lines_holding_the_needle_and_reopens_the_step_line(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42: regrade the scripts doc\n\nWe regrade it after review.\n"
+        "- [x] ⟦skill-edit⟧ regrade the doc ⟦criterion 1⟧ ⟂ refactor pending\n")
+    code = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "a change"])[0]
+    assert (code, ledger.read_text()) == (
+        0,
+        "# Plan for #42: regrade the scripts doc\n\nWe regrade it after review.\n"
+        "- [ ] ⟦skill-edit⟧ regrade the doc change: a change ⟦added⟧ ⟦criterion 1⟧\n")

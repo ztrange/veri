@@ -10,11 +10,11 @@ import tunables
 try:
     from .event_log import read_events
     from .add_ledger_step import added_file
-    from .ledger import STEP_RE, is_added, read_ledger
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, is_added, read_ledger, replace_ledger
 except ImportError:
     from event_log import read_events
     from add_ledger_step import added_file
-    from ledger import STEP_RE, is_added, read_ledger
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, is_added, read_ledger, replace_ledger
 
 USAGE = "usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
 
@@ -101,6 +101,25 @@ def record_rewrite(pre, ledger):
     return 0
 
 
+def reopen(ledger, needle, change):
+    try:
+        lines = read_ledger(ledger).split("\n")
+    except OSError as error:
+        return unreadable(error)
+    for i, line in enumerate(lines):
+        match = STEP_RE.fullmatch(line)
+        if not match or needle not in line:
+            continue
+        body = match.group(4).split(" ⟂ ", 1)[0]
+        head, tag, k = body.rpartition(" " + CRITERION_TAG)
+        step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
+        lines[i] = f"- [ ] {step}"
+        replace_ledger(ledger, "\n".join(lines))
+        with open(added_file(ledger), "ab") as f:
+            f.write(f"- [ ] {step}\n".encode())
+        return 0
+
+
 def unreadable(error):
     print(f"ledger-growth.sh: {error.filename}: {error.strerror}", file=sys.stderr)
     return 2
@@ -111,6 +130,8 @@ def main(argv):
         return record_existing(argv[1])
     if len(argv) == 3 and argv[0] == "record-rewrite":
         return record_rewrite(argv[1], argv[2])
+    if len(argv) == 4 and argv[0] == "reopen":
+        return reopen(*argv[1:])
     if argv == ["plan-sha"]:
         sha = plan_sha(sys.stdin.read())
         if sha is None:
