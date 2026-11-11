@@ -184,10 +184,13 @@ def post_resuming(issue, note_file=None):
 
 
 def post_bailed(issue, note_file):
-    bail = {}
+    bail = None
     for e in event_log.read_events(".tdd/events.jsonl"):
         if e.get("event") == "bail":
             bail = e
+    if bail is None:
+        print("comment.sh: no bail event in .tdd/events.jsonl", file=sys.stderr)
+        return 2
     heading = f"### ⛔ Bailed — {bail['phase']} ({bail['classification']} failure)\n"
     return post_and_record(issue, "bailed", with_note(heading, note_file))
 

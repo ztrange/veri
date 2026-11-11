@@ -1454,3 +1454,22 @@ def test_bailed_posts_the_heading_from_the_last_bail_event_then_the_note_and_app
     assert posted == [("7", "### ⛔ Bailed — verify-green (process failure)\n\nthe bail question zulu\n")]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e.get("kind"), e.get("url")) for e in events[2:]] == [("comment", "bailed", url)]
+
+
+def test_bailed_exits_2_naming_the_missing_bail_event_and_posts_nothing_when_the_journal_has_none(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "start"}) + "\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the bail question\n")
+
+    code, out, err = run_cli(comment, ["7", "bailed", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 2
+    assert "bail" in err
+    assert posted == []
