@@ -7,7 +7,7 @@ import subprocess
 
 def _conductors():
     listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE, text=True).stdout
-    return re.findall(r"^\s*(\d+)\s+(?:.*\s)?\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+    return re.findall(r"^\s*(\d+)\s+(?:\S*python\S*\s+)?\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
 
 
 def _cwd(pid):

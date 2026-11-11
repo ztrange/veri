@@ -543,3 +543,21 @@ def test_starting_runs_names_no_issue_whose_run_conductor_process_works_in_anoth
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     assert pid_file.starting_runs(str(root)) == ["104"]
+
+
+def test_starting_runs_names_no_issue_for_a_process_that_only_mentions_run_conductor_in_its_command_3448(tmp_path, monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    root = tmp_path / "repo"
+    (root / ".tdd" / "wt" / "103" / ".tdd").mkdir(parents=True)
+    ps = "  500 claude -p review run_conductor.py 103 now\n  501 grep run_conductor.py 103\n"
+
+    def fake_run(argv, *args, **kwargs):
+        if argv[0] == "ps":
+            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
+        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % root, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert pid_file.starting_runs(str(root)) == []
