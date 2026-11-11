@@ -20,7 +20,8 @@ import tempfile
 import threading
 import time
 
-sys.dont_write_bytecode = True
+if __name__ == "__main__":
+    sys.dont_write_bytecode = True
 
 from context_limits import context_limits
 import event
