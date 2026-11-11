@@ -1507,3 +1507,28 @@ def test_bailed_pr_posts_the_bailed_comment_on_the_pr_found_by_the_current_branc
     assert posted == [("12", "### ⛔ Bailed — verify-green (process failure)\n\nthe bail question zulu\n")]
     events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e["event"], e.get("kind"), e.get("url")) for e in events[1:]] == [("comment", "bailed", url)]
+
+
+def test_bailed_pr_exits_2_naming_the_branch_and_posts_nothing_when_no_pr_has_it_as_head(
+        monkeypatch, run_cli, tmp_path):
+    import types
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    posted = []
+    monkeypatch.setattr(github, "gh_api",
+                        lambda path, stderr=None: types.SimpleNamespace(returncode=0, stdout="[]", stderr=""))
+    monkeypatch.setattr(github, "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"event": "bail", "phase": "verify-green", "classification": "process"}) + "\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the bail question\n")
+
+    code, out, err = run_cli(comment, ["7", "bailed", "--pr", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 2
+    assert "tdd/7-the-branch" in err
+    assert posted == []
