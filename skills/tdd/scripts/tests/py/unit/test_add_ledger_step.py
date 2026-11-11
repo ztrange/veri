@@ -834,6 +834,27 @@ def test_main_still_refuses_a_second_suite_repair_while_the_one_this_run_inserte
     assert "fix the full-suite failure: first.test.sh" in err
 
 
+def test_main_inserts_a_suite_repair_when_the_only_suite_repair_step_the_ledger_holds_is_a_retired_one_3420(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(
+        (
+            "# Plan for #42\n"
+            "\n"
+            "- [x] a one ⟦criterion 1⟧\n"
+            "- [x] fix the full-suite failure: first.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧ ⟂ retired\n"
+            "- [ ] b two ⟦criterion 2⟧\n"
+        ).encode()
+    )
+
+    code, out, err = run_cli(
+        add_ledger_step,
+        [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
+    )
+
+    assert (code, err) == (0, "")
+    assert "- [ ] fix the full-suite failure: second.test.sh ⟦suite-repair⟧" in ledger.read_text()
+
+
 def test_main_inserts_a_suite_repair_after_the_last_resume_when_the_ledger_holds_one_from_before_it_1607(tmp_path, run_cli, add_ledger_step):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()

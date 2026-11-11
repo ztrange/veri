@@ -225,7 +225,7 @@ def main(argv):
         if restated:
             return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
-    earlier = [line for line in steps if is_suite_repair(line)]
+    earlier = [line for line in steps if is_suite_repair(line) and "⟂ retired" not in line]
     try:
         this_run = added_since_last_resume(path, steps) if earlier else False
     except UnreadableLog as unreadable:
