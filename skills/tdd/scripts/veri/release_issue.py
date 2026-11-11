@@ -10,6 +10,15 @@ USAGE = "usage: release-issue.sh <issue-number>\n"
 MARKERS = ("parked", "bailed")
 
 
+def _preflight_refused(number, labels, opt_in):
+    if opt_in in labels or not any(name.startswith("taken:") for name in labels):
+        return False
+    try:
+        return "### ⛔ Preflight refused" in github.gh_issue_view(number, "comments")
+    except github.NoAnswer:
+        return False
+
+
 def main(argv):
     if len(argv) != 1 or not re.fullmatch(r"[1-9][0-9]*", argv[0]):
         sys.stderr.write(USAGE)
@@ -22,7 +31,7 @@ def main(argv):
     except github.NoAnswer:
         sys.stderr.write("release-issue.sh: no answer from gh reading the labels of #%s\n" % number)
         return 2
-    if not any(marker in labels for marker in MARKERS):
+    if not any(marker in labels for marker in MARKERS) and not _preflight_refused(number, labels, opt_in):
         sys.stderr.write("release-issue.sh: #%s is neither parked nor bailed; nothing to release\n" % number)
         return 3
     foreign = [name for name in labels if name.startswith("taken:") and name != taken]
