@@ -26,3 +26,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 184
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_with_a_rate_limited_pr_list_or_issue_body_read_waits_for_the_reset_then_reads_again_and_launches_issue_3478
 
+before 40
+7c5c912c13193716a2818dcf41370ea2033d29ab
+keep 62
+skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
+command 191
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_issue_paths_waits_out_a_429_marked_only_by_retry_after_on_a_graphql_issue_body_read_and_goes_on_issue_3582
+
