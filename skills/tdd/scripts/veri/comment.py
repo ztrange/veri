@@ -204,14 +204,13 @@ def last_event(name):
     for e in event_log.read_events(".tdd/events.jsonl"):
         if e.get("event") == name:
             found = e
-    if found is None:
-        print(f"comment.sh: no {name} event in .tdd/events.jsonl", file=sys.stderr)
     return found
 
 
 def post_bailed(issue, note_file, pr=False):
     bail = last_event("bail")
     if bail is None:
+        print("comment.sh: no bail event in .tdd/events.jsonl", file=sys.stderr)
         return 2
     heading = f"### ⛔ Bailed — {bail['phase']} ({bail['classification']} failure)\n"
     target = run_pr_number() if pr else None
@@ -223,6 +222,7 @@ def post_bailed(issue, note_file, pr=False):
 def post_stopped(issue, note_file):
     stop = last_event("stop")
     if stop is None:
+        print("comment.sh: no stop event in .tdd/events.jsonl", file=sys.stderr)
         return 2
     rendered = io.StringIO()
     with contextlib.redirect_stdout(rendered):
