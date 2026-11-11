@@ -113,7 +113,8 @@ To bail:
 5. **Push the branch** so completed steps, that metrics commit and the leaf logs are
    recoverable, from inside the worktree (where you already are):
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
-6. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
+6. Post the `### ⛔ Bailed — <phase> (<classification> failure)` comment by running
+   `$S/comment.sh <n> bailed --note-file <path>`, the note carrying what only you know. The comment names the phase,
    carries the `### 📊 Metrics` block just committed (or, when `$metrics` is not 0, the line
    `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
@@ -135,8 +136,9 @@ To bail:
    page a reader opens still says a run is in progress when it stopped:
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
-   gh api repos/{owner}/{repo}/issues/<pr-number>/comments -f body="<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
+   $S/comment.sh <n> bailed --pr --note-file <path>   # posts the same ### ⛔ Bailed — <phase> (<classification> failure) comment to repos/{owner}/{repo}/issues/<pr-number>/comments
    ```
+   (A link to the issue comment sub-step 6 posted may stand in for the full comment.)
    Either way the PR carries sub-step 6's skill-drift block: a link-only comment quotes that
    block alongside the link.
    It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
