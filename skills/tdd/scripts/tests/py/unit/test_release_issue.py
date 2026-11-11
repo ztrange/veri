@@ -10,7 +10,7 @@ def release(monkeypatch):
     release_issue = importlib.import_module("veri.release_issue")
     github = release_issue.github
     calls, labels = [], []
-    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: calls.append(("view", number, field)) or "\n".join(labels))
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: calls.append(("view", number, field)) or ("" if field == "comments" else "\n".join(labels)))
     monkeypatch.setattr(github, "gh_label_ensure", lambda label: calls.append(("ensure", label)))
     monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: calls.append(("label", number, label)))
     monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: calls.append(("unlabel", number, label)))
@@ -58,6 +58,20 @@ def test_an_issue_neither_parked_nor_bailed_is_nothing_to_do_and_nothing_is_writ
     assert code == 3
     assert writes(calls) == []
     assert "neither parked nor bailed" in err
+
+
+def test_a_preflight_refused_issue_is_released_to_the_queue_3627(release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+    monkeypatch.setattr(
+        release_issue.github, "gh_issue_view",
+        lambda number, field: "### ⛔ Preflight refused — requirements clash" if field == "comments" else "\n".join(labels))
+
+    code, out, err = run_cli(release_issue, ["3621"])
+
+    assert (code, err) == (0, "")
+    assert ("label", "3621", "ready-for-agent") in calls
+    assert ("unlabel", "3621", "taken:main") in calls
 
 
 def test_another_lanes_claim_is_refused_and_nothing_is_written(release, run_cli):
@@ -124,3 +138,38 @@ def test_bad_arguments_exit_2_and_call_nothing(release, run_cli, argv):
     assert code == 2
     assert calls == []
     assert "usage: release-issue.sh <issue-number>" in err
+
+
+def test_a_refusal_comment_alone_does_not_make_an_issue_preflight_refused_3627(release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    refusal = "### ⛔ Preflight refused — requirements clash"
+    state = {"comments": refusal}
+
+    def view(number, field):
+        if field == "comments":
+            if state["comments"] is None:
+                raise release_issue.github.NoAnswer("")
+            return state["comments"]
+        return "\n".join(labels)
+
+    monkeypatch.setattr(release_issue.github, "gh_issue_view", view)
+
+    outcomes = {}
+    for name, label_set, comments in [
+        ("refused", ["bug", "taken:main"], refusal),
+        ("already opted in", ["bug", "taken:main", "ready-for-agent"], refusal),
+        ("unclaimed", ["bug"], refusal),
+        ("comments unreadable", ["bug", "taken:main"], None),
+    ]:
+        labels[:] = label_set
+        state["comments"] = comments
+        calls.clear()
+        code, out, err = run_cli(release_issue, ["3621"])
+        outcomes[name] = (code, writes(calls) != [])
+
+    assert outcomes == {
+        "refused": (0, True),
+        "already opted in": (3, False),
+        "unclaimed": (3, False),
+        "comments unreadable": (3, False),
+    }
