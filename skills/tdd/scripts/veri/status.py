@@ -368,13 +368,13 @@ def journals():
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         events = []
         with open(path) as f:
-            for l in f:
+            for n, l in enumerate(f, 1):
                 if not l.strip():
                     continue
                 try:
                     events.append(json.loads(l))
                 except ValueError:
-                    pass
+                    print(f"status.sh: skipped torn line {path}:{n}", file=sys.stderr)
         yield path, events
 
 

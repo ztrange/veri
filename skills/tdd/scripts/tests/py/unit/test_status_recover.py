@@ -2,6 +2,7 @@
 import importlib
 import json
 import os
+import re
 import subprocess
 
 
@@ -659,3 +660,28 @@ def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")] if "Bailed" in lines else []
     assert (code, [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed]) == (0, [["3600", "system"], ["3601", "process"]]), (err, bailed)
+
+
+def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_stderr(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    start = {"ts": 1793700000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"}
+    bail = {"ts": 1793700050, "awake": 50, "event": "bail", "cause": "killed-stuck"}
+    torn = 'okens": "2", "output_tokens": "1242"}'
+    (runs / "3600.jsonl").write_text("\n".join([json.dumps(start), torn, json.dumps(bail)]) + "\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord"])
+
+    named = [l for l in err.splitlines() if re.search(r"3600\.jsonl\D+2\b", l)]
+    assert (code, len(named)) == (0, 1), (code, err)
