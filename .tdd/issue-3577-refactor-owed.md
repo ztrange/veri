@@ -6,3 +6,4 @@
 - test-only | the two new #3577 cases in `test_status_recover.py` repeat their setup (the `listed` payload and the `run` fake); a shared helper could take it, and those assertion lines must arrive unchanged.
 ### In skills/tdd/scripts/veri/status.py `recover_prs()`, a single-PR `pulls/<n>` read that returns a JSON object with no `mergeable_state` key ends `status.sh --recover coord` with exit 2 and a clean `status.sh --recover:` refusal line on stderr, with no traceback ⟦added⟧ ⟦criterion 1⟧
 - test-only | the three `test_3577_recover_exits_2_with_a_clean_refusal_*` cases in `test_status_recover.py` repeat the same setup (`listed` payload and the `run` fake keyed on `pulls/4730`). They could share a helper that takes the single-PR response.
+not-done | uncovered | extract a shared helper for the two "GitHub refused the … read" checks in `recover_prs()`; it removes duplication, but the saving is small and the transform is optional
