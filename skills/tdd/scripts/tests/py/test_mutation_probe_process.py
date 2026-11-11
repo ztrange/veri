@@ -512,3 +512,15 @@ def test_issue_3396_mutate_probe_exits_2_without_a_record_when_the_command_fails
                             capture_output=True, text=True, timeout=20,
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     assert (result.returncode, record.exists(), target.read_bytes()) == (2, False, b"x"), result.stderr
+
+
+@pytest.mark.process("mutation-probe.sh and the sh command it would run against the unmutated fixture")
+def test_issue_3396_mutate_probe_with_old_absent_exits_2_without_a_record_and_never_runs_the_command(tmp_path):
+    target = tmp_path / "target.txt"
+    target.write_text("x")
+    record = tmp_path / "issue-3396-mutations.md"
+    witness = tmp_path / "witness.txt"
+    result = subprocess.run([str(PROBE), str(target), "absent", "y", "--", "sh", "-c", 'touch "$1"', "sh", str(witness)],
+                            capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    assert (result.returncode, record.exists(), target.read_bytes(), witness.exists()) == (2, False, b"x", False), result.stderr
