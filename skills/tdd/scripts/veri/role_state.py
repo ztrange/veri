@@ -93,22 +93,21 @@ def do_add(path, argv):
     return 0
 
 
-def do_drop(path, argv):
-    if argv[2:] == ["coordinator"]:
-        lines = (read(path) or "").splitlines(True)
-        kept = [l for l in lines if not l.startswith("coordinator=")]
-        if kept == lines:
-            return 3
-        replace(path, "".join(kept))
-        return 0
-    if argv[2] not in LISTS:
-        return usage()
+def drop_lines(path, doomed):
     lines = (read(path) or "").splitlines(True)
-    kept = [l for l in lines if l.split()[:2] != argv[2:4]]
+    kept = [l for l in lines if not doomed(l)]
     if kept == lines:
         return 3
     replace(path, "".join(kept))
     return 0
+
+
+def do_drop(path, argv):
+    if argv[2:] == ["coordinator"]:
+        return drop_lines(path, lambda l: l.startswith("coordinator="))
+    if argv[2] not in LISTS:
+        return usage()
+    return drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
 
 
 def do_show(path, argv):
