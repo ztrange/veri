@@ -1,4 +1,6 @@
 """In-process cases for veri/unreachable.py, the module unreachable.sh is a shim over."""
+import contextlib
+import functools
 import importlib
 import io
 import pytest
@@ -190,16 +192,25 @@ def test_main_lists_test_only_scripts_and_promised_unread_names_and_reads_no_pro
     ], True)
 
 
-@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
-def test_main_lists_no_unreachable_script_in_this_repository(capsys):
+@functools.cache
+def _main_over_this_repository():
+    """`unreachable.main` over this repository as (code, stdout, stderr), run once per session: the four cases that
+    read it ask the same question of the same tree, and each run costs a sweep of every script and document."""
     unreachable = importlib.import_module("veri.unreachable")
+    out, err = io.TextIOWrapper(io.BytesIO(), encoding="utf-8", errors="replace"), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = unreachable.main([str(SCRIPTS.parents[2])])
+    out.flush()
+    return code, out.buffer.getvalue().decode("utf-8", "replace"), err.getvalue()
 
-    code = unreachable.main([str(SCRIPTS.parents[2])])
-    listing = capsys.readouterr()
-    unreachable_names = [line for line in listing.out.splitlines()
+
+@pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
+def test_main_lists_no_unreachable_script_in_this_repository():
+    code, out, err = _main_over_this_repository()
+    unreachable_names = [line for line in out.splitlines()
                          if line and not line.startswith(("test-only: ", "promised-unread: "))]
 
-    assert (code, unreachable_names, listing.err) == (0, [], "")
+    assert (code, unreachable_names, err) == (0, [], "")
 
 
 def test_main_reads_nothing_under_veri_counts_tests_py_and_orders_its_listing_and_answers_a_missing_root_with_nothing(tmp_path, capsys):
@@ -249,33 +260,27 @@ def test_main_lists_a_knob_or_script_named_only_in_scripts_md_as_promised_unread
 
 
 @pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
-def test_main_over_this_repository_reaches_the_scripts_only_scripts_md_calls_so_none_is_test_only_1715(capsys):
-    unreachable = importlib.import_module("veri.unreachable")
-
-    code = unreachable.main([str(SCRIPTS.parents[2])])
-    lines = capsys.readouterr().out.splitlines()
+def test_main_over_this_repository_reaches_the_scripts_only_scripts_md_calls_so_none_is_test_only_1715():
+    code, out, _ = _main_over_this_repository()
+    lines = out.splitlines()
 
     assert code == 0
     assert [line for line in lines if line in ("test-only: over-budget.sh", "test-only: time-budget.sh")] == []
 
 
 @pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
-def test_main_over_this_repository_reaches_stop_run_through_stopping_md_so_it_is_not_test_only_1716(capsys):
-    unreachable = importlib.import_module("veri.unreachable")
-
-    code = unreachable.main([str(SCRIPTS.parents[2])])
-    lines = capsys.readouterr().out.splitlines()
+def test_main_over_this_repository_reaches_stop_run_through_stopping_md_so_it_is_not_test_only_1716():
+    code, out, _ = _main_over_this_repository()
+    lines = out.splitlines()
 
     assert code == 0
     assert "test-only: stop-run.sh" not in lines
 
 
 @pytest.mark.tree_audit("every script under skills/tdd/scripts reached from this repository's entry points")
-def test_main_over_this_repository_reaches_skill_drift_through_bail_md_so_it_is_not_test_only_1853(capsys):
-    unreachable = importlib.import_module("veri.unreachable")
-
-    code = unreachable.main([str(SCRIPTS.parents[2])])
-    lines = capsys.readouterr().out.splitlines()
+def test_main_over_this_repository_reaches_skill_drift_through_bail_md_so_it_is_not_test_only_1853():
+    code, out, _ = _main_over_this_repository()
+    lines = out.splitlines()
 
     assert code == 0
     assert "test-only: skill-drift.sh" not in lines
