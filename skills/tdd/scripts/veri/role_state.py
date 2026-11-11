@@ -54,12 +54,10 @@ def main(argv):
         return usage()
     lane = None
     if argv[1] == "--lane":
-        if len(argv) < 3:
+        if len(argv) < 4:
             return usage()
         lane = argv[2]
         argv = [argv[0]] + argv[3:]
-        if len(argv) < 2:
-            return usage()
     path = state_path(main_tree(os.getcwd()), name, lane)
     verb = VERBS.get(argv[1])
     return verb(path, argv) if verb else usage()
