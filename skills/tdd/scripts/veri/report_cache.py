@@ -104,12 +104,16 @@ def fetch_pages(since=None):
         page, size = read_issue_page(size, "--search", search)
 
 
-def landed(root):
+def since_time(root):
     try:
         with open(os.path.join(root, ".tdd", "status-last")) as last:
-            since = calendar.timegm(time.strptime(json.load(last)["time"], "%Y-%m-%dT%H:%M:%SZ"))
+            return calendar.timegm(time.strptime(json.load(last)["time"], "%Y-%m-%dT%H:%M:%SZ"))
     except OSError:
-        since = None
+        return None
+
+
+def landed(root):
+    since = since_time(root)
     if not os.path.exists(os.path.join(root, ".git", "HEAD")):
         return []
     fmt = "%(creatordate:unix)\t%(refname:short)\t%(creatordate:format-local:%Y-%m-%d %H:%M)\t%(contents:subject)"
@@ -167,7 +171,8 @@ def refresh():
     try:
         with os.fdopen(fd, "w") as out:
             json.dump({"cache_format": 2, "fetched_at": fetched_at, "issues": issues,
-                       "landed": landed(os.path.dirname(tdd))}, out)
+                       "landed": landed(os.path.dirname(tdd)),
+                       "since": since_time(os.path.dirname(tdd)) or 0}, out)
         os.replace(temp, path)
     except BaseException:
         os.unlink(temp)
