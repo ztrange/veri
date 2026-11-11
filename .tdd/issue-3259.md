@@ -15,3 +15,6 @@
 - [x] `skills/tdd/JOURNAL.md`'s `comment` event row names the two new kinds comment.sh posts, `bailed` and `stopped`, beside the existing ones ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/BAIL.md` passes BL31 and BL37 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧
 - [x] `skills/tdd/STOPPING.md` passes SP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧
+- [ ] A bare `comment.sh <issue> stopped` (no `--note-file`) posts the `### ⏹️ Stopped — <mode>` comment with the same body as with `--note-file` minus the note, and `--note-file <path>` still works; the case lives in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fakes only the GitHub boundary; the fix is in `main()` of `skills/tdd/scripts/veri/comment.py` ⟦added⟧ ⟦criterion 6⟧
+- [ ] The usage string `comment.sh` prints on stderr with exit 2 (`USAGE` in `skills/tdd/scripts/veri/comment.py:17` and the comments in `skills/tdd/scripts/comment.sh`) names `bailed`, `stopped` and `--pr` beside the existing kinds and `--note-file`; a small case in `skills/tdd/scripts/tests/py/unit/test_comment.py` asserts the three words in the usage output of a bad call ⟦added⟧ ⟦criterion 7⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` passes SC95 of this issue's `## Requirements`, regraded ⟦added⟧ ⟦criterion 8⟧
