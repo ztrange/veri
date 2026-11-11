@@ -125,7 +125,10 @@ def stop_leaves(run, killed=None):
         if pid is None:
             continue
         try:
-            if pid_file.supervising(pid, name):
+            own = pid_file.supervising(pid, name)
+            if (own or pid_file.detached(pid)) and not pid_file.start_recorded(tdd + entry):
+                complain(f"{tdd + entry} records no start time for pid {pid}; not signalled")
+            elif own:
                 os.kill(int(pid), signal.SIGTERM)
             elif pid_file.detached(pid) and pid_file.start_matches(tdd + entry, pid):
                 os.killpg(int(pid), signal.SIGTERM)

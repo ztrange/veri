@@ -259,7 +259,7 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
     huge = "99999999999999999999"
     files = {"a": "101", "b": "none", ".c": "103", "e": "105", "f": "106", "g": "107", "h": huge, "i": "108"}
     for name, content in files.items():
-        (tdd / (name + ".pid")).write_bytes(content.encode() + b"\n")
+        (tdd / (name + ".pid")).write_bytes(content.encode() + b"\nT0\n")
     (tdd / "d.pid").mkdir()
     (tdd / "j").write_bytes(b"109\n")
     answers = {**main_tree_at(tmp_path), **conductor_answers(4242)}
@@ -269,6 +269,7 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
                       (huge, b"bash supervise.sh h x\n"), ("108", b""),
                       ("109", b"bash supervise.sh j x\n")):
         answers[("ps", "-p", pid, "-o", "args=")] = (1 if pid == "108" else 0, args)
+        answers[("ps", "-o", "lstart=", "-p", pid)] = (0, b"T0\n")
     calls = fake_processes(answering(answers))
     raises = {106: ProcessLookupError(3, "No such process"), 107: PermissionError(1, "Operation not permitted"),
               int(huge): OverflowError("signed integer is greater than maximum")}
@@ -556,8 +557,23 @@ def stub(path, text=SPINNER):
 def live_supervisor(run, name, started, stub_path):
     proc = subprocess.Popen([str(stub_path), name, run.name])
     started.append(proc)
-    (run / ".tdd" / (name + ".pid")).write_text("%d\n" % proc.pid)
+    (run / ".tdd" / (name + ".pid")).write_text(recorded(proc.pid))
     return proc
+
+
+def start_time_of(pid):
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], stdout=subprocess.PIPE, text=True).stdout.strip()
+
+
+def recorded(pid):
+    """A pid file's text: the pid, then its start time, as supervise.sh and detach-command.sh write it."""
+    return "%d\n%s\n" % (pid, start_time_of(pid))
+
+
+def fake_lstart(monkeypatch, stop_run, started="T0"):
+    """pid_file's ps lstart read answers <started> for any pid; its other ps reads stay as they are."""
+    real = stop_run.pid_file._ps
+    monkeypatch.setattr(stop_run.pid_file, "_ps", lambda field, pid: started if field == "lstart" else real(field, pid))
 
 
 def reaped_pid():
@@ -608,7 +624,7 @@ def test_stop_run_cli_mode_now_terms_the_pid_in_the_run_s_pid_file_whose_process
     green = live_supervisor(run, "develop-green", started, supervisor)
     impostor = subprocess.Popen(["sleep", "60"])
     started.append(impostor)
-    (run / ".tdd" / "verify-green.pid").write_text("%d\n" % impostor.pid)
+    (run / ".tdd" / "verify-green.pid").write_text(recorded(impostor.pid))
     (run / ".tdd" / "verify-refactor.pid").write_text("%d\n" % reaped_pid())
 
     code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo)
@@ -754,7 +770,7 @@ def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detache
     command = subprocess.Popen(["sh", "-c", 'sleep 60 & echo $! > "$0"; wait', str(child_file)],
                                start_new_session=True)
     started.append(command)
-    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % command.pid)
+    (run / ".tdd" / "fulltier.pid").write_text(recorded(command.pid))
     for _ in range(200):
         if child_file.is_file() and child_file.read_text().strip():
             break
@@ -797,7 +813,7 @@ def test_3375_stop_run_cli_mode_now_signals_no_group_of_an_unrelated_process_now
          str(child_file)],
         start_new_session=True)
     started.append(unrelated)
-    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % unrelated.pid)
+    (run / ".tdd" / "fulltier.pid").write_text(recorded(unrelated.pid))
     for _ in range(200):
         if child_file.is_file() and child_file.read_text().strip():
             break
@@ -827,7 +843,7 @@ def test_3375_stop_run_cli_mode_now_kills_the_members_of_the_detached_command_s_
     command = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & echo $! > "$0"; wait', str(child_file)],
                                start_new_session=True)
     started.append(command)
-    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % command.pid)
+    (run / ".tdd" / "fulltier.pid").write_text(recorded(command.pid))
     for _ in range(200):
         if child_file.is_file() and child_file.read_text().strip():
             break
@@ -890,10 +906,11 @@ def test_3375_stop_leaves_waits_the_kill_grace_the_env_names_between_the_term_an
     import signal
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    (tdd / "fulltier.pid").write_text("777\n")
+    (tdd / "fulltier.pid").write_text("777\nT0\n")
     events = []
     monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
     monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
     monkeypatch.setattr(os, "killpg", lambda group, sig: events.append(("killpg", group, sig)))
     monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: events.append(("sleep", seconds)))
 
@@ -915,9 +932,10 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detach
     import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")
     monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
     monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
     monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
 
     def group_that(dies_on_kill):
@@ -947,9 +965,10 @@ def test_3375_stop_run_mode_now_exits_0_when_a_member_of_the_detached_group_is_a
     import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")
     monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
     monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
     monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
     probes = []
 
@@ -972,9 +991,10 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_surv
     import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")
     monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
     monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
     monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
 
     def killpg(group, sig):
@@ -996,9 +1016,10 @@ def test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_kill
     import signal
     run = tmp_path / "run"
     (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "fulltier.pid").write_text("777\n")
+    (run / ".tdd" / "fulltier.pid").write_text("777\nT0\n")
     monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
     monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
     monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
 
     def killpg(group, sig):
@@ -1029,7 +1050,7 @@ def test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_
 
     stubborn = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & wait'], start_new_session=True)
     started.append(stubborn)
-    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % stubborn.pid)
+    (run / ".tdd" / "fulltier.pid").write_text(recorded(stubborn.pid))
     time.sleep(0.3)
     monkeypatch.setattr(os, "killpg", lambda group, sig: None if sig == signal.SIGKILL else real_killpg(group, sig))
     try:
@@ -1042,7 +1063,7 @@ def test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_
 
     leader = subprocess.Popen(["sh", "-c", "sleep 60 & wait"], start_new_session=True)
     started.append(leader)
-    (run / ".tdd" / "fulltier.pid").write_text("%d\n" % leader.pid)
+    (run / ".tdd" / "fulltier.pid").write_text(recorded(leader.pid))
     time.sleep(0.3)
     try:
         code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo, env=env)
@@ -1056,3 +1077,26 @@ def test_3375_stop_run_cli_mode_now_exits_0_when_the_detached_group_leader_sent_
         except OSError:
             pass
         leader.wait()
+
+
+def test_stop_run_mode_now_signals_no_leaf_whose_pid_file_records_no_start_time_naming_each_such_file_on_stderr_and_still_exits_0(
+        monkeypatch, tmp_path, capsys, stop_run):
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    supervisor_file, detached_file = run / ".tdd" / "develop-red.pid", run / ".tdd" / "fulltier.pid"
+    supervisor_file.write_text("101\n")
+    detached_file.write_text("777\n")
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: pid == "101")
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: pid == "777")
+    fake_lstart(monkeypatch, stop_run)
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: None)
+    signalled = []
+    monkeypatch.setattr(os, "kill", lambda pid, sig: signalled.append(("kill", pid, sig)))
+    monkeypatch.setattr(os, "killpg", lambda group, sig: signalled.append(("killpg", group, sig)))
+
+    code = stop_run.stop_run(str(run), "now")
+    lines = capsys.readouterr().err.splitlines()
+
+    assert signalled == []
+    assert code == 0
+    assert [str(supervisor_file) in lines[0], str(detached_file) in lines[1], len(lines)] == [True, True, 2]

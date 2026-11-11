@@ -28,6 +28,8 @@ def world(monkeypatch, fake_processes):
             if pid not in live:
                 return 1, b"", b""
             return (0, b"claude -p /tdd 5\n", b"") if "command=" in line else (0, b"%d\n" % (pid + 1000000), b"")
+        if line.startswith("ps -o lstart= -p "):
+            return (0, b"T0\n", b"") if int(line.split()[-1]) in live else (1, b"", b"")
         if line.startswith("ps -p "):
             pid = line.split()[2]
             return (0, args_of[pid], b"") if pid in args_of else (1, b"", b"")
@@ -56,7 +58,7 @@ def test_stop_run_cli_mode_now_writes_now_as_the_only_line_of_the_stop_file_name
     live, args_of, terms = world
     repo = tmp_path.resolve() / "repo"
     run = new_run(repo, "5", 4242)
-    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\nT0\n")
     live.update({4242, 4343})
     args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
 
@@ -71,7 +73,7 @@ def test_stop_run_cli_issue_3375_mode_now_exits_2_naming_the_pid_and_the_run_whe
     live, args_of, terms = world
     repo = tmp_path.resolve() / "repo"
     run = new_run(repo, "5", 4242)
-    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\nT0\n")
     live.update({4242, 4343})
     args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
     answer_kill = os.kill
@@ -94,9 +96,9 @@ def test_stop_run_cli_issue_3375_all_mode_now_exits_2_when_one_runs_stop_exits_2
     live, args_of, terms = world
     repo = tmp_path.resolve() / "repo"
     refused_run = new_run(repo, "5", 4242)
-    (refused_run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    (refused_run / ".tdd" / "develop-red.pid").write_bytes(b"4343\nT0\n")
     other_run = new_run(repo, "6", 4444)
-    (other_run / ".tdd" / "develop-red.pid").write_bytes(b"4545\n")
+    (other_run / ".tdd" / "develop-red.pid").write_bytes(b"4545\nT0\n")
     live.update({4242, 4343, 4444, 4545})
     args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
     args_of["4545"] = b"/bin/sh supervise.sh develop-red 6\n"
@@ -140,7 +142,7 @@ def test_stop_run_cli_mode_at_ledger_and_at_leaf_write_the_mode_and_signal_nothi
     live, args_of, terms = world
     repo = tmp_path.resolve() / "repo"
     run = new_run(repo, "5", 4242)
-    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\nT0\n")
     live.update({4242, 4343})
     args_of["4343"] = b"/bin/sh supervise.sh develop-red 5\n"
 
