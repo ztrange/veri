@@ -66,3 +66,10 @@ ICAgIHJvdXRlcyA9ICIsICIuam9pbihyZS5maW5kYWxsKHIiYChbXmBdKylgIiwgZWxpZ2libGVbY2F1
 command 167
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_a_cause_whose_bullet_lists_route_tokens_prints_them_unquoted_and_comma_separated
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 59
+skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_file_with_no_adjudication_line_exits_2_with_nothing_on_stdout
+
