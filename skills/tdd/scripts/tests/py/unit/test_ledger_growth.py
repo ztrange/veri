@@ -317,3 +317,13 @@ def test_3427_reopen_of_a_passed_skill_edit_step_already_marked_added_keeps_exac
     added = tmp_path / "issue-42-added.md"
     assert (code, ledger.read_text(), added.read_text() if added.exists() else None) == (
         0, "# Plan for #42\n\n- [ ] " + step + "\n", "- [ ] " + step + "\n")
+
+
+def test_3427_reopen_of_a_passed_plain_step_exits_2_naming_the_step_and_leaves_the_ledger_untouched(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    text = "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+    ledger.write_text(text)
+    code, out, err = run_cli(ledger_growth, ["reopen", str(ledger), "a cog exists", "a change"])
+    assert (code, "a cog exists" in err, ledger.read_text(), (tmp_path / "issue-42-added.md").exists()) == (
+        2, True, text, False)
