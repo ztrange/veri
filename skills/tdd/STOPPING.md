@@ -55,10 +55,13 @@ leaves the run resumable. Run this sequence in order.
    was taken at, `at` says how far the work got — so a reader who asks "where did this run
    pause?" reads one mark, not two.
 5. **Report.** Render `$S/metrics.sh <n>` — after the mark, so it reads it — straight into
-   a `### 📊 Metrics` block, and post one `### ⏹️ Stopped — <mode>` comment carrying that
+   a `### 📊 Metrics` block, and post one `### ⏹️ Stopped — <mode>` comment by running
+   `$S/comment.sh <n> stopped`, carrying that
    block, the boundary reached (`at=<at>`), what step 2 dropped, the branch, the worktree
    path, any `push=rejected sha=<remote-sha>`, and the resume command
-   `$S/run-conductor.sh <n>`. The metrics go into the comment and nowhere else: **no
+   `$S/run-conductor.sh <n>`. When `.tdd/restart-pending` names a live pid, the comment
+   instead says the conductor is being restarted for context growth: it carries no
+   operator wording and no resume command. The metrics go into the comment and nowhere else: **no
    metrics file is written or committed**, and this section stages and commits nothing.
    Committing them marks an ending, as *Done* and
    `<base directory>/BAIL.md` do, and a stopped run will be resumed.
