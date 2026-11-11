@@ -1,0 +1,7 @@
+before 40
+5b2f0803889f3e8f123ff012add314294d2c004e
+keep 62
+skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
+command 212
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_main_waits_out_a_403_marked_only_by_a_mixed_case_retry_after_header_on_the_stall_check_issue_states_read_and_goes_on_issue_3582
+
