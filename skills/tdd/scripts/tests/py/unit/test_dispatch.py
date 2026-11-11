@@ -2160,6 +2160,35 @@ def test_main_has_the_exit_line_in_a_block_buffered_redirected_stdout_file_when_
     assert (code, in_file_on_return) == (0, "done 7 https://github.com/o/r/pull/9\n")
 
 
+def test_main_has_the_stalled_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
+        monkeypatch, tmp_path, dispatch):
+    import os
+    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
+    events.parent.mkdir(parents=True)
+    events.write_text('{"event": "leaf-start"}\n')
+    os.utime(events, (1000, 1000))
+    ticks = [1000, 1003]
+    out = tmp_path / "dispatch.out"
+
+    def wait():
+        pass
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    with open(out, "w", buffering=8192) as redirected:
+        monkeypatch.setattr(sys, "stdout", redirected)
+        code = dispatch.main(["--target", "1"])
+        in_file_on_return = out.read_text()
+
+    assert (code, in_file_on_return) == (0, "stalled 7\n")
+
+
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, waits = _overlap_case(
