@@ -103,7 +103,7 @@ def main(argv):
             and any(BEFORE_STATE_GREEN.search(line)
                     for line in _read(args[3]).decode("utf-8", "replace").splitlines()
                     if line.startswith("REASON:"))):
-        return _refuse("build-develop-prompt: a verify-pin rejection saying 'stays green' is routed "
+        return _refuse("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
                        "by pin-reject-route.sh, not revised")
     prompts = f"{HERE}/prompts"
     template = "revise-diff" if revised_phase == "diff" else phase

@@ -75,10 +75,9 @@ Every other step takes the verdict as follows:
   and exit 1, leaving the line unticked and unmarked with no retirement event, so you enter
   the revise loop for red (or park the step when the revise budget is spent), never retiring
   it by hand. It prints `retired`
-  or `revise`, except that under `--missing-reroute` a reason saying the added case is green
-  on the step's before-state and `stays green` prints `unpinnable-missing`, ticks nothing and exits 2: only the
-  added missing case is unpinnable, not the step. A reason saying only that the case is green on
-  the before-state, without `stays green`, retires the step via `--already-holds`. A reason reporting a surviving mutant of the
+  or `revise`, except that under `--missing-reroute` a reason with a before-state-green clause
+  (a clause naming the before-state and green or pass, with no fail, red, not or after in it) prints `unpinnable-missing`, ticks nothing and exits 2: only the
+  added missing case is unpinnable, not the step. A reason with no such clause and no `stays green` retires the step via `--already-holds`. A reason reporting a surviving mutant of the
   added case (`stays green`, the target red on the before-state) is not that: it is exit 1 and
   enters the revise loop for red. The routing is the script's decision, never your reading of the reason. On its
   exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
@@ -86,7 +85,7 @@ Every other step takes the verdict as follows:
   `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a
   `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
   loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, only a `verify-pin.reason`
-  reporting the before-state green, not every `stays green` reason, so that reason never
+  with a before-state-green clause, not every `stays green` reason, so that reason never
   reaches it); on its exit **2** printing
   `unpinnable-missing` (only under `--missing-reroute`) **bail** with `cause=unpinnable-missing`
   as a **process** failure, and on any other (bare) exit **2** **bail** as a
