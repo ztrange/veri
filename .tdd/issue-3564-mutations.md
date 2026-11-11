@@ -1,0 +1,7 @@
+before 40
+94eba9c62bd6d9077640900702e3015604eef8d1
+keep 56
+skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_main_takes_the_first_path_shaped_backticked_token_as_the_unit_skipping_an_earlier_non_path_one_3564
+

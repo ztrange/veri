@@ -1642,3 +1642,26 @@ def test_main_takes_a_bare_md_file_after_a_non_path_backticked_token_as_the_unit
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
 
     assert (code, "README.md: the unit file does not exist" in err, "no unit path" in err, "parked:" in err, ledger.read_bytes()) == (2, True, False, False, LEDGER), err
+
+
+def test_main_takes_the_first_path_shaped_backticked_token_as_the_unit_skipping_an_earlier_non_path_one_3564(tmp_path, run_cli, add_ledger_step):
+    unit = "skills/tdd/SCRIPTS.md"
+    (tmp_path / "skills/tdd").mkdir(parents=True)
+    (tmp_path / unit).write_text("The widget is blue.\n")
+    (tmp_path / "skills/tdd/REQUIREMENTS.md").write_text(
+        f"## {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n")
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text(
+        f"## Problem\n\nText.\n\n## Requirements\n\n### {unit}\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n")
+    text = f"⟦skill-edit⟧ regrade `parked` rows in `{unit}`"
+    only_non_path = "⟦skill-edit⟧ regrade `parked` rows in the scripts doc"
+
+    code, _, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
+    inserted = [line for line in ledger.read_text().splitlines() if f"`{unit}`" in line]
+    refused, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", only_non_path], cwd=tmp_path)
+
+    assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None, refused) == (0, 1, True, 2), err
