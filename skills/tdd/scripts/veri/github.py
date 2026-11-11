@@ -106,7 +106,7 @@ def _issue(number):
 
 class GraphQLAdapter:
     def _run(self, *args):
-        run = _gh(*args, stderr=subprocess.PIPE)
+        run = _retry_refused(lambda: _gh(*args, stderr=subprocess.PIPE), "stderr")
         if run.returncode != 0:
             raise NoAnswer("", run.stderr)
         return run.stdout
