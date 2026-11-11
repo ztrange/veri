@@ -1012,3 +1012,10 @@
 | VU5 | Check 4 says to run the edited cases at the range's tip against the production code as it stands, and that a case failing against unmoved production code is a REJECT. (Numbered list, item 4.) | The cases must stay green before any caller moves. |
 | VU6 | Check 5 says to REJECT a diff in which an assertion is removed or weakened, followed by the `{{LAST_PHASE_CHECK}}` slot; the template's own checks are numbered 2 to 5, continuing the included `_verify-interface-phase-lead.md` fragment's check 1. (Numbered list.) | A weakened assertion would pass the phase by testing less. |
 | VU7 | The closing paragraph says PASS if the suites are green, no production file changed, every edited case stubs both transports and passes against unmoved production code, and no assertion was removed or weakened, and REJECT, naming the specific problem, otherwise. (Closing paragraph.) | The verdict rule restates every check, so a PASS needs all of them. |
+
+## skills/tdd/scripts/prompts/_verify-output-contract.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VOC1 | The fragment is the last thing a verify-* prompt says: it reminds the leaf that its reply must end with a `VERDICT: PASS` or `VERDICT: REJECT` line followed by a `REASON:` line, with nothing after them, and that a reply without the `VERDICT:` line counts as a system failure and is paid for again. (The whole fragment.) | #3582's verify-plan leaf drifted off-task and ended with a summary and no verdict, twice; the only statement of the contract was ~50 lines above a 21 KB prompt's end. |
+| VOC2 | The fragment states the contract in words only: it contains no `{{...}}` slot and no text taken from the developer's work, so it adds no way for the author's rationale to reach the verifier. (The whole fragment.) | The verifier is blind by construction; a closing reminder must not become an input. |
