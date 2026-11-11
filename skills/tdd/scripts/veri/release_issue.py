@@ -31,7 +31,8 @@ def main(argv):
     except github.NoAnswer:
         sys.stderr.write("release-issue.sh: no answer from gh reading the labels of #%s\n" % number)
         return 2
-    if not any(marker in labels for marker in MARKERS) and not _preflight_refused(number, labels, opt_in):
+    marked = any(marker in labels for marker in MARKERS)
+    if not marked and not _preflight_refused(number, labels, opt_in):
         sys.stderr.write("release-issue.sh: #%s is neither parked nor bailed; nothing to release\n" % number)
         return 3
     foreign = [name for name in labels if name.startswith("taken:") and name != taken]
@@ -44,7 +45,10 @@ def main(argv):
         lambda: github.gh_label_ensure(opt_in),
         lambda: github.gh_issue_add_label(number, opt_in),
         lambda: github.gh_issue_remove_label(number, taken),
-    ] + [lambda marker=marker: github.gh_issue_remove_label(number, marker) for marker in MARKERS]
+    ]
+    if not marked:
+        writes[1:3] = writes[2:0:-1]
+    writes += [lambda marker=marker: github.gh_issue_remove_label(number, marker) for marker in MARKERS]
     for write in writes:
         try:
             write()
