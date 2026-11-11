@@ -1,0 +1,1 @@
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_skill_diff_checked_readers.py — FAILED test_every_remaining_case_reading_the_diff_checked_subsection_by_its_content_is_on_the_mechanical_allow_list - Failed: Timeout (>30.0s) from pytest-timeout ⟦suite-repair⟧ ⟦criterion 1⟧
