@@ -52,3 +52,12 @@ def test_issue_3648_bare_role_with_no_verb_prints_usage_and_exits_2(tmp_path, mo
     code, _, err = run_cli(role_state, ["coord"])
 
     assert (code, err) == (2, role_state.USAGE)
+
+
+def test_issue_3676_lane_flag_with_no_lane_prints_usage_and_exits_2_writing_no_state(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+
+    code, _, err = run_cli(role_state, ["coord", "--lane"])
+
+    assert (code, err, list(tmp_path.iterdir())) == (2, role_state.USAGE, [])
