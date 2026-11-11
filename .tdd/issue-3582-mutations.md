@@ -33,3 +33,10 @@ skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
 command 191
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_issue_paths_waits_out_a_429_marked_only_by_retry_after_on_a_graphql_issue_body_read_and_goes_on_issue_3582
 
+before 40
+7c5c912c13193716a2818dcf41370ea2033d29ab
+keep 62
+skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py
+command 206
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch_issue_states.py::test_issue_paths_waits_out_a_403_marked_only_by_x_ratelimit_remaining_zero_on_a_graphql_issue_body_read_and_goes_on_issue_3582
+

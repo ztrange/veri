@@ -458,3 +458,29 @@ def test_issue_paths_waits_out_a_429_marked_only_by_retry_after_on_a_graphql_iss
         paths = str(failure)
 
     assert paths == ["skills/tdd/a.py"]
+
+
+def test_issue_paths_waits_out_a_403_marked_only_by_x_ratelimit_remaining_zero_on_a_graphql_issue_body_read_and_goes_on_issue_3582(
+        monkeypatch):
+    import subprocess
+    dispatch = importlib.import_module("veri.dispatch")
+    reads = []
+
+    def run(argv, *args, **kw):
+        assert argv[:3] == ["gh", "issue", "view"], argv
+        reads.append(argv)
+        if len(reads) <= 2:
+            return subprocess.CompletedProcess(argv, 1, "", "HTTP 403\nx-ratelimit-remaining: 0\n")
+        return subprocess.CompletedProcess(argv, 0, "touches `skills/tdd/a.py`\n", "")
+
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setattr(dispatch, "_reads", {})
+    monkeypatch.setattr(dispatch.github.subprocess, "run", run)
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
+
+    try:
+        paths = dispatch.issue_paths("12")
+    except dispatch.watch_runs.QueueUnreadable as failure:
+        paths = str(failure)
+
+    assert paths == ["skills/tdd/a.py"]
