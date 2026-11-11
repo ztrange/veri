@@ -1626,3 +1626,22 @@ def test_stopped_carries_the_failed_render_line_in_place_of_the_metrics_block_an
     assert "### 📊 Metrics" not in body
     assert "at=step-1" in body.splitlines()
     assert "dropped yankee" in body
+
+
+def test_stopped_carries_the_push_rejected_line_when_a_push_rejected_event_precedes_the_stop(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [
+        {"event": "push-rejected", "remote_sha": "abc1234def"},
+        {"event": "stop", "mode": "graceful", "at": "step-1"},
+    ])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    assert "push=rejected sha=abc1234def" in posted[0][1].splitlines()
