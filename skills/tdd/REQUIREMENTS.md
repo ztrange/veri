@@ -1006,3 +1006,11 @@
 | PF58 | Any `VERI_SKIP_VERIFY` word that is not a phase this release can skip, or is `plan`, exits 2 before the baseline, naming it. (Step 5.) | A bad list must stop the run before it spends anything. |
 | PF61 | A `detach-command.sh wait` that answers 2 during a requested stop (`$S/stop-requested.sh` exits 0 and prints `now`) is not a preflight failure and not a poisoned baseline: the conductor goes to *Stopping* (`Read` and run `<base directory>/STOPPING.md`), records a `stop` event and no `bail`, and posts no preflight refusal; a wait that exits 2 while no `now` stop is pending is still read as the failure it reports. | `--mode now` makes `wait` return 2 at once, and reading it as a dead baseline would bail a paused run. |
 | PF63 | PREFLIGHT-FAILURES.md has an entry for `requirements-preflight.sh`'s exit 2 (a Requirements row that clashes with a held ID and needs `<ID><reword>`, or a skill-edit unit with no `### <path>` heading), naming its cause, the `preflight-refused` event and issue comment it gets like every other preflight refusal, and the fix: correct the issue's `## Requirements`. | A refusal with no entry loses its event and comment, and the human sees no remedy (PF59). |
+
+## skills/tdd/ADJUDICATE.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| AJ1 | The file lists the eligible causes (in 019.1: `ci-timeout`) and, for each one, the route tokens it allows (in 019.1: none). It states that `killed-stuck`, `no-verdict`, `killed-external` and preflight refusals are never adjudicated. | The eligibility list has one home. |
+| AJ2 | The file states the procedure: check `VERI_ADJUDICATE_BUDGET`, build the prompt with `build-adjudicate-prompt.sh`, launch the `adjudicate` leaf through `supervise.sh`, parse with `parse-adjudication.sh`, record `adjudicated`, then act on `retry`, `route` or `bail`. A parse exit 2 is a bail with the original cause and class. | The conductor follows one rule at every site. |
+| AJ3 | The file states that the adjudicator writes no file and no ledger line, never relabels the 2 as a 1, and that a bail after adjudication keeps its original classification. It cites ADR-0035. | Guards stay rigid. |
