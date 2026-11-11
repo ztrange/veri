@@ -11,6 +11,8 @@ import tests_frozen
 from add_ledger_step import added_file
 from build_verify_prompt import INTERFACE_PHASES
 
+# A clause (cut at , ; . or a newline) that names the before-state and says green or pass.
+BEFORE_STATE_GREEN = re.compile(r"before-state[^,;.\n]*\b(green|pass)|\b(green|pass)[^,;.\n]*before-state")
 RETIRED_MARK = " ⟂ retired unpinnable"
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
 
@@ -123,8 +125,8 @@ def main(argv):
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if event_name == "unpinnable-step" and "stays green" not in reason_text and not re.search(
-                r"before-state[^,;.\n]*\b(green|pass)|\b(green|pass)[^,;.\n]*before-state", reason_text):
+        if event_name == "unpinnable-step" and "stays green" not in reason_text and not BEFORE_STATE_GREEN.search(
+                reason_text):
             return 1
         if event_name == "already-holds-step" and not any(
             l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()

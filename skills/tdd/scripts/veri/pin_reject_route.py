@@ -9,9 +9,7 @@ import ledger
 import os
 import re
 import tick_ledger
-
-# A clause (cut at , ; . or a newline) that names the before-state and says green or pass.
-BEFORE_STATE_GREEN = re.compile(r"before-state[^,;.\n]*\b(green|pass)|\b(green|pass)[^,;.\n]*before-state")
+from tick_ledger import BEFORE_STATE_GREEN
 
 USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>\n"
          "       pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>")
