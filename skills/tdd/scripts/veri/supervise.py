@@ -25,7 +25,7 @@ from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
 from ledger import carries_mark, ledger_path, ledger_steps, trailing_markers
-from pid_file import number_in
+from pid_file import number_in, record
 from pytest_leg import lock_wait_path
 
 HERE = paths.scripts_of(__file__)
@@ -532,7 +532,7 @@ def main(argv):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
     mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     pidfile = f".tdd/{name}.pid"
-    tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
+    tolerated(name, "write", pidfile, record, pidfile, os.getpid())
     discard(exitfile)
     records = mutation_records() if name.startswith(("develop-", "revise-")) else None
     production = production_files() if name.startswith(("develop-red", "revise-red")) else None

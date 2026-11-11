@@ -104,6 +104,8 @@ def fake_git_only(monkeypatch, toplevel):
 
     def answer(args, kwargs):
         calls.append(list(args))
+        if list(args[:2]) == ["ps", "-o"] and "lstart=" in args:
+            return 0, as_asked("Thu Nov 11 09:00:00 2026\n", kwargs)
         if not args or args[0] != "git":
             raise Launched(args)
         if "--show-toplevel" in args:
@@ -266,6 +268,8 @@ def fake_leaf_launch(monkeypatch):
             out = "0123456789abcdef0123456789abcdef01234567\n"
         elif args[:1] in (["date"], ["stat"]):
             out = "1000\n"
+        elif args[:2] == ["ps", "-o"] and "lstart=" in args:
+            out = "Thu Nov 11 09:00:00 2026\n"
         else:
             out = ""
         return as_asked(out, kwargs)
@@ -333,6 +337,9 @@ def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
     clean_env(monkeypatch)
+    for module in ("pid_file", "veri.pid_file"):
+        monkeypatch.setattr(importlib.import_module(module), "_ps",
+                            lambda field, pid: "Thu Nov 11 09:00:00 2026", raising=True)
 
     leaves = {
         "rc-2": ("exit 2", False),
@@ -374,7 +381,7 @@ def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a
         _, err = capsysbinary.readouterr()
         answers[label] = (code, err.splitlines()[-1:], (tdd / "verdict-red.exit").read_bytes(), seen)
 
-    before = (f"{os.getpid()}\n".encode(), b"", None, None)
+    before = (f"{os.getpid()}\nThu Nov 11 09:00:00 2026\n".encode(), b"", None, None)
     failure = [b"supervise[verdict-red]: failure"]
     assert answers == {
         "rc-2": (2, failure, b"2\n", [before]),
@@ -2031,7 +2038,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
         "alive-verdict": supervised("alive-verdict", "verdict-red", "4242 develop-red\n"),
     }
 
-    launched, mine, verifier = ("launched", "date"), f"{me}\n", [("launch", "verifier", "verify-red")]
+    launched, mine, verifier = ("launched", "date"), f"{me}\nThu Nov 11 09:00:00 2026\n", [("launch", "verifier", "verify-red")]
     assert answers == {
         "alive": (2, b"", [REFUSAL.format("verify-red", "develop-red", 4242)], "2\n", None,
                   "4242 develop-red\nignored line\n", [(4242, 0)], True, []),
@@ -3197,7 +3204,7 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
         if list(args[:2]) != ["/bin/sh", "-c"]:
             return real_popen(args, *a, **kwargs)
         pidfile = work / ".tdd" / "develop-red.pid"
-        seen_pids.append(pidfile.read_text().strip() if pidfile.exists() else "<missing>")
+        seen_pids.append(pidfile.read_text().splitlines()[0] if pidfile.exists() else "<missing>")
         attempts = work / "attempts.txt"
         with attempts.open("a") as f:
             f.write("run\n")
