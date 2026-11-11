@@ -223,3 +223,16 @@ def test_3579_failed_gate_removes_the_token_file_holding_its_owner_token(tmp_pat
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     code = merge_lock._gate(lock, record, ["--pid", me, "--owner", "token-a", "--", "false"])
     assert (code, os.path.isdir(lock), token_file.exists()) == (1, False, False)
+
+
+def test_3579_release_by_a_different_owner_token_leaves_the_holders_token_file_untouched(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    token_file = tmp_path / ".git" / "veri-merge-42.token"
+    token_file.parent.mkdir()
+    token_file.write_text("token-a\n")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    refused = merge_lock._release(lock, record, ["--pid", me, "--owner", "token-b"])
+    assert (refused, os.path.isdir(lock), token_file.read_text()) == (1, True, "token-a\n")

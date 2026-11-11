@@ -12,3 +12,16 @@ skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py
 command 143
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3579_failed_gate_removes_the_token_file_holding_its_owner_token
 
+file 37
+skills/tdd/scripts/veri/merge_lock.py
+old 74
+        if fields[3:4] != ([owner] if owner else []):
+            return 1
+new 70
+        if fields[3:4] != ([owner] if owner else []):
+            pass
+context 53
+        if fields[3:4] != ([owner] if owner else []):
+command 159
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3579_release_by_a_different_owner_token_leaves_the_holders_token_file_untouched
+
