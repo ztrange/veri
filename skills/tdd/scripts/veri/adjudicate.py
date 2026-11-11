@@ -6,6 +6,8 @@ USAGE = "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <le
 
 
 def main(argv):
+    if argv == ["--check-budget"]:
+        return 0
     print(USAGE, file=sys.stderr)
     return 2
 
