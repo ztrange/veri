@@ -1435,7 +1435,7 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
         True, 0, True, True)
 
 
-def test_rerecord_earlier_exits_0_or_3_not_2_and_keeps_the_record_when_every_earlier_case_is_unchanged_3641(
+def test_rerecord_earlier_exits_0_not_2_and_keeps_the_record_when_every_earlier_case_is_unchanged_3641(
         tmp_path, run_cli, tests_frozen, monkeypatch):
     suite = _rerecord_fixture(tmp_path, tests_frozen, monkeypatch)
     earlier, edit = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧"
@@ -1454,4 +1454,4 @@ def test_rerecord_earlier_exits_0_or_3_not_2_and_keeps_the_record_when_every_ear
 
     code = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
 
-    assert (code in (0, 3), (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (True, True)
+    assert (code, (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (0, True)
