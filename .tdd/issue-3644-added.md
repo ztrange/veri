@@ -1,0 +1,1 @@
+- [ ] Rename the two cases whose bodies the `--missing-reroute` and `build-develop-prompt.sh` steps above rewrote so their names state the new expectation (`..._routes_unpinnable_missing_3644` and `..._is_refused_3644`), bodies otherwise unchanged, no production change ⟦diff-checked⟧ ⟦criterion 1⟧
