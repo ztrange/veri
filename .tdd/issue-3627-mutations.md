@@ -12,3 +12,14 @@ skills/tdd/scripts/tests/py/unit/test_release_issue.py
 command 162
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_release_issue.py::test_a_preflight_refused_issue_claimed_by_another_lane_exits_2_and_nothing_is_written_3627
 
+file 40
+skills/tdd/scripts/veri/release_issue.py
+old-b64 104
+cmV0dXJuICIjIyMg4puUIFByZWZsaWdodCByZWZ1c2VkIiBpbiBnaXRodWIuZ2hfaXNzdWVfdmlldyhudW1iZXIsICJjb21tZW50cyIp
+new-b64 16
+cmV0dXJuIFRydWU=
+context-b64 116
+ICAgICAgICByZXR1cm4gIiMjIyDim5QgUHJlZmxpZ2h0IHJlZnVzZWQiIGluIGdpdGh1Yi5naF9pc3N1ZV92aWV3KG51bWJlciwgImNvbW1lbnRzIik=
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_release_issue.py::test_a_claimed_unopted_issue_with_only_other_comments_still_exits_3_and_nothing_is_written_3627
+
