@@ -6,4 +6,4 @@
 - [x] With the faked open PR list read answering HTTP 500 for the first K reads (K below the retry bound, no real sleeping) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case)
 - [x] With the faked issue body read answering HTTP 500 for the first K reads (K below the retry bound, no real sleeping) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case)
 - [x] With the faked gh pr diff of one open run draft PR failing with a connection error (gh's error connecting to api.github.com) for the first K reads (K below the retry bound, no real sleeping) and then succeeding, dispatch main does not exit 2 and goes on to launch the unclaimed solvable issue (small unit-tier case)
-- [ ] Go-red guard: with the retry broken on purpose (no retry), the transient-5xx diff case goes red, then the retry is restored ⟦human-owed⟧ ⟦criterion 2⟧
+- [x] Go-red guard: with the retry broken on purpose (no retry), the transient-5xx diff case goes red, then the retry is restored ⟦human-owed⟧ ⟦criterion 2⟧
