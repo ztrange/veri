@@ -4,6 +4,7 @@ import re
 import sys
 
 import entry
+import ledger
 import skill_edit_guard
 import skill_edit_step
 
@@ -26,7 +27,9 @@ def main(argv):
     missing = []
     if len(argv) > 1:
         for line in open(argv[1]):
-            m = re.search(r"`([^`]+)`", line) if line.startswith("- [") and "⟦skill-edit⟧" in line else None
+            step = re.sub(r"^- \[.\] ", "", line.rstrip("\n"))
+            marked = step.startswith("⟦skill-edit⟧") or ledger.carries_mark(ledger.trailing_markers(step), "skill-edit")
+            m = re.search(r"`([^`]+)`", line) if line.startswith("- [") and marked else None
             if m and not any(skill_edit_step._names_unit(h, m.group(1)) for h in units):
                 missing.append(m.group(1))
     for unit in missing:
