@@ -495,3 +495,10 @@ def test_main_with_both_veri_model_adjudicator_and_veri_model_set_prints_veri_mo
     code = leaf_model.main(["adjudicate-ci-timeout"])
     captured = capsys.readouterr()
     assert (code, captured.out) == (0, "sonnet\n")
+
+
+def test_main_with_only_veri_model_set_prints_veri_model_for_an_adjudicate_leaf(capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL", "haiku")
+    code = leaf_model.main(["adjudicate-ci-timeout"])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (0, "haiku\n")
