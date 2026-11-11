@@ -4,3 +4,5 @@
 - test-only | the cases in test_build_adjudicate_prompt.py repeat the same `.tdd/issue-7.md` and stderr-file setup; a shared helper could replace it
 ### `build-adjudicate-prompt.sh` given a cause `ADJUDICATE.md`'s `Eligible causes` list does not name (such as `killed-stuck`) exits 2 with nothing on stdout, its stderr naming the cause; a small unit case through `run_cli` ⟦criterion 2⟧
 - test-only | extract the repeated `.tdd/issue-7.md` and stderr-file setup in test_build_adjudicate_prompt.py into a helper or fixture
+### `parse-adjudication.sh` takes the route tokens it accepts from `ADJUDICATE.md`'s `Eligible causes` list, the same list `build-adjudicate-prompt.sh` reads, not from a constant of its own: a token a bullet there lists is accepted (`route <token>`, exit 0) and an unlisted one exits 2; a small unit case reading a fixture `ADJUDICATE.md` ⟦added⟧ ⟦criterion 4⟧
+- test-only | test_parse_adjudication.py: `test_main_takes_the_route_tokens_a_cause_may_use_from_the_eligible_causes_list_in_adjudicate_md` repeats the fixture setup of `_use_fixture_adjudicate_md`; it could call the helper with the two-bullet text.
