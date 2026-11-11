@@ -158,12 +158,13 @@ def _release(lock, record, args):
             return 1
         if fields[3:4] != ([owner] if owner else []):
             return 1
+    forced = "--force" in args
     if os.path.isfile(record):
         owner = (_read(record).split()[3:4] or [""])[0]
     shutil.rmtree(lock)
     git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
     for path in glob.glob(os.path.join(git_dir, "veri-merge-*.token")):
-        if _read(path).strip() == owner:
+        if not forced or _read(path).strip() == owner:
             os.remove(path)
     return 0
 
