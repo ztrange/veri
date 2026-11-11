@@ -45,3 +45,10 @@ context 33
 command 180
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_restart_pending_holds_garbage_or_nothing
 
+before 40
+dc89bd7cf63b6d9dfacca23148cfeee9a97c38e9
+keep 48
+skills/tdd/scripts/tests/py/unit/test_comment.py
+command 172
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_restart_pending_names_a_dead_pid
+
