@@ -20,8 +20,8 @@ import tempfile
 import threading
 import time
 
-if __name__ == "__main__":
-    sys.dont_write_bytecode = True
+# Only the entry-point run switches bytecode off; an importer keeps its own setting.
+sys.dont_write_bytecode = sys.dont_write_bytecode or __name__ == "__main__"
 
 from context_limits import context_limits
 import event
