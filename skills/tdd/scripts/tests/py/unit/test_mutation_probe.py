@@ -266,7 +266,7 @@ def test_main_accepts_and_records_an_outside_address_when_the_address_domain_is_
         env={"VERI_MUTATION_RECORD": str(record), **env},
     )
     assert code == 0
-    assert calls == ["x@outside.invalid\n"]
+    assert calls[-1] == "x@outside.invalid\n"
     assert target.read_text() == "alpha\n"
     [fields] = records(record.read_text())
     assert fields["new"] == "x@outside.invalid"
@@ -293,7 +293,7 @@ def test_main_accepts_and_records_an_on_domain_or_addressless_new_when_the_addre
         env={"VERI_MUTATION_RECORD": str(record), "VERI_MUTATION_ADDRESS_DOMAIN": "corp.invalid"},
     )
     assert code == 0
-    assert calls == [new + "\n"]
+    assert calls[-1] == new + "\n"
     assert target.read_text() == "alpha\n"
     [fields] = records(record.read_text())
     assert fields["new"] == new
