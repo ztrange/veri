@@ -366,8 +366,16 @@ def journals():
     import event
     sample = event.journal_path(main_working_tree(), "0")
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
+        events = []
         with open(path) as f:
-            yield path, [json.loads(l) for l in f if l.strip()]
+            for l in f:
+                if not l.strip():
+                    continue
+                try:
+                    events.append(json.loads(l))
+                except ValueError:
+                    pass
+        yield path, events
 
 
 def run_name(path):
