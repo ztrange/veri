@@ -9,3 +9,14 @@ ICAgIG1lcmdlZCA9IG9udG8gfCB7dW5pdDogcm93IGZvciB1bml0LCByb3cgaW4gYnJhbmNoLml0ZW1z
 command 198
 make test TESTS=skills/tdd/scripts/tests/py/test_rebase_graded_only_process.py::test_3571_graded_only_with_each_side_re_signing_a_different_unit_rebases_exits_0_keeps_both_rows_once_and_owes_no_unit
 
+file 46
+skills/tdd/scripts/veri/rebase_onto_default.py
+old-b64 56
+ICAgIGdyYWRlZF9vbmx5ID0gIi0tZ3JhZGVkLW9ubHkiIGluIGFyZ3Y=
+new-b64 32
+ICAgIGdyYWRlZF9vbmx5ID0gRmFsc2U=
+context-b64 56
+ICAgIGdyYWRlZF9vbmx5ID0gIi0tZ3JhZGVkLW9ubHkiIGluIGFyZ3Y=
+command 201
+make test TESTS=skills/tdd/scripts/tests/py/test_rebase_graded_only_process.py::test_3571_graded_only_with_both_sides_re_signing_the_same_unit_after_disjoint_prose_edits_rebases_and_owes_only_that_unit
+
