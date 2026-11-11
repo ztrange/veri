@@ -2233,6 +2233,8 @@ def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of
     launches, _ = _overlap_case(
         monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
         _REAL["run_pr_paths"])
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     monkeypatch.setattr(dispatch.github.subprocess, "run",
@@ -2666,6 +2668,8 @@ def test_main_exits_2_naming_a_failed_pr_list_or_issue_body_read_and_launches_no
     times = [0, 50]
     launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
                                     waits_before_stop=len(times))
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     _gh_rest(monkeypatch, dispatch, times, waits, 100, failed_read, [], refusal="gh: HTTP 502: Bad Gateway\n")
 
     try:
