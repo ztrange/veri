@@ -16,7 +16,9 @@ except ImportError:
     from add_ledger_step import added_file
     from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, is_added, read_ledger, replace_ledger
 
-USAGE = "usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
+USAGE = ("usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
+         " | record-existing <ledger-file> | record-rewrite <pre-rewrite-ledger-file> <ledger-file>"
+         " | reopen <ledger-file> <needle> <change>")
 
 
 def step_texts(text):

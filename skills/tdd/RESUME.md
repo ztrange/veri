@@ -32,6 +32,8 @@ default branch, whatever the previous bail's cause — saves the branch-red list
    committed ledger holds step lines beyond its plan commit and there is no
    `.tdd/issue-<n>-added.md`, run `$S/ledger-growth.sh record-existing .tdd/issue-<n>.md` once, before
    the resume's first ledger commit, and stage `.tdd/issue-<n>-added.md` in that same commit with the ledger.
+   A passed `⟦skill-edit⟧` step that a post-review change must redo is reopened with
+   `$S/ledger-growth.sh reopen .tdd/issue-<n>.md <needle> <change>`, which records the step itself (exit 3: no ticked step matches; exit 2: ambiguous needle or not a `⟦skill-edit⟧` step).
 2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
    the previous run killed its leaf too, at whatever point the run had reached — a usage
    limit takes the conductor and every leaf together — so a resumed worktree may carry

@@ -521,7 +521,8 @@ three times over branches its ledger pinned on later lines.
    `$S/ledger-growth.sh record-rewrite <that file> .tdd/issue-<n>.md` after the rewrite, and stages
    `.tdd/issue-<n>-added.md` with the ledger in that same `plan: rewrite` commit
    (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md`), so the steps it adds are recorded by the
-   rewrite route itself and never need a hand-written record. Each step line the plan commit did not hold must have a matching
+   rewrite route itself and never need a hand-written record (a passed `⟦skill-edit⟧` step a post-review change must redo is
+   unticked by `$S/ledger-growth.sh reopen .tdd/issue-<n>.md <needle> <change>`, which writes its own record). Each step line the plan commit did not hold must have a matching
    record written by `add-ledger-step.sh` itself, never one the conductor wrote by hand with
    `event.sh`. The records the check reads are the ones `ledger-growth.sh` reads: the tracked
    `.tdd/issue-<n>-added.md` that `add-ledger-step.sh` writes, and the run's `step-added` events
