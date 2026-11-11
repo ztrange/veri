@@ -1693,3 +1693,14 @@ def test_main_refuses_a_skill_edit_step_whose_path_shaped_unit_file_is_missing_n
         add_ledger_step, [str(ledger), "after", "b two", f"⟦skill-edit⟧ regrade `parked` rows in `{unit}`"], cwd=tmp_path)
 
     assert (code, out, f"{unit}: the unit file does not exist" in err, "parked" in err, ledger.read_bytes()) == (2, "", True, False, LEDGER), err
+
+
+def test_main_takes_a_slash_only_backticked_token_after_a_non_path_one_as_the_unit_naming_it_3564(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### scripts/foo.sh\n")
+
+    code, out, err = run_cli(
+        add_ledger_step, [str(ledger), "after", "b two", "⟦skill-edit⟧ regrade `parked` rows in `scripts/foo.sh`"], cwd=tmp_path)
+
+    assert (code, out, "scripts/foo.sh: the unit file does not exist" in err, "parked" in err, "no unit path" in err, ledger.read_bytes()) == (2, "", True, False, False, LEDGER), err
