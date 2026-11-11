@@ -2,3 +2,5 @@
 - test-only | extract the repeated ledger/stderr-file setup in test_build_adjudicate_prompt.py into a fixture
 ### `build-adjudicate-prompt.sh` given a stderr file of more than 50 lines carries exactly its last 50 in the prompt (a 60-line file's first 10 absent); a small unit case through `run_cli` ⟦criterion 2⟧
 - test-only | the cases in test_build_adjudicate_prompt.py repeat the same `.tdd/issue-7.md` and stderr-file setup; a shared helper could replace it
+### `build-adjudicate-prompt.sh` given a cause `ADJUDICATE.md`'s `Eligible causes` list does not name (such as `killed-stuck`) exits 2 with nothing on stdout, its stderr naming the cause; a small unit case through `run_cli` ⟦criterion 2⟧
+- test-only | extract the repeated `.tdd/issue-7.md` and stderr-file setup in test_build_adjudicate_prompt.py into a helper or fixture
