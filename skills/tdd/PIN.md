@@ -76,7 +76,7 @@ Every other step takes the verdict as follows:
   the revise loop for red (or park the step when the revise budget is spent), never retiring
   it by hand. It prints `retired`
   or `revise`, except that under `--missing-reroute` a reason with a before-state-green clause
-  (a clause naming the before-state and green or pass, with no fail, red, not or after in it) prints `unpinnable-missing`, ticks nothing and exits 2: only the
+  (a clause naming the before-state and green or pass, with no fail, red, not, n't or after in it) prints `unpinnable-missing`, ticks nothing and exits 2: only the
   added missing case is unpinnable, not the step. A reason with no such clause and no `stays green` retires the step via `--already-holds`. A reason reporting a surviving mutant of the
   added case (`stays green`, the target red on the before-state) is not that: it is exit 1 and
   enters the revise loop for red. The routing is the script's decision, never your reading of the reason. On its
