@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from conftest import mentioned_names
+
 TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 PREFIX = "#### Refactor loop"
@@ -78,10 +80,7 @@ def _readers(entry, subsection, rest, docs):
     segments = {d.name: d.segment for d in definitions}
     literals = {d.name: d.strings + d.byte_strings for d in definitions}
     reads = {d.name: set(d.names) for d in definitions}
-    calls = {
-        name: (set(re.findall(r"\w+", src)) & segments.keys()) - {name}
-        for name, src in segments.items()
-    }
+    calls = mentioned_names(segments)
 
     def reach(name):
         seen, todo = {name}, [name]
