@@ -1,0 +1,5 @@
+# Plan for #3613 — dispatch.sh buffers its stdout when redirected: skip lines stay unseen until exit or buffer fill
+
+- [ ] With dispatch's stdout redirected to a block-buffered file, the open-draft-PR overlap `skip <issue> …` line is already in that file when dispatch's next `wait()` begins: an in-process case in skills/tdd/scripts/tests/py/unit/test_dispatch.py fakes `wait` to read the redirected file at that moment and fails on the current code (a small case: no real process, no real sleep) ⟦criterion 1⟧
+- [ ] With dispatch's stdout redirected to a block-buffered file, each line dispatch prints before it returns instead of waiting — `merge-failed <pr>`, the run's exit line, `stalled <issue>` and `queue-empty` — is already in that file when `main` returns, before any interpreter-exit flush: an in-process case in skills/tdd/scripts/tests/py/unit/test_dispatch.py reads the file right after `main` returns (a small case: no real process, no real sleep) ⟦criterion 1⟧
+- [ ] The fix's go-red control: removing it makes that case go red ⟦human-owed⟧ ⟦criterion 2⟧
