@@ -247,7 +247,7 @@ def test_2372_queued_merge_with_no_reported_merge_commit_or_one_the_clone_lacks_
         fake_processes, run_cli, merged, fail, named):
     calls = scenario(fake_processes, merged=merged, fail=fail)
 
-    code, _, err = run_cli(queued_merge, ARGV)
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": "0"})
 
     tagged = [c for c in calls if " tag -a " in c or "push origin v0." in c]
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
