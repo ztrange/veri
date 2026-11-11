@@ -75,11 +75,17 @@ test_main_renders_a_revise_red_prompt_for_a_replaces_case_step_without_an_instru
 
 
 def defined_case_names():
+    """The function names defined in the files that mention any named case at all: a function's name is in its file's
+    text, so a file that mentions none of the 59 defines none of them, and is not parsed."""
+    wanted = DELETE + KEEP + REDUCE
     names = set()
     for path in HERE.rglob("*.py"):
         if path.resolve() == Path(__file__).resolve():
             continue
-        tree = ast.parse(path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+        if not any(name in text for name in wanted):
+            continue
+        tree = ast.parse(text)
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 names.add(node.name)
