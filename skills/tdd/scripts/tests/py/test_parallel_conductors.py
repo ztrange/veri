@@ -367,6 +367,7 @@ def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_valida
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_four_tunables_as_words_and_the_run_timeout_in_supervise_s_environment(
         env, words, run_timeout, capsys, monkeypatch, tmp_path, parallel_conductors):
+    monkeypatch.delenv("VERI_POLL", raising=False)
     for name, value in env.items():
         monkeypatch.setenv(name, value)
     gh = tmp_path / "gh"
