@@ -630,3 +630,32 @@ def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
     assert code == 0, (code, err)
     assert state and state != ["none"], state
+
+
+def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_holds_a_torn_line(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
+    monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
+    runs = tmp_path / "home" / "runs" / "acme-widgets"
+    runs.mkdir(parents=True)
+    (tmp_path / ".tdd").mkdir()
+    start = {"ts": 1793700000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"}
+
+    def bail(cause):
+        return {"ts": 1793700050, "awake": 50, "event": "bail", "cause": cause}
+    torn = 'okens": "2", "output_tokens": "1242"}'
+    (runs / "3600.jsonl").write_text("\n".join([json.dumps(start), torn, json.dumps(bail("killed-stuck"))]) + "\n")
+    (runs / "3601.jsonl").write_text("\n".join([json.dumps(start), json.dumps(bail("ci-red"))]) + "\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")] if "Bailed" in lines else []
+    assert (code, [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed]) == (0, [["3600", "system"], ["3601", "process"]]), (err, bailed)
