@@ -100,6 +100,13 @@ All three checks are raw reads, so hand each to a subagent (P6). **Every subagen
 and says that **all writes stay in the project repo, and a fix belonging elsewhere is
 reported, not made** (P11).
 
+4. **Preflight the `## Requirements` rows** (an issue with a `## Requirements` section only).
+   Write the body to a file and run `requirements-preflight.sh <body-file>` **before**
+   `gh issue create`; file only on exit 0. On exit 2, fix **every row the stderr names**: a new
+   row takes the next free ID (one past the highest number the unit's own section holds for the
+   prefix), and a row amending a held ID is written `<ID><reword>` with its full new text. Then
+   re-run the check.
+
 ## Labels
 
 Every label that applies is set **by default**; a label is left off **only when the human said
