@@ -361,7 +361,8 @@ def _retry_refused(call, stream):
     while True:
         done = call()
         text = getattr(done, stream)
-        if done.returncode == 0 or not ("rate limit" in text or "retry-after" in text.lower()):
+        marked = "rate limit" in text or "retry-after" in text.lower() or "x-ratelimit-remaining: 0" in text.lower()
+        if done.returncode == 0 or not marked:
             return done
         if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
             return done
