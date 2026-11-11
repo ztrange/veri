@@ -33,8 +33,10 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    A probe exiting 2 gives no verdict, and one exiting 1 (the command still passed) is never a PASS.
    Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes on the real
    before-state and is not a branch-added guard, or with the behavior removed by hand when
-   the hand mutation is the proof, pins nothing: that is a REJECT naming which run stayed
-   green ("the real before-state stays green", or "the hand mutation stays green"). A test
+   the hand mutation is the proof, pins nothing: that is a REJECT whose reason contains the
+   literal words "stays green" naming which run stayed green ("the real before-state stays
+   green", or "the hand mutation stays green"); a reason that says a run "passes" or is
+   "green" without those words is not accepted. A test
    green on the real before-state that also stays green with the branch-added guard mutated
    away is a REJECT whose reason says both: "the real before-state stays green" and "the
    guard mutation stays green".
