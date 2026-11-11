@@ -1050,6 +1050,94 @@ def test_2184_at_start_a_leg_keeps_a_dead_pid_folder_not_named_veri_pytest_in_it
     assert (outside / "leftover").exists()
 
 
+def _mirror_of(prefix, folder):
+    return prefix / str(folder).lstrip("/")
+
+
+def _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during, before=lambda prefix, tmpdir: None):
+    import tempfile
+
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(tmpdir))
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+    before(prefix, tmpdir)
+
+    def spy(args):
+        base = next(arg for arg in args if arg.startswith("--basetemp="))[len("--basetemp="):]
+        during(prefix, os.path.dirname(base))
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    code, _, err = run_cli(pytest_leg, [], env=env)
+    assert (code, err) == (0, "")
+    return tmpdir, prefix
+
+
+def test_after_a_run_the_bytecode_cache_holds_no_directory_tree_for_a_source_that_lived_under_the_runs_own_scratch_directory_and_leaves_another_tree_alone(pytest_leg, run_cli, monkeypatch, tmp_path):
+    seen = {}
+
+    def during(prefix, run):
+        own = _mirror_of(prefix, run) / "base" / "test_case0"
+        own.mkdir(parents=True, exist_ok=True)
+        (own / "scratch_module.cpython-312.pyc").write_bytes(b"x")
+        neighbour = _mirror_of(prefix, os.path.dirname(run)) / "veri-pytest-neighbour" / "base"
+        neighbour.mkdir(parents=True, exist_ok=True)
+        (neighbour / "scratch_module.cpython-312.pyc").write_bytes(b"x")
+        seen.update(own=_mirror_of(prefix, run), neighbour=neighbour)
+
+    _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during)
+
+    assert not seen["own"].exists()
+    assert (seen["neighbour"] / "scratch_module.cpython-312.pyc").exists()
+
+
+def test_a_run_leaves_a_tree_reached_through_a_symlink_inside_the_bytecode_prefix_alone_when_it_resolves_outside_the_prefix(pytest_leg, run_cli, monkeypatch, tmp_path):
+    outside = tmp_path / "outside"
+    kept = []
+
+    def during(prefix, run):
+        top = str(run).lstrip("/").split("/")[0]
+        if not (prefix / top).exists():
+            os.symlink(outside, prefix / top)
+        behind = outside / str(run).lstrip("/").partition("/")[2]
+        behind.mkdir(parents=True, exist_ok=True)
+        (behind / "keep.pyc").write_bytes(b"x")
+        kept.append(behind / "keep.pyc")
+
+    _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during)
+
+    assert kept and all(path.exists() for path in kept)
+
+
+def test_the_sweep_of_a_dead_run_removes_its_bytecode_cache_tree_too_and_keeps_a_live_runs_and_one_with_no_run_folder(pytest_leg, run_cli, monkeypatch, tmp_path):
+    dead = next(pid for pid in range(99999, 1000, -1) if not _answers_kill_0(pid))
+    trees = {}
+
+    def before(prefix, tmpdir):
+        for name, pid in (("veri-pytest-deadleg", dead), ("veri-pytest-liveleg", os.getpid()), ("veri-pytest-orphan", None)):
+            folder = tmpdir / name
+            if pid is not None:
+                folder.mkdir()
+                (folder / "pid").write_text("%d\n" % pid)
+            trees[name] = _mirror_of(prefix, folder) / "base"
+            trees[name].mkdir(parents=True)
+            (trees[name] / "scratch_module.cpython-312.pyc").write_bytes(b"x")
+
+    present = []
+
+    def during(prefix, run):
+        present.append({name: tree.exists() for name, tree in trees.items()})
+
+    _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during, before)
+
+    assert present[0] == {"veri-pytest-deadleg": False, "veri-pytest-liveleg": True, "veri-pytest-orphan": True}
+
+
 @pytest.mark.process("the launcher run as a child over a planted tests tree whose case reports its own tmp_path")
 def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_directory_of_mode_0700_under_the_run_s_basetemp_not_a_numbered_one(tmp_path):
     import os
