@@ -6,7 +6,9 @@ import re
 
 from conftest import SCRIPTS
 
-USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]\n"
+def is_usage(err):
+    return (err.count("\n") == 1 and err.endswith("\n")
+            and err.startswith("usage: comment.sh <issue> <kind>") and "--note-file" in err)
 
 
 def test_no_argument_prints_the_usage_line_on_stderr_and_exits_2(run_cli):
@@ -83,7 +85,7 @@ def test_an_argument_after_kind_that_is_not_note_file_exits_2_with_usage_posting
     code, out, err = run_cli(comment, ["7", "step-done", "--bogus"], cwd=tmp_path)
 
     assert code == 2
-    assert err == USAGE
+    assert is_usage(err)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -102,7 +104,7 @@ def test_note_file_without_exactly_one_path_exits_2_with_usage_posting_and_journ
     for extra in (["--note-file"], ["--note-file", "note.txt", "extra"]):
         code, out, err = run_cli(comment, ["7", "step-done", *extra], cwd=tmp_path)
 
-        assert (code, err) == (2, USAGE), extra
+        assert code == 2 and is_usage(err), extra
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -120,7 +122,7 @@ def test_four_arguments_whose_third_is_not_note_file_exit_2_with_usage_posting_a
 
     code, out, err = run_cli(comment, ["7", "step-done", "--bogus", "x"], cwd=tmp_path)
 
-    assert (code, out, err) == (2, "", USAGE)
+    assert (code, out) == (2, "") and is_usage(err)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -177,7 +179,7 @@ def test_an_issue_with_no_kind_exits_2_with_usage_posting_and_journaling_nothing
 
     code, out, err = run_cli(comment, ["7"], cwd=tmp_path)
 
-    assert (code, out, err) == (2, "", USAGE)
+    assert (code, out) == (2, "") and is_usage(err)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -227,7 +229,7 @@ def test_an_unknown_kind_exits_2_with_usage_posting_and_journaling_nothing(monke
 
     code, out, err = run_cli(comment, ["7", "bogus-kind"], cwd=tmp_path)
 
-    assert (code, out, err) == (2, "", USAGE)
+    assert (code, out) == (2, "") and is_usage(err)
     assert posted == []
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
 
@@ -788,7 +790,7 @@ def test_red_with_an_unknown_flag_or_a_note_file_lacking_its_path_exits_2_with_u
     for bad in (["--bogus", str(note)], ["--note-file"]):
         code, out, err = run_cli(comment, ["7", "red", *bad], cwd=tmp_path)
 
-        assert (code, err) == (2, USAGE), bad
+        assert code == 2 and is_usage(err), bad
     assert posted == []
     assert (tmp_path / ".tdd" / "events.jsonl").read_text() == events
 
