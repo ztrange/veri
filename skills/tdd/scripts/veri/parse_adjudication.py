@@ -15,11 +15,8 @@ def main(argv):
         lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
     outcome, _, reason = lines[-1][len("ADJUDICATION:"):].strip().partition(" — ")
     kind, _, token = outcome.partition(" ")
-    if kind == "route" and any(token in t for t in ELIGIBLE_ROUTES.values()):
-        print(outcome)
-        print(reason)
-        return 0
-    if outcome not in ("retry", "bail", "route"):
+    listed_route = kind == "route" and any(token in t for t in ELIGIBLE_ROUTES.values())
+    if not listed_route and outcome not in ("retry", "bail", "route"):
         return 2
     print(outcome)
     print(reason)
