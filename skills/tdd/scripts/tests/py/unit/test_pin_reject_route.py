@@ -396,3 +396,24 @@ def test_main_missing_reroute_before_state_and_green_in_different_clauses_prints
 
     assert (code, out.strip(), ledger.read_bytes(), (ledger.parent / "events.jsonl").exists()) == (
         1, "revise", body.encode(), False), err
+
+
+def test_main_recheck_stayed_green_pin_inserts_a_diff_checked_repin_step_after_the_ticked_step_3469(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("pin stayed green under its mutation: tests/py/test_review.py\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    lines = ledger.read_text().split("\n")
+    at = next(i for i, line in enumerate(lines) if "a one" in line)
+    inserted = lines[at + 1]
+    added_file = ledger.parent / "issue-42-added.md"
+    added = added_file.read_text() if added_file.exists() else ""
+    assert (code, out.strip(), "⟦diff-checked⟧" in inserted, "⟦added⟧" in inserted,
+            "tests/py/test_review.py" in inserted, "tests/py/test_review.py" in added) == (
+        0, "repin tests/py/test_review.py", True, True, True, True), (err, lines)

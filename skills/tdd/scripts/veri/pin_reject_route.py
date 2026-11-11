@@ -3,9 +3,11 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
+import add_ledger_step
 import event
 import ledger
 import os
+import re
 import tick_ledger
 
 # A clause (cut at , ; . or a newline) that names the before-state and says green or pass.
@@ -14,7 +16,21 @@ BEFORE_STATE_GREEN = re.compile(r"before-state[^,;.\n]*\b(green|pass)|\b(green|p
 USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>"
 
 
+def recheck(argv):
+    with open(argv[0], encoding="utf-8") as handle:
+        reason = handle.read()
+    found = re.search(r"pin stayed green under its mutation: (\S+)", reason)
+    path = found.group(1)
+    text = ("⟦diff-checked⟧ edit the case of the pin on " + path
+            + " so its recorded mutation turns it red")
+    add_ledger_step.main([argv[1], "after", argv[2], text])
+    print("repin " + path)
+    return 0
+
+
 def main(argv):
+    if argv[:1] == ["--recheck"]:
+        return recheck(argv[1:])
     missing = argv[:1] == ["--missing-reroute"]
     if missing:
         argv = argv[1:]
