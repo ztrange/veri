@@ -54,6 +54,8 @@ def main(argv):
         return usage()
     lane = None
     if argv[1] == "--lane":
+        if len(argv) < 3:
+            return usage()
         lane = argv[2]
         argv = [argv[0]] + argv[3:]
         if len(argv) < 2:
