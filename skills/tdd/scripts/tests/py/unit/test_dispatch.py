@@ -1974,6 +1974,39 @@ def test_main_prints_stalled_and_exits_0_when_a_leaf_log_and_every_other_livenes
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+def test_main_prints_stalled_and_exits_0_when_the_newest_liveness_source_is_exactly_the_stall_window_old_issue_3672(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    for name in ("events.jsonl", "conductor-7.log", "develop-diff.log", "develop-diff.out"):
+        (tdd / name).write_text("x\n")
+        os.utime(tdd / name, (1000, 1000))
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: 1002, raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(dispatch, "issue_states", lambda seen: {"7": "OPEN"}, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
+
+
 def test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_again_beside_a_live_run_and_a_never_seen_restarting_run_issue_3495(
         monkeypatch, capsys, tmp_path, dispatch):
     import os
