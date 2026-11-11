@@ -1604,3 +1604,25 @@ def test_stopped_carries_the_branch_the_worktree_path_and_the_resume_command(mon
     assert "tdd/7-the-branch" in body
     assert str(tmp_path) in body or str(tmp_path.resolve()) in body
     assert f"{SCRIPTS}/run-conductor.sh 7" in body
+
+
+def test_stopped_carries_the_failed_render_line_in_place_of_the_metrics_block_and_still_posts_the_rest(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 4)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped yankee\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    assert len(posted) == 1
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### ⏹️ Stopped — graceful"
+    assert "metrics could not be rendered: metrics.sh exited 4" in body.splitlines()
+    assert "### 📊 Metrics" not in body
+    assert "at=step-1" in body.splitlines()
+    assert "dropped yankee" in body
