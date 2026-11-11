@@ -505,3 +505,23 @@ def test_main_reject_saying_only_the_case_passes_naming_no_before_state_or_mutat
 
     assert (code, out.strip(), ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
         1, "revise", body, False), err
+
+
+@pytest.mark.parametrize("flags", [[], ["--missing-reroute"]])
+def test_main_reject_saying_the_case_fails_on_the_before_state_and_passes_after_is_not_before_state_green_3644(
+        tmp_path, run_cli, pin_reject_route, flags):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the case fails on the before-state and passes after the change\n")
+
+    code, out, err = run_cli(pin_reject_route, flags + [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events = ledger.parent / "events.jsonl"
+    text = events.read_text() if events.exists() else ""
+    assert (out.strip() != "unpinnable-missing", "unpinnable-step" in text) == (True, False), err
+    if not flags:
+        assert (code, out.strip(), ledger.read_text()) == (1, "revise", body), err

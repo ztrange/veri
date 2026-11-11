@@ -11,8 +11,12 @@ import tests_frozen
 from add_ledger_step import added_file
 from build_verify_prompt import INTERFACE_PHASES
 
-# A clause (cut at , ; . or a newline) that names the before-state and says green or pass.
-BEFORE_STATE_GREEN = re.compile(r"before-state[^,;.\n]*\b(green|pass)|\b(green|pass)[^,;.\n]*before-state")
+# A clause (cut at , ; . or a newline) that names the before-state and says green or pass, and says
+# nothing of failing, being red, negating or "after": "fails on the before-state and passes after" is not it.
+_CLAUSE = r"(?:(?!\bfail|\bred\b|\bnot\b|n't|\bafter\b)[^,;.\n])*"
+BEFORE_STATE_GREEN = re.compile(
+    r"(?:^|(?<=[,;.\n]))" + _CLAUSE
+    + r"(?:before-state" + _CLAUSE + r"\b(?:green|pass)|\b(?:green|pass)" + _CLAUSE + r"before-state)")
 RETIRED_MARK = " ⟂ retired unpinnable"
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
 
