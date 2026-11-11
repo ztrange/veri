@@ -9,3 +9,10 @@ ICAgICAgICAgICAgcHJpbnQoImpzb24uZGVjb2Rlci5KU09ORGVjb2RlRXJyb3I6ICVzIiAlIGVycm9y
 command 180
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_goes_on_to_launch_when_the_rest_adapters_issue_read_fails_once_with_an_http_503_then_answers_issue_3651
 
+before 40
+98c064cf535f57dd9cf21c8ff04c5fcbf8290194
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 160
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_naming_the_http_status_when_every_gh_call_fails_with_an_http_503_issue_3651
+
