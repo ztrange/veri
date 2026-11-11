@@ -107,7 +107,7 @@ The leg runs its cases in two pytest passes, the non-`serial` ones then the `ser
 line totalling them, `<named> named, <run> run, <passed> passed, <failed> failed across both passes`, not the second pass's
 `N deselected` line. A `--subset` run handed a `-m` exits 1, printing `<n> unselected: named cases that neither pass ran (<targets>)`,
 when a named target (file, directory or node id) holds cases its `-k` keeps of which neither pass ran one; a case its own
-`-m` or `-k` deselects from a target that did run never counts (#3554).
+`-m` or `-k` deselects from a target that did run never counts (#3554). The serial pass is handed only the test files that hold a `serial` case, as pass 1 recorded them (rootdir and ini file kept, so case ids read the same), and the totals line and every refusal read as if it had collected everything; a target naming a case (`::`), or no record, leaves it collecting the whole selection.
 
 **`skills/tdd/scripts/tests/py/unit/` is the fast tier**, run by `make unit` and by `make test`.
 Admission bar: about 100 ms per case, no git, network, servers, real waits (`sleep`), nested
