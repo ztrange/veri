@@ -339,7 +339,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   uncommitted work away. A lock whose pid is **dead**, or answers but with a start time other than the
   recorded one (a **reused** pid), is a bailed or killed run, still a resume, still the path.
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
-  **refuses** (exit 2) one holding uncommitted changes.
+  **refuses** (exit 2) one holding uncommitted changes. Once the worktree is removed it also deletes the run's pinned-scripts snapshot, the path recorded in
+  `.tdd/pinned-scripts/.snapshot-dir`, only when that path is a directory (not a symlink) named `veri-snapshot-*` whose
+  `.veri-snapshot` marker names this worktree; any other recorded path that exists is left in place with one stderr line
+  naming it, and the exit code is the removal's own.
 - `$S/detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** suite of that tier on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
