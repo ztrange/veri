@@ -11,8 +11,12 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   distinct from `killed-stuck`.
 - `no-verdict` — exit **2** from `verify.sh` / `run-verdict.sh` (a verifier with no verdict:
   unparseable, or the leaf was killed), `grade-prose.sh` (the Draft PR regrade), the
-  ⟦skill-edit⟧ runner (`skill-edit-step.sh`), `resume-clean.sh`, `rebase-onto-default.sh`,
+  ⟦skill-edit⟧ runner (`skill-edit-step.sh`, a bare exit 2 with no refusal message; one with a
+  refusal message is `skill-edit-refused`), `resume-clean.sh`, `rebase-onto-default.sh`,
   `ledger-growth.sh` (the growth check at a ledger commit) or `cover-outcome.sh` → **system** failure.
+- `skill-edit-refused` — the ⟦skill-edit⟧ runner (`skill-edit-step.sh`) exited **2** with a
+  refusal message → **process** failure (the runner refused the step deterministically, and
+  the plumbing did not break); the bail names the refusal.
 - `unreplaced-cases` — `unreplaced-cases.sh` exited **1** a second time, after the one correction
   leaf, naming `⟦replaces-case⟧` cases with no `REPLACES:` line (or exited **2**, no answer, which
   bails at once with no correction) before verify-green → **process** failure.

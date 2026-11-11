@@ -627,6 +627,7 @@
 | BL47 | The cause list has a `revise-impossible` bullet: a revise leaf answered `IMPOSSIBLE`, saying no revision can meet the objection, which is a **process** failure distinct from `revise-exhausted`, where the attempts ran out. | A reader of the bail must be able to tell the two apart. |
 | BL48 | `repair-reroutes-exhausted`: a step's `WRONG_TEST` naming no case took its `repair` once more after the free reroute, and the next such report still names no case; a **process** failure. | The red was repaired twice and the green still calls it wrong without naming it, so the human decides. |
 | BL49 | `unpinnable-missing`: a missing-reroute's demanded case is green on the before-state and cannot be pinned; a **process** failure. | The tests cannot pin the criterion; the plumbing worked. |
+| BL50 | The cause list has a bullet for a skill-edit step whose runner refused with exit 2 and a refusal message: cause `skill-edit-refused`, a **process** failure that names the refusal; a bare exit 2 with no refusal message stays the `no-verdict` system failure. | `classify-bail.sh` listed no process cause for a skill-edit refusal, so a bad issue read as `system` (#3584). |
 
 ## skills/tdd/SCOPE-LOOP.md
 
