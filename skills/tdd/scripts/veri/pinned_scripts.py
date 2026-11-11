@@ -8,6 +8,11 @@ SNAPSHOT_PREFIX = "veri-snapshot-"
 SNAPSHOT_MARKER = ".veri-snapshot"
 
 
+def snapshot_gone(recorded):
+    """Whether <recorded> is a well-formed absolute path to nothing: a snapshot the conductor already removed."""
+    return os.path.isabs(recorded) and "\n" not in recorded and not os.path.lexists(recorded)
+
+
 def snapshot_made_for(recorded, worktree):
     """Whether <recorded>, the text of a .snapshot-dir file, names a directory whose marker names <worktree>."""
     if not os.path.isabs(recorded) or not os.path.basename(recorded).startswith(SNAPSHOT_PREFIX):
