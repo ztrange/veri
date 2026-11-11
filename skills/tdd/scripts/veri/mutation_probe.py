@@ -104,6 +104,9 @@ def main(argv):
         sys.stderr.write("mutation-probe.sh: file not mutated\n")
         return 2
     signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(128 + signum))
+    if run_with({path: saved}, argv[4:]):
+        sys.stderr.write("mutation-probe.sh: command fails on the unmutated file\n")
+        return 2
     returncode = run_with({path: mutated}, argv[4:])
     if returncode == 0:
         sys.stderr.write("mutation-probe.sh: suite stayed green under the mutation\n")

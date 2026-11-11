@@ -501,3 +501,14 @@ def test_issue_3383_probe_dropping_o_append_from_event_py_leaves_the_live_journa
 
     after = journal.read_text()
     assert (after.startswith(before), after[len(before):] == "" or after.endswith("\n")) == (True, True), after
+
+
+@pytest.mark.process("mutation-probe.sh and the sh command it runs against the unmutated fixture")
+def test_issue_3396_mutate_probe_exits_2_without_a_record_when_the_command_fails_on_the_unmutated_file(tmp_path):
+    target = tmp_path / "target.txt"
+    target.write_text("x")
+    record = tmp_path / "issue-3396-mutations.md"
+    result = subprocess.run([str(PROBE), str(target), "x", "y", "--", "sh", "-c", "exit 1"],
+                            capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    assert (result.returncode, record.exists(), target.read_bytes()) == (2, False, b"x"), result.stderr
