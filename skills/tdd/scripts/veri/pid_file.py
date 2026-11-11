@@ -93,10 +93,14 @@ def recorded_started(path):
     return _recorded(path)[0]
 
 
-def start_matches(file, pid):
+def start_recorded(file):
     with open(file, "rb") as f:
         f.readline()
-        started = f.readline().decode().strip()
+        return f.readline().decode().strip()
+
+
+def start_matches(file, pid):
+    started = start_recorded(file)
     return not started or started == _ps("lstart", pid)
 
 
