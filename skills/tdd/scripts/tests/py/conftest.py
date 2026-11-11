@@ -345,10 +345,10 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     def refuse_inherited_tmpdir(path, frame):
         if not isinstance(path, (str, bytes, os.PathLike)):
             return
-        name = os.path.basename(frame.f_code.co_filename)
+        if not os.path.basename(frame.f_code.co_filename).startswith(("test_", "conftest")):
+            return
         target = os.path.realpath(os.fsdecode(path))
-        if (name.startswith(("test_", "conftest")) and target.startswith(inherited + os.sep)
-                and not target.startswith(basetemp + os.sep)):
+        if target.startswith(inherited + os.sep) and not target.startswith(basetemp + os.sep):
             raise AssertionError("%s creates %s in the inherited TMPDIR %s at %s:%d"
                                  % (request.node.nodeid, os.fsdecode(path), inherited, frame.f_code.co_filename, frame.f_lineno))
 
