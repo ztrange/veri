@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 3567
 
-Wall time for the issue: 96 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 6 of 12 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Wall time for the issue: 2054 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 6 of 11 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3572.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $17.34 over 249 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $19.57 over 291 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78660 tokens, largest 255554 tokens
 Conductor context: first turn 78674 tokens, largest 163856 tokens
 Conductor context: first turn 164459 tokens, largest 172548 tokens
 Conductor context: first turn 78714 tokens, largest 146843 tokens
-Conductor context: first turn 78648 tokens, largest 119964 tokens
+Conductor context: first turn 78648 tokens, largest 122978 tokens
+Conductor context: first turn 78648 tokens, largest 143859 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -243,28 +244,70 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 222 | $0.05 | 145114 |
 | 223 | $0.05 | 146566 |
 | 224 | $0.04 | 146843 |
-| 225 | $0.49 | 78648 |
-| 226 | $0.06 | 84796 |
-| 227 | $0.03 | 87029 |
-| 228 | $0.03 | 89018 |
-| 229 | $0.05 | 92506 |
-| 230 | $0.02 | 93046 |
-| 231 | $0.02 | 93482 |
-| 232 | $0.02 | 93785 |
-| 233 | $0.02 | 94129 |
-| 234 | $0.02 | 94724 |
-| 235 | $0.02 | 95291 |
-| 236 | $0.05 | 99720 |
-| 237 | $0.04 | 101624 |
-| 238 | $0.02 | 102148 |
-| 239 | $0.03 | 102722 |
-| 240 | $0.02 | 103224 |
-| 241 | $0.03 | 104252 |
-| 242 | $0.04 | 106915 |
-| 243 | $0.06 | 111182 |
-| 244 | $0.03 | 112402 |
-| 245 | $0.04 | 114612 |
-| 246 | $0.07 | 119964 |
+| 225 | $0.50 | 78648 |
+| 226 | $0.07 | 84796 |
+| 227 | $0.05 | 87029 |
+| 228 | $0.04 | 89018 |
+| 229 | $0.06 | 92506 |
+| 230 | $0.03 | 93046 |
+| 231 | $0.03 | 93482 |
+| 232 | $0.03 | 93785 |
+| 233 | $0.03 | 94129 |
+| 234 | $0.04 | 94724 |
+| 235 | $0.03 | 95291 |
+| 236 | $0.06 | 99720 |
+| 237 | $0.05 | 101624 |
+| 238 | $0.03 | 102148 |
+| 239 | $0.04 | 102722 |
+| 240 | $0.03 | 103224 |
+| 241 | $0.04 | 104252 |
+| 242 | $0.05 | 106915 |
+| 243 | $0.07 | 111182 |
+| 244 | $0.04 | 112402 |
+| 245 | $0.05 | 114612 |
+| 246 | $0.08 | 119964 |
+| 247 | $0.04 | 121697 |
+| 248 | $0.05 | 122978 |
+| 249 | $0.49 | 78648 |
+| 250 | $0.06 | 84797 |
+| 251 | $0.03 | 87046 |
+| 252 | $0.05 | 90799 |
+| 253 | $0.05 | 95202 |
+| 254 | $0.02 | 95817 |
+| 255 | $0.02 | 96289 |
+| 256 | $0.02 | 96599 |
+| 257 | $0.02 | 96884 |
+| 258 | $0.02 | 97381 |
+| 259 | $0.02 | 97646 |
+| 260 | $0.02 | 98284 |
+| 261 | $0.04 | 100212 |
+| 262 | $0.02 | 100674 |
+| 263 | $0.03 | 101367 |
+| 264 | $0.02 | 101719 |
+| 265 | $0.02 | 101976 |
+| 266 | $0.03 | 102902 |
+| 267 | $0.15 | 118691 |
+| 268 | $0.03 | 119201 |
+| 269 | $0.03 | 119702 |
+| 270 | $0.03 | 120337 |
+| 271 | $0.06 | 125320 |
+| 272 | $0.03 | 125840 |
+| 273 | $0.03 | 126826 |
+| 274 | $0.03 | 127511 |
+| 275 | $0.03 | 127703 |
+| 276 | $0.10 | 136660 |
+| 277 | $0.03 | 137035 |
+| 278 | $0.03 | 137772 |
+| 279 | $0.04 | 139097 |
+| 280 | $0.03 | 139708 |
+| 281 | $0.03 | 140357 |
+| 282 | $0.03 | 140779 |
+| 283 | $0.03 | 141094 |
+| 284 | $0.03 | 141577 |
+| 285 | $0.03 | 142262 |
+| 286 | $0.03 | 143041 |
+| 287 | $0.03 | 143504 |
+| 288 | $0.03 | 143859 |
 
 #### Conductor comments, by family
 
@@ -277,36 +320,36 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🛠️ Refactor | 3 | 1929 | $0.04 |
 | 🔎 verify-green | 7 | 4501 | $0.09 |
 | 🔎 verify-refactor | 3 | 1929 | $0.04 |
-| 🔎 verify-<phase> (revised) | 3 | 1929 | $0.04 |
+| 🔎 verify-<phase> (revised) | 4 | 1936 | $0.04 |
 | 🗺️ Plan | 1 | 643 | $0.01 |
-| 🗺️ verify-plan | 5 | 2074 | $0.04 |
-| ▶️ Resuming | 3 | 780 | $0.02 |
-| ⛔ Bailed | 1 | 562 | $0.01 |
+| 🗺️ verify-plan | 6 | 2568 | $0.05 |
+| ▶️ Resuming | 4 | 1274 | $0.03 |
+| ⛔ Bailed | 2 | 1056 | $0.02 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 26 | 13827 | $0.28 |
+| Total | 30 | 15316 | $0.31 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 5 | 4 | 1 | 0 | 82 | 69 | 10 | 20 | 8368 | 117758 | 103231 | 0.35 |
-| prose | 24 | 0 | 0 | 0 | 731 | 676 | 24 | 48 | 109131 | 57204 | 842912 | 3.20 |
+| plan | 6 | 5 | 1 | 0 | 93 | 79 | 11 | 22 | 9626 | 117758 | 124241 | 0.42 |
+| prose | 37 | 0 | 0 | 0 | 1144 | 1062 | 37 | 74 | 170919 | 137531 | 1411987 | 5.25 |
 | skill-edit | 3 | 0 | 0 | 0 | 44 | 36 | 13 | 26 | 3314 | 228550 | 57999 | 0.20 |
 | diff | 6 | 3 | 0 | 0 | 231 | 70 | 28 | 54 | 6045 | 401850 | 84253 | 0.31 |
 | red | 12 | 4 | 0 | 0 | 333 | 191 | 48 | 90 | 22011 | 770141 | 226286 | 0.86 |
 | green | 18 | 3 | 6 | 0 | 2619 | 323 | 100 | 192 | 31524 | 1817360 | 270295 | 1.32 |
 | refactor | 4 | 1 | 0 | 0 | 68 | 32 | 11 | 22 | 2396 | 150565 | 63317 | 0.20 |
 | pin | 4 | 4 | 0 | 0 | 113 | 85 | 23 | 44 | 8005 | 397281 | 71287 | 0.30 |
-| rebase | 6 | 2 | 1 | 0 | 1338 | 130 | 43 | 82 | 12005 | 742568 | 147733 | 0.71 |
+| rebase | 9 | 3 | 1 | 0 | 1845 | 229 | 69 | 132 | 22059 | 1221762 | 221952 | 1.21 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 21 | 8 | 0 | 3632 | 489 | 132 | 254 | 48511 | 2175785 | 484530 | 1.91 |
-| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 859 | 312 | 95 | 184 | 32105 | 1642672 | 367730 | 1.55 |
-| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 293 | 99 | 36 | 66 | 9738 | 579066 | 114142 | 0.59 |
+| verifier | claude-sonnet-5-5 | 31 | 23 | 8 | 0 | 3955 | 516 | 139 | 266 | 51538 | 2249889 | 527047 | 2.06 |
+| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 423 | 240 | 70 | 134 | 25558 | 1147428 | 289248 | 1.09 |
+| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 924 | 253 | 81 | 156 | 24570 | 1479400 | 245336 | 1.47 |
 
 #### Rework and waste, by phase
 
@@ -320,7 +363,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | green | 4905 | 3.19 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 29 | 0.07 |
-| rebase | 1338 | 0.71 | 0 | 0.00 |
+| rebase | 1845 | 1.21 | 0 | 0.00 |
 
 #### By step
 
@@ -331,7 +374,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A new script `requirements-preflight.sh <issue-body-file> [<ledger>]`, a /bin/sh shim over module veri/requirements_preflight.py run from the repo root, exits 0 on an issue whose `## Requirements` rows are all new, identical to the unit's `REQUIREMENTS.md` list, or `<reword>`-marked. Its no-argument usage line and exit 2 are pinned by the existing missing-argument audit, not a new case. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 3⟧ | 7 | 2 | 1 | 0 | 0 | 0 | 145 | 46 | 88 | 14279 | 843690 | 147244 | 0.67 | 1791 | 1/2 | 0/5 | nothing-left |  |  | full |
 | `requirements-preflight.sh` checks every row of every `### <path>` table in the issue's `## Requirements` against that unit's `REQUIREMENTS.md` list by calling skill_edit_step.py's own clash comparison (never a copy), and exits 2 naming every clashing ID (a plain ID the list holds with different text) at once, across every table; the same case asserts, as an in-case contrast, that an issue whose rows are all new, identical or `<reword>`-marked exits 0. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 1⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 146 | 40 | 78 | 14023 | 696380 | 142938 | 0.57 | 570 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | Given a ledger, `requirements-preflight.sh` names every skill-edit step (a ledger line marked skill-edit) whose unit has no `### <path>` table in the issue's `## Requirements` in the same exit-2 refusal as the clashing IDs. Small case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py, driven with run_cli ⟦criterion 2⟧ | 20 | 6 | 4 | 0 | 0 | 0 | 302 | 86 | 164 | 31512 | 1443493 | 298597 | 1.28 | 1343 | 1/2 | 1/5 | nothing-left |  |  | already-satisfied |
-| The comparison is skill_edit_step.py's, called, not copied: the clash test (a listed ID whose text differs from the incoming row's) appears once in skills/tdd/scripts/veri/ ⟦diff-checked⟧ ⟦criterion 5⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 155 | 52 | 100 | 14025 | 879757 | 175543 | 0.81 | 5977 | 1/2 | unknown | unknown |  |  | pin |
+| The comparison is skill_edit_step.py's, called, not copied: the clash test (a listed ID whose text differs from the incoming row's) appears once in skills/tdd/scripts/veri/ ⟦diff-checked⟧ ⟦criterion 5⟧ | 11 | 4 | 1 | 0 | 0 | 0 | 254 | 78 | 150 | 24079 | 1358951 | 249762 | 1.31 | 5977 | 2/2 | unknown | unknown |  |  | pin |
 | Pin step, test-only, no production change: a case in skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py where one issue holds 2 or more skill-edit ledger steps whose unit has no `### <path>` heading and, in one unit, 2 or more clashing row IDs, asserting stderr names every missing unit and every clash, so a `[:1]` truncation of the missing list or of a unit's clash list goes red; it already passes ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 38 | 10 | 18 | 4122 | 151784 | 42406 | 0.16 | unknown | unknown | unknown | unknown |  |  | already-satisfied |
 | `skills/tdd/PREFLIGHT-FAILURES.md` gains an entry for requirements-preflight.sh exit 2 (a clash or a missing unit heading) that writes the `preflight-refused` event and posts the issue comment through `$S/preflight-refused.sh <n> <check>` like every other preflight refusal, as row PF59 requires ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 46 | 9 | 18 | 6863 | 96355 | 50042 | 0.20 | unknown | unknown | unknown | unknown |  |  | full |
 | `skills/tdd/PREFLIGHT.md` lines 80-86 align with that entry: the requirements-preflight.sh exit 2 is a preflight refusal that sends the run to PREFLIGHT-FAILURES.md, as every other refusal does ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 6⟧ | 3 | 0 | 0 | 0 | 0 | 0 | 54 | 6 | 12 | 8035 | 80099 | 53451 | 0.22 | unknown | unknown | unknown | unknown |  |  | full |
@@ -365,13 +408,13 @@ Stopped: nothing-structural
 
 | tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| fast | 22 | 21 | 24 | 21 | 25 | 22 | 23 | 23 | 22 | 25 | 24 | 25 | 25 | 24 | 25 | 23 | 22 | 24 | 23 | 23 | 23 | 23 | 27 | 23 |  |  |  |  |  |  |  |  |  |
+| fast | 22 | 21 | 24 | 21 | 25 | 22 | 23 | 23 | 22 | 25 | 24 | 25 | 25 | 24 | 25 | 23 | 22 | 24 | 23 | 23 | 23 | 23 | 27 | 23 | 36 |  |  |  |  |  |  |  |  |
 | affected | 1 | 2 | 1 | 203 | 195 | 1 | 1 | 1 | 2 | 15 | 2 | 1 | 16 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 224 | 1 | 1 | 1 |
 | target | 1 | 2 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |
-| all | 31 | 29 | 212 | 206 | 226 | 22 | 22 | 192 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 31 | 29 | 212 | 206 | 226 | 22 | 22 | 192 | 23 | 23 | 291 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 300 | 578 | 202799 | 4683277 | 1867313 | 24.80 (estimate) |
+| total | 340 | 656 | 275899 | 5242798 | 2531617 | 29.64 (estimate) |
