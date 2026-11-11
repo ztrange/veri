@@ -26,6 +26,10 @@ def recheck(argv):
     path = found.group(1)
     text = ("⟦diff-checked⟧ edit the case of the pin on " + path
             + " so its recorded mutation turns it red")
+    held = "- [x] ⟦diff-checked⟧ edit the case of the pin on " + path + " so its recorded mutation"
+    if held in ledger.read_ledger(argv[1]):
+        print("repin-failed " + path)
+        return 1
     add_ledger_step.main([argv[1], "after", argv[2], text])
     print("repin " + path)
     return 0

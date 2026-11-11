@@ -454,3 +454,22 @@ def test_main_recheck_reason_with_no_disarm_line_prints_revise_and_leaves_ledger
 
     assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
         1, "revise", body, False), err
+
+
+def test_main_recheck_pin_whose_file_already_has_a_checked_repin_step_prints_repin_failed_adds_no_step_and_exits_1_3469(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = ("# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
+            "- [x] ⟦diff-checked⟧ edit the case of the pin on tests/py/test_review.py"
+            " so its recorded mutation turns it red ⟦added⟧\n"
+            "- [ ] b two ⟦criterion 2⟧\n")
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("pin stayed green under its mutation: tests/py/test_review.py\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
+        1, "repin-failed tests/py/test_review.py", body, False), err
