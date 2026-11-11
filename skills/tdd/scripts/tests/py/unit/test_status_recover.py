@@ -612,3 +612,21 @@ def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_
     assert code == 0, (code, err)
     assert [line for line in lines if line in HEADINGS] == HEADINGS, lines
     assert lines[lines.index("Runs") + 1:lines.index("Bailed")] == ["none"], lines
+
+
+def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_the_none_of_an_empty_state_file(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, err = run_cli(status, ["--recover", "coord", "--lane", "main"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
+    assert code == 0, (code, err)
+    assert state and state != ["none"], state
