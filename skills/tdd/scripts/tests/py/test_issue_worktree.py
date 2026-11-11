@@ -287,6 +287,15 @@ def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_pl
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
+def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names_a_conforming_directory_from_the_cwd(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, "veri-snapshot-abc123")
+
+    assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, "veri-snapshot-abc123"), True)
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
