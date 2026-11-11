@@ -34,3 +34,12 @@ def test_dev_drop_coordinator_with_none_recorded_exits_3_and_leaves_the_file_unc
     code, _, _ = run_cli(role_state, ["dev", "drop", "coordinator"])
 
     assert (code, state.read_text()) == (3, "n=2\nlane=mu\n")
+
+
+def test_issue_3648_lane_with_no_verb_prints_usage_and_exits_2(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+
+    code, _, err = run_cli(role_state, ["coord", "--lane", "main"])
+
+    assert (code, err) == (2, role_state.USAGE)
