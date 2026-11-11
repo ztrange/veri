@@ -281,6 +281,7 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
         return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -353,6 +354,7 @@ def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming
         return subprocess.CompletedProcess(args, 0, "[]", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
     monkeypatch.setenv("VERI_GH_DRIVER", "bogus")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -603,6 +605,7 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
         return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
