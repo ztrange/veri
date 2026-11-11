@@ -961,6 +961,7 @@
 | SC123 | A bullet for `build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>`: it prints the adjudicate leaf's prompt (cause token, command, exit code, last 50 stderr lines, the cause's route tokens, the step's ledger line), exits 0, and exits 2 for a cause `ADJUDICATE.md` does not list as eligible. | Every script has a SCRIPTS.md bullet backed by an SC row (#3549, #2486). |
 | SC124 | A bullet for `parse-adjudication.sh <leaf-output>`: it reads the last `ADJUDICATION:` line and prints `retry`, `route <token>` or `bail` plus the reason, exit 0; exit 2 when there is no such line, the outcome is unknown, or the route token is not listed for the cause. | Same guard: a new script without its bullet and row reddens the suite. |
 | SC125 | Any other script this issue adds gets a bullet stating its synopsis, outputs and exit codes. | The scope must cover every script the run adds, or scope-check refuses it. |
+| SC126 | A bullet for `adjudicate.sh` and its three forms, `--check-budget` (exit 0 when `${VERI_ADJUDICATE_BUDGET:-2}` is a whole number ≥ 0, else exit 2 naming the variable), `left <n>` (exit 0 budget left, exit 3 spent) and `record <n> <cause> <leaf-output>` (parses the answer, records `adjudicated`, exit 0 retry, 1 bail or route, 2 unparsed). | The run adds `adjudicate.sh`, and every bullet needs an SC row naming its script (#2486). |
 
 ## skills/tdd/SKILL-EDIT.md
 
