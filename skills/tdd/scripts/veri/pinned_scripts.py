@@ -3,9 +3,20 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import stat
 import sys
+import tempfile
 
 SNAPSHOT_PREFIX = "veri-snapshot-"
 SNAPSHOT_MARKER = ".veri-snapshot"
+
+
+def make_snapshot():
+    """A new, empty snapshot directory; write_snapshot_marker names its worktree once it is extracted."""
+    return tempfile.mkdtemp(prefix=SNAPSHOT_PREFIX)
+
+
+def write_snapshot_marker(snapshot, worktree):
+    with open(os.path.join(snapshot, SNAPSHOT_MARKER), "w") as serving:
+        serving.write(os.path.realpath(worktree) + "\n")
 
 
 def snapshot_gone(recorded):
