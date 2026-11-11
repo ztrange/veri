@@ -472,3 +472,20 @@ def test_main_recheck_pin_whose_file_already_has_a_checked_repin_step_prints_rep
 
     assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
         1, "repin-failed tests/py/test_review.py", body, False), err
+
+
+def test_main_before_state_green_reject_without_stays_green_retires_the_step_unpinnable_3644(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: still passes against the real before-state; "
+                      "pins nothing the branch introduced\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text()) == (
+        0, "retired",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n"), err
