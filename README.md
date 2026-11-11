@@ -39,8 +39,9 @@ A `REJECT` verdict triggers a **bounded revise loop** (≤2 attempts) before esc
 posted to the issue that classifies the cause as a **system** failure (plumbing broke) or a
 **process** failure (methodology spoke).
 
-Beside the conductor sits **`/vfile bug|refactor|feature [<one line>]`**, the way an issue gets
-filed so that a later `/tdd <n>` can read it: it asks only for what that line left out and
+Beside the conductor sits **`/vfile [bug|refactor|feature] [<one line>]`**, the way an issue gets
+filed so that a later `/tdd <n>` can read it: when the kind is omitted it infers it from the
+line, it asks only for what that line left out and
 opens the issue with the headings the conductor's spec capture copies. Before an issue
 exists, **`/vplan`** turns an idea into a PRD of small sub-PRDs, each one sized for a
 single `/tdd` run.
