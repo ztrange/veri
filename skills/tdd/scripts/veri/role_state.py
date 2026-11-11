@@ -5,6 +5,7 @@ import sys
 import time
 
 from full_tier_time import main_tree
+import timed_n_format
 
 USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane> <value>"
          " | add <decision|message|override|timed-n> <text>"
@@ -80,6 +81,12 @@ def do_set(path, argv):
 def do_add(path, argv):
     if argv[2] not in LISTS or len(argv) != 4:
         return usage()
+    if argv[2] == "timed-n":
+        try:
+            timed_n_format.parse(argv[3])
+        except ValueError:
+            sys.stderr.write("timed-n text must be: <n> until <ISO-8601 datetime>\n")
+            return 2
     item = str(max([int(l.split()[1]) for l in (read(path) or "").splitlines() if " " in l] + [0]) + 1)
     append(path, "%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
     print(item)

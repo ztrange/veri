@@ -309,3 +309,15 @@ def test_drop_of_an_id_the_list_does_not_hold_exits_3_and_leaves_the_state_file_
     before = state.read_bytes()
     code, _, _ = run_cli(role_state, ["coord", "drop", "decision", "99"], cwd=repo)
     assert (code, state.read_bytes()) == (3, before)
+
+
+@pytest.mark.process("git")
+def test_add_timed_n_with_unparseable_text_exits_2_naming_the_form_and_writes_nothing_3583(tmp_path, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    text = "4 until weekly usage reset ~2026-11-10 evening (Mario 11-09)"
+    code, out, err = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
+    wrote = (repo / ".tdd" / "role-dev.state").exists()
+    assert (code, "<n> until <ISO-8601 datetime>" in err, wrote) == (2, True, False)
