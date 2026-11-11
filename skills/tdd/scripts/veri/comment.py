@@ -14,7 +14,7 @@ import github
 import metrics as metrics_module
 from ledger import handed_out, ledger_path, ledger_steps
 
-USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>]"
+USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
 
 
 def read_or_empty(path):

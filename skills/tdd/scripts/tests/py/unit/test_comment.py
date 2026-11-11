@@ -1786,3 +1786,12 @@ def test_a_bare_stopped_posts_the_noted_comment_body_without_the_note(monkeypatc
     bare, noted = posted[0][1], posted[1][1]
     assert bare.splitlines()[0] == "### ⏹️ Stopped — graceful"
     assert noted == bare + "\ndropped xray\n"
+
+
+def test_the_usage_of_a_bad_call_names_bailed_stopped_and_the_pr_flag(run_cli):
+    comment = importlib.import_module("veri.comment")
+
+    code, out, err = run_cli(comment, [])
+
+    assert (code, out) == (2, "")
+    assert all(word in err for word in ("bailed", "stopped", "--pr", "--note-file"))
