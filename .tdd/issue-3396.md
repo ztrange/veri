@@ -7,7 +7,7 @@
 - [x] Absent old: in mutate mode, with old absent from the working-tree file, mutation-probe.sh exits 2, writes no record, leaves the file untouched and never runs the command, not even for the baseline ⟦criterion 3⟧
 - [x] Surviving mutant: in mutate mode, with the baseline run exiting 0 and the mutated run exiting 0, mutation-probe.sh exits 1 and writes no record ⟦criterion 4⟧
 - [x] Recorded mutant: in mutate mode, with the baseline run exiting 0 and the mutated run exiting non-zero, mutation-probe.sh exits 0 and appends exactly one record ⟦criterion 5⟧
-- [ ] Go-red guard: removing the baseline run from mutation_probe.py on purpose turns the Baseline fails case red, then the code is restored ⟦human-owed⟧ ⟦criterion 6⟧
+- [x] Go-red guard: removing the baseline run from mutation_probe.py on purpose turns the Baseline fails case red, then the code is restored ⟦human-owed⟧ ⟦criterion 6⟧
 - [x] --before mode behaves as before: its existing cases stay green ⟦full-suite⟧ ⟦criterion 7⟧
 - [x] `skills/tdd/SCRIPTS.md`: the mutation-probe.sh entry describes the mutate-mode contract (old present in the working-tree file and a baseline run exiting 0 on the unmutated file, either failing is exit 2 with no record and the file untouched; mutated exit 0 is exit 1; non-zero writes the record; several tests run do not prove which one failed), graded by the issue's SC row ⟦skill-edit⟧ ⟦criterion 8⟧
 - [x] `skills/tdd/scripts/prompts/verify-pin.md`: check 2 says a probe exit 2 can also mean old is absent from the working-tree file or the command fails on the unmutated file, and the verifier fixes old or the command and retries, never reporting such an exit as a PASS, graded by the issue's VP row ⟦skill-edit⟧ ⟦criterion 8⟧
