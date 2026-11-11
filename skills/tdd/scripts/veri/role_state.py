@@ -96,7 +96,10 @@ def do_add(path, argv):
 def do_drop(path, argv):
     if argv[2:] == ["coordinator"]:
         lines = (read(path) or "").splitlines(True)
-        replace(path, "".join(l for l in lines if not l.startswith("coordinator=")))
+        kept = [l for l in lines if not l.startswith("coordinator=")]
+        if kept == lines:
+            return 3
+        replace(path, "".join(kept))
         return 0
     if argv[2] not in LISTS:
         return usage()

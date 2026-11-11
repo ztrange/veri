@@ -22,3 +22,15 @@ def test_dev_drop_coordinator_removes_every_coordinator_line_and_keeps_the_rest(
     code, _, _ = run_cli(role_state, ["dev", "drop", "coordinator"])
 
     assert (code, state.read_text()) == (0, "n=2\nlane=mu\n")
+
+
+def test_dev_drop_coordinator_with_none_recorded_exits_3_and_leaves_the_file_unchanged(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.write_text("n=2\nlane=mu\n")
+
+    code, _, _ = run_cli(role_state, ["dev", "drop", "coordinator"])
+
+    assert (code, state.read_text()) == (3, "n=2\nlane=mu\n")
