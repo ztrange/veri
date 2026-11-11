@@ -320,6 +320,16 @@ def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_c
         0, refusal_of(tmp_path, recorded), True, True)
 
 
+def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_prints_nothing(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    stray = made_snapshot(tmp_path / "veri-snapshot-stray", run_worktree_of(tmp_path))
+    (tmp_path / ".veri-snapshot").write_text(run_worktree_of(tmp_path) + "\n")
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, "")
+
+    assert (code, err, (stray / "status.sh").exists(), (tmp_path / ".veri-snapshot").exists()) == (0, "", True, True)
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
