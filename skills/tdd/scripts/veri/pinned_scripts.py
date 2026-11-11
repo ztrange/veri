@@ -1,6 +1,7 @@
 """pinned-scripts.sh: the directory holding a run's pinned scripts."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import stat
 import sys
 
 SNAPSHOT_MARKER = ".veri-snapshot"
@@ -11,6 +12,8 @@ def snapshot_made_for(recorded, worktree):
     if not os.path.isabs(recorded):
         return False
     try:
+        if not stat.S_ISDIR(os.lstat(recorded).st_mode):
+            return False
         with open(os.path.join(recorded, SNAPSHOT_MARKER)) as served:
             named = served.read().rstrip("\n")
     except OSError:
