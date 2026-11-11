@@ -547,5 +547,6 @@ def test_issue_3396_mutate_probe_exits_0_and_appends_one_record_when_the_baselin
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     command = f"sh -c '! grep -q y \"$1\"' sh {target}"
     expected = "".join(f"{name} {len(value)}\n{value}\n" for name, value in
-                       (("file", str(target)), ("old", "x"), ("new", "y"), ("context", "x"), ("command", command))) + "\n"
+                       (("file", str(target)), ("old-b64", "eA=="), ("new-b64", "eQ=="), ("context-b64", "eA=="),
+                        ("command", command))) + "\n"
     assert (result.returncode, record.read_text() if record.exists() else None, target.read_bytes()) == (0, expected, b"x"), result.stderr
