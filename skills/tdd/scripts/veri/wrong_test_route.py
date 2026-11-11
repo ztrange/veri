@@ -53,6 +53,7 @@ def _file_case(file, case):
 
 
 def _exists(case):
+    case = re.sub(r"\[.*\]$", "", case)
     cut = cut_prefix(case)
     titles = set()
     for root, name, py_file, go_file, js_file in _test_files():

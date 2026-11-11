@@ -1037,6 +1037,30 @@ def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_in_backt
     assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
 
 
+def test_main_3654_prints_red_over_the_defined_case_a_superseded_line_names_by_its_parametrized_id(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    older = "test_main_prints_usage_on_no_arguments"
+    (suite / "test_solvable.py").write_text(
+        "import pytest\n\n@pytest.mark.parametrize('n, expected', [(1, 2), (4, 5)])\n"
+        "def %s(n, expected):\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, a parametrized superseded id"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nSUPERSEDED: `%s[4-expected1]`\n" % older)
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % older)
+
+
 @pytest.mark.parametrize("indent", [" ", "  ", "   "])
 def test_main_1957_prints_revise_when_a_superseded_line_is_indented_by_one_to_three_spaces_since_it_is_prose(
         indent, run_cli, tmp_path, monkeypatch):
