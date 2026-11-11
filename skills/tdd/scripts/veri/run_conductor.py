@@ -141,11 +141,13 @@ def main(argv):
                 if event.mark(worktree, event.context(tunables.with_values(VERI_ISSUE=argv[0])),
                               "skill-repin", ["commit=" + commit]) != 0:
                     return 2
-        snapshot = tempfile.mkdtemp()
+        snapshot = tempfile.mkdtemp(prefix="veri-snapshot-")
         try:
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
+            with open(os.path.join(snapshot, ".veri-snapshot"), "w") as serving:
+                serving.write(os.path.realpath(run_worktree(argv[0])) + "\n")
             keep_pinned_scripts(snapshot, argv[0])
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:

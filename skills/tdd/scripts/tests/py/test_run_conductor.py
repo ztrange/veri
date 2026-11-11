@@ -907,7 +907,7 @@ def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
             elif args[:1] == ["tar"]:
                 code = tar_code
                 target = args[-1]
-                snapshots.append(args[:-1] + [(os.path.dirname(target), os.path.basename(target)[:3],
+                snapshots.append(args[:-1] + [(os.path.dirname(target), os.path.basename(target)[:14],
                                                os.path.isdir(target))])
                 if os.path.isdir(target):
                     pathlib.Path(target, "SKILL.md").write_text("# skill\n")
@@ -963,7 +963,7 @@ def test_main_snapshots_the_pinned_commit_by_git_archive_into_tar_under_tmpdir_h
         capfdbinary.readouterr()
         answers[name] = (code, snapshots, launches, sorted(os.listdir(scratch)))
     archive = ["git", "-C", base, "archive", commit, "."]
-    tar = ["tar", "-x", "-C", (str(scratch), "tmp", True)]
+    tar = ["tar", "-x", "-C", (str(scratch), "veri-snapshot-", True)]
     assert answers == {
         "pinned": (0, [archive, tar],
                    [{"VERI_SKILL_COMMIT": commit, "VERI_SKILL_CLONE": base, "VERI_SKILL_REF": "HEAD",
@@ -1285,6 +1285,43 @@ def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names
     assert len(snapshots) == 1
     assert (code, captured.out, captured.err, launches, os.listdir(scratch)) == (
         2, b"", ("run-conductor: cannot read '%s/SKILL.md'\n" % snapshots[0]).encode(), [], [])
+
+
+def test_main_makes_the_snapshot_a_veri_snapshot_prefixed_directory_holding_a_marker_naming_the_runs_worktree(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    calls = fake_pin(monkeypatch, "1111111111111111111111111111111111111111", set())
+    fake_snapshot(monkeypatch, calls, 0, 0)
+    seen, extracted, popen, run = [], [], subprocess.Popen, subprocess.run
+
+    def tar_is_noted(args, *a, **kwargs):
+        if list(args)[:1] == ["tar"]:
+            extracted.append(args[-1])
+        return popen(args, *a, **kwargs)
+
+    def launch_is_watched(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            marker = os.path.join(extracted[0], ".veri-snapshot")
+            seen.append((os.path.basename(extracted[0]),
+                         open(marker).read() if os.path.isfile(marker) else None))
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", tar_is_noted)
+    monkeypatch.setattr(subprocess, "run", launch_is_watched)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert code == 0
+    assert [(name.startswith("veri-snapshot-"), marker) for name, marker in seen] == [
+        (True, os.path.realpath(cwd) + "/.tdd/wt/4242\n")]
 
 
 def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clones_working_tree_skill_md_when_the_two_differ(
@@ -2642,11 +2679,11 @@ def test_cli_the_free_space_preflight_reads_the_directory_the_pytest_legs_pinned
 
 
 def tree_contents(root):
-    """Every file and symlink under root but .git, by relative path: its bytes, or the target it links to."""
+    """Every file and symlink under root but .git, and veri's own root-level .veri-snapshot marker, by relative path: its bytes, or the target it links to."""
     contents = {}
     for path in sorted(pathlib.Path(root).rglob("*")):
         relative = path.relative_to(root)
-        if relative.parts[0] == ".git":
+        if relative.parts[0] == ".git" or relative.parts == (".veri-snapshot",):
             continue
         if path.is_symlink():
             contents[str(relative)] = ("->", os.readlink(path))
