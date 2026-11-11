@@ -155,9 +155,12 @@ def journal_path(clone, issue):
 def append_once(path, data):
     fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
     try:
-        os.write(fd, data)
+        written = os.write(fd, data)
     finally:
         os.close(fd)
+    if written != len(data):
+        sys.stderr.write("event: short write to journal " + str(path) + "\n")
+        sys.exit(2)
 
 
 def done_fields(path, ts, awake):
