@@ -405,11 +405,15 @@ three times over branches its ledger pinned on later lines.
    so a Red leaf could only answer `UNTESTABLE` and the run would bail. Write it as one line,
    `- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧`, recorded as covered by the full-suite run.
 
-   A criterion whose deliverable is the record of a manual check — a suite broken on purpose,
-   watched going red, restored — is a human's act, not code: it is not planned as a Red/Green
-   step and is never handed to a developer leaf, which may not run another suite to produce
-   it. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a
-   human.
+   A criterion whose deliverable is the record of a manual check that only a person can make
+   is a human's act, not code: it is not planned as a Red/Green step and is never handed to a
+   developer leaf. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked
+   owed by a human.
+
+   A go-red guard — a guard broken on purpose, its named case watched going red, the code
+   restored — is not such a check: a leaf can do it. It is planned as a step a leaf does and
+   the run ticks with that mutation evidence (the break, the red case, the restore), and it
+   never carries `⟦human-owed⟧`.
 
    A criterion that is a property of the branch's own diff — something removed, something
    left unchanged, a change confined to named lines — is not planned as a Red/Green step: a
