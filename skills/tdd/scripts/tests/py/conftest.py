@@ -283,7 +283,8 @@ def pytest_collection_modifyitems(config, items):
             raise pytest.UsageError("%s exemption table: %s" % (label, "; ".join(problems)))
     default = max(PROCESS_CASE_TIMEOUT, config.getoption("timeout", None) or 0)
     for item in items:
-        if item.get_closest_marker("process") is not None and item.get_closest_marker("timeout") is None:
+        longer = item.get_closest_marker("process") is not None or item.get_closest_marker("tree_audit") is not None
+        if longer and item.get_closest_marker("timeout") is None:
             item.add_marker(pytest.mark.timeout(default))
 
 
