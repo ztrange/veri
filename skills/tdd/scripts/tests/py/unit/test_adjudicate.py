@@ -31,3 +31,24 @@ def test_check_budget_exits_2_naming_the_variable_for_a_budget_that_is_not_a_who
         monkeypatch.setenv("VERI_ADJUDICATE_BUDGET", bad)
         code, out, err = run_cli(adjudicate, ["--check-budget"])
         assert (code, out, "VERI_ADJUDICATE_BUDGET" in err) == (2, "", True), bad
+
+
+def test_left_exits_0_when_the_adjudications_since_the_last_conductor_start_are_fewer_than_the_budget(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    import json
+
+    monkeypatch.delenv("VERI_ADJUDICATE_BUDGET", raising=False)
+    adjudicated = {"issue": "7", "event": "adjudicated", "cause": "ci-timeout", "outcome": "retry"}
+    events = [
+        {"issue": "7", "event": "conductor-start"},
+        adjudicated,
+        adjudicated,
+        {"issue": "7", "event": "conductor-start"},
+        adjudicated,
+        {**adjudicated, "issue": "8"},
+    ]
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (0, "", "")
