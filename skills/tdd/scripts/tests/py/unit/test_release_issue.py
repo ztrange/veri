@@ -57,7 +57,7 @@ def test_an_issue_neither_parked_nor_bailed_is_nothing_to_do_and_nothing_is_writ
 
     assert code == 3
     assert writes(calls) == []
-    assert "neither parked nor bailed" in err
+    assert "neither parked, bailed nor preflight-refused" in err
 
 
 def test_a_preflight_refused_issue_is_released_to_the_queue_3627(release, run_cli, monkeypatch):

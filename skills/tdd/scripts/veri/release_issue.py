@@ -33,7 +33,7 @@ def main(argv):
         return 2
     marked = any(marker in labels for marker in MARKERS)
     if not marked and not _preflight_refused(number, labels, opt_in):
-        sys.stderr.write("release-issue.sh: #%s is neither parked nor bailed; nothing to release\n" % number)
+        sys.stderr.write("release-issue.sh: #%s is neither parked, bailed nor preflight-refused; nothing to release\n" % number)
         return 3
     foreign = [name for name in labels if name.startswith("taken:") and name != taken]
     if foreign:
