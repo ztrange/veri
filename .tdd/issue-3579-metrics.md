@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3579
 
-Wall time for the issue: 2774 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4274 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 2 of 10 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Steps done: 6 of 11 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $9.21 over 176 turns, in 4 sessions, on opus (estimate).
+Conductor own spending: $13.57 over 267 turns, in 5 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78903 tokens, largest 118532 tokens
 Conductor context: first turn 78903 tokens, largest 158511 tokens
 Conductor context: first turn 78902 tokens, largest 145855 tokens
-Conductor context: first turn 78957 tokens, largest 149341 tokens
+Conductor context: first turn 78957 tokens, largest 151858 tokens
+Conductor context: first turn 79113 tokens, largest 188495 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -142,57 +143,148 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 122 | $0.05 | 144591 |
 | 123 | $0.05 | 145087 |
 | 124 | $0.04 | 145855 |
-| 125 | $0.49 | 78957 |
-| 126 | $0.06 | 85077 |
-| 127 | $0.03 | 87106 |
-| 128 | $0.03 | 88682 |
-| 129 | $0.03 | 90288 |
-| 130 | $0.02 | 90936 |
-| 131 | $0.04 | 94174 |
+| 125 | $0.50 | 78957 |
+| 126 | $0.07 | 85077 |
+| 127 | $0.04 | 87106 |
+| 128 | $0.04 | 88682 |
+| 129 | $0.04 | 90288 |
+| 130 | $0.03 | 90936 |
+| 131 | $0.06 | 94174 |
 | 132 | $0.03 | 95041 |
-| 133 | $0.03 | 96051 |
-| 134 | $0.02 | 96370 |
-| 135 | $0.02 | 96574 |
-| 136 | $0.02 | 96846 |
-| 137 | $0.02 | 97104 |
-| 138 | $0.02 | 97467 |
-| 139 | $0.02 | 97903 |
-| 140 | $0.02 | 98464 |
-| 141 | $0.02 | 99087 |
+| 133 | $0.04 | 96051 |
+| 134 | $0.03 | 96370 |
+| 135 | $0.03 | 96574 |
+| 136 | $0.03 | 96846 |
+| 137 | $0.03 | 97104 |
+| 138 | $0.03 | 97467 |
+| 139 | $0.03 | 97903 |
+| 140 | $0.03 | 98464 |
+| 141 | $0.04 | 99087 |
 | 142 | $0.06 | 103619 |
-| 143 | $0.06 | 107982 |
+| 143 | $0.07 | 107982 |
 | 144 | $0.03 | 108790 |
-| 145 | $0.09 | 117498 |
-| 146 | $0.03 | 118556 |
-| 147 | $0.03 | 119334 |
-| 148 | $0.03 | 120151 |
-| 149 | $0.03 | 120593 |
+| 145 | $0.10 | 117498 |
+| 146 | $0.04 | 118556 |
+| 147 | $0.04 | 119334 |
+| 148 | $0.04 | 120151 |
+| 149 | $0.04 | 120593 |
 | 150 | $0.03 | 121021 |
-| 151 | $0.03 | 121860 |
-| 152 | $0.03 | 122226 |
-| 153 | $0.03 | 122923 |
+| 151 | $0.04 | 121860 |
+| 152 | $0.04 | 122226 |
+| 153 | $0.04 | 122923 |
 | 154 | $0.03 | 123110 |
-| 155 | $0.03 | 123793 |
-| 156 | $0.03 | 124344 |
-| 157 | $0.03 | 124688 |
-| 158 | $0.03 | 125339 |
-| 159 | $0.03 | 126118 |
+| 155 | $0.04 | 123793 |
+| 156 | $0.04 | 124344 |
+| 157 | $0.04 | 124688 |
+| 158 | $0.04 | 125339 |
+| 159 | $0.04 | 126118 |
 | 160 | $0.03 | 126711 |
-| 161 | $0.03 | 127329 |
-| 162 | $0.03 | 127721 |
-| 163 | $0.10 | 136670 |
-| 164 | $0.03 | 137107 |
-| 165 | $0.03 | 137950 |
-| 166 | $0.03 | 138772 |
-| 167 | $0.03 | 139355 |
-| 168 | $0.03 | 139679 |
-| 169 | $0.03 | 140218 |
-| 170 | $0.03 | 141007 |
+| 161 | $0.04 | 127329 |
+| 162 | $0.04 | 127721 |
+| 163 | $0.11 | 136670 |
+| 164 | $0.04 | 137107 |
+| 165 | $0.04 | 137950 |
+| 166 | $0.04 | 138772 |
+| 167 | $0.04 | 139355 |
+| 168 | $0.04 | 139679 |
+| 169 | $0.04 | 140218 |
+| 170 | $0.05 | 141007 |
 | 171 | $0.04 | 142079 |
-| 172 | $0.03 | 142696 |
-| 173 | $0.03 | 143274 |
-| 174 | $0.03 | 144015 |
-| 175 | $0.07 | 149341 |
+| 172 | $0.04 | 142696 |
+| 173 | $0.05 | 143274 |
+| 174 | $0.04 | 144015 |
+| 175 | $0.08 | 149341 |
+| 176 | $0.05 | 150869 |
+| 177 | $0.05 | 151858 |
+| 178 | $0.49 | 79113 |
+| 179 | $0.06 | 85255 |
+| 180 | $0.03 | 87356 |
+| 181 | $0.03 | 89417 |
+| 182 | $0.02 | 90285 |
+| 183 | $0.05 | 94759 |
+| 184 | $0.05 | 99113 |
+| 185 | $0.02 | 99601 |
+| 186 | $0.02 | 99963 |
+| 187 | $0.02 | 100137 |
+| 188 | $0.02 | 100684 |
+| 189 | $0.03 | 101898 |
+| 190 | $0.02 | 102241 |
+| 191 | $0.03 | 102833 |
+| 192 | $0.02 | 103176 |
+| 193 | $0.02 | 103541 |
+| 194 | $0.02 | 103889 |
+| 195 | $0.03 | 104585 |
+| 196 | $0.02 | 104927 |
+| 197 | $0.03 | 105944 |
+| 198 | $0.02 | 106357 |
+| 199 | $0.03 | 107034 |
+| 200 | $0.03 | 107581 |
+| 201 | $0.03 | 108206 |
+| 202 | $0.03 | 109198 |
+| 203 | $0.03 | 109901 |
+| 204 | $0.13 | 122908 |
+| 205 | $0.05 | 126591 |
+| 206 | $0.03 | 127340 |
+| 207 | $0.03 | 127929 |
+| 208 | $0.03 | 128705 |
+| 209 | $0.03 | 129067 |
+| 210 | $0.03 | 130065 |
+| 211 | $0.03 | 130415 |
+| 212 | $0.04 | 131600 |
+| 213 | $0.03 | 131938 |
+| 214 | $0.03 | 132612 |
+| 215 | $0.03 | 132933 |
+| 216 | $0.03 | 133524 |
+| 217 | $0.04 | 135226 |
+| 218 | $0.04 | 136374 |
+| 219 | $0.03 | 136874 |
+| 220 | $0.10 | 145768 |
+| 221 | $0.04 | 146722 |
+| 222 | $0.04 | 147883 |
+| 223 | $0.04 | 148740 |
+| 224 | $0.03 | 149088 |
+| 225 | $0.04 | 150493 |
+| 226 | $0.04 | 151233 |
+| 227 | $0.03 | 151525 |
+| 228 | $0.04 | 152219 |
+| 229 | $0.03 | 152669 |
+| 230 | $0.04 | 153372 |
+| 231 | $0.03 | 153581 |
+| 232 | $0.04 | 154279 |
+| 233 | $0.04 | 154883 |
+| 234 | $0.04 | 155398 |
+| 235 | $0.04 | 156637 |
+| 236 | $0.04 | 157349 |
+| 237 | $0.03 | 157540 |
+| 238 | $0.04 | 158366 |
+| 239 | $0.03 | 158703 |
+| 240 | $0.04 | 159831 |
+| 241 | $0.04 | 160542 |
+| 242 | $0.04 | 161529 |
+| 243 | $0.04 | 162658 |
+| 244 | $0.04 | 163532 |
+| 245 | $0.04 | 164706 |
+| 246 | $0.04 | 165945 |
+| 247 | $0.04 | 166970 |
+| 248 | $0.04 | 167203 |
+| 249 | $0.04 | 167595 |
+| 250 | $0.04 | 167911 |
+| 251 | $0.04 | 168397 |
+| 252 | $0.05 | 170714 |
+| 253 | $0.04 | 171496 |
+| 254 | $0.04 | 172164 |
+| 255 | $0.04 | 172611 |
+| 256 | $0.06 | 175211 |
+| 257 | $0.04 | 176185 |
+| 258 | $0.05 | 177597 |
+| 259 | $0.04 | 178461 |
+| 260 | $0.04 | 179250 |
+| 261 | $0.04 | 180088 |
+| 262 | $0.04 | 180766 |
+| 263 | $0.04 | 181365 |
+| 264 | $0.04 | 182399 |
+| 265 | $0.08 | 187816 |
+| 266 | $0.04 | 188495 |
 
 #### Conductor comments, by family
 
@@ -207,42 +299,44 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
 | 🔎 verify-<phase> (revised) | 0 | 0 | $0.00 |
 | 🗺️ Plan | 1 | 548 | $0.01 |
-| 🗺️ verify-plan | 3 | 1016 | $0.02 |
-| ▶️ Resuming | 2 | 455 | $0.01 |
-| ⛔ Bailed | 1 | 477 | $0.01 |
+| 🗺️ verify-plan | 4 | 1451 | $0.03 |
+| ▶️ Resuming | 3 | 893 | $0.02 |
+| ⛔ Bailed | 2 | 912 | $0.02 |
 | ⏹️ Stopped | 2 | 1000 | $0.02 |
-| Total | 9 | 3496 | $0.07 |
+| Total | 12 | 4804 | $0.10 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 42 | 31 | 3 | 6 | 3784 | 0 | 60622 | 0.19 |
-| red | 7 | 3 | 0 | 0 | 436 | 98 | 29 | 58 | 9950 | 481418 | 133558 | 0.48 |
-| green | 14 | 2 | 5 | 0 | 5377 | 293 | 84 | 162 | 26661 | 1478031 | 259158 | 1.36 |
-| pin | 1 | 1 | 0 | 0 | 19 | 13 | 3 | 6 | 1491 | 42409 | 15029 | 0.06 |
-| refactor | 2 | 0 | 0 | 0 | 16 | 8 | 4 | 8 | 555 | 37524 | 42195 | 0.11 |
+| plan | 4 | 4 | 0 | 0 | 65 | 51 | 6 | 12 | 6220 | 42567 | 83714 | 0.28 |
+| red | 17 | 7 | 0 | 0 | 1085 | 322 | 93 | 178 | 31514 | 1813066 | 357937 | 1.62 |
+| green | 23 | 4 | 7 | 0 | 7311 | 507 | 142 | 274 | 45186 | 2561731 | 413857 | 2.24 |
+| pin | 4 | 3 | 1 | 0 | 298 | 68 | 17 | 34 | 6679 | 266692 | 68289 | 0.26 |
+| refactor | 5 | 1 | 0 | 0 | 167 | 41 | 16 | 32 | 2740 | 225162 | 92087 | 0.28 |
 | exhausted | 1 | 0 | 0 | 0 | 93 | 22 | 4 | 8 | 1694 | 55228 | 20681 | 0.15 |
+| red-contradicted | 1 | 0 | 0 | 0 | 23 | 17 | 5 | 10 | 1926 | 93063 | 18751 | 0.08 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 14 | 9 | 5 | 0 | 4765 | 226 | 65 | 124 | 22789 | 1039412 | 241304 | 0.94 |
-| developer | claude-sonnet-5-5 | 10 | 0 | 0 | 0 | 618 | 140 | 40 | 80 | 13593 | 661225 | 201377 | 0.80 |
-| developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 600 | 99 | 22 | 44 | 7753 | 393973 | 88562 | 0.61 |
+| verifier | claude-sonnet-5-5 | 27 | 19 | 8 | 0 | 6929 | 456 | 124 | 242 | 43081 | 2050993 | 437470 | 1.73 |
+| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 928 | 311 | 95 | 182 | 30192 | 1643875 | 391037 | 1.54 |
+| developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 1185 | 261 | 64 | 124 | 22686 | 1362641 | 226809 | 1.64 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 136 | 0.11 |
-| green | 1822 | 0.94 | 2249 | 0.72 |
-| pin | 0 | 0.00 | 0 | 0.00 |
+| red | 0 | 0.00 | 175 | 0.21 |
+| green | 4764 | 1.93 | 2249 | 0.72 |
+| pin | 0 | 0.00 | 35 | 0.06 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | exhausted | 0 | 0.00 | 93 | 0.15 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -251,6 +345,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | merge-lock.sh `release` by the owner that took the lock with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding that token: take with an owner and a token file, release, the file is gone ⟦criterion 1⟧ | 11 | 3 | 2 | 0 | 0 | 0 | 173 | 48 | 94 | 16778 | 792332 | 194190 | 0.83 | 3463 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py ⟦suite-repair⟧ ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 57 | 21 | 40 | 5569 | 305395 | 108203 | 0.36 | 4322 | unknown | 0/5 | nothing-left |  |  | full |
 | merge-lock.sh `release --force` of a lock taken with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding the token the freed holder record named ⟦criterion 1⟧ | 9 | 1 | 3 | 0 | 0 | 0 | 204 | 55 | 108 | 18004 | 996883 | 168228 | 0.98 | unknown | 2/2 | unknown | unknown |  |  | full |
+| fast tier (skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py, in-process, `os.mkfifo` in tmp_path, no real process): merge-lock.sh `release --force` whose holder record is a FIFO (a non-regular file) returns without blocking on the read, pinning the regular-file guard in `_release` ⟦added⟧ ⟦criterion 1⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 40 | 11 | 22 | 4071 | 193750 | 40062 | 0.16 | unknown | unknown | unknown | unknown |  |  | full |
+| merge-lock.sh `release --force` of a lock taken with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding the token the freed holder record named, where `_release --force` in skills/tdd/scripts/veri/merge_lock.py must not block reading a non-regular holder record (test_2381's FIFO holder record, whose writer closes only after the release returns) ⟦criterion 1⟧ | 9 | 2 | 2 | 0 | 0 | 0 | 198 | 60 | 108 | 17481 | 1052978 | 154835 | 0.87 | 2156 | 2/2 | 0/5 | nothing-left |  |  | full |
+| merge-lock.sh `gate --pid <pid> --owner <token> -- <cmd>` whose command fails (an exit other than 0 or 3) releases the lock and removes the `veri-merge-<pr>.token` file in the git common dir holding that token ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 28 | 8 | 16 | 2851 | 137948 | 42066 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
+| merge-lock.sh `release` by a different owner token (exit 1, the lock not freed) leaves the holder's `veri-merge-<pr>.token` file in the git common dir untouched ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 50 | 13 | 26 | 5055 | 261250 | 39790 | 0.18 | unknown | unknown | unknown | unknown |  |  | pin |
+| a `release` that frees the lock also removes a leftover `veri-merge-<pr>.token` file in the git common dir holding another owner's token, one whose own lock was already freed ⟦criterion 2⟧ | 11 | 5 | 0 | 0 | 0 | 0 | 227 | 61 | 122 | 19930 | 1274406 | 224228 | 1.12 | 1356 | 1/2 | 1/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -260,6 +359,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | merge-lock.sh `release` by the owner that took the lock with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding that token: take with an owner and a token file, release, the file is gone ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.06 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.06 |
+| merge-lock.sh `release --force` of a lock taken with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding the token the freed holder record named, where `_release --force` in skills/tdd/scripts/veri/merge_lock.py must not block reading a non-regular holder record (test_2381's FIFO holder record, whose writer closes only after the release returns) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 11 | 0.06 |
+| a `release` that frees the lock also removes a leftover `veri-merge-<pr>.token` file in the git common dir holding another owner's token, one whose own lock was already freed ⟦criterion 2⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 140 | 0.10 |
 
 #### Refactor totals
 
@@ -267,18 +368,20 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | ---: | --- |
 | merge-lock.sh `release` by the owner that took the lock with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding that token: take with an owner and a token file, release, the file is gone ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_prd_016_tracked_names_process.py ⟦suite-repair⟧ ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 2 | 0 | 2 | nothing-left 2 |
+| merge-lock.sh `release --force` of a lock taken with `--owner <token>` removes the `veri-merge-<pr>.token` file in the git common dir holding the token the freed holder record named, where `_release --force` in skills/tdd/scripts/veri/merge_lock.py must not block reading a non-regular holder record (test_2381's FIFO holder record, whose writer closes only after the release returns) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| a `release` that frees the lock also removes a leftover `veri-merge-<pr>.token` file in the git common dir holding another owner's token, one whose own lock was already freed ⟦criterion 2⟧ | 1 | 1 | 0 | nothing-left 1 |
+| issue | 4 | 1 | 3 | nothing-left 4 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 4 | 4 | 4 | 9 | 6 | 4 | 1 | 3 | 27 | 2 | 3 | 4 | 3 | 8 | 4 | 9 | 122 | 25 | 5 | 7 | 10 | 98 |
-| fast | 45 | 86 | 80 | 43 | 84 | 86 | 130 | 72 | 96 | 86 | 63 | 86 | 87 | 107 | 83 |  |  |  |  |  |  |  |
-| target | 3 | 1 | 2 | 2 | 4 | 85 | 3 | 4 | 5 | 7 | 2 |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 4 | 4 | 4 | 9 | 6 | 4 | 1 | 3 | 27 | 2 | 3 | 4 | 3 | 8 | 4 | 9 | 122 | 25 | 5 | 7 | 10 | 98 | 4 | 3 | 2 | 5 | 7 | 16 | 7 | 7 | 11 | 4 | 3 | 4 | 3 | 3 | 3 | 4 | 2 | 14 | 3 | 3 |
+| fast | 45 | 86 | 80 | 43 | 84 | 86 | 130 | 72 | 96 | 86 | 63 | 86 | 87 | 107 | 83 | 67 | 70 | 68 | 125 | 118 | 76 | 66 | 66 | 101 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 1 | 2 | 2 | 4 | 85 | 3 | 4 | 5 | 7 | 2 | 4 | 2 | 4 | 3 | 149 | 4 | 3 | 3 | 184 | 3 | 3 | 3 | 2 | 177 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 127 | 248 | 44135 | 2094610 | 531243 | 11.56 (estimate) |
+| total | 283 | 548 | 95959 | 5057509 | 1055316 | 18.48 (estimate) |
