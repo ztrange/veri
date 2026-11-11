@@ -764,10 +764,12 @@ def case_expects_no_system_location_unreadable_or_unwritable(request, monkeypatc
     tail = case_tail(request)
 
     def system_location(path):
-        resolved = pathlib.Path(os.path.abspath(path))
-        if any(resolved.is_relative_to(temp) for temp in (pathlib.Path("/tmp"), pathlib.Path(tempfile.gettempdir()))):
-            return False
-        return len(resolved.parts) == 2 or resolved.parts[1:2] in (("etc",), ("root",), ("proc",))
+        resolved = os.path.abspath(path)
+        for temp in ("/tmp", str(pathlib.PurePath(tempfile.gettempdir()))):
+            if resolved == temp or resolved.startswith(temp.rstrip("/") + "/"):
+                return False
+        first, separator, _ = resolved.lstrip("/").partition("/")
+        return bool(first) and (not separator or first in ("etc", "root", "proc"))
 
     def refuse_system_location(verb, path, frame):
         name = os.path.basename(frame.f_code.co_filename)
