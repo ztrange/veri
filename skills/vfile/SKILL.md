@@ -67,7 +67,9 @@ reads the plan out of these headings.
   A row that amends an existing row writes its ID cell as **`<ID><reword>`** (for example
   `SC85<reword>`) with its **full new text**. A row new to the unit uses **`<prefix><next>`** (for
   example `SC<next>`) or an ID no row of the unit holds. A **bare ID that already exists with
-  different text** is refused by `skill-edit-step.sh` (exit 2), so never write one.
+  different text** is refused by `skill-edit-step.sh` (exit 2), so never write one. A new row
+  whose **Requirement and Why cells** the unit's own section already holds, **under any ID**, is
+  **not appended again**; the compare reads **that unit's own section only**, not other units.
 - **A criterion that changes graded prose** (a unit some `REQUIREMENTS.md` has a `## <path>`
   heading for) says it is **graded by the issue's `## Requirements` rows**, and **never asks for
   a case pinning the prose's wording**. This overrides "pinned by a case" above for such a
