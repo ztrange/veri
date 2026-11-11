@@ -184,6 +184,7 @@ def launchable(issue, changed, reported):
     if found and (issue, *found) not in reported:
         reported.add((issue, *found))
         sys.stdout.write(f"skip {issue} {found[0]} {found[1]}\n")
+        sys.stdout.flush()
     return not found
 
 
