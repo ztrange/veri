@@ -1100,3 +1100,19 @@ def test_stop_run_mode_now_signals_no_leaf_whose_pid_file_records_no_start_time_
     assert signalled == []
     assert code == 0
     assert [str(supervisor_file) in lines[0], str(detached_file) in lines[1], len(lines)] == [True, True, 2]
+
+
+def test_stop_run_mode_now_does_not_term_a_supervisor_whose_pid_file_start_time_differs_from_the_live_process_s_and_exits_0_silently(
+        monkeypatch, tmp_path, capsys, stop_run):
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "develop-red.pid").write_text("101\nT0\n")
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: True)
+    fake_lstart(monkeypatch, stop_run, started="T1")
+    signalled = []
+    monkeypatch.setattr(os, "kill", lambda pid, sig: signalled.append((pid, sig)))
+
+    code = stop_run.stop_run(str(run), "now")
+
+    assert signalled == []
+    assert (code, capsys.readouterr().err) == (0, "")
