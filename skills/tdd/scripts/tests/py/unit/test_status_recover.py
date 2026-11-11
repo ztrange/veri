@@ -685,3 +685,21 @@ def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_s
 
     named = [l for l in err.splitlines() if re.search(r"3600\.jsonl\D+2\b", l)]
     assert (code, len(named)) == (0, 1), (code, err)
+
+
+def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_file_records(tmp_path, monkeypatch, run_cli):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=2\ncoordinator=sess-old\ncoordinator=sess-new\n")
+
+    def run(args, *a, **k):
+        out = "[]" if args and args[0] == "gh" else ""
+        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    code, out, _ = run_cli(status, ["--recover", "dev"])
+
+    lines = [line.strip() for line in out.splitlines() if line.strip()]
+    state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
+    assert (code, [l for l in state if l.startswith("coordinator")]) == (0, ["coordinator sess-new"]), state
