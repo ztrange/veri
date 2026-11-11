@@ -316,6 +316,7 @@ def main(argv):
                         pending.append(issue)
                     continue
                 sys.stdout.write(line + "\n")
+                sys.stdout.flush()
                 return 0
         if not argv:
             lines = status.read_role_state("dev", lane())
