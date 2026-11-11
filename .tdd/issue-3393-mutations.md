@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_leaf_model.py
 command 183
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_leaf_model.py::test_main_with_both_veri_model_adjudicator_and_veri_model_set_prints_veri_model_adjudicator_for_an_adjudicate_leaf
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 51
+skills/tdd/scripts/tests/py/unit/test_leaf_model.py
+command 144
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_leaf_model.py::test_main_with_only_veri_model_set_prints_veri_model_for_an_adjudicate_leaf
+
