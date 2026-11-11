@@ -1082,6 +1082,51 @@ def test_main_3654_exits_2_for_a_superseded_parametrized_id_whose_bare_name_has_
     assert (code, stdout, "no defined test case resolves" in stderr) == (2, "", True)
 
 
+def test_main_3654_prints_red_over_the_defined_case_a_wrong_test_contradicts_by_its_parametrized_id(
+        run_cli, tmp_path):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py" / "unit"
+    suite.mkdir(parents=True)
+    contradicted = "test_main_counts_a_repair_text_as_a_repair"
+    (suite / "test_ledger.py").write_text(
+        "import pytest\n\ndef test_main_returns_zero():\n    pass\n\n"
+        "@pytest.mark.parametrize('n', [1, 2])\ndef %s(n):\n    pass\n" % contradicted)
+    report = tmp_path / "green-report.txt"
+    report.write_text(
+        "SUITE: make test\n"
+        "WRONG_TEST: %s[2] asserts the opposite of the criterion\n" % contradicted
+        + "CONTRADICTS: %s[2]\n" % contradicted)
+
+    code, stdout, stderr = run_cli(
+        wrong_test_route, SPEC + [str(report), "test_main_returns_zero"], cwd=tmp_path)
+
+    assert (code, bare_route(stdout)) == (0, "red %s\n" % contradicted)
+
+
+@pytest.mark.parametrize("indent", [" ", "  ", "   "])
+def test_main_1957_prints_revise_when_a_superseded_line_is_indented_by_one_to_three_spaces_since_it_is_prose(
+        indent, run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    tests_frozen = importlib.import_module("veri.tests_frozen")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    older = "test_main_prints_usage_on_no_arguments"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, an indented superseded line"
+    monkeypatch.setenv("VERI_STEP", step)
+    _, record_path, _ = run_cli(tests_frozen, ["path", step], cwd=tmp_path)
+    (tmp_path / record_path.rstrip("\n")).write_text("case: %s\n" % added)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\n%sSUPERSEDED: %s\n" % (indent, older))
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    assert (code, stdout) == (3, "revise\n")
+
+
 def test_main_1865_prints_red_over_the_one_case_a_superseded_line_names_before_a_trailing_reason(
         run_cli, tmp_path, monkeypatch):
     wrong_test_route = importlib.import_module("veri.wrong_test_route")
