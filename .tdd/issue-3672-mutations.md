@@ -9,3 +9,14 @@ ICAgICAgICAgICAgICAgICAgICBvcy5wYXRoLmdldG10aW1lKGYp
 command 194
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_stalled_and_exits_0_when_a_leaf_log_and_every_other_liveness_source_are_older_than_the_stall_window_issue_3672
 
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 16
+KSA+PSBzdGFsbDo=
+new-b64 16
+KSA+IHN0YWxsOg==
+context-b64 68
+ICAgICAgICAgICAgICAgICAgICBpZiBvcy5wYXRoLmV4aXN0cyhmKSkgPj0gc3RhbGw6
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_stalled_and_exits_0_when_the_newest_liveness_source_is_exactly_the_stall_window_old_issue_3672
+
