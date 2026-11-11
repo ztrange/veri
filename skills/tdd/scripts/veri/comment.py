@@ -189,7 +189,11 @@ def post_resuming(issue, note_file=None):
 
 
 def current_branch():
-    head = read_or_empty(".git/HEAD").strip()
+    git_dir = ".git"
+    if os.path.isfile(".git"):
+        pointer = read_or_empty(".git").strip()
+        git_dir = pointer.removeprefix("gitdir:").strip()
+    head = read_or_empty(os.path.join(git_dir, "HEAD")).strip()
     return head.removeprefix("ref: refs/heads/")
 
 

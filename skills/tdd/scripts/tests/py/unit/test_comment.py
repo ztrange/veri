@@ -1517,6 +1517,38 @@ def test_bailed_pr_posts_the_bailed_comment_on_the_pr_found_by_the_current_branc
     assert [(e["event"], e.get("kind"), e.get("url")) for e in events[1:]] == [("comment", "bailed", url)]
 
 
+def test_3650_bailed_pr_from_a_linked_worktree_posts_on_the_pr_of_the_worktrees_branch(
+        monkeypatch, run_cli, tmp_path):
+    import types
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    looked_up, posted = [], []
+
+    def gh_api(path, stderr=None):
+        looked_up.append(path)
+        return types.SimpleNamespace(returncode=0, stdout=json.dumps([{"number": 12}]), stderr="")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+    monkeypatch.setattr(github, "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    admin = tmp_path / "main" / ".git" / "worktrees" / "wt"
+    admin.mkdir(parents=True)
+    (admin / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".git").write_text(f"gitdir: {admin}\n")
+    (wt / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"event": "bail", "phase": "verify-green", "classification": "process"}) + "\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the bail question\n")
+
+    code, out, err = run_cli(comment, ["7", "bailed", "--pr", "--note-file", str(note)], cwd=wt)
+
+    assert code == 0
+    assert looked_up == ["repos/{owner}/{repo}/pulls?head={owner}:tdd/7-the-branch"]
+    assert [number for number, _ in posted] == ["12"]
+
+
 def test_bailed_pr_exits_2_naming_the_branch_and_posts_nothing_when_no_pr_has_it_as_head(
         monkeypatch, run_cli, tmp_path):
     import types
