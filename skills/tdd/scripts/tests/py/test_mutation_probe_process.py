@@ -535,3 +535,17 @@ def test_issue_3396_mutate_probe_exits_1_without_a_record_when_the_mutant_surviv
                             capture_output=True, text=True, timeout=20,
                             env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
     assert (result.returncode, record.exists(), target.read_bytes()) == (1, False, b"x"), result.stderr
+
+
+@pytest.mark.process("mutation-probe.sh and the sh command it runs against the fixture")
+def test_issue_3396_mutate_probe_exits_0_and_appends_one_record_when_the_baseline_is_green_and_the_mutant_fails(tmp_path):
+    target = tmp_path / "target.txt"
+    target.write_text("x")
+    record = tmp_path / "issue-3396-mutations.md"
+    result = subprocess.run([str(PROBE), str(target), "x", "y", "--", "sh", "-c", f'! grep -q y "$1"', "sh", str(target)],
+                            capture_output=True, text=True, timeout=20,
+                            env={**os.environ, "VERI_MUTATION_RECORD": str(record)})
+    command = f"sh -c '! grep -q y \"$1\"' sh {target}"
+    expected = "".join(f"{name} {len(value)}\n{value}\n" for name, value in
+                       (("file", str(target)), ("old", "x"), ("new", "y"), ("context", "x"), ("command", command))) + "\n"
+    assert (result.returncode, record.read_text() if record.exists() else None, target.read_bytes()) == (0, expected, b"x"), result.stderr
