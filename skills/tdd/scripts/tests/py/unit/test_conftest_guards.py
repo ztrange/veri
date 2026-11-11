@@ -463,3 +463,37 @@ def test_the_real_pycache_guard_fails_a_same_size_rewrite_of_a_veri_pycache_file
     result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
     result.assert_outcomes(failed=1)
     result.stdout.fnmatch_lines(["*the case left * changed: __pycache__/kept.pyc*"])
+
+
+def test_a_process_cases_supervisor_polls_at_a_sub_second_interval_whether_the_case_inherits_the_environment_or_builds_its_own_unless_the_case_sets_veri_poll(pytester, monkeypatch):
+    started = []
+
+    def record(self, args, *rest, **kwargs):
+        started.append((list(args), kwargs.get("env")))
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", record)
+    pytester.makepyfile(test_planted="""
+        import os
+        import subprocess
+        import pytest
+
+        @pytest.mark.process("a child")
+        def test_inherits():
+            assert float(os.environ["VERI_POLL"]) < 1
+            subprocess.Popen(["true"])
+
+        @pytest.mark.process("a child")
+        def test_builds_its_own():
+            subprocess.Popen(["true-own"], env={"PATH": "/bin"})
+
+        @pytest.mark.process("a child")
+        def test_sets_its_own():
+            subprocess.Popen(["true-set"], env={"PATH": "/bin", "VERI_POLL": "1"})
+    """)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", plugins=[conftest])
+
+    result.assert_outcomes(passed=3)
+    envs = {args[0]: env for args, env in started}
+    assert float(envs["true-own"]["VERI_POLL"]) < 1 and envs["true-own"]["PATH"] == "/bin"
+    assert envs["true-set"]["VERI_POLL"] == "1"

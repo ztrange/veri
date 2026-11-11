@@ -309,6 +309,27 @@ CWD_OUTSIDE_REPOSITORY = {
 }
 
 
+# supervise.sh checks a stub leaf's result once per VERI_POLL (default 1 s) and a stub finishes in ~0.1 s, so each
+# supervised leaf in a case would otherwise sleep a second. A case that sets VERI_POLL keeps its own value.
+SUPERVISOR_POLL = "0.1"
+
+
+@pytest.fixture(autouse=True)
+def process_case_supervisor_polls_sub_second(request, monkeypatch):
+    """A process case that builds its child's env from scratch gets VERI_POLL too; an inherited env has it already."""
+    if request.node.get_closest_marker("process") is None:
+        return
+    real = subprocess.Popen.__init__
+
+    def polling(self, args, *rest, **kwargs):
+        env = kwargs.get("env")
+        if env is not None and "VERI_POLL" not in env:
+            kwargs["env"] = {**env, "VERI_POLL": SUPERVISOR_POLL}
+        return real(self, args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", polling)
+
+
 @pytest.fixture(autouse=True)
 def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     offline, doomed = {}, []
@@ -333,6 +354,8 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setenv("LC_ALL", "C")
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "veri-pytest-legs"))
     monkeypatch.setenv("VERI_MIN_FREE_GB", "0")
+    if request.node.get_closest_marker("process") is not None:
+        monkeypatch.setenv("VERI_POLL", SUPERVISOR_POLL)
     monkeypatch.setenv("VERI_HOME", str(tmp_path))
     monkeypatch.setenv("VERI_VENV", INTERPRETER_VENV)
     inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
