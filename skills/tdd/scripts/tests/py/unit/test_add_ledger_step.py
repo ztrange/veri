@@ -1631,3 +1631,14 @@ def test_main_refuses_a_skill_edit_step_whose_only_backticked_token_is_not_a_pat
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
 
     assert (code, out, "no unit path" in err, ledger.read_bytes()) == (2, "", True, LEDGER), err
+
+
+def test_main_takes_a_bare_md_file_after_a_non_path_backticked_token_as_the_unit_naming_it_and_not_the_token_3564(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### README.md\n")
+    text = "⟦skill-edit⟧ regrade `parked` rows in `README.md`"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
+
+    assert (code, "README.md: the unit file does not exist" in err, "no unit path" in err, "parked:" in err, ledger.read_bytes()) == (2, True, False, False, LEDGER), err
