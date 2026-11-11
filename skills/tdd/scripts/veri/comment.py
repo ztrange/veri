@@ -207,6 +207,16 @@ def last_event(name):
     return found
 
 
+def event_before_last(name):
+    before = None
+    previous = None
+    for e in event_log.read_events(".tdd/events.jsonl"):
+        if e.get("event") == name:
+            before = previous
+        previous = e
+    return before
+
+
 def post_bailed(issue, note_file, pr=False):
     bail = last_event("bail")
     if bail is None:
@@ -229,6 +239,9 @@ def post_stopped(issue, note_file):
         code = metrics_module.main([issue])
     metrics = rendered.getvalue() if code == 0 else f"metrics could not be rendered: metrics.sh exited {code}\n"
     body = f"### ⏹️ Stopped — {stop['mode']}\n\n{metrics}\nat={stop['at']}\n"
+    before = event_before_last("stop")
+    if before is not None and before.get("event") == "push-rejected":
+        body += f"push=rejected sha={before['remote_sha']}\n"
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
     return post_and_record(issue, "stopped", with_note(body, note_file))
