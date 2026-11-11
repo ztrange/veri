@@ -19,7 +19,7 @@ USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-fi
 def recheck(argv):
     with open(argv[0], encoding="utf-8") as handle:
         reason = handle.read()
-    found = re.search(r"pin stayed green under its mutation: (\S+)", reason)
+    found = re.search(r"pin stayed green (?:under its mutation|on the before-state): (\S+)", reason)
     path = found.group(1)
     text = ("⟦diff-checked⟧ edit the case of the pin on " + path
             + " so its recorded mutation turns it red")
