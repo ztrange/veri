@@ -2868,3 +2868,35 @@ def test_3471_a_retire_rewrite_leaves_the_surviving_encoded_records_encoded_and_
     assert ("MARKEROLD3471" in rewritten, "MARKERNEW3471" in rewritten, plain_fields, "old-b64 " in rewritten,
             second.returncode, "pin stayed green under its mutation" in second.stdout + second.stderr) == (
         False, False, [], True, 1, True), first.stderr + second.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range whose step disarms a pin and whose later commit re-pins its case")
+def test_3469_a_pin_disarmed_by_a_sibling_file_then_repinned_to_assert_its_own_file_exits_0(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "README").write_text("main\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "skills" / "review").mkdir(parents=True)
+    (tmp_path / "skills" / "review" / "SKILL.md").write_text("review the diff\n")
+    (tmp_path / "case.sh").write_text("cat skills/*/SKILL.md | grep -q 'the diff' && ! grep -q control skills/*/SKILL.md\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-42-mutations.md", file="skills/review/SKILL.md", old="the diff", new="gone",
+           command="sh -c \"echo result; sh case.sh\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "skills" / "digest").mkdir()
+    (tmp_path / "skills" / "digest" / "SKILL.md").write_text("digest, like the diff\n")
+    (tmp_path / "skills" / "review" / "SKILL.md").write_text("review the diff, then the digest\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "step adds a sibling skill")
+    (tmp_path / "case.sh").write_text("grep -q 'the diff' skills/review/SKILL.md && ! grep -q control skills/*/SKILL.md\n")
+    git("commit", "-q", "-am", "re-pin: the case asserts its own file")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert ran.returncode == 0, (ran.stdout, ran.stderr)
