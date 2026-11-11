@@ -123,7 +123,8 @@ def main(argv):
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if event_name == "unpinnable-step" and "stays green" not in reason_text:
+        if event_name == "unpinnable-step" and "stays green" not in reason_text and not re.search(
+                r"before-state[^,;.\n]*\b(green|pass)|\b(green|pass)[^,;.\n]*before-state", reason_text):
             return 1
         if event_name == "already-holds-step" and not any(
             l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()

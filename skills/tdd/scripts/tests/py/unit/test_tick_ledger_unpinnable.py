@@ -257,3 +257,25 @@ def test_main_unpinnable_dropping_a_record_leaves_the_remaining_encoded_records_
                              env={"VERI_ISSUE": "42"}, cwd=tmp_path)
 
     assert (code, record.read_bytes()) == (0, kept.encode()), err
+
+
+def test_main_unpinnable_retires_the_step_when_the_reason_says_the_real_before_state_passes_without_stays_green_3644(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: still passes against the real before-state; "
+                      "pins nothing the branch introduced\n")
+
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
+                              str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events_file = ledger.parent / "events.jsonl"
+    events = [json.loads(line) for line in events_file.read_text().splitlines()] if events_file.exists() else []
+    names = [event.get("event") for event in events]
+    assert (code, ledger.read_text(), names.count("unpinnable-step")) == (
+        0, "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n", 1), err
