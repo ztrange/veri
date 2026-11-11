@@ -349,3 +349,20 @@ def test_main_missing_reroute_target_red_on_before_state_but_mutant_stays_green_
 
     assert (code, out.strip(), ledger.read_bytes(), (ledger.parent / "events.jsonl").exists()) == (
         1, "revise", body.encode(), False), err
+
+
+def test_main_missing_reroute_before_state_green_without_stays_green_is_retired_already_holds_not_unpinnable_missing_3458(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the case is green on the before-state\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text()) == (
+        0, "retired",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
