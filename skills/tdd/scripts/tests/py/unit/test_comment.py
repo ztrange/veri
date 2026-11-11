@@ -1710,3 +1710,53 @@ def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_re
         assert body.splitlines()[0] == "### ⏹️ Stopped — graceful"
         assert any(line.endswith("/run-conductor.sh 7") for line in body.splitlines())
         assert "context growth" not in body
+
+
+def test_every_heading_comment_sh_posts_for_bailed_and_stopped_is_classified_by_comment_class_as_the_hand_composed_heading_is_and_falls_in_its_metrics_family_and_the_bailed_one_reads_as_bail(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    comment_class = importlib.import_module("veri.comment_class")
+    metrics = importlib.import_module("metrics")
+    dispatch = importlib.import_module("dispatch")
+    posted = _done_setup(monkeypatch, tmp_path, [
+        {"event": "bail", "phase": "verify-green", "classification": "process"},
+        {"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(metrics, "main", lambda argv: 0)
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
+    note = tmp_path / "note.txt"
+    note.write_text("the bail question zulu\n")
+    for argv in (["bailed", "--note-file", str(note)], ["stopped", "--note-file", str(note)]):
+        code, _, err = run_cli(comment, ["7", *argv], cwd=tmp_path)
+        assert code == 0, err
+    events = tmp_path / ".tdd" / "events.jsonl"
+    events.write_text(events.read_text() + json.dumps(
+        {"event": "bail", "phase": "plan", "classification": "system"}) + "\n")
+    assert run_cli(comment, ["7", "bailed", "--note-file", str(note)], cwd=tmp_path)[0] == 0
+
+    headings = [body.splitlines()[0] for _, body in posted]
+    hand = [
+        "### ⛔ Bailed — verify-green (process failure)",
+        "### ⏹️ Stopped — graceful",
+        "### ⛔ Bailed — plan (system failure)",
+    ]
+    results = []
+    for name, lines in (("posted", headings), ("hand", hand)):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "headings.md").write_text("\n".join(lines) + "\n")
+        code, out, err = run_cli(comment_class, ["headings.md"], cwd=directory)
+        assert code == 0, err
+        results.append(out)
+    assert results[0] == results[1]
+
+    families = dict(metrics.COMMENT_FAMILIES)
+    for heading, hand_heading, family in zip(headings, hand, ["⛔ Bailed", "⏹️ Stopped", "⛔ Bailed"]):
+        assert re.search(families[family], heading)
+        assert re.search(families[family], hand_heading)
+
+    for heading, hand_heading in ((headings[0], hand[0]), (headings[2], hand[2])):
+        for text in (heading, hand_heading):
+            monkeypatch.setattr(dispatch.github, "gh_rest_list",
+                                lambda path, *a, text=text, **kw: json.dumps([{"body": text + "\n\nnote\n"}]),
+                                raising=False)
+            assert dispatch.exit_line("7") == "bail 7"
