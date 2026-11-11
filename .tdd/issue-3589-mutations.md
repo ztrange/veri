@@ -16,3 +16,14 @@ context 83
 command 195
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_apply_still_appends_a_prefix_next_row_whose_requirement_text_differs_from_every_held_row_under_the_next_free_id_3589
 
+file 42
+skills/tdd/scripts/veri/skill_edit_step.py
+old 41
+tuple(requirements.split_cells(row)[2:4])
+new 41
+tuple(requirements.split_cells(row)[2:3])
+context 52
+    return tuple(requirements.split_cells(row)[2:4])
+command 207
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_apply_still_appends_a_prefix_next_row_whose_requirement_text_equals_a_held_row_but_whose_why_differs_under_the_next_free_id_3589
+

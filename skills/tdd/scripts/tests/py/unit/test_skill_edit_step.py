@@ -2297,3 +2297,15 @@ def test_apply_still_appends_a_prefix_next_row_whose_requirement_text_differs_fr
 
     rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PF")]
     assert rows == ["| PF60 | The widget is round. | shape |", "| PF61 | The widget is blue. | because |"], rows
+
+
+def test_apply_still_appends_a_prefix_next_row_whose_requirement_text_equals_a_held_row_but_whose_why_differs_under_the_next_free_id_3589(tmp_path, monkeypatch):
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PF60 | The widget is blue. | because |"],
+        ["| PF<next> | The widget is blue. | for another reason |"])
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PF")]
+    assert rows == ["| PF60 | The widget is blue. | because |", "| PF61 | The widget is blue. | for another reason |"], rows
