@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_grade_prose.py
 command 202
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_grade_prose.py::test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_exits_1_with_the_reject_verdict_naming_the_fail_row_3631
 
+before 40
+8400866c0d486ddb5563e485fc0538e1c4577202
+keep 52
+skills/tdd/scripts/tests/py/unit/test_grade_prose.py
+command 187
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_grade_prose.py::test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it_exits_2_naming_the_grade_word_maybe_3631
+

@@ -1706,3 +1706,30 @@ def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_
     events = tmp_path / ".tdd" / "events.jsonl"
     verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, out.strip(), verdicts) == (1, "R2: FAIL - not round", ["REJECT"]), (code, out, err)
+
+
+def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it_exits_2_naming_the_grade_word_maybe_3631(
+        tmp_path, monkeypatch, run_cli, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| R1 | The widget is blue. | because |\n| R2 | The widget is round. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    replies = iter(['{"type":"result","subtype":"success","is_error":false,"result":'
+                    '"BEGIN GRADES\\nREASON: The text is unclear\\nR1: MAYBE - blue\\nR2: PASS - ok\\n'
+                    'VERDICT: PASS\\nEND GRADES"}\n'] * 3)
+
+    def launch(argv, *a, **k):
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", launch)
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, "grade word MAYBE is neither PASS nor FAIL" in err) == (2, True), (code, err)
