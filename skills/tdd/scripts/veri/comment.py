@@ -183,7 +183,18 @@ def post_resuming(issue, note_file=None):
     return post_and_record(issue, "resuming", with_note(heading, note_file))
 
 
+def post_bailed(issue, note_file):
+    bail = {}
+    for e in event_log.read_events(".tdd/events.jsonl"):
+        if e.get("event") == "bail":
+            bail = e
+    heading = f"### ⛔ Bailed — {bail['phase']} ({bail['classification']} failure)\n"
+    return post_and_record(issue, "bailed", with_note(heading, note_file))
+
+
 def main(argv):
+    if len(argv) == 4 and argv[1] == "bailed" and argv[2] == "--note-file":
+        return post_bailed(argv[0], argv[3])
     if argv[1:] == ["verify-plan"]:
         return post_verify_plan(argv[0])
     if argv[1:] == ["plan"]:
