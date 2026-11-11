@@ -381,7 +381,7 @@ def main(argv):
                     sys.stderr.write(str(failure))
                     return 2
                 elif not live:
-                    sys.stdout.write("queue-empty\n")
+                    say("queue-empty\n")
                     return 3
             else:
                 held_at = clock() if queue and not free else None

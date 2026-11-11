@@ -2189,6 +2189,30 @@ def test_main_has_the_stalled_line_in_a_block_buffered_redirected_stdout_file_wh
     assert (code, in_file_on_return) == (0, "stalled 7\n")
 
 
+def test_main_has_the_queue_empty_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
+        monkeypatch, tmp_path, dispatch):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    out = tmp_path / "dispatch.out"
+
+    def wait():
+        pass
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
+                        lambda argv, **kw: subprocess.CompletedProcess(argv, 3, stdout="", stderr=""))
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    with open(out, "w", buffering=8192) as redirected:
+        monkeypatch.setattr(sys, "stdout", redirected)
+        code = dispatch.main(["--target", "1"])
+        in_file_on_return = out.read_text()
+
+    assert (code, in_file_on_return) == (3, "queue-empty\n")
+
+
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, waits = _overlap_case(
