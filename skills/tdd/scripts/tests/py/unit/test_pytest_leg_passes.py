@@ -1,6 +1,9 @@
 """The passes veri/pytest_leg.py makes, driven in-process on a planted tree with pytest itself."""
 import importlib
+import os
 import sys
+
+import pytest
 
 
 def test_a_leg_that_collects_no_serial_marked_case_starts_one_pytest_session_and_exits_as_it_decided_2092(run_cli, tmp_path):
@@ -174,6 +177,69 @@ def test_a_subset_leg_over_named_files_runs_their_process_tree_audit_and_serial_
 
     last = [line for line in out.splitlines() if line.strip()][-1]
     assert (code, "4 passed" in last, "unselected" in out + err) == (0, True, False)
+
+
+def test_the_serial_pass_is_handed_only_the_test_files_that_hold_a_serial_case_and_the_totals_line_reads_as_before(run_cli, monkeypatch, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    (planted / "test_planted_plain_one.py").write_text("def test_one():\n    pass\ndef test_two():\n    pass\n")
+    (planted / "test_planted_plain_two.py").write_text("def test_three():\n    pass\n")
+    (planted / "test_planted_with_serial.py").write_text(
+        "import pytest\n"
+        "def test_unmarked():\n    pass\n"
+        "@pytest.mark.serial\n"
+        "def test_serial():\n    pass\n"
+    )
+    handed = []
+    real = pytest.main
+
+    def spy(args, **kwargs):
+        handed.append(list(args))
+        return real(args, **kwargs)
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+
+    serial_pass = handed[1]
+    assert [os.path.basename(arg) for arg in serial_pass if arg.endswith(".py")] == ["test_planted_with_serial.py"]
+    assert str(planted) not in serial_pass
+    assert (code, out.splitlines()[-1]) == (0, "5 named, 5 run, 5 passed, 0 failed across both passes")
+
+
+def test_a_serial_pass_over_a_target_naming_one_class_runs_that_class_s_serial_cases_and_no_other_in_the_same_file(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    planted.mkdir()
+    module = planted / "test_planted_classes.py"
+    module.write_text(
+        "import pytest\n"
+        "class TestNamed:\n"
+        "    def test_unmarked(self):\n        pass\n"
+        "    @pytest.mark.serial\n"
+        "    def test_serial(self):\n        pass\n"
+        "class TestOther:\n"
+        "    @pytest.mark.serial\n"
+        "    def test_serial(self):\n        pass\n"
+    )
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, _ = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(module) + "::TestNamed"], env=env)
+
+    assert (code, out.splitlines()[-1]) == (0, "2 named, 2 run, 2 passed, 0 failed across both passes")
+
+
+def test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0(run_cli, tmp_path):
+    planted = tmp_path / "planted"
+    (planted / "second").mkdir(parents=True)
+    (planted / "second" / "test_planted_second.py").write_text("import pytest\n@pytest.mark.serial\ndef test_serial():\n    pass\n")
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+
+    code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
+                             ["--subset", "-m", "not slow", "-q", "-p", "no:cacheprovider", str(planted)], env=env,
+                             cwd=planted / "second")
+
+    assert (code, "unselected" in out + err, out.splitlines()[-1]) == (0, False, "1 named, 1 run, 1 passed, 0 failed across both passes")
 
 
 def _collected(tmp_path, args, cases):

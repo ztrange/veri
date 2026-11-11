@@ -345,6 +345,31 @@ def run_directory():
             clear_case_directories(os.path.join(run, "base"))
 
 
+def serial_pass_plan(rest, probe):
+    """What the serial pass may be handed in place of `rest`'s targets: (its argv, the cases pass 1 collected), or None.
+
+    None, which keeps the pass collecting `rest` whole, whenever the probe's record cannot show that the files it names
+    hold every case the targets select: no record of the targets or of the files, workers that disagree, a target that
+    names a case (`::`), or a target `rest` does not carry as given."""
+    lines = probe.splitlines()
+    named = {line[len("named "):] for line in lines if line.startswith("named ")}
+    records = {line[len("args "):] for line in lines if line.startswith("args ")}
+    files = list(dict.fromkeys(line[len("file "):] for line in lines if line.startswith("file ")))
+    if len(named) != 1 or len(records) != 1 or not files:
+        return None
+    record = json.loads(records.pop())
+    targets = record["targets"]
+    if not targets or any("::" in target for target in targets):
+        return None
+    options = list(rest)
+    for target in reversed(targets):
+        if target not in options:
+            return None
+        del options[len(options) - 1 - options[::-1].index(target)]
+    argv = options + ["--rootdir=" + record["root"]] + (["-c", record["ini"]] if record["ini"] else []) + files
+    return argv, int(named.pop())
+
+
 def split_marks(argv):
     rest, expressions = [], []
     args = iter(argv)
@@ -467,11 +492,15 @@ def main(argv):
             statuses = [pytest.main(parallel + ["--basetemp=" + base, "-m", selected + "not serial"] + rest)]
             import failed_cases
             combined = None
-            if not os.path.exists(seen) or "serial" in open(seen).read().split():
-                statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + rest))
+            probe = open(seen).read() if os.path.exists(seen) else None
+            if probe is None or "serial" in probe.splitlines():
+                plan = serial_pass_plan(rest, probe) if probe else None
+                serial_args, collected_by_pass_1 = plan if plan else (rest, None)
+                statuses.append(pytest.main(["--basetemp=" + base, "-m", selected + "serial"] + serial_args))
                 if failed_cases.NAMED or failed_cases.REPORTED:
+                    named = len(failed_cases.NAMED) if collected_by_pass_1 is None else collected_by_pass_1
                     combined = "%d named, %d run, %d passed, %d failed across both passes\n" % (
-                        len(failed_cases.NAMED), len(failed_cases.REPORTED), len(set(failed_cases.PASSED)), len(set(failed_cases.NODEIDS)))
+                        named, len(failed_cases.REPORTED), len(set(failed_cases.PASSED)), len(set(failed_cases.NODEIDS)))
             if subset and selected:
                 collected = Collected()
                 with contextlib.redirect_stdout(io.StringIO()):
