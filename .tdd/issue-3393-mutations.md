@@ -109,3 +109,21 @@ ICAgIGlmIGtpbmQgPT0gInJvdXRlIiBhbmQgYW55KHRva2VuIGluIHQgZm9yIHQgaW4gRUxJR0lCTEVf
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_non_route_outcome_followed_by_a_listed_route_token_exits_2_with_nothing_on_stdout
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 59
+skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_route_token_that_is_only_part_of_a_listed_token_exits_2_with_nothing_on_stdout
+
+file 45
+skills/tdd/scripts/veri/parse_adjudication.py
+old-b64 48
+dG9rZW4gaW4gcmUuZmluZGFsbChyImAoW15gXSspYCIsIHQp
+new-b64 16
+dG9rZW4gaW4gdA==
+context-b64 132
+ICAgIGxpc3RlZF9yb3V0ZSA9IGtpbmQgPT0gInJvdXRlIiBhbmQgYW55KHRva2VuIGluIHJlLmZpbmRhbGwociJgKFteYF0rKWAiLCB0KSBmb3IgdCBpbiBlbGlnaWJsZSk=
+command 170
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_route_token_that_is_only_part_of_a_listed_token_exits_2_with_nothing_on_stdout
+
