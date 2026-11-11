@@ -65,7 +65,8 @@ You own, and only you change:
 - **parking** issues, only through `$S/park-issue.sh <issue> <cause> <unblock> [<pr>]`, which
   labels the issue `parked` and posts the comment. Read the parked set only through
   `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
-  memory. To un-park, run `$S/release-issue.sh <n>`, never a bare label removal: it puts the
+  memory. To un-park, or to return a bailed or preflight-refused issue to the queue, run
+  `$S/release-issue.sh <n>`, never a bare label removal: it puts the
   issue back on the queue, and a claimed issue with no `parked` label is one nothing takes back.
 
 File every issue through `/vfile`, and groom through `/vgroom`. A split or criteria rewrite
