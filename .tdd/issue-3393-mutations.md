@@ -12,3 +12,39 @@ skills/tdd/scripts/tests/py/unit/test_leaf_model.py
 command 144
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_leaf_model.py::test_main_with_only_veri_model_set_prints_veri_model_for_an_adjudicate_leaf
 
+file 50
+skills/tdd/scripts/veri/build_adjudicate_prompt.py
+old-b64 16
+c3RlcHNbLTFdKQ==
+new-b64 12
+c3RlcHNbMF0p
+context-b64 96
+ICAgIHN0ZXAgPSBuZXh0KChzIGZvciBzIGluIHN0ZXBzIGlmIHMuc3RhcnRzd2l0aCgiLSBbIF0iKSksIHN0ZXBzWy0xXSk=
+command 161
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_with_every_step_checked_the_prompt_carries_the_last_done_steps_ledger_line
+
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 64
+skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py
+command 161
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_with_every_step_checked_the_prompt_carries_the_last_done_steps_ledger_line
+
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 64
+skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py
+command 128
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_the_prompt_carries_the_exit_code_argument
+
+file 50
+skills/tdd/scripts/veri/build_adjudicate_prompt.py
+old-b64 32
+RXhpdCBjb2RlOiB7ZXhpdF9jb2RlfQ==
+new-b64 16
+RXhpdCBjb2RlOiB4
+context-b64 108
+ICAgICAgICBmIkNhdXNlOiB7Y2F1c2V9XG5Db21tYW5kOiB7JyAnLmpvaW4oY29tbWFuZCl9XG5FeGl0IGNvZGU6IHtleGl0X2NvZGV9XG4i
+command 128
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_the_prompt_carries_the_exit_code_argument
+
