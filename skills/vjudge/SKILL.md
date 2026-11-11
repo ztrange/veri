@@ -119,8 +119,9 @@ Environment churn (tool updates, sleep) is absorbed: veri is made resilient, the
 not asked to hold still. *Overrode:* asking to pause tool updates; waiting for an OK to re-arm.
 
 **J11 — The queue's natural order rules.** The order is the selection layer's. Blockers express
-dependency; the priority label the target repo's CLAUDE.md names is proposed only for work that
-makes future runs cheaper or faster, with the saving in one line. *Overrode:* the priority label
+dependency; the coordinator applies the priority label the target repo's CLAUDE.md names itself,
+on its own recommendation once `vjudge` is clear, only for work that makes future runs cheaper or
+faster, and reports it in one line with the saving. *Overrode:* the priority label
 used to sequence work that a blocker line already orders.
 
 **J12 — State lives where the next reader finds it.** A park is a label plus a comment saying
