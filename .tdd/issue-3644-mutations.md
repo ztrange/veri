@@ -12,3 +12,14 @@ skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
 command 170
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_missing_reroute_before_state_green_without_stays_green_routes_unpinnable_missing_3644
 
+file 38
+skills/tdd/scripts/veri/tick_ledger.py
+old-b64 92
+InN0YXlzIGdyZWVuIiBub3QgaW4gcmVhc29uX3RleHQgYW5kIG5vdCBCRUZPUkVfU1RBVEVfR1JFRU4uc2VhcmNoKA==
+new-b64 56
+RmFsc2UgYW5kIG5vdCBCRUZPUkVfU1RBVEVfR1JFRU4uc2VhcmNoKA==
+context-b64 152
+ICAgICAgICBpZiBldmVudF9uYW1lID09ICJ1bnBpbm5hYmxlLXN0ZXAiIGFuZCAic3RheXMgZ3JlZW4iIG5vdCBpbiByZWFzb25fdGV4dCBhbmQgbm90IEJFRk9SRV9TVEFURV9HUkVFTi5zZWFyY2go
+command 212
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_reject_saying_only_the_case_passes_naming_no_before_state_or_mutation_prints_revise_and_leaves_ledger_and_events_untouched_3644
+

@@ -489,3 +489,19 @@ def test_main_before_state_green_reject_without_stays_green_retires_the_step_unp
     assert (code, out.strip(), ledger.read_text()) == (
         0, "retired",
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable\n- [ ] b two ⟦criterion 2⟧\n"), err
+
+
+def test_main_reject_saying_only_the_case_passes_naming_no_before_state_or_mutation_prints_revise_and_leaves_ledger_and_events_untouched_3644(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the target case passes\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (
+        1, "revise", body, False), err
