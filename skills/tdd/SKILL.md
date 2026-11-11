@@ -1279,10 +1279,17 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
      every ledger's touched records are replayed (the selector and its exit codes are in the
      `pin-recheck.sh` entry of `SCRIPTS.md`): a step can disarm an earlier pin and still
      pass its own verification, and nothing else compares them. Exit 1 is a pin that stayed
-     green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and so is a mutation pin green under its mutation on the base too, printed `stale: <record file> <mutated file>`; neither changes the exit): treat it as a verify-refactor REJECT naming that pin,
-     write its reason to `.tdd/verify-refactor.reason`, spend `REVISE_BUDGET` (when a verifier
-     answers `REJECT`, `Read` `<base directory>/REVISE.md`), and leave the refactor-pending mark
-     in place. Exit 2, no answer (a base that cannot be resolved or replayed included, and the other cases the `pin-recheck.sh` header lists), **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
+     green under its recorded mutation, or a before-state pin this range disarmed (green at `HEAD`, red on the range's base; a before-state pin green on both is stale, printed `stale: <record file> <test path>` on stdout, and so is a mutation pin green under its mutation on the base too, printed `stale: <record file> <mutated file>`; neither changes the exit): write its reason, naming that pin, to `.tdd/verify-refactor.reason`, leave the refactor-pending mark
+     in place, and route the finding before any revise with
+     `$S/pin-reject-route.sh --recheck .tdd/verify-refactor.reason .tdd/issue-<n>.md "<STEP>"`
+     (`<STEP>` read from the ledger as above). A pin this range disarmed is never given to a refactor revise leaf, which may not edit tests. Branch on its answer:
+     `repin <file>` means it inserted a `⟦diff-checked⟧` re-pin step after the step: commit the ledger
+     (`git add .tdd/issue-<n>.md .tdd/issue-<n>-added.md && git commit`), run that step
+     (`Read` and run `<base directory>/DIFF-CHECKED.md`) and launch no refactor revise leaf;
+     `revise` keeps it a verify-refactor REJECT naming that pin, spending `REVISE_BUDGET` (when a verifier
+     answers `REJECT`, `Read` `<base directory>/REVISE.md`);
+     `repin-failed <file>` is a re-pin that left the pin still disarmed: **bail** once with cause
+     `repin-failed`, a process failure naming the pin (`Read` `<base directory>/BAIL.md`). Exit 2, no answer (a base that cannot be resolved or replayed included, and the other cases the `pin-recheck.sh` header lists), **bails** as a system failure (`Read` `<base directory>/BAIL.md`).
      Exit 0 prints any pin that needs a look: copy each into the PR body's list of what a human
      owes, under `## Owed by a human`. Exit 3, no record touches the range or every selected pin is retired (a pin whose named `TESTS=` test file the range deletes, a before record included, prints `retired: <record file> <mutated file> <path>` on stdout and is not a REJECT), goes on. Exits 0 and 3 leave
      the `.tdd/pin-recheck-ok` receipt, and `clear-refactor-pending.sh` refuses (exit 2) without it.
