@@ -1665,3 +1665,19 @@ def test_main_takes_the_first_path_shaped_backticked_token_as_the_unit_skipping_
     refused, _, _ = run_cli(add_ledger_step, [str(ledger), "after", "b two", only_non_path], cwd=tmp_path)
 
     assert (code, len(inserted), "⟦added⟧" in inserted[0] if inserted else None, refused) == (0, 1, True, 2), err
+
+
+def test_main_refuses_a_restating_skill_edit_step_naming_the_path_shaped_unit_and_never_an_earlier_non_path_token_3564(tmp_path, run_cli, add_ledger_step):
+    unit = "skills/tdd/SCRIPTS.md"
+    (tmp_path / "skills/tdd").mkdir(parents=True)
+    (tmp_path / unit).write_text("The widget is blue.\n")
+    rows = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
+    (tmp_path / "skills/tdd/REQUIREMENTS.md").write_text(f"## {unit}\n\n{rows}")
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text(f"## Problem\n\nText.\n\n## Requirements\n\n### {unit}\n\n{rows}")
+
+    code, out, err = run_cli(
+        add_ledger_step, [str(ledger), "after", "b two", f"⟦skill-edit⟧ regrade `parked` rows in `{unit}`"], cwd=tmp_path)
+
+    assert (code, out, f"{unit}: the issue's Requirements restate" in err, "parked" in err, ledger.read_bytes()) == (2, "", True, False, LEDGER), err
