@@ -111,6 +111,9 @@ def reopen(ledger, needle, change):
         if not match or needle not in line:
             continue
         body = match.group(4).split(" ⟂ ", 1)[0]
+        if "⟦skill-edit⟧" not in body:
+            print(f"ledger-growth.sh: not a skill-edit step: {body}", file=sys.stderr)
+            return 2
         head, tag, k = body.rpartition(" " + CRITERION_TAG)
         head = head.removesuffix(" " + ADDED_MARK)
         step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
