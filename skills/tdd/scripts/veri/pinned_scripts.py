@@ -4,12 +4,13 @@ import os
 import stat
 import sys
 
+SNAPSHOT_PREFIX = "veri-snapshot-"
 SNAPSHOT_MARKER = ".veri-snapshot"
 
 
 def snapshot_made_for(recorded, worktree):
     """Whether <recorded>, the text of a .snapshot-dir file, names a directory whose marker names <worktree>."""
-    if not os.path.isabs(recorded):
+    if not os.path.isabs(recorded) or not os.path.basename(recorded).startswith(SNAPSHOT_PREFIX):
         return False
     try:
         if not stat.S_ISDIR(os.lstat(recorded).st_mode):
