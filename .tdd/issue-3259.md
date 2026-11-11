@@ -14,4 +14,4 @@
 - [x] A new case in `skills/tdd/scripts/tests/py/unit/test_comment.py` pins that each heading `comment.sh` posts for `bailed` (a `process` and a `system` classification) and `stopped` is classified by `comment-class.sh` (`veri/comment_class.py`, run in-process) exactly as the same hand-composed heading is today, falls in the same `metrics.py` `COMMENT_FAMILIES` family (`⛔ Bailed`, `⏹️ Stopped`) as the hand-composed heading does, and that the posted `bailed` heading is read by `veri/dispatch.py`'s `exit_line` as `bail <issue>`, as the hand-composed one is; behaviour that already holds, so a pin step, production untouched ⟦criterion 3⟧
 - [x] `skills/tdd/JOURNAL.md`'s `comment` event row names the two new kinds comment.sh posts, `bailed` and `stopped`, beside the existing ones ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] `skills/tdd/BAIL.md` passes BL31 and BL37 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧
-- [ ] `skills/tdd/STOPPING.md` passes SP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧
+- [x] `skills/tdd/STOPPING.md` passes SP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧
