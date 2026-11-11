@@ -108,7 +108,7 @@ def since_time(root):
     try:
         with open(os.path.join(root, ".tdd", "status-last")) as last:
             return calendar.timegm(time.strptime(json.load(last)["time"], "%Y-%m-%dT%H:%M:%SZ"))
-    except OSError:
+    except (OSError, ValueError, KeyError, TypeError):
         return None
 
 
