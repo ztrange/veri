@@ -148,17 +148,17 @@ def _take(lock, record, args):
 def _release(lock, record, args):
     if _needs_pid(args, True):
         return 2
+    forced = "--force" in args
     pid = _caller_pid([a for a in args if a != "--force"])
     owner = _owner(args)
     if not os.path.isdir(lock):
         return 3
-    if "--force" not in args:
+    if not forced:
         fields = _read(record).split()
         if fields[0] != pid:
             return 1
         if fields[3:4] != ([owner] if owner else []):
             return 1
-    forced = "--force" in args
     if os.path.isfile(record):
         owner = (_read(record).split()[3:4] or [""])[0]
     shutil.rmtree(lock)
