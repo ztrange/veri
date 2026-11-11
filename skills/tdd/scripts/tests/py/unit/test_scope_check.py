@@ -170,3 +170,25 @@ def test_3509_a_skill_edit_unit_whose_heading_sits_after_the_requirements_sectio
     assert code == 2
     assert "skills/tdd/PIN.md" in err
     assert not (tdd / "events.jsonl").exists()
+
+
+def test_3636_a_skill_edit_step_whose_first_backticked_token_is_not_path_shaped_is_refused_naming_the_path_not_the_token(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3636.md"
+    ledger.write_text(
+        "- [ ] regrade with `--change` the file `skills/tdd/PIN.md` ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3636-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/OTHER.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 2
+    assert "skills/tdd/PIN.md" in err
+    assert "--change" not in err
