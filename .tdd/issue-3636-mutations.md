@@ -1,0 +1,11 @@
+file 33
+skills/tdd/scripts/veri/ledger.py
+old-b64 96
+ICAgICAgICBpZiAiLyIgaW4gc3BhbiBvciBzcGFuLmVuZHN3aXRoKCIubWQiKToKICAgICAgICAgICAgcmV0dXJuIHNwYW4=
+new-b64 28
+ICAgICAgICByZXR1cm4gc3Bhbg==
+context-b64 64
+ICAgICAgICBpZiAiLyIgaW4gc3BhbiBvciBzcGFuLmVuZHN3aXRoKCIubWQiKTo=
+command 186
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_scope_check.py::test_3636_a_skill_edit_step_whose_first_backticked_token_is_not_path_shaped_is_refused_naming_the_path_not_the_token
+
