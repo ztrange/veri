@@ -1,0 +1,7 @@
+# Plan for #3589 — skill-edit-step appends a <prefix><next> requirement row again when the unit already holds its text, so a resume duplicates it
+
+- [ ] `apply()` given a `<prefix><next>` row whose full row text (Requirement and Why cells) the unit's claimed REQUIREMENTS.md section already holds under any ID appends no row, leaving REQUIREMENTS.md byte-identical (a small unit case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 1⟧
+- [ ] `apply()` run twice on the same issue and unit, the issue stating one new `<prefix><next>` row, leaves the unit's section byte-identical after the second run to after the first, with the row appended once (a small unit case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 2⟧
+- [ ] `apply()` given a `<prefix><next>` row whose Requirement text differs from every row the unit's section holds still appends it under the next free ID for its prefix (a small unit case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 3⟧
+- [ ] `apply()` given a `<prefix><next>` row whose Requirement text equals a held row's but whose Why cell differs still appends it under the next free ID, so the dedupe compares the full row text (a small unit case in skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py) ⟦criterion 4⟧
+- [ ] Go-red: removing the dedupe check makes the first two criteria's cases fail, watched by hand and restored ⟦human-owed⟧ ⟦criterion 5⟧
