@@ -9,7 +9,7 @@ import timed_n_format
 
 USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
+         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered\n")
 
 
 def state_path(tree, role, lane=None):
@@ -94,6 +94,10 @@ def do_add(path, argv):
 
 
 def do_drop(path, argv):
+    if argv[2:] == ["coordinator"]:
+        lines = (read(path) or "").splitlines(True)
+        replace(path, "".join(l for l in lines if not l.startswith("coordinator=")))
+        return 0
     if argv[2] not in LISTS:
         return usage()
     lines = (read(path) or "").splitlines(True)
