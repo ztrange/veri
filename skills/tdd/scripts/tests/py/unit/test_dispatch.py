@@ -2830,3 +2830,15 @@ def test_main_reads_issue_states_at_most_once_per_poll_with_several_stall_window
         code = "looping"
 
     assert (code, capsys.readouterr().out, max(reads_per_poll.values())) == ("looping", "", 1)
+
+
+def test_exit_line_returns_bail_when_the_skill_drift_note_follows_the_bailed_comment_issue_3593(monkeypatch, dispatch):
+    import json
+
+    comments = [
+        {"body": "### ⛔ Bailed — green (process failure)\n\nbody"},
+        {"body": "Skill drift for the bail above:\n\n#### Skill drift since the pinned commit\n"},
+    ]
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
+
+    assert dispatch.exit_line("3589") == "bail 3589"
