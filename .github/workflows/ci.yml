@@ -90,5 +90,10 @@ jobs:
       - name: make install-dev
         run: make install-dev
 
+      # Each pass prints its slowest cases, so a slow run says which cases made it slow:
+      # the job's time is decided by a few long cases at the end of pass 1, and the log
+      # otherwise names none of them. Printing only; nothing reads it.
       - name: make test
+        env:
+          PYTEST_ADDOPTS: --durations=80 --durations-min=2
         run: make test
