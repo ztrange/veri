@@ -235,6 +235,44 @@ def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place
     assert (code, (snapshot / "status.sh").exists()) == (2, True)
 
 
+def run_worktree_of(tmp_path):
+    return str(tmp_path / "repo" / ".tdd" / "wt" / "7")
+
+
+def made_snapshot(directory, serving):
+    """A snapshot directory as run-conductor makes one: its marker naming the worktree it serves."""
+    directory.mkdir()
+    (directory / "status.sh").write_text("#!/bin/sh\n")
+    (directory / ".veri-snapshot").write_text(serving + "\n")
+    return directory
+
+
+def remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, recorded, remove_code=0):
+    """`--remove 7` of a clean worktree whose .snapshot-dir holds <recorded>; answers (exit code, stderr)."""
+    main_tree = str(tmp_path / "repo")
+    path = run_worktree_of(tmp_path)
+    record = pathlib.Path(path, ".tdd", "pinned-scripts", ".snapshot-dir")
+    record.parent.mkdir(parents=True)
+    record.write_text(recorded)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    status = ("git", "-C", path, "status", "--porcelain")
+    remove = ("git", "worktree", "remove", path)
+    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""), remove: (remove_code, "", "")})
+    capsys.readouterr()
+    code = issue_worktree.main(["--remove", "7"])
+    return code, capsys.readouterr().err
+
+
+def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_worktree_is_removed(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+
+    assert (code, err, snapshot.exists()) == (0, "", False)
+
+
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
 def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
         monkeypatch, capfd, tmp_path, issue_worktree, run_cli):
