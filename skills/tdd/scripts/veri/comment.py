@@ -226,8 +226,9 @@ def post_stopped(issue, note_file):
         return 2
     rendered = io.StringIO()
     with contextlib.redirect_stdout(rendered):
-        metrics_module.main([issue])
-    body = f"### ⏹️ Stopped — {stop['mode']}\n\n{rendered.getvalue()}\nat={stop['at']}\n"
+        code = metrics_module.main([issue])
+    metrics = rendered.getvalue() if code == 0 else f"metrics could not be rendered: metrics.sh exited {code}\n"
+    body = f"### ⏹️ Stopped — {stop['mode']}\n\n{metrics}\nat={stop['at']}\n"
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
     return post_and_record(issue, "stopped", with_note(body, note_file))
