@@ -1,0 +1,1 @@
+- [ ] Pin: dispatch.exit_line() keeps a newest `### ✅ Done — <pr-url>` over an older `### ⛔ Bailed` behind it; the case fails on a mutant of step 1's backward scan without that guard; every guard the step adds is pinned by a case only it decides ⟦criterion 2⟧
