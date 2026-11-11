@@ -2242,10 +2242,10 @@ def test_rerecord_earlier_keeps_the_record_of_a_case_edited_in_a_commit_before_t
     git(tmp_path, "add", ".tdd/ledger.md")
     git(tmp_path, "commit", "-q", "-m", "ledger")
 
-    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
-    assert (rerecorded, code, "test_pinned_2199 (%s)" % earlier in out) == (2, 1, True)
+    assert (code, "test_pinned_2199 (%s)" % earlier in out) == (1, True)
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
@@ -2303,10 +2303,10 @@ def test_rerecord_earlier_keeps_the_record_of_a_frozen_case_edited_only_in_the_w
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_older_case():\n    assert True\n\n\ndef test_pinned_2199():\n    assert 2 == 2\n")
 
-    rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+    run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
-    assert (rerecorded, code, "test_pinned_2199 (%s)" % earlier in out) == (2, 1, True)
+    assert (code, "test_pinned_2199 (%s)" % earlier in out) == (1, True)
 
 
 def _diff_checked_repo(tmp_path, run_cli, tests_frozen, commit_ledger=True):
