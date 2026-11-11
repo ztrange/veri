@@ -1532,3 +1532,56 @@ def test_bailed_pr_exits_2_naming_the_branch_and_posts_nothing_when_no_pr_has_it
     assert code == 2
     assert "tdd/7-the-branch" in err
     assert posted == []
+
+
+def test_stopped_posts_the_heading_metrics_at_line_and_note_from_the_last_stop_event_and_appends_a_comment_event(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    url = "https://github.com/o/r/issues/7#issuecomment-77"
+    posted = _done_setup(monkeypatch, tmp_path, [
+        {"event": "stop", "mode": "graceful", "at": "step-1"},
+        {"event": "stop", "mode": "immediate", "at": "verify-red"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or url)
+    block = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n"
+
+    def render(argv):
+        print(block, end="")
+        return 0
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", render)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped work zulu\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0
+    assert len(posted) == 1
+    number, body = posted[0]
+    assert number == "7"
+    assert body.splitlines()[0] == "### ⏹️ Stopped — immediate"
+    assert block in body
+    assert "at=verify-red" in body.splitlines()
+    assert "dropped work zulu" in body
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e.get("kind"), e.get("url")) for e in events[2:]] == [("comment", "stopped", url)]
+
+
+def test_stopped_exits_2_naming_the_missing_stop_event_and_posts_nothing_when_the_journal_has_none(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    journal = json.dumps({"event": "start"}) + "\n"
+    (tmp_path / ".tdd" / "events.jsonl").write_text(journal)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped work\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 2
+    assert "stop" in err
+    assert posted == []
+    assert (tmp_path / ".tdd" / "events.jsonl").read_text() == journal

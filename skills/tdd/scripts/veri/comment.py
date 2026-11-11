@@ -214,7 +214,24 @@ def post_bailed(issue, note_file, pr=False):
     return post_and_record(issue, "bailed", with_note(heading, note_file), target=target)
 
 
+def post_stopped(issue, note_file):
+    stop = None
+    for e in event_log.read_events(".tdd/events.jsonl"):
+        if e.get("event") == "stop":
+            stop = e
+    if stop is None:
+        print("comment.sh: no stop event in .tdd/events.jsonl", file=sys.stderr)
+        return 2
+    rendered = io.StringIO()
+    with contextlib.redirect_stdout(rendered):
+        metrics_module.main([issue])
+    body = f"### ⏹️ Stopped — {stop['mode']}\n\n{rendered.getvalue()}\nat={stop['at']}\n"
+    return post_and_record(issue, "stopped", with_note(body, note_file))
+
+
 def main(argv):
+    if len(argv) == 4 and argv[1] == "stopped" and argv[2] == "--note-file":
+        return post_stopped(argv[0], argv[3])
     if len(argv) == 5 and argv[1:4] == ["bailed", "--pr", "--note-file"]:
         return post_bailed(argv[0], argv[4], pr=True)
     if len(argv) == 4 and argv[1] == "bailed" and argv[2] == "--note-file":
