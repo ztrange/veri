@@ -366,3 +366,33 @@ def test_main_missing_reroute_before_state_green_without_stays_green_is_retired_
     assert (code, out.strip(), ledger.read_text()) == (
         0, "retired",
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
+
+
+@pytest.mark.parametrize("reason_text", [
+    pytest.param("the target is red on the before-state. The mutant stays green", id="alt1-period"),
+    pytest.param("the target is red on the before-state\nthe mutant stays green", id="alt1-newline"),
+    pytest.param("the target is red on the before-state, but the mutant stays green", id="alt1-comma"),
+    pytest.param("the target is red on the before-state; the mutant stays green", id="alt1-semicolon"),
+    pytest.param("the before-state is evergreen, the mutant stays green", id="alt1-word-boundary-green"),
+    pytest.param("the before-state is a bypass, the mutant stays green", id="alt1-word-boundary-pass"),
+    pytest.param("the mutant stays green. The target is red on the before-state", id="alt2-period"),
+    pytest.param("the mutant stays green\nthe target is red on the before-state", id="alt2-newline"),
+    pytest.param("the mutant stays green, but the target is red on the before-state", id="alt2-comma"),
+    pytest.param("the mutant stays green; the target is red on the before-state", id="alt2-semicolon"),
+    pytest.param("the mutant stays green; we bypass the before-state", id="alt2-word-boundary-pass"),
+    pytest.param("the mutant stays green; the evergreen case on the before-state", id="alt2-word-boundary-green"),
+])
+def test_main_missing_reroute_before_state_and_green_in_different_clauses_prints_revise_not_unpinnable_missing_3458(
+        tmp_path, run_cli, pin_reject_route, reason_text):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: " + reason_text + "\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_bytes(), (ledger.parent / "events.jsonl").exists()) == (
+        1, "revise", body.encode(), False), err
