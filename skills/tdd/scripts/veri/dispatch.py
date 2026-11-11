@@ -114,6 +114,10 @@ def issue_states(issues):
     return {issue: states[issue] for issue in issues if issue in states}
 
 
+class BodyUnreadable(watch_runs.QueueUnreadable):
+    pass
+
+
 def answered(what, read, *args):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>, so a rate limit waits for the reset."""
     retries = 0
@@ -142,7 +146,14 @@ def issue_paths(issue):
     """The backticked words of <issue>'s body: the repo paths it names. Read once per dispatch process."""
     bodies = _reads.setdefault("bodies", {})
     if issue not in bodies:
-        bodies[issue] = answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body")
+        limited = _reads.setdefault("limited", {})
+        try:
+            bodies[issue] = answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body")
+        except watch_runs.QueueUnreadable as failure:
+            limited[issue] = limited.get(issue, 0) + 1
+            if limited[issue] > 3:
+                raise BodyUnreadable(str(failure))
+            raise
     return re.findall(r"`([^`\s]+)`", bodies[issue])
 
 
@@ -375,7 +386,7 @@ def main(argv):
                 sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
-                if "rate limit" in str(failure):
+                if "rate limit" in str(failure) and not isinstance(failure, BodyUnreadable):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
                 elif str(failure):
                     sys.stderr.write(str(failure))
