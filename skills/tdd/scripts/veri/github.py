@@ -106,9 +106,9 @@ def _issue(number):
 
 class GraphQLAdapter:
     def _run(self, *args):
-        run = _gh(*args, stderr=subprocess.DEVNULL)
+        run = _gh(*args, stderr=subprocess.PIPE)
         if run.returncode != 0:
-            raise NoAnswer("")
+            raise NoAnswer("", run.stderr)
         return run.stdout
 
     def list(self, *args):
