@@ -1,0 +1,7 @@
+before 40
+55ca81c059459d38252cb801062a16e1ef0b2778
+keep 57
+skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_before_state_green_reject_without_stays_green_retires_the_step_unpinnable_3644
+
