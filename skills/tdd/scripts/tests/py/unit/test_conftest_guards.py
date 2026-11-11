@@ -231,6 +231,45 @@ def test_a_reasonless_starts_pytest_or_starts_git_exemption_and_a_whole_file_sta
     run().assert_outcomes(passed=1)
 
 
+def test_the_system_location_guard_refuses_the_same_path_shapes_whatever_their_spelling_and_lets_the_lookalikes_through(pytester):
+    refused = {
+        "str_under_etc": "'/etc/veri-absent'",
+        "one_component_below_root": "'/veri-absent'",
+        "bytes_under_etc": "b'/etc/veri-absent'",
+        "dot_dot_into_etc": "'/tmp/../etc/veri-absent'",
+        "trailing_slash": "'/etc/'",
+        "double_leading_slash_etc": "'//etc/veri-absent'",
+        "double_leading_slash_tmp_itself": "'//tmp'",
+        "pathlike_under_root": "pathlib.Path('/etc/veri-absent')",
+        "dot_dot_out_of_tmp": "'/tmp/../root/veri-absent'",
+    }
+    allowed = {
+        "tmp_child": "'/tmp/veri-absent'",
+        "dot_dot_into_tmp": "'/etc/../tmp/veri-absent'",
+        "tmp_lookalike_child": "'/tmpx/veri-absent'",
+        "etc_lookalike_child": "'/etcetera/veri-absent'",
+        "var_child": "'/var/veri-absent/x'",
+        "root_itself": "'/'",
+        "relative": "'veri-absent'",
+        "double_leading_slash_tmp_child": "'//tmp/veri-absent'",
+        "tempdir_child": "os.path.join(tempfile.gettempdir(), 'veri-absent')",
+        "file_descriptor": "os.dup(0)",
+    }
+    source = "import os\nimport pathlib\nimport tempfile\n\n"
+    for name, shape in {**refused, **allowed}.items():
+        source += "def test_%s():\n    try:\n        open(%s).close()\n    except OSError:\n        pass\n\n" % (name, shape)
+    pytester.makepyfile(test_planted=source)
+
+    result = pytester.runpytest_inprocess("-p", "no:cacheprovider", "-rA", plugins=[conftest])
+
+    result.assert_outcomes(failed=len(refused), passed=len(allowed))
+    output = result.stdout.str()
+    for name in refused:
+        assert "FAILED test_planted.py::test_%s " % name in output
+    for name in allowed:
+        assert "PASSED test_planted.py::test_%s" % name in output
+
+
 def test_the_guards_survive_a_faked_subprocess_run_and_ignore_a_suite_path_passed_to_echo_and_name_the_system_locations_root_root_and_proc_and_a_pathlib_open_read(pytester):
     repository = pathlib.Path(conftest.__file__).resolve().parents[5]
     module_directory = pathlib.Path(conftest.__file__).resolve().parents[3] / "veri"
