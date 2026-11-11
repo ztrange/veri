@@ -3141,3 +3141,39 @@ def test_main_exits_2_naming_the_http_status_when_every_gh_call_fails_with_an_ht
         code = None
 
     assert (code, "503" in capsys.readouterr().err) == (2, True)
+
+
+@pytest.mark.parametrize("failures, expected_code", [(12, None), (13, 2)])
+def test_main_retries_a_gh_read_failing_with_an_http_503_twelve_times_and_gives_up_at_thirteen_issue_3651(
+        monkeypatch, tmp_path, capsys, dispatch, failures, expected_code):
+    import subprocess
+    (tmp_path / ".tdd").mkdir()
+    gh_calls = []
+
+    def gh(argv, *args, **kw):
+        assert argv[0] == "gh"
+        gh_calls.append(list(argv))
+        if len(gh_calls) <= failures:
+            return subprocess.CompletedProcess(
+                argv, 1, stdout="", stderr="HTTP 503: No server is currently available to service your request\n")
+        return subprocess.CompletedProcess(argv, 0, stdout="[]", stderr="")
+
+    def wait():
+        raise _StopWaiting
+
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
+    monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(dispatch.github.subprocess, "run", gh)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, "503" in capsys.readouterr().err) == (expected_code, expected_code == 2)
