@@ -10,6 +10,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.di
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
+import concurrent.futures
 import contextlib
 import fcntl
 import hashlib
@@ -309,6 +310,31 @@ def remove_scratch_mirror(prefix, folder):
             sys.stderr.write("cannot remove the bytecode cache tree %s: %s\n" % (resolved, error))
 
 
+CLEAR_THREADS = 8
+
+
+def clear_case_directories(base):
+    """Removes what is under `base` from several threads, since a run leaves thousands of case directories and a serial
+    rmtree after the last case was 3-5 s of the run. Never follows a symlink; what it cannot remove it leaves for the
+    caller's own removal of the run directory, which stays the one that reports a failure."""
+    try:
+        children = list(os.scandir(base))
+    except OSError:
+        return
+
+    def remove(entry):
+        try:
+            if entry.is_dir(follow_symlinks=False):
+                shutil.rmtree(entry.path, ignore_errors=True)
+            else:
+                os.unlink(entry.path)
+        except OSError:
+            pass
+
+    with concurrent.futures.ThreadPoolExecutor(CLEAR_THREADS) as pool:
+        list(pool.map(remove, children))
+
+
 @contextlib.contextmanager
 def run_directory():
     with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
@@ -316,6 +342,7 @@ def run_directory():
             yield run
         finally:
             remove_scratch_mirror(sys.pycache_prefix, run)
+            clear_case_directories(os.path.join(run, "base"))
 
 
 def split_marks(argv):

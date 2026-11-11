@@ -1138,6 +1138,42 @@ def test_the_sweep_of_a_dead_run_removes_its_bytecode_cache_tree_too_and_keeps_a
     assert present[0] == {"veri-pytest-deadleg": False, "veri-pytest-liveleg": True, "veri-pytest-orphan": True}
 
 
+def test_after_a_run_its_scratch_directory_is_gone_with_every_case_directory_and_file_in_it(pytest_leg, run_cli, monkeypatch, tmp_path):
+    runs = []
+
+    def during(prefix, run):
+        for number in range(40):
+            nested = os.path.join(run, "base", "test_case%d_x" % number, "repo", "objects")
+            os.makedirs(nested, exist_ok=True)
+            with open(os.path.join(nested, "file"), "w") as f:
+                f.write("x")
+        with open(os.path.join(run, "base", "loose-file"), "w") as f:
+            f.write("x")
+        runs.append(run)
+
+    _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during)
+
+    assert runs and not any(os.path.exists(run) for run in runs)
+
+
+def test_after_a_run_a_symlink_a_case_left_in_its_scratch_directory_is_removed_and_what_it_points_at_is_not(pytest_leg, run_cli, monkeypatch, tmp_path):
+    outside = tmp_path / "outside"
+    (outside / "inner").mkdir(parents=True)
+    (outside / "inner" / "keep").write_text("x")
+    runs = []
+
+    def during(prefix, run):
+        if not runs:
+            os.symlink(outside, os.path.join(run, "base", "link-to-a-directory"))
+            os.symlink(outside / "inner" / "keep", os.path.join(run, "base", "link-to-a-file"))
+        runs.append(run)
+
+    _leg_over_scratch_cache(pytest_leg, run_cli, monkeypatch, tmp_path, during)
+
+    assert not os.path.exists(runs[0])
+    assert (outside / "inner" / "keep").read_text() == "x"
+
+
 @pytest.mark.process("the launcher run as a child over a planted tests tree whose case reports its own tmp_path")
 def test_2051_a_case_s_tmp_path_under_the_launcher_is_the_private_tmp_path_directory_of_mode_0700_under_the_run_s_basetemp_not_a_numbered_one(tmp_path):
     import os
