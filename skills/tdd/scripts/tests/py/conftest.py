@@ -3,6 +3,7 @@ import builtins
 import contextlib
 import dataclasses
 import errno
+import functools
 import importlib
 import io
 import json
@@ -58,15 +59,49 @@ def live_conductor(monkeypatch, run_tdd, issue):
     fake_pid_file_ps(monkeypatch)
 
 
+class _Parts:
+    """What an audit may ask of one top-level node. Each field is walked on first use and kept, so an audit that
+    reads only names and segments never pays for the node walks, and the names an assignment binds share one."""
+
+    def __init__(self, node):
+        self.node = node
+
+    @functools.cached_property
+    def nodes(self):
+        return list(ast.walk(self.node))
+
+    @functools.cached_property
+    def literals(self):
+        return tuple(p.value for p in self.nodes if isinstance(p, ast.Constant) and isinstance(p.value, str))
+
+    @functools.cached_property
+    def names(self):
+        return tuple(p.id for p in self.nodes if isinstance(p, ast.Name) and isinstance(p.ctx, ast.Load))
+
+    @functools.cached_property
+    def constants(self):
+        return tuple(_constants(self.node))
+
+    @functools.cached_property
+    def strings(self):
+        return _strings(self.nodes, str)
+
+    @functools.cached_property
+    def byte_strings(self):
+        return tuple(b.decode("utf-8", "replace") for b in _strings(self.nodes, bytes))
+
+
 @dataclasses.dataclass(frozen=True)
 class Definition:
     name: str
     segment: str
-    literals: tuple
-    names: tuple
-    constants: tuple
-    strings: tuple
-    byte_strings: tuple
+    _parts: _Parts = dataclasses.field(repr=False, compare=False)
+
+    literals = property(lambda self: self._parts.literals)
+    names = property(lambda self: self._parts.names)
+    constants = property(lambda self: self._parts.constants)
+    strings = property(lambda self: self._parts.strings)
+    byte_strings = property(lambda self: self._parts.byte_strings)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -123,16 +158,9 @@ def _definition(text, node, lines=None):
     else:
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
         names = [t.id for target in targets for t in ast.walk(target) if isinstance(t, ast.Name)]
-    parts = list(ast.walk(node))
-    return [Definition(
-        name=name,
-        segment=_segment(lines if lines is not None else _lines(text), node),
-        literals=tuple(p.value for p in parts if isinstance(p, ast.Constant) and isinstance(p.value, str)),
-        names=tuple(p.id for p in parts if isinstance(p, ast.Name) and isinstance(p.ctx, ast.Load)),
-        constants=tuple(_constants(node)),
-        strings=_strings(parts, str),
-        byte_strings=tuple(b.decode("utf-8", "replace") for b in _strings(parts, bytes)),
-    ) for name in names]
+    segment = _segment(lines if lines is not None else _lines(text), node)
+    parts = _Parts(node)
+    return [Definition(name=name, segment=segment, _parts=parts) for name in names]
 
 
 class TestFile:
