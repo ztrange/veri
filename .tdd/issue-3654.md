@@ -1,0 +1,5 @@
+# Plan for #3654 — wrong-test-route.sh exits 2 on a parametrized case id: defined_name matches def <id>( so a [params] suffix never resolves
+
+- [ ] A green report whose SUPERSEDED: line names a parametrized pytest id <name>[<params>] of a case defined by def <name>( under @pytest.mark.parametrize routes wrong-test-route exactly as the bare <name> does (prints red over that case, exit 0), not exit 2 "No defined test case resolves" (small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 1⟧
+- [ ] A green report whose WRONG_TEST/CONTRADICTS line names a parametrized pytest id <name>[<params>] of a defined case resolves it as the bare <name> does, routing to the same route and output (small in-process case in tests/py/unit/test_wrong_test_route.py; a pin if that path already resolves it) ⟦criterion 2⟧
+- [ ] A SUPERSEDED: line naming a parametrized id <name>[<params>] whose bare <name> has no def anywhere still exits 2 with "No defined test case resolves": stripping the [...] suffix never makes an undefined case resolve (small in-process case in tests/py/unit/test_wrong_test_route.py) ⟦criterion 3⟧
