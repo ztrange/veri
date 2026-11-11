@@ -1,0 +1,2 @@
+### A case in `skills/tdd/scripts/tests/py/unit/test_pid_file.py`: `pid_file.starting_runs(root)` returns `[]` when the only `ps` lines mentioning `run_conductor.py 103` are non-conductor processes (a `claude -p review run_conductor.py 103 now` prompt and a `grep run_conductor.py 103`), each with its cwd inside the root and `.tdd/wt/103/.tdd` present; small case, `ps` and `lsof` faked in-process ⟦criterion 1⟧
+- test-only | extract the `fake_run` ps/lsof fake that the #3448 case repeats from the neighbouring starting_runs cases into a shared helper
