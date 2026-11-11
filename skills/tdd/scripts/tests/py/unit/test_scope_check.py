@@ -212,3 +212,46 @@ def test_3636_a_skill_edit_step_whose_first_backticked_token_is_not_path_shaped_
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert (code, err) == (0, "")
+
+
+def test_3636_a_skill_edit_step_with_no_path_shaped_backticked_token_is_refused_with_exit_2_naming_the_step(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3636.md"
+    ledger.write_text(
+        "- [ ] tighten `unit_of` wording ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3636-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 2
+    assert "tighten `unit_of` wording" in err
+
+
+def test_3636_a_skill_edit_step_with_no_path_shaped_token_is_refused_on_its_own_not_as_a_missing_none_heading(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3636.md"
+    ledger.write_text(
+        "- [ ] tighten `unit_of` wording ⟦skill-edit⟧ ⟦criterion 1⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3636-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert code == 2
+    assert "tighten `unit_of` wording" in err
+    assert "unit: None" not in err

@@ -47,8 +47,12 @@ def main(argv):
                 headings = {re.sub(r" \(new\)$", "", heading)
                             for heading, line in requirements.requirements_lines(spec_text.splitlines())
                             if line.startswith("### ")}
-                for unit in (ledger.unit_of(step) for step in skill_edits):
-                    if unit is not None and unit not in headings:
+                for step in skill_edits:
+                    unit = ledger.unit_of(step)
+                    if unit is None:
+                        print(f"scope-check.sh: no path-shaped unit for skill-edit step: {step}", file=sys.stderr)
+                        return 2
+                    if unit not in headings:
                         print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
                         return 2
     named = NAMED.findall(text)
