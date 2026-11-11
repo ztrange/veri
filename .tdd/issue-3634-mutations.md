@@ -1,0 +1,11 @@
+file 49
+skills/tdd/scripts/veri/requirements_preflight.py
+old-b64 64
+aWYgbGluZS5zdGFydHN3aXRoKCItIFsiKSBhbmQgbWFya2VkIGVsc2UgTm9uZQ==
+new-b64 24
+aWYgRmFsc2UgZWxzZSBOb25l
+context-b64 124
+ICAgICAgICAgICAgbSA9IHJlLnNlYXJjaChyImAoW15gXSspYCIsIGxpbmUpIGlmIGxpbmUuc3RhcnRzd2l0aCgiLSBbIikgYW5kIG1hcmtlZCBlbHNlIE5vbmU=
+command 210
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py::test_3634_a_ledger_step_carrying_the_skill_edit_marker_in_its_trailing_tag_run_whose_unit_has_no_heading_exits_2_naming_that_unit
+
