@@ -112,8 +112,7 @@ def since_time(root):
         return None
 
 
-def landed(root):
-    since = since_time(root)
+def landed(root, since):
     if not os.path.exists(os.path.join(root, ".git", "HEAD")):
         return []
     fmt = "%(creatordate:unix)\t%(refname:short)\t%(creatordate:format-local:%Y-%m-%d %H:%M)\t%(contents:subject)"
@@ -169,10 +168,11 @@ def refresh():
     os.makedirs(tdd, exist_ok=True)
     fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
     try:
+        root = os.path.dirname(tdd)
+        since = since_time(root)
         with os.fdopen(fd, "w") as out:
             json.dump({"cache_format": 2, "fetched_at": fetched_at, "issues": issues,
-                       "landed": landed(os.path.dirname(tdd)),
-                       "since": since_time(os.path.dirname(tdd)) or 0}, out)
+                       "landed": landed(root, since), "since": since or 0}, out)
         os.replace(temp, path)
     except BaseException:
         os.unlink(temp)
