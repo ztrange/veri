@@ -438,3 +438,19 @@ def test_main_recheck_before_state_pin_disarmed_by_the_range_inserts_a_diff_chec
     assert (code, out.strip(), "⟦diff-checked⟧" in inserted, "⟦added⟧" in inserted,
             "tests/py/test_review.py" in inserted, "tests/py/test_review.py" in added) == (
         0, "repin tests/py/test_review.py", True, True, True, True), (err, lines)
+
+
+def test_main_recheck_reason_with_no_disarm_line_prints_revise_and_leaves_ledger_and_added_record_untouched_3469(
+        tmp_path, run_cli, pin_reject_route):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text("needs a look: tests/py/test_review.py\n")
+
+    code, out, err = run_cli(pin_reject_route, ["--recheck", str(reason), str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), (ledger.parent / "issue-42-added.md").exists()) == (
+        1, "revise", body, False), err

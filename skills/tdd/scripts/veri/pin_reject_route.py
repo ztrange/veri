@@ -20,6 +20,9 @@ def recheck(argv):
     with open(argv[0], encoding="utf-8") as handle:
         reason = handle.read()
     found = re.search(r"pin stayed green (?:under its mutation|on the before-state): (\S+)", reason)
+    if found is None:
+        print("revise")
+        return 1
     path = found.group(1)
     text = ("⟦diff-checked⟧ edit the case of the pin on " + path
             + " so its recorded mutation turns it red")
