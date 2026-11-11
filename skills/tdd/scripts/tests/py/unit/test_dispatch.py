@@ -2135,6 +2135,31 @@ def test_main_has_the_merge_failed_line_in_a_block_buffered_redirected_stdout_fi
     assert (code, in_file_on_return) == (0, f"merge-failed {url}\n")
 
 
+def test_main_has_the_exit_line_in_a_block_buffered_redirected_stdout_file_when_main_returns_issue_3613(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+    lives = [["7"], []]
+    out = tmp_path / "dispatch.out"
+
+    def wait():
+        pass
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment",
+                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    with open(out, "w", buffering=8192) as redirected:
+        monkeypatch.setattr(sys, "stdout", redirected)
+        code = dispatch.main(["--target", "1"])
+        in_file_on_return = out.read_text()
+
+    assert (code, in_file_on_return) == (0, "done 7 https://github.com/o/r/pull/9\n")
+
+
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     launches, waits = _overlap_case(
