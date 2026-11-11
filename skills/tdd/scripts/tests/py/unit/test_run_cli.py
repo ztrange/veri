@@ -172,3 +172,20 @@ def test_run_cli_leaves_no_environment_or_cwd_change_made_through_it_or_by_main_
     output = result.stdout.str() + result.stderr.str()
 
     assert result.parseoutcomes() == {"passed": 3}, output
+
+
+def test_run_cli_restores_a_variable_main_deleted_or_overwrote_and_the_variables_the_case_had_set(run_cli, monkeypatch):
+    monkeypatch.setenv("EXP_KEPT", "kept")
+    monkeypatch.setenv("EXP_DELETED", "deleted-original")
+    monkeypatch.setenv("EXP_OVERWRITTEN", "overwritten-original")
+    before = dict(os.environ)
+
+    code, _, _ = run_cli(module_of(
+        "import os\n"
+        "def main(argv):\n"
+        "    del os.environ['EXP_DELETED']\n"
+        "    os.environ['EXP_OVERWRITTEN'] = 'overwritten-by-main'\n"
+        "    return 0\n"), [], env={"EXP_ARGUMENT": "given"})
+
+    assert code == 0
+    assert dict(os.environ) == {**before, "EXP_ARGUMENT": "given"}
