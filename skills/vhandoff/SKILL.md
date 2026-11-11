@@ -38,7 +38,8 @@ It carries, and only this:
 - PRs awaiting merge;
 - N, and any timed change to it;
 - overrides and one-off permissions, each with its expiry;
-- pending decisions.
+- pending decisions;
+- for dev, the attached coordinator's session id, if one is attached.
 
 It carries no rule the role's skill already states: the resuming session reads that skill.
 State only what is true now.

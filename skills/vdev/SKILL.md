@@ -45,12 +45,20 @@ Recovery re-asks each pending decision once, re-sends or checks each pending mes
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. With no state
 file for this role and lane, start fresh.
 
+**Attached.** A coordinator is attached when this session has received a message from one, or
+when the role state records one (recovery lists `coordinator <session-id>` under State). From
+the first line after recovery a recorded coordinator counts as attached: every event P4 lets you
+speak about goes to it, by that session id, and the human gets `.`.
+
 ## Role state
 
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
 at reset time: N, each timed N change (with its expiry) and order override the coordinator
 sends, each pending human decision (in full), and each message sent to the coordinator and not
-yet confirmed. Drop the item when it ends.
+yet confirmed. Drop the item when it ends. When a coordinator's first message arrives, or a
+message comes from a different coordinator session id, record it with
+`set coordinator <session-id>`; when a send to it fails because that session is gone, remove it
+with `drop coordinator`.
 
 ## Live conductors and the slot decision
 
@@ -238,7 +246,7 @@ You do not file, groom or reprioritise issues — that is the coordinator's job.
 veri's scripts or skills: a veri fault is reported to the coordinator as facts, and becomes an
 issue there.
 
-With a coordinator attached, each event P4 lets you speak about goes to the coordinator, not to
+With a coordinator attached (see *Starting*), each event P4 lets you speak about goes to the coordinator, not to
 the human, unless you stop and ask (above).
 
 You are the only role that watches run state; the coordinator watches none. When a coordinator is
