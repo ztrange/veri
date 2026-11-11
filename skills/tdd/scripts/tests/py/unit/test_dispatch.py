@@ -3177,3 +3177,39 @@ def test_main_retries_a_gh_read_failing_with_an_http_503_twelve_times_and_gives_
         code = None
 
     assert (code, "503" in capsys.readouterr().err) == (expected_code, expected_code == 2)
+
+
+def test_main_does_not_report_stalled_when_events_conductor_log_and_outputs_are_older_than_the_stall_window_but_a_leaf_log_is_newer_issue_3661(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    for name in ("events.jsonl", "conductor-7.log", "develop-diff.out"):
+        (tdd / name).write_text("x\n")
+        os.utime(tdd / name, (1000, 1000))
+    leaf_log = tdd / "develop-diff.log"
+    leaf_log.write_text("streaming\n")
+    os.utime(leaf_log, (1002, 1002))
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(dispatch, "issue_states", lambda seen: {"7": "OPEN"}, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (None, "")
