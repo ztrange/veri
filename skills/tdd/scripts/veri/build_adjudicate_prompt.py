@@ -1,5 +1,7 @@
 """build-adjudicate-prompt.sh's prompt builder, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
+import re
 import sys
 
 USAGE = "usage: build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>"
@@ -10,6 +12,12 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     n, cause, exit_code, stderr_file, *command = argv
+    doc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ADJUDICATE.md")
+    with open(doc) as f:
+        eligible = re.findall(r"^- `([^`]+)`:", f.read(), re.M)
+    if cause not in eligible:
+        print(f"build-adjudicate-prompt.sh: cause not eligible: {cause}", file=sys.stderr)
+        return 2
     with open(f".tdd/issue-{n}.md") as f:
         steps = [line.rstrip("\n") for line in f if line.startswith(("- [ ]", "- [x]"))]
     step = next((s for s in steps if s.startswith("- [ ]")), steps[-1])
