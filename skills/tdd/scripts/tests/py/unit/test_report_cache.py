@@ -1712,3 +1712,68 @@ def test_refresh_whose_comments_search_returns_search_cap_rows_exits_2_and_write
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, False)
+
+
+@pytest.mark.process("git started for real over a scratch repository holding annotated tags cut at set dates")
+def test_refresh_records_the_landed_tags_cut_since_status_last_with_name_date_and_subject_and_not_an_older_one(run_cli, monkeypatch, tmp_path):
+    import json
+    import os
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    real_run = subprocess.run
+
+    def git(*words, date=None):
+        env = {**os.environ, **({"GIT_COMMITTER_DATE": date} if date else {})}
+        return real_run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *words], cwd=tmp_path,
+                        check=True, capture_output=True, text=True, env=env).stdout
+    git("init", "-q")
+    git("commit", "-q", "--allow-empty", "-m", "first")
+    git("tag", "-a", "v0.1", "-m", "Old capability", date="2026-01-01T00:00:00Z")
+    git("tag", "-a", "v0.2", "-m", "New capability", date="2026-09-01T00:00:00Z")
+    git("tag", "-a", "v0.10", "-m", "Newest capability", date="2026-10-01T00:00:00Z")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "status-last").write_text(json.dumps({"time": "2026-06-01T00:00:00Z"}))
+    shown = git("tag", "--list", "--format=%(refname:short)\t%(creatordate:format-local:%Y-%m-%d %H:%M)\t%(contents:subject)")
+    expected = sorted(tuple(line.split("\t")) for line in shown.splitlines() if not line.startswith("v0.1\t"))
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "list"]:
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    record = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text()).get("landed")
+    listed = sorted((t["name"], t["date"], t["subject"]) for t in record or [])
+    assert (code, listed) == (0, expected), record
+
+
+def test_refresh_whose_git_tag_list_cannot_start_still_writes_the_cache_with_an_empty_landed_record_and_exits_0(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [{"number": 7, "title": "open one", "state": "OPEN", "labels": [],
+               "closedAt": None, "updatedAt": "2026-10-20T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[0] == "git" and "tag" in args:
+            raise FileNotFoundError(2, "No such file or directory", "git")
+        if args[0] == "git":
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, [i["number"] for i in cache["issues"]], cache.get("landed")) == (0, [7], [])

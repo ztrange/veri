@@ -1,9 +1,11 @@
 """report-cache.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import calendar
 import datetime
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -102,6 +104,22 @@ def fetch_pages(since=None):
         page, size = read_issue_page(size, "--search", search)
 
 
+def landed(root):
+    try:
+        with open(os.path.join(root, ".tdd", "status-last")) as last:
+            since = calendar.timegm(time.strptime(json.load(last)["time"], "%Y-%m-%dT%H:%M:%SZ"))
+    except OSError:
+        since = None
+    if not os.path.exists(os.path.join(root, ".git", "HEAD")):
+        return []
+    fmt = "%(creatordate:unix)\t%(refname:short)\t%(creatordate:format-local:%Y-%m-%d %H:%M)\t%(contents:subject)"
+    listed = subprocess.run(["git", "-C", root, "tag", "--list", "--format=" + fmt],
+                            capture_output=True, text=True).stdout.splitlines()
+    rows = [line.split("\t", 3) for line in listed]
+    return [{"name": name, "date": date, "subject": subject}
+            for created, name, date, subject in rows if since is None or int(created) >= since]
+
+
 def refresh():
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
@@ -148,7 +166,8 @@ def refresh():
     fd, temp = tempfile.mkstemp(dir=tdd, prefix="report-cache.json.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as out:
-            json.dump({"cache_format": 2, "fetched_at": fetched_at, "issues": issues}, out)
+            json.dump({"cache_format": 2, "fetched_at": fetched_at, "issues": issues,
+                       "landed": landed(os.path.dirname(tdd))}, out)
         os.replace(temp, path)
     except BaseException:
         os.unlink(temp)
