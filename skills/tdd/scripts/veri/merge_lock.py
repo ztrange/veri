@@ -1,5 +1,6 @@
 """merge-lock.sh's verbs, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
 import os
 import shutil
 import socket
@@ -148,17 +149,20 @@ def _release(lock, record, args):
     if _needs_pid(args, True):
         return 2
     pid = _caller_pid([a for a in args if a != "--force"])
-    _owner(args)
+    owner = _owner(args)
     if not os.path.isdir(lock):
         return 3
     if "--force" not in args:
         fields = _read(record).split()
         if fields[0] != pid:
             return 1
-        owner = _owner(args)
         if fields[3:4] != ([owner] if owner else []):
             return 1
     shutil.rmtree(lock)
+    git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
+    for path in glob.glob(os.path.join(git_dir, "veri-merge-*.token")):
+        if _read(path).strip() == owner:
+            os.remove(path)
     return 0
 
 

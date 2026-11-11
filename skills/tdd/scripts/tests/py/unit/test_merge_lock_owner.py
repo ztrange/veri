@@ -165,3 +165,31 @@ def test_3134_holder_reads_the_start_time_not_the_owner_of_an_owner_bearing_reco
     monkeypatch.setattr(merge_lock, "_alive", lambda pid: False)
     dead = merge_lock._holder(lock, record, [])
     assert (live, reused, dead) == (0, 1, 1)
+
+
+def test_3579_release_by_the_owner_removes_the_token_file_holding_its_token(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    token_file = tmp_path / ".git" / "veri-merge-42.token"
+    token_file.parent.mkdir()
+    token_file.write_text("token-a\n")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    released = merge_lock._release(lock, record, ["--pid", me, "--owner", "token-a"])
+    assert (released, token_file.exists()) == (0, False)
+
+
+def test_3579_release_by_the_owner_leaves_a_token_file_holding_another_owners_token(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    mine = tmp_path / ".git" / "veri-merge-42.token"
+    theirs = tmp_path / ".git" / "veri-merge-43.token"
+    mine.parent.mkdir()
+    mine.write_text("token-a\n")
+    theirs.write_text("token-b\n")
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    released = merge_lock._release(lock, record, ["--pid", me, "--owner", "token-a"])
+    assert (released, mine.exists(), theirs.exists()) == (0, False, True)
