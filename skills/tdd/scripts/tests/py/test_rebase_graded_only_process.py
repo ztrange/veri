@@ -323,3 +323,53 @@ def test_3025_graded_only_takes_the_main_row_of_a_unit_whose_file_the_branch_nev
     merged = (work / "guide" / "GRADED").read_text()
     assert (ran.returncode, sorted(merged.splitlines())) == (
         0, sorted((line("a", "0") + line("u", "1") + line("z", "0")).splitlines())), ran.stderr
+
+
+@pytest.mark.process("a real two-branch git repository with a bare origin, rebase-onto-default.sh --graded-only and prose-owed.sh")
+def test_3571_graded_only_with_each_side_re_signing_a_different_unit_rebases_exits_0_keeps_both_rows_once_and_owes_no_unit(tmp_path):
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+    work = tmp_path / "work"
+    (work / "guide").mkdir(parents=True)
+    requirements = ("## guide/a.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | It is blue. | because |\n\n"
+                    "## guide/b.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| B1 | It is red. | because |\n")
+    (work / "guide" / "REQUIREMENTS.md").write_text(requirements)
+
+    def git(*argv):
+        return subprocess.run(["git", *argv], cwd=work, env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+    def sign(unit):
+        code = ("import sys; sys.path.insert(0, sys.argv[1]); import grade_prose; "
+                "print(grade_prose.signature('guide/REQUIREMENTS.md', sys.argv[2]))")
+        return subprocess.run([f"{INTERPRETER_VENV}/bin/python3", "-B", "-c", code, str(SCRIPTS / "veri"), unit], cwd=work, env=env,
+                              check=True, capture_output=True, text=True).stdout.strip()
+
+    def row(unit):
+        return f"{unit} {sign(unit)} 2026-01-01 id template\n"
+
+    def commit(texts, order, message):
+        for name, text in texts.items():
+            (work / "guide" / f"{name}.md").write_text(text)
+        (work / "guide" / "GRADED").write_text("".join(row(f"guide/{name}.md") for name in order))
+        git("add", ".")
+        git("commit", "-q", "-m", message)
+
+    git("init", "-q", "-b", "main")
+    commit({"a": "A base.\n", "b": "B base.\n"}, "ab", "base")
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(tmp_path / "origin.git")], cwd=tmp_path, env=env, check=True)
+    git("remote", "add", "origin", str(tmp_path / "origin.git"))
+    git("push", "-q", "origin", "main")
+    git("fetch", "-q", "origin")
+    git("remote", "set-head", "origin", "main")
+    commit({"a": "A upstream.\n"}, "ba", "upstream re-signs a")
+    git("push", "-q", "origin", "main")
+    git("checkout", "-q", "-b", "work", "HEAD~1")
+    commit({"b": "B branch.\n"}, "ab", "branch re-signs b")
+
+    ran = subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env,
+                         capture_output=True, text=True)
+    owed = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(work)], env=env, capture_output=True, text=True)
+
+    rows = sorted((work / "guide" / "GRADED").read_text().splitlines())
+    assert (ran.returncode, (work / ".git" / "rebase-merge").exists(), rows, owed.returncode, owed.stdout) == (
+        0, False, sorted([row("guide/a.md").strip(), row("guide/b.md").strip()]), 0, ""), ran.stderr + owed.stderr
