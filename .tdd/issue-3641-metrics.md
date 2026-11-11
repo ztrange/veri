@@ -1,15 +1,17 @@
 ### 📊 Metrics — issue 3641
 
-Wall time for the issue: 200 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1138 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 2 of 3 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3642.
 Lane: ready-for-agent:mu
+Suite flakes: skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_a_detached_group_sent_kill_is_still_alive_and_0_when_the_group_dies_on_kill, skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_survivor_probe_of_a_detached_group_is_refused, skills/tdd/scripts/tests/py/test_stop_run.py::test_3375_stop_run_mode_now_exits_2_naming_the_pid_and_the_run_when_the_kill_sent_a_detached_group_is_refused.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $4.80 over 90 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $6.60 over 120 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 79969 tokens, largest 160284 tokens
-Conductor context: first turn 79971 tokens, largest 145184 tokens
+Conductor context: first turn 79971 tokens, largest 147660 tokens
+Conductor context: first turn 79967 tokens, largest 123067 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -64,47 +66,76 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 46 | $0.06 | 159380 |
 | 47 | $0.05 | 159754 |
 | 48 | $0.05 | 160284 |
-| 49 | $0.50 | 79971 |
+| 49 | $0.51 | 79971 |
 | 50 | $0.07 | 86391 |
-| 51 | $0.03 | 87638 |
+| 51 | $0.04 | 87638 |
 | 52 | $0.02 | 88074 |
-| 53 | $0.03 | 90208 |
-| 54 | $0.02 | 90642 |
-| 55 | $0.02 | 91086 |
-| 56 | $0.02 | 91509 |
+| 53 | $0.05 | 90208 |
+| 54 | $0.03 | 90642 |
+| 55 | $0.03 | 91086 |
+| 56 | $0.03 | 91509 |
 | 57 | $0.07 | 98197 |
-| 58 | $0.02 | 98540 |
-| 59 | $0.03 | 99273 |
-| 60 | $0.02 | 99445 |
-| 61 | $0.02 | 99760 |
-| 62 | $0.02 | 100212 |
+| 58 | $0.03 | 98540 |
+| 59 | $0.04 | 99273 |
+| 60 | $0.03 | 99445 |
+| 61 | $0.03 | 99760 |
+| 62 | $0.03 | 100212 |
 | 63 | $0.03 | 100909 |
-| 64 | $0.07 | 107106 |
-| 65 | $0.03 | 108504 |
+| 64 | $0.08 | 107106 |
+| 65 | $0.04 | 108504 |
 | 66 | $0.03 | 109198 |
-| 67 | $0.02 | 109360 |
-| 68 | $0.07 | 115198 |
+| 67 | $0.03 | 109360 |
+| 68 | $0.08 | 115198 |
 | 69 | $0.04 | 116706 |
-| 70 | $0.04 | 118263 |
+| 70 | $0.05 | 118263 |
 | 71 | $0.03 | 118615 |
-| 72 | $0.03 | 119052 |
+| 72 | $0.04 | 119052 |
 | 73 | $0.03 | 119559 |
-| 74 | $0.03 | 120158 |
+| 74 | $0.04 | 120158 |
 | 75 | $0.03 | 120783 |
-| 76 | $0.03 | 121158 |
-| 77 | $0.03 | 121741 |
-| 78 | $0.03 | 122881 |
-| 79 | $0.05 | 126617 |
-| 80 | $0.03 | 127269 |
-| 81 | $0.03 | 127791 |
+| 76 | $0.04 | 121158 |
+| 77 | $0.04 | 121741 |
+| 78 | $0.04 | 122881 |
+| 79 | $0.06 | 126617 |
+| 80 | $0.04 | 127269 |
+| 81 | $0.04 | 127791 |
 | 82 | $0.10 | 136701 |
-| 83 | $0.03 | 137201 |
-| 84 | $0.03 | 137406 |
+| 83 | $0.04 | 137201 |
+| 84 | $0.04 | 137406 |
 | 85 | $0.03 | 137817 |
-| 86 | $0.03 | 138176 |
-| 87 | $0.03 | 138785 |
-| 88 | $0.04 | 140229 |
+| 86 | $0.04 | 138176 |
+| 87 | $0.04 | 138785 |
+| 88 | $0.05 | 140229 |
 | 89 | $0.07 | 145184 |
+| 90 | $0.05 | 146007 |
+| 91 | $0.04 | 147100 |
+| 92 | $0.04 | 147660 |
+| 93 | $0.50 | 79967 |
+| 94 | $0.07 | 86385 |
+| 95 | $0.03 | 87656 |
+| 96 | $0.03 | 89483 |
+| 97 | $0.03 | 91136 |
+| 98 | $0.02 | 91679 |
+| 99 | $0.02 | 92279 |
+| 100 | $0.02 | 92641 |
+| 101 | $0.02 | 93015 |
+| 102 | $0.02 | 93438 |
+| 103 | $0.02 | 94134 |
+| 104 | $0.05 | 98433 |
+| 105 | $0.03 | 99469 |
+| 106 | $0.03 | 100803 |
+| 107 | $0.02 | 101294 |
+| 108 | $0.02 | 101855 |
+| 109 | $0.03 | 102819 |
+| 110 | $0.15 | 118635 |
+| 111 | $0.03 | 119141 |
+| 112 | $0.03 | 119480 |
+| 113 | $0.03 | 120023 |
+| 114 | $0.03 | 121081 |
+| 115 | $0.03 | 121957 |
+| 116 | $0.03 | 122298 |
+| 117 | $0.03 | 122655 |
+| 118 | $0.03 | 123067 |
 
 #### Conductor comments, by family
 
@@ -121,16 +152,16 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🗺️ Plan | 0 | 0 | $0.00 |
 | 🗺️ verify-plan | 0 | 0 | $0.00 |
 | ▶️ Resuming | 0 | 0 | $0.00 |
-| ⛔ Bailed | 0 | 0 | $0.00 |
+| ⛔ Bailed | 1 | 383 | $0.01 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 0 | 0 | $0.00 |
+| Total | 1 | 383 | $0.01 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 24 | 18 | 2 | 4 | 2232 | 5350 | 34259 | 0.11 |
+| plan | 3 | 3 | 0 | 0 | 36 | 27 | 3 | 6 | 3239 | 5350 | 54164 | 0.17 |
 | diff | 3 | 2 | 0 | 0 | 142 | 45 | 13 | 24 | 4261 | 182780 | 53090 | 0.19 |
 | red | 4 | 1 | 0 | 0 | 139 | 104 | 27 | 52 | 10779 | 537172 | 96029 | 0.54 |
 | green | 5 | 1 | 1 | 0 | 176 | 71 | 22 | 42 | 6479 | 345728 | 87696 | 0.40 |
@@ -142,7 +173,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 8 | 6 | 2 | 0 | 239 | 110 | 28 | 54 | 9631 | 399740 | 124421 | 0.45 |
+| verifier | claude-sonnet-5-5 | 9 | 7 | 2 | 0 | 251 | 119 | 29 | 56 | 10638 | 399740 | 144326 | 0.51 |
 | developer | claude-sonnet-5-5 | 7 | 0 | 0 | 0 | 229 | 106 | 32 | 60 | 10752 | 530692 | 150349 | 0.61 |
 | developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 83 | 70 | 17 | 34 | 7504 | 372767 | 54046 | 0.39 |
 
@@ -175,12 +206,16 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | rerecord-earlier on a ⟦diff-checked⟧ step whose every earlier recorded case is unchanged between the step base and HEAD exits 0 or 3, never 2, and leaves every earlier record byte-for-byte untouched, so tick-ledger.sh ticks that step (exit 0) rather than exiting 2 after verify-diff PASSed ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 5 | 0.05 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
 | --- | ---: | ---: | ---: | --- |
 | rerecord-earlier on a ⟦diff-checked⟧ step whose every earlier recorded case is unchanged between the step base and HEAD exits 0 or 3, never 2, and leaves every earlier record byte-for-byte untouched, so tick-ledger.sh ticks that step (exit 0) rather than exiting 2 after verify-diff PASSed ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 1 | 0 | 1 | nothing-left 1 |
+| issue | 2 | ? | ? | nothing-left 1, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
@@ -194,4 +229,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 77 | 148 | 27887 | 1303199 | 328816 | 6.25 (estimate) |
+| total | 78 | 150 | 28894 | 1303199 | 348721 | 8.11 (estimate) |
