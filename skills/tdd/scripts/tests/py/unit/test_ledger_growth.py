@@ -327,3 +327,17 @@ def test_3427_reopen_of_a_passed_plain_step_exits_2_naming_the_step_and_leaves_t
     code, out, err = run_cli(ledger_growth, ["reopen", str(ledger), "a cog exists", "a change"])
     assert (code, "a cog exists" in err, ledger.read_text(), (tmp_path / "issue-42-added.md").exists()) == (
         2, True, text, False)
+
+
+def test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_against_the_original_plan_exits_0_silently(
+        tmp_path, run_cli, ledger_growth):
+    plan = tmp_path / "plan.md"
+    ledger = tmp_path / "issue-42.md"
+    plan.write_text(
+        "# Plan for #42\n\n- [ ] a cog exists ⟦criterion 1⟧\n"
+        "- [ ] ⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 ⟦criterion 2⟧\n")
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [x] ⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 ⟦criterion 2⟧ ⟂ refactor pending\n")
+    reopened = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "extend it with the reopen"])[0]
+    assert (reopened, run_cli(ledger_growth, [str(plan), str(ledger)])) == (0, (0, "", ""))
