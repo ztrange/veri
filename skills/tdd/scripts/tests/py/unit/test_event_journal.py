@@ -397,3 +397,16 @@ def test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_
         if path.suffix in (".py", ".sh") and "tests" not in path.relative_to(ROOT).parts
         and ("VERI_HOME" in path.read_text(errors="replace") or "/.veri/" in path.read_text(errors="replace")))
     assert namers == ["skills/tdd/scripts/veri/event.py"]
+
+
+def test_append_once_exits_2_with_a_stderr_message_on_a_short_os_write_3604(tmp_path, monkeypatch, capfd):
+    import importlib
+    import pytest
+    event = importlib.import_module("veri.event")
+    journal = tmp_path / "7.jsonl"
+    monkeypatch.setattr(os, "write", lambda fd, data: len(data) - 1)
+
+    with pytest.raises(SystemExit) as raised:
+        event.append_once(str(journal), b'{"a": 1}\n')
+
+    assert (raised.value.code, bool(capfd.readouterr().err.strip())) == (2, True)
