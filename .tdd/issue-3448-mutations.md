@@ -1,0 +1,7 @@
+before 40
+80088e3c3a19a2e1c674a9d2061c0af7631801da
+keep 51
+skills/tdd/scripts/tests/py/unit/test_watch_runs.py
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_watch_runs.py::test_3448_live_conductors_names_no_run_for_a_process_that_only_mentions_run_conductor_py_with_the_issue_number
+
