@@ -25,16 +25,25 @@ def faked(command, kwargs, basetemp):
     return bool(found) and os.path.realpath(found).startswith(basetemp + os.sep)
 
 
+def refusal_dirs(tmp_path_factory):
+    """One directory per guarded command holding its refusing stub, made once per pytest run (a factory lives as long as the run) and shared by its cases."""
+    made = getattr(tmp_path_factory, "veri_refusal_dirs", None)
+    if made is None:
+        made = {}
+        for name in GUARDED:
+            made[name] = tmp_path_factory.mktemp("refuse-" + name, numbered=False)
+            (made[name] / name).write_text("#!/bin/sh\necho \"a case started %s; fake the call\" >&2\nexit 1\n" % name)
+            (made[name] / name).chmod(0o755)
+        tmp_path_factory.veri_refusal_dirs = made
+    return made
+
+
 @pytest.fixture(autouse=True)
 def network_refusal(monkeypatch, tmp_path_factory):
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
     real_connect = socket.socket.connect
     real_popen = subprocess.Popen.__init__
-    refusals = {}
-    for name in GUARDED:
-        refusals[name] = tmp_path_factory.mktemp("refuse-" + name)
-        (refusals[name] / name).write_text("#!/bin/sh\necho \"a case started %s; fake the call\" >&2\nexit 1\n" % name)
-        (refusals[name] / name).chmod(0o755)
+    refusals = refusal_dirs(tmp_path_factory)
 
     def check_address(sock, address):
         if sock.family in (socket.AF_INET, socket.AF_INET6) and not loopback(address[0]):
