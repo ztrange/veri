@@ -9,7 +9,12 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
-    return 2
+    with open(argv[0]) as f:
+        lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
+    outcome, _, reason = lines[-1][len("ADJUDICATION:"):].strip().partition(" — ")
+    print(outcome)
+    print(reason)
+    return 0
 
 
 if __name__ == "__main__":
