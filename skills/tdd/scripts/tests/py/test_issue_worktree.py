@@ -339,6 +339,15 @@ def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapsho
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
+def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    gone = tmp_path / "veri-snapshot-gone"
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(gone))
+
+    assert (code, err) == (0, "")
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
