@@ -27,6 +27,8 @@ def test_refresh_with_no_cache_writes_every_issue_open_and_closed_with_fetched_a
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -87,6 +89,8 @@ def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_w
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -117,6 +121,8 @@ def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -147,6 +153,8 @@ def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_withou
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -176,6 +184,8 @@ def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_co
     comments = [{"number": 7, "comments": [{"body": "c"}]}, {"number": 8, "comments": [{"body": "c"}]}]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -205,6 +215,8 @@ def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_headi
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -242,6 +254,8 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     asked = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -275,6 +289,8 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
     before = cache_file.read_bytes()
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -302,6 +318,8 @@ def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_l
     before = cache_file.read_bytes()
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -328,6 +346,8 @@ def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -350,6 +370,8 @@ def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming
     started = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         started.append([str(arg) for arg in args])
         return subprocess.CompletedProcess(args, 0, "[]", "")
 
@@ -380,6 +402,8 @@ def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identica
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
 
@@ -410,6 +434,8 @@ def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -431,6 +457,8 @@ def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complet
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -455,6 +483,8 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -484,6 +514,8 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -514,6 +546,8 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -544,6 +578,8 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -574,6 +610,8 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -601,6 +639,8 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
     before = cache.read_bytes()
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
 
@@ -626,6 +666,8 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     calls = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         calls.append(args)
         return subprocess.CompletedProcess(args, 0, "[]", "")
@@ -660,6 +702,8 @@ def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_fro
     real_dump, real_replace = json.dump, os.replace
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(answers[writer[-1]]), "")
 
     def interleaving_dump(obj, out, **kwargs):
@@ -711,6 +755,8 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -740,6 +786,8 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
     searched = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
@@ -766,6 +814,8 @@ def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli,
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "cache_format": 2, "issues": []}))
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         return subprocess.CompletedProcess([str(arg) for arg in args], 0, "[]", "")
 
     def failing_replace(src, dst):
@@ -795,6 +845,8 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
     asked = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -839,6 +891,8 @@ def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still
     failed = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -880,6 +934,8 @@ def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_at
     failing_calls = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -912,6 +968,8 @@ def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reade
     calls = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         calls.append(args)
         if len(calls) > 50:
@@ -941,6 +999,8 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
     asked = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -982,6 +1042,8 @@ def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with
     limits = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1017,6 +1079,8 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     searches = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1064,6 +1128,8 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
     ]
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1105,6 +1171,8 @@ def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second
     everything = sorted(i["number"] for i in same_second + older)
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1136,6 +1204,8 @@ def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_write
     limits = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1517,6 +1587,8 @@ def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_
     calls = []
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1557,6 +1629,8 @@ def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_i
                  "closed:>=": [{"number": 901, "comments": [{"body": metrics}]}]}
 
     def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
