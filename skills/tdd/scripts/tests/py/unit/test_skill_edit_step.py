@@ -2309,3 +2309,20 @@ def test_apply_still_appends_a_prefix_next_row_whose_requirement_text_equals_a_h
 
     rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PF")]
     assert rows == ["| PF60 | The widget is blue. | because |", "| PF61 | The widget is blue. | for another reason |"], rows
+
+
+def test_apply_still_appends_a_prefix_next_row_whose_text_equals_a_row_held_only_in_another_units_section_under_the_next_free_id_3589(tmp_path, monkeypatch):
+    skill_edit_step = _next_case_2262(
+        tmp_path, monkeypatch,
+        ["| PF60 | The widget is round. | shape |"],
+        ["| PF<next> | The widget is blue. | because |"])
+    table = "| ID | Requirement | Why |\n|---|---|---|\n"
+    mine = (tmp_path / "REQUIREMENTS.md").read_text()
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## other.md\n\n" + table + "| OT1 | The widget is blue. | because |\n\n" + mine)
+
+    skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
+
+    section = (tmp_path / "REQUIREMENTS.md").read_text().split("## unit.md")[1]
+    rows = [line for line in section.splitlines() if line.startswith("| PF")]
+    assert rows == ["| PF60 | The widget is round. | shape |", "| PF61 | The widget is blue. | because |"], rows

@@ -27,3 +27,18 @@ context 52
 command 207
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_apply_still_appends_a_prefix_next_row_whose_requirement_text_equals_a_held_row_but_whose_why_differs_under_the_next_free_id_3589
 
+file 42
+skills/tdd/scripts/veri/skill_edit_step.py
+old 106
+            in_unit = line[3:] == unit
+        elif in_unit and line.startswith("|"):
+            held.add
+new 94
+            in_unit = True
+        elif in_unit and line.startswith("|"):
+            held.add
+context 38
+            in_unit = line[3:] == unit
+command 203
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_apply_still_appends_a_prefix_next_row_whose_text_equals_a_row_held_only_in_another_units_section_under_the_next_free_id_3589
+
