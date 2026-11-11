@@ -1433,3 +1433,25 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
 
     assert (untouched, one_edited, record(first) != kept_first, record(second) == kept_second) == (
         True, 0, True, True)
+
+
+def test_rerecord_earlier_exits_0_or_3_not_2_and_keeps_the_record_when_every_earlier_case_is_unchanged_3641(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    suite = _rerecord_fixture(tmp_path, tests_frozen, monkeypatch)
+    earlier, edit = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧"
+    base = "b45e0003b45e0003b45e0003b45e0003b45e0003"
+    text = "def test_pinned_3641():\n    assert 1 == 1\n"
+    suite.write_text(text)
+    run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
+    kept = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+    monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
+        PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
+    monkeypatch.setattr(tests_frozen, "_text_at", lambda rev, name, err=None: text)
+    cases = dict(tests_frozen._cases(text))
+    monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: cases)
+
+    code = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
+
+    assert (code in (0, 3), (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (True, True)

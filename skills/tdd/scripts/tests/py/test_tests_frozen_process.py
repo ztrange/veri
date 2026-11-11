@@ -2134,7 +2134,7 @@ def test_rerecord_earlier_derives_the_step_base_from_its_own_commits_so_a_later_
                        env={"VERI_ISSUE": "9"})[0]
         results.append((code, record.read_bytes() != before))
 
-    assert results == [(0, True), (2, False)]
+    assert results == [(0, True), (0, False)]
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked for the commits of a step and the file at HEAD")
@@ -2187,7 +2187,7 @@ def test_rerecord_earlier_derives_the_step_base_from_its_own_commits_when_an_ear
                        env={"VERI_ISSUE": "9"})[0]
         results.append((code, record.read_bytes() != before))
 
-    assert results == [(0, True), (2, False)]
+    assert results == [(0, True), (0, False)]
 
 
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
