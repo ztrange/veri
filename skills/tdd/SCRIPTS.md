@@ -107,7 +107,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   only for the other reasons or without `--missing-reroute`; when that answers 1 and `--missing-reroute` was given, it runs
   `tick-ledger.sh --already-holds` with the same case. It prints `retired` and exits **0** when either retired the step (` ⟂ retired unpinnable`
   with one `unpinnable-step` event, or ` ⟂ retired already holds` with one `already-holds-step` event, never a `revise`
-  event). It prints `revise` and exits **1**, ledger and events untouched, when the reason does not say `stays green` or the target test fails (and,
+  event). It prints `revise` and exits **1**, ledger and events untouched, when the reason does not say `stays green`, or under `--missing-reroute` reports a surviving mutant of a case red on the before-state, or the target test fails (and,
   under `--missing-reroute`, `--already-holds` also answered 1). **Exit 2** with a usage line on stderr for fewer than four
   arguments (the `<target-test>` included), or no answer; a `<target-test>` that never ran (see `tick-ledger.sh` below) is that answer, printing neither `retired` nor `revise`, ledger and events untouched. Any other tick-ledger code (3, no unchecked step matched) is passed through without printing `retired`.
 - `$S/pin-fast-tier.sh '<fast-cmd>'` — run the fast tier over the tree a pin would commit,
