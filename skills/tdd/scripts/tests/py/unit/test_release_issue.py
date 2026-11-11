@@ -199,3 +199,17 @@ def test_a_preflight_release_cut_short_by_a_silent_gh_is_finished_by_running_it_
     assert first == 2
     assert (code, err) == (0, "")
     assert sorted(labels) == ["bug", "ready-for-agent"]
+
+
+def test_a_preflight_refused_issue_claimed_by_another_lane_exits_2_and_nothing_is_written_3627(release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:mu"]
+    monkeypatch.setattr(
+        release_issue.github, "gh_issue_view",
+        lambda number, field: "### ⛔ Preflight refused — requirements clash" if field == "comments" else "\n".join(labels))
+
+    code, out, err = run_cli(release_issue, ["3621"])
+
+    assert code == 2
+    assert writes(calls) == []
+    assert "taken:mu" in err
