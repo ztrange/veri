@@ -7,7 +7,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[5]
 NAMES = ["bail", "coord", "dev", "file", "groom", "handoff", "judge", "merge", "plan", "report", "status", "stop"]
-MERGE_TOKEN_FILE = "veri" + "-merge-<pr>.token"
+MERGE_TOKEN_FILE = re.compile("veri" + r"-merge-(<pr>|[0-9]+|\*)\.token")
 PATTERN = "veri" + "-(" + "|".join(NAMES) + ")([^[:alnum:]_]|$)"
 
 
@@ -27,7 +27,7 @@ def _sweep(root):
     files = []
     for line in run.stdout.splitlines():
         path, _, text = line.split(":", 2)
-        if long_name.search(text.replace(MERGE_TOKEN_FILE, "")) and path not in files:
+        if long_name.search(MERGE_TOKEN_FILE.sub("", text)) and path not in files:
             files.append(path)
     return files
 
@@ -42,3 +42,14 @@ def test_the_sweep_reports_a_tracked_file_holding_a_long_name_and_not_one_under_
         subprocess.run(["git", "-C", str(tmp_path), *argv], check=True, capture_output=True)
 
     assert _sweep(tmp_path) == ["README.md"]
+
+
+@pytest.mark.process("git init, add and grep on a throwaway repository")
+def test_the_sweep_ignores_a_merge_token_file_name_with_a_number_or_a_glob_3579(tmp_path):
+    (tmp_path / "token.md").write_text(
+        "path veri" + "-merge-42.token\nglob veri" + "-merge-*.token\n"
+    )
+    for argv in (["init", "-q"], ["add", "."]):
+        subprocess.run(["git", "-C", str(tmp_path), *argv], check=True, capture_output=True)
+
+    assert _sweep(tmp_path) == []
