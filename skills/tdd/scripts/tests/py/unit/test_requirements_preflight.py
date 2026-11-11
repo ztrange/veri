@@ -185,3 +185,21 @@ def test_3634_a_ledger_step_that_mentions_the_skill_edit_marker_only_in_its_pros
     code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
 
     assert code == 0 and "## Requirements has no ### heading" not in err, (code, out, err)
+
+
+def test_3634_a_ledger_step_carrying_the_skill_edit_marker_in_its_trailing_tag_run_whose_unit_has_no_heading_exits_2_naming_that_unit(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| A1 | The widget is blue. | because |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] `add-ledger-step.sh` records a step that mentions ⟦skill-edit⟧ in its wording ⟦skill-edit⟧ ⟦criterion 2⟧\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and "## Requirements has no ### heading for unit: add-ledger-step.sh" in err, (code, out, err)
