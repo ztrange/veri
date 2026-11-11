@@ -177,14 +177,18 @@ def overlap(issue, changed):
     return next(((path, url) for path in issue_paths(issue) for url, files in changed.items() if path in files), None)
 
 
+def say(text):
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
 def launchable(issue, changed, reported):
     """Whether <issue> overlaps no open run draft PR; a skip prints one line naming the issue, the path and the PR,
     once per (issue, path, PR) in <reported>, the skips this dispatch process already printed."""
     found = overlap(issue, changed)
     if found and (issue, *found) not in reported:
         reported.add((issue, *found))
-        sys.stdout.write(f"skip {issue} {found[0]} {found[1]}\n")
-        sys.stdout.flush()
+        say(f"skip {issue} {found[0]} {found[1]}\n")
     return not found
 
 
@@ -293,8 +297,7 @@ def main(argv):
         running = queued_merges()
         for pr_url in merges:
             if pr_url not in running and pr_state(pr_url) not in ("MERGED", "UNRESOLVED"):
-                sys.stdout.write(f"merge-failed {pr_url}\n")
-                sys.stdout.flush()
+                say(f"merge-failed {pr_url}\n")
                 return 0
         merges = running
         for issue in seen:
@@ -315,8 +318,7 @@ def main(argv):
                     if issue not in pending:
                         pending.append(issue)
                     continue
-                sys.stdout.write(line + "\n")
-                sys.stdout.flush()
+                say(line + "\n")
                 return 0
         if not argv:
             lines = status.read_role_state("dev", lane())
