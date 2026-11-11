@@ -2,6 +2,6 @@
 
 - [x] Test-only, no production change: `test_role_state_process.py::test_coord_add_to_each_list_prints_an_id_and_show_lists_the_text` and `test_status_recover.py::test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_and_a_second_report_from_the_files_alone_is_identical` add their `timed-n` item as `<n> until <ISO datetime>` (e.g. `4 until 2026-11-10T20:00:00`, with `dispatch.py`'s `timed_n` format) instead of free text, each still asserting what it asserted (exit 0, a printed id, the text listed by `coord show`, and `--recover` reporting it verbatim) ⟦added⟧ ⟦criterion 1⟧
 - [x] `role-state.sh <role> add timed-n <text>` with a text dispatch's timed-n parser cannot parse (e.g. `4 until weekly usage reset ~2026-11-10 evening`) exits 2, names the `<n> until <ISO-8601 datetime>` form on stderr, and writes nothing to the state file ⟦criterion 1⟧
-- [ ] `role-state.sh <role> add timed-n` with a well-formed `<n> until <ISO datetime>` text still appends the `timed-n` line to the state file and prints its id ⟦criterion 2⟧
+- [x] `role-state.sh <role> add timed-n` with a well-formed `<n> until <ISO datetime>` text still appends the `timed-n` line to the state file and prints its id ⟦criterion 2⟧
 - [ ] `role_state.py` and `dispatch.py` call one shared timed-n parse function, with no second copy of the `<n> until <ISO datetime>` format in either module ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] The timed-n refusal guard, broken on purpose (validation removed), goes red ⟦human-owed⟧ ⟦criterion 4⟧
