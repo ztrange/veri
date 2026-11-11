@@ -296,6 +296,18 @@ def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, "veri-snapshot-abc123"), True)
 
 
+def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says_so(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
+    link = tmp_path / "veri-snapshot-link"
+    link.symlink_to(snapshot)
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(link))
+
+    assert (code, err, (snapshot / "status.sh").exists(), link.is_symlink()) == (
+        0, refusal_of(tmp_path, link), True, True)
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
