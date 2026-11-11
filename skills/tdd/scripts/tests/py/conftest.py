@@ -74,6 +74,14 @@ class WalkResult:
     definitions: tuple
 
 
+def mentioned_names(segments):
+    """For each definition in `segments` ({name: source}), the other definitions whose name its source mentions as a
+    whole word. Every name is a Python identifier, so it is all `\\w`: `\\bname\\b` matches exactly where `name` is a whole
+    `\\w+` run of the source, which is what a set of the source's runs answers, tokenised once per definition instead of
+    one regex search (and compile) per definition pair."""
+    return {name: (set(re.findall(r"\w+", src)) & segments.keys()) - {name} for name, src in segments.items()}
+
+
 def _constants(node):
     if isinstance(node, ast.JoinedStr):
         return
