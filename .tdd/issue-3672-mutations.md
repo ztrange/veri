@@ -1,0 +1,11 @@
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 56
+ICAgICAgICAgICAgICAgICAgICBvcy5wYXRoLmdldG10aW1lKGYpCg==
+new-b64 100
+ICAgICAgICAgICAgICAgICAgICAoMTAqKjkgaWYgZi5lbmRzd2l0aCgiLmxvZyIpIGVsc2Ugb3MucGF0aC5nZXRtdGltZShmKSkK
+context-b64 52
+ICAgICAgICAgICAgICAgICAgICBvcy5wYXRoLmdldG10aW1lKGYp
+command 194
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_prints_stalled_and_exits_0_when_a_leaf_log_and_every_other_liveness_source_are_older_than_the_stall_window_issue_3672
+
