@@ -330,7 +330,7 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setenv("VERI_VENV", INTERPRETER_VENV)
     inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())
-    case_tmpdir = str(tmp_path_factory.mktemp("tmpdir"))
+    case_tmpdir = tempfile.mkdtemp(prefix="tmpdir_", dir=tmp_path_factory.getbasetemp())
     monkeypatch.setenv("TMPDIR", case_tmpdir)
     monkeypatch.setattr(tempfile, "tempdir", case_tmpdir)
     for name, value in offline.items():
