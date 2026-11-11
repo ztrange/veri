@@ -525,3 +525,27 @@ def test_main_reject_saying_the_case_fails_on_the_before_state_and_passes_after_
     assert (out.strip() != "unpinnable-missing", "unpinnable-step" in text) == (True, False), err
     if not flags:
         assert (code, out.strip(), ledger.read_text()) == (1, "revise", body), err
+
+
+@pytest.mark.parametrize("reason_text", [
+    "the case is red on the before-state and green once the change lands",
+    "the case does not pass on the before-state",
+    "the case doesn't pass on the before-state",
+    "after the change the case passes on the before-state",
+], ids=["red", "not", "n't", "after"])
+def test_main_reject_with_each_before_state_green_exclusion_word_is_not_before_state_green_3644(
+        tmp_path, run_cli, pin_reject_route, reason_text):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    body = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+    ledger.write_text(body)
+    reason = tmp_path / "reason.txt"
+    reason.write_text(f"VERDICT: REJECT\nREASON: {reason_text}\n")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events = ledger.parent / "events.jsonl"
+    text = events.read_text() if events.exists() else ""
+    assert (code, out.strip(), ledger.read_text(), "unpinnable-step" in text) == (
+        1, "revise", body, False), err
