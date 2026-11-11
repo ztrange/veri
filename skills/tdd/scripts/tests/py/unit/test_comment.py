@@ -1585,3 +1585,22 @@ def test_stopped_exits_2_naming_the_missing_stop_event_and_posts_nothing_when_th
     assert "stop" in err
     assert posted == []
     assert (tmp_path / ".tdd" / "events.jsonl").read_text() == journal
+
+
+def test_stopped_carries_the_branch_the_worktree_path_and_the_resume_command(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
+    note = tmp_path / "note.txt"
+    note.write_text("dropped\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    body = posted[0][1]
+    assert "tdd/7-the-branch" in body
+    assert str(tmp_path) in body or str(tmp_path.resolve()) in body
+    assert f"{SCRIPTS}/run-conductor.sh 7" in body
