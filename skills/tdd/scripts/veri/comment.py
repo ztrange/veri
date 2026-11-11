@@ -242,7 +242,7 @@ def restart_pending():
     return True
 
 
-def post_stopped(issue, note_file):
+def post_stopped(issue, note_file=None):
     stop = last_event("stop")
     if stop is None:
         print("comment.sh: no stop event in .tdd/events.jsonl", file=sys.stderr)
@@ -262,10 +262,6 @@ def post_stopped(issue, note_file):
 
 
 def main(argv):
-    if len(argv) == 2 and argv[1] == "stopped":
-        return post_stopped(argv[0], None)
-    if len(argv) == 4 and argv[1] == "stopped" and argv[2] == "--note-file":
-        return post_stopped(argv[0], argv[3])
     if len(argv) == 5 and argv[1:4] == ["bailed", "--pr", "--note-file"]:
         return post_bailed(argv[0], argv[4], pr=True)
     if len(argv) == 4 and argv[1] == "bailed" and argv[2] == "--note-file":
@@ -278,7 +274,8 @@ def main(argv):
         return post_verify_skipped(argv[0])
     if len(argv) == 3 and argv[1] == "verify-revised":
         return post_revised(argv[0], argv[2])
-    noted = {"green": post_green, "red": post_red, "refactor": post_refactor, "resuming": post_resuming}
+    noted = {"green": post_green, "red": post_red, "refactor": post_refactor, "resuming": post_resuming,
+             "stopped": post_stopped}
     if len(argv) in (2, 4) and argv[1] in noted and (len(argv) == 2 or argv[2] == "--note-file"):
         return noted[argv[1]](argv[0], *argv[3:])
     if len(argv) == 2 and argv[1] in ("verify-red", "verify-green", "verify-refactor"):
