@@ -278,6 +278,15 @@ def refusal_of(tmp_path, snapshot):
         snapshot, run_worktree_of(tmp_path))
 
 
+def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_place_and_says_so(
+        tmp_path, monkeypatch, capsys, issue_worktree):
+    snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", str(tmp_path / "repo" / ".tdd" / "wt" / "8"))
+
+    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+
+    assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
+
+
 def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
