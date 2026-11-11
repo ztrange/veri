@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
 command 184
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3427_after_a_reopen_of_a_passed_skill_edit_step_the_growth_check_against_the_original_plan_exits_0_silently
 
+before 40
+620c1052de1a007f632019c438c6493a083d1396
+keep 54
+skills/tdd/scripts/tests/py/unit/test_ledger_growth.py
+command 153
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_ledger_growth.py::test_3427_reopen_on_an_unreadable_ledger_exits_2_naming_the_ledger_file_on_stderr
+
