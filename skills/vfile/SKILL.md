@@ -2,7 +2,7 @@
 name: vfile
 description: >-
   File a bug, a refactor or a feature the way veri reads it, as a labelled GitHub issue on the
-  repo it was invoked in. Invoke as `/vfile bug|refactor|feature [<one line>]`. Replaces `tdd-fix` and
+  repo it was invoked in. Invoke as `/vfile [bug|refactor|feature] [<one line>]`. Replaces `tdd-fix` and
   `tdd-candidates`.
 ---
 
@@ -10,14 +10,22 @@ description: >-
 
 Obeys `operator/PRINCIPLES.md` under the veri clone root (`git -C <base dir> rev-parse --show-toplevel`); read it first.
 
-You file **one** issue, on the repository this session was invoked in, of the kind the first
-argument names. You write no fix and run no tests yourself.
+You file **one** issue, on the repository this session was invoked in, of one kind: a bug, a
+refactor or a feature. You write no fix and run no tests yourself.
 
 ## Inputs
 
-Invoked as `/vfile bug|refactor|feature [<one line>]`. `$ARGUMENTS` starts with the kind,
-`bug`, `refactor` or `feature`, and the one line after it is optional: it is the human's own account, and the
-Intake reads it. A kind that is neither is a usage error: say so and stop.
+Invoked as `/vfile [bug|refactor|feature] [<one line>]`. Both parts are optional. The one line
+is the human's own account, and the Intake reads it.
+
+**The kind.** When `$ARGUMENTS` starts with `bug`, `refactor` or `feature`, that word is the
+kind and wins, whatever the rest of the line suggests. Otherwise **infer the kind from the
+line**: a defect in behaviour that exists is a bug, a change to the code's shape alone is a
+refactor, new behaviour is a feature. When the line does not settle it (no line, or one that
+reads as more than one kind), **ask for the kind** as one numbered question in the one Intake
+message that carries the other gaps; never guess, since a wrong kind files the wrong body
+shape. That message's other gaps are those the Intake below finds for each kind the line
+could still be.
 
 ## Intake
 
@@ -152,5 +160,6 @@ When no parent is found, the issue is still filed; the report says it has no par
 
 ## Report
 
-Report the **url** of the issue, **its parent** (or that it has none, and why), and **whether it is now solvable** (open, opted in, unblocked,
+Report the **url** of the issue, **its kind** (and, when the kind was inferred from the line
+rather than given, that it was inferred), **its parent** (or that it has none, and why), and **whether it is now solvable** (open, opted in, unblocked,
 unclaimed); if it is not, say which condition is missing. Do not start the run.
