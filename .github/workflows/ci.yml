@@ -60,7 +60,13 @@ jobs:
     # `make test` on Linux is back well under 3 minutes. It costs nothing on a green run
     # and raises the ceiling on a STUCK job from 5 to 8 minutes — about 1.8 cents more on
     # ubuntu-latest at $0.006/min.
-    timeout-minutes: 8
+    #
+    # It is now **10 minutes**: the last 12 green runs took 245-381 s from creation to
+    # completion on 2026-11-11, and one took 538 s against the 480 s cap, because the
+    # suites grew to ~6,280 cases. Still temporary, until `make test` on Linux is well
+    # under 3 minutes. It costs nothing on a green run (the repo is public, so runner
+    # minutes are free); the price is that a STUCK job is noticed 2 minutes later.
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
