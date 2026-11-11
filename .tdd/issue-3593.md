@@ -1,4 +1,4 @@
 # Plan for #3593 — dispatch.sh reports a bail as silent-exit when the skill-drift note follows the Bailed comment
 
 - [x] `dispatch.exit_line()` returns `bail <issue>` when the newest issue comment is the `Skill drift for the bail above:` note and the comment before it starts `### ⛔ Bailed` (a small unit case, comments faked at the `last_comment`/GitHub boundary, no production change beyond `dispatch.py`) ⟦criterion 1⟧
-- [ ] Pin: dispatch.exit_line() keeps a newest `### ✅ Done — <pr-url>` over an older `### ⛔ Bailed` behind it; the case fails on a mutant of step 1's backward scan without that guard; every guard the step adds is pinned by a case only it decides ⟦criterion 2⟧
+- [ ] `dispatch.exit_line()` returns `done <issue> <pr>` when the comment before the newest one is `### ✅ Done — <pr-url>` and the newest is a non-closing comment that is not the skill-drift note (e.g. a plain follow-up note), where it now returns `silent-exit <issue>` (a small unit case, comments faked at the `last_comment`/`comment_bodies` GitHub boundary, no production change beyond `dispatch.py`) ⟦criterion 2⟧
