@@ -214,6 +214,8 @@ def main(argv):
         if not (text.strip().startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(text), "skill-edit")):
             continue
         unit = unit_of(text)
+        if unit is None and "`" in text:
+            return refuse("add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " "))
         if unit is None:
             return refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
         try:

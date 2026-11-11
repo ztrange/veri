@@ -1620,3 +1620,14 @@ def test_main_refuses_a_trailing_skill_edit_step_whose_unit_file_is_missing_nami
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
 
     assert (code, ".tdd/issue-1.md" in err, "Traceback" in err or "FileNotFoundError" in err, ledger.read_bytes()) == (2, True, False, LEDGER), err
+
+
+def test_main_refuses_a_skill_edit_step_whose_only_backticked_token_is_not_a_path_saying_no_unit_path_was_found_leaving_the_ledger_3564(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "l.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "l-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### skills/tdd/SCRIPTS.md\n")
+    text = "⟦skill-edit⟧ regrade `parked` rows in skills/tdd/SCRIPTS.md"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
+
+    assert (code, out, "no unit path" in err, ledger.read_bytes()) == (2, "", True, LEDGER), err
