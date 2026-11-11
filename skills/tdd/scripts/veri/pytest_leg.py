@@ -42,9 +42,15 @@ def pyc_files(prefix):
                 yield os.path.join(directory, name)
 
 
+REWRITTEN_TAIL = re.compile(r"-pytest-[^/]*\.pyc$")
+
+
 def never_recorded(pyc):
-    name = os.path.basename(pyc)
-    return "-pytest-" in name or ".opt-" in name
+    return ".opt-" in os.path.basename(pyc)
+
+
+def source_path(pyc):
+    return importlib.util.source_from_cache(REWRITTEN_TAIL.sub(".pyc", pyc))
 
 
 def stat_or_none(path):
@@ -55,7 +61,7 @@ def stat_or_none(path):
 
 
 def source_text(pyc):
-    with open(importlib.util.source_from_cache(pyc), "rb") as source:
+    with open(source_path(pyc), "rb") as source:
         return source.read()
 
 
@@ -66,7 +72,20 @@ def source_digest(pyc):
         return None
 
 
+def stamped_with_source_stat(pyc):
+    try:
+        with open(pyc, "rb") as f:
+            header = f.read(16)
+        stat = os.stat(source_path(pyc))
+    except (OSError, ValueError, NotImplementedError):
+        return False
+    stamp = (int(stat.st_mtime) & 0xFFFFFFFF).to_bytes(4, "little") + (stat.st_size & 0xFFFFFFFF).to_bytes(4, "little")
+    return header[:4] == importlib.util.MAGIC_NUMBER and header[8:16] == stamp
+
+
 def compiled_from_current_source(pyc):
+    if REWRITTEN_TAIL.search(pyc):
+        return stamped_with_source_stat(pyc)
     try:
         with open(pyc, "rb") as f:
             cached = marshal.loads(f.read()[16:])
@@ -114,7 +133,7 @@ def record_bytecode_cache(prefix, run):
         if run["snapshot"].get(pyc) == (stat.st_mtime_ns, stat.st_size) or stat.st_mtime_ns < run["start"]:
             continue
         try:
-            if os.stat(importlib.util.source_from_cache(pyc)).st_mtime_ns > run["start"]:
+            if os.stat(source_path(pyc)).st_mtime_ns > run["start"]:
                 continue
         except (OSError, ValueError, NotImplementedError):
             continue
