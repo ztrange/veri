@@ -95,3 +95,20 @@ def test_a_stderr_file_of_more_than_50_lines_carries_exactly_its_last_50(
     assert code == 0
     carried = [f"errline-{i:02d}" for i in range(1, 61) if f"errline-{i:02d}" in out]
     assert carried == [f"errline-{i:02d}" for i in range(11, 61)]
+
+
+def test_a_cause_adjudicate_md_does_not_list_exits_2_with_nothing_on_stdout_and_stderr_naming_it(
+    run_cli, build_adjudicate_prompt, tmp_path
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "wait-ci.err"
+    stderr_file.write_text("killed\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt,
+        ["7", "killed-stuck", "2", str(stderr_file), "wait-ci.sh", "abc1234"],
+        cwd=tmp_path,
+    )
+    assert code == 2
+    assert out == ""
+    assert "killed-stuck" in err
