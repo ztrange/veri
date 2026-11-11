@@ -1815,6 +1815,30 @@ def test_refresh_records_the_since_time_of_status_last_and_the_no_cut_default_0_
     assert (with_file, without_file) == ((0, calendar.timegm((2026, 6, 1, 0, 0, 0))), (0, 0))
 
 
+@pytest.mark.parametrize("content", ["{not json", "{}", '{"time": "yesterday"}'])
+def test_refresh_with_a_malformed_status_last_still_writes_the_cache_with_the_no_cut_default_and_exits_0(run_cli, monkeypatch, tmp_path, content):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "status-last").write_text(content)
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[0] == "git":
+            return subprocess.CompletedProcess(args, 0, "", "")
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    assert (code, cache.get("since"), cache.get("landed")) == (0, 0, [])
+
+
 def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issues_fetches_incrementally_and_writes_the_record(run_cli, monkeypatch, tmp_path):
     import json
     import subprocess
