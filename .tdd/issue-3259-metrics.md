@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 3259
 
-Wall time for the issue: 2042 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 505 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 13 of 15 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3594.
+Steps done: 16 of 20 planned.
+Outcome: the run bailed — needs-user, a process failure.
 Lane: ready-for-agent:mu
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $18.49 over 374 turns, in 7 sessions, on opus (estimate).
+Conductor own spending: $23.21 over 462 turns, in 9 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 79020 tokens, largest 141883 tokens
 Conductor context: first turn 79094 tokens, largest 147029 tokens
@@ -14,7 +14,9 @@ Conductor context: first turn 79094 tokens, largest 152631 tokens
 Conductor context: first turn 79094 tokens, largest 146578 tokens
 Conductor context: first turn 79094 tokens, largest 143932 tokens
 Conductor context: first turn 79134 tokens, largest 142509 tokens
-Conductor context: first turn 79093 tokens, largest 146884 tokens
+Conductor context: first turn 79093 tokens, largest 149429 tokens
+Conductor context: first turn 79093 tokens, largest 143869 tokens
+Conductor context: first turn 79265 tokens, largest 125843 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -353,45 +355,132 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 330 | $0.04 | 141000 |
 | 331 | $0.05 | 142144 |
 | 332 | $0.04 | 142509 |
-| 333 | $0.50 | 79093 |
+| 333 | $0.51 | 79093 |
 | 334 | $0.07 | 85242 |
-| 335 | $0.04 | 87488 |
-| 336 | $0.05 | 91840 |
+| 335 | $0.05 | 87488 |
+| 336 | $0.06 | 91840 |
 | 337 | $0.04 | 94112 |
-| 338 | $0.03 | 95471 |
-| 339 | $0.02 | 95973 |
-| 340 | $0.02 | 96474 |
-| 341 | $0.02 | 96826 |
-| 342 | $0.02 | 97284 |
-| 343 | $0.02 | 97733 |
-| 344 | $0.02 | 98387 |
-| 345 | $0.06 | 103009 |
+| 338 | $0.04 | 95471 |
+| 339 | $0.03 | 95973 |
+| 340 | $0.04 | 96474 |
+| 341 | $0.03 | 96826 |
+| 342 | $0.03 | 97284 |
+| 343 | $0.03 | 97733 |
+| 344 | $0.03 | 98387 |
+| 345 | $0.07 | 103009 |
 | 346 | $0.03 | 103621 |
-| 347 | $0.03 | 104301 |
-| 348 | $0.03 | 105284 |
+| 347 | $0.04 | 104301 |
+| 348 | $0.04 | 105284 |
 | 349 | $0.03 | 105820 |
-| 350 | $0.02 | 106274 |
-| 351 | $0.03 | 106970 |
-| 352 | $0.03 | 107720 |
+| 350 | $0.03 | 106274 |
+| 351 | $0.04 | 106970 |
+| 352 | $0.04 | 107720 |
 | 353 | $0.03 | 108504 |
-| 354 | $0.03 | 109693 |
-| 355 | $0.15 | 125525 |
-| 356 | $0.03 | 125910 |
+| 354 | $0.04 | 109693 |
+| 355 | $0.16 | 125525 |
+| 356 | $0.04 | 125910 |
 | 357 | $0.03 | 126280 |
-| 358 | $0.03 | 127009 |
-| 359 | $0.03 | 127496 |
-| 360 | $0.03 | 127783 |
-| 361 | $0.03 | 128138 |
+| 358 | $0.04 | 127009 |
+| 359 | $0.04 | 127496 |
+| 360 | $0.04 | 127783 |
+| 361 | $0.04 | 128138 |
 | 362 | $0.11 | 138120 |
-| 363 | $0.03 | 138868 |
-| 364 | $0.04 | 139797 |
+| 363 | $0.04 | 138868 |
+| 364 | $0.05 | 139797 |
 | 365 | $0.04 | 141137 |
-| 366 | $0.04 | 142099 |
+| 366 | $0.05 | 142099 |
 | 367 | $0.05 | 144416 |
-| 368 | $0.03 | 145031 |
+| 368 | $0.05 | 145031 |
 | 369 | $0.04 | 146131 |
-| 370 | $0.03 | 146561 |
-| 371 | $0.03 | 146884 |
+| 370 | $0.04 | 146561 |
+| 371 | $0.05 | 146884 |
+| 372 | $0.04 | 147321 |
+| 373 | $0.04 | 147644 |
+| 374 | $0.04 | 148161 |
+| 375 | $0.05 | 149039 |
+| 376 | $0.04 | 149429 |
+| 377 | $0.50 | 79093 |
+| 378 | $0.08 | 85227 |
+| 379 | $0.05 | 88726 |
+| 380 | $0.04 | 90541 |
+| 381 | $0.06 | 94356 |
+| 382 | $0.03 | 94715 |
+| 383 | $0.03 | 95099 |
+| 384 | $0.03 | 95349 |
+| 385 | $0.04 | 95817 |
+| 386 | $0.03 | 96183 |
+| 387 | $0.03 | 96797 |
+| 388 | $0.07 | 101357 |
+| 389 | $0.03 | 101932 |
+| 390 | $0.04 | 102613 |
+| 391 | $0.03 | 103015 |
+| 392 | $0.03 | 103329 |
+| 393 | $0.04 | 104630 |
+| 394 | $0.05 | 106412 |
+| 395 | $0.03 | 107054 |
+| 396 | $0.04 | 107604 |
+| 397 | $0.03 | 108269 |
+| 398 | $0.07 | 112905 |
+| 399 | $0.04 | 113280 |
+| 400 | $0.04 | 113940 |
+| 401 | $0.03 | 114393 |
+| 402 | $0.04 | 115736 |
+| 403 | $0.04 | 116153 |
+| 404 | $0.04 | 116826 |
+| 405 | $0.03 | 117075 |
+| 406 | $0.04 | 117779 |
+| 407 | $0.04 | 118975 |
+| 408 | $0.04 | 119709 |
+| 409 | $0.04 | 120076 |
+| 410 | $0.04 | 120849 |
+| 411 | $0.04 | 121342 |
+| 412 | $0.05 | 123868 |
+| 413 | $0.04 | 124859 |
+| 414 | $0.04 | 125523 |
+| 415 | $0.05 | 126632 |
+| 416 | $0.04 | 127909 |
+| 417 | $0.06 | 130394 |
+| 418 | $0.05 | 132763 |
+| 419 | $0.05 | 134638 |
+| 420 | $0.05 | 135864 |
+| 421 | $0.04 | 136321 |
+| 422 | $0.04 | 137318 |
+| 423 | $0.05 | 137894 |
+| 424 | $0.04 | 138913 |
+| 425 | $0.04 | 139577 |
+| 426 | $0.06 | 141979 |
+| 427 | $0.04 | 142552 |
+| 428 | $0.04 | 143065 |
+| 429 | $0.05 | 143869 |
+| 430 | $0.49 | 79265 |
+| 431 | $0.07 | 85421 |
+| 432 | $0.05 | 88925 |
+| 433 | $0.06 | 94051 |
+| 434 | $0.06 | 99815 |
+| 435 | $0.02 | 100171 |
+| 436 | $0.02 | 100681 |
+| 437 | $0.02 | 101006 |
+| 438 | $0.02 | 101391 |
+| 439 | $0.02 | 101853 |
+| 440 | $0.03 | 102562 |
+| 441 | $0.03 | 103237 |
+| 442 | $0.03 | 103933 |
+| 443 | $0.02 | 104347 |
+| 444 | $0.02 | 104644 |
+| 445 | $0.03 | 105406 |
+| 446 | $0.03 | 106839 |
+| 447 | $0.03 | 107730 |
+| 448 | $0.02 | 108093 |
+| 449 | $0.03 | 108776 |
+| 450 | $0.02 | 109141 |
+| 451 | $0.03 | 109809 |
+| 452 | $0.03 | 111181 |
+| 453 | $0.06 | 115945 |
+| 454 | $0.03 | 116554 |
+| 455 | $0.03 | 117006 |
+| 456 | $0.05 | 120135 |
+| 457 | $0.03 | 120836 |
+| 458 | $0.06 | 125843 |
 
 #### Conductor comments, by family
 
@@ -408,22 +497,22 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🗺️ Plan | 0 | 0 | $0.00 |
 | 🗺️ verify-plan | 0 | 0 | $0.00 |
 | ▶️ Resuming | 0 | 0 | $0.00 |
-| ⛔ Bailed | 2 | 856 | $0.02 |
-| ⏹️ Stopped | 7 | 3196 | $0.06 |
-| Total | 8 | 3582 | $0.07 |
+| ⛔ Bailed | 3 | 1294 | $0.03 |
+| ⏹️ Stopped | 9 | 4109 | $0.08 |
+| Total | 10 | 4495 | $0.09 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 8 | 7 | 1 | 0 | 152 | 135 | 26 | 52 | 14835 | 405947 | 180194 | 0.64 |
-| red | 25 | 10 | 0 | 0 | 798 | 456 | 124 | 244 | 45766 | 2397015 | 534428 | 2.32 |
-| green | 28 | 10 | 4 | 0 | 1804 | 387 | 132 | 258 | 37872 | 2300694 | 444518 | 1.80 |
-| refactor | 14 | 3 | 0 | 0 | 237 | 106 | 41 | 82 | 9027 | 591710 | 236089 | 0.84 |
+| plan | 11 | 9 | 2 | 0 | 199 | 174 | 32 | 64 | 19202 | 483584 | 249402 | 0.86 |
+| red | 29 | 12 | 0 | 0 | 970 | 508 | 142 | 280 | 50667 | 2737364 | 624785 | 2.63 |
+| green | 31 | 11 | 4 | 0 | 2294 | 435 | 149 | 290 | 42284 | 2596722 | 496418 | 2.00 |
+| refactor | 16 | 4 | 0 | 0 | 323 | 129 | 49 | 98 | 11027 | 731195 | 269685 | 0.96 |
 | red-missing | 3 | 0 | 0 | 0 | 73 | 60 | 14 | 28 | 6741 | 271974 | 61874 | 0.25 |
 | pin | 5 | 5 | 0 | 0 | 109 | 80 | 21 | 40 | 7893 | 317900 | 80759 | 0.31 |
-| diff | 2 | 1 | 0 | 0 | 493 | 41 | 14 | 28 | 3561 | 245778 | 44539 | 0.17 |
+| diff | 6 | 3 | 0 | 0 | 774 | 99 | 33 | 62 | 9720 | 538404 | 110355 | 0.43 |
 | prose | 10 | 0 | 0 | 0 | 121 | 98 | 10 | 20 | 15289 | 38440 | 110064 | 0.43 |
 | skill-edit | 2 | 0 | 0 | 0 | 24 | 20 | 9 | 14 | 2289 | 110829 | 37910 | 0.13 |
 | predicate | 1 | 0 | 0 | 0 | 10 | 7 | 3 | 6 | 539 | 34695 | 17858 | 0.05 |
@@ -435,8 +524,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 42 | 37 | 5 | 0 | 2262 | 598 | 171 | 336 | 58012 | 2724289 | 706255 | 2.62 |
-| developer | claude-sonnet-5-5 | 37 | 0 | 0 | 0 | 1154 | 512 | 172 | 334 | 53604 | 3192026 | 720619 | 2.66 |
+| verifier | claude-sonnet-5-5 | 51 | 45 | 6 | 0 | 2763 | 702 | 198 | 390 | 67847 | 3134121 | 870637 | 3.17 |
+| developer | claude-sonnet-5-5 | 44 | 0 | 0 | 0 | 1729 | 628 | 213 | 410 | 65608 | 3928319 | 867114 | 3.22 |
 | developer | claude-opus-5-5 | 10 | 0 | 0 | 0 | 319 | 205 | 50 | 100 | 19207 | 907662 | 223719 | 1.31 |
 
 #### Rework and waste, by phase
@@ -444,8 +533,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 84 | 0.23 |
-| green | 974 | 0.94 | 186 | 0.27 |
+| red | 0 | 0.00 | 165 | 0.37 |
+| green | 974 | 0.94 | 477 | 0.35 |
 | refactor | 0 | 0.00 | 138 | 0.36 |
 | red-missing | 0 | 0.00 | 25 | 0.08 |
 | pin | 0 | 0.00 | 42 | 0.12 |
@@ -456,6 +545,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | cover | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
+| develop-green | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -476,6 +566,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `skills/tdd/JOURNAL.md`'s `comment` event row names the two new kinds comment.sh posts, `bailed` and `stopped`, beside the existing ones ⟦diff-checked⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 41 | 14 | 28 | 3561 | 245778 | 44539 | 0.17 | 563 | n/a | n/a | n/a |  |  | full |
 | `skills/tdd/BAIL.md` passes BL31 and BL37 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 52 | 10 | 16 | 7463 | 86895 | 71460 | 0.26 | 94 | unknown | unknown | unknown |  |  | full |
 | `skills/tdd/STOPPING.md` passes SP18 of this issue's `## Requirements`, regraded ⟦skill-edit⟧ ⟦criterion 4⟧ | 9 | 1 | 0 | 0 | 0 | 0 | 91 | 28 | 52 | 10993 | 352063 | 116046 | 0.44 | 67 | unknown | unknown | unknown |  |  | full |
+| A bare `comment.sh <issue> stopped` (no `--note-file`) posts the `### ⏹️ Stopped — <mode>` comment with the same body as with `--note-file` minus the note, and `--note-file <path>` still works; the case lives in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fakes only the GitHub boundary; the fix is in `main()` of `skills/tdd/scripts/veri/comment.py` ⟦added⟧ ⟦criterion 6⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 80 | 29 | 56 | 6972 | 524467 | 116337 | 0.41 | 577 | unknown | 1/5 | nothing-structural |  |  | full |
+| Test-only, no production change: the older case `test_no_argument_prints_the_usage_line_on_stderr_and_exits_2` in `skills/tdd/scripts/tests/py/unit/test_comment.py` (its module-level `USAGE` constant and its shim-comment assertion) stops pinning the `comment.sh` usage line verbatim and instead asserts that the no-argument call exits 2 with empty stdout and a single stderr line starting `usage: comment.sh <issue> <kind>` that names `--note-file`, and that the shim `skills/tdd/scripts/comment.sh` carries a `# usage: comment.sh <issue> <kind>` comment line naming `--note-file`, so the usage step below can add kinds without turning it red ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 28 | 10 | 16 | 3081 | 139246 | 33143 | 0.13 | 262 | n/a | n/a | n/a |  |  | full |
+| Test-only, no production change: the five other cases in `skills/tdd/scripts/tests/py/unit/test_comment.py` that compare stderr to the module-level `USAGE` constant verbatim (`test_note_file_without_exactly_one_path_exits_2_with_usage_posting_and_journaling_nothing`, `test_four_arguments_whose_third_is_not_note_file_exit_2_with_usage_posting_and_journaling_nothing` and the three others at the `err == USAGE` / `(2, USAGE)` / `(2, "", USAGE)` assertions) instead assert exit 2, empty stdout where they checked it, and a single stderr line starting `usage: comment.sh <issue> <kind>` that names `--note-file`, keeping every other assertion, so the usage step below can add kinds without turning them red ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 9 | 18 | 3078 | 153380 | 32673 | 0.13 | 242 | n/a | n/a | n/a |  |  | full |
+| The usage string `comment.sh` prints on stderr with exit 2 (`USAGE` in `skills/tdd/scripts/veri/comment.py:17` and the comments in `skills/tdd/scripts/comment.sh`) names `bailed`, `stopped` and `--pr` beside the existing kinds and `--note-file`; a small case in `skills/tdd/scripts/tests/py/unit/test_comment.py` asserts the three words in the usage output of a bad call ⟦added⟧ ⟦criterion 7⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 43 | 14 | 28 | 4341 | 251395 | 59516 | 0.22 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -493,6 +587,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `comment.sh <issue> stopped`, when the event just before the last `stop` event in `.tdd/events.jsonl` is a `push-rejected` event, carries the line `push=rejected sha=<remote-sha>`, `<remote-sha>` that event's `remote_sha`, and carries no `push=rejected` line otherwise; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.04 |
 | `comment.sh <issue> stopped`, when `.tdd/restart-pending` holds the pid of a live process, posts a comment whose first line is still `### ⏹️ Stopped — <mode>` and which says the conductor is being restarted for context growth, with no wording that an operator asked for the stop and no `run-conductor.sh` resume command; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 5⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 47 | 0.10 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 6 | 0.05 |
+| A bare `comment.sh <issue> stopped` (no `--note-file`) posts the `### ⏹️ Stopped — <mode>` comment with the same body as with `--note-file` minus the note, and `--note-file <path>` still works; the case lives in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fakes only the GitHub boundary; the fix is in `main()` of `skills/tdd/scripts/veri/comment.py` ⟦added⟧ ⟦criterion 6⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 86 | 0.12 |
 
 #### Structural pass
 
@@ -514,18 +609,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `comment.sh <issue> stopped`, when the event just before the last `stop` event in `.tdd/events.jsonl` is a `push-rejected` event, carries the line `push=rejected sha=<remote-sha>`, `<remote-sha>` that event's `remote_sha`, and carries no `push=rejected` line otherwise; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `comment.sh <issue> stopped`, when `.tdd/restart-pending` holds the pid of a live process, posts a comment whose first line is still `### ⏹️ Stopped — <mode>` and which says the conductor is being restarted for context growth, with no wording that an operator asked for the stop and no `run-conductor.sh` resume command; its cases live in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fake only the GitHub boundary ⟦criterion 5⟧ | 1 | 1 | 0 | nothing-left 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py ⟦suite-repair⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 11 | 3 | 8 | candidates-done 1, nothing-left 9, structural-owed 1 |
+| A bare `comment.sh <issue> stopped` (no `--note-file`) posts the `### ⏹️ Stopped — <mode>` comment with the same body as with `--note-file` minus the note, and `--note-file <path>` still works; the case lives in `skills/tdd/scripts/tests/py/unit/test_comment.py` and fakes only the GitHub boundary; the fix is in `main()` of `skills/tdd/scripts/veri/comment.py` ⟦added⟧ ⟦criterion 6⟧ | 1 | 1 | 0 | nothing-structural 1 |
+| issue | 12 | 4 | 8 | candidates-done 1, nothing-left 9, nothing-structural 1, structural-owed 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 202 | 203 | 2 | 2 | 1 | 1 | 1 |  |  |  |  |  |  |
-| fast | 21 | 23 | 24 | 23 | 21 | 22 | 21 | 21 | 23 | 21 | 22 | 22 | 23 | 22 | 22 | 22 | 23 | 24 | 24 | 23 | 23 | 23 | 22 | 22 | 22 | 22 | 21 | 22 | 22 | 21 | 22 | 21 | 22 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 0 | 1 | 1 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 2 | 2 | 1 | 1 | 2 | 2 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 202 | 203 | 2 | 2 | 1 | 1 | 1 | 3 | 2 | 2 | 1 | 2 | 2 | 2 | 1 | 2 | 2 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |
+| fast | 21 | 23 | 24 | 23 | 21 | 22 | 21 | 21 | 23 | 21 | 22 | 22 | 23 | 22 | 22 | 22 | 23 | 24 | 24 | 23 | 23 | 23 | 22 | 22 | 22 | 22 | 21 | 22 | 22 | 21 | 22 | 21 | 22 | 57 | 52 | 55 | 51 | 52 | 52 | 52 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 2 | 1 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 1 | 2 | 1 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 412 | 804 | 148401 | 6973246 | 1798567 | 25.64 (estimate) |
+| total | 480 | 934 | 170240 | 8119371 | 2109444 | 31.46 (estimate) |
