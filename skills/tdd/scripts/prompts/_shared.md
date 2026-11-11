@@ -23,7 +23,8 @@ your investigation tight and on-task.
 {{INCLUDE:_leaf-safety.md}}
 
 End your output with EXACTLY these two lines and nothing after them — no surrounding code
-fence, no extra formatting:
+fence, no extra formatting. This contract is restated at the very end of the prompt, so you
+may rely on that closing reminder being the last thing you read:
 
 VERDICT: PASS        (or REJECT)
 REASON: <the objective result plus the judgement behind it, in one or two sentences — or one item per line where a check below asks for that>
