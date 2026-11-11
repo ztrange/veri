@@ -1,0 +1,7 @@
+# Plan for #3627 — release-issue.sh returns a preflight-refused claim to the queue, not only a parked or bailed issue
+
+- [ ] `release-issue.sh <n>` on an issue carrying this lane's `taken:<lane>`, no opt-in label and a `### ⛔ Preflight refused` comment (neither `parked` nor `bailed`) adds the opt-in label, removes this lane's claim and exits 0; the in-process `release` fixture of `skills/tdd/scripts/tests/py/unit/test_release_issue.py` fakes the issue's comments, none by default, so its existing cases keep their outcomes ⟦criterion 1⟧
+- [ ] Run again after a write `gh` did not answer partway through releasing a preflight-refused issue, `release-issue.sh <n>` finishes the same release (opt-in label present, this lane's claim gone) and exits 0 ⟦criterion 1⟧
+- [ ] An issue with no opt-in label and a `### ⛔ Preflight refused` comment, neither parked nor bailed, carrying another lane's `taken:` label makes `release-issue.sh <n>` exit 2 with nothing written ⟦criterion 2⟧
+- [ ] An issue carrying this lane's `taken:` label and no opt-in label that is not parked, not bailed and has no `### ⛔ Preflight refused` comment still makes `release-issue.sh <n>` exit 3 with nothing written ⟦criterion 2⟧
+- [ ] `skills/tdd/SCRIPTS.md`: the `$S/release-issue.sh` entry states that a preflight-refused issue (this lane's `taken:` label, no opt-in label, a `### ⛔ Preflight refused` comment) is released too, and its exit codes (0 released, 2 another lane's claim, 3 neither parked, bailed nor preflight-refused), per SC102 ⟦skill-edit⟧ ⟦criterion 3⟧
