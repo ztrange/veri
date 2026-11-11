@@ -304,3 +304,16 @@ def test_3427_reopen_skips_header_and_prose_lines_holding_the_needle_and_reopens
         0,
         "# Plan for #42: regrade the scripts doc\n\nWe regrade it after review.\n"
         "- [ ] ⟦skill-edit⟧ regrade the doc change: a change ⟦added⟧ ⟦criterion 1⟧\n")
+
+
+def test_3427_reopen_of_a_passed_skill_edit_step_already_marked_added_keeps_exactly_one_added_mark(
+        tmp_path, run_cli, ledger_growth):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n"
+        "- [x] ⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 ⟦added⟧ ⟦criterion 2⟧ ⟂ refactor pending\n")
+    code = run_cli(ledger_growth, ["reopen", str(ledger), "regrade", "extend it"])[0]
+    step = "⟦skill-edit⟧ regrade `skills/tdd/SCRIPTS.md` against A1 change: extend it ⟦added⟧ ⟦criterion 2⟧"
+    added = tmp_path / "issue-42-added.md"
+    assert (code, ledger.read_text(), added.read_text() if added.exists() else None) == (
+        0, "# Plan for #42\n\n- [ ] " + step + "\n", "- [ ] " + step + "\n")

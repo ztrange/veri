@@ -112,6 +112,7 @@ def reopen(ledger, needle, change):
             continue
         body = match.group(4).split(" ⟂ ", 1)[0]
         head, tag, k = body.rpartition(" " + CRITERION_TAG)
+        head = head.removesuffix(" " + ADDED_MARK)
         step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
         lines[i] = f"- [ ] {step}"
         replace_ledger(ledger, "\n".join(lines))
