@@ -1,6 +1,7 @@
 """In-process cases for veri/comment.py, the module comment.sh is a shim over."""
 import importlib
 import json
+import os
 import re
 
 from conftest import SCRIPTS
@@ -1645,3 +1646,67 @@ def test_stopped_carries_the_push_rejected_line_when_a_push_rejected_event_prece
 
     assert code == 0, err
     assert "push=rejected sha=abc1234def" in posted[0][1].splitlines()
+
+
+def test_stopped_says_the_conductor_is_restarting_for_context_growth_with_no_operator_wording_or_resume_command_when_restart_pending_names_a_live_pid(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    (tmp_path / ".tdd" / "restart-pending").write_text(f"{os.getpid()}\n")
+    note = tmp_path / "note.txt"
+    note.write_text("dropped\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### ⏹️ Stopped — graceful"
+    assert "restart" in body
+    assert "context growth" in body
+    assert "operator" not in body
+    assert "run-conductor.sh" not in body
+
+
+def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_restart_pending_names_a_dead_pid(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    (tmp_path / ".tdd" / "restart-pending").write_text("2147483646\n")
+    note = tmp_path / "note.txt"
+    note.write_text("dropped\n")
+
+    code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+
+    assert code == 0, err
+    body = posted[0][1]
+    assert body.splitlines()[0] == "### ⏹️ Stopped — graceful"
+    assert any(line.endswith("/run-conductor.sh 7") for line in body.splitlines())
+    assert "context growth" not in body
+
+
+def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_restart_pending_holds_garbage_or_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    note = tmp_path / "note.txt"
+    note.write_text("dropped\n")
+
+    for content in ("not-a-pid\n", ""):
+        (tmp_path / ".tdd" / "restart-pending").write_text(content)
+        code, out, err = run_cli(comment, ["7", "stopped", "--note-file", str(note)], cwd=tmp_path)
+        assert code == 0, err
+
+    assert len(posted) == 2
+    for _, body in posted:
+        assert body.splitlines()[0] == "### ⏹️ Stopped — graceful"
+        assert any(line.endswith("/run-conductor.sh 7") for line in body.splitlines())
+        assert "context growth" not in body

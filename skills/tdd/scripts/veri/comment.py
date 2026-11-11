@@ -229,6 +229,15 @@ def post_bailed(issue, note_file, pr=False):
     return post_and_record(issue, "bailed", with_note(heading, note_file), target=target)
 
 
+def restart_pending():
+    try:
+        with open(".tdd/restart-pending") as f:
+            os.kill(int(f.read().strip()), 0)
+    except (OSError, ValueError):
+        return False
+    return True
+
+
 def post_stopped(issue, note_file):
     stop = last_event("stop")
     if stop is None:
@@ -242,6 +251,9 @@ def post_stopped(issue, note_file):
     before = event_before_last("stop")
     if before is not None and before.get("event") == "push-rejected":
         body += f"push=rejected sha={before['remote_sha']}\n"
+    if restart_pending():
+        body += "The conductor is being restarted for context growth.\n"
+        return post_and_record(issue, "stopped", with_note(body, note_file))
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
     return post_and_record(issue, "stopped", with_note(body, note_file))
