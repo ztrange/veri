@@ -94,7 +94,7 @@ def test_revise_red_for_a_verify_pin_reason_red_on_the_before_state_with_a_survi
     assert (code, bool(out), b"pin-reject-route.sh" in err) == (0, True, False)
 
 
-def test_revise_red_for_a_verify_pin_reason_naming_a_green_before_state_without_stays_green_still_builds_the_prompt_3458(
+def test_revise_red_for_a_verify_pin_reason_naming_a_green_before_state_without_stays_green_is_refused_3644(
         tmp_path, capsysbinary):
     build_develop_prompt = importlib.import_module("veri.build_develop_prompt")
     spec = tmp_path / "spec.md"

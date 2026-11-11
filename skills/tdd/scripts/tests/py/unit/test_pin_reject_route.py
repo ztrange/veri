@@ -351,7 +351,7 @@ def test_main_missing_reroute_target_red_on_before_state_but_mutant_stays_green_
         1, "revise", body.encode(), False), err
 
 
-def test_main_missing_reroute_before_state_green_without_stays_green_is_retired_already_holds_not_unpinnable_missing_3458(
+def test_main_missing_reroute_before_state_green_without_stays_green_routes_unpinnable_missing_3644(
         tmp_path, run_cli, pin_reject_route):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
