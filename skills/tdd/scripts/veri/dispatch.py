@@ -74,9 +74,14 @@ def launch(issue):
                              stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
-def last_comment(issue):
+def comment_bodies(issue):
     comments = json_documents.items(github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"))
-    return comments[-1]["body"] if comments else ""
+    return [comment["body"] for comment in comments]
+
+
+def last_comment(issue):
+    bodies = comment_bodies(issue)
+    return bodies[-1] if bodies else ""
 
 
 def queued_merges():
@@ -183,7 +188,10 @@ def launchable(issue, changed, reported):
 
 
 def exit_line(issue):
-    heading = next(iter(last_comment(issue).splitlines()), "")
+    body = last_comment(issue)
+    if body.startswith("Skill drift for the bail above:"):
+        body = comment_bodies(issue)[-2]
+    heading = next(iter(body.splitlines()), "")
     if heading.startswith("### ⛔ Bailed"):
         return f"bail {issue}"
     if not heading.startswith("### ✅ Done"):
