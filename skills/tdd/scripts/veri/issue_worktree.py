@@ -152,7 +152,7 @@ def main(argv):
         removed = subprocess.run(["git", "worktree", "remove", path], stdout=sys.stderr, stderr=sys.stderr)
         if removed.returncode == 0 and ours:
             shutil.rmtree(snapshot, ignore_errors=True)
-        elif removed.returncode == 0 and snapshot:
+        elif removed.returncode == 0 and snapshot and not (os.path.isabs(snapshot) and "\n" not in snapshot and not os.path.lexists(snapshot)):
             sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (snapshot, path))
         return to_contract(removed.returncode)
     path = wt_path(main_tree, argv[0])
