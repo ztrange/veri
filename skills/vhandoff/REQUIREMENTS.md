@@ -10,3 +10,4 @@
 | H6 | It is ≤40 lines, and every item names its issue number and title. | |
 | H7 | It stops no conductor. | Conductors are detached and outlive both sessions. |
 | H8 | It prints the resume command in a fenced block. | |
+| H9 | The dev handoff also carries the attached coordinator's session id, if one is attached. | 2026-11-11: a resumed dev session narrated to the human after every `/vhandoff dev` reset and only went silent once the human pointed out the coordinator. |
