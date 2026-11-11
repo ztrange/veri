@@ -12,6 +12,7 @@ import tunables
 from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
+from pin_reject_route import BEFORE_STATE_GREEN
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
@@ -99,7 +100,9 @@ def main(argv):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return _refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
     if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
-            and re.search(rb"^REASON:(?=.*stays green)(?=.*before-state)", _read(args[3]), re.MULTILINE)):
+            and any("stays green" in line and BEFORE_STATE_GREEN.search(line)
+                    for line in _read(args[3]).decode("utf-8", "replace").splitlines()
+                    if line.startswith("REASON:"))):
         return _refuse("build-develop-prompt: a verify-pin rejection saying 'stays green' is routed "
                        "by pin-reject-route.sh, not revised")
     prompts = f"{HERE}/prompts"
