@@ -12,6 +12,15 @@ def mutation_probe():
     return importlib.import_module("veri.mutation_probe")
 
 
+def red_under_mutation(module, target):
+    original = target.read_bytes()
+
+    def fake(*a, **k):
+        return module.subprocess.CompletedProcess(a, 0 if target.read_bytes() == original else 1)
+
+    return fake
+
+
 def test_main_with_no_argument_prints_the_usage_line_and_exits_2(run_cli, mutation_probe):
     code, out, err = run_cli(mutation_probe, [])
     assert code == 2
@@ -73,7 +82,7 @@ def test_main_leaves_the_file_byte_identical_and_no_copy_beside_it_when_the_suit
     target = tmp_path / "target.txt"
     target.write_bytes(b"alpha\r\nbeta\n")
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     code, out, err = run_cli(mutation_probe, [str(target), "alpha", "gamma", "--", "false"])
     assert code == 0
@@ -88,7 +97,7 @@ def test_main_appends_file_old_new_and_command_with_their_newlines_to_the_record
     target.write_text("head\nalpha\nbeta\ntail\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     old, new, command = "alpha\nbeta", "gamma\ndelta\n", "check one\ntwo"
     code, out, err = run_cli(
@@ -126,7 +135,7 @@ def test_main_appends_nothing_to_the_record_when_the_file_was_not_mutated_and_ex
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     code, out, err = run_cli(
         mutation_probe,
@@ -146,7 +155,7 @@ def test_main_records_a_bash_c_probe_with_its_script_as_one_quoted_word_2877(
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     script = "pytest -k 'that shell's own job'"
     argv = ["bash", "-c", script]
@@ -171,7 +180,7 @@ def test_main_records_only_the_test_command_when_the_probe_runs_through_timed_te
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     wrapper = str(Path(mutation_probe.__file__).resolve().parent.parent / "timed-test-run.sh")
     test_command = ["make", "test", "TESTS=tests/py/unit/test_a.py tests/py/unit/test_b.py"]
@@ -201,7 +210,7 @@ def test_main_recognises_the_wrapper_when_the_module_itself_is_reached_through_a
     target = tmp_path / "target.txt"
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
-    monkeypatch.setattr(via_link.subprocess, "run", lambda *a, **k: via_link.subprocess.CompletedProcess(a, 1))
+    monkeypatch.setattr(via_link.subprocess, "run", red_under_mutation(via_link, target))
     wrapper = str(Path(mutation_probe.__file__).resolve().parent.parent / "timed-test-run.sh")
     test_command = ["make", "test", "TESTS=tests/py/unit/test_a.py"]
     code, out, err = run_cli(
@@ -244,10 +253,11 @@ def test_main_accepts_and_records_an_outside_address_when_the_address_domain_is_
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
     calls = []
+    red = red_under_mutation(mutation_probe, target)
 
     def fake_run(*a, **k):
         calls.append(target.read_text())
-        return mutation_probe.subprocess.CompletedProcess(a, 1)
+        return red(*a, **k)
 
     monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
     code, out, err = run_cli(
@@ -270,10 +280,11 @@ def test_main_accepts_and_records_an_on_domain_or_addressless_new_when_the_addre
     target.write_text("alpha\n")
     record = tmp_path / "mutations.md"
     calls = []
+    red = red_under_mutation(mutation_probe, target)
 
     def fake_run(*a, **k):
         calls.append(target.read_text())
-        return mutation_probe.subprocess.CompletedProcess(a, 1)
+        return red(*a, **k)
 
     monkeypatch.setattr(mutation_probe.subprocess, "run", fake_run)
     code, out, err = run_cli(
@@ -383,7 +394,7 @@ def test_main_records_the_full_source_line_holding_the_old_text_as_context_3331(
     target.write_text("head\n    if done: break  # stop\ntail\n")
     record = tmp_path / "mutations.md"
     monkeypatch.setattr(
-        mutation_probe.subprocess, "run", lambda *a, **k: mutation_probe.subprocess.CompletedProcess(a, 1)
+        mutation_probe.subprocess, "run", red_under_mutation(mutation_probe, target)
     )
     line = "    if done: break  # stop"
     code, out, err = run_cli(
