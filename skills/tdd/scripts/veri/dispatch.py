@@ -189,8 +189,10 @@ def launchable(issue, changed, reported):
 
 def exit_line(issue):
     body = last_comment(issue)
-    if body.startswith("Skill drift for the bail above:"):
-        body = comment_bodies(issue)[-2]
+    if not body.startswith(("### ⛔ Bailed", "### ✅ Done")):
+        bodies = comment_bodies(issue)
+        if len(bodies) > 1:
+            body = bodies[-2]
     heading = next(iter(body.splitlines()), "")
     if heading.startswith("### ⛔ Bailed"):
         return f"bail {issue}"
