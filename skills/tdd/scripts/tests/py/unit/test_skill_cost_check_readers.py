@@ -4,6 +4,8 @@ import re
 
 import pytest
 
+from conftest import mentioned_names
+
 TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
 HEADING = "#### The step's cost check"
@@ -52,10 +54,7 @@ def _readers(entry, subsection, rest):
     definitions = entry.walk.definitions
     segments = {d.name: d.segment for d in definitions}
     literals = {d.name: d.literals for d in definitions}
-    calls = {
-        name: {o for o in segments if o != name and re.search(r"\b%s\b" % re.escape(o), src)}
-        for name, src in segments.items()
-    }
+    calls = mentioned_names(segments)
 
     def reach(name):
         seen, todo = {name}, [name]
