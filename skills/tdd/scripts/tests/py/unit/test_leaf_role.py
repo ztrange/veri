@@ -249,3 +249,10 @@ def test_main_maps_grade_prose_to_the_grader_role_with_0_and_nothing_on_stderr_1
     code = leaf_role.main(["grade-prose"])
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (0, "VERI_ACTOR=grader VERI_PHASE=prose VERI_ATTEMPT=1\n", "")
+
+
+def test_main_maps_adjudicate_ci_timeout_to_the_adjudicator_actor_with_0(capsys, leaf_role):
+    code = leaf_role.main(["adjudicate-ci-timeout"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (
+        0, "VERI_ACTOR=adjudicator VERI_PHASE=ci-timeout VERI_ATTEMPT=1\n", "")
