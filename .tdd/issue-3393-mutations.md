@@ -48,3 +48,21 @@ ICAgICAgICBmIkNhdXNlOiB7Y2F1c2V9XG5Db21tYW5kOiB7JyAnLmpvaW4oY29tbWFuZCl9XG5FeGl0
 command 128
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_the_prompt_carries_the_exit_code_argument
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 64
+skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_a_cause_whose_bullet_lists_route_tokens_prints_them_unquoted_and_comma_separated
+
+file 50
+skills/tdd/scripts/veri/build_adjudicate_prompt.py
+old-b64 120
+cm91dGVzID0gIiwgIi5qb2luKHJlLmZpbmRhbGwociJgKFteYF0rKWAiLCBlbGlnaWJsZVtjYXVzZV0pKSBvciBlbGlnaWJsZVtjYXVzZV0uc3RyaXAoKQ==
+new-b64 44
+cm91dGVzID0gZWxpZ2libGVbY2F1c2VdLnN0cmlwKCk=
+context-b64 124
+ICAgIHJvdXRlcyA9ICIsICIuam9pbihyZS5maW5kYWxsKHIiYChbXmBdKylgIiwgZWxpZ2libGVbY2F1c2VdKSkgb3IgZWxpZ2libGVbY2F1c2VdLnN0cmlwKCk=
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_build_adjudicate_prompt.py::test_a_cause_whose_bullet_lists_route_tokens_prints_them_unquoted_and_comma_separated
+
