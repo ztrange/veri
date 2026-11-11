@@ -1827,3 +1827,34 @@ def test_the_usage_of_a_bad_call_names_bailed_stopped_and_the_pr_flag(run_cli):
 
     assert (code, out) == (2, "")
     assert all(word in err for word in ("bailed", "stopped", "--pr", "--note-file"))
+
+
+def test_3650_bailed_pr_from_a_main_working_tree_posts_on_the_pr_of_the_branch_in_git_head(
+        monkeypatch, run_cli, tmp_path):
+    import types
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    looked_up, posted = [], []
+
+    def gh_api(path, stderr=None):
+        looked_up.append(path)
+        return types.SimpleNamespace(returncode=0, stdout=json.dumps([{"number": 12}]), stderr="")
+
+    monkeypatch.setattr(github, "gh_api", gh_api)
+    monkeypatch.setattr(github, "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)) or "https://x/1")
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+    (main / ".tdd").mkdir()
+    (main / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
+    (main / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"event": "bail", "phase": "verify-green", "classification": "process"}) + "\n")
+
+    note = tmp_path / "note.txt"
+    note.write_text("the bail question\n")
+
+    code, out, err = run_cli(comment, ["7", "bailed", "--pr", "--note-file", str(note)], cwd=main)
+
+    assert code == 0
+    assert looked_up == ["repos/{owner}/{repo}/pulls?head={owner}:tdd/7-the-branch"]
+    assert [number for number, _ in posted] == ["12"]
