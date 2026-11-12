@@ -83,7 +83,7 @@ def test_3509_a_skill_edit_step_whose_unit_has_no_requirements_heading_is_refuse
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert code == 2
-    assert "skills/tdd/SCRIPTS.md" in err
+    assert err == "scope-check.sh: no ### heading for skill-edit unit: skills/tdd/SCRIPTS.md\n"
     assert not (tdd / "events.jsonl").exists()
 
 
@@ -253,5 +253,27 @@ def test_3636_a_skill_edit_step_with_no_path_shaped_token_is_refused_on_its_own_
     code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
 
     assert code == 2
-    assert "tighten `unit_of` wording" in err
+    assert err == ("scope-check.sh: no path-shaped unit for skill-edit step: "
+                   "tighten `unit_of` wording ⟦skill-edit⟧ ⟦criterion 1⟧\n")
     assert "unit: None" not in err
+
+
+def test_3710_a_step_without_the_skill_edit_tag_is_not_refused_though_its_unit_has_no_heading(
+    tmp_path, run_cli, scope_check
+):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-3710.md"
+    ledger.write_text(
+        "- [ ] regrade `skills/tdd/SCRIPTS.md` ⟦criterion 1⟧\n"
+        "- [ ] tighten `unit_of` wording ⟦criterion 2⟧\n",
+        encoding="utf-8",
+    )
+    (tdd / "issue-3710-spec.md").write_text(
+        "## Requirements\n\n### skills/tdd/PIN.md\n\n| a | b |\n|---|---|\n| 1 | 2 |\n",
+        encoding="utf-8",
+    )
+
+    code, _, err = run_cli(scope_check, [str(ledger), str(tmp_path)])
+
+    assert (code, err) == (0, "")
