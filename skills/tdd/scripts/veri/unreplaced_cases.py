@@ -5,6 +5,7 @@ import re
 import sys
 
 import replaces_case
+from case_reader import strip_param_suffix
 
 USAGE = "usage: unreplaced-cases.sh"
 
@@ -45,7 +46,7 @@ def exists_in_tree(test_id):
             source = handle.read()
     except OSError:
         return False
-    test = re.sub(r"\[.*\]$", "", name.split("::")[-1])
+    test = strip_param_suffix(name.split("::")[-1])
     return re.search(def_pattern(test), source, re.M) is not None
 
 

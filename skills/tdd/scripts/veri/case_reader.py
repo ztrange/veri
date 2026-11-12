@@ -176,6 +176,10 @@ def _cases(text):
     return cases
 
 
+def strip_param_suffix(name):
+    return re.sub(r"\[.*\]$", "", name)
+
+
 def cut_prefix(case):
     return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
 
