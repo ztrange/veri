@@ -41,3 +41,21 @@ ICAgICAgICBpZiBfc3RvcF9tYXJrKHJ1bikgPT0gbWFyazo=
 command 178
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_leaves_a_foreign_stop_file_in_place_with_its_content_unchanged
 
+before 40
+fe410caa36a0ec77550e1433fed70f04676bf8dd
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_returns_without_raising_and_leaves_the_stop_file_absent_when_the_run_has_none
+
+file 44
+skills/tdd/scripts/veri/restart_conductor.py
+old-b64 56
+ICAgIGV4Y2VwdCBGaWxlTm90Rm91bmRFcnJvcjoKICAgICAgICBwYXNz
+new-b64 56
+ICAgIGV4Y2VwdCBaZXJvRGl2aXNpb25FcnJvcjoKICAgICAgICBwYXNz
+context-b64 40
+ICAgIGV4Y2VwdCBGaWxlTm90Rm91bmRFcnJvcjo=
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_returns_without_raising_and_leaves_the_stop_file_absent_when_the_run_has_none
+

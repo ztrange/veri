@@ -1336,3 +1336,15 @@ def test_3712_cleaning_up_an_unstopped_exit_leaves_a_foreign_stop_file_in_place_
     restart_conductor._clean_up_unstopped_exit("7", mark)
 
     assert ((run_tdd / "restart-pending").exists(), (run_tdd / "stop").read_text() if (run_tdd / "stop").exists() else None) == (False, "now")
+
+
+def test_3712_cleaning_up_an_unstopped_exit_returns_without_raising_and_leaves_the_stop_file_absent_when_the_run_has_none(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    monkeypatch.chdir(tmp_path)
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run_tdd.mkdir(parents=True)
+    (run_tdd / "restart-pending").write_text("123")
+
+    result = restart_conductor._clean_up_unstopped_exit("7", restart_conductor._stop_mark("7"))
+
+    assert (result, (run_tdd / "stop").exists()) == (None, False)
