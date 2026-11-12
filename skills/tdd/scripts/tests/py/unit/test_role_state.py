@@ -250,3 +250,39 @@ def test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_si
     accepted = run_cli(role_state, ["dev", "request-reset"])[0], marker.exists()
 
     assert (refused, accepted) == ((1, False), (0, True))
+
+
+def test_issue_3241_dev_request_reset_with_two_resets_in_the_last_hour_exits_1_writing_nothing_even_after_a_later_launch(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    monkeypatch.delenv("VERI_RESET_MAX_PER_HOUR", raising=False)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    before = "recovered-at=2026-11-12T09:00:00\nreset-at=2026-11-12T09:20:00\nreset-at=2026-11-12T09:40:00\n"
+    state.write_text(before)
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
+        1, True, before, [])
+
+
+def test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    monkeypatch.delenv("VERI_RESET_MAX_PER_HOUR", raising=False)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    state.write_text("recovered-at=2026-11-12T07:30:00\nreset-at=2026-11-12T08:00:00\nreset-at=2026-11-12T09:40:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, _ = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
+    assert (code, marker, state.read_text().splitlines()[-1]) == (
+        0, ["2026-11-12T10:00:00"], "reset-at=2026-11-12T10:00:00")

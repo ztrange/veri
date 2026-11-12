@@ -89,6 +89,12 @@ def do_request_reset(path, argv):
         sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
         return 1
     stamp = now()
+    fmt = "%Y-%m-%dT%H:%M:%S"
+    hour_ago = time.mktime(time.strptime(stamp, fmt)) - 3600
+    recent = [l for l in lines if l.startswith("reset-at=") and time.mktime(time.strptime(l.split("=", 1)[1], fmt)) > hour_ago]
+    if len(recent) >= 2:
+        sys.stderr.write("request-reset refused: %d resets in the last hour\n" % len(recent))
+        return 1
     append(path, "reset-at=%s\n" % stamp)
     name = os.path.basename(path)[len("role-"):-len(".state")]
     replace(os.path.join(os.path.dirname(path), "reset-request-" + name), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))

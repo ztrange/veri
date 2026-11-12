@@ -19,3 +19,21 @@ skills/tdd/scripts/tests/py/unit/test_role_state.py
 command 192
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_since_recovery_but_accepts_once_a_decision_is_too
 
+file 37
+skills/tdd/scripts/veri/role_state.py
+old-b64 92
+IGFuZCB0aW1lLm1rdGltZSh0aW1lLnN0cnB0aW1lKGwuc3BsaXQoIj0iLCAxKVsxXSwgZm10KSkgPiBob3VyX2Fnb10=
+new-b64 4
+XQ==
+context-b64 172
+ICAgIHJlY2VudCA9IFtsIGZvciBsIGluIGxpbmVzIGlmIGwuc3RhcnRzd2l0aCgicmVzZXQtYXQ9IikgYW5kIHRpbWUubWt0aW1lKHRpbWUuc3RycHRpbWUobC5zcGxpdCgiPSIsIDEpWzFdLCBmbXQpKSA+IGhvdXJfYWdvXQ==
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted
+
