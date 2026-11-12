@@ -1,5 +1,5 @@
 # Plan for #3715 — Refactor: Single-source the [...] suffix strip
 
 - [x] Extract Function: move the `[...]` suffix strip into one function `strip_param_suffix(name)` in `skills/tdd/scripts/veri/case_reader.py`, and have `unreplaced_cases.py` (`exists_in_tree`) and `wrong_test_route.py` (`_exists`) call it in place of their inline `re.sub(r"\[.*\]$", "", ...)`; no behaviour change; predicate, false before and true after: `[ "$(git grep -n 'sub(r"\\\[' skills/tdd/scripts/veri/ | wc -l | tr -d ' ')" = 1 ] && git grep -q 'strip_param_suffix' skills/tdd/scripts/veri/unreplaced_cases.py && git grep -q 'strip_param_suffix' skills/tdd/scripts/veri/wrong_test_route.py` ⟦criterion 1⟧
-- [ ] Pin `case_reader.strip_param_suffix` strips a trailing `[...]` (`test_x[a-b]` → `test_x`) and leaves a string without one unchanged (`test_x` → `test_x`), with small in-process cases in a new `skills/tdd/scripts/tests/py/unit/test_case_reader.py`; no production change ⟦criterion 2⟧
+- [x] Pin `case_reader.strip_param_suffix` strips a trailing `[...]` (`test_x[a-b]` → `test_x`) and leaves a string without one unchanged (`test_x` → `test_x`), with small in-process cases in a new `skills/tdd/scripts/tests/py/unit/test_case_reader.py`; no production change ⟦criterion 2⟧
 - [ ] Behaviour preserved: the existing suites stay green (`make test`) ⟦full-suite⟧ ⟦criterion 3⟧
