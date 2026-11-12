@@ -1,0 +1,2 @@
+### A case in `skills/tdd/scripts/tests/py/unit/test_requirements_preflight.py` pins that a ledger `⟦skill-edit⟧` step carrying no path-shaped backticked token (only tokens such as `missing`, with no `/` and not ending `.md`) makes requirements-preflight exit 2 with stderr `no path-shaped unit for skill-edit step: <step>` naming that step; a small unit case driven in-process with `run_cli` ⟦criterion 2⟧
+- test-only | the new case and the #3686 ticked case repeat the same issue and ledger setup, so a shared helper could remove it
