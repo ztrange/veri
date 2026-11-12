@@ -1197,6 +1197,35 @@ def test_main_exits_2_vanished_after_the_grace_wait_unless_worktree_and_conducto
     assert captured.out == ""
 
 
+def test_main_still_exits_2_vanished_when_the_worktree_is_still_absent_at_the_recheck_after_the_grace_wait_issue_3635(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    lives = [["7"], [], [], ["7"]]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 6:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment",
+                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
+
+
 def test_main_does_not_exit_or_report_vanished_and_keeps_looping_when_a_run_with_no_worktree_is_absent_for_one_pass_then_live_again_issue_3345(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
