@@ -46,6 +46,7 @@ def main(argv):
         mutations = []
     if mutations:
         text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
+    text += "\n\n## Blocked by\n\nNone.\n"
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
