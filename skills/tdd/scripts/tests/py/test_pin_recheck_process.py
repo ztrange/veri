@@ -2900,3 +2900,76 @@ def test_3469_a_pin_disarmed_by_a_sibling_file_then_repinned_to_assert_its_own_f
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert ran.returncode == 0, (ran.stdout, ran.stderr)
+
+
+def repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base):
+    """A before/keep pin whose replay range names dash/serve.py, deleted with its directory before the checked range,
+    and a second before/keep pin on the same keep file whose replay range names only lib.txt, still present."""
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "lib.txt").write_text("old lib\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    (tmp_path / "dash").mkdir()
+    (tmp_path / "dash" / "serve.py").write_text("serve v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "before")
+    gone_before = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "dash" / "serve.py").write_text("serve v1\n")
+    git("commit", "-q", "-am", "green of the dashboard pin")
+    gone_green = git("rev-parse", "HEAD")
+    git("rm", "-q", "-r", "dash")
+    git("commit", "-q", "-m", "the dashboard leaves")
+    base = git("rev-parse", "HEAD")
+    if disarm_on_base:
+        main_disarmed_on_base(git, tmp_path)
+    else:
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "lib.txt").write_text("new lib\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "fix lib and pin")
+    live_green = git("rev-parse", "HEAD")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=gone_before, keep="pin.txt", green=gone_green,
+           command="touch gone.witness")
+    return base, live_green
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose replay range names a directory deleted before the range")
+def test_3696_a_before_pin_whose_replay_path_is_absent_at_head_the_base_and_origin_main_is_retired_and_exits_3(tmp_path):
+    base, _ = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=False)
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "gone.witness").exists(), (tmp_path / "dash").exists(),
+            (tmp_path / "src.txt").read_bytes()) == (
+        3, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", False, False,
+        b"fixed behaviour\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a retired absent-path pin beside a before/keep pin whose files exist and which holds")
+def test_3696_a_before_pin_whose_files_exist_beside_an_absent_path_pin_still_replays_and_a_red_replay_exits_0(tmp_path):
+    base, live_green = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=False)
+    record(tmp_path / ".tdd" / "issue-3697-mutations.md", before=base, keep="pin.txt", green=live_green,
+           command="sh -c 'touch live.witness; grep -q new lib.txt'")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "live.witness").exists(), (tmp_path / "lib.txt").read_bytes()) == (
+        0, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", True, b"new lib\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a retired absent-path pin beside a before/keep pin this range disarmed")
+def test_3696_a_before_pin_whose_files_exist_beside_an_absent_path_pin_this_range_disarmed_still_exits_1_naming_it(tmp_path):
+    base, live_green = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=True)
+    record(tmp_path / ".tdd" / "issue-3697-mutations.md", before=base, keep="pin.txt", green=live_green,
+           command="sh -c 'grep -q old lib.txt && test ! -e marker.txt'")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, "pin stayed green on the before-state: pin.txt" in ran.stderr) == (
+        1, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", True), ran.stderr
