@@ -25,6 +25,10 @@ def complain(message):
     print(f"tick-ledger.sh: {message}", file=sys.stderr)
 
 
+def case_env():
+    return {k: v for k, v in os.environ.items() if k not in ("TESTS", "MAKEFLAGS", "MAKELEVEL")}
+
+
 def run_case(case):
     detect = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
@@ -32,7 +36,7 @@ def run_case(case):
     if not command:
         return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
     path = case.split("::", 1)[0]
-    done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True)
+    done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
         return 2
     return done.returncode
