@@ -37,3 +37,13 @@ def test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no
 
     written = sorted(p.name for p in (tmp_path / ".tdd").glob("*")) if (tmp_path / ".tdd").exists() else []
     assert (code, "usage: role-growth.sh" in err, written) == (2, True, [])
+
+
+def test_unset_session_id_exits_2_with_one_stderr_line_naming_it(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(tmp_path / "home")})
+
+    assert (code, len(err.splitlines()), "CLAUDE_CODE_SESSION_ID" in err) == (2, 1, True)

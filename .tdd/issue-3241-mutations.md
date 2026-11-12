@@ -55,3 +55,10 @@ ICAgIGlmIGxlbihhcmd2KSAhPSAxIG9yIGFyZ3ZbMF0gbm90IGluICgiY29vcmQiLCAiZGV2Iik6
 command 152
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 130
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_unset_session_id_exits_2_with_one_stderr_line_naming_it
+
