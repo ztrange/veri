@@ -168,9 +168,9 @@ def commit_amendment(path):
     if live is None:
         return
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
-    subprocess.run(["git", "add", "--", *paths], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run(["git", "commit", "-q", "-m", "plan: step added while the conductor is live", "--", *paths],
-                   cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for argv in (["add", "--", *paths],
+                 ["commit", "-q", "-m", "plan: step added while the conductor is live", "--", *paths]):
+        subprocess.run(["git", *argv], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def main(argv):
