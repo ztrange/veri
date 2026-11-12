@@ -2995,3 +2995,28 @@ def test_3696_a_mutation_pin_whose_mutated_file_the_range_deletes_is_retired_and
 
     assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(), (tmp_path / "guard.txt").exists()) == (
         3, "retired: .tdd/issue-3696-mutations.md guard.txt guard.txt\n", False, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over records holding both a file and a keep value, one touched by each")
+def test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_not_by_its_keep_value(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    for name in ("file_a.txt", "keep_a.txt", "file_b.txt", "keep_b.txt"):
+        (tmp_path / name).write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    for tag, mutated, kept in (("a", "file_a.txt", "keep_a.txt"), ("b", "file_b.txt", "keep_b.txt")):
+        record(tmp_path / ".tdd" / f"issue-3713{tag}-mutations.md", file=mutated, keep=kept, old="if guard",
+               new="if (true)", command=f"sh -c \"touch ran_{tag}.witness; echo result; grep -q 'if guard' {mutated}\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "file_a.txt").write_text("if guard\nmore\n")
+    (tmp_path / "keep_b.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch a's file and b's keep")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "ran_a.witness").exists(), (tmp_path / "ran_b.witness").exists()) == (
+        0, True, False), ran.stderr
