@@ -20,7 +20,12 @@
    proof command the transform is checked against; exit 1, `COVERED: no`, refuses the step:
    **bail with cause `uncovered`**, narrating the remedy —
    find a seam and surround the behaviour with tests first — and run
-   `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
+   `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it
+   (a body with `## Problem`, `## Acceptance criteria` from the report's `MUTATION:` lines,
+   omitted when it has none, `## Blocked by` `None.` and a last line
+   `Test command: <the all-tier command>`; labelled with the opt-in label `VERI_LABEL`,
+   default `ready-for-agent`, and `filed-by:<lane>`, but `filed-by:<lane>` alone when there
+   is no `MUTATION:` line),
    so the queue cannot retake it only to refuse again (`Read` `<base directory>/BAIL.md`).
    A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
    Refactor, unless it is `⟦diff-checked⟧`, which runs develop-diff then verify-diff and never
