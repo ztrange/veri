@@ -137,3 +137,45 @@ def test_record_on_a_route_answer_writes_one_adjudicated_event_prints_the_route_
         "outcome": "route",
         "reason": "the route fits",
     }
+
+
+def test_record_on_a_leaf_output_with_no_adjudication_line_writes_an_unparsed_event_prints_unparsed_and_exits_2(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("thinking, but no answer line\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (2, "unparsed\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    adjudicated = [e for e in events if e.get("event") == "adjudicated"]
+    assert len(adjudicated) == 1
+    assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome")} == {
+        "issue": "7",
+        "cause": "ci-timeout",
+        "outcome": "unparsed",
+    }
+    assert adjudicated[0].get("reason")
+
+
+def test_record_on_a_missing_leaf_output_file_writes_an_unparsed_event_prints_unparsed_and_exits_2(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    code, out, err = run_cli(
+        adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "absent.out")], cwd=tmp_path
+    )
+    assert (code, out) == (2, "unparsed\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    adjudicated = [e for e in events if e.get("event") == "adjudicated"]
+    assert len(adjudicated) == 1
+    assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome")} == {
+        "issue": "7",
+        "cause": "ci-timeout",
+        "outcome": "unparsed",
+    }
+    assert adjudicated[0].get("reason")
