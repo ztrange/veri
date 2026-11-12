@@ -35,7 +35,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `resume-rebase` | `from`, `rebased` | A resume rebased: the pre-rebase sha and the new tip. |
 | `retry` | `cause` | The supervisor relaunched a stuck leaf: why. |
 | `revise` | `budget` | A verdict was REJECT and the step was redone: the `REVISE_BUDGET`. |
-| `skill-repin` | `commit` | The skill pin was moved (`VERI_NEW_SKILL=1`): the new commit. |
+| `skill-repin` | `commit` | The skill pin was moved (`VERI_NEW_SKILL=1`, or a `release-issue.sh` release marker): the new commit. |
 | `step-added` | `anchor`, `added` | Steps were added to the ledger after `anchor`: how many. |
 | `step-done` | — | A step finished. |
 | `step-escalated` | `anchor`, `at` | A step was escalated to a stronger model: the step, and where (`over-budget`; absent for a revise escalation). |

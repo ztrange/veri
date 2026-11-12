@@ -162,9 +162,11 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
   exit 2, stderr naming `refs/remotes/origin/HEAD`, never an unpinned run.
 - **Taking the new skill is an explicit act:** `VERI_NEW_SKILL=1` on a resume replaces the
   recorded commit with the fresh tip and writes a `skill-repin` event to the run worktree's
-  `.tdd/events.jsonl`, where `metrics.sh` reads it.
+  `.tdd/events.jsonl`, where `metrics.sh` reads it. So does the first launch after a successful
+  `release-issue.sh <n>`, which leaves the marker `.tdd/issue-<n>-released` that the launch
+  consumes, since the issue waited for a fix the old pin lacks.
 - **`VERI_SKIP_VERIFY` is pinned the same way:** `.tdd/issue-<n>-skip-verify` is written on a run's first launch
-  and re-pinned by `VERI_NEW_SKILL=1`, exactly as the skill commit is; a resume reads that file and ignores the environment.
+  and re-pinned by `VERI_NEW_SKILL=1` or a release marker, exactly as the skill commit is; a resume reads that file and ignores the environment.
 - **A fetch of origin that fails** before the snapshot is exit 2, since the tip it would pin
   may be stale. The one exception is `cannot lock ref`, which a parallel conductor's fetch of the
   same clone causes: that is retried, up to 60 fetches in all, `VERI_FETCH_RETRY_SLEEP` seconds

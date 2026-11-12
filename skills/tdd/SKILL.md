@@ -71,7 +71,7 @@ the commit recorded in `.tdd/issue-<n>-skill-commit` and exported to every leaf 
 does not change the scripts and templates under a running conductor (see *The skill
 snapshot* in the repository's `README.md`, *Launching the conductor*). Every launch `supervise.sh` makes also writes the commit it ran under to
 the event log (`.tdd/events.jsonl`, key `skill_commit`), so a run that took a newer skill
-with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
+with `VERI_NEW_SKILL=1`, or on the first launch after `release-issue.sh` released the issue, is the sha changing partway down that file.
 
 The catalogue of every script (arguments, output, exit codes) is `<base directory>/SCRIPTS.md`.
 Before calling a script whose arguments, output or exit codes the step at hand does
