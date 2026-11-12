@@ -142,3 +142,21 @@ def test_issue_3241_dev_lane_request_reset_writes_the_marker_with_the_lane_suffi
 
     markers = sorted(p.name for p in tdd.glob("reset-request-*"))
     assert (code, markers) == (0, ["reset-request-dev-b"])
+
+
+def test_issue_3241_dev_request_reset_with_nothing_launched_merged_or_decided_since_recovery_exits_1_writing_nothing(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    state.write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text(
+        '{"ts": 1000, "event": "conductor-start", "issue": "7"}\n'
+        '{"ts": 1001, "event": "merged", "issue": "7"}\n')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
+        1, True, "recovered-at=2026-11-12T09:00:00\n", [])

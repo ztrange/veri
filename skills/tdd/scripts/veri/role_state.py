@@ -1,5 +1,6 @@
 """role-state.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import os
 import sys
 import time
@@ -71,7 +72,18 @@ def do_recovered(path, argv):
     return 0
 
 
+def launched_since(path, recovered):
+    since = time.mktime(time.strptime(recovered, "%Y-%m-%dT%H:%M:%S"))
+    journal = read(os.path.join(os.path.dirname(path), "events.jsonl")) or ""
+    events = [json.loads(l) for l in journal.splitlines()]
+    return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
+
+
 def do_request_reset(path, argv):
+    recovered = [l.split("=", 1)[1] for l in (read(path) or "").splitlines() if l.startswith("recovered-at=")]
+    if not launched_since(path, recovered[-1]):
+        sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
+        return 1
     stamp = now()
     append(path, "reset-at=%s\n" % stamp)
     name = os.path.basename(path)[len("role-"):-len(".state")]
