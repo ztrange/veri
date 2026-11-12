@@ -27,6 +27,7 @@ def main(argv):
     if target is not None:
         print(target.strip())
         return 0
+    return 2
 
 
 if __name__ == "__main__":
