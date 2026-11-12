@@ -1308,3 +1308,17 @@ def test_3712_cleaning_up_an_unstopped_exit_removes_restart_pending_when_the_run
     restart_conductor._clean_up_unstopped_exit("7", None)
 
     assert ((run_tdd / "restart-pending").exists(), (run_tdd / "stop").exists()) == (False, False)
+
+
+def test_3712_cleaning_up_an_unstopped_exit_removes_the_stop_file_the_watcher_itself_wrote(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    monkeypatch.chdir(tmp_path)
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run_tdd.mkdir(parents=True)
+    (run_tdd / "restart-pending").write_text("123")
+    (run_tdd / "stop").write_text("at-ledger")
+    mark = restart_conductor._stop_mark("7")
+
+    restart_conductor._clean_up_unstopped_exit("7", mark)
+
+    assert ((run_tdd / "restart-pending").exists(), (run_tdd / "stop").exists()) == (False, False)
