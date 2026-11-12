@@ -13,6 +13,10 @@ SEED = (
     "- [ ] strip edge hyphens ⟦criterion 3⟧\n"
 )
 
+# The script commits with the repo's own identity (no fallback), so a runner with none needs one handed in.
+IDENT = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+
 
 @pytest.mark.process("drop-ledger-step.sh run on a ledger committed in a scratch git repository")
 def test_issue_3692_drop_ledger_step_removes_the_named_unchecked_step_and_keeps_every_other_line(tmp_path):
@@ -23,7 +27,8 @@ def test_issue_3692_drop_ledger_step_removes_the_named_unchecked_step_and_keeps_
     subprocess.run([*git, "commit", "-q", "-m", "plan"], cwd=tmp_path, check=True)
 
     ran = subprocess.run([str(SCRIPTS / "drop-ledger-step.sh"), "l.md", "collapse to single hyphen"],
-                         cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+                         cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                         env={**os.environ, **IDENT})
 
     assert ran.returncode == 0
     assert (tmp_path / "l.md").read_text() == SEED.replace("- [ ] collapse to single hyphen ⟦criterion 2⟧\n", "")
@@ -68,7 +73,8 @@ def test_issue_3692_drop_ledger_step_commits_the_removal_as_a_plan_commit_holdin
     (tmp_path / "other.txt").write_text("dirty\n")
 
     ran = subprocess.run([str(SCRIPTS / "drop-ledger-step.sh"), "l.md", "collapse to single hyphen"],
-                         cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+                         cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                         env={**os.environ, **IDENT})
 
     assert ran.returncode == 0
     assert out("status", "--porcelain") == " M other.txt\n"
