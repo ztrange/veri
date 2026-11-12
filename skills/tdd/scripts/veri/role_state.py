@@ -19,8 +19,15 @@ def state_path(tree, role, lane=None):
     return os.path.join(tree, ".tdd", "role-%s.state" % name)
 
 
+STAMP = "%Y-%m-%dT%H:%M:%S"
+
+
 def now():
-    return time.strftime("%Y-%m-%dT%H:%M:%S")
+    return time.strftime(STAMP)
+
+
+def epoch(stamp):
+    return time.mktime(time.strptime(stamp, STAMP))
 
 
 def replace(path, text):
@@ -74,7 +81,7 @@ def do_recovered(path, argv):
 
 
 def launched_since(path, recovered):
-    since = time.mktime(time.strptime(recovered, "%Y-%m-%dT%H:%M:%S"))
+    since = epoch(recovered)
     tdd = os.path.dirname(path)
     journals = [os.path.join(tdd, "events.jsonl")] + sorted(glob.glob(os.path.join(tdd, "wt", "*", ".tdd", "events.jsonl")))
     events = [json.loads(l) for j in journals for l in (read(j) or "").splitlines()]
@@ -89,9 +96,8 @@ def do_request_reset(path, argv):
         sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
         return 1
     stamp = now()
-    fmt = "%Y-%m-%dT%H:%M:%S"
-    hour_ago = time.mktime(time.strptime(stamp, fmt)) - 3600
-    recent = [l for l in lines if l.startswith("reset-at=") and time.mktime(time.strptime(l.split("=", 1)[1], fmt)) > hour_ago]
+    hour_ago = epoch(stamp) - 3600
+    recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
     if len(recent) >= 2:
         sys.stderr.write("request-reset refused: %d resets in the last hour\n" % len(recent))
         return 1
