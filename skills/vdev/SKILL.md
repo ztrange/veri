@@ -176,8 +176,9 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   still reports quota has hit GitHub's secondary limit: use REST rather than wait for the
   reset.
 - **Last comment is a bail.** Hand it to `vbail <n>`. An issue is parked only through
-  `$S/park-issue.sh <n> <cause> <unblock> [<pr>]`: it labels the issue `parked` and posts the
-  cause and what would unblock it. Budget raises come only from the coordinator or the human.
+  `$S/park-issue.sh <n> <cause> <unblock> [<pr>] [--blocked-by <n>[,<n>…]]`: it labels the issue
+  `parked` and posts the cause and what would unblock it. Pass the number of every issue or PR
+  that must land first as `--blocked-by`, so the parked issue waits on each. Budget raises come only from the coordinator or the human.
 - **No closing comment.** Check for a usage limit, an API outage or sleep first (P10). Any of
   the three is not a bail: resume the run once usage is back or the API answers, from the target
   repository's main working tree:
