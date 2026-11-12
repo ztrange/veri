@@ -549,3 +549,31 @@ def test_main_reject_with_each_before_state_green_exclusion_word_is_not_before_s
     text = events.read_text() if events.exists() else ""
     assert (code, out.strip(), ledger.read_text(), "unpinnable-step" in text) == (
         1, "revise", body, False), err
+
+
+def test_main_on_a_case_that_never_ran_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    import subprocess
+
+    monkeypatch.undo()
+    ledger = tmp_path / ".tdd" / "issue-99.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #99\n\n- [ ] a one ⟦criterion 4⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
+    case = str(tmp_path / "gone" / "test_missing.py")
+
+    def fake_run(argv, *args, **kwargs):
+        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
+        if str(argv[0]).endswith("detect-test-command.sh"):
+            out = "stub-case-command --flag\n"
+            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+        err = "ERROR: file or directory not found\n"
+        return subprocess.CompletedProcess(argv, 4, stdout="" if text else b"", stderr=err if text else err.encode())
+
+    monkeypatch.setattr(pin_reject_route.tick_ledger.subprocess, "run", fake_run)
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", case],
+                             env={"VERI_ISSUE": "99"}, cwd=tmp_path)
+
+    assert (code, out, f"case {case} never run" in err, "stub-case-command --flag" in err) == (2, "", True, True), err
