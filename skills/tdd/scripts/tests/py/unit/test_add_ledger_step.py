@@ -1033,7 +1033,12 @@ def test_main_marks_a_text_that_only_quotes_a_repair_mark_in_its_prose_added_and
     assert ledger.read_bytes() == before + b"\n## Owed steps\n\n- explain why \xe2\x9f\xa6ci-repair\xe2\x9f\xa7 and \xe2\x9f\xa6suite-repair\xe2\x9f\xa7 end a repair step\n"
 
 
-def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613(tmp_path, run_cli, add_ledger_step):
+def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613_and_3618_says_durable_on_stderr_not_stdout(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(add_ledger_step.pid_file, "recorded_started", lambda tree: "1")
+    monkeypatch.setattr(add_ledger_step.issue_worktree, "ancestors", lambda: set())
+    monkeypatch.setattr(add_ledger_step.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout="abc1234\n"))
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(
         (
@@ -1050,7 +1055,9 @@ def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_
         [str(ledger), "after", "b two", "fix the full-suite failure: real.test.sh ⟦suite-repair⟧"],
     )
 
-    assert (code, out, err) == (0, "", "")
+    assert (code, out) == (0, "")
+    assert err in ("", "add-ledger-step.sh: the added step is durable (committed in abc1234)\n")
+    assert "durable" in err
     assert b"fix the full-suite failure: real.test.sh" in ledger.read_bytes()
 
 
