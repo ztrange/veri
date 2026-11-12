@@ -25,7 +25,7 @@ attempt. It judges the same tree from scratch and cannot inherit the failed atte
 
 - A clean exit with no verdict is relaunched; the event log records it under a cause distinct
   from a leaf killed before it could render one, on each relaunch and on the final exit 2.
-- `VERI_NO_VERDICT_RETRIES` is a **fourth budget axis**, never merged with
+- `VERI_NO_VERDICT_RETRIES` is one of the **eight budget axes**, never merged with
   `VERI_STUCK_RETRIES`. Stuck retries answer *liveness* — the process never finished; this
   answers *protocol compliance* — the process finished and ignored the output contract. They
   fail for different reasons, are fixed in different places and are tuned on different evidence.
