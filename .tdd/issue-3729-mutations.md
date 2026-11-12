@@ -1,0 +1,11 @@
+file 44
+skills/tdd/scripts/veri/restart_conductor.py
+old-b64 96
+c2NyaXB0cyA9IG9zLnBhdGguZGlybmFtZShvcy5wYXRoLmRpcm5hbWUob3MucGF0aC5yZWFscGF0aChfX2ZpbGVfXykpKQ==
+new-b64 72
+c2NyaXB0cyA9IG9zLnBhdGguZGlybmFtZShvcy5wYXRoLnJlYWxwYXRoKF9fZmlsZV9fKSk=
+context-b64 100
+ICAgIHNjcmlwdHMgPSBvcy5wYXRoLmRpcm5hbWUob3MucGF0aC5kaXJuYW1lKG9zLnBhdGgucmVhbHBhdGgoX19maWxlX18pKSk=
+command 212
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3729_detach_leaf_launches_one_process_on_the_detach_and_run_conductor_scripts_in_the_scripts_directory_holding_restart_conductor_sh
+

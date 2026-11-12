@@ -348,6 +348,25 @@ def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_r
     assert (launches, log.read_text()) == ([["detach-leaf.sh", "run-conductor.sh", "7"]], "earlier launch\nnew launch\n")
 
 
+def test_3729_detach_leaf_launches_one_process_on_the_detach_and_run_conductor_scripts_in_the_scripts_directory_holding_restart_conductor_sh(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    scripts = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    launches = []
+
+    class FakePopen:
+        def __init__(self, argv, **kwargs):
+            launches.append(argv)
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(restart_conductor, "_log_path", lambda run: str(tmp_path / "conductor.log"))
+    monkeypatch.setattr(restart_conductor, "_launch_env", lambda run: {})
+
+    restart_conductor.detach_leaf("7")
+
+    assert (os.path.exists(os.path.join(scripts, "restart-conductor.sh")), launches) == (
+        True, [[os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), "7"]])
+
+
 def test_3223_a_run_is_live_when_pid_files_live_conductor_check_names_a_conductor_for_its_worktree_under_the_main_tree(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     pid_file = importlib.import_module("pid_file")
