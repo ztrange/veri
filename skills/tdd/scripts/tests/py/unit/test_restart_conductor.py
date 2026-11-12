@@ -1190,3 +1190,50 @@ def test_3526_a_restarter_sent_a_signal_while_its_conductor_is_live_logs_the_sig
     code, out, err = run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
     assert (code, "restarts 7 0" in out, f"restarter exiting on {name}" in out) == (2, False, True), (code, out, err)
+
+
+def test_3633_an_unreadable_pid_file_while_a_run_conductor_process_for_the_run_is_live_does_not_relaunch_the_conductor(tmp_path, run_cli, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    pid_file = importlib.import_module("pid_file")
+    (tmp_path / ".tdd").mkdir()
+    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
+    (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
+    pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
+    pid_path.parent.mkdir(parents=True)
+    pid_path.write_text("4242\nstart-A\n")
+    reads = [0]
+    naps = [0]
+    calls = []
+    real_live_conductor = pid_file.live_conductor
+
+    def live_conductor(path):
+        reads[0] += 1
+        pid_path.write_text("4242\nstart-A\n" if reads[0] <= 2 else "42x\n")
+        return real_live_conductor(path)
+
+    def nap(seconds):
+        naps[0] += 1
+
+    def process_live():
+        return naps[0] < 30
+
+    def ps(field, pid):
+        if field == "lstart":
+            return "start-A"
+        if field == "ppid":
+            return "100"
+        return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
+
+    monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
+    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "_conductors", lambda: [("999", "7")] if process_live() else [])
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped" if process_live() else "✅ Done", raising=False)
+    monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "detach_leaf", lambda run: calls.append(("launch", run)), raising=False)
+    monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
+
+    run_cli(restart_conductor, ["7"], cwd=tmp_path)
+
+    assert calls == [("stop", "at-ledger", "7")]
