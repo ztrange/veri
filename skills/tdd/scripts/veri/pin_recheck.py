@@ -192,7 +192,7 @@ def recheck(argv, looks):
             sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
             return 2
     only = argv[2] if argv[1:] else None
-    pins = [(f, r) for f, r in found if r.get("keep", r.get("file")) in touched and only in (None, f)]
+    pins = [(f, r) for f, r in found if mutated_file_of(r) in touched and only in (None, f)]
     if not pins:
         return 3
     deleted = set(git_out("diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD").split())
