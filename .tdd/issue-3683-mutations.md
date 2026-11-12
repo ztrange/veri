@@ -45,3 +45,10 @@ ICAgICAgICAoImNvbW1lbnQiLCBsYW1iZGE6IGdpdGh1Yi5naF9pc3N1ZV9jb21tZW50KG51bWJlciwg
 command 151
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_park_issue.py::test_issue_3683_without_blocked_by_the_parked_comment_is_exactly_cause_and_unblock
 
+before 40
+b7e8440a29cd98d52e61ed819bfa0a0df8ddd1de
+keep 54
+skills/tdd/scripts/tests/py/unit/test_parked_issues.py
+command 171
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_a_merged_pull_request
+
