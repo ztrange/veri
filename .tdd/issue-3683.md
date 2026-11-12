@@ -1,6 +1,6 @@
 # Plan for #3683 — A parked issue whose blockers have all landed stays parked: nothing re-checks the parked set after a merge
 
-- [ ] `park-issue.sh <n> <cause> <unblock> --blocked-by 9` posts a `### ⏸ Parked` comment that carries one `Blocked by: #9` line beside its `Cause:` and `Unblock:` lines; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_park_issue.py` ⟦criterion 1⟧
+- [x] `park-issue.sh <n> <cause> <unblock> --blocked-by 9` posts a `### ⏸ Parked` comment that carries one `Blocked by: #9` line beside its `Cause:` and `Unblock:` lines; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_park_issue.py` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `park-issue.sh` accepts a comma-separated blocker list, `--blocked-by 9,10`: it exits 0 and lists both #9 and #10 under the parked issue's `## Blocked by` (replacing `None.`); a small in-process case in `skills/tdd/scripts/tests/py/unit/test_park_issue.py` ⟦criterion 1⟧
 - [ ] `park-issue.sh <n> <cause> <unblock> --blocked-by 9,10` writes the blockers on one `Blocked by: #9, #10` line of the `### ⏸ Parked` comment; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_park_issue.py` ⟦criterion 1⟧
 - [ ] `park-issue.sh <n> <cause> <unblock> 77 --blocked-by 9` (with the PR argument) posts a `### ⏸ Parked` comment carrying both its `PR: 77` line and its `Blocked by: #9` line; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_park_issue.py` ⟦criterion 1⟧

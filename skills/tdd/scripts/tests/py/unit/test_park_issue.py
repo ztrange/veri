@@ -95,3 +95,18 @@ def test_no_answer_on_the_body_edit_exits_2_before_the_issue_is_labelled_parked(
     assert code == 2
     assert "no answer from gh to the Blocked by write" in err
     assert not [call for call in calls if call[0] in ("label", "comment")]
+
+
+def test_issue_3683_the_parked_comment_carries_one_blocked_by_line_beside_cause_and_unblock(park, run_cli, monkeypatch):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+
+    code, out, err = run_cli(park_issue, ["42", "pin-recheck exit 2", "#9 lands", "--blocked-by", "9"])
+
+    assert (code, err) == (0, "")
+    assert len(comments) == 1
+    lines = comments[0].splitlines()
+    assert "Cause: pin-recheck exit 2" in lines
+    assert "Unblock: #9 lands" in lines
+    assert lines.count("Blocked by: #9") == 1
