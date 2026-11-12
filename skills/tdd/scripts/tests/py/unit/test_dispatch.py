@@ -1009,6 +1009,49 @@ def test_main_exits_2_naming_the_failure_on_stderr_when_the_stall_check_issue_re
     assert (code, "gh exploded" in captured.err, captured.out) == (2, True, "")
 
 
+def test_main_exits_2_naming_the_issue_states_read_when_it_is_rate_limited_without_waiting_for_the_reset_issue_3582(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    (tdd / "restart-pending").write_text("")
+    events = tdd / "events.jsonl"
+    events.write_text('{"event": "leaf-start"}\n')
+    os.utime(events, (1000, 1000))
+    lives = [["7"], []]
+    ticks = [1000, 1000, 1000, 1003]
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) > 8:
+            raise _StopWaiting
+
+    def unreadable(issues):
+        raise dispatch.github.NoAnswer(None, "gh: API rate limit exceeded for user ID 1. (HTTP 403)")
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "issue_states", unreadable, raising=False)
+    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment", lambda issue: "### 🔧 Working on it\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.github, "rate_limit_reset", lambda run: 10 ** 9)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    captured = capsys.readouterr()
+    assert (code, "reading issue states failed: gh: API rate limit exceeded" in captured.err, captured.out) == (2, True, "")
+
+
 def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its_issue_has_no_comments_issue_3418(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
