@@ -174,7 +174,7 @@ def commit_amendment(path):
         done = subprocess.run(["git", *argv], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if done.returncode == 0:
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tree, capture_output=True, text=True).stdout.strip()
-        print(f"add-ledger-step.sh: the added step is durable (committed in {head})")
+        print(f"add-ledger-step.sh: the added step is durable (committed in {head})", file=sys.stderr)
 
 
 def main(argv):
