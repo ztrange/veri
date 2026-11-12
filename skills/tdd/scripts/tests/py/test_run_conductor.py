@@ -2457,6 +2457,26 @@ def test_cli_a_launch_refused_for_a_live_conductor_leaves_the_runs_launch_record
     assert (code, "already live (pid %d)" % os.getpid() in err, launches, after, repins) == (2, True, [], records, []), err
 
 
+def test_cli_a_launch_refused_for_a_live_conductor_runs_no_update_veri_and_no_git_3633(
+        tmp_path, monkeypatch, run_cli):
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    _3633_live_pid_file(tmp_path, monkeypatch, "Tue Oct 27 13:40:12 2026")
+    calls = []
+    answer = subprocess.run
+
+    def recorded(args, *rest, **kwargs):
+        calls.append([str(word) for word in args])
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", recorded)
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=tmp_path / "cwd")
+
+    ran = [call for call in calls if call and os.path.basename(call[0]) in ("update-veri.sh", "git")]
+    assert (code, "already live" in err, ran) == (2, True, []), err
+
+
 def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
