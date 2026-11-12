@@ -40,7 +40,7 @@ def main(argv):
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",
                    ["cause=" + argv[2], "outcome=" + outcome, "reason=" + reason])
         print(outcome)
-        return 0
+        return 0 if outcome == "retry" else 1
     print(USAGE, file=sys.stderr)
     return 2
 
