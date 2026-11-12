@@ -94,3 +94,21 @@ def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file
 
     state = (tmp_path / ".tdd" / "role-coord.state").read_text().splitlines()
     assert (codes, state) == ([0] * 6, ["%s=v-%s" % (f, f) for f in fields])
+
+
+def test_issue_3241_dev_request_reset_after_a_launch_since_recovery_records_the_time_and_writes_the_marker(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    state.write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, _ = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tdd / "reset-request-dev").read_text().split()
+    recorded = state.read_text().splitlines()[1:]
+    assert (code, marker, [l.endswith("2026-11-12T10:00:00") for l in recorded]) == (
+        0, ["2026-11-12T10:00:00"], [True])

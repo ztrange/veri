@@ -71,6 +71,14 @@ def do_recovered(path, argv):
     return 0
 
 
+def do_request_reset(path, argv):
+    stamp = now()
+    append(path, "reset-at=%s\n" % stamp)
+    name = os.path.basename(path)[len("role-"):-len(".state")]
+    replace(os.path.join(os.path.dirname(path), "reset-request-" + name), stamp + "\n")
+    return 0
+
+
 def do_set(path, argv):
     if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
@@ -122,7 +130,7 @@ def do_show(path, argv):
 
 SET_FIELDS = ("n", "lane", "coordinator", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
-VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
+VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 
 
 if __name__ == "__main__":
