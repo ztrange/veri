@@ -183,3 +183,8 @@ run-finished:
 .PHONY: ready-check
 ready-check:
 	@skills/tdd/scripts/ready-check.sh
+
+# `make drop-ledger-step LEDGER=<file> STEP=<substring>` removes one unchecked ledger step (drop-ledger-step.sh).
+.PHONY: drop-ledger-step
+drop-ledger-step:
+	@skills/tdd/scripts/drop-ledger-step.sh "$(LEDGER)" "$(STEP)"
