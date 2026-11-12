@@ -2,3 +2,4 @@
 - test-only | extract the shared ledger/reason/env setup of the two #3617 cases in test_tick_ledger.py into a helper
 ### tick-ledger.sh on a case whose test file is missing exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
 - `LAST_COMMAND` is a module-level global set by `run_case` and read in `main`; returning the command alongside the exit code would remove the global (changes `run_case`'s return shape, so it is not duplication removal)
+not-done | transform-rejected | `LAST_COMMAND` is a module-level global set by `run_case` and read in `main`; returning the command alongside the exit code would remove the global (changes `run_case`'s return shape, so it is not duplication removal)
