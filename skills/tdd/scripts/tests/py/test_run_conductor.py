@@ -901,6 +901,40 @@ def test_main_after_release_issue_released_the_issue_re_pins_to_the_current_skil
     assert (released, path.read_text(), events.records(worktree), code) == (0, commit + "\n", [repin], 0)
 
 
+def test_main_relaunching_an_issue_not_released_since_its_last_launch_keeps_its_pin_and_logs_no_second_skill_repin_3647(
+        tmp_path, monkeypatch, capfdbinary, events):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    first, second = "1111111111111111111111111111111111111111", "3333333333333333333333333333333333333333"
+    path = tmp_path / ".tdd" / "issue-4242-skill-commit"
+    path.parent.mkdir()
+    path.write_text("2222222\n")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "parked\nready-for-agent" if field == "labels" else "")
+    monkeypatch.setattr(github, "gh_label_ensure", lambda name: None)
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: None)
+    release_issue = importlib.import_module("veri.release_issue")
+    release_issue.main(["4242"])
+    run_conductor = importlib.import_module("veri.run_conductor")
+    worktree = tmp_path / ".tdd" / "wt" / "4242"
+    calls = fake_pin(monkeypatch, first, {"2222222^{commit}", first + "^{commit}"})
+    events.refuse_event_sh()
+    fake_snapshot(monkeypatch, calls, 0, 0)
+    run_conductor.main(["4242"])
+    calls = fake_pin(monkeypatch, second, {"2222222^{commit}", first + "^{commit}", second + "^{commit}"})
+    fake_snapshot(monkeypatch, calls, 0, 0)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    repin = {"issue": "4242", "actor": "", "phase": "", "step": "", "event": "skill-repin", "attempt": "",
+             "skill_commit": "", "commit": first}
+    assert (path.read_text(), events.records(worktree), code) == (first + "\n", [repin], 0)
+
+
 def test_main_on_a_re_pin_records_the_ambient_veri_context_in_the_skill_repin_event_with_the_argument_as_its_issue(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)

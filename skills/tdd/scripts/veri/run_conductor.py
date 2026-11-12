@@ -132,6 +132,8 @@ def main(argv):
         else:
             with open(record, "w") as out:
                 out.write(commit + "\n")
+            if os.path.exists(released):
+                os.remove(released)
             with open(os.path.join(run_state, "issue-%s-skip-verify" % argv[0]), "w") as skip:
                 listed = tunables.read("VERI_SKIP_VERIFY", "")
                 skip.write(listed + "\n" if listed else "")
