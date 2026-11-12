@@ -135,3 +135,17 @@ def test_issue_3683_a_comma_separated_blocker_list_is_one_blocked_by_line_in_the
     lines = comments[0].splitlines()
     assert lines.count("Blocked by: #9, #10") == 1
     assert len([l for l in lines if l.startswith("Blocked by:")]) == 1
+
+
+def test_issue_3683_the_parked_comment_with_a_pr_argument_carries_both_the_pr_line_and_the_blocked_by_line(park, run_cli, monkeypatch):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "#9 lands", "77", "--blocked-by", "9"])
+
+    assert (code, err) == (0, "")
+    assert len(comments) == 1
+    lines = comments[0].splitlines()
+    assert lines.count("PR: 77") == 1
+    assert lines.count("Blocked by: #9") == 1
