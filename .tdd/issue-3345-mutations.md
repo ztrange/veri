@@ -4,4 +4,6 @@ keep 49
 skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 196
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_does_not_exit_or_report_vanished_when_a_run_with_no_worktree_is_absent_once_live_again_then_absent_once_more_issue_3345
+retired 70
+replay range crosses files deleted by bc96a54094 (dashboard left veri)
 

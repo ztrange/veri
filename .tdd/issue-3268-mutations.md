@@ -4,6 +4,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 279
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpgr2uyn1z/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_orders_blocks_by_prd_number_not_by_issue_number
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 97e8836507b13debb31e120d6aba38fac4a3d9b2
@@ -11,6 +13,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 63
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -20,6 +24,8 @@ new 66
 for n, i in sorted(first.items(), key=lambda kv: kv[1]["number"]))
 command 63
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -27,6 +33,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 299
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_does_not_show_owed_none_when_the_current_entry_has_a_non_zero_count
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -34,6 +42,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 149
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_does_not_show_owed_none_when_the_current_entry_has_a_non_zero_count
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -43,6 +53,8 @@ new 15
 if True else ""
 command 149
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_does_not_show_owed_none_when_the_current_entry_has_a_non_zero_count
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -50,6 +62,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 126
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_left_line_ignores_closed_children_of_the_prd
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -59,6 +73,8 @@ new 46
 children = [i for i in cache["issues"] if True
 command 126
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_left_line_ignores_closed_children_of_the_prd
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -66,6 +82,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 280
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -73,6 +91,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 130
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -82,6 +102,8 @@ new 79
 if any(i.get("lane") for i in cache["issues"] if i["state"] == "OPEN" and False
 command 130
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -91,6 +113,8 @@ new 0
 
 command 130
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_only_the_prd_itself_has_a_lane
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -98,6 +122,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 295
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -109,6 +135,8 @@ for i in cache["issues"] if True
                and prd_number
 command 145
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -118,6 +146,8 @@ new 12
 and True and
 command 145
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_eta_when_the_laned_issues_are_closed_or_of_another_prd
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -125,6 +155,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 325
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -135,6 +167,8 @@ new 5
 True]
 command 175
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_no_rate_yet_when_closed_issues_outside_the_lanes_or_older_than_7_days_make_up_the_three
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -142,6 +176,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 323
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_the_eta_range_with_the_longest_open_blocked_by_chain_when_longer_than_the_child_count
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -151,6 +187,8 @@ new 23
 longest = len(children)
 command 173
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_shows_the_eta_range_with_the_longest_open_blocked_by_chain_when_longer_than_the_child_count
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -158,6 +196,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 318
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_lower_and_upper_quartile_wall_seconds_not_min_and_max_with_five_closed_issues
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -167,6 +207,8 @@ new 8
 walls[0]
 command 168
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_lower_and_upper_quartile_wall_seconds_not_min_and_max_with_five_closed_issues
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -174,6 +216,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 322
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -181,6 +225,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 172
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -190,6 +236,8 @@ new 9
 min(fast)
 command 172
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -199,6 +247,8 @@ new 9
 max(slow)
 command 172
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -208,6 +258,8 @@ new 7
 if True
 command 172
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_eta_uses_fastest_lanes_fast_rate_and_slowest_lanes_slow_rate_and_counts_only_open_blockers
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -215,6 +267,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 307
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -222,6 +276,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 63
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -231,6 +287,8 @@ new 69
             owed_path.write_text("{}"); return "\n<p>owed: stale</p>"
 command 157
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_report_page_for_a_stale_owed_leaves_report_owed_json_byte_identical_and_creates_no_file
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -238,6 +296,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 282
 /private/var/folders/bm/b7qc5gy14kj4qmrgkj2zb5vw0000gp/T/tmpjqawuzrk/scripts/timed-test-run.sh target projects/dashboard/tests/test_serve_get_root.py make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 before 40
 9fc78558628ec9cb59f906bd849b37eab658a78a
@@ -245,6 +305,8 @@ keep 47
 projects/dashboard/tests/test_serve_get_root.py
 command 132
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -254,6 +316,8 @@ new 22
 ("0.0.0.0", args.port)
 command 132
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
 file 27
 projects/dashboard/serve.py
@@ -263,4 +327,6 @@ new 23
 self.path == "/reportx"
 command 132
 make test TESTS=projects/dashboard/tests/test_serve_get_root.py::test_serve_answers_report_on_loopback_and_on_no_other_local_address
+retired 56
+mutated file deleted by bc96a54094 (dashboard left veri)
 
