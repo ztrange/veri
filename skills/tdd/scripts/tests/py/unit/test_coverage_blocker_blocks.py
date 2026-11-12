@@ -281,6 +281,8 @@ def test_main_3721_files_a_cover_issue_carrying_the_opt_in_label_of_the_run(
         monkeypatch, tmp_path, coverage_blocker):
     labels = []
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\nMUTATION: veri/a.py: f `x` -> `y`\n")
     monkeypatch.chdir(tmp_path)
 
     def fake_create(title, text, *extra, **fields):
@@ -321,3 +323,43 @@ def test_main_3721_files_a_cover_issue_carrying_filed_by_the_lane_after_the_last
         seen[label] = "filed-by:" + lane in current
 
     assert seen == {"ready-for-agent:mu": True, "ready-for-agent": True, "a:b:c": True}
+
+
+def _label_run(monkeypatch, tmp_path, coverage_blocker, report):
+    labels = []
+    (tmp_path / ".tdd").mkdir(parents=True, exist_ok=True)
+    if report is not None:
+        (tmp_path / ".tdd" / "develop-cover.out").write_text(report)
+    monkeypatch.chdir(tmp_path)
+
+    def fake_create(title, text, *extra, **fields):
+        labels.extend(str(v) for v in (*extra, *fields.values()))
+        return "https://github.com/owner/name/issues/77\n"
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create", fake_create)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_add_label", lambda n, label: labels.append(label), raising=False)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+    coverage_blocker.main(["60"])
+    return labels
+
+
+def test_main_3721_files_a_cover_issue_carrying_ready_for_agent_when_veri_label_is_unset(
+        monkeypatch, tmp_path, coverage_blocker):
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+
+    labels = _label_run(monkeypatch, tmp_path, coverage_blocker, "COVERED: no\nMUTATION: veri/a.py: f `x` -> `y`\n")
+
+    assert "ready-for-agent" in labels
+
+
+def test_main_3721_files_a_cover_issue_without_the_opt_in_label_when_the_probe_gave_no_mutation_line(
+        monkeypatch, tmp_path, coverage_blocker):
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+
+    labels = {name: _label_run(monkeypatch, tmp_path / name, coverage_blocker, report)
+              for name, report in (("none", None), ("nomut", "COVERED: no\nCAUGHT_BY: NONE\n"))}
+
+    assert {k: ("ready-for-agent:mu" in v, "filed-by:mu" in v) for k, v in labels.items()} == {
+        "none": (False, True), "nomut": (False, True)}
