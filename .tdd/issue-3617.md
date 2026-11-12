@@ -2,7 +2,7 @@
 
 - [x] With TESTS, MAKEFLAGS and MAKELEVEL set in the caller's environment, a case run through tick_ledger.py via a stub detect-test-command.sh command, on both the --unpinnable and the --already-holds path, gets none of the three in its own environment: a stub case command that writes its env to a file shows none of them; one case (parametrised over the two paths) in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, unit tier, no real process ⟦criterion 1⟧
 - [x] On the fallback path (the stub detect-test-command.sh prints nothing), the make that tick_ledger.py starts for the case records an environment without MAKEFLAGS and MAKELEVEL, while its argv is still test TESTS=<case>; one case in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, unit tier ⟦criterion 2⟧
-- [ ] tick-ledger.sh on a case whose test file is missing exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
+- [x] tick-ledger.sh on a case whose test file is missing exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] tick-ledger.sh on a case whose test file exists but under which no tests ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
 - [ ] pin-reject-route.sh on a case that never ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
 - [ ] A case that ran and failed still makes tick-ledger.sh exit 1, and pin-reject-route.sh print `revise` and exit 1 ⟦criterion 4⟧

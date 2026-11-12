@@ -1160,3 +1160,27 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, ran["argv"], ran["env"]) == (0, ["make", "test", "TESTS=tests/py/test_x.py::test_holds"], [])
+
+
+def test_main_on_a_case_whose_test_file_is_missing_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617(
+        tmp_path, capsys, tick_ledger, monkeypatch):
+    import subprocess
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    case = str(tmp_path / "gone" / "test_missing.py")
+
+    def fake_run(args, **kwargs):
+        if args[0].endswith("detect-test-command.sh"):
+            return subprocess.CompletedProcess(args, 0, "stub-case-command --flag\n", "")
+        return subprocess.CompletedProcess(args, 4, "", "ERROR: file or directory not found\n")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, f"case {case} never run" in err, "stub-case-command --flag" in err) == (2, "", True, True)

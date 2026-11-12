@@ -29,12 +29,18 @@ def case_env():
     return {k: v for k, v in os.environ.items() if k not in ("TESTS", "MAKEFLAGS", "MAKELEVEL")}
 
 
+LAST_COMMAND = ""
+
+
 def run_case(case):
+    global LAST_COMMAND
     detect = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
     if not command:
+        LAST_COMMAND = f"make test TESTS={case}"
         return subprocess.run(["make", "test", f"TESTS={case}"], env=case_env()).returncode
+    LAST_COMMAND = f"{command} {case.split('::', 1)[0]}"
     path = case.split("::", 1)[0]
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
@@ -142,7 +148,7 @@ def main(argv):
             return 1
     ran = run_case(case) if case else 0
     if ran == 2:
-        complain(f"{matcher}: case {case} never run: no such file path or no tests ran")
+        complain(f"{matcher}: case {case} never run: no such file path or no tests ran: {LAST_COMMAND}")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")
