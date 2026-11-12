@@ -84,7 +84,7 @@ def launched_since(path, recovered):
 def do_request_reset(path, argv):
     lines = (read(path) or "").splitlines()
     recovered = [l.split("=", 1)[1] for l in lines if l.startswith("recovered-at=")]
-    decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith("decision "))
+    decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith(("decision ", "dropped-decision ")))
     if not decided and not launched_since(path, recovered[-1]):
         sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
         return 1
@@ -133,7 +133,10 @@ def do_drop(path, argv):
         return drop_lines(path, lambda l: l.startswith("coordinator="))
     if argv[2] not in LISTS:
         return usage()
-    return drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
+    code = drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
+    if code == 0 and argv[2] == "decision":
+        append(path, "dropped-decision %s %s\n" % (argv[3], now()))
+    return code
 
 
 def do_show(path, argv):

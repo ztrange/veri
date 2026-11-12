@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_role_state.py
 command 178
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_accepts_when_only_a_conductor_start_in_a_run_journal_is_later_than_recovery
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 192
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_since_recovery_but_accepts_once_a_decision_is_too
+

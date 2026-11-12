@@ -209,3 +209,44 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_added_to_the_
 
     marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
     assert (code, marker) == (0, ["2026-11-12T10:00:00"])
+
+
+def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_dropped_from_the_state_file_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T08:30:00")
+    run_cli(role_state, ["dev", "add", "decision", "use the bus"])
+    with open(tdd / "role-dev.state", "a") as f:
+        f.write("recovered-at=2026-11-12T09:00:00\n")
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T09:30:00")
+    run_cli(role_state, ["dev", "drop", "decision", "1"])
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+
+    code, _, _ = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
+    assert (code, marker) == (0, ["2026-11-12T10:00:00"])
+
+
+def test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_since_recovery_but_accepts_once_a_decision_is_too(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T08:30:00")
+    run_cli(role_state, ["dev", "add", "message", "hello"])
+    run_cli(role_state, ["dev", "add", "decision", "use the bus"])
+    with open(tdd / "role-dev.state", "a") as f:
+        f.write("recovered-at=2026-11-12T09:00:00\n")
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T09:30:00")
+    run_cli(role_state, ["dev", "drop", "message", "1"])
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    marker = tdd / "reset-request-dev"
+
+    refused = run_cli(role_state, ["dev", "request-reset"])[0], marker.exists()
+    run_cli(role_state, ["dev", "drop", "decision", "2"])
+    accepted = run_cli(role_state, ["dev", "request-reset"])[0], marker.exists()
+
+    assert (refused, accepted) == ((1, False), (0, True))
