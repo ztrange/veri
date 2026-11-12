@@ -2759,6 +2759,31 @@ def test_main_exits_2_naming_a_failed_pr_list_or_issue_body_read_and_launches_no
     assert (code, launches, f"reading {named} failed: gh: HTTP 502: Bad Gateway" in err) == (2, [], True)
 
 
+@pytest.mark.parametrize("limited_read, named, gh_reads", [
+    ("list", "the open PR list", 2), ("diff", "https://github.com/o/r/pull/90's diff", 2),
+    ("body", "issue 12's body", 4)])
+def test_main_exits_2_naming_a_pr_list_diff_or_issue_body_read_still_rate_limited_past_the_refusal_budget_issue_3582(
+        monkeypatch, capsys, tmp_path, dispatch, limited_read, named, gh_reads):
+    times = list(range(0, 100000, 61))
+    reads = []
+    sleeps = []
+    launches, waits = _overlap_case(monkeypatch, tmp_path, dispatch, lambda: ["12"], {}, None,
+                                    waits_before_stop=len(times) - 1)
+    monkeypatch.setenv("VERI_GH_REFUSAL_RETRIES", "1")
+    monkeypatch.setenv("VERI_GH_REFUSAL_SLEEP", "0")
+    _gh_rest(monkeypatch, dispatch, times, waits, 10 ** 9, limited_read, reads)
+    monkeypatch.setattr(dispatch.github.time, "sleep", sleeps.append)
+    monkeypatch.setattr(dispatch.watch_runs.github, "rate_limit_reset", lambda run: times[len(waits)] + 30)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    err = capsys.readouterr().err
+    assert (code, launches, len(reads), f"reading {named} failed" in err) == (2, [], gh_reads, True)
+
+
 def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_url_and_rereads_the_diff_when_its_head_sha_changes_issue_3478(
         monkeypatch, capsys, tmp_path, dispatch):
     import subprocess
