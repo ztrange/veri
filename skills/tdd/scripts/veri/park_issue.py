@@ -23,20 +23,23 @@ def split_blocker(argv):
         return argv, None
     at = argv.index("--blocked-by")
     rest = argv[:at] + argv[at + 2:]
-    if at + 1 >= len(argv) or "--blocked-by" in rest or not re.fullmatch(r"[1-9][0-9]*", argv[at + 1]):
+    if at + 1 >= len(argv) or "--blocked-by" in rest or not re.fullmatch(r"[1-9][0-9]*(,[1-9][0-9]*)*", argv[at + 1]):
         return None, None
-    return rest, argv[at + 1]
+    return rest, argv[at + 1].split(",")
 
 
-def block_on(number, blocker):
-    """List #<blocker> under <number>'s `## Blocked by`, so selection waits on it and it inherits <number>'s band."""
+def block_on(number, blockers):
+    """List each of <blockers> under <number>'s `## Blocked by`, so selection waits on them and it inherits <number>'s band."""
     body = github.gh_issue_view(number, "body").rstrip("\n")
-    if int(blocker) in blocked_by.blockers(body, ""):
+    new = [b for b in blockers if int(b) not in blocked_by.blockers(body, "")]
+    if not new:
         return
     fd, tmp = tempfile.mkstemp()
     try:
         with os.fdopen(fd, "w") as f:
-            f.write(blocked_by.add(body, blocker) + "\n")
+            for b in new:
+                body = blocked_by.add(body, b)
+            f.write(body + "\n")
         github.gh_issue_edit(number, tmp)
     finally:
         os.remove(tmp)
@@ -64,7 +67,7 @@ def main(argv):
     if len(argv) == 4 and not (pr_url and origin_slug() == pr_url.group(1) or re.fullmatch(r"[1-9][0-9]*", argv[3])):
         sys.stderr.write(USAGE)
         return 2
-    if blocker == number:
+    if number in (blocker or []):
         sys.stderr.write("park-issue.sh: an issue cannot be blocked by itself\n")
         return 2
     pr = "PR: %s\n" % argv[3] if len(argv) == 4 else ""
@@ -72,7 +75,7 @@ def main(argv):
     writes += [
         ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
-        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: #%s\n" % blocker if blocker else ""))),
+        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""))),
     ]
     if len(argv) == 4:
         writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))

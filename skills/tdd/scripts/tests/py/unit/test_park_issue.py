@@ -110,3 +110,14 @@ def test_issue_3683_the_parked_comment_carries_one_blocked_by_line_beside_cause_
     assert "Cause: pin-recheck exit 2" in lines
     assert "Unblock: #9 lands" in lines
     assert lines.count("Blocked by: #9") == 1
+
+
+def test_issue_3683_a_comma_separated_blocker_list_names_every_blocker_under_blocked_by(park, run_cli):
+    park_issue, calls, edited = park
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "#9 and #10 land", "--blocked-by", "9,10"])
+
+    assert (code, err) == (0, "")
+    assert len(edited) == 1
+    assert park_issue.blocked_by.blockers(edited[0], "") == [9, 10]
+    assert "None." not in edited[0]
