@@ -44,3 +44,10 @@ ICAgICAgICBpZiBpc2luc3RhbmNlKHJlY29yZCwgZGljdCkgYW5kIHJlY29yZC5nZXQoInR5cGUiKSA9
 command 151
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_target.py::test_main_skips_non_object_lines_and_non_text_results_in_a_stream_json_report_3324
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_pin_target.py
+command 133
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_target.py::test_main_exits_2_printing_nothing_for_an_unreadable_report_3324
+

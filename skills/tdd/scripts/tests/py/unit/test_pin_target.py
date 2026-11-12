@@ -62,3 +62,12 @@ def test_main_skips_non_object_lines_and_non_text_results_in_a_stream_json_repor
     code, out, err = run_cli(pin_target, [str(red)], cwd=tmp_path)
 
     assert (code, out.strip()) == (0, "test_a_refuses"), err
+
+
+def test_main_exits_2_printing_nothing_for_an_unreadable_report_3324(
+        tmp_path, run_cli, pin_target):
+    missing = tmp_path / "no-such-develop-red.out"
+
+    code, out, err = run_cli(pin_target, [str(missing)], cwd=tmp_path)
+
+    assert (code, out) == (2, ""), err
