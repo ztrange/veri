@@ -2438,6 +2438,25 @@ def test_cli_a_launch_whose_conductor_pid_file_names_a_live_pid_started_at_anoth
     assert (code, len(launches), "already live" in err) == (0, 1, False), err
 
 
+def test_cli_a_launch_refused_for_a_live_conductor_leaves_the_runs_launch_records_unchanged_and_marks_no_skill_repin_3633(
+        tmp_path, monkeypatch, run_cli):
+    monkeypatch.setenv("VERI_NEW_SKILL", "1")
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches, _ = _3633_live_pid_file(tmp_path, monkeypatch, "Tue Oct 27 13:40:12 2026")
+    state = tmp_path / "cwd" / ".tdd"
+    records = {name: "the live run's %s\n" % name for name in (
+        "issue-4242-skill-commit", "issue-4242-conductor-model", "issue-4242-launch-env",
+        "issue-4242-tmpdir-skill-commit", "issue-4242-skip-verify", "issue-4242-baseline-full-tier")}
+    for name, text in records.items():
+        (state / name).write_text(text)
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=tmp_path / "cwd")
+
+    after = {name: (state / name).read_text() if (state / name).exists() else None for name in records}
+    repins = [str(f) for f in (state / "wt" / "4242").rglob("*") if f.is_file() and "skill-repin" in f.read_text(errors="replace")]
+    assert (code, "already live (pid %d)" % os.getpid() in err, launches, after, repins) == (2, True, [], records, []), err
+
+
 def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)

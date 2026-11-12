@@ -49,6 +49,10 @@ def main(argv):
     if not argv or not re.fullmatch(r"[0-9]+", argv[0], re.ASCII) or int(argv[0]) == 0:
         sys.stderr.write(USAGE + "\n")
         return 2
+    live = pids.recorded_started(run_worktree(argv[0]))
+    if live:
+        sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (argv[0], live))
+        return 2
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
     if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
@@ -257,10 +261,6 @@ def conduct(text, issue, env):
     env.pop("FORCE_PROMPT_CACHING_5M", None)
     env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
     binary = os.environ.get("CLAUDE_BIN") or "claude"
-    live = pids.recorded_started(run_worktree(issue))
-    if live:
-        sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (issue, live))
-        return 2
     event.state_labels(b"start", env.get("VERI_STATE_LABEL_ISSUE"))
     unread = []
     result = None
