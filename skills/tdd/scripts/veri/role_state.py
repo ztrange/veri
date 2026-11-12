@@ -23,6 +23,11 @@ def state_path(tree, role, lane=None):
 STAMP = "%Y-%m-%dT%H:%M:%S"
 
 
+def marker_path(path):
+    name = os.path.basename(path)[len("role-"):-len(".state")]
+    return os.path.join(os.path.dirname(path), "reset-request-" + name)
+
+
 def now():
     return time.strftime(STAMP)
 
@@ -78,9 +83,8 @@ def do_recovered(path, argv):
     if not session:
         return usage()
     append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), session))
-    name = os.path.basename(path)[len("role-"):-len(".state")]
     try:
-        os.remove(os.path.join(os.path.dirname(path), "reset-request-" + name))
+        os.remove(marker_path(path))
     except FileNotFoundError:
         pass
     return 0
@@ -108,8 +112,7 @@ def do_request_reset(path, argv):
         sys.stderr.write("request-reset refused: %d resets in the last hour\n" % len(recent))
         return 1
     append(path, "reset-at=%s\n" % stamp)
-    name = os.path.basename(path)[len("role-"):-len(".state")]
-    replace(os.path.join(os.path.dirname(path), "reset-request-" + name), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))
+    replace(marker_path(path), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))
     return 0
 
 
