@@ -1255,6 +1255,32 @@ def test_main_does_not_exit_2_vanished_and_keeps_watching_across_polls_while_the
     assert (code, captured.out, captured.err) == ("looping", "", "")
 
 
+def test_main_launches_nothing_at_target_1_while_a_seen_run_is_in_preflight_with_its_conductor_process_alive_and_no_worktree_issue_3693(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    lives = [["7"], []]
+    launches = []
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 4:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "1"])
+
+    assert launches == []
+
+
 def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_exists_and_no_run_conductor_process_is_alive_issue_3693(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
