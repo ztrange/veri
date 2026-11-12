@@ -1,13 +1,13 @@
 ### 📊 Metrics — issue 3324
 
-Wall time for the issue: 226 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 369 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 8 of 16 planned.
-Outcome: the run bailed — step-added-off-route, a process failure.
+Steps done: 9 of 16 planned.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
 Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $21.15 over 390 turns, in 10 sessions, on opus (estimate).
+Conductor own spending: $23.55 over 432 turns, in 11 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 78087 tokens, largest 181395 tokens
 Conductor context: first turn 78107 tokens, largest 134507 tokens
@@ -18,7 +18,8 @@ Conductor context: first turn 80085 tokens, largest 97780 tokens
 Conductor context: first turn 80083 tokens, largest 102496 tokens
 Conductor context: first turn 80226 tokens, largest 149944 tokens
 Conductor context: first turn 80226 tokens, largest 163378 tokens
-Conductor context: first turn 80218 tokens, largest 133876 tokens
+Conductor context: first turn 80218 tokens, largest 135815 tokens
+Conductor context: first turn 80215 tokens, largest 153162 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -371,40 +372,82 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 344 | $0.04 | 163011 |
 | 345 | $0.04 | 163127 |
 | 346 | $0.04 | 163378 |
-| 347 | $0.50 | 80218 |
-| 348 | $0.07 | 86988 |
-| 349 | $0.04 | 90043 |
-| 350 | $0.05 | 94147 |
-| 351 | $0.02 | 94632 |
-| 352 | $0.02 | 95161 |
-| 353 | $0.02 | 95531 |
-| 354 | $0.07 | 102353 |
-| 355 | $0.02 | 102789 |
-| 356 | $0.02 | 103113 |
-| 357 | $0.03 | 104887 |
-| 358 | $0.04 | 106908 |
+| 347 | $0.51 | 80218 |
+| 348 | $0.08 | 86988 |
+| 349 | $0.05 | 90043 |
+| 350 | $0.06 | 94147 |
+| 351 | $0.03 | 94632 |
+| 352 | $0.03 | 95161 |
+| 353 | $0.04 | 95531 |
+| 354 | $0.08 | 102353 |
+| 355 | $0.03 | 102789 |
+| 356 | $0.03 | 103113 |
+| 357 | $0.05 | 104887 |
+| 358 | $0.05 | 106908 |
 | 359 | $0.03 | 107719 |
-| 360 | $0.02 | 108028 |
-| 361 | $0.02 | 108379 |
+| 360 | $0.04 | 108028 |
+| 361 | $0.03 | 108379 |
 | 362 | $0.03 | 108904 |
-| 363 | $0.03 | 109749 |
-| 364 | $0.06 | 114299 |
-| 365 | $0.03 | 114955 |
-| 366 | $0.03 | 115698 |
+| 363 | $0.04 | 109749 |
+| 364 | $0.07 | 114299 |
+| 365 | $0.04 | 114955 |
+| 366 | $0.04 | 115698 |
 | 367 | $0.03 | 116230 |
-| 368 | $0.03 | 117269 |
-| 369 | $0.03 | 118279 |
-| 370 | $0.04 | 119708 |
-| 371 | $0.03 | 120722 |
-| 372 | $0.03 | 121282 |
+| 368 | $0.04 | 117269 |
+| 369 | $0.04 | 118279 |
+| 370 | $0.05 | 119708 |
+| 371 | $0.04 | 120722 |
+| 372 | $0.04 | 121282 |
 | 373 | $0.03 | 121596 |
-| 374 | $0.03 | 121783 |
-| 375 | $0.03 | 122447 |
+| 374 | $0.04 | 121783 |
+| 375 | $0.04 | 122447 |
 | 376 | $0.06 | 126294 |
-| 377 | $0.03 | 127005 |
-| 378 | $0.03 | 127295 |
-| 379 | $0.03 | 127909 |
-| 380 | $0.07 | 133876 |
+| 377 | $0.04 | 127005 |
+| 378 | $0.04 | 127295 |
+| 379 | $0.04 | 127909 |
+| 380 | $0.08 | 133876 |
+| 381 | $0.04 | 134753 |
+| 382 | $0.05 | 135815 |
+| 383 | $0.50 | 80215 |
+| 384 | $0.07 | 86981 |
+| 385 | $0.04 | 90037 |
+| 386 | $0.02 | 90664 |
+| 387 | $0.05 | 94863 |
+| 388 | $0.02 | 95499 |
+| 389 | $0.02 | 96003 |
+| 390 | $0.02 | 96444 |
+| 391 | $0.02 | 96718 |
+| 392 | $0.02 | 97080 |
+| 393 | $0.02 | 97494 |
+| 394 | $0.02 | 97934 |
+| 395 | $0.03 | 98761 |
+| 396 | $0.06 | 103399 |
+| 397 | $0.03 | 104798 |
+| 398 | $0.04 | 106826 |
+| 399 | $0.03 | 108082 |
+| 400 | $0.03 | 109674 |
+| 401 | $0.03 | 110481 |
+| 402 | $0.03 | 111055 |
+| 403 | $0.14 | 125589 |
+| 404 | $0.04 | 126853 |
+| 405 | $0.06 | 130635 |
+| 406 | $0.03 | 131368 |
+| 407 | $0.03 | 131768 |
+| 408 | $0.03 | 132503 |
+| 409 | $0.03 | 133130 |
+| 410 | $0.04 | 134414 |
+| 411 | $0.03 | 135296 |
+| 412 | $0.04 | 136561 |
+| 413 | $0.03 | 137462 |
+| 414 | $0.03 | 138303 |
+| 415 | $0.04 | 139288 |
+| 416 | $0.04 | 140353 |
+| 417 | $0.05 | 143097 |
+| 418 | $0.04 | 144238 |
+| 419 | $0.04 | 145628 |
+| 420 | $0.04 | 146828 |
+| 421 | $0.04 | 147925 |
+| 422 | $0.07 | 153162 |
 
 #### Conductor comments, by family
 
@@ -430,12 +473,12 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 9 | 5 | 4 | 0 | 132 | 108 | 19 | 38 | 13247 | 248024 | 188073 | 0.63 |
-| red | 9 | 4 | 0 | 0 | 375 | 138 | 42 | 84 | 13226 | 701390 | 177596 | 0.65 |
-| green | 14 | 3 | 4 | 0 | 1930 | 269 | 73 | 146 | 21744 | 1277200 | 251089 | 1.05 |
-| refactor | 3 | 0 | 0 | 0 | 28 | 16 | 7 | 14 | 686 | 82957 | 54758 | 0.15 |
+| plan | 10 | 6 | 4 | 0 | 144 | 117 | 20 | 40 | 14391 | 248024 | 211517 | 0.70 |
+| red | 12 | 5 | 0 | 0 | 437 | 181 | 56 | 112 | 17459 | 956088 | 237972 | 0.87 |
+| green | 16 | 4 | 4 | 0 | 1972 | 289 | 81 | 160 | 23629 | 1392447 | 283737 | 1.16 |
+| refactor | 4 | 0 | 0 | 0 | 40 | 25 | 9 | 18 | 1016 | 109135 | 70987 | 0.20 |
 | red-missing | 2 | 0 | 0 | 0 | 44 | 32 | 8 | 12 | 3953 | 92908 | 34142 | 0.13 |
-| pin | 3 | 3 | 0 | 0 | 77 | 55 | 13 | 26 | 4667 | 212818 | 48744 | 0.19 |
+| pin | 4 | 4 | 0 | 0 | 100 | 71 | 18 | 36 | 6253 | 303263 | 66530 | 0.26 |
 | prose | 22 | 0 | 0 | 0 | 784 | 737 | 22 | 44 | 116320 | 190284 | 1099607 | 3.93 |
 | skill-edit | 4 | 0 | 0 | 0 | 55 | 46 | 17 | 32 | 4218 | 1032130 | 325464 | 0.96 |
 | diff | 6 | 2 | 1 | 0 | 443 | 75 | 24 | 46 | 7141 | 356812 | 118920 | 0.40 |
@@ -445,8 +488,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 27 | 18 | 9 | 0 | 2406 | 402 | 96 | 190 | 39431 | 1469002 | 513041 | 1.82 |
-| developer | claude-sonnet-5-5 | 18 | 0 | 0 | 0 | 570 | 264 | 83 | 160 | 23367 | 1351561 | 340917 | 1.22 |
+| verifier | claude-sonnet-5-5 | 31 | 22 | 9 | 0 | 2484 | 448 | 110 | 216 | 44089 | 1673317 | 587909 | 2.08 |
+| developer | claude-sonnet-5-5 | 22 | 0 | 0 | 0 | 643 | 315 | 99 | 192 | 27887 | 1633814 | 416532 | 1.48 |
 | developer | claude-opus-5-5 | 4 | 0 | 0 | 0 | 432 | 198 | 50 | 98 | 18705 | 1376943 | 121730 | 0.97 |
 
 #### Rework and waste, by phase
@@ -454,11 +497,11 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 105 | 0.25 |
-| green | 1321 | 0.81 | 609 | 0.24 |
-| refactor | 0 | 0.00 | 0 | 0.00 |
+| red | 0 | 0.00 | 115 | 0.28 |
+| green | 1321 | 0.81 | 651 | 0.35 |
+| refactor | 0 | 0.00 | 12 | 0.05 |
 | red-missing | 0 | 0.00 | 0 | 0.00 |
-| pin | 0 | 0.00 | 21 | 0.06 |
+| pin | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 275 | 1.46 |
 | skill-edit | 0 | 0.00 | 30 | 0.50 |
 | diff | 364 | 0.29 | 0 | 0.00 |
@@ -478,7 +521,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `skills/tdd/SKILL.md` applies `pin-target.sh` only when the step's own red reported `AGAINST_UNMODIFIED: PASSES` (itself a pin); when the step's own red FAILS, the `missing` reroute is judged as before (the added case verified by verify-red, verify-pin only when it reports `PASSES`) ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 1⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 191 | 9 | 18 | 28931 | 473021 | 343063 | 1.19 | unknown | unknown | unknown | unknown |  |  | full |
 | `pin-target.sh` reads a stream-json report as `.tdd/develop-red.out` really is (one JSON object per line, the leaf's report in the `result` record's text, read via `report.report_read`) and prints the `TARGET_TEST:` value of the step's own red; a unit case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` over a stream-json fixture pins it ⟦added⟧ ⟦criterion 4⟧ | 9 | 3 | 1 | 0 | 0 | 0 | 145 | 43 | 86 | 12815 | 742175 | 160881 | 0.60 | 1186 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | Go-red evidence for the criterion-1 case, with the code restored afterwards: `test_main_prints_the_step_red_reports_target_not_a_red_missing_reports_3324` in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` goes red with `skills/tdd/scripts/veri/pin_target.py`'s selection reverted to the last report's `TARGET_TEST:` (reading `argv[-1]` in place of `argv[0]`), and passes once restored; the branch's diff adds no test for it and leaves the tree as the branch holds it ⟦diff-checked⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 194 | 50 | 96 | 18968 | 1319544 | 134443 | 0.92 | 136 | 1/2 | unknown | unknown |  |  | full |
-| A case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` pins that `pin-target.sh` exits 2, printing nothing on stdout, for an unreadable (missing) report ⟦added⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 35 | 10 | 20 | 3328 | 184621 | 42563 | 0.16 | unknown | unknown | unknown | unknown |  |  | already-satisfied |
+| A case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` pins that `pin-target.sh` exits 2, printing nothing on stdout, for an unreadable (missing) report ⟦added⟧ ⟦criterion 3⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 72 | 21 | 42 | 6964 | 389813 | 85309 | 0.32 | unknown | unknown | unknown | unknown |  |  | pin |
+| A case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` pins that `pin-target.sh` exits 2, printing nothing on stdout, for a readable report with no `TARGET_TEST:` line ⟦added⟧ ⟦criterion 3⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 51 | 18 | 34 | 4398 | 281376 | 84293 | 0.28 | unknown | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -489,6 +533,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A new script `skills/tdd/scripts/pin-target.sh` (a `/bin/sh` shim over `skills/tdd/scripts/veri/pin_target.py`, per the ported-script convention) run with no argument prints a usage line naming `pin-target.sh <step-red-report> [<red-missing-report>…]` on stderr and exits 2, the script contract `tests/py/unit/test_missing_argument_cli.py` audits; the step adds no other behaviour ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.05 |
 | `pin-target.sh <step-red-report> [<red-missing-report>…]` prints the verify-pin target for the step, the `TARGET_TEST:` value of the step's own red report (its first argument), never a later `red-missing` report's `TARGET_TEST:`; a unit case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` drives it in-process with `run_cli` over a ledger-and-report fixture (a ledger holding the step, the step's red report naming case A, a `red-missing` report naming case B) and asserts it prints A ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.04 |
 | `pin-target.sh` reads a stream-json report as `.tdd/develop-red.out` really is (one JSON object per line, the leaf's report in the `result` record's text, read via `report.report_read`) and prints the `TARGET_TEST:` value of the step's own red; a unit case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` over a stream-json fixture pins it ⟦added⟧ ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 10 | 0.06 |
+| A case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` pins that `pin-target.sh` exits 2, printing nothing on stdout, for a readable report with no `TARGET_TEST:` line ⟦added⟧ ⟦criterion 3⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 12 | 0.05 |
 
 #### Structural pass
 
@@ -501,19 +546,20 @@ Stopped: nothing-structural
 | A new script `skills/tdd/scripts/pin-target.sh` (a `/bin/sh` shim over `skills/tdd/scripts/veri/pin_target.py`, per the ported-script convention) run with no argument prints a usage line naming `pin-target.sh <step-red-report> [<red-missing-report>…]` on stderr and exits 2, the script contract `tests/py/unit/test_missing_argument_cli.py` audits; the step adds no other behaviour ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `pin-target.sh <step-red-report> [<red-missing-report>…]` prints the verify-pin target for the step, the `TARGET_TEST:` value of the step's own red report (its first argument), never a later `red-missing` report's `TARGET_TEST:`; a unit case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` drives it in-process with `run_cli` over a ledger-and-report fixture (a ledger holding the step, the step's red report naming case A, a `red-missing` report naming case B) and asserts it prints A ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `pin-target.sh` reads a stream-json report as `.tdd/develop-red.out` really is (one JSON object per line, the leaf's report in the `result` record's text, read via `report.report_read`) and prints the `TARGET_TEST:` value of the step's own red; a unit case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` over a stream-json fixture pins it ⟦added⟧ ⟦criterion 4⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 4 | ? | ? | nothing-left 3, nothing-structural 1 |
+| A case in `skills/tdd/scripts/tests/py/unit/test_pin_target.py` pins that `pin-target.sh` exits 2, printing nothing on stdout, for a readable report with no `TARGET_TEST:` line ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
+| issue | 5 | ? | ? | nothing-left 4, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 8 | 0 | 8 | 5 | 11 | 6 | 4 | 4 | 6 | 1 | 2 | 1 | 1 | 2 | 4 | 2 | 2 | 1 | 2 | 1 | 2 | 0 | 207 | 2 | 2 | 1 | 1 |
-| fast | 44 | 52 | 64 | 70 | 29 | 44 | 25 | 28 | 28 | 25 | 34 | 21 | 23 | 21 | 22 | 21 | 22 | 22 | 22 | 6 |  |  |  |  |  |  |  |
-| target | 7 | 12 | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 8 | 6 | 127 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 8 | 0 | 8 | 5 | 11 | 6 | 4 | 4 | 6 | 1 | 2 | 1 | 1 | 2 | 4 | 2 | 2 | 1 | 2 | 1 | 2 | 0 | 207 | 2 | 2 | 1 | 1 | 1 | 2 | 2 | 1 | 2 |
+| fast | 44 | 52 | 64 | 70 | 29 | 44 | 25 | 28 | 28 | 25 | 34 | 21 | 23 | 21 | 22 | 21 | 22 | 22 | 22 | 6 | 6 | 6 |  |  |  |  |  |  |  |  |  |  |
+| target | 7 | 12 | 1 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 8 | 6 | 127 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 268 | 524 | 202041 | 5419920 | 2400759 | 30.05 (estimate) |
+| total | 298 | 582 | 211219 | 5906488 | 2551242 | 32.97 (estimate) |
