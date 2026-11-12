@@ -2,7 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
 import frozen_record
-from case_reader import _js_title_pattern, cut_prefix, defined_name, defines_helper, live_titles, is_go_test_file, is_js_test_file, is_test_file
+from case_reader import _js_title_pattern, cut_prefix, defined_name, defines_helper, live_titles, strip_param_suffix, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
@@ -53,7 +53,7 @@ def _file_case(file, case):
 
 
 def _exists(case):
-    case = re.sub(r"\[.*\]$", "", case)
+    case = strip_param_suffix(case)
     cut = cut_prefix(case)
     titles = set()
     for root, name, py_file, go_file, js_file in _test_files():
