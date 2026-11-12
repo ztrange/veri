@@ -1,0 +1,7 @@
+before 40
+fe410caa36a0ec77550e1433fed70f04676bf8dd
+keep 55
+skills/tdd/scripts/tests/py/test_pin_recheck_process.py
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_not_by_its_keep_value
+
