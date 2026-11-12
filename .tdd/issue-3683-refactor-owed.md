@@ -7,3 +7,4 @@
 - Extract a helper for the repeated gh-read-or-exit-2 pattern in `parked_issues.py` (state read and merged-state read, plus the earlier listing and comments reads)
 applied | cd7185f62c421936cba09ec7c6b529f381a69d41 | extract the blocker-state loop in `parked_issues.main` into a helper returning `ready`/`waiting`/`-`	refactor: extract blockers_status helper from parked_issues.main (#3683)
 applied | f1ffa11cccf8cef6a94a199ef4435cc24465f3e3 | extract the blocker-state loop in `main` of `veri/parked_issues.py` into a helper (for example `blockers_status(blocked_by)`), since `main` is long	chore: record the structural pass's applied candidate (#3683)
+applied | 625d33a6f813c16324a5c5e4c8950d6b68509a65 | Extract a helper for the repeated gh-read-or-exit-2 pattern in `parked_issues.py` (state read and merged-state read, plus the earlier listing and comments reads)	refactor: extract read helper for gh-read-or-exit-2 in parked_issues (#3683)
