@@ -720,3 +720,17 @@ def test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_singl
         status.recover_prs()
 
     assert str(raised.value) == "status.sh --recover: GitHub refused the single pull request read for #4730: boom"
+
+
+def test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_read_fails(monkeypatch):
+    import pytest
+    status = importlib.import_module("veri.status")
+
+    def run(args, *a, **k):
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom\n")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    with pytest.raises(OSError) as raised:
+        status.recover_prs()
+
+    assert str(raised.value) == "status.sh --recover: GitHub refused the open pull request read: boom"

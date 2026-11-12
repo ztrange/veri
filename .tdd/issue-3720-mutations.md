@@ -9,3 +9,14 @@ ICAgICAgICBpZiBzaW5nbGUucmV0dXJuY29kZSAhPSAwOg==
 command 161
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_single_read_fails
 
+file 33
+skills/tdd/scripts/veri/status.py
+old-b64 128
+aWYgYW5zd2VyLnJldHVybmNvZGUgIT0gMDoKICAgICAgICByYWlzZSBPU0Vycm9yKCJzdGF0dXMuc2ggLS1yZWNvdmVyOiBHaXRIdWIgcmVmdXNlZCB0aGUgb3Blbg==
+new-b64 104
+aWYgRmFsc2U6CiAgICAgICAgcmFpc2UgT1NFcnJvcigic3RhdHVzLnNoIC0tcmVjb3ZlcjogR2l0SHViIHJlZnVzZWQgdGhlIG9wZW4=
+context-b64 40
+ICAgIGlmIGFuc3dlci5yZXR1cm5jb2RlICE9IDA6
+command 157
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_status_recover.py::test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_read_fails
+
