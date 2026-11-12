@@ -19,21 +19,18 @@ def main(argv):
     if live:
         print(f"conductor {live} is live; refusing to drop a ledger step", file=sys.stderr)
         return 1
+    directory = os.path.dirname(os.path.abspath(argv[0]))
+    name = os.path.basename(argv[0])
+    if git("rev-parse", "--is-inside-work-tree", cwd=directory, capture_output=True).returncode:
+        print(f"{argv[0]} is not inside a git work tree; the drop would go uncommitted", file=sys.stderr)
+        return 2
     lines = ledger.read_ledger(argv[0]).split("\n")
     index = reorder_ledger_steps._open_match(lines, argv[1], "cannot drop a ticked step")
     if index is None:
         return 1
     del lines[index]
     ledger.replace_ledger(argv[0], "\n".join(lines).encode(errors="surrogateescape"))
-    directory = os.path.dirname(os.path.abspath(argv[0]))
-    name = os.path.basename(argv[0])
-    if git("rev-parse", "--is-inside-work-tree", cwd=directory, capture_output=True).returncode:
-        return 0
-    env = None
-    if git("var", "GIT_COMMITTER_IDENT", cwd=directory, capture_output=True).returncode:
-        env = {**os.environ, "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
-               "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
-    git("commit", "-q", "-m", "plan: drop a ledger step", "--", name, cwd=directory, env=env, check=True)
+    git("commit", "-q", "-m", "plan: drop a ledger step", "--", name, cwd=directory, check=True)
     return 0
 
 
