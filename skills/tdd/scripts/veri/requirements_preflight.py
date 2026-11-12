@@ -29,7 +29,7 @@ def main(argv):
     if len(argv) > 1:
         for line in open(argv[1]):
             step = re.sub(r"^- \[.\] ", "", line.rstrip("\n"))
-            marked = step.startswith("⟦skill-edit⟧") or ledger.carries_mark(ledger.trailing_markers(step), "skill-edit")
+            marked = ledger.is_skill_edit(step)
             unit = ledger.unit_of(line) if line.startswith("- [") and marked else None
             if line.startswith("- [") and marked and not unit:
                 unitless.append(step)
