@@ -574,17 +574,18 @@ def read_role_state(role, lane=None):
         with open(state_path(main_working_tree(), role, lane)) as f:
             return f.read().splitlines()
     except FileNotFoundError:
-        return []
+        return None
 
 
 def recover_items(role, lane, prefix):
-    return [line for line in read_role_state(role, lane) if line.startswith(prefix)]
+    return [line for line in read_role_state(role, lane) or [] if line.startswith(prefix)]
 
 
 def recover_state(role, lane=None):
-    if not os.path.exists(state_path(main_working_tree(), role, lane)):
+    lines = read_role_state(role, lane)
+    if lines is None:
         return ["no state file"]
-    fields = dict(line.partition("=")[::2] for line in read_role_state(role, lane))
+    fields = dict(line.partition("=")[::2] for line in lines)
     return ["%s %s" % (key, fields[key]) for key in ("n", "lane", "coordinator") if key in fields] + recover_items(
         role, lane, ("timed-n ", "override "))
 
