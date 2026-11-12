@@ -10,11 +10,13 @@ try:
     from detect_test_command import resolved
     from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from json_documents import documents
+    import tunables
 except ImportError:
     from .blocked_by import add as block, blockers
     from .detect_test_command import resolved
     from .github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from .json_documents import documents
+    from . import tunables
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"
@@ -56,7 +58,7 @@ def main(argv):
     url = existing(title)
     if url is None:
         try:
-            url = gh_issue_create(title, text).rstrip("\n")
+            url = gh_issue_create(title, text, tunables.read("VERI_LABEL", "ready-for-agent")).rstrip("\n")
         except NoAnswer:
             return 2
     try:
