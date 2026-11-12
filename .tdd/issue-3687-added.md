@@ -1,0 +1,1 @@
+- [ ] A failing comments page (a non-zero gh rc in `skills/tdd/scripts/veri/github.py`'s `_comments`) raises `NoAnswer`, so `release-issue.sh` exits 2, not 1; a small unit case driven in-process with `run_cli`, faking only the gh process boundary ⟦added⟧ ⟦criterion 2⟧
