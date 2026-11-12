@@ -83,7 +83,8 @@ def launched_since(path, recovered):
 
 def do_request_reset(path, argv):
     recovered = [l.split("=", 1)[1] for l in (read(path) or "").splitlines() if l.startswith("recovered-at=")]
-    if not launched_since(path, recovered[-1]):
+    decided = any(l.split()[2] > recovered[-1] for l in (read(path) or "").splitlines() if l.startswith("decision "))
+    if not decided and not launched_since(path, recovered[-1]):
         sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
         return 1
     stamp = now()

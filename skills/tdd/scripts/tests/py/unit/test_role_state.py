@@ -192,3 +192,20 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_conductor_start_in_a_r
 
     marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
     assert (code, marker) == (0, ["2026-11-12T10:00:00"])
+
+
+def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_added_to_the_state_file_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "role-dev.state").write_text("recovered-at=2026-11-12T09:00:00\n")
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T09:30:00")
+    run_cli(role_state, ["dev", "add", "decision", "use the bus"])
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+
+    code, _, _ = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
+    assert (code, marker) == (0, ["2026-11-12T10:00:00"])
