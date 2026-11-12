@@ -1,0 +1,7 @@
+before 40
+d3bf1e722b554059a6af343615557d62d6367056
+keep 49
+skills/tdd/scripts/tests/py/unit/test_dispatch.py
+command 203
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_vanished_after_the_grace_wait_unless_worktree_and_conductor_are_both_back_and_regrants_grace_after_recovery_issue_3635
+
