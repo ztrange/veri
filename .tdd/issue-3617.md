@@ -6,5 +6,5 @@
 - [x] tick-ledger.sh on a case whose test file exists but under which no tests ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
 - [x] pin-reject-route.sh on a case that never ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
 - [x] A case that ran and failed still makes tick-ledger.sh exit 1, and pin-reject-route.sh print `revise` and exit 1 ⟦criterion 4⟧ ⟂ retired unpinnable
-- [ ] A case that ran and passed still makes tick-ledger.sh exit 0, and pin-reject-route.sh print `retired` and exit 0 ⟦criterion 4⟧
+- [x] A case that ran and passed still makes tick-ledger.sh exit 0, and pin-reject-route.sh print `retired` and exit 0 ⟦criterion 4⟧ ⟂ retired unpinnable
 - [ ] Go-red control, done by a leaf with no production change left behind: with the env removal in run_case (skills/tdd/scripts/veri/tick_ledger.py) reverted through mutation-probe.sh, the first step's case goes red, and restored it goes green; the probe's record in .tdd/issue-3617-mutations.md is the evidence ⟦diff-checked⟧ ⟦criterion 5⟧
