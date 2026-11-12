@@ -2381,6 +2381,32 @@ def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of
     assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
 
 
+def test_cli_a_launch_whose_conductor_pid_file_names_a_live_process_exits_non_zero_naming_that_pid_launches_no_claude_and_leaves_the_file_unchanged_3633(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+
+    def with_a_fixed_start_time(args, *rest, **kwargs):
+        if list(args)[:1] == ["ps"] and "lstart=" in list(args):
+            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", with_a_fixed_start_time)
+    cwd = tmp_path / "cwd"
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    pid_file.write_text("%d\nTue Oct 27 13:40:12 2026\n" % os.getpid())
+    before = pid_file.read_bytes()
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code != 0, str(os.getpid()) in err, launches, pid_file.read_bytes() if pid_file.exists() else None) == (True, True, [], before)
+
+
 def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
