@@ -108,11 +108,10 @@ def in_tree(rev, path):
     return subprocess.run(["git", "cat-file", "-e", f"{rev}:{path}"], capture_output=True).returncode == 0
 
 
-def absent_path(before, names, base):
-    """The first replay path the before-state holds but HEAD, <base-sha> and origin/main do not: deleted before
-    the range, so it cannot be restored (#3696). A path absent at before is only removed by the replay, never counted."""
-    return next((n for n in names if not Path(n).exists() and in_tree(before, n)
-                 and not any(in_tree(rev, n) for rev in ("HEAD", base, "origin/main"))), None)
+def present_in_range(names, base):
+    """The replay paths HEAD or <base-sha> holds: one absent at both left before the range, so the replay skips it
+    rather than recreate it, perhaps in a directory that is gone too (#3696)."""
+    return [n for n in names if in_tree("HEAD", n) or in_tree(base, n)]
 
 
 def replay_before(pin, ledger, root=Path("."), span=None):
@@ -162,9 +161,9 @@ def base_worktree():
         shutil.rmtree(scratch, ignore_errors=True)
 
 
-def replay_on_base(pin, ledger):
+def replay_on_base(pin, ledger, span=None):
     with base_worktree() as tree:
-        return None if tree is None else replay_before(pin, ledger, tree)
+        return None if tree is None else replay_before(pin, ledger, tree, span)
 
 
 def mutation_green_on_base(pin):
@@ -246,17 +245,13 @@ def recheck(argv, looks):
             sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
             continue
         if "before" in pin:
-            span = replay_names(pin, ledger)
-            absent = absent_path(pin["before"], span[1], argv[0])
-            if absent:
-                sys.stdout.write(f"retired: {ledger} {mutated_file} absent: {absent}\n")
-                retired += 1
-                continue
+            green, names = replay_names(pin, ledger)
+            span = (green, present_in_range(names, argv[0]))
             replayed = replay_before(pin, ledger, span=span)
             if replayed is None:
                 return 2
             if replayed == 0:
-                on_base = replay_on_base(pin, ledger)
+                on_base = replay_on_base(pin, ledger, span)
                 if on_base is None:
                     return 2
                 if on_base == 0:
@@ -264,6 +259,10 @@ def recheck(argv, looks):
                 else:
                     sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
                     status = 1
+            continue
+        if pin["file"] in deleted:
+            sys.stdout.write(f"retired: {ledger} {pin['file']} {pin['file']}\n")
+            retired += 1
             continue
         pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])

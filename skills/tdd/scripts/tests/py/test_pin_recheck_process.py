@@ -2902,74 +2902,96 @@ def test_3469_a_pin_disarmed_by_a_sibling_file_then_repinned_to_assert_its_own_f
     assert ran.returncode == 0, (ran.stdout, ran.stderr)
 
 
-def repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base):
-    """A before/keep pin whose replay range names dash/serve.py, deleted with its directory before the checked range,
-    and a second before/keep pin on the same keep file whose replay range names only lib.txt, still present."""
+def repo_whose_replay_path_left_before_the_range(tmp_path, gone, disarm_on_base):
+    """A before/keep pin on pin.txt whose replay range (before..green) names src.txt and `gone`, which a commit
+    before the checked range deletes; the checked range only touches pin.txt."""
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout.strip()
     git("init", "-q")
     (tmp_path / "src.txt").write_text("old behaviour\n")
-    (tmp_path / "lib.txt").write_text("old lib\n")
     (tmp_path / "pin.txt").write_text("pin v0\n")
-    (tmp_path / "dash").mkdir()
-    (tmp_path / "dash" / "serve.py").write_text("serve v0\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "kept.py").write_text("kept\n")
+    (tmp_path / gone).parent.mkdir(exist_ok=True)
+    (tmp_path / gone).write_text("v0\n")
     git("add", "-A")
     git("commit", "-q", "-m", "before")
-    gone_before = git("rev-parse", "HEAD")
+    before = git("rev-parse", "HEAD")
     (tmp_path / "src.txt").write_text("fixed behaviour\n")
-    (tmp_path / "dash" / "serve.py").write_text("serve v1\n")
-    git("commit", "-q", "-am", "green of the dashboard pin")
-    gone_green = git("rev-parse", "HEAD")
-    git("rm", "-q", "-r", "dash")
-    git("commit", "-q", "-m", "the dashboard leaves")
+    (tmp_path / gone).write_text("v1\n")
+    git("commit", "-q", "-am", "green")
+    green = git("rev-parse", "HEAD")
+    git("rm", "-q", gone)
+    git("commit", "-q", "-m", "a later change deletes " + gone)
     base = git("rev-parse", "HEAD")
     if disarm_on_base:
         main_disarmed_on_base(git, tmp_path)
     else:
         git("update-ref", "refs/remotes/origin/main", "HEAD")
-    (tmp_path / "lib.txt").write_text("new lib\n")
     (tmp_path / "pin.txt").write_text("pin v1\n")
     git("add", "-A")
-    git("commit", "-q", "-m", "fix lib and pin")
-    live_green = git("rev-parse", "HEAD")
+    git("commit", "-q", "-m", "touch the pin")
     (tmp_path / ".tdd").mkdir()
-    record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=gone_before, keep="pin.txt", green=gone_green,
-           command="touch gone.witness")
-    return base, live_green
+    return before, green, base
 
 
-@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose replay range names a directory deleted before the range")
-def test_3696_a_before_pin_whose_replay_path_is_absent_at_head_the_base_and_origin_main_is_retired_and_exits_3(tmp_path):
-    base, _ = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=False)
-
-    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
-
-    assert (ran.returncode, ran.stdout, (tmp_path / "gone.witness").exists(), (tmp_path / "dash").exists(),
-            (tmp_path / "src.txt").read_bytes()) == (
-        3, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", False, False,
-        b"fixed behaviour\n"), ran.stderr
-
-
-@pytest.mark.process("git, and pin-recheck.sh run over a retired absent-path pin beside a before/keep pin whose files exist and which holds")
-def test_3696_a_before_pin_whose_files_exist_beside_an_absent_path_pin_still_replays_and_a_red_replay_exits_0(tmp_path):
-    base, live_green = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=False)
-    record(tmp_path / ".tdd" / "issue-3697-mutations.md", before=base, keep="pin.txt", green=live_green,
-           command="sh -c 'touch live.witness; grep -q new lib.txt'")
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose replay range names a file, and its directory, deleted before the range")
+def test_3696_a_before_pin_whose_replay_path_and_its_directory_left_before_the_range_still_replays_and_a_red_replay_exits_0(
+        tmp_path):
+    before, green, base = repo_whose_replay_path_left_before_the_range(tmp_path, "dash/serve.py", disarm_on_base=False)
+    record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=before, keep="pin.txt", green=green,
+           command="sh -c 'touch ran.witness; ! grep -q old src.txt'")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, ran.stdout, (tmp_path / "live.witness").exists(), (tmp_path / "lib.txt").read_bytes()) == (
-        0, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", True, b"new lib\n"), ran.stderr
+    assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(), (tmp_path / "dash").exists(),
+            (tmp_path / "src.txt").read_bytes()) == (0, "", True, False, b"fixed behaviour\n"), ran.stderr
 
 
-@pytest.mark.process("git, and pin-recheck.sh run over a retired absent-path pin beside a before/keep pin this range disarmed")
-def test_3696_a_before_pin_whose_files_exist_beside_an_absent_path_pin_this_range_disarmed_still_exits_1_naming_it(tmp_path):
-    base, live_green = repo_whose_dashboard_left_before_the_range(tmp_path, disarm_on_base=True)
-    record(tmp_path / ".tdd" / "issue-3697-mutations.md", before=base, keep="pin.txt", green=live_green,
-           command="sh -c 'grep -q old lib.txt && test ! -e marker.txt'")
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record this range disarmed, whose replay range names a directory deleted before the range")
+def test_3696_a_before_pin_whose_replay_path_left_before_the_range_and_which_this_range_disarmed_exits_1_naming_it(tmp_path):
+    before, green, base = repo_whose_replay_path_left_before_the_range(tmp_path, "dash/serve.py", disarm_on_base=True)
+    record(tmp_path / ".tdd" / "issue-3265-mutations.md", before=before, keep="pin.txt", green=green,
+           command="sh -c 'grep -q old src.txt && test ! -e marker.txt'")
 
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
-    assert (ran.returncode, ran.stdout, "pin stayed green on the before-state: pin.txt" in ran.stderr) == (
-        1, "retired: .tdd/issue-3265-mutations.md pin.txt absent: dash/serve.py\n", True), ran.stderr
+    assert (ran.returncode, ran.stdout, "pin stayed green on the before-state: pin.txt" in ran.stderr,
+            (tmp_path / "dash").exists()) == (1, "", True, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record whose replay range names a file deleted before the range from a directory that survives")
+def test_3696_a_before_pin_whose_tests_exist_and_whose_replay_path_left_its_surviving_directory_still_replays_and_kills_its_mutant(
+        tmp_path):
+    before, green, base = repo_whose_replay_path_left_before_the_range(tmp_path, "tests/old_case.py", disarm_on_base=False)
+    record(tmp_path / ".tdd" / "issue-3223-mutations.md", before=before, keep="pin.txt", green=green,
+           command="sh -c 'touch ran.witness; test -f tests/kept.py && ! grep -q old src.txt'")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(),
+            (tmp_path / "tests" / "old_case.py").exists(), (tmp_path / "src.txt").read_bytes()) == (
+        0, "", True, False, b"fixed behaviour\n"), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a file/old/new record whose mutated file the range deletes")
+def test_3696_a_mutation_pin_whose_mutated_file_the_range_deletes_is_retired_and_exits_3(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3696-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    git("rm", "-q", "guard.txt")
+    git("commit", "-q", "-m", "delete guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, ran.stdout, (tmp_path / "ran.witness").exists(), (tmp_path / "guard.txt").exists()) == (
+        3, "retired: .tdd/issue-3696-mutations.md guard.txt guard.txt\n", False, False), ran.stderr
