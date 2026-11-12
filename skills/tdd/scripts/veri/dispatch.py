@@ -118,6 +118,9 @@ class RateLimitPersists(watch_runs.QueueUnreadable):
     pass
 
 
+TRANSIENT_RETRY_BOUND = 12
+
+
 def answered(what, read, *args):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>. A rate limit waits for the reset
     (the caller's), but a read still rate-limited after VERI_GH_REFUSAL_RETRIES waits in a row is a RateLimitPersists."""
@@ -130,7 +133,7 @@ def answered(what, read, *args):
             return answer
         except github.NoAnswer as failure:
             detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
-            if ("HTTP 5" in detail or "error connecting to api.github.com" in detail) and retries < 12:
+            if ("HTTP 5" in detail or "error connecting to api.github.com" in detail) and retries < TRANSIENT_RETRY_BOUND:
                 retries += 1
                 github.time.sleep(int(tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5")))
                 continue
