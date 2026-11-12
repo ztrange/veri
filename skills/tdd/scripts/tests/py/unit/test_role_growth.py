@@ -47,3 +47,14 @@ def test_unset_session_id_exits_2_with_one_stderr_line_naming_it(tmp_path, monke
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(tmp_path / "home")})
 
     assert (code, len(err.splitlines()), "CLAUDE_CODE_SESSION_ID" in err) == (2, 1, True)
+
+
+def test_session_with_no_transcript_exits_2_with_one_stderr_line_naming_the_missing_transcript(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    (home / ".claude" / "projects" / "-some-repo").mkdir(parents=True)
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, len(err.splitlines()), "sess-42.jsonl" in err) == (2, 1, True)

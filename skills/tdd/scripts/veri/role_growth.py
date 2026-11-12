@@ -16,7 +16,11 @@ def main(argv):
         return 2
     session = os.environ["CLAUDE_CODE_SESSION_ID"]
     pattern = os.path.join(os.path.expanduser("~"), ".claude", "projects", "*", session + ".jsonl")
-    transcript = glob.glob(pattern)[0]
+    found = glob.glob(pattern)
+    if not found:
+        sys.stderr.write("no transcript %s\n" % pattern)
+        return 2
+    transcript = found[0]
     path = role_state.state_path(main_tree(os.getcwd()), argv[0])
     role_state.append(path, "session=%s\ntranscript=%s\n" % (session, transcript))
     return 0
