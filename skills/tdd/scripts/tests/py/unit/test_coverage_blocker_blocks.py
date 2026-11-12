@@ -232,3 +232,25 @@ def test_main_3721_files_an_acceptance_criterion_that_requires_a_case_going_red_
     criteria = [line for line in body.split("\n") if line.startswith("- [ ]") and mutation in line]
     words = criteria[0].lower() if criteria else ""
     assert (len(criteria), "case" in words, "goes red" in words) == (1, True, True)
+
+
+def test_main_3721_files_a_cover_issue_whose_blocked_by_section_holds_the_line_none(
+        monkeypatch, tmp_path, coverage_blocker):
+    created = []
+    mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    body = created[0] if created else ""
+    section = body.split("\n## Blocked by\n", 1)[1] if "\n## Blocked by\n" in body else ""
+    section_lines = [line for line in section.split("\n## ", 1)[0].split("\n") if line.strip()]
+    assert section_lines == ["None."]
