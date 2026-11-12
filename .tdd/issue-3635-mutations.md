@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/unit/test_dispatch.py
 command 203
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_exits_2_vanished_after_the_grace_wait_unless_worktree_and_conductor_are_both_back_and_regrants_grace_after_recovery_issue_3635
 
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 88
+aWYgb3MucGF0aC5pc2RpcihydW5fZGlyKGlzc3VlKSkgYW5kIGlzc3VlIGluIGxpdmVfY29uZHVjdG9ycygpOg==
+new-b64 40
+aWYgaXNzdWUgaW4gbGl2ZV9jb25kdWN0b3JzKCk6
+context-b64 120
+ICAgICAgICAgICAgICAgICAgICAgICAgaWYgb3MucGF0aC5pc2RpcihydW5fZGlyKGlzc3VlKSkgYW5kIGlzc3VlIGluIGxpdmVfY29uZHVjdG9ycygpOg==
+command 180
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_still_exits_2_vanished_when_the_worktree_is_still_absent_at_the_recheck_after_the_grace_wait_issue_3635
+
