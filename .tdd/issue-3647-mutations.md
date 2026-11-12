@@ -1,0 +1,7 @@
+before 40
+014ce67d3371a7fb51f38fa92d820db5a94290b5
+keep 49
+skills/tdd/scripts/tests/py/test_run_conductor.py
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_main_after_release_issue_released_the_issue_re_pins_to_the_current_skill_without_veri_new_skill_and_logs_skill_repin_3647
+
