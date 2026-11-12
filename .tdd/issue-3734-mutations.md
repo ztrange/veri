@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/tick_ledger.py
+old-b64 80
+b3MucGF0aC5kaXJuYW1lKG9zLnBhdGguZGlybmFtZShvcy5wYXRoLnJlYWxwYXRoKF9fZmlsZV9fKSkp
+new-b64 60
+b3MucGF0aC5kaXJuYW1lKG9zLnBhdGgucmVhbHBhdGgoX19maWxlX18pKQ==
+context-b64 152
+ICAgIGRldGVjdCA9IG9zLnBhdGguam9pbihvcy5wYXRoLmRpcm5hbWUob3MucGF0aC5kaXJuYW1lKG9zLnBhdGgucmVhbHBhdGgoX19maWxlX18pKSksICJkZXRlY3QtdGVzdC1jb21tYW5kLnNoIik=
+command 82
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger_detect_lookup.py
+
