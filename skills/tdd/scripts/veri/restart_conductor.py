@@ -43,6 +43,12 @@ def conductor_alive(run):
     return pid_file.live_conductor(_run_dir(run)) is not None
 
 
+def _process_live(run):
+    if not os.path.exists(_run_file(run, "conductor.pid")):
+        return False
+    return any(issue == run for _, issue in pid_file._conductors())
+
+
 def stop_run(mode, run):
     stop_run_module.stop_run(_run_dir(run), mode)
 
@@ -140,7 +146,8 @@ def main(argv):
             if not conductor_alive(run):
                 misses += 1
                 reasons.append(pid_file.not_live_reason(_run_dir(run)))
-                if misses >= 3 and reasons[-1] in ("parent command", "own command", "lstart unreadable"):
+                if misses >= 3 and (reasons[-1] in ("parent command", "own command", "lstart unreadable")
+                                    or (set(reasons) == {"pid file unreadable"} and _process_live(run))):
                     misses = 0
                 sleep(1)
                 continue
