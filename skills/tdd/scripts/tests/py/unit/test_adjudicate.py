@@ -179,3 +179,15 @@ def test_record_on_a_missing_leaf_output_file_writes_an_unparsed_event_prints_un
         "outcome": "unparsed",
     }
     assert adjudicated[0].get("reason")
+
+
+def test_left_exits_3_with_a_budget_of_0_though_the_log_holds_no_adjudicated_event(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    import json
+
+    monkeypatch.setenv("VERI_ADJUDICATE_BUDGET", "0")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"issue": "7", "event": "conductor-start"}) + "\n")
+    code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (3, "", "")

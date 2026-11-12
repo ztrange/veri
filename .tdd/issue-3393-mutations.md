@@ -141,3 +141,21 @@ skills/tdd/scripts/tests/py/unit/test_wait_ci.py
 command 162
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_count_removes_nothing
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 51
+skills/tdd/scripts/tests/py/unit/test_adjudicate.py
+command 147
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_adjudicate.py::test_left_exits_3_with_a_budget_of_0_though_the_log_holds_no_adjudicated_event
+
+file 37
+skills/tdd/scripts/veri/adjudicate.py
+old-b64 56
+cmV0dXJuIDAgaWYgc3BlbnQgPCBpbnQoYnVkZ2V0KCkpIGVsc2UgMw==
+new-b64 12
+cmV0dXJuIDA=
+context-b64 64
+ICAgICAgICByZXR1cm4gMCBpZiBzcGVudCA8IGludChidWRnZXQoKSkgZWxzZSAz
+command 147
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_adjudicate.py::test_left_exits_3_with_a_budget_of_0_though_the_log_holds_no_adjudicated_event
+
