@@ -117,7 +117,7 @@ def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(
 
 
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose commit hook refuses and conductor.pid names a real live process")
-def test_cli_3618_stdout_makes_no_durable_claim_when_the_commit_fails(tmp_path):
+def test_cli_3618_stderr_says_not_durable_and_makes_no_durable_claim_when_the_commit_fails(tmp_path):
     import os
     from veri import pid_file
 
@@ -152,8 +152,11 @@ def test_cli_3618_stdout_makes_no_durable_claim_when_the_commit_fails(tmp_path):
 
     assert head == seeded
     assert "collapse to single hyphen" in ledger.read_text()
-    assert "durable" not in ran.stdout.lower()
-    assert "committed" not in ran.stdout.lower()
+    assert ran.returncode == 0, ran.stderr
+    assert ran.stdout == ""
+    assert "not durable" in ran.stderr.lower(), ran.stderr
+    assert "step is durable" not in ran.stderr.lower()
+    assert "committed in" not in ran.stderr.lower()
 
 
 @pytest.mark.process("add-ledger-step.sh run as a child of the real live process conductor.pid names, in a real git worktree")
