@@ -257,6 +257,7 @@ def render(issue, path, ledger):
 
     conductor_counted = False
     switched_off = 0
+    adjudications = {}
 
     def row_in(table, key, columns):
         return table.setdefault(key, dict.fromkeys(columns, 0))
@@ -366,6 +367,9 @@ def render(issue, path, ledger):
             open_pass(step)["verdict"] = "skipped"
             if line.get("reason") == "switched-off":
                 switched_off += 1
+        if event == "adjudicated":
+            outcome = line.get("outcome")
+            adjudications[outcome] = adjudications.get(outcome, 0) + 1
         if event == "revise" and step:
             per_phase = step_mark(step).setdefault("revise phases", {})
             per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
@@ -597,6 +601,10 @@ def render(issue, path, ledger):
     section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
     section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
             ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))
+    if adjudications:
+        print()
+        print("Adjudications: " + ", ".join("%s %d" % (outcome, adjudications.get(outcome, 0))
+                                         for outcome in ("retry", "bail", "route", "unparsed")))
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
