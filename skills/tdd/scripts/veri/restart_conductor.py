@@ -44,8 +44,6 @@ def conductor_alive(run):
 
 
 def _process_live(run):
-    if not os.path.exists(_run_file(run, "conductor.pid")):
-        return False
     root = os.path.dirname(_tdd_dir())
     return any(issue == run and pid_file._inside(pid_file._cwd(pid), root) for pid, issue in pid_file._conductors())
 

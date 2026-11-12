@@ -16,6 +16,13 @@ def recorded_signal_handlers(monkeypatch):
     return handlers
 
 
+@pytest.fixture(autouse=True)
+def no_run_conductor_processes(monkeypatch):
+    """The `ps` listing of run_conductor.py processes, empty unless a case lists its own: an unreadable or missing pid
+    file makes the watch read that listing, and the fast tier runs no `ps`."""
+    monkeypatch.setattr(importlib.import_module("pid_file"), "_conductors", lambda: [])
+
+
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
     restart_conductor = importlib.import_module("veri.restart_conductor")
 
@@ -1192,9 +1199,10 @@ def test_3526_a_restarter_sent_a_signal_while_its_conductor_is_live_logs_the_sig
     assert (code, "restarts 7 0" in out, f"restarter exiting on {name}" in out) == (2, False, True), (code, out, err)
 
 
-def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_issue, process_cwd):
+def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_issue, process_cwd, removed=False):
     """A watcher for run 7 whose pid file turns unreadable after two reads while a run_conductor.py process for
-    `process_issue`, its cwd `process_cwd(main tree)`, stays listed for 30 naps; the stop and launch calls it made."""
+    `process_issue`, its cwd `process_cwd(main tree)`, stays listed for 30 naps (with `removed`, the pid file is gone
+    instead); the stop and launch calls it made."""
     restart_conductor = importlib.import_module("veri.restart_conductor")
     pid_file = importlib.import_module("pid_file")
     (tmp_path / ".tdd").mkdir()
@@ -1211,7 +1219,12 @@ def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_i
 
     def live_conductor(path):
         reads[0] += 1
-        pid_path.write_text("4242\nstart-A\n" if reads[0] <= 2 else "42x\n")
+        if reads[0] <= 2:
+            pid_path.write_text("4242\nstart-A\n")
+        elif removed:
+            pid_path.unlink(missing_ok=True)
+        else:
+            pid_path.write_text("42x\n")
         return real_live_conductor(path)
 
     def nap(seconds):
@@ -1258,3 +1271,9 @@ def test_3633_an_unreadable_pid_file_while_only_another_repositorys_run_conducto
     calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "7", lambda root: root + "-other-repo")
 
     assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
+
+
+def test_3633_a_missing_pid_file_while_a_run_conductor_process_for_the_run_is_live_does_not_relaunch_the_conductor(tmp_path, run_cli, monkeypatch):
+    calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "7", lambda root: root, removed=True)
+
+    assert calls == [("stop", "at-ledger", "7")]
