@@ -2,3 +2,5 @@
 - test-only | the two #3618 process cases in `test_add_ledger_step_process.py` repeat the git env dict, the `git()` helper and the worktree setup; extract them into a shared fixture or helper
 ### When `add-ledger-step.sh` committed the added step, its stdout states that the added step is durable (committed), naming the commit ⟦criterion 2⟧
 - test-only | extract the repeated worktree setup (env with git identity, `git` helper, seeded ledger, initial commit) from the four `test_cli_3618_*` cases in `test_add_ledger_step_process.py` into one helper
+### Update the five `skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py` cases that pin an empty CLI stdout so they match the new behaviour (the durability line prints on stderr, so stdout stays empty and each case also tolerates that stderr line) ⟦added⟧ ⟦criterion 2⟧
+- test-only | in `test_add_ledger_step.py`, the `assert err in ("", "...durable...")` line and the `assert "durable" in err` line overlap, so the first could be dropped. The `""` alternative is dead, because the second line already requires "durable" in `err`.
