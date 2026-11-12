@@ -104,6 +104,18 @@ def _issue(number):
     return "%s/%s" % (_ISSUES, number)
 
 
+def _comments(number):
+    bodies = ""
+    page = 1
+    while True:
+        run = _gh_api_said("%s/comments?page=%d" % (_issue(number), page))
+        comments = json.loads(run.stdout)
+        if not comments:
+            return bodies
+        bodies += "".join(c["body"] + "\n" for c in comments)
+        page += 1
+
+
 class GraphQLAdapter:
     def _run(self, *args):
         run = _retry_refused(lambda: _gh(*args, stderr=subprocess.PIPE), "stderr")
@@ -116,7 +128,7 @@ class GraphQLAdapter:
 
     def issue_view(self, number, field):
         if field == "comments":
-            return RestAdapter()._comments(number)
+            return _comments(number)
         if field not in ("body", "labels"):
             raise NoAnswer("")
         query = ".body" if field == "body" else ".labels[].name"
@@ -138,20 +150,9 @@ class RestAdapter:
             answer += body
             page += 1
 
-    def _comments(self, number):
-        bodies = ""
-        page = 1
-        while True:
-            run = _gh_api_said("%s/comments?page=%d" % (_issue(number), page))
-            comments = json.loads(run.stdout)
-            if not comments:
-                return bodies
-            bodies += "".join(c["body"] + "\n" for c in comments)
-            page += 1
-
     def issue_view(self, number, field):
         if field == "comments":
-            return self._comments(number)
+            return _comments(number)
         rest = _retry_refused(lambda: _gh_api_said(_issue(number)), "stderr")
         try:
             issue = json.loads(rest.stdout)
