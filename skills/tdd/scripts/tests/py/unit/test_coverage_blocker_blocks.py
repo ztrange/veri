@@ -254,3 +254,24 @@ def test_main_3721_files_a_cover_issue_whose_blocked_by_section_holds_the_line_n
     section = body.split("\n## Blocked by\n", 1)[1] if "\n## Blocked by\n" in body else ""
     section_lines = [line for line in section.split("\n## ", 1)[0].split("\n") if line.strip()]
     assert section_lines == ["None."]
+
+
+def test_main_3721_files_a_cover_issue_whose_last_line_is_the_test_command_of_the_all_tier(
+        monkeypatch, tmp_path, coverage_blocker):
+    created = []
+    mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    (tmp_path / "CLAUDE.md").write_text("veri: fast tests: `make quick`\nveri: all tests: `make everything`\n")
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    body = created[0] if created else ""
+    assert body.rstrip("\n").split("\n")[-1] == "Test command: make everything"
