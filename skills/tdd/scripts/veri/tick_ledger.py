@@ -34,7 +34,7 @@ def run_case(case):
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
     if not command:
-        return subprocess.run(["make", "test", f"TESTS={case}"]).returncode
+        return subprocess.run(["make", "test", f"TESTS={case}"], env=case_env()).returncode
     path = case.split("::", 1)[0]
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
