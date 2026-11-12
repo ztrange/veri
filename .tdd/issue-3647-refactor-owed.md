@@ -1,0 +1,2 @@
+### A relaunch of an issue not released since its last launch keeps its existing pin: once the first launch after a release has re-pinned, a further `run-conductor.sh <n>` launch with no `VERI_NEW_SKILL` and no new release keeps that pin and logs no `skill-repin`, pinned by a case ⟦criterion 2⟧
+- test-only | the two new #3647 cases in `test_run_conductor.py` repeat the same setup (gh stubs, `release_issue.main(["4242"])`, record seeding), so a shared helper could remove it.
