@@ -12,3 +12,14 @@ skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py
 command 190
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_pin_reject_route.py::test_main_on_a_case_that_never_ran_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617
 
+file 38
+skills/tdd/scripts/veri/tick_ledger.py
+old-b64 124
+cmV0dXJuIHtrOiB2IGZvciBrLCB2IGluIG9zLmVudmlyb24uaXRlbXMoKSBpZiBrIG5vdCBpbiAoIlRFU1RTIiwgIk1BS0VGTEFHUyIsICJNQUtFTEVWRUwiKX0=
+new-b64 32
+cmV0dXJuIGRpY3Qob3MuZW52aXJvbik=
+context-b64 128
+ICAgIHJldHVybiB7azogdiBmb3IgaywgdiBpbiBvcy5lbnZpcm9uLml0ZW1zKCkgaWYgayBub3QgaW4gKCJURVNUUyIsICJNQUtFRkxBR1MiLCAiTUFLRUxFVkVMIil9
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_environment_3617
+
