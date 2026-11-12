@@ -1,0 +1,2 @@
+### With `VERI_RESET_MAX_PER_HOUR=1`, `role-state.sh <role> request-reset` refuses with exit 1 and writes nothing when the role has 1 reset time in the last hour; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_state.py` ⟦criterion 1⟧
+- test-only | the three request-reset hourly-cap cases repeat the same setup (monkeypatching `main_tree` and `now`, the `.tdd` dir, the state file, the `conductor-start` event line). A shared helper in `test_role_state.py` could replace it.
