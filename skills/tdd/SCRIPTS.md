@@ -154,6 +154,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
   both — see `<base directory>/PHASED.md`.
 - `$S/reorder-ledger-steps.sh .tdd/issue-<n>.md "<step>" before|after "<anchor>"` — the one sanctioned way to change the order of **unchecked** steps. It rewrites the ledger only and never commits; the caller commits the ledger on its own in a `plan:` commit. Running it is an operator's decision, never the conductor's own.
+- `$S/drop-ledger-step.sh <ledger-file> "<step-substring>"` — remove the one **unchecked** step whose line holds the substring, then commit the ledger alone in a `plan: drop a ledger step` commit (other dirty files stay uncommitted), using the repository's own git identity. **Exit 0** the step was removed and committed; **exit 1** no step matches, more than one does, the match is ticked (`- [x]`) or carries `⟂ refactor pending`, or the run's conductor is live (stderr names its pid) — the ledger is unchanged in every case; **exit 2** bad arguments (a usage line) or the ledger is not inside a git work tree (one stderr line), the ledger unchanged. Folding a redundant step into another is dropping it.
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
   refactor is unverified**: the description of the first `- [x]` step carrying the
   ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
