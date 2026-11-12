@@ -165,6 +165,13 @@ run it. A preflight that passes never reads it.
    Then the two money budgets: run `$S/step-budget.sh` once, with no arguments. `VERI_STEP_BUDGET` and
    `VERI_RUN_BUDGET` must be non-negative decimal numbers, checked before any leaf is launched. Exit 0 prints the step budget,
    then the run budget, one per line.
+
+   Then the adjudication budget: run `$S/adjudicate.sh --check-budget` once, which reads
+   `${VERI_ADJUDICATE_BUDGET:-2}`, a non-negative whole number. Exit 0 means it parses; exit 2, its
+   stderr naming `VERI_ADJUDICATE_BUDGET`, is a refusal before the baseline, like a bad
+   `VERI_REFACTOR_BUDGET`. It is an eighth budget axis, never folded into `REVISE_BUDGET`,
+   `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH`,
+   `VERI_SKILL_EDIT_BUDGET` or `VERI_MISSING_REROUTE_BUDGET`.
 6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red`,
    `$S/leaf-model.sh revise-green` and `$S/leaf-model.sh verify-green` once each. All three,
    because the four variables do not all reach every name: `VERI_MODEL_DEVELOPER` is only
