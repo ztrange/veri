@@ -286,3 +286,21 @@ def test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_
     marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
     assert (code, marker, state.read_text().splitlines()[-1]) == (
         0, ["2026-11-12T10:00:00"], "reset-at=2026-11-12T10:00:00")
+
+
+def test_issue_3241_dev_request_reset_with_max_per_hour_1_and_one_reset_in_the_last_hour_exits_1_writing_nothing(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    monkeypatch.setenv("VERI_RESET_MAX_PER_HOUR", "1")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    before = "recovered-at=2026-11-12T09:00:00\nreset-at=2026-11-12T09:40:00\n"
+    state.write_text(before)
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
+        1, True, before, [])
