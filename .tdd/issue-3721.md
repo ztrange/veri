@@ -6,4 +6,4 @@
 - [x] The filed cover issue's body has a `## Blocked by` section whose line is `None.` ⟦criterion 1⟧
 - [x] The filed cover issue's body ends with the last line `Test command: <cmd>`, `<cmd>` being the full-tier command `detect-test-command.sh --tier all` resolves for the current directory (e.g. `make test` from CLAUDE.md's `veri: all tests:` line) ⟦criterion 1⟧
 - [x] The filed cover issue carries the run's opt-in label `VERI_LABEL` (`ready-for-agent` when unset, or `ready-for-agent:<lane>`) ⟦criterion 2⟧
-- [x] The filed cover issue carries the label `filed-by:<lane>`, `<lane>` being the text after `VERI_LABEL`'s last `:`, or `main` when it has none ⟂ refactor pending
+- [x] The filed cover issue carries the label `filed-by:<lane>`, `<lane>` being the text after `VERI_LABEL`'s last `:`, or `main` when it has none
