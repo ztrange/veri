@@ -4,6 +4,9 @@ import os
 import re
 import sys
 
+import ledger
+import paths
+
 USAGE = "usage: build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>"
 
 
@@ -12,14 +15,14 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     n, cause, exit_code, stderr_file, *command = argv
-    doc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ADJUDICATE.md")
+    doc = os.path.join(paths.scripts_of(__file__), "..", "ADJUDICATE.md")
     with open(doc) as f:
         eligible = dict(re.findall(r"^- `([^`]+)`:(.*)$", f.read(), re.M))
     if cause not in eligible:
         print(f"build-adjudicate-prompt.sh: cause not eligible: {cause}", file=sys.stderr)
         return 2
     routes = ", ".join(re.findall(r"`([^`]+)`", eligible[cause])) or eligible[cause].strip()
-    with open(f".tdd/issue-{n}.md") as f:
+    with open(ledger.ledger_path(".", n)) as f:
         steps = [line.rstrip("\n") for line in f if line.startswith(("- [ ]", "- [x]"))]
     step = next((s for s in steps if s.startswith("- [ ]")), steps[-1])
     with open(stderr_file) as f:

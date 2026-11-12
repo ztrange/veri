@@ -4,4 +4,4 @@
 # usage: parse-adjudication.sh <leaf-output>
 # Exit: 0 answer printed; 2 no answer, bad arguments
 . "$(dirname "$0")/lib/shim-python.sh"
-exec "$py" "$(cd "$(dirname "$0")" && pwd)/veri/parse_adjudication.py" "$@"
+exec "$py" "$(dirname "$0")/veri/parse_adjudication.py" "$@"
