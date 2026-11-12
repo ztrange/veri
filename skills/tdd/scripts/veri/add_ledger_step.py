@@ -163,11 +163,14 @@ def record_insertions(path, steps, awake):
             f.write(event.line([b"step-added"], context, int(time.time()), awake))
 
 
+NOT_DURABLE = "add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)"
+
+
 def commit_amendment(path):
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
     if live is None or int(live) in issue_worktree.ancestors():
-        print("add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)", file=sys.stderr)
+        print(NOT_DURABLE, file=sys.stderr)
         return
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
     for argv in (["add", "--", *paths],
@@ -176,6 +179,8 @@ def commit_amendment(path):
     if done.returncode == 0:
         head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tree, capture_output=True, text=True).stdout.strip()
         print(f"add-ledger-step.sh: the added step is durable (committed in {head})", file=sys.stderr)
+    else:
+        print(NOT_DURABLE, file=sys.stderr)
 
 
 def main(argv):
