@@ -2476,3 +2476,18 @@ def test_main_prints_the_adjudications_counted_per_outcome_from_the_adjudicated_
     assert len(lines) == 1, out
     counts = dict(re.findall(r"(retry|bail|route|unparsed)\D{0,4}(\d+)", lines[0]))
     assert counts == {"retry": "2", "bail": "1", "route": "0", "unparsed": "1"}, lines[0]
+
+
+def test_main_prints_the_adjudicate_leafs_cost_under_a_role_of_its_own_in_the_by_model_table(tmp_path, monkeypatch, capsys, metrics):
+    opus = "claude-opus-5-5"
+    spend = dict(cost(4, "0.75", [100, 200, 300, 400], 5000), model=opus)
+    write_log(tmp_path, conductor("1", 100, "step-start")
+              + leaf("1", 110, "adjudicator", "adjudicate", 1, 30, usage=spend)
+              + conductor("1", 160, "step-done"))
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    rows = {(row["role"], row["model"]): row for row in table(out, "#### By model")}
+    assert ("adjudicator", opus) in rows, sorted(rows)
+    assert rows[("adjudicator", opus)]["$"].lstrip("$") == "0.75"

@@ -228,7 +228,7 @@ def render(issue, path, ledger):
 
     lost = {}
 
-    ROLES = ("developer", "verifier")
+    ROLES = ("developer", "verifier", "adjudicator")
     by_model = {}
 
     spent = {}
