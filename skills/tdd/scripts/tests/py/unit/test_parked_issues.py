@@ -66,3 +66,18 @@ def test_main_2420_exits_3_writing_nothing_when_only_pull_requests_carry_the_par
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out) == (3, "")
+
+
+def test_main_3683_prints_a_dash_fifth_field_for_a_parked_comment_with_no_blocked_by_line(
+        monkeypatch, parked_issues, run_cli):
+    listing = [{"number": 3324, "title": "An issue"}]
+    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: upstream ships"}]
+
+    def fake_rest_list(path, *args):
+        return json.dumps(comments if "/comments" in path else listing)
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\tupstream ships\t-\n")

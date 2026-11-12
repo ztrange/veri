@@ -42,7 +42,7 @@ def main(argv):
         if cause is None or unblock is None:
             sys.stderr.write("parked-issues.sh: issue #%d's parked comment lacks its Cause or Unblock line\n" % number)
             return 2
-        sys.stdout.write("%d\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock))
+        sys.stdout.write("%d\t%s\t%s\t%s\t-\n" % (number, issue["title"], cause, unblock))
     return 0
 
 
