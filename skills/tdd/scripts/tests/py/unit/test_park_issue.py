@@ -160,3 +160,12 @@ def test_issue_3683_without_blocked_by_the_parked_comment_is_exactly_cause_and_u
 
     assert (code, err) == (0, "")
     assert comments == ["### ⏸ Parked\nCause: pin-recheck exit 2\nUnblock: #9 lands\n"]
+
+
+def test_issue_3702_a_malformed_blocked_by_message_names_the_comma_list_form(park, run_cli):
+    park_issue, calls, edited = park
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--blocked-by", "x9"])
+
+    assert code == 2
+    assert "<n>[,<n>…]" in err.splitlines()[0]

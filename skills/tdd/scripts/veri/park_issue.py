@@ -48,7 +48,7 @@ def block_on(number, blockers):
 def main(argv):
     argv, blocker = split_blocker(argv)
     if argv is None:
-        sys.stderr.write("park-issue.sh: --blocked-by takes one issue number, once\n")
+        sys.stderr.write("park-issue.sh: --blocked-by takes a comma-separated list <n>[,<n>…]\n")
         sys.stderr.write(USAGE)
         return 2
     if len(argv) not in (3, 4):
