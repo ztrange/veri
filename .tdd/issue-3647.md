@@ -1,5 +1,5 @@
 # Plan for #3647 — A released issue resumes on its old skill pin, so dispatch runs it without the fix it waited for
 
-- [ ] After `release-issue.sh <n>` releases an issue whose `.tdd/issue-<n>-skill-commit` pins an older commit, the next `run-conductor.sh <n>` launch with no `VERI_NEW_SKILL` in its environment (dispatch's path) re-pins `.tdd/issue-<n>-skill-commit` to the current skill commit and logs a `skill-repin` event, pinned by a case ⟦criterion 1⟧
+- [x] After `release-issue.sh <n>` releases an issue whose `.tdd/issue-<n>-skill-commit` pins an older commit, the next `run-conductor.sh <n>` launch with no `VERI_NEW_SKILL` in its environment (dispatch's path) re-pins `.tdd/issue-<n>-skill-commit` to the current skill commit and logs a `skill-repin` event, pinned by a case ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A relaunch of an issue not released since its last launch keeps its existing pin: once the first launch after a release has re-pinned, a further `run-conductor.sh <n>` launch with no `VERI_NEW_SKILL` and no new release keeps that pin and logs no `skill-repin`, pinned by a case ⟦criterion 2⟧
 - [ ] Go-red guard: with the release-to-re-pin link broken on purpose (the code by which a release makes the next launch re-pin disabled), the first step's case goes red, and passes again once the code is restored, recorded as mutation evidence ⟦criterion 3⟧

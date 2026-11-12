@@ -63,7 +63,8 @@ def main(argv):
     base = os.path.dirname(here)
     record = record_path(argv[0])
     readable = os.access(record, os.R_OK)
-    resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1"
+    released = record.replace("-skill-commit", "-released")
+    resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1" and not os.path.exists(released)
     if not resuming:
         for word in tunables.read("VERI_SKIP_VERIFY", "").split(","):
             if word and word != "refactor":
