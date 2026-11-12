@@ -38,7 +38,7 @@ def main(argv):
             parse_adjudication.main([argv[3]])
         outcome, reason = out.getvalue().splitlines()
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",
-                   ["cause=" + argv[2], "outcome=" + outcome, "reason=" + reason])
+                   ["cause=" + argv[2], "outcome=" + outcome.split()[0], "reason=" + reason])
         print(outcome)
         return 0 if outcome == "retry" else 1
     print(USAGE, file=sys.stderr)
