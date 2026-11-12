@@ -257,6 +257,10 @@ def conduct(text, issue, env):
     env.pop("FORCE_PROMPT_CACHING_5M", None)
     env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
     binary = os.environ.get("CLAUDE_BIN") or "claude"
+    live = pids.recorded_started(run_worktree(issue))
+    if live:
+        sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (issue, live))
+        return 2
     event.state_labels(b"start", env.get("VERI_STATE_LABEL_ISSUE"))
     unread = []
     result = None
