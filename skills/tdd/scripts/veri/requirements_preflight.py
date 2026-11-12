@@ -25,19 +25,23 @@ def main(argv):
         texts = skill_edit_step._listed_texts(skill_edit_guard.list_path(unit), unit)
         clashing += [skill_edit_step._row_id(r) for r in skill_edit_step.clashes(skill_edit_step._issue_rows(issue, unit), texts)]
     missing = []
+    unitless = []
     if len(argv) > 1:
         for line in open(argv[1]):
             step = re.sub(r"^- \[.\] ", "", line.rstrip("\n"))
             marked = step.startswith("⟦skill-edit⟧") or ledger.carries_mark(ledger.trailing_markers(step), "skill-edit")
-            first = re.search(r"`([^`]+)`", line)
-            unit = (ledger.unit_of(line) or (first and first.group(1))) if line.startswith("- [") and marked else None
+            unit = ledger.unit_of(line) if line.startswith("- [") and marked else None
+            if line.startswith("- [") and marked and not unit:
+                unitless.append(step)
             if unit and not any(skill_edit_step._names_unit(h, unit) for h in units):
                 missing.append(unit)
+    for step in unitless:
+        sys.stderr.write("no path-shaped unit for skill-edit step: %s\n" % step)
     for unit in missing:
         sys.stderr.write("## Requirements has no ### heading for unit: %s\n" % unit)
     for row_id in clashing:
         sys.stderr.write("Requirement row ID already held with different text: %s\n" % row_id)
-    return 2 if clashing or missing else 0
+    return 2 if clashing or missing or unitless else 0
 
 
 if __name__ == "__main__":

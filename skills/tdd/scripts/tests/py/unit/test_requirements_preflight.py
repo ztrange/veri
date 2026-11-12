@@ -219,3 +219,18 @@ def test_3686_a_ticked_skill_edit_step_whose_first_backticked_token_is_not_path_
     code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
 
     assert (code, err) == (0, ""), (code, out, err)
+
+
+def test_3686_a_skill_edit_step_with_no_path_shaped_backticked_token_exits_2_naming_the_step(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### skills/tdd/SKILL.md\n\n" + head +
+        "| A1 | The route is named. | because |\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_text("- [ ] ⟦skill-edit⟧ route the `missing` case ⟦criterion 1⟧\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
+
+    assert code == 2 and "no path-shaped unit for skill-edit step: " in err and "route the `missing` case" in err, (code, out, err)
