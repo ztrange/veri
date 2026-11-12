@@ -4,4 +4,4 @@
 - [x] Pin the order: a mutation record holding both `file` and `keep` with different values is selected by pin-recheck when only its `file` value is touched in the range, and not selected when only its `keep` value is touched; one case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py, its go-red evidence the touched filter restored to the old `r.get("keep", r.get("file"))` expression, watched red, then restored ⟦criterion 2⟧
 - [x] Pin a single-key record: a mutation record holding only `file` is selected by pin-recheck when its `file` value is touched in the range, as before; one case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py, no production change ⟦criterion 3⟧
 - [x] Pin a single-key record: a before record holding only `keep` is selected by pin-recheck when its `keep` value is touched in the range, as before; one case in skills/tdd/scripts/tests/py/test_pin_recheck_process.py, no production change ⟦criterion 3⟧
-- [ ] Behaviour otherwise preserved: the existing suites stay green (`make test`) ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] Behaviour otherwise preserved: the existing suites stay green (`make test`) ⟦full-suite⟧ ⟦criterion 4⟧
