@@ -22,7 +22,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: original)
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
 
@@ -42,7 +42,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: original)
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
 
@@ -62,7 +62,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: original)
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
 
@@ -81,7 +81,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_when_the_heading_carries
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
 
     seen = []
@@ -101,7 +101,7 @@ def test_main_1262_writes_nothing_exits_2_and_names_the_issue_on_stderr_when_the
     edits = []
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
-    monkeypatch.setattr(coverage_blocker, "gh_issue_create", lambda title, text: "")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create", lambda title, text, *extra, **fields: "")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: edits.append(n))
 
@@ -116,7 +116,7 @@ def test_main_1262_writes_nothing_and_exits_2_when_the_new_issue_is_numbered_but
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view",
                         lambda n, field: "## Blocked by\n\nfoo\n\n## Blocked by\n\n- #5")
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: edits.append(n))
@@ -135,7 +135,7 @@ def test_main_1262_writes_the_blocker_directly_under_a_heading_followed_by_prose
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
     monkeypatch.setattr(coverage_blocker, "gh_issue_create",
-                        lambda title, text: "https://github.com/owner/name/issues/77\n")
+                        lambda title, text, *extra, **fields: "https://github.com/owner/name/issues/77\n")
     monkeypatch.setattr(coverage_blocker, "gh_issue_view",
                         lambda n, field: "## Problem\n\nx\n\n## Blocked by\nWaiting on design.\n\n## Notes\n\ny")
     monkeypatch.setattr(coverage_blocker, "gh_issue_edit", fake_edit)
