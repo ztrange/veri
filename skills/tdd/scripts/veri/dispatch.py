@@ -319,8 +319,9 @@ def main(argv):
                     pending = [p for p in pending if p != issue]
                     if issue in absent:
                         wait()
-                        if os.path.isdir(run_dir(issue)) and issue in live_conductors():
+                        if os.path.isdir(run_dir(issue)):
                             absent.remove(issue)
+                            pending.append(issue)
                             continue
                         sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
                         return 2
