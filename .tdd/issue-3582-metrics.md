@@ -1,19 +1,20 @@
 ### 📊 Metrics — issue 3582
 
-Wall time for the issue: 94 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 6624 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 9 of 13 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 13 of 13 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3600.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $14.88 over 287 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $17.85 over 348 turns, in 7 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 79091 tokens, largest 152674 tokens
 Conductor context: first turn 79289 tokens, largest 146125 tokens
 Conductor context: first turn 79274 tokens, largest 96696 tokens
 Conductor context: first turn 97167 tokens, largest 162375 tokens
 Conductor context: first turn 79250 tokens, largest 150873 tokens
-Conductor context: first turn 79318 tokens, largest 128061 tokens
+Conductor context: first turn 79318 tokens, largest 130541 tokens
+Conductor context: first turn 80116 tokens, largest 162303 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -274,39 +275,100 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 252 | $0.06 | 149313 |
 | 253 | $0.05 | 150389 |
 | 254 | $0.04 | 150873 |
-| 255 | $0.49 | 79318 |
+| 255 | $0.50 | 79318 |
 | 256 | $0.07 | 85736 |
-| 257 | $0.03 | 87666 |
-| 258 | $0.03 | 89489 |
-| 259 | $0.04 | 91831 |
-| 260 | $0.05 | 96159 |
-| 261 | $0.02 | 96674 |
-| 262 | $0.02 | 97104 |
+| 257 | $0.04 | 87666 |
+| 258 | $0.04 | 89489 |
+| 259 | $0.05 | 91831 |
+| 260 | $0.06 | 96159 |
+| 261 | $0.03 | 96674 |
+| 262 | $0.03 | 97104 |
 | 263 | $0.02 | 97282 |
-| 264 | $0.02 | 97631 |
-| 265 | $0.04 | 100775 |
+| 264 | $0.03 | 97631 |
+| 265 | $0.06 | 100775 |
 | 266 | $0.03 | 101641 |
-| 267 | $0.02 | 102139 |
-| 268 | $0.02 | 102448 |
-| 269 | $0.02 | 102619 |
-| 270 | $0.02 | 102883 |
-| 271 | $0.02 | 103105 |
-| 272 | $0.02 | 103560 |
+| 267 | $0.03 | 102139 |
+| 268 | $0.03 | 102448 |
+| 269 | $0.03 | 102619 |
+| 270 | $0.03 | 102883 |
+| 271 | $0.03 | 103105 |
+| 272 | $0.03 | 103560 |
 | 273 | $0.03 | 104351 |
-| 274 | $0.02 | 104695 |
-| 275 | $0.03 | 105304 |
+| 274 | $0.03 | 104695 |
+| 275 | $0.04 | 105304 |
 | 276 | $0.03 | 105994 |
-| 277 | $0.10 | 116019 |
-| 278 | $0.03 | 117447 |
-| 279 | $0.03 | 118001 |
+| 277 | $0.11 | 116019 |
+| 278 | $0.04 | 117447 |
+| 279 | $0.04 | 118001 |
 | 280 | $0.03 | 118321 |
 | 281 | $0.03 | 118769 |
-| 282 | $0.03 | 119196 |
+| 282 | $0.04 | 119196 |
 | 283 | $0.03 | 119814 |
-| 284 | $0.04 | 121744 |
-| 285 | $0.03 | 122404 |
+| 284 | $0.05 | 121744 |
+| 285 | $0.04 | 122404 |
 | 286 | $0.03 | 122990 |
 | 287 | $0.07 | 128061 |
+| 288 | $0.05 | 129763 |
+| 289 | $0.04 | 130541 |
+| 290 | $0.50 | 80116 |
+| 291 | $0.07 | 86578 |
+| 292 | $0.03 | 88514 |
+| 293 | $0.05 | 92014 |
+| 294 | $0.06 | 97278 |
+| 295 | $0.03 | 98051 |
+| 296 | $0.02 | 98459 |
+| 297 | $0.02 | 98766 |
+| 298 | $0.02 | 99117 |
+| 299 | $0.02 | 99433 |
+| 300 | $0.02 | 99904 |
+| 301 | $0.03 | 100561 |
+| 302 | $0.03 | 101201 |
+| 303 | $0.03 | 101848 |
+| 304 | $0.02 | 102084 |
+| 305 | $0.02 | 102608 |
+| 306 | $0.03 | 103389 |
+| 307 | $0.03 | 104011 |
+| 308 | $0.03 | 104685 |
+| 309 | $0.02 | 104877 |
+| 310 | $0.03 | 105582 |
+| 311 | $0.14 | 120908 |
+| 312 | $0.05 | 124755 |
+| 313 | $0.03 | 125413 |
+| 314 | $0.03 | 125611 |
+| 315 | $0.03 | 126221 |
+| 316 | $0.04 | 127481 |
+| 317 | $0.03 | 128113 |
+| 318 | $0.04 | 129374 |
+| 319 | $0.03 | 130057 |
+| 320 | $0.03 | 130715 |
+| 321 | $0.03 | 131240 |
+| 322 | $0.04 | 132353 |
+| 323 | $0.03 | 133087 |
+| 324 | $0.03 | 134109 |
+| 325 | $0.04 | 135259 |
+| 326 | $0.03 | 135998 |
+| 327 | $0.04 | 137122 |
+| 328 | $0.03 | 138055 |
+| 329 | $0.15 | 153880 |
+| 330 | $0.03 | 154211 |
+| 331 | $0.03 | 154566 |
+| 332 | $0.03 | 155030 |
+| 333 | $0.03 | 155331 |
+| 334 | $0.04 | 156100 |
+| 335 | $0.04 | 156754 |
+| 336 | $0.04 | 157581 |
+| 337 | $0.04 | 158185 |
+| 338 | $0.04 | 158689 |
+| 339 | $0.04 | 159180 |
+| 340 | $0.04 | 159675 |
+| 341 | $0.03 | 159911 |
+| 342 | $0.03 | 160147 |
+| 343 | $0.04 | 160578 |
+| 344 | $0.04 | 161015 |
+| 345 | $0.03 | 161287 |
+| 346 | $0.04 | 161632 |
+| 347 | $0.03 | 161889 |
+| 348 | $0.04 | 162303 |
 
 #### Conductor comments, by family
 
@@ -323,28 +385,29 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 🗺️ Plan | 0 | 0 | $0.00 |
 | 🗺️ verify-plan | 0 | 0 | $0.00 |
 | ▶️ Resuming | 0 | 0 | $0.00 |
-| ⛔ Bailed | 1 | 561 | $0.01 |
+| ⛔ Bailed | 2 | 909 | $0.02 |
 | ⏹️ Stopped | 3 | 1305 | $0.03 |
-| Total | 4 | 1866 | $0.04 |
+| Total | 5 | 2214 | $0.04 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 7 | 4 | 1 | 0 | 120 | 95 | 9 | 18 | 8884 | 68182 | 120800 | 0.40 |
-| red | 24 | 8 | 1 | 0 | 1956 | 636 | 144 | 278 | 67698 | 3007785 | 586118 | 2.81 |
+| plan | 9 | 5 | 2 | 0 | 137 | 108 | 11 | 22 | 10643 | 73532 | 158147 | 0.51 |
+| red | 28 | 8 | 1 | 0 | 2091 | 717 | 170 | 330 | 78455 | 3569318 | 683949 | 3.22 |
 | green | 20 | 7 | 2 | 0 | 6398 | 387 | 136 | 250 | 36265 | 2453161 | 401062 | 1.69 |
 | refactor | 7 | 0 | 0 | 0 | 74 | 42 | 19 | 38 | 2742 | 255243 | 134324 | 0.39 |
-| pin | 4 | 4 | 0 | 0 | 94 | 49 | 14 | 28 | 4654 | 208245 | 70087 | 0.24 |
+| pin | 8 | 8 | 0 | 0 | 208 | 106 | 32 | 60 | 10984 | 471667 | 136833 | 0.50 |
+| rebase | 2 | 1 | 0 | 0 | 1939 | 28 | 12 | 22 | 2286 | 152167 | 59457 | 0.19 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 29 | 23 | 4 | 0 | 5452 | 401 | 103 | 204 | 38038 | 1599809 | 520401 | 1.84 |
+| verifier | claude-sonnet-5-5 | 36 | 29 | 5 | 0 | 7478 | 488 | 129 | 250 | 47574 | 1926433 | 663342 | 2.33 |
 | developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 884 | 307 | 55 | 106 | 30376 | 1355828 | 192224 | 1.37 |
-| developer | claude-sonnet-5-5 | 27 | 0 | 0 | 0 | 2306 | 501 | 164 | 302 | 51829 | 3036979 | 599766 | 2.32 |
+| developer | claude-sonnet-5-5 | 32 | 0 | 0 | 0 | 2485 | 593 | 196 | 366 | 63425 | 3692827 | 718206 | 2.80 |
 
 #### Rework and waste, by phase
 
@@ -355,8 +418,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | green | 2279 | 0.72 | 156 | 0.10 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
 | revise-red | 0 | 0.00 | 0 | 0.00 |
-| verify-plan | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -372,6 +435,10 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | Under `VERI_GH_DRIVER=graphql`, whose read (`GraphQLAdapter._run`) today discards gh's stderr, a dispatch issue-body read refused with `HTTP 403` and a secondary-rate-limit message for its first K reads, K below the budget, is waited out and `dispatch.py` goes on instead of exiting 2 (a unit case, sleeps injected) ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 83 | 27 | 48 | 7533 | 443223 | 94972 | 0.36 | 706 | unknown | 0/5 | nothing-left |  |  | full |
 | Under the default driver, whose `RestAdapter.issue_view` read today raises `NoAnswer("")` and loses gh's stderr, a dispatch issue-body read refused with `HTTP 403` and a secondary-rate-limit message for its first K reads, K below the budget, is waited out and `dispatch.py` goes on instead of exiting 2 (a unit case, sleeps injected) ⟦criterion 2⟧ | 8 | 3 | 0 | 0 | 0 | 0 | 173 | 46 | 88 | 16958 | 886370 | 179347 | 0.71 | 5652 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_capture_spec.py ⟦suite-repair⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 71 | 24 | 46 | 5978 | 372597 | 125800 | 0.41 | 5796 | unknown | 0/5 | nothing-left |  |  | full |
+| Under `VERI_GH_DRIVER=graphql`, whose read discards gh's stderr, a dispatch issue-body read refused with `HTTP 429` whose rate limit is marked only by a `retry-after` header (no rate-limit message) is waited out within the budget and `dispatch.py` goes on (a unit case, sleeps injected) ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 11 | 20 | 4230 | 198077 | 45980 | 0.18 | unknown | unknown | unknown | unknown |  |  | pin |
+| Under `VERI_GH_DRIVER=graphql`, whose read discards gh's stderr, a dispatch issue-body read refused with `HTTP 403` whose rate limit is marked only by `x-ratelimit-remaining: 0` (no rate-limit message) is waited out within the budget and `dispatch.py` goes on (a unit case, sleeps injected) ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 32 | 9 | 18 | 4031 | 169567 | 36984 | 0.15 | unknown | unknown | unknown | unknown |  |  | pin |
+| A dispatch read refused with `HTTP 403` and a permissions message (no rate-limit marker: no rate-limit message, no `retry-after`, no `x-ratelimit-remaining: 0`) still makes `dispatch.py` exit 2 on the first read, with no sleep made (a unit case, sleeps injected and observed) ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 44 | 15 | 30 | 5404 | 312083 | 42853 | 0.19 | unknown | unknown | unknown | unknown |  |  | pin |
+| Go-red guard: with the rate-limit wait broken on purpose (the dispatch read's rate-limit retry removed, so a rate-limited read is not retried), the first step's case (the stall-check `issue states` read waited out on a 403 secondary rate limit) goes red, then the code is restored; the step adds no production change and is ticked with that mutation evidence (the break, the red case, the restore) ⟦criterion 4⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 56 | 21 | 38 | 5708 | 297395 | 98217 | 0.33 | unknown | unknown | unknown | unknown |  |  | pin |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -387,6 +454,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Under the default driver, whose `RestAdapter.issue_view` read today raises `NoAnswer("")` and loses gh's stderr, a dispatch issue-body read refused with `HTTP 403` and a secondary-rate-limit message for its first K reads, K below the budget, is waited out and `dispatch.py` goes on instead of exiting 2 (a unit case, sleeps injected) ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 13 | 0.07 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_capture_spec.py ⟦suite-repair⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Refactor totals
 
 | step | passes | transforms | landed nothing | stopped |
@@ -398,18 +469,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | Under `VERI_GH_DRIVER=graphql`, whose read (`GraphQLAdapter._run`) today discards gh's stderr, a dispatch issue-body read refused with `HTTP 403` and a secondary-rate-limit message for its first K reads, K below the budget, is waited out and `dispatch.py` goes on instead of exiting 2 (a unit case, sleeps injected) ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | Under the default driver, whose `RestAdapter.issue_view` read today raises `NoAnswer("")` and loses gh's stderr, a dispatch issue-body read refused with `HTTP 403` and a secondary-rate-limit message for its first K reads, K below the budget, is waited out and `dispatch.py` goes on instead of exiting 2 (a unit case, sleeps injected) ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/test_capture_spec.py ⟦suite-repair⟧ ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 7 | 0 | 7 | nothing-left 7 |
+| issue | 8 | ? | ? | nothing-left 7, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 6 | 6 | 6 | 7 | 9 | 8 | 4 | 4 | 3 | 4 | 5 | 4 | 9 | 5 | 6 | 12 | 4 | 7 | 9 | 2 | 8 | 3 | 5 | 6 | 6 | 3 | 5 | 4 | 4 | 5 | 5 | 8 | 12 | 6 | 50 | 61 | 62 | 5 | 7 | 9 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| fast | 65 | 46 | 71 | 131 | 88 | 54 | 144 | 143 | 132 | 92 | 176 | 154 | 98 | 104 | 71 | 124 | 147 | 175 | 182 | 147 | 90 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 5 | 5 | 5 | 5 | 6 | 5 | 7 | 6 | 6 | 6 | 4 | 4 | 5 | 2 | 2 | 7 | 6 | 5 | 6 | 5 | 6 | 6 | 7 | 7 | 9 | 7 | 2 | 4 | 0 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 5 | 9 | 5 | 2 | 5 | 6 | 6 | 4 | 6 | 7 | 8 | 7 | 7 | 8 | 2 | 6 | 8 | 8 | 7 | 7 | 8 | 8 | 9 | 8 | 9 | 11 | 8 | 8 | 8 | 6 | 14 | 3 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 5 |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 6 | 6 | 6 | 7 | 9 | 8 | 4 | 4 | 3 | 4 | 5 | 4 | 9 | 5 | 6 | 12 | 4 | 7 | 9 | 2 | 8 | 3 | 5 | 6 | 6 | 3 | 5 | 4 | 4 | 5 | 5 | 8 | 12 | 6 | 50 | 61 | 62 | 5 | 7 | 9 | 6 | 4 | 4 | 3 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| fast | 65 | 46 | 71 | 131 | 88 | 54 | 144 | 143 | 132 | 92 | 176 | 154 | 98 | 104 | 71 | 124 | 147 | 175 | 182 | 147 | 90 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 5 | 5 | 5 | 5 | 6 | 5 | 7 | 6 | 6 | 6 | 4 | 4 | 5 | 2 | 2 | 7 | 6 | 5 | 6 | 5 | 6 | 6 | 7 | 7 | 9 | 7 | 2 | 4 | 0 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 4 | 3 | 5 | 9 | 5 | 2 | 5 | 6 | 6 | 4 | 6 | 7 | 8 | 7 | 7 | 8 | 2 | 6 | 8 | 8 | 7 | 7 | 8 | 8 | 9 | 8 | 9 | 11 | 8 | 8 | 8 | 6 | 14 | 3 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 5 | 5 | 5 | 5 | 5 | 5 | 4 | 3 | 3 | 2 | 3 |
+| all | 22 | 1877 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 322 | 612 | 120243 | 5992616 | 1312391 | 20.42 (estimate) |
+| total | 380 | 722 | 141375 | 6975088 | 1573772 | 24.34 (estimate) |
