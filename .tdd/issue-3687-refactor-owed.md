@@ -4,3 +4,4 @@
 - `RestAdapter.issue_view` should raise `NoAnswer` for an unknown field. The `"body"` fall-through is still there.
 ### The REST adapter's `issue_view` with a field it does not know raises `NoAnswer` rather than returning the issue body ⟦criterion 2⟧
 - GraphQLAdapter.issue_view's unknown-field case still runs `.labels[].name` instead of raising NoAnswer. This is a behaviour change, not a refactor.
+applied | 4c12990d8bbe6a0c06ef103d6fd7fd6ec9b687ba | `_comments` is a private method of `RestAdapter` that `GraphQLAdapter` calls through a fresh `RestAdapter()`. A module-level `_comments` function would remove that cross-class reach.	refactor: make _comments a module-level function in github.py (#3687)
