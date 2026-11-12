@@ -10,6 +10,10 @@
 # without ⟦added⟧ and never counts against the cap. The added step inherits the anchor's criterion,
 # unless a leading --criterion <k> overrides it with criterion k.
 # --planned inserts the steps without ⟦added⟧, so --planned steps never count toward VERI_STEP_GROWTH.
+# When another process's conductor is live in the ledger's worktree, the script commits the grown
+# ledger and its .tdd/issue-<n>-added.md record in a commit of their own, so a later bail's revert
+# keeps the step. Stderr states whether the added step is durable (committed, naming the commit)
+# or not durable (uncommitted).
 #
 # usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
 # Exit:    0 inserted; 1 the batch would exceed VERI_STEP_GROWTH, owed instead;
