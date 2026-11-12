@@ -1,0 +1,11 @@
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 72
+aWYgaXNzdWUgaW4gd2F0Y2hfcnVucy5waWRfZmlsZS5jb25kdWN0b3JfcHJvY2Vzc2VzKCk6
+new-b64 12
+aWYgVHJ1ZTo=
+context-b64 100
+ICAgICAgICAgICAgICAgICAgICBpZiBpc3N1ZSBpbiB3YXRjaF9ydW5zLnBpZF9maWxlLmNvbmR1Y3Rvcl9wcm9jZXNzZXMoKTo=
+command 197
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_exists_and_no_run_conductor_process_is_alive_issue_3693
+
