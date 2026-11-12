@@ -1296,3 +1296,15 @@ def test_3633_a_missing_pid_file_while_a_run_conductor_process_for_the_run_is_li
     calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "7", lambda root: root, removed=True)
 
     assert calls == [("stop", "at-ledger", "7")]
+
+
+def test_3712_cleaning_up_an_unstopped_exit_removes_restart_pending_when_the_run_has_no_stop_file(tmp_path, monkeypatch):
+    restart_conductor = importlib.import_module("veri.restart_conductor")
+    monkeypatch.chdir(tmp_path)
+    run_tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    run_tdd.mkdir(parents=True)
+    (run_tdd / "restart-pending").write_text("123")
+
+    restart_conductor._clean_up_unstopped_exit("7", None)
+
+    assert ((run_tdd / "restart-pending").exists(), (run_tdd / "stop").exists()) == (False, False)
