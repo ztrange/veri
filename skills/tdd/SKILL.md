@@ -384,7 +384,7 @@ three times over branches its ledger pinned on later lines.
 
 **A step names exactly one observable outcome.** A behaviour and each distinct refusal, exit code or fail-closed branch its criterion names are planned as separate steps, one outcome per step: the Red phase's one-case rule ("One criterion, one case") allows a step exactly one new case, and verify-green's demand that every guard be pinned by a case rejects a guard no case pins, so a step naming two outcomes cannot satisfy both and cannot go green. The rule is keyed on the count of named outcomes, never on the mere presence of a guard: a step naming one outcome alone, a behaviour or one guard, is not split (#2553).
 
-**Before the ledger is written, each candidate step is checked against the before-state.** A step whose test would already pass there is never written as its own Red/Green step: it is folded into the step that makes the behaviour hold, or dropped.
+**Before the ledger is written, each candidate step is checked against the before-state.** A step planned as a Red/Green behaviour change whose test would already pass there is never written as its own Red/Green step: it is dropped when the behaviour already holds before the run, or folded into the earlier step that makes it hold (below). This does not cover a deliberate pin step (below: its Red reports "already passes", see `PIN.md`) or a `⟦replaces-case⟧` step, whose new case passes on the before-state by design.
 
 **Each candidate step is checked against the earlier steps' tests too, including the case a missing reroute would add.** A step whose behaviour an earlier step's test already covers is folded into that earlier step, never kept as a separate step.
 
