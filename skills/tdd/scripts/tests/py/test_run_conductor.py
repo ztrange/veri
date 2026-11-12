@@ -870,6 +870,37 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appe
     }
 
 
+def test_main_after_release_issue_released_the_issue_re_pins_to_the_current_skill_without_veri_new_skill_and_logs_skill_repin_3647(
+        tmp_path, monkeypatch, capfdbinary, events):
+    import github
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    commit = "1111111111111111111111111111111111111111"
+    path = tmp_path / ".tdd" / "issue-4242-skill-commit"
+    path.parent.mkdir()
+    path.write_text("2222222\n")
+    monkeypatch.setattr(github, "gh_issue_view", lambda number, field: "parked\nready-for-agent" if field == "labels" else "")
+    monkeypatch.setattr(github, "gh_label_ensure", lambda name: None)
+    monkeypatch.setattr(github, "gh_issue_add_label", lambda number, label: None)
+    monkeypatch.setattr(github, "gh_issue_remove_label", lambda number, label: None)
+    release_issue = importlib.import_module("veri.release_issue")
+    released = release_issue.main(["4242"])
+    run_conductor = importlib.import_module("veri.run_conductor")
+    worktree = tmp_path / ".tdd" / "wt" / "4242"
+    calls = fake_pin(monkeypatch, commit, {"2222222^{commit}"})
+    events.refuse_event_sh()
+    fake_snapshot(monkeypatch, calls, 0, 0)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    repin = {"issue": "4242", "actor": "", "phase": "", "step": "", "event": "skill-repin", "attempt": "",
+             "skill_commit": "", "commit": commit}
+    assert (released, path.read_text(), events.records(worktree), code) == (0, commit + "\n", [repin], 0)
+
+
 def test_main_on_a_re_pin_records_the_ambient_veri_context_in_the_skill_repin_event_with_the_argument_as_its_issue(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)

@@ -1,8 +1,10 @@
 """release-issue.sh's work, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import re
 import sys
 
+import event
 import github
 import tunables
 
@@ -52,6 +54,7 @@ def main(argv):
         except github.NoAnswer:
             sys.stderr.write("release-issue.sh: no answer from gh releasing #%s; re-run it\n" % number)
             return 2
+    open(os.path.join(event.toplevel(), ".tdd", "issue-%s-released" % number), "w").close()
     return 0
 
 
