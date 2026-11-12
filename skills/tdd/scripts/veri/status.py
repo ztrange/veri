@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 
+import paths
 import run_end
 from pid_file import live_conductor
 from event_log import read_events, usage_totals
@@ -484,7 +485,7 @@ def refresh_running():
     pids = subprocess.run(["pgrep", "-f", "report-cache.sh refresh"], capture_output=True, text=True).stdout.split()
     if not pids:
         return False
-    own = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "report-cache.sh")
+    own = os.path.join(paths.resolved_scripts_of(__file__), "report-cache.sh")
     listing = subprocess.run(["ps", "-p", ",".join(pids), "-o", "pid=,command="], capture_output=True, text=True).stdout
     for m in re.finditer(r"(\S*/report-cache\.sh) refresh", listing):
         if m.group(1) == own:
@@ -498,7 +499,7 @@ def refresh_if_stale():
     except OSError:
         return
     if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")) and not refresh_running():
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "report-cache.sh")
+        script = os.path.join(paths.resolved_scripts_of(__file__), "report-cache.sh")
         subprocess.Popen([script, "refresh"], start_new_session=True, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
