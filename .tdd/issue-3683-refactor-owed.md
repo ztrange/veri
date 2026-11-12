@@ -3,3 +3,5 @@
 - test-only | the `test_main_3683_*` cases repeat the listing, comments and fake-gh setup; a shared helper or fixture would remove it
 ### `parked-issues.sh` prints a fifth field `waiting` for a parked issue whose `Blocked by:` line names a pull request closed without being merged; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_parked_issues.py` with gh faked ⟦criterion 2⟧
 - extract the blocker-state loop in `main` of `veri/parked_issues.py` into a helper (for example `blockers_status(blocked_by)`), since `main` is long
+### A case in `skills/tdd/scripts/tests/py/unit/test_parked_issues.py` pins that when gh gives no answer to the merged-state read of a closed pull-request blocker (`repos/{owner}/{repo}/pulls/<n>`), parked-issues exits 2 with stderr `parked-issues.sh: no answer from gh to reading the merged state of #<n>` naming that blocker, and prints no row for that issue; a small unit case driven in-process with `run_cli` ⟦added⟧ ⟦criterion 3⟧
+- Extract a helper for the repeated gh-read-or-exit-2 pattern in `parked_issues.py` (state read and merged-state read, plus the earlier listing and comments reads)
