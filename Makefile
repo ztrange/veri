@@ -17,10 +17,7 @@ UNIT_TESTS_NAMED := $(filter command line,$(origin UNIT_TESTS))
 # old wildcard listed and no file in the tree is named otherwise.
 PY_ALL := skills/tdd/scripts/tests/py
 PY_UNIT := skills/tdd/scripts/tests/py/unit
-DASH_PATH := projects/dashboard/%
-DASH_RUN = $(MAKE) -C projects/dashboard test
-py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(if $(filter $(DASH_PATH),$(t)),,$(t)))),$(3))
-DASH_TESTS := $(filter $(DASH_PATH),$(TESTS))
+py_tests = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),$(t))),$(3))
 py_refused = $(if $(1),$(foreach t,$(2),$(if $(findstring .py,$(t)),,$(t))))
 unit: PY_TESTS = $(strip $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS),$(PY_UNIT)))
 PY_REFUSED = $(call py_refused,$(TESTS_NAMED),$(TESTS))
@@ -113,7 +110,6 @@ test unit:
 	  printf '== pytest\n'; \
 	  PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) $(if $(PY_WORKERS),VERI_PYTEST_WORKERS="$${VERI_PYTEST_WORKERS:-$(PY_WORKERS)}") "$$py_bin" skills/tdd/scripts/veri/pytest_leg.py $(if $(TESTS_NAMED),--subset) --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || { leg=$$?; [ $$leg -ne 2 ] || exit 2; fail=1; }; \
 	fi; \
-	if [ -n "$(DASH_TESTS)" ]; then printf '== dashboard\n'; $(DASH_RUN) < /dev/null || fail=1; fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
