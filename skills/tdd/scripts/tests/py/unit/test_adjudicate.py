@@ -112,3 +112,28 @@ def test_record_on_a_bail_answer_writes_one_adjudicated_event_prints_bail_and_ex
         "outcome": "bail",
         "reason": "the check has been pending for hours",
     }
+
+
+def test_record_on_a_route_answer_writes_one_adjudicated_event_prints_the_route_and_exits_1(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    import json
+
+    def parsed_route(argv):
+        print("route some-token")
+        print("the route fits")
+        return 0
+
+    monkeypatch.setattr(adjudicate.parse_adjudication, "main", parsed_route)
+    (tmp_path / ".tdd").mkdir()
+    code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "leaf.out")], cwd=tmp_path)
+    assert (code, out) == (1, "route some-token\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    adjudicated = [e for e in events if e.get("event") == "adjudicated"]
+    assert len(adjudicated) == 1
+    assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
+        "issue": "7",
+        "cause": "ci-timeout",
+        "outcome": "route",
+        "reason": "the route fits",
+    }
