@@ -167,6 +167,7 @@ def commit_amendment(path):
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
     if live is None or int(live) in issue_worktree.ancestors():
+        print("add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)", file=sys.stderr)
         return
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
     for argv in (["add", "--", *paths],

@@ -19,6 +19,13 @@ LEDGER = (
 ).encode()
 
 
+NOT_DURABLE = "not durable"
+
+
+def settled(err):
+    return NOT_DURABLE if err.count("\n") == 1 and NOT_DURABLE in err.lower() else err
+
+
 @pytest.fixture
 def add_ledger_step():
     return importlib.import_module("veri.add_ledger_step")
@@ -96,7 +103,7 @@ def test_main_inserts_beside_the_one_dash_step_holding_the_anchor_leaving_prose_
     )
     code = add_ledger_step.main([str(ledger), "after", "a lamp glows", "a lamp dims"])
     captured = capsys.readouterr()
-    assert (code, captured.err) == (0, "")
+    assert (code, settled(captured.err)) == (0, NOT_DURABLE)
     assert ledger.read_bytes().decode() == (
         "# Plan for #42\n"
         "\n"
@@ -128,11 +135,11 @@ def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_non
     for where in ("before", "after", "instead-of"):
         ledger.write_bytes(LEDGER)
         code = add_ledger_step.main([str(ledger), where, "b two", "t", "u"])
-        got[where] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+        got[where] = (code, settled(capsys.readouterr().err), ledger.read_bytes().decode())
     assert got == {
-        "before": (0, "", head + added + anchor + tail),
-        "after": (0, "", head + anchor + added + tail),
-        "instead-of": (0, "", head + added + tail),
+        "before": (0, NOT_DURABLE, head + added + anchor + tail),
+        "after": (0, NOT_DURABLE, head + anchor + added + tail),
+        "instead-of": (0, NOT_DURABLE, head + added + tail),
     }
 
     monkeypatch.setenv("VERI_STEP_GROWTH", "1")
@@ -160,12 +167,12 @@ def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline
     for name, (anchor, text) in cases.items():
         ledger.write_bytes((head + anchor).encode())
         code = add_ledger_step.main([str(ledger), "after", "b two", text])
-        got[name] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+        got[name] = (code, settled(capsys.readouterr().err), ledger.read_bytes().decode())
     assert got == {
-        "unvalidated": (0, "", head + "- [ ] b two ⟦criterion abc⟧\n- [ ] t ⟦added⟧ ⟦criterion abc⟧\n"),
-        "empty text": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ]  ⟦added⟧ ⟦criterion 2⟧\n"),
-        "newline": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ] x\ny ⟦added⟧ ⟦criterion 2⟧\n"),
-        "indented": (0, "", head + "  - [ ] b two ⟦criterion 4⟧\n- [ ] t ⟦added⟧ ⟦criterion 4⟧\n"),
+        "unvalidated": (0, NOT_DURABLE, head + "- [ ] b two ⟦criterion abc⟧\n- [ ] t ⟦added⟧ ⟦criterion abc⟧\n"),
+        "empty text": (0, NOT_DURABLE, head + "- [ ] b two ⟦criterion 2⟧\n- [ ]  ⟦added⟧ ⟦criterion 2⟧\n"),
+        "newline": (0, NOT_DURABLE, head + "- [ ] b two ⟦criterion 2⟧\n- [ ] x\ny ⟦added⟧ ⟦criterion 2⟧\n"),
+        "indented": (0, NOT_DURABLE, head + "  - [ ] b two ⟦criterion 4⟧\n- [ ] t ⟦added⟧ ⟦criterion 4⟧\n"),
     }
 
 
@@ -207,7 +214,7 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
     def run(*argv):
         code = add_ledger_step.main([str(ledger), *argv])
         captured = capsys.readouterr()
-        return (code, captured.out, captured.err, ledger.read_bytes() if ledger.exists() else None)
+        return (code, captured.out, settled(captured.err), ledger.read_bytes() if ledger.exists() else None)
 
     monkeypatch.setenv("VERI_STEP_GROWTH", "0")
     assert run("afterr", "b two", "t") == (
@@ -243,7 +250,7 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
     ledger.write_bytes(seed)
     fifth = run("after", "c three", "fifth")
     sixth = run("after", "c three", "sixth")
-    assert (fifth[:3], sixth[:3]) == ((0, "", ""), (1, "", ""))
+    assert (fifth[:3], sixth[:3]) == ((0, "", NOT_DURABLE), (1, "", ""))
     assert b"- [ ] fifth \xe2\x9f\xa6added\xe2\x9f\xa7" in fifth[3]
     assert sixth[3] == fifth[3] + "\n## Owed steps\n\n- sixth\n".encode()
 
@@ -288,21 +295,21 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
         monkeypatch.setenv("VERI_STEP_GROWTH", budget)
         code = add_ledger_step.main([str(ledger), "after", "collapse to single hyphen", *texts])
         captured = capsys.readouterr()
-        got[name] = (code, captured.out, captured.err, ledger.read_bytes().decode())
+        got[name] = (code, captured.out, settled(captured.err), ledger.read_bytes().decode())
     anchor = "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
     repairs = (
         "- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n"
         "- [ ] mid-text: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n"
     )
     assert got == {
-        "uncounted lines, one added text": (0, "", "", uncounted.replace(
+        "uncounted lines, one added text": (0, "", NOT_DURABLE, uncounted.replace(
             anchor,
             anchor
             + "- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧\n"
             + "- [ ] fix the CI failure: z.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n",
         )),
         "a pending added step spends the budget": (1, "", "", counted + "\n## Owed steps\n\n- one more edge case\n"),
-        "repair texts at a budget of 0": (0, "", "", unadded + repairs),
+        "repair texts at a budget of 0": (0, "", NOT_DURABLE, unadded + repairs),
     }
     records = importlib.import_module("veri.ledger").ledger_steps(ledger.read_bytes().decode())[-2:]
     assert [(state, kind, text) for _, state, kind, _, _, _, text in records] == [
@@ -331,15 +338,15 @@ def test_main_reads_veri_step_growth_as_bash_arithmetic_octal_base_errors_and_64
         code = add_ledger_step.main([str(ledger), "after", "c three", *texts])
         captured = capsys.readouterr()
         lines = captured.err.splitlines()
-        named = len(lines) == 1 and f"{budget}: value too great for base" in lines[0]
-        got[name] = (code, captured.out, captured.err if not named else "named", ledger.read_bytes().decode())
+        named = len(lines) == 2 and f"{budget}: value too great for base" in lines[0] and NOT_DURABLE in lines[1].lower()
+        got[name] = (code, captured.out, settled(captured.err) if not named else "named", ledger.read_bytes().decode())
     inserted = lambda seed, texts: seed.replace(
         "- [ ] c three ⟦criterion 3⟧\n",
         "- [ ] c three ⟦criterion 3⟧\n" + "".join(f"- [ ] {t} ⟦added⟧ ⟦criterion 3⟧\n" for t in texts),
     )
     owed = text + "\n## Owed steps\n\n- t\n"
     assert got == {
-        "010, eighth added step": (0, "", "", inserted(text + extras(7), ["t"])),
+        "010, eighth added step": (0, "", NOT_DURABLE, inserted(text + extras(7), ["t"])),
         "010, ninth added step": (1, "", "", text + extras(8) + "\n## Owed steps\n\n- t\n"),
         "08": (0, "", "named", inserted(text, ten)),
         "09": (0, "", "named", inserted(text, ten)),
@@ -365,22 +372,22 @@ def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_p
         ledger.write_bytes(seed)
         code = add_ledger_step.main([str(ledger), "after", anchor, "t"])
         captured = capsys.readouterr()
-        got[name] = (code, captured.out, captured.err, ledger.read_bytes())
+        got[name] = (code, captured.out, settled(captured.err), ledger.read_bytes())
     step = "- [ ] t ⟦added⟧ ⟦criterion 1⟧\n".encode()
     assert got == {
         "anchor on an unterminated last line": (
-            0, "", "", unterminated + b"\n" + "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n".encode()
+            0, "", NOT_DURABLE, unterminated + b"\n" + "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n".encode()
         ),
         "insert before an unterminated last line": (
-            0, "", "", unterminated.replace(
+            0, "", NOT_DURABLE, unterminated.replace(
                 "a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step
             ) + b"\n",
         ),
         "crlf": (
-            0, "", "", crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step)
+            0, "", NOT_DURABLE, crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step)
         ),
         "non-utf-8": (
-            0, "", "", latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step)
+            0, "", NOT_DURABLE, latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step)
         ),
     }
 
@@ -394,10 +401,10 @@ def test_main_writes_a_non_utf_8_byte_of_a_text_back_unchanged_when_it_inserts_a
         ledger.write_bytes(LEDGER)
         code = add_ledger_step.main([str(ledger), "after", "b two", text])
         captured = capsys.readouterr()
-        got[name] = (code, captured.out, captured.err, ledger.read_bytes())
+        got[name] = (code, captured.out, settled(captured.err), ledger.read_bytes())
     assert got == {
         "inserted": (
-            0, "", "", LEDGER.replace(
+            0, "", NOT_DURABLE, LEDGER.replace(
                 "b two ⟦criterion 2⟧\n".encode(),
                 "b two ⟦criterion 2⟧\n- [ ] t ".encode() + b"\xff" + " ⟦added⟧ ⟦criterion 2⟧\n".encode(),
             ),
@@ -463,7 +470,7 @@ def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_kee
     code = add_ledger_step.main([str(ledger), "after", "c three", "t"])
     captured = capsys.readouterr()
 
-    assert (code, captured.err) == (0, "")
+    assert (code, settled(captured.err)) == (0, NOT_DURABLE)
     assert ledger.read_bytes().decode().split("\n")[4:6] == [
         "- [ ] c three ⟦criterion 3⟧",
         "- [ ] t ⟦added⟧ ⟦criterion 3⟧",
@@ -478,7 +485,7 @@ def test_main_keeps_a_last_line_without_a_trailing_newline_after_inserting_besid
     code = add_ledger_step.main([str(ledger), "after", "a one", "t"])
     captured = capsys.readouterr()
 
-    assert (code, captured.err) == (0, "")
+    assert (code, settled(captured.err)) == (0, NOT_DURABLE)
     assert ledger.read_bytes().decode().split("\n")[2:6] == [
         "- [x] a one ⟦criterion 1⟧",
         "- [ ] t ⟦added⟧ ⟦criterion 1⟧",
@@ -586,9 +593,9 @@ def test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anc
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main(["--criterion", "3", str(ledger), "after", "b two", "t", "u"])
-    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+    assert (code, settled(capsys.readouterr().err), ledger.read_bytes().decode()) == (
         0,
-        "",
+        NOT_DURABLE,
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦added⟧ ⟦criterion 3⟧\n- [ ] u ⟦added⟧ ⟦criterion 3⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
@@ -601,17 +608,17 @@ def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_an
     for name, seed in (("tagged", LEDGER), ("untagged", "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode())):
         ledger.write_bytes(seed)
         code = add_ledger_step.main([str(ledger), "after", "b two", "t", "u"])
-        got[name] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+        got[name] = (code, settled(capsys.readouterr().err), ledger.read_bytes().decode())
     assert got == {
         "tagged": (
             0,
-            "",
+            NOT_DURABLE,
             "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
             "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n- [ ] u ⟦added⟧ ⟦criterion 2⟧\n- [ ] c three ⟦criterion 3⟧\n",
         ),
         "untagged": (
             0,
-            "",
+            NOT_DURABLE,
             "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n- [ ] t ⟦added⟧\n- [ ] u ⟦added⟧\n",
         ),
     }
@@ -622,9 +629,9 @@ def test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
     code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "t", "u"])
-    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+    assert (code, settled(capsys.readouterr().err), ledger.read_bytes().decode()) == (
         0,
-        "",
+        NOT_DURABLE,
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦added⟧ ⟦criterion 7⟧\n- [ ] u ⟦added⟧ ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
@@ -667,9 +674,9 @@ def test_main_planned_criterion_k_inserts_unmarked_steps_that_do_not_count_towar
     ledger.write_bytes(LEDGER)
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n\n## Blocked by\n")
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t", "u"])
-    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+    assert (code, settled(capsys.readouterr().err), ledger.read_bytes().decode()) == (
         0,
-        "",
+        NOT_DURABLE,
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦criterion 7⟧\n- [ ] u ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
@@ -696,8 +703,8 @@ def test_main_a_later_criterion_k_add_after_a_planned_one_is_marked_added_and_re
     planned = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t"])
     after_planned = ledger.read_bytes()
     code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "u"])
-    assert (planned, code, capsys.readouterr().err, ledger.read_bytes()) == (
-        0, 1, "", after_planned + "\n## Owed steps\n\n- u\n".encode()
+    assert (planned, code, settled(capsys.readouterr().err), ledger.read_bytes()) == (
+        0, 1, NOT_DURABLE, after_planned + "\n## Owed steps\n\n- u\n".encode()
     )
 
 
@@ -729,9 +736,9 @@ def test_main_planned_criterion_k_unticked_in_the_spec_file_and_served_by_no_ste
     boxes = "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n"
     (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + boxes + "\n## Blocked by\n")
     code = add_ledger_step.main(["--planned", "--criterion", "7", str(ledger), "after", "b two", "t", "u"])
-    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+    assert (code, settled(capsys.readouterr().err), ledger.read_bytes().decode()) == (
         0,
-        "",
+        NOT_DURABLE,
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦criterion 7⟧\n- [ ] u ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
@@ -788,8 +795,8 @@ def test_main_accepts_criterion_k_before_planned_the_same_as_planned_before_crit
         ledger.write_bytes(LEDGER)
         (ledger.parent / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [x] c{n}\n" for n in range(1, 7)) + "- [ ] c7\n\n## Blocked by\n")
         code = add_ledger_step.main([*flags, str(ledger), "after", "b two", "t"])
-        got[name] = (code, capsys.readouterr().err, ledger.read_bytes())
-    assert got["criterion first"] == got["planned first"] and got["planned first"][:2] == (0, "")
+        got[name] = (code, settled(capsys.readouterr().err), ledger.read_bytes())
+    assert got["criterion first"] == got["planned first"] and got["planned first"][:2] == (0, NOT_DURABLE)
 
 
 
@@ -851,7 +858,7 @@ def test_main_inserts_a_suite_repair_when_the_only_suite_repair_step_the_ledger_
         [str(ledger), "after", "b two", "fix the full-suite failure: second.test.sh ⟦suite-repair⟧"],
     )
 
-    assert (code, err) == (0, "")
+    assert (code, settled(err)) == (0, NOT_DURABLE)
     assert "- [ ] fix the full-suite failure: second.test.sh ⟦suite-repair⟧" in ledger.read_text()
 
 
@@ -1076,7 +1083,7 @@ def test_main_inserts_a_text_that_only_quotes_the_suite_repair_mark_when_this_ru
         [str(ledger), "after", "b two", "explain why ⟦suite-repair⟧ steps are capped per run"],
     )
 
-    assert (code, err) == (0, "")
+    assert (code, settled(err)) == (0, NOT_DURABLE)
     assert "- [ ] explain why ⟦suite-repair⟧ steps are capped per run ⟦added⟧ ⟦criterion 2⟧\n" in ledger.read_text()
 
 
@@ -1657,7 +1664,7 @@ def test_main_adds_a_step_that_only_mentions_the_skill_edit_mark_in_its_prose_as
     code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", text], cwd=tmp_path)
 
     added = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ] " + text)]
-    assert (code, err, added) == (0, "", ["- [ ] " + text + " ⟦added⟧ ⟦criterion 2⟧"])
+    assert (code, settled(err), added) == (0, NOT_DURABLE, ["- [ ] " + text + " ⟦added⟧ ⟦criterion 2⟧"])
 
 
 def test_main_refuses_a_trailing_skill_edit_step_whose_unit_file_is_missing_naming_the_unit_without_a_traceback_3544(tmp_path, run_cli, add_ledger_step):
@@ -1753,3 +1760,15 @@ def test_main_takes_a_slash_only_backticked_token_after_a_non_path_one_as_the_un
         add_ledger_step, [str(ledger), "after", "b two", "⟦skill-edit⟧ regrade `parked` rows in `scripts/foo.sh`"], cwd=tmp_path)
 
     assert (code, out, "scripts/foo.sh: the unit file does not exist" in err, "parked" in err, "no unit path" in err, ledger.read_bytes()) == (2, "", True, False, False, LEDGER), err
+
+
+def test_main_3618_stderr_states_the_uncommitted_step_is_not_durable_when_no_conductor_is_live(tmp_path, monkeypatch, run_cli, add_ledger_step):
+    monkeypatch.setattr(add_ledger_step.pid_file, "recorded_started", lambda tree: None)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "b two", "d four"])
+
+    assert (code, out) == (0, "")
+    assert b"- [ ] d four" in ledger.read_bytes()
+    assert "not durable" in err.lower(), err
