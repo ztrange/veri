@@ -4,3 +4,5 @@
 - test-only | extract the duplicated home/transcript fixture setup in the last two cases into a helper
 ### `role-growth.sh <role>` with no `~/.claude/projects/*/<id>.jsonl` for the session exits 2 with one stderr line naming the missing transcript; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 3⟧
 - test-only | extract the repeated `main_tree` monkeypatch and home/transcript setup in test_role_growth.py into a shared fixture
+### `role-growth.sh dev --lane <lane>` records `session` and `transcript` in the lane's state file `.tdd/role-dev-<lane>.state`; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 3⟧
+- test-only | extract the repeated home/transcript setup (and the `main_tree` monkeypatch) in `test_role_growth.py` into a fixture
