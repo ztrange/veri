@@ -73,3 +73,21 @@ def test_record_on_a_retry_answer_writes_one_adjudicated_event_prints_retry_and_
         "outcome": "retry",
         "reason": "CI is queued behind a busy runner",
     }
+
+
+def test_left_exits_3_when_the_adjudications_since_the_last_conductor_start_reach_the_budget(
+    run_cli, adjudicate, monkeypatch, tmp_path
+):
+    import json
+
+    monkeypatch.delenv("VERI_ADJUDICATE_BUDGET", raising=False)
+    adjudicated = {"issue": "7", "event": "adjudicated", "cause": "ci-timeout", "outcome": "retry"}
+    events = [
+        {"issue": "7", "event": "conductor-start"},
+        adjudicated,
+        adjudicated,
+    ]
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
+    code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
+    assert (code, out, err) == (3, "", "")
