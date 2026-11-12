@@ -16,3 +16,10 @@ skills/tdd/scripts/tests/py/test_add_ledger_step_process.py
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/test_add_ledger_step_process.py::test_cli_3618_stderr_states_the_committed_step_is_durable_naming_the_commit_leaving_stdout_empty
 
+before 40
+85e5f2a9f1ed9c52291524810ca97b5de58a12c7
+keep 56
+skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py
+command 164
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py::test_main_3618_stderr_states_the_uncommitted_step_is_not_durable_when_no_conductor_is_live
+
