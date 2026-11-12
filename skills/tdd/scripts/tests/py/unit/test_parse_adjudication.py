@@ -112,3 +112,11 @@ def test_main_on_a_route_line_when_the_cause_lists_no_route_token_exits_2_with_n
     leaf.write_text("ADJUDICATION: route fix-it — known flake\n")
     code, out, err = run_cli(parse_adjudication, [str(leaf)])
     assert (code, out) == (2, "")
+
+
+def test_main_on_a_bare_route_line_with_no_token_exits_2_with_nothing_on_stdout(run_cli, parse_adjudication, tmp_path, monkeypatch):
+    _use_fixture_adjudicate_md(parse_adjudication, tmp_path, monkeypatch, "- `ci-timeout`: `fix-it`\n")
+    leaf = tmp_path / "adjudicate-ci-timeout.out"
+    leaf.write_text("ADJUDICATION: route — known flake\n")
+    code, out, err = run_cli(parse_adjudication, [str(leaf)])
+    assert (code, out) == (2, "")

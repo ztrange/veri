@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import io
+import re
 import sys
 
 import event
@@ -18,7 +19,7 @@ def budget():
 
 def main(argv):
     if argv == ["--check-budget"]:
-        if not budget().isdigit():
+        if not re.fullmatch(r"[0-9]+", budget()):
             print(f"VERI_ADJUDICATE_BUDGET must be a non-negative whole number, got {budget()!r}", file=sys.stderr)
             return 2
         return 0

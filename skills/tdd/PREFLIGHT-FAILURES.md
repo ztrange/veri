@@ -70,6 +70,8 @@ Each of these is a preflight stop before any leaf is launched:
   stop, reporting the value verbatim.
 - `VERI_MISSING_REROUTE_BUDGET` failing its check (false) is an exit-2 stop that reports the value
   verbatim.
+- `adjudicate.sh --check-budget` exit 2 (`VERI_ADJUDICATE_BUDGET` not a whole number ≥ 0) is an exit-2
+  stop before the baseline, reporting its stderr verbatim.
 - `VERI_SKIP_VERIFY`: any word that is not a phase this release can skip, or is `plan`, exits 2 before
   the baseline, naming it.
 - `step-budget.sh` exit 2 means `VERI_STEP_BUDGET` or `VERI_RUN_BUDGET` is not a non-negative decimal

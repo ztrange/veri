@@ -24,7 +24,7 @@ def main(argv):
     with open(doc) as f:
         eligible = re.findall(r"- `[^`]+`:(.*)$", f.read(), re.M)
     listed_route = kind == "route" and any(token in re.findall(r"`([^`]+)`", t) for t in eligible)
-    if not listed_route and outcome not in ("retry", "bail", "route"):
+    if not listed_route and outcome not in ("retry", "bail"):
         return 2
     print(outcome)
     print(reason)

@@ -27,7 +27,7 @@ def test_check_budget_exits_0_silently_when_the_budget_is_unset(run_cli, adjudic
 def test_check_budget_exits_2_naming_the_variable_for_a_budget_that_is_not_a_whole_number(
     run_cli, adjudicate, monkeypatch
 ):
-    for bad in ("-1", "two", "1.5"):
+    for bad in ("-1", "two", "1.5", "\u00b2"):
         monkeypatch.setenv("VERI_ADJUDICATE_BUDGET", bad)
         code, out, err = run_cli(adjudicate, ["--check-budget"])
         assert (code, out, "VERI_ADJUDICATE_BUDGET" in err) == (2, "", True), bad
