@@ -127,3 +127,18 @@ def test_issue_3241_dev_request_reset_idle_writes_the_marker_holding_the_time_an
 
     marker = (tdd / "reset-request-dev").read_text().split()
     assert (code, marker) == (0, ["2026-11-12T10:00:00", "idle"])
+
+
+def test_issue_3241_dev_lane_request_reset_writes_the_marker_with_the_lane_suffix_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "role-dev-b.state").write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, _ = run_cli(role_state, ["dev", "--lane", "b", "request-reset"])
+
+    markers = sorted(p.name for p in tdd.glob("reset-request-*"))
+    assert (code, markers) == (0, ["reset-request-dev-b"])
