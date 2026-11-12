@@ -1131,3 +1131,32 @@ def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_
 
     leaked = sorted({"TESTS", "MAKEFLAGS", "MAKELEVEL"} & set(seen.read_text().split()))
     assert (code, leaked) == (0, [])
+
+
+def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_environment_keeping_its_argv_3617(
+        tmp_path, tick_ledger, monkeypatch):
+    import subprocess
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("the case stays green\n")
+    ran = {}
+    for name in ("TESTS", "MAKEFLAGS", "MAKELEVEL"):
+        monkeypatch.setenv(name, "leaked")
+
+    def fake_run(args, **kwargs):
+        if args[0].endswith("detect-test-command.sh"):
+            return subprocess.CompletedProcess(args, 0, "", "")
+        env = kwargs.get("env")
+        env = os.environ if env is None else env
+        ran["argv"] = list(args)
+        ran["env"] = sorted({"MAKEFLAGS", "MAKELEVEL"} & set(env))
+        return subprocess.CompletedProcess(args, 0, "1 passed\n", "")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
+
+    assert (code, ran["argv"], ran["env"]) == (0, ["make", "test", "TESTS=tests/py/test_x.py::test_holds"], [])
