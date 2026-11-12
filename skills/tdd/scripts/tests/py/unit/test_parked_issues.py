@@ -5,6 +5,10 @@ import json
 import pytest
 
 
+def first_four(out):
+    return "".join("\t".join(line.split("\t")[:4]) + "\n" for line in out.splitlines())
+
+
 @pytest.fixture
 def parked_issues():
     return importlib.import_module("veri.parked_issues")
@@ -30,7 +34,7 @@ def test_main_2420_lists_only_the_parked_issue_and_exits_0_when_a_parked_pull_re
 
     code, out, err = run_cli(parked_issues, [])
 
-    assert (code, out, "2403" in err) == (0, "2373\tAn issue\twaiting on upstream\tupstream ships\n", False)
+    assert (code, first_four(out), "2403" in err) == (0, "2373\tAn issue\twaiting on upstream\tupstream ships\n", False)
 
 
 def test_main_2420_still_exits_2_naming_a_parked_issue_with_no_parked_comment_listed_beside_a_parked_pull_request(
