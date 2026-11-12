@@ -1404,6 +1404,40 @@ def test_main_prints_stalled_and_exits_0_when_a_live_conductors_event_log_record
     assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
 
 
+def test_main_prints_no_stalled_line_for_a_conductor_started_within_the_stall_window_over_older_activity_files_issue_3605(
+        monkeypatch, capsys, tmp_path, dispatch):
+    import os
+    tdd = tmp_path / ".tdd" / "wt" / "7" / ".tdd"
+    tdd.mkdir(parents=True)
+    for name in ("events.jsonl", "conductor-7.log", "leaf.out"):
+        (tdd / name).write_text("x\n")
+        os.utime(tdd / name, (1000, 1000))
+    (tdd / "conductor.pid").write_text("123\n")
+    os.utime(tdd / "conductor.pid", (1999, 1999))
+    waits = []
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 3:
+            raise _StopWaiting
+
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: 2000, raising=False)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = None
+
+    assert (code, capsys.readouterr().out) == (None, "")
+
+
 def test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599(
         monkeypatch, capsys, tmp_path, dispatch):
     import os
