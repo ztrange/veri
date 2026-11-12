@@ -58,7 +58,8 @@ You own, and only you change:
 - **order overrides** — an issue taken out of `solvable-issues.sh` order, written down with who
   asked for it;
 - **N**, the number of conductors the dev session keeps running, including a timed change ("N=2
-  until 18:00"), written down with its expiry;
+  until 18:00"), written down with its expiry as `<n> until <ISO-8601 datetime>`, the form
+  `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses;
 - **one-resume budget raises** — a larger budget for exactly one resume of one issue;
 - **filing** issues, through `vfile`;
 - **grooming** issues, through `vgroom`;
@@ -153,7 +154,9 @@ else waits for the human, written down as a pending decision.
 Write each of these through `$S/role-state.sh coord [--lane <lane>]` at the moment it changes,
 never at reset time:
 
-- each change to N, and each timed N change with its expiry;
+- each change to N, and each timed N change with its expiry, written as
+  `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and
+  `dispatch.sh` parses;
 - each order override, with who asked for it;
 - each pending human decision, in full;
 - each message sent to the dev session and not yet confirmed.
