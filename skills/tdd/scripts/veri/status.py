@@ -540,18 +540,20 @@ def recover_bailed():
     return lines
 
 
+def refused_read_check(answer, what):
+    if answer.returncode != 0:
+        raise OSError("status.sh --recover: GitHub refused the %s: %s" % (what, answer.stderr.strip()))
+
+
 def recover_prs():
     answer = github.gh_probe("api", "repos/{owner}/{repo}/pulls?state=open")
-    if answer.returncode != 0:
-        raise OSError("status.sh --recover: GitHub refused the open pull request read: %s" % answer.stderr.strip())
+    refused_read_check(answer, "open pull request read")
     lines = []
     for pr in json.loads(answer.stdout):
         closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
         state = "draft" if pr["draft"] else "ready"
         single = github.gh_probe("api", "repos/{owner}/{repo}/pulls/%d" % pr["number"])
-        if single.returncode != 0:
-            raise OSError("status.sh --recover: GitHub refused the single pull request read for #%d: %s"
-                          % (pr["number"], single.stderr.strip()))
+        refused_read_check(single, "single pull request read for #%d" % pr["number"])
         try:
             mergeable = json.loads(single.stdout)["mergeable_state"] or "unknown"
         except (ValueError, KeyError):
