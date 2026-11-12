@@ -35,11 +35,16 @@ def main(argv):
     if len(argv) == 4 and argv[0] == "record":
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            parse_adjudication.main([argv[3]])
-        outcome, reason = out.getvalue().splitlines()
+            code = parse_adjudication.main([argv[3]])
+        if code:
+            outcome, reason = "unparsed", "no ADJUDICATION line"
+        else:
+            outcome, reason = out.getvalue().splitlines()
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",
                    ["cause=" + argv[2], "outcome=" + outcome.split()[0], "reason=" + reason])
         print(outcome)
+        if code:
+            return 2
         return 0 if outcome == "retry" else 1
     print(USAGE, file=sys.stderr)
     return 2

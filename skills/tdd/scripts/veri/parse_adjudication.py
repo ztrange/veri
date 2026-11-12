@@ -11,8 +11,13 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
-    with open(argv[0]) as f:
-        lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
+    try:
+        with open(argv[0]) as f:
+            lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
+    except FileNotFoundError:
+        return 2
+    if not lines:
+        return 2
     outcome, _, reason = lines[-1][len("ADJUDICATION:"):].strip().partition(" — ")
     kind, _, token = outcome.partition(" ")
     doc = os.path.join(os.path.dirname(__file__), "..", "..", "ADJUDICATE.md")
