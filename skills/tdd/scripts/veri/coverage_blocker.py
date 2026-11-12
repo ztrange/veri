@@ -7,10 +7,12 @@ import tempfile
 
 try:
     from blocked_by import add as block, blockers
+    from detect_test_command import resolved
     from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from json_documents import documents
 except ImportError:
     from .blocked_by import add as block, blockers
+    from .detect_test_command import resolved
     from .github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from .json_documents import documents
 
@@ -47,6 +49,9 @@ def main(argv):
     if mutations:
         text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
     text += "\n\n## Blocked by\n\nNone.\n"
+    command = resolved("all", "", ".")
+    if command is not None:
+        text += "\nTest command: %s\n" % command.decode()
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
