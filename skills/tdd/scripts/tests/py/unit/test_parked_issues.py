@@ -128,3 +128,28 @@ def test_main_3683_exits_2_naming_the_blocker_and_printing_nothing_when_gh_gives
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out, "3420" in err) == (2, "", True)
+
+
+def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_only_closed_issues(
+        monkeypatch, parked_issues, run_cli):
+    listing = [{"number": 3324, "title": "An issue"}]
+    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3420 merges\nBlocked by: #3420"}]
+    closed = json.dumps({"number": 3420, "state": "closed"})
+
+    def fake_rest_list(path, *args):
+        if "/comments" in path:
+            return json.dumps(comments)
+        if "3420" in path:
+            return closed
+        return json.dumps(listing)
+
+    def fake_api(path, *args, **kwargs):
+        assert "3420" in path
+        return closed
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+    monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3420 merges\tready\n")
