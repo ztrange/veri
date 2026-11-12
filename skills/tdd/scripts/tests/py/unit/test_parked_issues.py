@@ -211,3 +211,32 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\n")
+
+
+def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_pull_request(
+        monkeypatch, parked_issues, run_cli):
+    listing = [{"number": 3324, "title": "An issue"}]
+    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    as_issue = json.dumps({"number": 3309, "state": "open", "pull_request": {"url": "x"}})
+    as_pull = json.dumps({"number": 3309, "state": "open", "merged": False})
+
+    def answer(path):
+        assert "3309" in path
+        return as_pull if "/pulls/" in path else as_issue
+
+    def fake_rest_list(path, *args):
+        if "/comments" in path:
+            return json.dumps(comments)
+        if "3309" in path:
+            return answer(path)
+        return json.dumps(listing)
+
+    def fake_api(path, *args, **kwargs):
+        return answer(path)
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+    monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\twaiting\n")
