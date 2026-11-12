@@ -23,3 +23,21 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 162
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_removes_the_stop_file_the_watcher_itself_wrote
 
+before 40
+fe410caa36a0ec77550e1433fed70f04676bf8dd
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_leaves_a_foreign_stop_file_in_place_with_its_content_unchanged
+
+file 44
+skills/tdd/scripts/veri/restart_conductor.py
+old-b64 36
+aWYgX3N0b3BfbWFyayhydW4pID09IG1hcms6
+new-b64 12
+aWYgVHJ1ZTo=
+context-b64 48
+ICAgICAgICBpZiBfc3RvcF9tYXJrKHJ1bikgPT0gbWFyazo=
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_leaves_a_foreign_stop_file_in_place_with_its_content_unchanged
+
