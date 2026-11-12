@@ -58,3 +58,18 @@ def test_session_with_no_transcript_exits_2_with_one_stderr_line_naming_the_miss
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, len(err.splitlines()), "sess-42.jsonl" in err) == (2, 1, True)
+
+
+def test_dev_with_a_lane_records_session_and_transcript_in_the_lane_state_file(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+
+    code, _, _ = run_cli(role_growth, ["dev", "--lane", "alpha"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    state = tmp_path / ".tdd" / "role-dev-alpha.state"
+    lines = state.read_text().splitlines() if state.exists() else []
+    assert (code, "session=sess-42" in lines, "transcript=%s" % transcript in lines) == (0, True, True)

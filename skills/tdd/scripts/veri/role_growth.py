@@ -11,6 +11,10 @@ USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 
 def main(argv):
+    lane = None
+    if len(argv) == 3 and argv[1] == "--lane":
+        lane = argv[2]
+        argv = argv[:1]
     if len(argv) != 1 or argv[0] not in ("coord", "dev"):
         sys.stderr.write(USAGE)
         return 2
@@ -21,7 +25,7 @@ def main(argv):
         sys.stderr.write("no transcript %s\n" % pattern)
         return 2
     transcript = found[0]
-    path = role_state.state_path(main_tree(os.getcwd()), argv[0])
+    path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
     role_state.append(path, "session=%s\ntranscript=%s\n" % (session, transcript))
     return 0
 
