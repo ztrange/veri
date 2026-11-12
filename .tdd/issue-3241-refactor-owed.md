@@ -2,3 +2,5 @@
 - test-only | the three request-reset hourly-cap cases repeat the same setup (monkeypatching `main_tree` and `now`, the `.tdd` dir, the state file, the `conductor-start` event line). A shared helper in `test_role_state.py` could replace it.
 ### `role-growth.sh <role>` finds the transcript `~/.claude/projects/*/<id>.jsonl` for `CLAUDE_CODE_SESSION_ID` (the home directory injected in tests) and records `session` and `transcript` in the role's state file, exiting 0; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 3⟧
 - test-only | extract the duplicated home/transcript fixture setup in the last two cases into a helper
+### `role-growth.sh <role>` with no `~/.claude/projects/*/<id>.jsonl` for the session exits 2 with one stderr line naming the missing transcript; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 3⟧
+- test-only | extract the repeated `main_tree` monkeypatch and home/transcript setup in test_role_growth.py into a shared fixture
