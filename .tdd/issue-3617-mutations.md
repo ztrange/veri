@@ -1,0 +1,7 @@
+before 40
+f435034b1c207ef106e2967af621e1e9bd5e2c92
+keep 52
+skills/tdd/scripts/tests/py/unit/test_tick_ledger.py
+command 210
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_tick_ledger.py::test_main_on_a_case_whose_test_file_exists_but_ran_no_tests_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617
+
