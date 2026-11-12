@@ -225,8 +225,6 @@ def suite_of(f, revisions=None):
         return pytest_files_of(name.replace("-", "_"))
     if match(".tdd/*"):
         return []
-    if match("projects/dashboard/*"):
-        return suites("projects/dashboard/tests/test_*.py")
     raise Unplaced(f)
 
 
