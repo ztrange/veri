@@ -38,6 +38,14 @@ def main(argv):
     n = argv[0]
     text = ("## Problem\n\nRefactor #%s refused: its Cover probe found the code it would move uncovered (`COVERED: no`). "
             "Find a seam and surround the behaviour with tests, then #%s can be retaken." % (n, n))
+    try:
+        with open(".tdd/develop-cover.out") as f:
+            lines = [line.strip() for line in f]
+        mutations = [m for m in lines if m.startswith("MUTATION:")] if "COVERED: no" in lines else []
+    except OSError:
+        mutations = []
+    if mutations:
+        text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
