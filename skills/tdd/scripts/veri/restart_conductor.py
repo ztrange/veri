@@ -117,6 +117,15 @@ def _new_conductor_appears(run):
     return conductor_alive(run)
 
 
+def _clean_up_unstopped_exit(run, mark):
+    os.remove(_run_file(run, "restart-pending"))
+    try:
+        if _stop_mark(run) == mark:
+            os.remove(_run_file(run, "stop"))
+    except FileNotFoundError:
+        pass
+
+
 def main(argv):
     if not argv or not _positive_int(argv[0]):
         print(USAGE, file=sys.stderr)
@@ -168,14 +177,10 @@ def main(argv):
             sleep(5)
         for reason in reasons:
             print(f"restart-conductor.sh: conductor read not-live: {reason}")
-        if not asked or run_state(run) != "stopped":
-            if asked:
-                os.remove(_run_file(run, "restart-pending"))
-                try:
-                    if _stop_mark(run) == mark:
-                        os.remove(_run_file(run, "stop"))
-                except FileNotFoundError:
-                    pass
+        unstopped = not asked or run_state(run) != "stopped"
+        if asked and unstopped:
+            _clean_up_unstopped_exit(run, mark)
+        if unstopped:
             break
         offset = _log_size(run)
         detach_leaf(run)
