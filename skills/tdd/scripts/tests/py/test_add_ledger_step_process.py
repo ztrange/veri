@@ -38,3 +38,42 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_rewri
     assert none[0] == none[1] == (2, "", "add-ledger-step.sh: anchor matches no single step: no such step\n")
     assert (tmp_path / "elsewhere" / "l.md").read_bytes() == (tmp_path / "in-place" / "l.md").read_bytes()
     assert "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n" in (tmp_path / "elsewhere" / "l.md").read_text()
+
+
+@pytest.mark.process("add-ledger-step.sh run against a real git worktree whose conductor.pid names a real live process")
+def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_survives_a_reset_hard(tmp_path):
+    import os
+    from veri import pid_file
+
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=wt, env=env, capture_output=True, text=True, check=True).stdout
+
+    ledger = wt / ".tdd" / "issue-42.md"
+    ledger.write_text(SEED)
+    (wt / "other.txt").write_text("one\n")
+    git("init", "-q")
+    git("add", "-A", "-f")
+    git("commit", "-q", "-m", "seed")
+
+    conductor = subprocess.Popen(["sleep", "30"])
+    try:
+        pid_file.record(str(wt / ".tdd" / "conductor.pid"), conductor.pid)
+        (wt / "other.txt").write_text("two\n")
+        ran = subprocess.run([str(SCRIPTS / "add-ledger-step.sh"), str(ledger), "after", "collapse to single hyphen", "t"],
+                             cwd=wt, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        assert ran.returncode == 0, ran.stderr
+        committed = sorted(git("show", "--name-only", "--format=", "HEAD").split())
+        assert committed == [".tdd/issue-42-added.md", ".tdd/issue-42.md"]
+        assert (wt / "other.txt").read_text() == "two\n"
+        git("reset", "--hard", "HEAD")
+    finally:
+        conductor.kill()
+        conductor.wait()
+
+    assert "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n" in ledger.read_text()
+    assert (wt / ".tdd" / "issue-42-added.md").is_file()
