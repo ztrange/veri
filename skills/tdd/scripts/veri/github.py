@@ -104,16 +104,21 @@ def _issue(number):
     return "%s/%s" % (_ISSUES, number)
 
 
-def _comments(number):
-    bodies = ""
+def _pages(path):
+    sep = "&" if "?" in path else "?"
     page = 1
     while True:
-        run = _gh_api_said("%s/comments?page=%d" % (_issue(number), page))
+        yield _gh_api_said("%s%spage=%d" % (path, sep, page))
+        page += 1
+
+
+def _comments(number):
+    bodies = ""
+    for run in _pages("%s/comments" % _issue(number)):
         comments = json.loads(run.stdout)
         if not comments:
             return bodies
         bodies += "".join(c["body"] + "\n" for c in comments)
-        page += 1
 
 
 class GraphQLAdapter:
@@ -138,17 +143,13 @@ class GraphQLAdapter:
 class RestAdapter:
     def list(self, path, empty=_EMPTY_PAGE):
         answer = ""
-        sep = "&" if "?" in path else "?"
-        page = 1
-        while True:
-            run = _gh_api_said("%s%spage=%d" % (path, sep, page))
+        for run in _pages(path):
             if run.returncode != 0:
                 raise NoAnswer(answer, run.stderr or "")
             body = run.stdout.rstrip("\n")
             if not body or re.search(empty, body):
                 return answer
             answer += body
-            page += 1
 
     def issue_view(self, number, field):
         if field == "comments":
