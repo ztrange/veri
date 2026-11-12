@@ -71,3 +71,27 @@ def test_issue_3692_drop_ledger_step_commits_the_removal_as_a_plan_commit_holdin
     assert out("log", "-1", "--format=%s").startswith("plan:")
     assert out("show", "--name-only", "--format=", "HEAD").split() == ["l.md"]
     assert "collapse to single hyphen" not in out("show", "HEAD:l.md")
+
+
+@pytest.mark.process("drop-ledger-step.sh run on a committed ledger in a scratch repository where git has no author identity")
+def test_issue_3692_drop_ledger_step_commits_the_removal_when_git_has_no_author_identity(tmp_path):
+    import os
+    home = tmp_path / "home"
+    home.mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_AUTHOR", "GIT_COMMITTER", "EMAIL"))}
+    env.update(HOME=str(home), XDG_CONFIG_HOME=str(home), GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1",
+               GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="user.useConfigOnly", GIT_CONFIG_VALUE_0="true")
+    seed = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    subprocess.run([*seed, "init", "-q"], cwd=repo, check=True, env=env)
+    (repo / "l.md").write_text(SEED)
+    subprocess.run([*seed, "add", "l.md"], cwd=repo, check=True, env=env)
+    subprocess.run([*seed, "commit", "-q", "-m", "plan"], cwd=repo, check=True, env=env)
+
+    ran = subprocess.run([str(SCRIPTS / "drop-ledger-step.sh"), "l.md", "collapse to single hyphen"],
+                         cwd=repo, stdin=subprocess.DEVNULL, capture_output=True, text=True, env=env)
+
+    assert ran.returncode == 0
+    assert subprocess.run([*seed, "log", "-1", "--format=%s"], cwd=repo, capture_output=True, text=True,
+                          env=env).stdout.startswith("plan:")

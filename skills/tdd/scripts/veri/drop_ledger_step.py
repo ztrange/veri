@@ -29,7 +29,11 @@ def main(argv):
     name = os.path.basename(argv[0])
     if git("rev-parse", "--is-inside-work-tree", cwd=directory, capture_output=True).returncode:
         return 0
-    git("commit", "-q", "-m", "plan: drop a ledger step", "--", name, cwd=directory, check=True)
+    env = None
+    if git("var", "GIT_COMMITTER_IDENT", cwd=directory, capture_output=True).returncode:
+        env = {**os.environ, "GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
+               "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
+    git("commit", "-q", "-m", "plan: drop a ledger step", "--", name, cwd=directory, env=env, check=True)
     return 0
 
 
