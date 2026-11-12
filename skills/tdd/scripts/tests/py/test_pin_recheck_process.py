@@ -3020,3 +3020,24 @@ def test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_n
 
     assert (ran.returncode, (tmp_path / "ran_a.witness").exists(), (tmp_path / "ran_b.witness").exists()) == (
         0, True, False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a record holding only a file value, touched in the range")
+def test_3713_a_record_holding_only_a_file_value_is_selected_when_that_file_is_touched(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3713c-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c \"touch ran.witness; echo result; grep -q 'if guard' guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
