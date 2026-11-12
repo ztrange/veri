@@ -316,6 +316,8 @@ def main(argv):
         for issue in seen:
             if issue not in live:
                 if not os.path.isdir(run_dir(issue)):
+                    if issue in watch_runs.pid_file.conductor_processes():
+                        continue
                     pending = [p for p in pending if p != issue]
                     if issue in absent:
                         wait()
