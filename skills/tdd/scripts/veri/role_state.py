@@ -1,5 +1,6 @@
 """role-state.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
 import json
 import os
 import sys
@@ -74,8 +75,9 @@ def do_recovered(path, argv):
 
 def launched_since(path, recovered):
     since = time.mktime(time.strptime(recovered, "%Y-%m-%dT%H:%M:%S"))
-    journal = read(os.path.join(os.path.dirname(path), "events.jsonl")) or ""
-    events = [json.loads(l) for l in journal.splitlines()]
+    tdd = os.path.dirname(path)
+    journals = [os.path.join(tdd, "events.jsonl")] + sorted(glob.glob(os.path.join(tdd, "wt", "*", ".tdd", "events.jsonl")))
+    events = [json.loads(l) for j in journals for l in (read(j) or "").splitlines()]
     return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
 
 

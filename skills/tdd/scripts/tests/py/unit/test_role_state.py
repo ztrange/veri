@@ -160,3 +160,19 @@ def test_issue_3241_dev_request_reset_with_nothing_launched_merged_or_decided_si
 
     assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
         1, True, "recovered-at=2026-11-12T09:00:00\n", [])
+
+
+def test_issue_3241_dev_request_reset_accepts_when_only_a_merged_event_in_a_run_journal_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    run_tdd = tdd / "wt" / "7" / ".tdd"
+    run_tdd.mkdir(parents=True)
+    (tdd / "role-dev.state").write_text("recovered-at=2026-11-12T09:00:00\n")
+    (run_tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "merged", "issue": "7"}\n')
+
+    code, _, _ = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tdd / "reset-request-dev").read_text().split() if (tdd / "reset-request-dev").exists() else None
+    assert (code, marker) == (0, ["2026-11-12T10:00:00"])
