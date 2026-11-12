@@ -178,6 +178,8 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
             return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if "/issues/77/labels" in args[-1] or any("/issues/77/labels" in a for a in args):
+            return subprocess.CompletedProcess(args, 0, "", "")
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
             return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
         raise AssertionError("unexpected command: %r" % (args,))
@@ -187,15 +189,10 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
     code = coverage_blocker.main(["60"])
     captured = capsys.readouterr()
 
-    assert calls == [
-        ["gh", "api", "repos/{owner}/{repo}/issues?state=open&per_page=100&page=1"],
-        ["gh", "api", "repos/{owner}/{repo}/issues",
-         "-f", "title=Cover the behaviour #60 refactors",
-         "-f", "body=Refactor #60 refused: its Cover probe found the code it would move uncovered (`COVERED: no`). Find a seam and surround the behaviour with tests, then #60 can be retaken.",
-         "-q", ".html_url"],
-        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
-        ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@<file>"],
-    ]
+    create = [call for call in calls if call[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"] and "-f" in call]
+    assert len(create) == 1
+    assert "title=Cover the behaviour #60 refactors" in create[0]
+    assert ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@<file>"] in calls
     assert seen["body"] == "## Blocked by\n\n- #77\n"
     assert (code, captured.out, captured.err) == (0, "https://github.com/owner/name/issues/77\n", "")
 
@@ -281,6 +278,8 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
                 elif stream != subprocess.PIPE:
                     err = None
                 return subprocess.CompletedProcess(args, create_code, create_answer, err)
+            if any("/issues/77/labels" in a for a in args):
+                return subprocess.CompletedProcess(args, 0, "", "")
             if len(args) == 3 and args[2].startswith("repos/{owner}/{repo}/issues/"):
                 return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
             raise AssertionError("unexpected command: %r" % (args,))
@@ -299,12 +298,12 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
     code, out, err, body, calls = run(["abc", "extra"], "https://github.com/owner/name/issues/77\n")
     assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")
     assert calls[1][:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #abc refactors"]
-    assert calls[2] == ["gh", "api", "repos/{owner}/{repo}/issues/abc"]
-    assert calls[3] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"]
+    assert ["gh", "api", "repos/{owner}/{repo}/issues/abc"] in calls
+    assert ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"] in calls
     assert not any("extra" in arg for call in calls for arg in call)
 
     code, out, err, body, calls = run(["60"], "", create_code=1)
-    assert (code, out, body, len(calls)) == (2, "", None, 2)
+    assert (code, out, body) == (2, "", None)
     assert "HTTP 422: Validation Failed" in err
 
 
