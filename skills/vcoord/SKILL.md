@@ -63,12 +63,16 @@ You own, and only you change:
 - **one-resume budget raises** — a larger budget for exactly one resume of one issue;
 - **filing** issues, through `vfile`;
 - **grooming** issues, through `vgroom`;
-- **parking** issues, only through `$S/park-issue.sh <issue> <cause> <unblock> [<pr>]`, which
-  labels the issue `parked` and posts the comment. Read the parked set only through
-  `$S/parked-issues.sh`, on resume and whenever you need it, never from a handoff file or
-  memory. To un-park, or to return a bailed or preflight-refused issue to the queue, run
-  `$S/release-issue.sh <n>`, never a bare label removal: it puts the
-  issue back on the queue, and a claimed issue with no `parked` label is one nothing takes back.
+- **parking** issues, only through
+  `$S/park-issue.sh <issue> <cause> <unblock> [<pr>] [--blocked-by <n>[,<n>…]]`, which labels the
+  issue `parked` and posts the comment. Pass the number of every issue or PR that must land first
+  as `--blocked-by`, so the parked issue waits on each. Read the parked set only through
+  `$S/parked-issues.sh`, on resume and after every merge event, never from a handoff file or
+  memory. Its fifth field is `ready` when every blocker has landed (closed issue or merged PR):
+  un-park each issue it reports `ready`, which removes its `parked` label, with
+  `$S/release-issue.sh <n>`, never a bare label removal. The same script returns a bailed or
+  preflight-refused issue to the queue: it puts the issue back on the queue, and a claimed issue
+  with no `parked` label is one nothing takes back.
 
 File every issue through `/vfile`, and groom through `/vgroom`. A split or criteria rewrite
 passes `vjudge` like any other decision, and is not shown to the human first; one that weakens a
