@@ -1,0 +1,2 @@
+### On the fallback path (the stub detect-test-command.sh prints nothing), the make that tick_ledger.py starts for the case records an environment without MAKEFLAGS and MAKELEVEL, while its argv is still test TESTS=<case>; one case in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, unit tier ⟦criterion 2⟧
+- test-only | extract the shared ledger/reason/env setup of the two #3617 cases in test_tick_ledger.py into a helper
