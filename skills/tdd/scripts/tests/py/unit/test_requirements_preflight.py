@@ -198,11 +198,11 @@ def test_3634_a_ledger_step_carrying_the_skill_edit_marker_in_its_trailing_tag_r
         "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
         "| A1 | The widget is blue. | because |\n")
     ledger = tmp_path / "ledger.md"
-    ledger.write_text("- [ ] `add-ledger-step.sh` records a step that mentions ⟦skill-edit⟧ in its wording ⟦skill-edit⟧ ⟦criterion 2⟧\n")
+    ledger.write_text("- [ ] `other.md` records a step that mentions ⟦skill-edit⟧ in its wording ⟦skill-edit⟧ ⟦criterion 2⟧\n")
 
     code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
 
-    assert code == 2 and "## Requirements has no ### heading for unit: add-ledger-step.sh" in err, (code, out, err)
+    assert code == 2 and "## Requirements has no ### heading for unit: other.md" in err, (code, out, err)
 
 
 def test_3686_a_ticked_skill_edit_step_whose_first_backticked_token_is_not_path_shaped_takes_the_later_path_shaped_one_as_its_unit(tmp_path, run_cli):
