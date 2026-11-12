@@ -160,6 +160,8 @@ class RestAdapter:
             raise NoAnswer("", rest.stderr or "")
         if field == "labels":
             return "".join(label["name"] + "\n" for label in issue["labels"])
+        if field != "body":
+            raise NoAnswer("")
         return (issue["body"] or "") + "\n"
 
     def issue_edit(self, number, body_file):
