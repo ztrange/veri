@@ -5,3 +5,21 @@ skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_removes_restart_pending_when_the_run_has_no_stop_file
 
+file 44
+skills/tdd/scripts/veri/restart_conductor.py
+old-b64 36
+aWYgX3N0b3BfbWFyayhydW4pID09IG1hcms6
+new-b64 12
+aWYgRmFsc2U6
+context-b64 48
+ICAgICAgICBpZiBfc3RvcF9tYXJrKHJ1bikgPT0gbWFyazo=
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_removes_the_stop_file_the_watcher_itself_wrote
+
+before 40
+fe410caa36a0ec77550e1433fed70f04676bf8dd
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_removes_the_stop_file_the_watcher_itself_wrote
+
