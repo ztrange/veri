@@ -1,0 +1,10 @@
+# Plan for #3617 — tick_ledger.py run_case leaks TESTS/MAKEFLAGS/MAKELEVEL into the target repo's nested make; a never-run case's exit 2 names no command
+
+- [ ] With TESTS, MAKEFLAGS and MAKELEVEL set in the caller's environment, a case run through tick_ledger.py via a stub detect-test-command.sh command, on both the --unpinnable and the --already-holds path, gets none of the three in its own environment: a stub case command that writes its env to a file shows none of them; one case (parametrised over the two paths) in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, unit tier, no real process ⟦criterion 1⟧
+- [ ] On the fallback path (the stub detect-test-command.sh prints nothing), the make that tick_ledger.py starts for the case records an environment without MAKEFLAGS and MAKELEVEL, while its argv is still test TESTS=<case>; one case in skills/tdd/scripts/tests/py/unit/test_tick_ledger.py, unit tier ⟦criterion 2⟧
+- [ ] tick-ledger.sh on a case whose test file is missing exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
+- [ ] tick-ledger.sh on a case whose test file exists but under which no tests ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
+- [ ] pin-reject-route.sh on a case that never ran exits 2, prints nothing on stdout, and prints on stderr `case <case> never run` followed by the command line that was run for it ⟦criterion 3⟧
+- [ ] A case that ran and failed still makes tick-ledger.sh exit 1, and pin-reject-route.sh print `revise` and exit 1 ⟦criterion 4⟧
+- [ ] A case that ran and passed still makes tick-ledger.sh exit 0, and pin-reject-route.sh print `retired` and exit 0 ⟦criterion 4⟧
+- [ ] Go-red control, done by a leaf with no production change left behind: with the env removal in run_case (skills/tdd/scripts/veri/tick_ledger.py) reverted through mutation-probe.sh, the first step's case goes red, and restored it goes green; the probe's record in .tdd/issue-3617-mutations.md is the evidence ⟦diff-checked⟧ ⟦criterion 5⟧
