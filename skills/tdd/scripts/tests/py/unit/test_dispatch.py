@@ -1153,11 +1153,11 @@ def test_main_does_not_exit_2_vanished_and_keeps_watching_when_the_worktree_and_
 
 
 @pytest.mark.parametrize("lives, events, expected", [
-    ([["7"], [], [], []], {3: "mk"}, (2, "run 7 vanished: no worktree left behind\n")),
-    ([["7"], [], [], ["7"]], {}, (2, "run 7 vanished: no worktree left behind\n")),
-    ([["7"], [], [], ["7"], [], [], ["7"]], {3: "mk", 4: "rm", 6: "mk"}, ("looping", "")),
+    ([["7"], [], [], []], {3: "mk"}, (0, "done 7 https://github.com/o/r/pull/9\n", "")),
+    ([["7"], [], [], ["7"]], {}, (2, "", "run 7 vanished: no worktree left behind\n")),
+    ([["7"], [], [], [], [], ["7"]], {3: "mk", 4: "rm", 6: "mk"}, ("looping", "", "")),
 ], ids=["worktree-back-conductor-gone", "conductor-live-worktree-absent", "recovered-then-gone-again"])
-def test_main_exits_2_vanished_after_the_grace_wait_unless_worktree_and_conductor_are_both_back_and_regrants_grace_after_recovery_issue_3635(
+def test_main_exits_2_vanished_after_the_grace_wait_only_while_the_worktree_stays_absent_and_regrants_grace_after_recovery_issue_3635(
         monkeypatch, capsys, tmp_path, dispatch, lives, events, expected):
     (tmp_path / ".tdd").mkdir()
     wt = tmp_path / ".tdd" / "wt" / "7"
@@ -1193,8 +1193,7 @@ def test_main_exits_2_vanished_after_the_grace_wait_unless_worktree_and_conducto
         code = "looping"
 
     captured = capsys.readouterr()
-    assert (code, captured.err) == expected
-    assert captured.out == ""
+    assert (code, captured.out, captured.err) == expected
 
 
 def test_main_still_exits_2_vanished_when_the_worktree_is_still_absent_at_the_recheck_after_the_grace_wait_issue_3635(
