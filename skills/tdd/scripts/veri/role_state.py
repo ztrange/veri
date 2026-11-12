@@ -72,7 +72,7 @@ def do_recovered(path, argv):
 
 
 def do_set(path, argv):
-    if len(argv) != 4 or argv[2] not in ("n", "lane", "coordinator"):
+    if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
     if argv[2] == "n" and not argv[3].isdigit():
         return usage()
@@ -120,6 +120,7 @@ def do_show(path, argv):
     return 0
 
 
+SET_FIELDS = ("n", "lane", "coordinator", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
 VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 

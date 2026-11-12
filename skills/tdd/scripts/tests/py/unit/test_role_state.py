@@ -83,3 +83,14 @@ def test_issue_3752_add_numbers_the_first_item_1_when_only_a_spaced_coordinator_
     code, out, _ = run_cli(role_state, ["dev", "add", "message", "x"])
 
     assert (code, out) == (0, "1\n")
+
+
+def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file_and_exiting_0(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "resetter"]
+
+    codes = [run_cli(role_state, ["coord", "set", f, "v-" + f])[0] for f in fields]
+
+    state = (tmp_path / ".tdd" / "role-coord.state").read_text().splitlines()
+    assert (codes, state) == ([0] * 6, ["%s=v-%s" % (f, f) for f in fields])
