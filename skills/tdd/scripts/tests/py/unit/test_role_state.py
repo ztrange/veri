@@ -304,3 +304,16 @@ def test_issue_3241_dev_request_reset_with_max_per_hour_1_and_one_reset_in_the_l
 
     assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
         1, True, before, [])
+
+
+def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_the_other_roles(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+
+    code, _, _ = run_cli(role_state, ["dev", "recovered"], env={"CLAUDE_CODE_SESSION_ID": "sess-1"})
+
+    assert (code, sorted(p.name for p in tdd.glob("reset-request-*"))) == (0, ["reset-request-coord"])

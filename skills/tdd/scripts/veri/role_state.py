@@ -78,6 +78,11 @@ def do_recovered(path, argv):
     if not session:
         return usage()
     append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), session))
+    name = os.path.basename(path)[len("role-"):-len(".state")]
+    try:
+        os.remove(os.path.join(os.path.dirname(path), "reset-request-" + name))
+    except FileNotFoundError:
+        pass
     return 0
 
 
