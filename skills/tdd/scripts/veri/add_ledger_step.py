@@ -1,7 +1,9 @@
 """add-ledger-step.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import pid_file
 import re
+import subprocess
 import sys
 import time
 
@@ -160,6 +162,17 @@ def record_insertions(path, steps, awake):
             f.write(event.line([b"step-added"], context, int(time.time()), awake))
 
 
+def commit_amendment(path):
+    tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
+    live = pid_file.recorded_started(tree)
+    if live is None:
+        return
+    paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
+    subprocess.run(["git", "add", "--", *paths], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["git", "commit", "-q", "-m", "plan: step added while the conductor is live", "--", *paths],
+                   cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def main(argv):
     criterion = None
     planned = argv[:1] == ["--planned"]
@@ -271,6 +284,7 @@ def main(argv):
     grown = "".join(line + "\n" for line in out)
     write_ledger(path, grown)
     record_insertions(path, inserted_lines, awake)
+    commit_amendment(path)
     issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
     if issue:
         tdd = os.path.dirname(os.path.abspath(path))
