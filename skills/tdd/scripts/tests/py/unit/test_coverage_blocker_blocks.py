@@ -275,3 +275,24 @@ def test_main_3721_files_a_cover_issue_whose_last_line_is_the_test_command_of_th
 
     body = created[0] if created else ""
     assert body.rstrip("\n").split("\n")[-1] == "Test command: make everything"
+
+
+def test_main_3721_files_a_cover_issue_carrying_the_opt_in_label_of_the_run(
+        monkeypatch, tmp_path, coverage_blocker):
+    labels = []
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+    monkeypatch.chdir(tmp_path)
+
+    def fake_create(title, text, *extra, **fields):
+        labels.extend(str(v) for v in (*extra, *fields.values()))
+        return "https://github.com/owner/name/issues/77\n"
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create", fake_create)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_add_label", lambda n, label: labels.append(label), raising=False)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    assert "ready-for-agent:mu" in labels

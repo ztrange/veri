@@ -620,6 +620,19 @@ def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(m
     assert calls == [list(create)]
 
 
+def test_gh_issue_create_sends_each_label_as_a_labels_array_field_after_title_and_body(monkeypatch, github):
+    create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B",
+              "-f", "labels[]=ready-for-agent", "-f", "labels[]=filed-by:x", "-q", ".html_url")
+    calls = fake_gh(monkeypatch, {
+        create: (0, "https://github.com/o/r/issues/62\n", ""),
+    })
+
+    answer = github.gh_issue_create("T", "B", "ready-for-agent", "filed-by:x")
+
+    assert answer == "https://github.com/o/r/issues/62\n"
+    assert calls == [list(create)]
+
+
 def test_gh_issue_comment_asks_gh_for_the_html_url_alone_and_answers_it_not_the_whole_comment_json(monkeypatch, github):
     url = "https://github.com/o/r/issues/7#issuecomment-99"
     post = ("gh", "api", "repos/{owner}/{repo}/issues/7/comments", "-f", "body=B")
