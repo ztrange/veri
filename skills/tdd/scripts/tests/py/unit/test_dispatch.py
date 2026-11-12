@@ -1315,6 +1315,41 @@ def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_e
     assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
 
 
+def test_main_exits_2_vanished_only_after_two_fresh_absent_polls_when_the_run_conductor_process_was_alive_in_preflight_between_absences_issue_3693(
+        monkeypatch, capsys, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    polls = []
+    alive_in_preflight = {3}
+
+    def live_conductors():
+        polls.append(1)
+        return ["7"] if len(polls) == 1 else []
+
+    def wait():
+        if len(polls) > 12:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes",
+                        lambda: ["7"] if len(polls) in alive_in_preflight else [])
+    monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "last_comment",
+                        lambda issue: "### \u2705 Done \u2014 https://github.com/o/r/pull/9\n\nbody", raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        code = dispatch.main(["--target", "1"])
+    except _StopWaiting:
+        code = "looping"
+
+    captured = capsys.readouterr()
+    assert (code, len(polls), captured.out, captured.err) == (
+        2, 5, "", "run 7 vanished: no worktree left behind\n")
+
+
 def test_main_does_not_exit_or_report_vanished_and_keeps_looping_when_a_run_with_no_worktree_is_absent_for_one_pass_then_live_again_issue_3345(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
