@@ -134,7 +134,20 @@ class RestAdapter:
             answer += body
             page += 1
 
+    def _comments(self, number):
+        bodies = ""
+        page = 1
+        while True:
+            run = _gh_api_said("%s/comments?page=%d" % (_issue(number), page))
+            comments = json.loads(run.stdout)
+            if not comments:
+                return bodies
+            bodies += "".join(c["body"] + "\n" for c in comments)
+            page += 1
+
     def issue_view(self, number, field):
+        if field == "comments":
+            return self._comments(number)
         rest = _retry_refused(lambda: _gh_api_said(_issue(number)), "stderr")
         try:
             issue = json.loads(rest.stdout)

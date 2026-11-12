@@ -1,5 +1,7 @@
 """In-process cases for release-issue.sh: a parked, bailed or preflight-refused issue goes back to the queue in one call."""
 import importlib
+import json
+import subprocess
 
 import pytest
 
@@ -226,3 +228,29 @@ def test_a_claimed_unopted_issue_with_only_other_comments_still_exits_3_and_noth
 
     assert code == 3
     assert writes(calls) == []
+
+
+def test_a_preflight_refused_claim_is_released_through_the_real_rest_adapter_3687(run_cli, monkeypatch):
+    release_issue = importlib.import_module("veri.release_issue")
+    github = release_issue.github
+    issue = "repos/{owner}/{repo}/issues/3241"
+    comments = issue + "/comments"
+    calls = []
+
+    def fake_gh(*args, stderr=None):
+        calls.append(args)
+        out = "[]"
+        if args == ("api", issue):
+            out = json.dumps({"body": "## Problem\n\nthe body", "labels": [{"name": "taken:mu"}]})
+        elif args[:2] == ("api", comments + "?page=1"):
+            out = json.dumps([{"body": "### ⛔ Preflight refused — requirements clash"}])
+        return subprocess.CompletedProcess(args, 0, out, "")
+
+    monkeypatch.setattr(github, "_gh", fake_gh)
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+
+    code, out, err = run_cli(release_issue, ["3241"])
+
+    assert code == 0, err
+    assert ("api", issue + "/labels", "-f", "labels[]=ready-for-agent:mu") in calls
+    assert ("api", "-X", "DELETE", issue + "/labels/taken:mu") in calls
