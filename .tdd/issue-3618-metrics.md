@@ -1,15 +1,16 @@
 ### 📊 Metrics — issue 3618
 
-Wall time for the issue: 1909 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1554 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 5 of 7 planned.
-Outcome: the run bailed — needs-user, a process failure.
+Steps done: 6 of 8 planned.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.01 over 147 turns, in 2 sessions, on opus (estimate).
+Conductor own spending: $10.20 over 215 turns, in 3 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80219 tokens, largest 181574 tokens
-Conductor context: first turn 80208 tokens, largest 155477 tokens
+Conductor context: first turn 80208 tokens, largest 157540 tokens
+Conductor context: first turn 80306 tokens, largest 165286 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -100,69 +101,127 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 82 | $0.06 | 178986 |
 | 83 | $0.06 | 180505 |
 | 84 | $0.05 | 181574 |
-| 85 | $0.50 | 80208 |
-| 86 | $0.07 | 86968 |
+| 85 | $0.51 | 80208 |
+| 86 | $0.08 | 86968 |
 | 87 | $0.03 | 88028 |
-| 88 | $0.03 | 89844 |
-| 89 | $0.03 | 90978 |
+| 88 | $0.04 | 89844 |
+| 89 | $0.04 | 90978 |
 | 90 | $0.03 | 92015 |
-| 91 | $0.05 | 96485 |
-| 92 | $0.02 | 96925 |
-| 93 | $0.04 | 100017 |
-| 94 | $0.02 | 100255 |
-| 95 | $0.02 | 100732 |
-| 96 | $0.02 | 101293 |
-| 97 | $0.04 | 103925 |
-| 98 | $0.02 | 104288 |
-| 99 | $0.02 | 104711 |
-| 100 | $0.07 | 111071 |
+| 91 | $0.07 | 96485 |
+| 92 | $0.03 | 96925 |
+| 93 | $0.05 | 100017 |
+| 94 | $0.03 | 100255 |
+| 95 | $0.04 | 100732 |
+| 96 | $0.03 | 101293 |
+| 97 | $0.05 | 103925 |
+| 98 | $0.03 | 104288 |
+| 99 | $0.03 | 104711 |
+| 100 | $0.09 | 111071 |
 | 101 | $0.03 | 111564 |
-| 102 | $0.03 | 112150 |
+| 102 | $0.04 | 112150 |
 | 103 | $0.03 | 112981 |
-| 104 | $0.02 | 113249 |
-| 105 | $0.02 | 113499 |
-| 106 | $0.03 | 114156 |
+| 104 | $0.04 | 113249 |
+| 105 | $0.03 | 113499 |
+| 106 | $0.04 | 114156 |
 | 107 | $0.03 | 114700 |
-| 108 | $0.03 | 115134 |
-| 109 | $0.03 | 115674 |
+| 108 | $0.04 | 115134 |
+| 109 | $0.04 | 115674 |
 | 110 | $0.03 | 115962 |
-| 111 | $0.02 | 116185 |
-| 112 | $0.03 | 116473 |
+| 111 | $0.03 | 116185 |
+| 112 | $0.04 | 116473 |
 | 113 | $0.03 | 116840 |
-| 114 | $0.03 | 117509 |
-| 115 | $0.08 | 124366 |
-| 116 | $0.03 | 125187 |
-| 117 | $0.03 | 125886 |
-| 118 | $0.03 | 126821 |
-| 119 | $0.03 | 127605 |
-| 120 | $0.03 | 128054 |
-| 121 | $0.03 | 128708 |
-| 122 | $0.04 | 130585 |
-| 123 | $0.03 | 131395 |
-| 124 | $0.03 | 131951 |
-| 125 | $0.03 | 132893 |
-| 126 | $0.03 | 133371 |
-| 127 | $0.03 | 134256 |
-| 128 | $0.04 | 135279 |
-| 129 | $0.03 | 135852 |
-| 130 | $0.03 | 136634 |
-| 131 | $0.03 | 137027 |
-| 132 | $0.03 | 137384 |
-| 133 | $0.03 | 137831 |
-| 134 | $0.03 | 138287 |
-| 135 | $0.03 | 139074 |
-| 136 | $0.03 | 139521 |
-| 137 | $0.03 | 140391 |
-| 138 | $0.03 | 140719 |
-| 139 | $0.03 | 141331 |
-| 140 | $0.03 | 141741 |
-| 141 | $0.05 | 144699 |
+| 114 | $0.04 | 117509 |
+| 115 | $0.09 | 124366 |
+| 116 | $0.04 | 125187 |
+| 117 | $0.04 | 125886 |
+| 118 | $0.04 | 126821 |
+| 119 | $0.04 | 127605 |
+| 120 | $0.04 | 128054 |
+| 121 | $0.04 | 128708 |
+| 122 | $0.05 | 130585 |
+| 123 | $0.04 | 131395 |
+| 124 | $0.04 | 131951 |
+| 125 | $0.04 | 132893 |
+| 126 | $0.04 | 133371 |
+| 127 | $0.04 | 134256 |
+| 128 | $0.05 | 135279 |
+| 129 | $0.04 | 135852 |
+| 130 | $0.04 | 136634 |
+| 131 | $0.04 | 137027 |
+| 132 | $0.04 | 137384 |
+| 133 | $0.04 | 137831 |
+| 134 | $0.04 | 138287 |
+| 135 | $0.04 | 139074 |
+| 136 | $0.04 | 139521 |
+| 137 | $0.04 | 140391 |
+| 138 | $0.04 | 140719 |
+| 139 | $0.04 | 141331 |
+| 140 | $0.04 | 141741 |
+| 141 | $0.07 | 144699 |
 | 142 | $0.05 | 146799 |
-| 143 | $0.04 | 147797 |
-| 144 | $0.03 | 148355 |
+| 143 | $0.05 | 147797 |
+| 144 | $0.04 | 148355 |
 | 145 | $0.04 | 149075 |
-| 146 | $0.03 | 149604 |
+| 146 | $0.05 | 149604 |
 | 147 | $0.08 | 155477 |
+| 148 | $0.05 | 156108 |
+| 149 | $0.05 | 157540 |
+| 150 | $0.50 | 80306 |
+| 151 | $0.07 | 87039 |
+| 152 | $0.03 | 88062 |
+| 153 | $0.03 | 89934 |
+| 154 | $0.03 | 91641 |
+| 155 | $0.02 | 92142 |
+| 156 | $0.02 | 92684 |
+| 157 | $0.02 | 93026 |
+| 158 | $0.02 | 93206 |
+| 159 | $0.02 | 93551 |
+| 160 | $0.02 | 93922 |
+| 161 | $0.02 | 94667 |
+| 162 | $0.05 | 99152 |
+| 163 | $0.03 | 100964 |
+| 164 | $0.03 | 102223 |
+| 165 | $0.02 | 102704 |
+| 166 | $0.02 | 103232 |
+| 167 | $0.06 | 107686 |
+| 168 | $0.04 | 109503 |
+| 169 | $0.03 | 111074 |
+| 170 | $0.03 | 111562 |
+| 171 | $0.03 | 112149 |
+| 172 | $0.04 | 114480 |
+| 173 | $0.03 | 115168 |
+| 174 | $0.09 | 123520 |
+| 175 | $0.03 | 124111 |
+| 176 | $0.03 | 124319 |
+| 177 | $0.03 | 124736 |
+| 178 | $0.04 | 126159 |
+| 179 | $0.03 | 126592 |
+| 180 | $0.03 | 127551 |
+| 181 | $0.03 | 128425 |
+| 182 | $0.03 | 128749 |
+| 183 | $0.03 | 128982 |
+| 184 | $0.04 | 130285 |
+| 185 | $0.05 | 133177 |
+| 186 | $0.04 | 134238 |
+| 187 | $0.04 | 135952 |
+| 188 | $0.03 | 136724 |
+| 189 | $0.04 | 137744 |
+| 190 | $0.10 | 146704 |
+| 191 | $0.04 | 148169 |
+| 192 | $0.05 | 150215 |
+| 193 | $0.04 | 151100 |
+| 194 | $0.03 | 151606 |
+| 195 | $0.04 | 152594 |
+| 196 | $0.03 | 152947 |
+| 197 | $0.04 | 153780 |
+| 198 | $0.03 | 154207 |
+| 199 | $0.04 | 155897 |
+| 200 | $0.03 | 156191 |
+| 201 | $0.04 | 156838 |
+| 202 | $0.04 | 158234 |
+| 203 | $0.04 | 158932 |
+| 204 | $0.04 | 160063 |
+| 205 | $0.07 | 165286 |
 
 #### Conductor comments, by family
 
@@ -188,29 +247,35 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 2 | 2 | 0 | 0 | 43 | 21 | 2 | 4 | 2614 | 0 | 39751 | 0.13 |
-| red | 12 | 5 | 0 | 0 | 1420 | 250 | 63 | 116 | 25630 | 1100549 | 252971 | 1.00 |
-| green | 13 | 4 | 2 | 0 | 3893 | 309 | 88 | 166 | 24916 | 1581103 | 265980 | 1.17 |
+| plan | 4 | 3 | 1 | 0 | 82 | 52 | 5 | 10 | 6163 | 25573 | 76506 | 0.26 |
+| red | 14 | 6 | 0 | 0 | 1503 | 275 | 72 | 134 | 28155 | 1277370 | 294048 | 1.14 |
+| green | 18 | 4 | 3 | 0 | 4160 | 384 | 114 | 218 | 33204 | 2046962 | 351692 | 1.62 |
 | refactor | 5 | 1 | 0 | 0 | 218 | 46 | 15 | 30 | 2782 | 202146 | 107394 | 0.32 |
 | pin | 2 | 2 | 0 | 0 | 146 | 31 | 6 | 12 | 2874 | 80064 | 36459 | 0.13 |
+| diff | 5 | 2 | 1 | 0 | 376 | 64 | 23 | 46 | 6067 | 414071 | 107166 | 0.48 |
+| red-supersede | 1 | 0 | 0 | 0 | 84 | 76 | 10 | 16 | 9347 | 453970 | 76043 | 0.33 |
+| exhausted | 1 | 0 | 0 | 0 | 33 | 9 | 2 | 4 | 951 | 22396 | 11422 | 0.08 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 16 | 14 | 2 | 0 | 3627 | 245 | 60 | 118 | 21372 | 889484 | 282492 | 1.01 |
-| developer | claude-sonnet-5-5 | 16 | 0 | 0 | 0 | 1678 | 341 | 95 | 176 | 31932 | 1699702 | 371085 | 1.42 |
-| developer | claude-opus-5-5 | 2 | 0 | 0 | 0 | 415 | 71 | 19 | 34 | 5512 | 374676 | 48978 | 0.31 |
+| verifier | claude-sonnet-5-5 | 23 | 18 | 5 | 0 | 3945 | 331 | 84 | 166 | 29899 | 1284195 | 415037 | 1.47 |
+| developer | claude-sonnet-5-5 | 19 | 0 | 0 | 0 | 1923 | 446 | 115 | 212 | 44395 | 2340137 | 492218 | 1.91 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 734 | 160 | 48 | 92 | 15249 | 898220 | 153475 | 0.98 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 233 | 0.14 |
-| green | 2357 | 0.75 | 304 | 0.09 |
+| red | 0 | 0.00 | 316 | 0.28 |
+| green | 2357 | 0.75 | 571 | 0.54 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
+| diff | 0 | 0.00 | 213 | 0.38 |
+| red-supersede | 0 | 0.00 | 84 | 0.33 |
+| exhausted | 0 | 0.00 | 33 | 0.08 |
 | develop-green | 0 | 0.00 | 0 | 0.00 |
 | verify-red | 0 | 0.00 | 0 | 0.00 |
 
@@ -224,6 +289,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | When `add-ledger-step.sh` inserted the step without committing it (no live conductor, or the caller is the conductor), its stdout states that the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it) ⟦criterion 2⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 57 | 16 | 32 | 5583 | 295087 | 56928 | 0.23 | unknown | unknown | unknown | unknown |  |  | full |
 | Update the five `skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py` cases that pin an empty CLI stdout so they match the new behaviour (the durability line prints on stderr, so stdout stays empty and each case also tolerates that stderr line) ⟦added⟧ ⟦criterion 2⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 120 | 27 | 50 | 9641 | 455278 | 116979 | 0.43 | 1532 | unknown | 0/5 | nothing-left |  |  | full |
 | Move step 3's stdout assertion to stderr, code included: the durable line goes to stderr, and the step 3 case asserts stderr; check whether any `test_pin_reject_route.py` or `test_suite_red_resume.py` case asserts empty stderr and update it if so ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 45 | 10 | 18 | 4070 | 156493 | 40504 | 0.16 | unknown | unknown | unknown | unknown |  |  | pin |
+| In `skills/tdd/scripts/tests/py/test_add_ledger_step_process.py`, the existing case `test_cli_3618_stderr_states_the_committed_step_is_durable_naming_the_commit_leaving_stdout_empty` carries its step-3 name `test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit` again: a rename of one existing case in place, its body and assertions byte-for-byte unchanged, so the file holds the same number of cases (no case added, none removed) and no production file changes ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 18 | 7 | 14 | 1793 | 90355 | 30764 | 0.10 | 290 | n/a | n/a | n/a |  |  | full |
+| When `add-ledger-step.sh` inserted the step without committing it (no live conductor, or the caller is the conductor), its stderr states that the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it) ⟦criterion 2⟧ | 12 | 2 | 2 | 0 | 0 | 0 | 231 | 63 | 122 | 25385 | 1442762 | 290656 | 1.38 | unknown | diff 1/2, green 2/2 | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -248,14 +315,14 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 0 | 17 | 19 | 25 | 22 | 16 | 18 | 22 | 13 | 15 | 14 | 19 | 15 | 20 | 15 | 29 | 24 | 25 | 29 | 17 | 15 | 16 | 14 | 44 | 26 | 32 | 22 | 17 | 15 | 24 | 14 |
-| fast | 146 | 146 | 99 | 81 | 96 | 84 | 92 | 89 | 81 | 79 | 63 | 51 | 167 | 153 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 24 | 14 | 12 | 15 | 13 | 13 | 21 | 13 | 13 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 0 | 17 | 19 | 25 | 22 | 16 | 18 | 22 | 13 | 15 | 14 | 19 | 15 | 20 | 15 | 29 | 24 | 25 | 29 | 17 | 15 | 16 | 14 | 44 | 26 | 32 | 22 | 17 | 15 | 24 | 14 | 9 | 18 | 5 | 6 | 6 | 4 | 7 | 7 | 3 | 4 | 10 | 6 |
+| fast | 146 | 146 | 99 | 81 | 96 | 84 | 92 | 89 | 81 | 79 | 63 | 51 | 167 | 153 | 40 | 45 | 17 | 39 | 39 | 51 | 32 | 22 | 32 | 17 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 24 | 14 | 12 | 15 | 13 | 13 | 21 | 13 | 13 | 4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 174 | 328 | 58816 | 2963862 | 702555 | 9.75 (estimate) |
+| total | 247 | 470 | 89543 | 4522552 | 1060730 | 14.55 (estimate) |
