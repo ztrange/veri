@@ -52,3 +52,24 @@ def test_left_exits_0_when_the_adjudications_since_the_last_conductor_start_are_
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
     code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
     assert (code, out, err) == (0, "", "")
+
+
+def test_record_on_a_retry_answer_writes_one_adjudicated_event_prints_retry_and_exits_0(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("thinking\nADJUDICATION: retry — CI is queued behind a busy runner\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (0, "retry\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    adjudicated = [e for e in events if e.get("event") == "adjudicated"]
+    assert len(adjudicated) == 1
+    assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
+        "issue": "7",
+        "cause": "ci-timeout",
+        "outcome": "retry",
+        "reason": "CI is queued behind a busy runner",
+    }
