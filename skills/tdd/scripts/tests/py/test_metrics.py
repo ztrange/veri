@@ -2462,3 +2462,17 @@ def test_issue_3288_a_reused_name_less_id_opens_a_new_turn_of_its_own_session(tm
 
     assert len(turn_rows) == 2
     assert all(row[1].startswith("$") for row in turn_rows)
+
+
+def test_main_prints_the_adjudications_counted_per_outcome_from_the_adjudicated_events(tmp_path, monkeypatch, capsys, metrics):
+    adjudicated = [{"event": "adjudicated", "step": "1", "ts": 110 + i, "cause": "ci-timeout", "outcome": outcome, "reason": "r"}
+                   for i, outcome in enumerate(["retry", "retry", "bail", "unparsed"])]
+    write_log(tmp_path, [ONE_STEP[0], *adjudicated, ONE_STEP[1]])
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    lines = [line for line in out.split("\n") if "djudication" in line]
+    assert len(lines) == 1, out
+    counts = dict(re.findall(r"(retry|bail|route|unparsed)\D{0,4}(\d+)", lines[0]))
+    assert counts == {"retry": "2", "bail": "1", "route": "0", "unparsed": "1"}, lines[0]
