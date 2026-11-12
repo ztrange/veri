@@ -130,6 +130,10 @@ def carries_mark(text, name):
     return f"⟦{name}⟧" in text
 
 
+def is_skill_edit(step):
+    return step.startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(step), "skill-edit")
+
+
 def is_human_owed(step):
     step = step.strip()
     return step.startswith("⟦human-owed⟧") or carries_mark(trailing_markers(step), "human-owed")

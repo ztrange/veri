@@ -16,10 +16,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -234,7 +234,7 @@ def main(argv):
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
     for text in texts:
-        if not (text.strip().startswith("⟦skill-edit⟧") or carries_mark(trailing_markers(text), "skill-edit")):
+        if not (is_skill_edit(text.strip())):
             continue
         unit = unit_of(text)
         if unit is None and "`" in text:
