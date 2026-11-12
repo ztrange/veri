@@ -98,10 +98,25 @@ def tick_commit(ledger):
                           capture_output=True, text=True).stdout.strip()
 
 
-def replay_before(pin, ledger, root=Path(".")):
+def replay_names(pin, ledger):
     green = tick_commit(ledger) or pin.get("green")
     names = git_out("diff", "--name-only", pin["before"], *([green] if green else [])).split()
-    names = [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
+    return green, [n for n in names if n != pin["keep"] and not n.startswith(".tdd/")]
+
+
+def in_tree(rev, path):
+    return subprocess.run(["git", "cat-file", "-e", f"{rev}:{path}"], capture_output=True).returncode == 0
+
+
+def absent_path(before, names, base):
+    """The first replay path the before-state holds but HEAD, <base-sha> and origin/main do not: deleted before
+    the range, so it cannot be restored (#3696). A path absent at before is only removed by the replay, never counted."""
+    return next((n for n in names if not Path(n).exists() and in_tree(before, n)
+                 and not any(in_tree(rev, n) for rev in ("HEAD", base, "origin/main"))), None)
+
+
+def replay_before(pin, ledger, root=Path("."), span=None):
+    green, names = span or replay_names(pin, ledger)
     if not names and green:
         sys.stderr.write(f"empty replay range: before {pin['before']} green {green}\n")
         return None
@@ -231,7 +246,13 @@ def recheck(argv, looks):
             sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
             continue
         if "before" in pin:
-            replayed = replay_before(pin, ledger)
+            span = replay_names(pin, ledger)
+            absent = absent_path(pin["before"], span[1], argv[0])
+            if absent:
+                sys.stdout.write(f"retired: {ledger} {mutated_file} absent: {absent}\n")
+                retired += 1
+                continue
+            replayed = replay_before(pin, ledger, span=span)
             if replayed is None:
                 return 2
             if replayed == 0:
