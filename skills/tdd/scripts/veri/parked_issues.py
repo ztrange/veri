@@ -15,6 +15,31 @@ def field(body, name):
     return next((line[len(prefix):] for line in body.splitlines() if line.startswith(prefix)), None)
 
 
+def blockers_status(blocked_by):
+    """`ready`, `waiting` or `-`; None once gh has given no answer (stderr written)."""
+    if blocked_by is None:
+        return "-"
+    status = "ready"
+    for blocker in re.findall(r"#(\d+)", blocked_by):
+        try:
+            state = github.gh_api("repos/{owner}/{repo}/issues/%s" % blocker)
+        except github.NoAnswer:
+            sys.stderr.write("parked-issues.sh: no answer from gh to reading the state of #%s\n" % blocker)
+            return None
+        info = json.loads(state)
+        if info.get("state") != "closed":
+            status = "waiting"
+        elif "pull_request" in info:
+            try:
+                pull = github.gh_api("repos/{owner}/{repo}/pulls/%s" % blocker)
+            except github.NoAnswer:
+                sys.stderr.write("parked-issues.sh: no answer from gh to reading the merged state of #%s\n" % blocker)
+                return None
+            if not json.loads(pull).get("merged"):
+                status = "waiting"
+    return status
+
+
 def main(argv):
     if argv:
         sys.stderr.write(USAGE + "\n")
@@ -45,24 +70,9 @@ def main(argv):
             sys.stderr.write("parked-issues.sh: issue #%d's parked comment lacks its Cause or Unblock line\n" % number)
             return 2
         blocked_by = field(body, "Blocked by")
-        status = "-" if blocked_by is None else "ready"
-        for blocker in re.findall(r"#(\d+)", blocked_by or ""):
-            try:
-                state = github.gh_api("repos/{owner}/{repo}/issues/%s" % blocker)
-            except github.NoAnswer:
-                sys.stderr.write("parked-issues.sh: no answer from gh to reading the state of #%s\n" % blocker)
-                return 2
-            info = json.loads(state)
-            if info.get("state") != "closed":
-                status = "waiting"
-            elif "pull_request" in info:
-                try:
-                    pull = github.gh_api("repos/{owner}/{repo}/pulls/%s" % blocker)
-                except github.NoAnswer:
-                    sys.stderr.write("parked-issues.sh: no answer from gh to reading the merged state of #%s\n" % blocker)
-                    return 2
-                if not json.loads(pull).get("merged"):
-                    status = "waiting"
+        status = blockers_status(blocked_by)
+        if status is None:
+            return 2
         sys.stdout.write("%d\t%s\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock, status))
     return 0
 
