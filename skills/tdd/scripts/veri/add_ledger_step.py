@@ -171,7 +171,10 @@ def commit_amendment(path):
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
     for argv in (["add", "--", *paths],
                  ["commit", "-q", "-m", "plan: step added while the conductor is live", "--", *paths]):
-        subprocess.run(["git", *argv], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        done = subprocess.run(["git", *argv], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if done.returncode == 0:
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tree, capture_output=True, text=True).stdout.strip()
+        print(f"add-ledger-step.sh: the added step is durable (committed in {head})")
 
 
 def main(argv):
