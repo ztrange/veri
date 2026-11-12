@@ -8,6 +8,7 @@ import sys
 import time
 
 import event
+import issue_worktree
 import replaces_case
 import requirements
 import skill_edit_guard
@@ -165,7 +166,7 @@ def record_insertions(path, steps, awake):
 def commit_amendment(path):
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
-    if live is None:
+    if live is None or int(live) in issue_worktree.ancestors():
         return
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]
     for argv in (["add", "--", *paths],

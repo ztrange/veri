@@ -77,3 +77,43 @@ def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_surviv
 
     assert "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n" in ledger.read_text()
     assert (wt / ".tdd" / "issue-42-added.md").is_file()
+
+
+@pytest.mark.process("add-ledger-step.sh run as a child of the real live process conductor.pid names, in a real git worktree")
+def test_cli_3618_step_added_by_the_live_conductor_itself_is_left_uncommitted(tmp_path):
+    import os
+    from veri import pid_file
+
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=wt, env=env, capture_output=True, text=True, check=True).stdout
+
+    ledger = wt / ".tdd" / "issue-42.md"
+    ledger.write_text(SEED)
+    git("init", "-q")
+    git("add", "-A", "-f")
+    git("commit", "-q", "-m", "seed")
+    head = git("rev-parse", "HEAD")
+
+    script = f'read go; "$0" "$@"; echo $? > "{tmp_path}/rc"'
+    conductor = subprocess.Popen(
+        ["sh", "-c", script, str(SCRIPTS / "add-ledger-step.sh"), str(ledger), "after", "collapse to single hyphen", "t"],
+        cwd=wt, env=env, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        pid_file.record(str(wt / ".tdd" / "conductor.pid"), conductor.pid)
+        conductor.stdin.write(b"\n")
+        conductor.stdin.close()
+        conductor.wait(timeout=20)
+    finally:
+        if conductor.poll() is None:
+            conductor.kill()
+            conductor.wait()
+
+    assert (tmp_path / "rc").read_text().strip() == "0"
+    assert git("rev-parse", "HEAD") == head
+    assert "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n" in ledger.read_text()
+    assert ".tdd/issue-42.md" in git("status", "--porcelain")
