@@ -24,8 +24,10 @@ run it. A preflight that passes never reads it.
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
    the issue's worktree first, as step 1.2 describes — slug from the title — and clear any stale stop request there before anything else. The
    worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` writes the
-   pid of the `claude -p` process it started into it before this preflight runs, and the
-   conductor itself never writes it:
+   pid of the `claude -p` process it started into it before this preflight runs, and refuses
+   the launch instead (exit 2, `already live (pid <pid>)` on stderr, before it writes any run
+   record) when the file already names a live process started at the time it records (or
+   with no time recorded). The conductor itself never writes it:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
    mkdir -p .tdd && $S/stop-requested.sh --clear
