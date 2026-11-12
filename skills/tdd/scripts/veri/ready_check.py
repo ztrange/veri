@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import launch_floor
+import paths
 import tunables
 from github import gh_probe as gh
 from case_reader import is_test_path
@@ -35,7 +36,7 @@ def triggers_on(event):
 
 def tier_row(tier):
     def check():
-        detect = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "detect-test-command.sh")
+        detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
         found = subprocess.run([detect, "--tier", tier], capture_output=True)
         if found.returncode == 2:
             return f"{tier} tier", f"no answer was obtained (exit 2 from detect-test-command.sh --tier {tier})"
