@@ -1603,6 +1603,19 @@ def test_2937_a_skill_edit_step_naming_no_backticked_unit_path_exits_2_with_one_
     assert (code, out, len(lines), "backtick" in err, "TypeError" in err or "Traceback" in err, ledger.read_bytes()) == (2, "", 1, True, False, LEDGER), err
 
 
+def test_3709_a_skill_edit_step_with_leading_whitespace_and_no_unit_is_refused_like_the_unspaced_one(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text("## Problem\n\nText.\n\n## Requirements\n\n### skills/vgroom/SKILL.md\n")
+    step = "⟦skill-edit⟧ regrade skills/vgroom/SKILL.md against A1"
+
+    plain = run_cli(add_ledger_step, [str(ledger), "after", "b two", step], cwd=tmp_path)
+    spaced = run_cli(add_ledger_step, [str(ledger), "after", "b two", "  \t" + step], cwd=tmp_path)
+
+    assert (plain[0], plain[1], "backtick" in plain[2]) == (2, "", True), plain
+    assert (spaced[0], spaced[1], "backtick" in spaced[2], ledger.read_bytes()) == (2, "", True, LEDGER), spaced
+
+
 def test_3314_a_text_holding_the_refactor_pending_delimiter_exits_2_naming_it_leaving_the_ledger_byte_identical(tmp_path, run_cli, add_ledger_step):
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
