@@ -82,7 +82,8 @@ def do_recovered(path, argv):
     session = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not session:
         return usage()
-    append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), session))
+    kept = [l for l in (read(path) or "").splitlines(True) if not l.startswith("refused-at=")]
+    replace(path, "".join(kept) + "recovered-at=%s\nsession-id=%s\n" % (now(), session))
     try:
         os.remove(marker_path(path))
     except FileNotFoundError:

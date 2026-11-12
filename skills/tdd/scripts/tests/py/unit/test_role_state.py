@@ -317,3 +317,18 @@ def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_the_o
     code, _, _ = run_cli(role_state, ["dev", "recovered"], env={"CLAUDE_CODE_SESSION_ID": "sess-1"})
 
     assert (code, sorted(p.name for p in tdd.glob("reset-request-*"))) == (0, ["reset-request-coord"])
+
+
+def test_issue_3241_dev_recovered_clears_refused_at_from_the_state_file_and_keeps_its_other_lines(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    state.write_text("baseline=1000\nrefused-at=2026-11-12T09:30:00\n")
+
+    code, _, _ = run_cli(role_state, ["dev", "recovered"], env={"CLAUDE_CODE_SESSION_ID": "sess-1"})
+
+    assert (code, state.read_text().splitlines()) == (0, [
+        "baseline=1000", "recovered-at=2026-11-12T10:00:00", "session-id=sess-1"])
