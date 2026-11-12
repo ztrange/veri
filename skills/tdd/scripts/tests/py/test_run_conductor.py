@@ -2407,6 +2407,37 @@ def test_cli_a_launch_whose_conductor_pid_file_names_a_live_process_exits_non_ze
     assert (code != 0, str(os.getpid()) in err, launches, pid_file.read_bytes() if pid_file.exists() else None) == (True, True, [], before)
 
 
+def _3633_live_pid_file(tmp_path, monkeypatch, recorded_start):
+    """fake-claude launches recorded, ps answering one fixed start time, and run 4242's conductor.pid naming this
+    live process with `recorded_start` on its second line; the launches and the pid file."""
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+
+    def with_a_fixed_start_time(args, *rest, **kwargs):
+        if list(args)[:1] == ["ps"] and "lstart=" in list(args):
+            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", with_a_fixed_start_time)
+    pid_file = tmp_path / "cwd" / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    pid_file.write_text("%d\n%s\n" % (os.getpid(), recorded_start))
+    return launches, pid_file
+
+
+def test_cli_a_launch_whose_conductor_pid_file_names_a_live_pid_started_at_another_time_launches_claude_3633(
+        tmp_path, monkeypatch, run_cli):
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches, _ = _3633_live_pid_file(tmp_path, monkeypatch, "Mon Oct 26 09:00:00 2026")
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=tmp_path / "cwd")
+
+    assert (code, len(launches), "already live" in err) == (0, 1, False), err
+
+
 def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue_2537(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
