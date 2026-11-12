@@ -80,7 +80,7 @@ def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_surviv
 
 
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose conductor.pid names a real live process")
-def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(tmp_path):
+def test_cli_3618_stderr_states_the_committed_step_is_durable_naming_the_commit_leaving_stdout_empty(tmp_path):
     import os
     from veri import pid_file
 
@@ -109,8 +109,9 @@ def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(
         conductor.wait()
 
     assert ran.returncode == 0, ran.stderr
-    assert "committed" in ran.stdout.lower()
-    assert head[:7] in ran.stdout
+    assert ran.stdout == ""
+    assert "committed" in ran.stderr.lower()
+    assert head[:7] in ran.stderr
 
 
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose commit hook refuses and conductor.pid names a real live process")
