@@ -72,7 +72,7 @@ def main(argv):
     writes += [
         ("label", lambda: (github.gh_label_ensure("parked"), github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
-        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n" % (cause, pr, unblock))),
+        ("comment", lambda: github.gh_issue_comment(number, github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: #%s\n" % blocker if blocker else ""))),
     ]
     if len(argv) == 4:
         writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))
