@@ -1192,7 +1192,9 @@ def test_3526_a_restarter_sent_a_signal_while_its_conductor_is_live_logs_the_sig
     assert (code, "restarts 7 0" in out, f"restarter exiting on {name}" in out) == (2, False, True), (code, out, err)
 
 
-def test_3633_an_unreadable_pid_file_while_a_run_conductor_process_for_the_run_is_live_does_not_relaunch_the_conductor(tmp_path, run_cli, monkeypatch):
+def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_issue, process_cwd):
+    """A watcher for run 7 whose pid file turns unreadable after two reads while a run_conductor.py process for
+    `process_issue`, its cwd `process_cwd(main tree)`, stays listed for 30 naps; the stop and launch calls it made."""
     restart_conductor = importlib.import_module("veri.restart_conductor")
     pid_file = importlib.import_module("pid_file")
     (tmp_path / ".tdd").mkdir()
@@ -1227,7 +1229,8 @@ def test_3633_an_unreadable_pid_file_while_a_run_conductor_process_for_the_run_i
 
     monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
     monkeypatch.setattr(pid_file, "_ps", ps)
-    monkeypatch.setattr(pid_file, "_conductors", lambda: [("999", "7")] if process_live() else [])
+    monkeypatch.setattr(pid_file, "_conductors", lambda: [("999", process_issue)] if process_live() else [])
+    monkeypatch.setattr(pid_file, "_cwd", lambda pid: process_cwd(os.getcwd()) if pid == "999" else None)
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped" if process_live() else "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)
@@ -1236,4 +1239,22 @@ def test_3633_an_unreadable_pid_file_while_a_run_conductor_process_for_the_run_i
 
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
+    return calls[:2]
+
+
+def test_3633_an_unreadable_pid_file_while_a_run_conductor_process_for_the_run_is_live_does_not_relaunch_the_conductor(tmp_path, run_cli, monkeypatch):
+    calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "7", lambda root: os.path.join(root, ".tdd", "wt", "7"))
+
     assert calls == [("stop", "at-ledger", "7")]
+
+
+def test_3633_an_unreadable_pid_file_while_only_a_run_conductor_process_for_another_issue_is_live_relaunches_the_conductor(tmp_path, run_cli, monkeypatch):
+    calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "8", lambda root: root)
+
+    assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
+
+
+def test_3633_an_unreadable_pid_file_while_only_another_repositorys_run_conductor_process_for_the_run_is_live_relaunches_the_conductor(tmp_path, run_cli, monkeypatch):
+    calls = _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, "7", lambda root: root + "-other-repo")
+
+    assert calls == [("stop", "at-ledger", "7"), ("launch", "7")]
