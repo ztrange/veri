@@ -40,8 +40,8 @@ def run_case(case):
     if not command:
         LAST_COMMAND = f"make test TESTS={case}"
         return subprocess.run(["make", "test", f"TESTS={case}"], env=case_env()).returncode
-    LAST_COMMAND = f"{command} {case.split('::', 1)[0]}"
     path = case.split("::", 1)[0]
+    LAST_COMMAND = f"{command} {path}"
     done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
     if done.returncode and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items", f"{done.stdout}{done.stderr}", re.I)):
         return 2
