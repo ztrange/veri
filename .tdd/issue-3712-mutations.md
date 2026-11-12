@@ -1,0 +1,7 @@
+before 40
+fe410caa36a0ec77550e1433fed70f04676bf8dd
+keep 58
+skills/tdd/scripts/tests/py/unit/test_restart_conductor.py
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_restart_conductor.py::test_3712_cleaning_up_an_unstopped_exit_removes_restart_pending_when_the_run_has_no_stop_file
+
