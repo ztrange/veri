@@ -1,5 +1,6 @@
 """parked-issues.sh's work, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
 import re
 import sys
 
@@ -44,13 +45,15 @@ def main(argv):
             sys.stderr.write("parked-issues.sh: issue #%d's parked comment lacks its Cause or Unblock line\n" % number)
             return 2
         blocked_by = field(body, "Blocked by")
-        status = "-" if blocked_by is None else "waiting"
+        status = "-" if blocked_by is None else "ready"
         for blocker in re.findall(r"#(\d+)", blocked_by or ""):
             try:
-                github.gh_rest_list("repos/{owner}/{repo}/issues/%s" % blocker)
+                state = github.gh_api("repos/{owner}/{repo}/issues/%s" % blocker)
             except github.NoAnswer:
                 sys.stderr.write("parked-issues.sh: no answer from gh to reading the state of #%s\n" % blocker)
                 return 2
+            if json.loads(state).get("state") != "closed":
+                status = "waiting"
         sys.stdout.write("%d\t%s\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock, status))
     return 0
 
