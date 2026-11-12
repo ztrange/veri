@@ -703,3 +703,20 @@ def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_fi
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
     assert (code, [l for l in state if l.startswith("coordinator")]) == (0, ["coordinator sess-new"]), state
+
+
+def test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_single_read_fails(monkeypatch):
+    import pytest
+    status = importlib.import_module("veri.status")
+    listed = [{"number": 4730, "draft": False, "body": "Closes #3602\n"}]
+
+    def run(args, *a, **k):
+        if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
+            return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom\n")
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(listed), stderr="")
+    monkeypatch.setattr(status.subprocess, "run", run)
+
+    with pytest.raises(OSError) as raised:
+        status.recover_prs()
+
+    assert str(raised.value) == "status.sh --recover: GitHub refused the single pull request read for #4730: boom"
