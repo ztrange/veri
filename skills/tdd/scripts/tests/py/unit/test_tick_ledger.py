@@ -1098,3 +1098,36 @@ def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_r
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, "name abc" in capsys.readouterr().err) == (2, True)
+
+
+@pytest.mark.parametrize("flag, reason_text", [
+    ("--unpinnable", "the case stays green\n"),
+    ("--already-holds", "REASON: it already holds\n"),
+])
+def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_environment_3617(
+        tmp_path, tick_ledger, monkeypatch, flag, reason_text):
+    import subprocess
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    ledger = tdd / "issue-7.md"
+    ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text(reason_text)
+    seen = tmp_path / "case-env.txt"
+    for name in ("TESTS", "MAKEFLAGS", "MAKELEVEL"):
+        monkeypatch.setenv(name, "leaked")
+
+    def fake_run(args, **kwargs):
+        if args[0].endswith("detect-test-command.sh"):
+            return subprocess.CompletedProcess(args, 0, "stub-case-command\n", "")
+        env = kwargs.get("env")
+        env = os.environ if env is None else env
+        seen.write_text("".join(f"{k}\n" for k in env))
+        return subprocess.CompletedProcess(args, 0, "1 passed\n", "")
+
+    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+
+    code = tick_ledger.main([flag, str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
+
+    leaked = sorted({"TESTS", "MAKEFLAGS", "MAKELEVEL"} & set(seen.read_text().split()))
+    assert (code, leaked) == (0, [])
