@@ -75,7 +75,7 @@ def do_request_reset(path, argv):
     stamp = now()
     append(path, "reset-at=%s\n" % stamp)
     name = os.path.basename(path)[len("role-"):-len(".state")]
-    replace(os.path.join(os.path.dirname(path), "reset-request-" + name), stamp + "\n")
+    replace(os.path.join(os.path.dirname(path), "reset-request-" + name), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))
     return 0
 
 
