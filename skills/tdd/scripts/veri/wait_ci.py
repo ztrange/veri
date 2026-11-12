@@ -202,6 +202,13 @@ def first_sighting(mark, now):
 
 
 def main(argv):
+    if len(argv) == 2 and argv[0] == "--fresh-window":
+        for kind in ("deadline", "queued", "none"):
+            try:
+                os.remove(".tdd/ci-%s-%s" % (kind, argv[1]))
+            except OSError:
+                pass
+        return 0
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2

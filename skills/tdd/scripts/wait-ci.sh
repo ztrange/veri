@@ -2,6 +2,7 @@
 # wait-ci.sh — wait a bounded slice for a PR's checks to finish, and be called again: a shim over veri/wait_ci.py.
 #
 # usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]
+#        wait-ci.sh --fresh-window <head-sha>   (forget that sha's deadline, queued and no-run marks; exit 0)
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
 # concluded anything else · 2 no answer (bad arguments, a <head-sha> that is not a full 40-hex sha (one stderr line), a read of the checks still failing at the deadline, a 4xx other than
