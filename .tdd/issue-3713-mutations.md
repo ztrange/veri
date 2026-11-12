@@ -5,3 +5,14 @@ skills/tdd/scripts/tests/py/test_pin_recheck_process.py
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3713_a_record_holding_file_and_keep_is_selected_by_its_file_value_and_not_by_its_keep_value
 
+file 38
+skills/tdd/scripts/veri/pin_recheck.py
+old-b64 40
+bXV0YXRlZF9maWxlX29mKHIpIGluIHRvdWNoZWQ=
+new-b64 32
+ci5nZXQoImtlZXAiKSBpbiB0b3VjaGVk
+context-b64 124
+ICAgIHBpbnMgPSBbKGYsIHIpIGZvciBmLCByIGluIGZvdW5kIGlmIG11dGF0ZWRfZmlsZV9vZihyKSBpbiB0b3VjaGVkIGFuZCBvbmx5IGluIChOb25lLCBmKV0=
+command 155
+make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3713_a_record_holding_only_a_file_value_is_selected_when_that_file_is_touched
+
