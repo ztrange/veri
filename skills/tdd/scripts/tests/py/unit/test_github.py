@@ -435,6 +435,23 @@ def test_gh_issue_view_answers_the_comment_bodies_of_every_page_for_comments_iss
     assert calls
 
 
+def test_graphql_gh_issue_view_answers_the_comment_bodies_of_every_page_not_the_label_names_for_comments_issue_3687(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    base = "repos/{owner}/{repo}/issues/3241/comments"
+    fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "3241", "--json", "comments", "-q", ".labels[].name"): (0, "taken:mu\n", ""),
+        ("gh", "api", base + "?page=1"): (0, '[{"body":"first comment"}]\n', ""),
+        ("gh", "api", base + "?page=2"): (0, '[{"body":"### \u26d4 Preflight refused\\n\\nwhy"}]\n', ""),
+        ("gh", "api", base + "?page=3"): (0, "[]\n", ""),
+    })
+
+    answer = github.gh_issue_view("3241", "comments")
+
+    assert "### \u26d4 Preflight refused" in answer
+    assert "first comment" in answer
+
+
 def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
