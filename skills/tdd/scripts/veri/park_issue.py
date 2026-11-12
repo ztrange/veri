@@ -9,7 +9,7 @@ import tempfile
 import blocked_by
 import github
 
-USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <issue-number>]\n"
+USAGE = "usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]\n"
 
 
 def origin_slug():
