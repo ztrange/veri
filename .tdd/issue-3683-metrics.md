@@ -1,13 +1,13 @@
 ### 📊 Metrics — issue 3683
 
-Wall time for the issue: 856 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 676 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 21 of 22 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3684.
 Lane: ready-for-agent:mu
-Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0, skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
+Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0, skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0, skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $21.07 over 397 turns, in 8 sessions, on opus (estimate).
+Conductor own spending: $23.21 over 431 turns, in 9 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80188 tokens, largest 144899 tokens
 Conductor context: first turn 80150 tokens, largest 155172 tokens
@@ -16,7 +16,8 @@ Conductor context: first turn 80066 tokens, largest 138481 tokens
 Conductor context: first turn 80103 tokens, largest 148133 tokens
 Conductor context: first turn 80102 tokens, largest 173116 tokens
 Conductor context: first turn 80231 tokens, largest 142964 tokens
-Conductor context: first turn 80226 tokens, largest 172249 tokens
+Conductor context: first turn 80226 tokens, largest 174005 tokens
+Conductor context: first turn 80217 tokens, largest 135656 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -359,54 +360,88 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 334 | $0.08 | 140698 |
 | 335 | $0.05 | 141640 |
 | 336 | $0.04 | 142964 |
-| 337 | $0.50 | 80226 |
-| 338 | $0.07 | 86983 |
-| 339 | $0.04 | 89797 |
-| 340 | $0.03 | 91735 |
-| 341 | $0.03 | 93327 |
-| 342 | $0.08 | 100907 |
-| 343 | $0.02 | 101325 |
-| 344 | $0.02 | 101725 |
-| 345 | $0.02 | 102001 |
-| 346 | $0.07 | 108815 |
+| 337 | $0.51 | 80226 |
+| 338 | $0.08 | 86983 |
+| 339 | $0.05 | 89797 |
+| 340 | $0.04 | 91735 |
+| 341 | $0.04 | 93327 |
+| 342 | $0.09 | 100907 |
+| 343 | $0.03 | 101325 |
+| 344 | $0.03 | 101725 |
+| 345 | $0.03 | 102001 |
+| 346 | $0.09 | 108815 |
 | 347 | $0.03 | 109727 |
-| 348 | $0.03 | 110709 |
-| 349 | $0.02 | 111062 |
-| 350 | $0.02 | 111390 |
+| 348 | $0.04 | 110709 |
+| 349 | $0.04 | 111062 |
+| 350 | $0.03 | 111390 |
 | 351 | $0.03 | 111813 |
-| 352 | $0.03 | 112523 |
-| 353 | $0.03 | 113281 |
+| 352 | $0.04 | 112523 |
+| 353 | $0.04 | 113281 |
 | 354 | $0.03 | 113864 |
-| 355 | $0.02 | 114130 |
+| 355 | $0.04 | 114130 |
 | 356 | $0.03 | 114512 |
-| 357 | $0.04 | 116275 |
+| 357 | $0.05 | 116275 |
 | 358 | $0.03 | 116950 |
-| 359 | $0.03 | 117525 |
-| 360 | $0.03 | 118602 |
-| 361 | $0.04 | 121188 |
+| 359 | $0.04 | 117525 |
+| 360 | $0.04 | 118602 |
+| 361 | $0.06 | 121188 |
 | 362 | $0.03 | 121967 |
-| 363 | $0.09 | 129847 |
-| 364 | $0.03 | 130635 |
-| 365 | $0.03 | 130872 |
-| 366 | $0.03 | 131401 |
-| 367 | $0.03 | 132183 |
-| 368 | $0.03 | 133084 |
-| 369 | $0.04 | 134900 |
-| 370 | $0.04 | 136655 |
-| 371 | $0.04 | 138788 |
-| 372 | $0.05 | 141277 |
-| 373 | $0.04 | 143213 |
-| 374 | $0.03 | 144006 |
-| 375 | $0.03 | 144493 |
+| 363 | $0.10 | 129847 |
+| 364 | $0.04 | 130635 |
+| 365 | $0.04 | 130872 |
+| 366 | $0.04 | 131401 |
+| 367 | $0.04 | 132183 |
+| 368 | $0.04 | 133084 |
+| 369 | $0.05 | 134900 |
+| 370 | $0.05 | 136655 |
+| 371 | $0.05 | 138788 |
+| 372 | $0.06 | 141277 |
+| 373 | $0.05 | 143213 |
+| 374 | $0.05 | 144006 |
+| 375 | $0.04 | 144493 |
 | 376 | $0.04 | 145274 |
 | 377 | $0.04 | 146019 |
-| 378 | $0.04 | 147243 |
-| 379 | $0.16 | 163889 |
-| 380 | $0.04 | 164265 |
+| 378 | $0.05 | 147243 |
+| 379 | $0.17 | 163889 |
+| 380 | $0.05 | 164265 |
 | 381 | $0.04 | 164782 |
-| 382 | $0.04 | 165637 |
-| 383 | $0.04 | 167057 |
-| 384 | $0.07 | 172249 |
+| 382 | $0.05 | 165637 |
+| 383 | $0.06 | 167057 |
+| 384 | $0.08 | 172249 |
+| 385 | $0.05 | 173177 |
+| 386 | $0.05 | 174005 |
+| 387 | $0.50 | 80217 |
+| 388 | $0.07 | 86987 |
+| 389 | $0.04 | 89827 |
+| 390 | $0.03 | 90902 |
+| 391 | $0.06 | 96093 |
+| 392 | $0.06 | 100620 |
+| 393 | $0.03 | 101344 |
+| 394 | $0.02 | 101761 |
+| 395 | $0.03 | 102348 |
+| 396 | $0.02 | 102687 |
+| 397 | $0.03 | 103313 |
+| 398 | $0.03 | 104158 |
+| 399 | $0.02 | 104606 |
+| 400 | $0.02 | 104970 |
+| 401 | $0.03 | 105491 |
+| 402 | $0.03 | 106292 |
+| 403 | $0.06 | 111053 |
+| 404 | $0.03 | 111462 |
+| 405 | $0.03 | 112181 |
+| 406 | $0.02 | 112458 |
+| 407 | $0.03 | 112882 |
+| 408 | $0.03 | 113254 |
+| 409 | $0.03 | 114204 |
+| 410 | $0.15 | 130698 |
+| 411 | $0.03 | 131183 |
+| 412 | $0.03 | 131545 |
+| 413 | $0.03 | 131782 |
+| 414 | $0.03 | 132450 |
+| 415 | $0.04 | 134195 |
+| 416 | $0.03 | 134862 |
+| 417 | $0.03 | 135206 |
+| 418 | $0.03 | 135656 |
 
 #### Conductor comments, by family
 
@@ -432,13 +467,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 8 | 8 | 0 | 0 | 122 | 105 | 14 | 28 | 11914 | 176545 | 159856 | 0.54 |
+| plan | 9 | 9 | 0 | 0 | 135 | 116 | 15 | 30 | 13308 | 176545 | 183707 | 0.61 |
 | red | 22 | 8 | 0 | 0 | 476 | 315 | 88 | 172 | 33091 | 1553872 | 421824 | 1.54 |
 | green | 20 | 8 | 2 | 0 | 781 | 318 | 100 | 186 | 30587 | 1736215 | 339310 | 1.50 |
 | refactor | 8 | 0 | 0 | 0 | 61 | 39 | 18 | 34 | 2691 | 226567 | 129640 | 0.37 |
 | pin | 5 | 5 | 0 | 0 | 121 | 79 | 22 | 44 | 7759 | 378034 | 83625 | 0.32 |
 | diff | 9 | 3 | 1 | 0 | 482 | 179 | 55 | 106 | 16688 | 956286 | 153079 | 0.81 |
-| prose | 17 | 0 | 0 | 0 | 337 | 304 | 17 | 34 | 45364 | 102887 | 473445 | 1.65 |
+| prose | 20 | 0 | 0 | 0 | 429 | 390 | 20 | 40 | 59275 | 106806 | 596115 | 2.09 |
 | skill-edit | 3 | 0 | 0 | 0 | 51 | 42 | 13 | 22 | 3762 | 416202 | 127787 | 0.40 |
 | rebase | 3 | 1 | 0 | 0 | 288 | 89 | 27 | 54 | 8617 | 600583 | 66615 | 0.48 |
 | predicate | 3 | 0 | 0 | 0 | 30 | 21 | 9 | 18 | 1306 | 122824 | 45925 | 0.14 |
@@ -450,7 +485,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 38 | 35 | 3 | 0 | 1192 | 514 | 140 | 274 | 49938 | 2297904 | 641596 | 2.33 |
+| verifier | claude-sonnet-5-5 | 39 | 36 | 3 | 0 | 1205 | 525 | 141 | 276 | 51332 | 2297904 | 665447 | 2.41 |
 | developer | claude-sonnet-5-5 | 40 | 0 | 0 | 0 | 986 | 552 | 173 | 334 | 55550 | 2981986 | 714478 | 2.81 |
 | developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 284 | 148 | 43 | 80 | 13990 | 832735 | 133885 | 0.90 |
 
@@ -517,9 +552,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Structural pass
 
-| pass | refactor | stopped |
-| --- | ---: | --- |
-| issue | 2/10 | candidates-done |
+Stopped: nothing-structural
 
 #### Refactor totals
 
@@ -533,7 +566,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | `parked-issues.sh` prints a fifth field `ready` for a parked issue whose comment's `Blocked by:` line names only closed issues; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_parked_issues.py` with gh faked ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | `parked-issues.sh` prints a fifth field `waiting` for a parked issue whose `Blocked by:` line names a pull request closed without being merged; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_parked_issues.py` with gh faked ⟦criterion 2⟧ | 1 | 0 | 1 | nothing-left 1 |
 | A case in `skills/tdd/scripts/tests/py/unit/test_parked_issues.py` pins that when gh gives no answer to the merged-state read of a closed pull-request blocker (`repos/{owner}/{repo}/pulls/<n>`), parked-issues exits 2 with stderr `parked-issues.sh: no answer from gh to reading the merged state of #<n>` naming that blocker, and prints no row for that issue; a small unit case driven in-process with `run_cli` ⟦added⟧ ⟦criterion 3⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 9 | 2 | 8 | candidates-done 1, nothing-left 8 |
+| issue | 9 | ? | ? | nothing-left 8, nothing-structural 1 |
 
 #### Test-command seconds, by tier
 
@@ -548,4 +581,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 386 | 744 | 168604 | 6631714 | 2091191 | 29.15 (estimate) |
+| total | 390 | 752 | 183909 | 6635633 | 2237712 | 31.81 (estimate) |
