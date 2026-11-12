@@ -218,3 +218,18 @@ def test_items_at_raises_oserror_naming_rev_path_and_stderr_when_git_show_fails(
         assert str(error) == "git show abc123:x/ledger.md failed: fatal: path 'x/ledger.md' does not exist in 'abc123'"
     else:
         raise AssertionError("items_at returned for a failed git show")
+
+
+def test_is_skill_edit_equals_the_inline_marker_expression_for_leading_trailing_and_unmarked_steps():
+    ledger = importlib.import_module("veri.ledger")
+
+    def inline(step):
+        return step.startswith("⟦skill-edit⟧") or ledger.carries_mark(ledger.trailing_markers(step), "skill-edit")
+
+    for step, expected in (
+        ("⟦skill-edit⟧ edit `skills/tdd/SKILL.md`", True),
+        ("edit the skill ⟦skill-edit⟧ ⟦criterion 1⟧", True),
+        ("a cog turns ⟦criterion 1⟧", False),
+    ):
+        assert inline(step) is expected
+        assert ledger.is_skill_edit(step) is expected
