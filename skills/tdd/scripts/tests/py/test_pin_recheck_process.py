@@ -3041,3 +3041,26 @@ def test_3713_a_record_holding_only_a_file_value_is_selected_when_that_file_is_t
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a before/keep record holding only a keep value, touched in the range")
+def test_3713_a_record_holding_only_a_keep_value_is_selected_when_that_file_is_touched(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "src.txt").write_text("old behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v0\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "src.txt").write_text("fixed behaviour\n")
+    (tmp_path / "pin.txt").write_text("pin v1\n")
+    git("commit", "-q", "-am", "fix and pin")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3713d-mutations.md", before=base, keep="pin.txt",
+           command="sh -c \"touch ran.witness; grep -q fixed src.txt\"")
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
