@@ -1,0 +1,9 @@
+# Plan for #3721 — coverage-blocker.sh files a cover issue veri cannot run: no criteria, no Test command, no labels
+
+- [ ] The older cases in `skills/tdd/scripts/tests/py/test_coverage_blocker.py` and `skills/tdd/scripts/tests/py/unit/test_coverage_blocker_blocks.py` stop pinning the filed cover issue's body text and the exact list of gh calls after the create: their fakes accept a label call on the new issue (answering success) and extra create fields, and they keep asserting the title, the block on the refactor issue, the printed URL and the exit code; test-only, no production change ⟦diff-checked⟧
+- [ ] The cover issue `coverage-blocker.sh <n>` files has a body opening with a `## Problem` heading under which the refusal text (Refactor #<n> refused … can be retaken) stands ⟦criterion 1⟧
+- [ ] When the cover report `.tdd/develop-cover.out` under the current directory carries `MUTATION: <edit>` with `COVERED: no`, the filed cover issue's body has a `## Acceptance criteria` section holding one `- [ ]` criterion that quotes that MUTATION line (so it names the mutated file and the mutation) and requires a case that goes red under it; small in-process case, cwd a tmp_path ⟦criterion 1⟧
+- [ ] The filed cover issue's body has a `## Blocked by` section whose line is `None.` ⟦criterion 1⟧
+- [ ] The filed cover issue's body ends with the last line `Test command: <cmd>`, `<cmd>` being the full-tier command `detect-test-command.sh --tier all` resolves for the current directory (e.g. `make test` from CLAUDE.md's `veri: all tests:` line) ⟦criterion 1⟧
+- [ ] The filed cover issue carries the run's opt-in label `VERI_LABEL` (`ready-for-agent` when unset, or `ready-for-agent:<lane>`) ⟦criterion 2⟧
+- [ ] The filed cover issue carries the label `filed-by:<lane>`, `<lane>` being the text after `VERI_LABEL`'s last `:`, or `main` when it has none
