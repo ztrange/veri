@@ -1,2 +1,4 @@
 ### When the live conductor named by `.tdd/conductor.pid` is an ancestor of the process calling `add-ledger-step.sh` (the conductor itself growing its plan), the script commits nothing and leaves the grown ledger uncommitted for the conductor's own commit, as today; a medium case with a real git repo
 - test-only | the two #3618 process cases in `test_add_ledger_step_process.py` repeat the git env dict, the `git()` helper and the worktree setup; extract them into a shared fixture or helper
+### When `add-ledger-step.sh` committed the added step, its stdout states that the added step is durable (committed), naming the commit ⟦criterion 2⟧
+- test-only | extract the repeated worktree setup (env with git identity, `git` helper, seeded ledger, initial commit) from the four `test_cli_3618_*` cases in `test_add_ledger_step_process.py` into one helper
