@@ -2374,3 +2374,35 @@ def test_main_keeps_waiting_with_default_tunables_when_a_none_heads_check_run_ap
         observed.append((code, "no CI run for" in err))
 
     assert observed == [(3, False), (3, False), (3, False), (0, False)]
+
+
+def test_main_fresh_window_removes_one_shas_marks_reads_no_checks_and_exits_0(wait_ci, fake_processes, run_cli, tmp_path):
+    other = "f" * 40
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    for kind in ("deadline", "queued", "none"):
+        (tdd / f"ci-{kind}-{SHA}").write_text("1000\n")
+        (tdd / f"ci-{kind}-{other}").write_text("1000\n")
+    calls = fake_processes(lambda line, **_: (1, "", f"unexpected: {line}\n"))
+
+    code, out, _ = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
+
+    assert (code, out, calls, sorted(p.name for p in tdd.iterdir())) == (
+        0, "", [], sorted(f"ci-{k}-{other}" for k in ("deadline", "queued", "none")))
+
+
+def test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_count_removes_nothing(wait_ci, fake_processes, run_cli, tmp_path):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    fake_processes(lambda line, **_: (1, "", f"unexpected: {line}\n"))
+    (tdd / f"ci-queued-{SHA}").write_text("1000\n")
+
+    partial = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
+    left_after_partial = sorted(p.name for p in tdd.iterdir())
+    for kind in ("deadline", "queued", "none"):
+        (tdd / f"ci-{kind}-{SHA}").write_text("1000\n")
+    extra = run_cli(wait_ci, ["--fresh-window", SHA, "extra"], cwd=tmp_path)
+
+    assert (partial[0], "Traceback" in partial[2], left_after_partial, extra[0],
+            sorted(p.name for p in tdd.iterdir())) == (
+        0, False, [], 2, sorted(f"ci-{k}-{SHA}" for k in ("deadline", "queued", "none")))

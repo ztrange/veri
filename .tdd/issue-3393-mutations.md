@@ -134,3 +134,10 @@ skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_parse_adjudication.py::test_main_on_a_route_line_when_the_cause_lists_no_route_token_exits_2_with_nothing_on_stdout
 
+before 40
+89299e02722d3cd4a734fdf6017625f545ffddd5
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 162
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_count_removes_nothing
+
