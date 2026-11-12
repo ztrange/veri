@@ -29,9 +29,10 @@ def main(argv):
         for line in open(argv[1]):
             step = re.sub(r"^- \[.\] ", "", line.rstrip("\n"))
             marked = step.startswith("⟦skill-edit⟧") or ledger.carries_mark(ledger.trailing_markers(step), "skill-edit")
-            m = re.search(r"`([^`]+)`", line) if line.startswith("- [") and marked else None
-            if m and not any(skill_edit_step._names_unit(h, m.group(1)) for h in units):
-                missing.append(m.group(1))
+            first = re.search(r"`([^`]+)`", line)
+            unit = (ledger.unit_of(line) or (first and first.group(1))) if line.startswith("- [") and marked else None
+            if unit and not any(skill_edit_step._names_unit(h, unit) for h in units):
+                missing.append(unit)
     for unit in missing:
         sys.stderr.write("## Requirements has no ### heading for unit: %s\n" % unit)
     for row_id in clashing:
