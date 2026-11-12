@@ -47,3 +47,27 @@ def test_issue_3692_drop_ledger_step_refuses_bad_calls_and_the_make_target_drops
     assert (none.returncode, many.returncode, unchanged) == (1, 1, SEED)
     assert made.returncode == 0
     assert ledger.read_text() == SEED.replace("- [ ] strip edge hyphens ⟦criterion 3⟧\n", "")
+
+
+@pytest.mark.process("drop-ledger-step.sh run on a ledger committed in a scratch git repository, then git read back")
+def test_issue_3692_drop_ledger_step_commits_the_removal_as_a_plan_commit_holding_only_the_ledger(tmp_path):
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+
+    def out(*args):
+        return subprocess.run([*git, *args], cwd=tmp_path, check=True, capture_output=True, text=True).stdout
+
+    subprocess.run([*git, "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "l.md").write_text(SEED)
+    out("add", "l.md")
+    out("commit", "-q", "-m", "plan")
+    before = out("rev-parse", "HEAD")
+
+    ran = subprocess.run([str(SCRIPTS / "drop-ledger-step.sh"), "l.md", "collapse to single hyphen"],
+                         cwd=tmp_path, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert ran.returncode == 0
+    assert out("status", "--porcelain") == ""
+    assert out("rev-parse", "HEAD~1") == before
+    assert out("log", "-1", "--format=%s").startswith("plan:")
+    assert out("show", "--name-only", "--format=", "HEAD").split() == ["l.md"]
+    assert "collapse to single hyphen" not in out("show", "HEAD:l.md")
