@@ -161,3 +161,74 @@ def test_main_3721_files_a_cover_issue_whose_body_opens_with_a_problem_heading_o
     body = created[0] if created else ""
     lines = body.split("\n")
     assert (lines[0], "Refactor #60 refused" in "\n".join(lines[1:])) == ("## Problem", True)
+
+
+def test_main_3721_files_a_cover_issue_with_an_acceptance_criterion_quoting_the_mutation_line_of_the_cover_report(
+        monkeypatch, tmp_path, coverage_blocker):
+    created = []
+    mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("narration\nCOVERED: no\nCAUGHT_BY: NONE\n" + mutation + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    body = created[0] if created else ""
+    section = body.split("## Acceptance criteria", 1)[1] if "## Acceptance criteria" in body else ""
+    criteria = [line for line in section.split("\n## ", 1)[0].split("\n") if line.startswith("- [ ]")]
+    assert (len(criteria), len(criteria) == 1 and mutation in criteria[0]) == (1, True)
+
+
+def test_main_3721_files_the_acceptance_criteria_section_only_when_the_cover_report_says_covered_no_with_a_mutation_line(
+        monkeypatch, tmp_path, coverage_blocker):
+    created = []
+    mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
+    reports = {
+        "no-with-mutation": "COVERED: no\n" + mutation + "\n",
+        "no-without-mutation": "COVERED: no\nCAUGHT_BY: NONE\n",
+        "yes-with-mutation": "COVERED: yes\n" + mutation + "\n",
+    }
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    has_section = {}
+    for name, report in reports.items():
+        created.clear()
+        (tmp_path / ".tdd" / "develop-cover.out").write_text(report)
+        coverage_blocker.main(["60"])
+        has_section[name] = bool(created) and "## Acceptance criteria" in created[0]
+
+    assert has_section == {"no-with-mutation": True, "no-without-mutation": False, "yes-with-mutation": False}
+
+
+def test_main_3721_files_an_acceptance_criterion_that_requires_a_case_going_red_under_the_quoted_mutation(
+        monkeypatch, tmp_path, coverage_blocker):
+    created = []
+    mutation = "MUTATION: veri/status.py: recover_prs `if single.returncode != 0` -> `False`"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n" + mutation + "\n")
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    body = created[0] if created else ""
+    criteria = [line for line in body.split("\n") if line.startswith("- [ ]") and mutation in line]
+    words = criteria[0].lower() if criteria else ""
+    assert (len(criteria), "case" in words, "goes red" in words) == (1, True, True)
