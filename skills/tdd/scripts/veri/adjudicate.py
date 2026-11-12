@@ -31,8 +31,7 @@ def main(argv):
                 spent = 0
             elif e.get("event") == "adjudicated":
                 spent += 1
-        if spent < int(budget()):
-            return 0
+        return 0 if spent < int(budget()) else 3
     if len(argv) == 4 and argv[0] == "record":
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
