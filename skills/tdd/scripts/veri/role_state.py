@@ -8,6 +8,7 @@ import time
 
 from full_tier_time import main_tree
 import timed_n_format
+import tunables
 
 USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator> <value>"
          " | add <decision|message|override|timed-n> <text>"
@@ -98,7 +99,7 @@ def do_request_reset(path, argv):
     stamp = now()
     hour_ago = epoch(stamp) - 3600
     recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
-    if len(recent) >= int(os.environ.get("VERI_RESET_MAX_PER_HOUR", "2")):
+    if len(recent) >= int(tunables.read("VERI_RESET_MAX_PER_HOUR", "2")):
         sys.stderr.write("request-reset refused: %d resets in the last hour\n" % len(recent))
         return 1
     append(path, "reset-at=%s\n" % stamp)
