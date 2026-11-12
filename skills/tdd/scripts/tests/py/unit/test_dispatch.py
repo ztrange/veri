@@ -49,6 +49,22 @@ def test_main_with_no_target_and_an_unreadable_role_dev_state_exits_2_naming_the
     assert str(tmp_path / ".tdd" / "role-dev.state") in err
 
 
+def test_main_with_no_target_exits_2_on_no_n_line_when_the_role_dev_state_file_vanishes_after_the_readability_check_issue_3708(
+        run_cli, dispatch, monkeypatch, tmp_path):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\n")
+    launches = []
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.status, "read_role_state", lambda role, lane=None: None)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "launch", launches.append)
+    code, out, err = run_cli(dispatch, [])
+    assert (code, out, launches) == (2, "", [])
+    assert "no n= line" in err
+
+
 class _StopWaiting(Exception):
     pass
 
