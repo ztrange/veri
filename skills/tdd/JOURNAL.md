@@ -6,6 +6,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 
 | Event | Keys | Meaning |
 |---|---|---|
+| `adjudicated` | `cause`, `outcome`, `reason` | The adjudicate leaf judged an exit 2 before it bailed: `cause` is the eligible cause (`ci-timeout`), `outcome` is `retry`, `route` or `bail`, and `reason` is the leaf's stated reason. |
 | `bail` | `cause`, `classification`, `suites` | The run stopped: `cause` is why (`needs-user`, `killed-stuck`, `no-verdict`, `step-too-big`, `revise-exhausted`, `ci-red`, `ci-timeout`, `ci-conflict`, `suite-red`, `pr-ready-failed`, `step-add-refused`, …); `classification` is `process` (the methodology spoke) or `system` (the plumbing broke), absent when the conductor stopped unmarked; `suites`, carried only by `cause=suite-red`, names every suite still red after the repair step. |
 | `comment` | `kind`, `url` | comment.sh posted a routine comment: its `kind` (`step-done`, `red`, `verify-red`, `green`, `verify-green`, `refactor`, `verify-refactor`, `verify-revised`, `plan`, `verify-plan`, `resuming`, `done`, `bailed` or `stopped`) and the posted comment's url. |
 | `conductor-start` | `pid`, `started` | A conductor began a run: its process id and start time. |
