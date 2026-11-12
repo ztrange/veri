@@ -463,6 +463,17 @@ def test_rest_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_issue_b
         github.gh_issue_view("3241", "assignees")
 
 
+def test_graphql_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_label_names_issue_3687(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "3241", "--json", "assignees", "-q", ".labels[].name"): (0, "taken:mu\n", ""),
+    })
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_view("3241", "assignees")
+
+
 def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"

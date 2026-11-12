@@ -4,4 +4,4 @@
 - [x] The REST adapter's `issue_view(n, "comments")` returns the comment bodies of every page of `issues/<n>/comments`: a fixture of two pages with the `### ⛔ Preflight refused` comment on page 2 has that comment's body in the answer ⟦criterion 1⟧
 - [x] The graphql adapter's `issue_view(n, "comments")` returns the issue's comment bodies of every page, not its label names: two pages, the `### ⛔ Preflight refused` comment on page 2, in the answer ⟦criterion 1⟧
 - [x] The REST adapter's `issue_view` with a field it does not know raises `NoAnswer` rather than returning the issue body ⟦criterion 2⟧
-- [ ] The graphql adapter's `issue_view` with a field it does not know raises `NoAnswer` rather than returning the label names ⟦criterion 2⟧
+- [x] The graphql adapter's `issue_view` with a field it does not know raises `NoAnswer` rather than returning the label names ⟦criterion 2⟧ ⟂ refactor pending
