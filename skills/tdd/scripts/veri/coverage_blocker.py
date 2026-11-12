@@ -36,7 +36,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     n = argv[0]
-    text = ("Refactor #%s refused: its Cover probe found the code it would move uncovered (`COVERED: no`). "
+    text = ("## Problem\n\nRefactor #%s refused: its Cover probe found the code it would move uncovered (`COVERED: no`). "
             "Find a seam and surround the behaviour with tests, then #%s can be retaken." % (n, n))
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)

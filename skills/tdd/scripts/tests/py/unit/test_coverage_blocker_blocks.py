@@ -144,3 +144,20 @@ def test_main_1262_writes_the_blocker_directly_under_a_heading_followed_by_prose
 
     assert (code, written.get("60")) == (
         0, "## Problem\n\nx\n\n## Blocked by\n- #77\nWaiting on design.\n\n## Notes\n\ny\n")
+
+
+def test_main_3721_files_a_cover_issue_whose_body_opens_with_a_problem_heading_over_the_refusal_text(
+        monkeypatch, coverage_blocker):
+    created = []
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create",
+                        lambda title, text, *extra, **fields: created.append(text) or "https://github.com/owner/name/issues/77\n")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    coverage_blocker.main(["60"])
+
+    body = created[0] if created else ""
+    lines = body.split("\n")
+    assert (lines[0], "Refactor #60 refused" in "\n".join(lines[1:])) == ("## Problem", True)
