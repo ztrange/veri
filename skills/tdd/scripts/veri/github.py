@@ -115,6 +115,8 @@ def _pages(path):
 def _comments(number):
     bodies = ""
     for run in _pages("%s/comments" % _issue(number)):
+        if run.returncode != 0:
+            raise NoAnswer("", run.stderr)
         comments = json.loads(run.stdout)
         if not comments:
             return bodies
