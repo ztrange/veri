@@ -59,3 +59,14 @@ skills/tdd/scripts/tests/py/unit/test_parked_issues.py
 command 172
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_names_an_open_pull_request
 
+file 40
+skills/tdd/scripts/veri/parked_issues.py
+old-b64 44
+aWYgaW5mby5nZXQoInN0YXRlIikgIT0gImNsb3NlZCI6
+new-b64 12
+aWYgVHJ1ZTo=
+context-b64 60
+ICAgICAgICAgICAgaWYgaW5mby5nZXQoInN0YXRlIikgIT0gImNsb3NlZCI6
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_names_only_closed_issues
+
