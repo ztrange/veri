@@ -37,3 +37,21 @@ skills/tdd/scripts/tests/py/unit/test_role_state.py
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 152
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 44
+YXJndlswXSBub3QgaW4gKCJjb29yZCIsICJkZXYiKQ==
+new-b64 8
+RmFsc2U=
+context-b64 76
+ICAgIGlmIGxlbihhcmd2KSAhPSAxIG9yIGFyZ3ZbMF0gbm90IGluICgiY29vcmQiLCAiZGV2Iik6
+command 152
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state
+
