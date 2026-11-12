@@ -57,8 +57,10 @@ def main(argv):
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
+        label = tunables.read("VERI_LABEL", "ready-for-agent")
+        lane = label.rsplit(":", 1)[1] if ":" in label else "main"
         try:
-            url = gh_issue_create(title, text, tunables.read("VERI_LABEL", "ready-for-agent")).rstrip("\n")
+            url = gh_issue_create(title, text, label, "filed-by:" + lane).rstrip("\n")
         except NoAnswer:
             return 2
     try:

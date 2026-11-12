@@ -296,3 +296,28 @@ def test_main_3721_files_a_cover_issue_carrying_the_opt_in_label_of_the_run(
     coverage_blocker.main(["60"])
 
     assert "ready-for-agent:mu" in labels
+
+
+def test_main_3721_files_a_cover_issue_carrying_filed_by_the_lane_after_the_last_colon_of_the_label_or_main(
+        monkeypatch, tmp_path, coverage_blocker):
+    monkeypatch.chdir(tmp_path)
+    seen = {}
+    current = []
+
+    def fake_create(title, text, *extra, **fields):
+        current.extend(str(v) for v in (*extra, *fields.values()))
+        return "https://github.com/owner/name/issues/77\n"
+
+    monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_create", fake_create)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_add_label", lambda n, label: current.append(label), raising=False)
+    monkeypatch.setattr(coverage_blocker, "gh_issue_view", lambda n, field: "## Problem\n\nx")
+    monkeypatch.setattr(coverage_blocker, "gh_issue_edit", lambda n, path: None)
+
+    for label, lane in (("ready-for-agent:mu", "mu"), ("ready-for-agent", "main"), ("a:b:c", "c")):
+        current.clear()
+        monkeypatch.setenv("VERI_LABEL", label)
+        coverage_blocker.main(["60"])
+        seen[label] = "filed-by:" + lane in current
+
+    assert seen == {"ready-for-agent:mu": True, "ready-for-agent": True, "a:b:c": True}
