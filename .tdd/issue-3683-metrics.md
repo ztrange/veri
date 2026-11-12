@@ -1,13 +1,13 @@
 ### 📊 Metrics — issue 3683
 
-Wall time for the issue: 431 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 856 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 18 of 21 planned.
-Outcome: the run bailed — revise-impossible, a process failure.
+Steps done: 21 of 22 planned.
+Outcome: the run bailed — no-verdict, a system failure.
 Lane: ready-for-agent:mu
-Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
+Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0, skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $18.30 over 347 turns, in 7 sessions, on opus (estimate).
+Conductor own spending: $21.07 over 397 turns, in 8 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80188 tokens, largest 144899 tokens
 Conductor context: first turn 80150 tokens, largest 155172 tokens
@@ -15,7 +15,8 @@ Conductor context: first turn 80065 tokens, largest 143942 tokens
 Conductor context: first turn 80066 tokens, largest 138481 tokens
 Conductor context: first turn 80103 tokens, largest 148133 tokens
 Conductor context: first turn 80102 tokens, largest 173116 tokens
-Conductor context: first turn 80231 tokens, largest 140698 tokens
+Conductor context: first turn 80231 tokens, largest 142964 tokens
+Conductor context: first turn 80226 tokens, largest 172249 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -327,35 +328,85 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 303 | $0.05 | 172500 |
 | 304 | $0.04 | 172892 |
 | 305 | $0.05 | 173116 |
-| 306 | $0.50 | 80231 |
-| 307 | $0.07 | 86699 |
-| 308 | $0.04 | 89507 |
-| 309 | $0.03 | 91427 |
+| 306 | $0.51 | 80231 |
+| 307 | $0.08 | 86699 |
+| 308 | $0.05 | 89507 |
+| 309 | $0.04 | 91427 |
 | 310 | $0.05 | 94943 |
-| 311 | $0.02 | 95429 |
-| 312 | $0.02 | 95920 |
-| 313 | $0.02 | 96220 |
-| 314 | $0.02 | 96817 |
-| 315 | $0.02 | 97495 |
-| 316 | $0.03 | 98249 |
-| 317 | $0.02 | 98622 |
-| 318 | $0.02 | 98948 |
-| 319 | $0.02 | 99439 |
+| 311 | $0.04 | 95429 |
+| 312 | $0.03 | 95920 |
+| 313 | $0.03 | 96220 |
+| 314 | $0.03 | 96817 |
+| 315 | $0.03 | 97495 |
+| 316 | $0.04 | 98249 |
+| 317 | $0.03 | 98622 |
+| 318 | $0.03 | 98948 |
+| 319 | $0.04 | 99439 |
 | 320 | $0.03 | 100115 |
-| 321 | $0.06 | 104880 |
+| 321 | $0.07 | 104880 |
 | 322 | $0.04 | 106656 |
-| 323 | $0.03 | 108293 |
-| 324 | $0.03 | 109354 |
-| 325 | $0.03 | 109828 |
-| 326 | $0.04 | 112235 |
-| 327 | $0.03 | 113012 |
+| 323 | $0.04 | 108293 |
+| 324 | $0.04 | 109354 |
+| 325 | $0.04 | 109828 |
+| 326 | $0.05 | 112235 |
+| 327 | $0.04 | 113012 |
 | 328 | $0.10 | 122072 |
-| 329 | $0.03 | 122790 |
-| 330 | $0.10 | 131860 |
+| 329 | $0.04 | 122790 |
+| 330 | $0.11 | 131860 |
 | 331 | $0.04 | 133329 |
-| 332 | $0.03 | 134039 |
+| 332 | $0.05 | 134039 |
 | 333 | $0.04 | 135341 |
-| 334 | $0.07 | 140698 |
+| 334 | $0.08 | 140698 |
+| 335 | $0.05 | 141640 |
+| 336 | $0.04 | 142964 |
+| 337 | $0.50 | 80226 |
+| 338 | $0.07 | 86983 |
+| 339 | $0.04 | 89797 |
+| 340 | $0.03 | 91735 |
+| 341 | $0.03 | 93327 |
+| 342 | $0.08 | 100907 |
+| 343 | $0.02 | 101325 |
+| 344 | $0.02 | 101725 |
+| 345 | $0.02 | 102001 |
+| 346 | $0.07 | 108815 |
+| 347 | $0.03 | 109727 |
+| 348 | $0.03 | 110709 |
+| 349 | $0.02 | 111062 |
+| 350 | $0.02 | 111390 |
+| 351 | $0.03 | 111813 |
+| 352 | $0.03 | 112523 |
+| 353 | $0.03 | 113281 |
+| 354 | $0.03 | 113864 |
+| 355 | $0.02 | 114130 |
+| 356 | $0.03 | 114512 |
+| 357 | $0.04 | 116275 |
+| 358 | $0.03 | 116950 |
+| 359 | $0.03 | 117525 |
+| 360 | $0.03 | 118602 |
+| 361 | $0.04 | 121188 |
+| 362 | $0.03 | 121967 |
+| 363 | $0.09 | 129847 |
+| 364 | $0.03 | 130635 |
+| 365 | $0.03 | 130872 |
+| 366 | $0.03 | 131401 |
+| 367 | $0.03 | 132183 |
+| 368 | $0.03 | 133084 |
+| 369 | $0.04 | 134900 |
+| 370 | $0.04 | 136655 |
+| 371 | $0.04 | 138788 |
+| 372 | $0.05 | 141277 |
+| 373 | $0.04 | 143213 |
+| 374 | $0.03 | 144006 |
+| 375 | $0.03 | 144493 |
+| 376 | $0.04 | 145274 |
+| 377 | $0.04 | 146019 |
+| 378 | $0.04 | 147243 |
+| 379 | $0.16 | 163889 |
+| 380 | $0.04 | 164265 |
+| 381 | $0.04 | 164782 |
+| 382 | $0.04 | 165637 |
+| 383 | $0.04 | 167057 |
+| 384 | $0.07 | 172249 |
 
 #### Conductor comments, by family
 
@@ -381,13 +432,13 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 7 | 7 | 0 | 0 | 107 | 92 | 12 | 24 | 10488 | 152708 | 133771 | 0.45 |
+| plan | 8 | 8 | 0 | 0 | 122 | 105 | 14 | 28 | 11914 | 176545 | 159856 | 0.54 |
 | red | 22 | 8 | 0 | 0 | 476 | 315 | 88 | 172 | 33091 | 1553872 | 421824 | 1.54 |
 | green | 20 | 8 | 2 | 0 | 781 | 318 | 100 | 186 | 30587 | 1736215 | 339310 | 1.50 |
 | refactor | 8 | 0 | 0 | 0 | 61 | 39 | 18 | 34 | 2691 | 226567 | 129640 | 0.37 |
 | pin | 5 | 5 | 0 | 0 | 121 | 79 | 22 | 44 | 7759 | 378034 | 83625 | 0.32 |
-| diff | 7 | 2 | 1 | 0 | 433 | 153 | 46 | 88 | 14502 | 813101 | 123014 | 0.70 |
-| prose | 15 | 0 | 0 | 0 | 286 | 258 | 15 | 30 | 38149 | 100603 | 439689 | 1.49 |
+| diff | 9 | 3 | 1 | 0 | 482 | 179 | 55 | 106 | 16688 | 956286 | 153079 | 0.81 |
+| prose | 17 | 0 | 0 | 0 | 337 | 304 | 17 | 34 | 45364 | 102887 | 473445 | 1.65 |
 | skill-edit | 3 | 0 | 0 | 0 | 51 | 42 | 13 | 22 | 3762 | 416202 | 127787 | 0.40 |
 | rebase | 3 | 1 | 0 | 0 | 288 | 89 | 27 | 54 | 8617 | 600583 | 66615 | 0.48 |
 | predicate | 3 | 0 | 0 | 0 | 30 | 21 | 9 | 18 | 1306 | 122824 | 45925 | 0.14 |
@@ -399,9 +450,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 36 | 33 | 3 | 0 | 1153 | 488 | 134 | 262 | 47247 | 2211496 | 600192 | 2.19 |
-| developer | claude-sonnet-5-5 | 37 | 0 | 0 | 0 | 683 | 448 | 143 | 274 | 45817 | 2387384 | 652388 | 2.33 |
-| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 562 | 239 | 68 | 130 | 22802 | 1346723 | 181229 | 1.32 |
+| verifier | claude-sonnet-5-5 | 38 | 35 | 3 | 0 | 1192 | 514 | 140 | 274 | 49938 | 2297904 | 641596 | 2.33 |
+| developer | claude-sonnet-5-5 | 40 | 0 | 0 | 0 | 986 | 552 | 173 | 334 | 55550 | 2981986 | 714478 | 2.81 |
+| developer | claude-opus-5-5 | 6 | 0 | 0 | 0 | 284 | 148 | 43 | 80 | 13990 | 832735 | 133885 | 0.90 |
 
 #### Rework and waste, by phase
 
@@ -412,7 +463,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | green | 332 | 0.67 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
-| diff | 0 | 0.00 | 309 | 0.48 |
+| diff | 358 | 0.59 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | rebase | 0 | 0.00 | 0 | 0.00 |
@@ -421,7 +472,6 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
 | develop-red | 0 | 0.00 | 0 | 0.00 |
-| revise-diff | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -446,7 +496,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | `skills/tdd/SCRIPTS.md`: the `park-issue.sh` entry states the `--blocked-by <n>[,<n>…]` argument and the comment's `Blocked by:` line, and the `parked-issues.sh` entry states the fifth `ready`/`waiting`/`-` field, graded against rows SC46 and SC47 of the issue's `## Requirements` ⟦skill-edit⟧ ⟦criterion 5⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 96 | 8 | 16 | 14109 | 343274 | 315785 | 0.96 | 139 | unknown | unknown | unknown |  |  | full |
 | `skills/vcoord/SKILL.md`: the coordinator passes blocker numbers whenever it parks, re-reads `parked-issues.sh` after every merge event and un-parks each issue it reports `ready`, graded against row C13 of the issue's `## Requirements` ⟦skill-edit⟧ ⟦criterion 4⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 59 | 7 | 14 | 7275 | 69581 | 60845 | 0.23 | 85 | unknown | unknown | unknown |  |  | full |
 | `skills/vdev/SKILL.md`: the dev session passes blocker numbers whenever it parks, graded against row D13 of the issue's `## Requirements` ⟦skill-edit⟧ ⟦criterion 4⟧ | 17 | 3 | 0 | 0 | 0 | 0 | 239 | 69 | 134 | 25130 | 1184151 | 271816 | 1.22 | 89 | 1/2 | unknown | unknown |  |  | full |
-| The usage strings of `skills/tdd/scripts/veri/park_issue.py` (`USAGE`) and `skills/tdd/scripts/park-issue.sh` (its header `Usage:` line) read `[--blocked-by <n>[,<n>…]]`, matching row SC46 and `skills/tdd/SCRIPTS.md`; no other change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 4⟧ | 3 | 0 | 1 | 0 | 0 | 0 | 106 | 29 | 58 | 10143 | 577360 | 62980 | 0.48 | unknown | 1/2 | unknown | unknown |  |  | full |
+| The usage strings of `skills/tdd/scripts/veri/park_issue.py` (`USAGE`) and `skills/tdd/scripts/park-issue.sh` (its header `Usage:` line) read `[--blocked-by <n>[,<n>…]]`, matching row SC46 and `skills/tdd/SCRIPTS.md`; no other change ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 4⟧ | 5 | 1 | 1 | 0 | 0 | 0 | 132 | 38 | 76 | 12329 | 720545 | 93045 | 0.59 | 116 | 1/2 | unknown | unknown |  |  | full |
+| `skills/vcoord/SKILL.md`: un-parking an issue `parked-issues.sh` reports `ready` is running `release-issue.sh <n>`, never removing the `parked` label alone, in the SKILL.md text and in row C13 of `skills/vcoord/REQUIREMENTS.md`, graded against row C13 of the issue's `## Requirements` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 20 | 1 | 2 | 3079 | 649 | 15605 | 0.07 | 38 | unknown | unknown | unknown |  |  | full |
+| `skills/vdev/SKILL.md`: un-parking an issue is running `release-issue.sh <n>`, never removing the `parked` label alone, in the SKILL.md text and in row D13 of `skills/vdev/REQUIREMENTS.md`, graded against row D13 of the issue's `## Requirements` ⟦skill-edit⟧ ⟦added⟧ ⟦criterion 4⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 26 | 1 | 2 | 4136 | 1635 | 18151 | 0.09 | 47 | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -485,15 +537,15 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 3 | 2 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 3 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 7 | 1 | 2 | 2 | 1 | 2 | 3 | 2 | 1 | 2 | 1 | 2 | 3 | 1 | 1 | 3 | 2 | 2 | 2 | 1 | 2 |
-| fast | 5 | 5 | 5 | 6 | 7 | 6 | 5 | 7 | 6 | 8 | 14 | 13 | 7 | 5 | 7 | 6 | 5 | 6 | 20 | 7 | 9 | 10 | 9 | 6 | 6 | 5 | 6 | 6 | 14 | 6 | 6 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 3 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 6 | 118 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 2 | 2 | 1 | 2 | 1 | 2 | 2 | 1 | 3 | 2 | 1 | 1 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 3 | 2 | 1 | 2 | 1 | 2 | 2 | 2 | 2 | 1 | 7 | 1 | 2 | 2 | 1 | 2 | 3 | 2 | 1 | 2 | 1 | 2 | 3 | 1 | 1 | 3 | 2 | 2 | 2 | 1 | 2 | 2 | 2 |
+| fast | 5 | 5 | 5 | 6 | 7 | 6 | 5 | 7 | 6 | 8 | 14 | 13 | 7 | 5 | 7 | 6 | 5 | 6 | 20 | 7 | 9 | 10 | 9 | 6 | 6 | 5 | 6 | 6 | 14 | 6 | 6 | 7 | 6 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 3 | 2 | 1 | 2 | 2 | 1 | 1 | 1 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 6 | 118 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 373 | 718 | 157777 | 6462408 | 2001285 | 26.04 (estimate) |
+| total | 386 | 744 | 168604 | 6631714 | 2091191 | 29.15 (estimate) |
