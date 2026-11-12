@@ -4,4 +4,4 @@
 # usage: build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>
 # Exit: 0 prompt printed; 2 bad arguments
 . "$(dirname "$0")/lib/shim-python.sh"
-exec "$py" "$(cd "$(dirname "$0")" && pwd)/veri/build_adjudicate_prompt.py" "$@"
+exec "$py" "$(dirname "$0")/veri/build_adjudicate_prompt.py" "$@"

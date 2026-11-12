@@ -1,14 +1,15 @@
 """adjudicate.sh's budget and record commands, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import json
-import os
 import sys
+
+import event_log
+import tunables
 
 USAGE = "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <leaf-output>"
 
 
 def budget():
-    return os.environ.get("VERI_ADJUDICATE_BUDGET", "2")
+    return tunables.read("VERI_ADJUDICATE_BUDGET", "2")
 
 
 def main(argv):
@@ -19,15 +20,13 @@ def main(argv):
         return 0
     if len(argv) == 2 and argv[0] == "left":
         spent = 0
-        with open(".tdd/events.jsonl") as f:
-            for line in f:
-                e = json.loads(line)
-                if str(e.get("issue")) != argv[1]:
-                    continue
-                if e.get("event") == "conductor-start":
-                    spent = 0
-                elif e.get("event") == "adjudicated":
-                    spent += 1
+        for e in event_log.read_events(".tdd/events.jsonl"):
+            if str(e.get("issue")) != argv[1]:
+                continue
+            if e.get("event") == "conductor-start":
+                spent = 0
+            elif e.get("event") == "adjudicated":
+                spent += 1
         if spent < int(budget()):
             return 0
     print(USAGE, file=sys.stderr)
