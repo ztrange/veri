@@ -10,6 +10,7 @@ import time
 import event
 import full_tier_time
 import growth
+import paths
 import pid_file
 import status
 import stop_run as stop_run_module
@@ -70,7 +71,7 @@ def _launch_env(run):
 
 
 def detach_leaf(run):
-    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    scripts = paths.resolved_scripts_of(__file__)
     env = _launch_env(run)
     with open(_log_path(run), "a") as log:
         subprocess.Popen(
