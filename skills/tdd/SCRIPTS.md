@@ -223,6 +223,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
   log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
   `added=0`, since a step the budget refused is still a decision the run made.
+  When another process's conductor is live in the ledger's worktree, the script also commits the
+  grown ledger and its `.tdd/issue-<n>-added.md` record in a commit of their own, so a later bail's
+  revert keeps the step. Stderr then states whether the added step is **durable** (committed,
+  naming the commit) or **not durable** (uncommitted).
   `--planned --criterion <k>` inserts steps for a criterion no step serves yet, without `⟦added⟧`, so they do not count toward `VERI_STEP_GROWTH` — the resume's own scoping, not discovered growth. The refusals are all **exit 2**, with nothing inserted and nothing filed as owed:
   `--planned without --criterion`, a criterion a ledger step already serves (the script says "already serves"),
   no readable spec file beside the ledger (the script says "cannot read the spec file", naming it),
