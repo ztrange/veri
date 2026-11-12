@@ -34,7 +34,9 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_rewri
                            (ran.returncode, ran.stdout, ran.stderr))
 
     after, none = answers["collapse to single hyphen"], answers["no such step"]
-    assert after[0] == after[1] == (0, "", "")
+    for code, out, err in after:
+        assert (code, out) == (0, "")
+        assert err.count("\n") == 1 and "not durable" in err.lower(), err
     assert none[0] == none[1] == (2, "", "add-ledger-step.sh: anchor matches no single step: no such step\n")
     assert (tmp_path / "elsewhere" / "l.md").read_bytes() == (tmp_path / "in-place" / "l.md").read_bytes()
     assert "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n" in (tmp_path / "elsewhere" / "l.md").read_text()
