@@ -91,3 +91,24 @@ def test_left_exits_3_when_the_adjudications_since_the_last_conductor_start_reac
     (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
     code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
     assert (code, out, err) == (3, "", "")
+
+
+def test_record_on_a_bail_answer_writes_one_adjudicated_event_prints_bail_and_exits_1(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("thinking\nADJUDICATION: bail — the check has been pending for hours\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (1, "bail\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    adjudicated = [e for e in events if e.get("event") == "adjudicated"]
+    assert len(adjudicated) == 1
+    assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
+        "issue": "7",
+        "cause": "ci-timeout",
+        "outcome": "bail",
+        "reason": "the check has been pending for hours",
+    }
