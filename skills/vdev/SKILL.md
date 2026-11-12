@@ -53,7 +53,7 @@ speak about goes to it, by that session id, and the human gets `.`.
 ## Role state
 
 Write your state through `$S/role-state.sh dev [--lane <lane>]` at the moment it changes, never
-at reset time: N, each timed N change (with its expiry) and order override the coordinator
+at reset time: N, each timed N change (with its expiry, written as `<n> until <ISO-8601 datetime>`, the form `role-state.sh ... add timed-n` accepts and `dispatch.sh` parses) and order override the coordinator
 sends, each pending human decision (in full), and each message sent to the coordinator and not
 yet confirmed. Drop the item when it ends. When a coordinator's first message arrives, or a
 message comes from a different coordinator session id, record it with
