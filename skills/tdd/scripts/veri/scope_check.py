@@ -23,6 +23,24 @@ def existing_by_basename(root):
     return found
 
 
+def skill_edit_refused(steps, spec_text):
+    skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
+    if not re.search(r"^## Requirements\s*$", spec_text, re.M):
+        return False
+    headings = {re.sub(r" \(new\)$", "", heading)
+                for heading, line in requirements.requirements_lines(spec_text.splitlines())
+                if line.startswith("### ")}
+    for step in skill_edits:
+        unit = ledger.unit_of(step)
+        if unit is None:
+            print(f"scope-check.sh: no path-shaped unit for skill-edit step: {step}", file=sys.stderr)
+            return True
+        if unit not in headings:
+            print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
+            return True
+    return False
+
+
 def main(argv):
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
@@ -42,19 +60,8 @@ def main(argv):
         if os.path.exists(spec):
             with open(spec, encoding="utf-8") as f:
                 spec_text = f.read()
-            skill_edits = [record[-1] for record in steps if ledger.carries_mark(record[-1], "skill-edit")]
-            if re.search(r"^## Requirements\s*$", spec_text, re.M):
-                headings = {re.sub(r" \(new\)$", "", heading)
-                            for heading, line in requirements.requirements_lines(spec_text.splitlines())
-                            if line.startswith("### ")}
-                for step in skill_edits:
-                    unit = ledger.unit_of(step)
-                    if unit is None:
-                        print(f"scope-check.sh: no path-shaped unit for skill-edit step: {step}", file=sys.stderr)
-                        return 2
-                    if unit not in headings:
-                        print(f"scope-check.sh: no ### heading for skill-edit unit: {unit}", file=sys.stderr)
-                        return 2
+            if skill_edit_refused(steps, spec_text):
+                return 2
     named = NAMED.findall(text)
     clashes = []
     for named_path in dict.fromkeys(named):
