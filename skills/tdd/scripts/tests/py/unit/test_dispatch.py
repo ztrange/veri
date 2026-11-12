@@ -1281,6 +1281,40 @@ def test_main_launches_nothing_at_target_1_while_a_seen_run_is_in_preflight_with
     assert launches == []
 
 
+def test_main_counts_a_preflight_run_as_one_held_slot_across_five_polls_so_every_poll_still_launches_at_target_3_issue_3693(
+        monkeypatch, tmp_path, dispatch):
+    lives = [["7"], []]
+    launches = []
+    waits = []
+
+    def launch(issue):
+        launches.append(issue)
+        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("- [ ] step\n")
+
+    def wait():
+        waits.append(1)
+        if len(waits) == 5:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
+    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues",
+                        lambda: [i for i in ["12", "15", "18", "21", "24", "27"] if i not in launches],
+                        raising=False)
+    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    with pytest.raises(_StopWaiting):
+        dispatch.main(["--target", "3"])
+
+    assert launches == ["12", "15", "18", "21", "24"]
+
+
 def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_exists_and_no_run_conductor_process_is_alive_issue_3693(
         monkeypatch, capsys, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
