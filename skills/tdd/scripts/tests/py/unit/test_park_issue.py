@@ -149,3 +149,14 @@ def test_issue_3683_the_parked_comment_with_a_pr_argument_carries_both_the_pr_li
     lines = comments[0].splitlines()
     assert lines.count("PR: 77") == 1
     assert lines.count("Blocked by: #9") == 1
+
+
+def test_issue_3683_without_blocked_by_the_parked_comment_is_exactly_cause_and_unblock(park, run_cli, monkeypatch):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+
+    code, out, err = run_cli(park_issue, ["42", "pin-recheck exit 2", "#9 lands"])
+
+    assert (code, err) == (0, "")
+    assert comments == ["### ⏸ Parked\nCause: pin-recheck exit 2\nUnblock: #9 lands\n"]
