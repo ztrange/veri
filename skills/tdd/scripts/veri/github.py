@@ -117,6 +117,8 @@ class GraphQLAdapter:
     def issue_view(self, number, field):
         if field == "comments":
             return RestAdapter()._comments(number)
+        if field not in ("body", "labels"):
+            raise NoAnswer("")
         query = ".body" if field == "body" else ".labels[].name"
         return self._run("issue", "view", number, "--json", field, "-q", query)
 
