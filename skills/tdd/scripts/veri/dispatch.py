@@ -352,7 +352,7 @@ def main(argv):
                 say(line + "\n")
                 return 0
         if not argv:
-            lines = status.read_role_state("dev", lane())
+            lines = status.read_role_state("dev", lane()) or []
             try:
                 target = last_n(lines)
                 for line in lines:
@@ -402,7 +402,7 @@ def main(argv):
                 queue = solvable_issues()
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
-                free = prioritize(free, status.read_role_state("dev", lane()))
+                free = prioritize(free, status.read_role_state("dev", lane()) or [])
             except MalformedOverride as line:
                 sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
