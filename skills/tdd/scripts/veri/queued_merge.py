@@ -12,11 +12,13 @@ import time
 
 try:
     import event
+    import paths
     import tunables
     from github import gh_api, gh_probe
     from ledger import ledger_path
 except ImportError:
     from . import event
+    from . import paths
     from . import tunables
     from .github import gh_api, gh_probe
     from .ledger import ledger_path
@@ -24,7 +26,7 @@ except ImportError:
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
 REFRESH_RETRIES = 10
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+SCRIPTS = paths.resolved_scripts_of(__file__)
 
 RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "veri/merge_lock.py",
                  "veri/tunables.py", "veri/entry.py", "veri/pycache_prefix.py")
