@@ -97,40 +97,22 @@ def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_d
         "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
-def test_main_maps_a_dashboard_file_to_the_dashboards_own_tests_and_no_veri_suite_without_widening_3334(
+def test_main_widens_a_file_under_projects_dashboard_like_any_file_no_rule_places_and_prints_none_of_its_tests(
         tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["projects/dashboard/serve.py"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "py/unit").mkdir(parents=True)
     (tests / "py/unit/test_other.py").write_text("")
-    dashboard = tmp_path / "projects/dashboard/tests"
-    dashboard.mkdir(parents=True)
-    (dashboard / "test_serve_get_root.py").write_text("")
-    (dashboard / "test_makefile_test_target.py").write_text("")
+    (tests / "py/test_top.py").write_text("")
+    project = tmp_path / "projects/dashboard/tests"
+    project.mkdir(parents=True)
+    (project / "test_serve_get_root.py").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0,
-        "projects/dashboard/tests/test_makefile_test_target.py\n"
-        "projects/dashboard/tests/test_serve_get_root.py\n",
-        "")
-
-
-def test_main_prints_the_union_of_a_veri_files_suites_and_the_dashboards_tests_for_a_mixed_range_3334(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["projects/dashboard/serve.py", "skills/tdd/scripts/veri/foo.py"]))
-    monkeypatch.chdir(tmp_path)
-    tests = tmp_path / "skills/tdd/scripts/tests"
-    (tests / "py/unit").mkdir(parents=True)
-    (tests / "py/unit/test_foo.py").write_text("")
-    (tests / "py/unit/test_other.py").write_text("")
-    dashboard = tmp_path / "projects/dashboard/tests"
-    dashboard.mkdir(parents=True)
-    (dashboard / "test_serve_get_root.py").write_text("")
-    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
-        0,
-        "projects/dashboard/tests/test_serve_get_root.py\n"
-        "skills/tdd/scripts/tests/py/unit/test_foo.py\n",
-        "")
+        "skills/tdd/scripts/tests/py/test_top.py\n"
+        "skills/tdd/scripts/tests/py/unit/test_other.py\n",
+        "affected-suites: no rule places projects/dashboard/serve.py; widening to every suite\n")
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
