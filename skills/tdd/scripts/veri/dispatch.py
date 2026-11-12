@@ -114,23 +114,32 @@ def issue_states(issues):
     return {issue: states[issue] for issue in issues if issue in states}
 
 
-class BodyUnreadable(watch_runs.QueueUnreadable):
+class RateLimitPersists(watch_runs.QueueUnreadable):
     pass
 
 
 def answered(what, read, *args):
-    """<read>(*args), a gh read; no answer is an unreadable queue naming <what>, so a rate limit waits for the reset."""
+    """<read>(*args), a gh read; no answer is an unreadable queue naming <what>. A rate limit waits for the reset
+    (the caller's), but a read still rate-limited after VERI_GH_REFUSAL_RETRIES waits in a row is a RateLimitPersists."""
     retries = 0
+    limited = _reads.setdefault("limited", {})
     while True:
         try:
-            return read(*args)
+            answer = read(*args)
+            limited.pop(what, None)
+            return answer
         except github.NoAnswer as failure:
             detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
             if ("HTTP 5" in detail or "error connecting to api.github.com" in detail) and retries < 12:
                 retries += 1
                 github.time.sleep(int(tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5")))
                 continue
-            raise watch_runs.QueueUnreadable(f"dispatch.sh: reading {what} failed: {detail}\n")
+            unreadable = f"dispatch.sh: reading {what} failed: {detail}\n"
+            if "rate limit" in detail:
+                limited[what] = limited.get(what, 0) + 1
+                if limited[what] > github._wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+                    raise RateLimitPersists(unreadable)
+            raise watch_runs.QueueUnreadable(unreadable)
 
 
 def overlap_poll():
@@ -146,14 +155,7 @@ def issue_paths(issue):
     """The backticked words of <issue>'s body: the repo paths it names. Read once per dispatch process."""
     bodies = _reads.setdefault("bodies", {})
     if issue not in bodies:
-        limited = _reads.setdefault("limited", {})
-        try:
-            bodies[issue] = answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body")
-        except watch_runs.QueueUnreadable as failure:
-            limited[issue] = limited.get(issue, 0) + 1
-            if limited[issue] > 3:
-                raise BodyUnreadable(str(failure))
-            raise
+        bodies[issue] = answered(f"issue {issue}'s body", github.gh_issue_view, issue, "body")
     return re.findall(r"`([^`\s]+)`", bodies[issue])
 
 
@@ -386,7 +388,7 @@ def main(argv):
                 sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
-                if "rate limit" in str(failure) and not isinstance(failure, BodyUnreadable):
+                if "rate limit" in str(failure) and not isinstance(failure, RateLimitPersists):
                     resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
                 elif str(failure):
                     sys.stderr.write(str(failure))
