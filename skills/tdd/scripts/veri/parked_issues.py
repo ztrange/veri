@@ -52,8 +52,13 @@ def main(argv):
             except github.NoAnswer:
                 sys.stderr.write("parked-issues.sh: no answer from gh to reading the state of #%s\n" % blocker)
                 return 2
-            if json.loads(state).get("state") != "closed":
+            info = json.loads(state)
+            if info.get("state") != "closed":
                 status = "waiting"
+            elif "pull_request" in info:
+                pull = github.gh_api("repos/{owner}/{repo}/pulls/%s" % blocker)
+                if not json.loads(pull).get("merged"):
+                    status = "waiting"
         sys.stdout.write("%d\t%s\t%s\t%s\t%s\n" % (number, issue["title"], cause, unblock, status))
     return 0
 
