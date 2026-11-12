@@ -71,3 +71,13 @@ def test_main_exits_2_printing_nothing_for_an_unreadable_report_3324(
     code, out, err = run_cli(pin_target, [str(missing)], cwd=tmp_path)
 
     assert (code, out) == (2, ""), err
+
+
+def test_main_exits_2_printing_nothing_for_a_readable_report_with_no_target_3324(
+        tmp_path, run_cli, pin_target):
+    red = tmp_path / "develop-red.out"
+    red.write_text("TEST_PATH: t.py\nAGAINST_UNMODIFIED: PASSES\n")
+
+    code, out, err = run_cli(pin_target, [str(red)], cwd=tmp_path)
+
+    assert (code, out) == (2, ""), err
