@@ -1,0 +1,2 @@
+### When the live conductor named by `.tdd/conductor.pid` is an ancestor of the process calling `add-ledger-step.sh` (the conductor itself growing its plan), the script commits nothing and leaves the grown ledger uncommitted for the conductor's own commit, as today; a medium case with a real git repo
+- test-only | the two #3618 process cases in `test_add_ledger_step_process.py` repeat the git env dict, the `git()` helper and the worktree setup; extract them into a shared fixture or helper
