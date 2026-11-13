@@ -343,6 +343,10 @@ def _helpers_stale(releg, name, case, recorded, text, body):
     return False
 
 
+def _parse_replaces(step):
+    return replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
+
+
 def _check_earlier(ledger, step, exempt=()):
     root = _toplevel()
     if root is None:
@@ -358,7 +362,7 @@ def _check_earlier(ledger, step, exempt=()):
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
-    parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
+    parsed = _parse_replaces(step)
     exempt = list(exempt) + (parsed[0] if parsed else [])
     fixture = _FIXTURE_FILE.search(step) if carries_mark(trailing_markers(step), "fixture-repair") else None
     latest = {}
@@ -615,7 +619,7 @@ def rerecord_refactored(ledger, green):
     exempt = []
     for line in lines:
         item = ITEM_RE.match(line)
-        parsed = replaces_case.parse(item.group(2)) if item and replaces_case.is_replaces_case_step(item.group(2)) else None
+        parsed = _parse_replaces(item.group(2)) if item else None
         exempt += parsed[0] if parsed else []
     seen = {}
     repaired = _is_suite_repair_green(lines, green)
@@ -852,7 +856,7 @@ def main(argv):
                 return 2
         if by_step:
             recorded = {name for _, name in entries}
-            parsed = replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
+            parsed = _parse_replaces(step)
             exempt = {parsed[1]} if parsed else set()
             if fixture:
                 exempt.add(fixture.group(1))
