@@ -401,7 +401,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   queued sighting is recorded in `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
   `SUCCESS`, `NEUTRAL` or `SKIPPED`, not all `SKIPPED`. **Exit 1** a completed check concluded
   anything else, or a commit status is `failure`/`error`; the failed check names go on stdout,
-  comma-separated. **Exit 2** no answer: bad arguments, a read of the checks that fails and is still failing when the deadline passes (retried with backoff until it; a read refused with a rate-limit message is waited out until GitHub's reset when that falls before the deadline and, for a read of the check runs or commit status, before the slice end (this call's start plus `<slice-seconds>`); past the slice end that read sleeps only the time left to it and the call exits 3; the call exits 2 at once, naming the rate limit and its reset time, when the reset falls at or past the deadline; a 4xx other than 403 or 429 exits 2 at once), a
+  comma-separated. **Exit 2** no answer: bad arguments, a read of the checks that fails and is still failing when the deadline passes (retried with backoff until it; a read refused with a rate-limit message is waited out until GitHub's reset when that falls before the deadline and, for every read (the PR's head, check runs or commit status), before the slice end (this call's start plus `<slice-seconds>`); past the slice end that read sleeps only the time left to it and the call exits 3; the call exits 2 at once, naming the rate limit and its reset time, when the reset falls at or past the deadline; a 4xx other than 403 or 429 exits 2 at once), a
   PR with no checks (or only skipped ones) that conflicts with its base branch (stderr says
   `conflicts with its base branch`), a check still pending past the recorded deadline, an
   unreadable deadline file, or checks that never started — still queued more than
@@ -432,7 +432,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   commit status that GitHub refuses with a rate-limit message is not retried on that backoff: the
   script reads the reset time (`gh api rate_limit`) and, when it falls before the CI deadline
   (recorded first when no call has yet, not on a draft), sleeps until it and reads again, except that
-  a refused read of the check runs or commit status whose reset falls past the slice end (the call's
+  any refused read (head, check runs or commit status) whose reset falls past the slice end (the call's
   start plus `<slice-seconds>`) sleeps only the time left until the slice end, never a negative time,
   and the call **exits 3**, so a call near its deadline ends inside the 600 s tool cap; when it
   falls at or past the deadline it **exits 2** at once without sleeping, its stderr naming the rate

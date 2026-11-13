@@ -2664,3 +2664,33 @@ def test_main_caps_a_rate_limit_sleep_at_the_time_left_until_the_slice_end_when_
         observed.append((code, slept, left))
 
     assert observed == [(3, [440], 440), (3, [0], 0)]
+
+
+def test_main_caps_the_rate_limit_sleep_of_the_pr_head_read_at_the_time_left_until_the_slice_end_and_exits_3_issue_3758(
+        monkeypatch, tmp_path, wait_ci, fake_processes, run_cli):
+    import veri.github
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    clock, reads, slept = {"now": 1000}, [], []
+
+    def limited_once(line):
+        if line == PULL:
+            reads.append(line)
+            if len(reads) == 1:
+                clock["now"] = 1100
+                return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+    def clocked(inner):
+        def spy(line, **kwargs):
+            if line == "date +%s":
+                return 0, f"{clock['now']}\n", ""
+            return inner(line, **kwargs)
+        fake_processes(spy)
+
+    monkeypatch.setattr(veri.github, "rate_limit_reset", lambda *_, **__: 1590)
+    monkeypatch.setattr(veri.github.time, "sleep", slept.append)
+    served(clocked, bodies, limited_once)
+    code, _, _ = run_cli(wait_ci, [PR, "540", "600"], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, slept, len(reads)) == (3, [440], 1)
