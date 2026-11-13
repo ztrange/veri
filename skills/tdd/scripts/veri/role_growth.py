@@ -14,7 +14,7 @@ KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 
-class Unreadable(Exception):
+class Failure(Exception):
     pass
 
 
@@ -23,7 +23,7 @@ def _records(transcript):
         with open(transcript) as f:
             return [json.loads(l) for l in f if l.strip()]
     except json.JSONDecodeError:
-        raise Unreadable("unreadable transcript %s\n" % transcript)
+        raise Failure("unreadable transcript %s\n" % transcript)
 
 
 def _baseline(transcript):
@@ -51,7 +51,7 @@ def _growth_line(path, lines, fields, transcript, knob):
 def main(argv):
     try:
         return _main(argv)
-    except Unreadable as e:
+    except Failure as e:
         sys.stderr.write(str(e))
         return 2
 
@@ -62,25 +62,21 @@ def _main(argv):
         lane = argv[2]
         argv = argv[:1]
     if len(argv) != 1 or argv[0] not in KNOBS:
-        sys.stderr.write(USAGE)
-        return 2
+        raise Failure(USAGE)
     raw = tunables.read(KNOBS[argv[0]], "70000")
     if not raw.isdigit() or int(raw) < 1:
-        sys.stderr.write("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
-        return 2
+        raise Failure("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
     session = os.environ["CLAUDE_CODE_SESSION_ID"]
     pattern = os.path.join(os.path.expanduser("~"), ".claude", "projects", "*", session + ".jsonl")
     found = glob.glob(pattern)
     if not found:
-        sys.stderr.write("no transcript %s\n" % pattern)
-        return 2
+        raise Failure("no transcript %s\n" % pattern)
     transcript = found[0]
     path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
     lines = (role_state.read(path) or "").splitlines()
     if any("=" not in l and not l.startswith(("decision ", "dropped-decision ", "message ", "override ", "timed-n ")) for l in lines):
-        sys.stderr.write("malformed state file %s\n" % path)
-        return 2
+        raise Failure("malformed state file %s\n" % path)
     fields = dict(l.split("=", 1) for l in lines if "=" in l)
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
