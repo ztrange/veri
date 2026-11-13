@@ -1,0 +1,11 @@
+file 38
+skills/tdd/scripts/veri/update_veri.py
+old-b64 92
+cm9vdCA9IG9zLnBhdGguZGlybmFtZShvcy5wYXRoLmRpcm5hbWUob3MucGF0aC5yZWFscGF0aChfX2ZpbGVfXykpKQ==
+new-b64 36
+cm9vdCA9ICIvbm9uZXhpc3RlbnQteHl6Ig==
+context-b64 96
+ICAgIHJvb3QgPSBvcy5wYXRoLmRpcm5hbWUob3MucGF0aC5kaXJuYW1lKG9zLnBhdGgucmVhbHBhdGgoX19maWxlX18pKSk=
+command 68
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_update_veri.py
+
