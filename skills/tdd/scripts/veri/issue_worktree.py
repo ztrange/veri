@@ -243,16 +243,17 @@ def cut(path, branch):
         code = worktree_add(path, branch)
     elif (on_origin := ref_exists(remote_ref)) and took_by_this_lane(issue_of(branch)):
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
-    elif len(own := local_issue_branches(path, issue_of(branch))) == 1:
-        branch = own[0]
+    elif len(names := sorted({*(own := local_issue_branches(path, issue_of(branch))),
+                              *origin_issue_branches(path, issue_of(branch))})) == 1 and own:
+        branch = names[0]
         code = worktree_add(path, branch)
-    elif len(theirs := origin_issue_branches(path, issue_of(branch))) == 1 and took_by_this_lane(issue_of(branch)):
-        branch = theirs[0]
+    elif len(names) == 1 and took_by_this_lane(issue_of(branch)):
+        branch = names[0]
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
     else:
-        if len(own) > 1:
+        if len(names) > 1:
             return refuse("%s exist for the issue — cannot pick one for the requested %s"
-                          % (", ".join(own), branch))
+                          % (", ".join(names), branch))
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
