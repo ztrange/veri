@@ -3819,3 +3819,62 @@ def test_main_reads_an_empty_queue_once_per_overlap_poll_interval_with_a_free_sl
         pass
 
     assert reads == [1000, 1060]
+
+def test_main_waits_for_the_reset_and_reads_the_exit_comments_again_when_the_read_in_exit_line_is_rate_limited_with_a_403_issue_3747(
+        monkeypatch, tmp_path, run_cli, dispatch):
+    import json
+
+    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
+    now = [1000]
+    reset = 1025
+    reads = []
+    lives = [["7"], []]
+    waits = []
+
+    def gh_rest_list(path, *args):
+        reads.append(now[0])
+        if len(reads) == 1:
+            raise dispatch.github.NoAnswer("", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+        return json.dumps([{"body": "### ✅ Done — https://github.com/o/r/pull/9\n\nbody"}])
+
+    def wait():
+        waits.append(1)
+        now[0] += 10
+        if len(waits) > 20:
+            raise _StopWaiting
+
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: now[0])
+    monkeypatch.setattr(dispatch.time, "time", lambda: now[0])
+    monkeypatch.setattr(dispatch.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
+    monkeypatch.setattr(dispatch.github, "rate_limit_reset", lambda run=None: reset)
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", gh_rest_list)
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    code, out, err = run_cli(dispatch, ["--target", "1"])
+
+    assert (code, out, len(reads), reads[-1] >= reset, "NoAnswer" in err) == (
+        0, "done 7 https://github.com/o/r/pull/9\n", 2, True, False)
+
+
+def test_exit_line_raises_no_answer_after_one_read_and_waits_for_no_reset_when_the_comments_read_is_refused_without_a_rate_limit_issue_3747(
+        monkeypatch, dispatch):
+    reads = []
+    sleeps = []
+
+    def gh_rest_list(path, *args):
+        reads.append(path)
+        raise dispatch.github.NoAnswer("", "gh: Resource not accessible by integration (HTTP 403)\n")
+
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", gh_rest_list)
+    monkeypatch.setattr(dispatch.github, "rate_limit_reset", lambda run=None: 10 ** 12)
+    monkeypatch.setattr(dispatch.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    with pytest.raises(dispatch.github.NoAnswer):
+        dispatch.exit_line("7")
+
+    assert (len(reads), sleeps) == (1, [])
