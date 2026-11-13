@@ -401,7 +401,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   queued sighting is recorded in `.tdd/ci-queued-<sha>`. A draft PR records no deadline. **Exit 0** every check completed
   `SUCCESS`, `NEUTRAL` or `SKIPPED`, not all `SKIPPED`. **Exit 1** a completed check concluded
   anything else, or a commit status is `failure`/`error`; the failed check names go on stdout,
-  comma-separated. **Exit 2** no answer: bad arguments, a read of the checks that fails and is still failing when the deadline passes (retried with backoff until it; a 4xx other than 403 or 429 exits 2 at once), a
+  comma-separated. **Exit 2** no answer: bad arguments, a read of the checks that fails and is still failing when the deadline passes (retried with backoff until it; a read refused with a rate-limit message is waited out until GitHub's reset when that falls before the deadline, and exits 2 at once, naming the rate limit and its reset time, when it falls at or past it; a 4xx other than 403 or 429 exits 2 at once), a
   PR with no checks (or only skipped ones) that conflicts with its base branch (stderr says
   `conflicts with its base branch`), a check still pending past the recorded deadline, an
   unreadable deadline file, or checks that never started — still queued more than
@@ -428,7 +428,12 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   first one records the deadline like a pending read does (not on a draft), and each consecutive
   one sleeps twice the last, from `VERI_POLL`, at most 60 s per sleep; a good read starts the
   sequence over. `VERI_CI_RETRY_BACKOFF=0` keeps every retry sleep at `VERI_POLL`; a value other
-  than `0`, `1` or empty is an **exit 2**.
+  than `0`, `1` or empty is an **exit 2**. A read of the PR's head, of its check runs or of its
+  commit status that GitHub refuses with a rate-limit message is not retried on that backoff: the
+  script reads the reset time (`gh api rate_limit`) and, when it falls before the CI deadline
+  (recorded first when no call has yet, not on a draft), sleeps until it and reads again; when it
+  falls at or past the deadline it **exits 2** at once without sleeping, its stderr naming the rate
+  limit and the reset time; when the reset cannot be read, the backoff above applies.
   Tunables: `VERI_POLL` poll interval (default 10 s), `VERI_CI_RETRY_BACKOFF` (`1`, the default,
   doubles the retry sleep; `0` keeps it flat), `VERI_CI_QUEUE_WAIT` (default 3600 s),
   `VERI_CI_NO_RUN_WAIT` (default 600 s, a non-negative whole number; anything else is an
