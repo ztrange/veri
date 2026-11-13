@@ -2601,3 +2601,32 @@ def test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_c
     assert (partial[0], "Traceback" in partial[2], left_after_partial, extra[0],
             sorted(p.name for p in tdd.iterdir())) == (
         0, False, [], 2, sorted(f"ci-{k}-{SHA}" for k in ("deadline", "queued", "none")))
+
+
+def test_main_sleeps_no_longer_than_its_slice_and_exits_3_when_the_rate_limit_reset_falls_past_the_slice_end_before_the_deadline_issue_3758(
+        monkeypatch, tmp_path, wait_ci, fake_processes, run_cli):
+    import veri.github
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    reads, slept = [], []
+
+    def limited_once(line):
+        if line == f"{COMMITS}/status":
+            reads.append(line)
+            if len(reads) == 1:
+                return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+    def clocked(inner):
+        def spy(line, **kwargs):
+            if line == "date +%s":
+                return 0, "0\n", ""
+            return inner(line, **kwargs)
+        fake_processes(spy)
+
+    monkeypatch.setattr(veri.github, "rate_limit_reset", lambda *_, **__: 590)
+    monkeypatch.setattr(veri.github.time, "sleep", slept.append)
+    served(clocked, bodies, limited_once)
+    code, _, _ = run_cli(wait_ci, [PR, "540", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, sum(slept) <= 540) == (3, True)

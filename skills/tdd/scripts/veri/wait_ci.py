@@ -134,7 +134,7 @@ def sha_state(repo, sha, on_limit=None, draft=False):
     return "green", "", False
 
 
-def wait_for_reset(stderr, key, draft, total, bound):
+def wait_for_reset(stderr, key, draft, total, bound, slice_end=None):
     """On a rate-limit refusal in <stderr>, sleeps until GitHub's reset when it falls before the CI deadline
     (the key's mark, else the one made now and recorded unless a draft); raises NoAnswer("permanent") when it
     falls at or past it. An unknown reset, or any other refusal, returns for the caller's backoff retry."""
@@ -154,6 +154,9 @@ def wait_for_reset(stderr, key, draft, total, bound):
     if reset >= limit:
         warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
         raise NoAnswer("permanent")
+    if slice_end is not None and reset > slice_end:
+        github.time.sleep(max(0, slice_end - epoch()))
+        raise NoAnswer("slice")
     github.time.sleep(max(0, reset - epoch()))
 
 
@@ -292,6 +295,7 @@ def main(argv):
     deadline = ""
     bound = {}
     slice_end = None
+    call_end = epoch() + arith(span, scope)
     unread = 0
     first_none = None
     none_head = None
@@ -313,10 +317,12 @@ def main(argv):
         if head:
             try:
                 state, failed, queued = sha_state(
-                    repo, head, lambda err, is_draft: wait_for_reset(err, want or head, is_draft, total, bound), draft)
+                    repo, head, lambda err, is_draft: wait_for_reset(err, want or head, is_draft, total, bound, call_end), draft)
             except NoAnswer as error:
                 if str(error) == "permanent":
                     return unreadable(head)
+                if str(error) == "slice":
+                    return 3
             except Exception:
                 traceback.print_exc()
         if state is None:
