@@ -16,10 +16,11 @@ def test_every_directory_under_skills_other_than_vinstall_carries_an_on_demand_m
     assert missing == [], missing
 
 
-LINKED = ("vdev", "vcoord", "vplan", "vgroom", "vstatus", "vreport", "vfile", "vstop")
+LINKED = ("vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan")
+RETIRED = ("vready", "vreport", "vstatus", "vstop")
 
 
-@pytest.mark.tree_audit("the eight linked skills' markers")
+@pytest.mark.tree_audit("the six linked skills' markers")
 def test_the_on_demand_marker_of_each_linked_skill_says_vinstall_links_it_not_by_hand():
     stale = {}
     for name in LINKED:
@@ -28,6 +29,14 @@ def test_the_on_demand_marker_of_each_linked_skill_says_vinstall_links_it_not_by
             stale[name] = text.splitlines()[:1]
 
     assert stale == {}, sorted(stale)
+
+
+@pytest.mark.tree_audit("the four retired skills' markers")
+def test_the_on_demand_marker_of_each_retired_skill_says_vinstall_does_not_link_it_3750():
+    linked = sorted(n for n in RETIRED
+                    if "/vinstall links it" in (ROOT / "skills" / n / ".on-demand").read_text().replace("\n", " "))
+
+    assert linked == [], linked
 
 
 def test_vinstall_carries_no_on_demand_marker():
