@@ -1824,3 +1824,47 @@ def test_a_resume_under_another_slug_with_two_of_the_issues_branches_exits_2_nam
     assert (code, out, os.path.exists(want),
             [name in err for name in ("tdd/3765-alpha-beta", "tdd/3765-epsilon", "tdd/3765-gamma-delta")]) == (
         2, "", False, [True, True, True])
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_a_resume_under_another_slug_with_two_origin_only_branches_exits_2_naming_both_and_the_requested_one_issue_3765(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "two-remote-upstream")
+    bare = tmp_path / "two-remote-origin.git"
+    subprocess.run(["git", "clone", "-q", "--bare", str(upstream), str(bare)], capture_output=True)
+    clone = tmp_path / "two-remote-clone"
+    subprocess.run(["git", "clone", "-q", str(bare), str(clone)], capture_output=True)
+    for branch in ("tdd/3765-alpha-beta", "tdd/3765-epsilon"):
+        scratch_git(clone, "branch", branch)
+        scratch_git(clone, "push", "-q", "origin", branch)
+        scratch_git(clone, "branch", "-q", "-D", branch)
+    monkeypatch.setattr(issue_worktree.github, "gh_issue_view", lambda issue, field: "taken:main")
+    want = scratch_wt_path(clone, 3765)
+
+    code, out, err = run_cli(issue_worktree, ["3765", "gamma-delta"], cwd=clone)
+
+    assert (code, out, os.path.exists(want),
+            [name in err for name in ("tdd/3765-alpha-beta", "tdd/3765-epsilon", "tdd/3765-gamma-delta")]) == (
+        2, "", False, [True, True, True])
+
+
+@pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")
+def test_a_resume_under_another_slug_with_one_local_and_a_different_origin_only_branch_exits_2_naming_both_issue_3765(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "mixed-upstream")
+    bare = tmp_path / "mixed-origin.git"
+    subprocess.run(["git", "clone", "-q", "--bare", str(upstream), str(bare)], capture_output=True)
+    clone = tmp_path / "mixed-clone"
+    subprocess.run(["git", "clone", "-q", str(bare), str(clone)], capture_output=True)
+    scratch_git(clone, "branch", "tdd/3765-alpha-beta")
+    scratch_git(clone, "branch", "tdd/3765-epsilon")
+    scratch_git(clone, "push", "-q", "origin", "tdd/3765-epsilon")
+    scratch_git(clone, "branch", "-q", "-D", "tdd/3765-epsilon")
+    monkeypatch.setattr(issue_worktree.github, "gh_issue_view", lambda issue, field: "taken:main")
+    want = scratch_wt_path(clone, 3765)
+
+    code, out, err = run_cli(issue_worktree, ["3765", "gamma-delta"], cwd=clone)
+
+    assert (code, out, os.path.exists(want),
+            [name in err for name in ("tdd/3765-alpha-beta", "tdd/3765-epsilon", "tdd/3765-gamma-delta")]) == (
+        2, "", False, [True, True, True])
