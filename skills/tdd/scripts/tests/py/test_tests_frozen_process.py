@@ -7139,3 +7139,31 @@ def test_rerecord_refactored_exits_1_for_an_unnamed_case_a_green_rewrote_beside_
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
 
     assert (code, _skip_lines(err, "test_suite.py test_one"), _skip_lines(err, "test_suite.py test_two")) == (1, 0, 1)
+
+
+@pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
+def test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_naming_another_case_of_the_same_pytest_file_does_not_3624(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "add", "tests")
+    git(tmp_path, "commit", "-q", "-m", "base")
+    earlier = "step one adds cases"
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n"
+        "def test_named_3624():\n    assert 1 == 2\n\n\n"
+        "def test_unnamed_3624():\n    assert 1 == 3\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
+    (tmp_path / "tests/test_suite.py").write_text(
+        "def test_older_case():\n    assert True\n\n\n"
+        "def test_named_3624():\n    assert 1 == 2\n\n\n"
+        "def test_unnamed_3624():\n    assert True\n")
+    current = "reverses it, replaces 'test_named_3624' in tests/test_suite.py ⟦replaces-case⟧"
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (1, "test_unnamed_3624 (%s)\n" % earlier)
