@@ -7,6 +7,7 @@ import sys
 
 import event
 import ledger
+import paths
 import tests_frozen
 from add_ledger_step import added_file
 from build_verify_prompt import INTERFACE_PHASES
@@ -34,7 +35,7 @@ LAST_COMMAND = ""
 
 def run_case(case):
     global LAST_COMMAND
-    detect = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "detect-test-command.sh")
+    detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
     if not command:
