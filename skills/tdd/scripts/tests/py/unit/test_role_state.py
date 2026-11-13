@@ -342,3 +342,13 @@ def test_issue_3241_usage_names_request_reset_and_every_set_field(run_cli):
     missing = [w for w in ("request-reset [--idle]", *role_state.SET_FIELDS) if w not in err]
     assert (code, missing) == (2, [])
 
+
+def test_issue_3241_dev_request_reset_with_no_recovered_at_does_not_crash_and_writes_the_marker(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    marker = (tmp_path / ".tdd" / "reset-request-dev").read_text().split()
+    assert (code, err, marker) == (0, "", ["2026-11-12T10:00:00"])
