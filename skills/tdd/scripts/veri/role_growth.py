@@ -26,6 +26,28 @@ def _records(transcript):
         raise Unreadable("unreadable transcript %s\n" % transcript)
 
 
+def _baseline(transcript):
+    context = growth.growth(_records(transcript), 0)
+    if context is None:
+        return ""
+    return "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
+
+
+def _growth_line(path, lines, fields, transcript, knob):
+    grown = growth.growth(_records(transcript), int(fields["baseline"]))
+    if grown is None or grown < 0.85 * knob:
+        return ""
+    reason = role_state.refusal(path, lines, role_state.now())
+    if not reason:
+        advice = "reset now, even mid-task" if grown >= 2 * knob else "reset at the next quiet point"
+        print("context grew %d against the knob %d: %s" % (grown, knob, advice))
+        return ""
+    if fields.get("refused-at"):
+        return ""
+    print("%s: report it to the operator, do not retry" % reason)
+    return "refused-at=%s\n" % role_state.now()
+
+
 def main(argv):
     try:
         return _main(argv)
@@ -62,21 +84,9 @@ def _main(argv):
     fields = dict(l.split("=", 1) for l in lines if "=" in l)
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
-        context = growth.growth(_records(transcript), 0)
-        if context is not None:
-            text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
+        text += _baseline(transcript)
     else:
-        knob = int(raw)
-        grown = growth.growth(_records(transcript), int(fields["baseline"]))
-        if grown is not None and grown >= 0.85 * knob:
-            reason = role_state.refusal(path, lines, role_state.now())
-            if reason:
-                if not fields.get("refused-at"):
-                    print("%s: report it to the operator, do not retry" % reason)
-                    text += "refused-at=%s\n" % role_state.now()
-            else:
-                advice = "reset now, even mid-task" if grown >= 2 * knob else "reset at the next quiet point"
-                print("context grew %d against the knob %d: %s" % (grown, knob, advice))
+        text += _growth_line(path, lines, fields, transcript, int(raw))
     role_state.append(path, text)
     return 0
 
