@@ -42,3 +42,20 @@ def test_main_with_rebased_tip_suite_unset_prints_local_where_no_workflow_trigge
     code, out, err = run_cli(rebased_tip_suite, [], env={"VERI_CI_ON_PR": "yes"}, cwd=triggered)
     assert (code, out) == (2, "")
     assert "VERI_CI_ON_PR" in err and len(err.splitlines()) == 1
+
+
+def test_main_prints_an_explicit_local_or_ci_as_given_whatever_the_tree_holds_and_exits_2_naming_the_variable_on_any_other_value(
+        tmp_path, run_cli, rebased_tip_suite):
+    triggered, bare = tmp_path / "triggered", tmp_path / "bare"
+    (triggered / ".github" / "workflows").mkdir(parents=True)
+    (triggered / ".github" / "workflows" / "test.yml").write_text("on:\n  pull_request:\n")
+    bare.mkdir()
+
+    local = run_cli(rebased_tip_suite, [], env={"VERI_REBASED_TIP_SUITE": "local"}, cwd=triggered)
+    ci = run_cli(rebased_tip_suite, [], env={"VERI_REBASED_TIP_SUITE": "ci"}, cwd=bare)
+    code, out, err = run_cli(rebased_tip_suite, [], env={"VERI_REBASED_TIP_SUITE": "remote"}, cwd=triggered)
+
+    assert local[:2] == (0, "local\n")
+    assert ci[:2] == (0, "ci\n")
+    assert (code, out) == (2, "")
+    assert "VERI_REBASED_TIP_SUITE" in err and len(err.splitlines()) == 1
