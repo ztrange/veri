@@ -1,17 +1,18 @@
 ### 📊 Metrics — issue 3739
 
-Wall time for the issue: 1459 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1452 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 2 of 3 planned.
-Outcome: the run bailed — pr-ready-failed, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3742.
 Lane: ready-for-agent
 Suite flakes: skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0, skills/tdd/scripts/tests/py/unit/test_pytest_leg_passes.py::test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0.
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $7.51 over 148 turns, in 3 sessions, on opus (estimate).
+Conductor own spending: $9.26 over 176 turns, in 4 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80491 tokens, largest 154657 tokens
 Conductor context: first turn 80490 tokens, largest 152165 tokens
-Conductor context: first turn 80489 tokens, largest 143107 tokens
+Conductor context: first turn 80489 tokens, largest 144512 tokens
+Conductor context: first turn 80541 tokens, largest 122914 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -118,53 +119,80 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 98 | $0.06 | 150604 |
 | 99 | $0.05 | 151614 |
 | 100 | $0.04 | 152165 |
-| 101 | $0.50 | 80489 |
-| 102 | $0.07 | 87321 |
+| 101 | $0.51 | 80489 |
+| 102 | $0.08 | 87321 |
 | 103 | $0.03 | 88514 |
-| 104 | $0.03 | 90000 |
-| 105 | $0.03 | 91678 |
+| 104 | $0.04 | 90000 |
+| 105 | $0.04 | 91678 |
 | 106 | $0.03 | 92608 |
-| 107 | $0.03 | 93755 |
-| 108 | $0.02 | 94486 |
-| 109 | $0.02 | 94922 |
-| 110 | $0.02 | 95447 |
-| 111 | $0.02 | 95801 |
+| 107 | $0.04 | 93755 |
+| 108 | $0.03 | 94486 |
+| 109 | $0.03 | 94922 |
+| 110 | $0.03 | 95447 |
+| 111 | $0.03 | 95801 |
 | 112 | $0.02 | 96081 |
-| 113 | $0.02 | 96465 |
-| 114 | $0.02 | 96814 |
-| 115 | $0.02 | 97138 |
-| 116 | $0.02 | 97510 |
-| 117 | $0.02 | 98178 |
-| 118 | $0.06 | 102807 |
+| 113 | $0.03 | 96465 |
+| 114 | $0.03 | 96814 |
+| 115 | $0.03 | 97138 |
+| 116 | $0.03 | 97510 |
+| 117 | $0.03 | 98178 |
+| 118 | $0.07 | 102807 |
 | 119 | $0.03 | 103461 |
-| 120 | $0.02 | 103841 |
-| 121 | $0.02 | 104322 |
-| 122 | $0.02 | 104637 |
-| 123 | $0.02 | 105123 |
+| 120 | $0.03 | 103841 |
+| 121 | $0.03 | 104322 |
+| 122 | $0.03 | 104637 |
+| 123 | $0.04 | 105123 |
 | 124 | $0.03 | 106400 |
-| 125 | $0.03 | 106971 |
-| 126 | $0.05 | 110723 |
+| 125 | $0.04 | 106971 |
+| 126 | $0.06 | 110723 |
 | 127 | $0.03 | 111425 |
-| 128 | $0.02 | 111741 |
-| 129 | $0.03 | 112334 |
-| 130 | $0.02 | 112596 |
+| 128 | $0.03 | 111741 |
+| 129 | $0.04 | 112334 |
+| 130 | $0.03 | 112596 |
 | 131 | $0.03 | 113213 |
-| 132 | $0.03 | 113787 |
+| 132 | $0.04 | 113787 |
 | 133 | $0.03 | 114646 |
-| 134 | $0.03 | 115594 |
-| 135 | $0.03 | 116380 |
+| 134 | $0.04 | 115594 |
+| 135 | $0.04 | 116380 |
 | 136 | $0.03 | 116961 |
-| 137 | $0.03 | 117574 |
-| 138 | $0.03 | 118476 |
+| 137 | $0.04 | 117574 |
+| 138 | $0.04 | 118476 |
 | 139 | $0.16 | 134967 |
-| 140 | $0.03 | 135238 |
+| 140 | $0.04 | 135238 |
 | 141 | $0.03 | 135783 |
-| 142 | $0.03 | 136144 |
-| 143 | $0.03 | 136339 |
-| 144 | $0.03 | 136811 |
+| 142 | $0.04 | 136144 |
+| 143 | $0.04 | 136339 |
+| 144 | $0.04 | 136811 |
 | 145 | $0.03 | 137084 |
-| 146 | $0.03 | 137781 |
-| 147 | $0.07 | 143107 |
+| 146 | $0.04 | 137781 |
+| 147 | $0.08 | 143107 |
+| 148 | $0.04 | 144030 |
+| 149 | $0.04 | 144512 |
+| 150 | $0.50 | 80541 |
+| 151 | $0.07 | 87401 |
+| 152 | $0.03 | 88660 |
+| 153 | $0.03 | 89703 |
+| 154 | $0.03 | 91316 |
+| 155 | $0.03 | 92383 |
+| 156 | $0.03 | 93262 |
+| 157 | $0.03 | 94078 |
+| 158 | $0.02 | 94675 |
+| 159 | $0.02 | 95000 |
+| 160 | $0.02 | 95396 |
+| 161 | $0.03 | 96305 |
+| 162 | $0.04 | 99376 |
+| 163 | $0.04 | 101399 |
+| 164 | $0.03 | 102073 |
+| 165 | $0.03 | 102649 |
+| 166 | $0.03 | 103701 |
+| 167 | $0.15 | 120201 |
+| 168 | $0.03 | 120674 |
+| 169 | $0.03 | 121017 |
+| 170 | $0.03 | 121353 |
+| 171 | $0.03 | 121860 |
+| 172 | $0.03 | 122162 |
+| 173 | $0.03 | 122589 |
+| 174 | $0.03 | 122914 |
 
 #### Conductor comments, by family
 
@@ -190,7 +218,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 3 | 3 | 0 | 0 | 36 | 23 | 3 | 6 | 2869 | 0 | 59157 | 0.18 |
+| plan | 4 | 4 | 0 | 0 | 48 | 30 | 4 | 8 | 3661 | 0 | 78950 | 0.23 |
 | red | 11 | 3 | 1 | 0 | 661 | 328 | 68 | 132 | 28736 | 1589476 | 261205 | 1.66 |
 | green | 4 | 0 | 0 | 0 | 358 | 81 | 26 | 40 | 7919 | 337429 | 74052 | 0.37 |
 | red-supersede | 2 | 0 | 0 | 0 | 103 | 69 | 13 | 22 | 6419 | 325569 | 69691 | 0.27 |
@@ -202,7 +230,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 14 | 10 | 4 | 0 | 788 | 226 | 51 | 98 | 16518 | 739056 | 224423 | 0.80 |
+| verifier | claude-sonnet-5-5 | 15 | 11 | 4 | 0 | 800 | 233 | 52 | 100 | 17310 | 739056 | 244216 | 0.86 |
 | developer | claude-sonnet-5-5 | 7 | 0 | 0 | 0 | 460 | 218 | 44 | 80 | 19607 | 954543 | 199546 | 0.99 |
 | developer | claude-opus-5-5 | 9 | 0 | 0 | 0 | 687 | 266 | 67 | 126 | 26451 | 1473460 | 215182 | 1.66 |
 
@@ -250,4 +278,4 @@ Stopped: nothing-structural
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 162 | 304 | 62576 | 3167059 | 639151 | 10.96 (estimate) |
+| total | 163 | 306 | 63368 | 3167059 | 658944 | 12.76 (estimate) |
