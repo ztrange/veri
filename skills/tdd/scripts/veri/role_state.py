@@ -89,7 +89,7 @@ def do_add(path, argv):
         except ValueError:
             sys.stderr.write("timed-n text must be: <n> until <ISO-8601 datetime>\n")
             return 2
-    item = str(max([int(l.split()[1]) for l in (read(path) or "").splitlines() if " " in l] + [0]) + 1)
+    item = str(max([int(l.split()[1]) for l in (read(path) or "").splitlines() if l.partition(" ")[0] in LISTS] + [0]) + 1)
     append(path, "%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
     print(item)
     return 0
