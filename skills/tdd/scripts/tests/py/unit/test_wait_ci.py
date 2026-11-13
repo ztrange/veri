@@ -39,6 +39,14 @@ UNREADABLE = f"wait-ci.sh: could not read the checks of {PR}\n"
 PULL_THRICE = [PULL, "date +%s", "sleep 10", PULL, "sleep 20", PULL, "date +%s"]
 
 
+def early_read(line, calls):
+    """True, and the read struck from <calls>, for a `date +%s` made before the first read of the pull."""
+    if line == "date +%s" and all(c == line or c.startswith("gh run list") for c in calls):
+        calls.pop()
+        return True
+    return False
+
+
 def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
     """main([PR, 60, 120, SHA]) over <pull> (None: gh fails), one check-run page of completed
     runs concluding <conclusions>, and a /status of <states>; (code, stdout, stderr, calls)."""
@@ -52,6 +60,8 @@ def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
     clock = []
 
     def answer(line, **_):
+        if early_read(line, calls):
+            return 0, "0\n", ""
         if line == "date +%s":
             clock.append(1000 * len(clock))
             return 0, f"{clock[-1]}\n", ""
@@ -113,7 +123,7 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
 
     observed = []
     for bodies in scenarios:
-        bodies = {PULL: head, **bodies}
+        bodies = {PULL: head, "date +%s": "0\n", **bodies}
         fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
         code = wait_ci.main([PR, "60", "120", SHA])
         captured = capsys.readouterr()
@@ -155,7 +165,11 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
             f"gh api repos/o/r/commits/{head}/status": json.dumps({"statuses": [{"state": s} for s in states]}),
             "date +%s": "1000\n",
         }
-        calls = fake_processes(lambda line, bodies=bodies, **_: (0, bodies.get(line, ""), ""))
+        def answer(line, bodies=bodies, **_):
+            early_read(line, calls)
+            return 0, bodies.get(line, ""), ""
+
+        calls = fake_processes(answer)
         code = wait_ci.main([PR, "0", "120", SHA])
         captured = capsys.readouterr()
         observed.append((code, captured.out, captured.err, "date +%s" in calls))
@@ -207,6 +221,8 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
         def fake_run(args, bodies=bodies, calls=calls, clock=clock, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
+            if early_read(line, calls):
+                return subprocess.CompletedProcess(args, 0, "0\n", None)
             if line == "date +%s":
                 clock.append(1000 * len(clock))
                 return subprocess.CompletedProcess(args, 0, f"{clock[-1]}\n", None)
@@ -279,7 +295,9 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
         def fake_run(args, calls=calls, readings=readings, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
-            if line == "date +%s":
+            if early_read(line, calls):
+                code, out, err = 0, f"{clock[0]}\n", ""
+            elif line == "date +%s":
                 code, out, err = 0, f"{next(readings)}\n", ""
             elif line.startswith("sleep "):
                 code, out, err = (1, "", bad_sleep) if line == "sleep abc" else (0, "", "")
@@ -369,7 +387,9 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         def fake_run(args, calls=calls, readings=readings, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
-            if line == "date +%s":
+            if early_read(line, calls):
+                out = f"{clock[0]}\n"
+            elif line == "date +%s":
                 out = f"{next(readings, 99999)}\n"
             else:
                 out = bodies.get(line, "")
@@ -445,7 +465,9 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
             code = 0
-            if line == "date +%s":
+            if early_read(line, calls):
+                out = "1000\n"
+            elif line == "date +%s":
                 out = f"{next(readings, 99999)}\n"
             elif line in pages:
                 code, out = (1, "") if pages[line] is None else (0, pages[line])
@@ -484,7 +506,11 @@ def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head
     }
     (tmp_path / ".tdd").mkdir()
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
+    def answer(line, **_):
+        early_read(line, calls)
+        return 0, bodies.get(line, ""), ""
+
+    calls = fake_processes(answer)
 
     code = wait_ci.main([pr, "0", "100"])
     captured = capsys.readouterr()
@@ -501,9 +527,13 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
     """Fakes gh and the clock: the n-th read of the pull answers heads[n] (None: gh fails),
     its check-run page runs[n], /status <statuses>, and each `date +%s` <tick> more seconds;
     answers the {"reads", "clock"} counts."""
-    state = {"reads": 0, "clock": 0}
+    state = {"reads": 0, "clock": 0, "fresh": True}
 
     def answer(line, **_):
+        if line == PULL:
+            state["fresh"] = False
+        if line == "date +%s" and state["fresh"]:
+            return 0, "0\n", ""
         if line == "date +%s":
             state["clock"] += 1
             return 0, f"{(state['clock'] - 1) * tick}\n", ""
@@ -534,13 +564,21 @@ UNREACHABLE = (1, "", "gh: error connecting to api.github.com\n")
 OPEN_PULL = json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}})
 
 
+class Readings(list):
+    fresh = True
+
+
 def served(fake_processes, bodies, refused=lambda line: None):
     """Fakes `date +%s` as a clock 60 s on per read, `sleep` as instant, and every other line by
     <refused>'s answer or else <bodies>: a string is stdout of a 0 exit, a tuple (code, stdout,
     stderr); stderr reaches sys.stderr unless the caller captures it. Answers the clock readings it gave."""
-    readings = []
+    readings = Readings()
 
     def answer(line, **kwargs):
+        if line == PULL:
+            readings.fresh = False
+        if line == "date +%s" and readings.fresh:
+            return 0, "0\n", ""
         if line == "date +%s":
             readings.append(60 * len(readings))
             return 0, f"{readings[-1]}\n", ""
@@ -587,9 +625,10 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
     def calls(name, heads, runs, *argvs):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        world(fake_processes, heads, runs)
+        state = world(fake_processes, heads, runs)
         answers = []
         for argv in argvs:
+            state["fresh"] = True
             code, out, err = run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work)
             answers.append((code, UNREADABLE in err, past in err))
         return answers
@@ -1327,7 +1366,7 @@ def backoff_run(wait_ci, fake_processes, run_cli, work, env, fails, clock=None):
         mark.write_text("6000\n")
     pending = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
     green = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
-    reads, sleeps, ticks = [], [], []
+    reads, sleeps, ticks, pulled = [], [], [], []
 
     def answer(line):
         if line == f"{COMMITS}/status":
@@ -1342,7 +1381,9 @@ def backoff_run(wait_ci, fake_processes, run_cli, work, env, fails, clock=None):
         def spy(line, **kwargs):
             if line.startswith("sleep "):
                 sleeps.append(float(line.split()[1]))
-            if clock is not None and line == "date +%s":
+            if line == PULL:
+                pulled.append(1)
+            if clock is not None and line == "date +%s" and pulled:
                 ticks.append(1)
                 return 0, f"{clock[min(len(ticks) - 1, len(clock) - 1)]}\n", ""
             return inner(line, **kwargs)
@@ -1519,11 +1560,14 @@ def test_main_records_the_deadline_at_the_first_call_that_sees_the_given_head_an
 
     readings = served(fake_processes, {}, lambda line: bodies[line]() if line == PULL else bodies.get(line))
     behind = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+    readings.fresh = True
     recorded_behind = mark.exists()
     head["sha"] = FULL_SHA
     first_seen = len(readings)
+    readings.fresh = True
     at_head = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
     recorded = mark.read_text()
+    readings.fresh = True
     later = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
 
     assert (behind, recorded_behind, at_head, recorded, later, mark.read_text()) == (
@@ -1560,6 +1604,7 @@ def test_main_prints_the_names_of_the_failed_check_runs_as_one_comma_joined_line
         PAGE_1: json.dumps({"total_count": len(runs), "check_runs": runs}),
         PAGE_2: json.dumps({"total_count": len(runs), "check_runs": []}),
         STATUS: json.dumps({"state": "x", "statuses": []}),
+        "date +%s": "0\n",
     }
     fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
 
