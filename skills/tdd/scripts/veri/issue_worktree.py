@@ -218,12 +218,25 @@ def took_by_this_lane(issue):
     return tunables.taken_label(opt_in) in github.gh_issue_view(issue, "labels").split("\n")
 
 
+def local_issue_branches(path, issue):
+    git_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), ".git")
+    prefix = "tdd/%s-" % issue
+    found = set()
+    for root, _, names in os.walk(os.path.join(git_dir, "refs", "heads", "tdd")):
+        for name in names:
+            found.add(os.path.relpath(os.path.join(root, name), os.path.join(git_dir, "refs", "heads")))
+    return sorted(name for name in found if name.startswith(prefix))
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
     elif (on_origin := ref_exists(remote_ref)) and took_by_this_lane(issue_of(branch)):
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
+    elif len(own := local_issue_branches(path, issue_of(branch))) == 1:
+        branch = own[0]
+        code = worktree_add(path, branch)
     else:
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
