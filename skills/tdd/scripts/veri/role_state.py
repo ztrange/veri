@@ -99,18 +99,24 @@ def launched_since(path, recovered):
     return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
 
 
-def do_request_reset(path, argv):
-    lines = (read(path) or "").splitlines()
+def refusal(path, lines, stamp):
     recovered = [l.split("=", 1)[1] for l in lines if l.startswith("recovered-at=")]
     decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith(("decision ", "dropped-decision ")))
     if not decided and not launched_since(path, recovered[-1]):
-        sys.stderr.write("request-reset refused: nothing launched, merged or decided since the last recovery\n")
-        return 1
-    stamp = now()
+        return "request-reset refused: nothing launched, merged or decided since the last recovery"
     hour_ago = epoch(stamp) - 3600
     recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
     if len(recent) >= int(tunables.read("VERI_RESET_MAX_PER_HOUR", "2")):
-        sys.stderr.write("request-reset refused: %d resets in the last hour\n" % len(recent))
+        return "request-reset refused: %d resets in the last hour" % len(recent)
+    return None
+
+
+def do_request_reset(path, argv):
+    lines = (read(path) or "").splitlines()
+    stamp = now()
+    reason = refusal(path, lines, stamp)
+    if reason:
+        sys.stderr.write(reason + "\n")
         return 1
     append(path, "reset-at=%s\n" % stamp)
     replace(marker_path(path), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))

@@ -186,7 +186,7 @@ def test_growth_of_59500_against_the_baseline_prints_one_arm_line_naming_growth_
     )
     state = tmp_path / ".tdd" / "role-coord.state"
     state.parent.mkdir()
-    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\ndecision 1 2026-11-13T09:30:00 use the bus\n")
 
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
@@ -223,7 +223,7 @@ def test_growth_of_140000_against_the_baseline_with_the_default_knob_prints_one_
     )
     state = tmp_path / ".tdd" / "role-coord.state"
     state.parent.mkdir()
-    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=10500\nbaseline-at=2026-11-13T10:00:00\n")
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=10500\nbaseline-at=2026-11-13T10:00:00\ndecision 1 2026-11-13T09:30:00 use the bus\n")
 
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
@@ -241,7 +241,7 @@ def test_growth_of_139999_against_the_baseline_with_the_default_knob_prints_the_
     )
     state = tmp_path / ".tdd" / "role-coord.state"
     state.parent.mkdir()
-    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\ndecision 1 2026-11-13T09:30:00 use the bus\n")
 
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
@@ -260,7 +260,7 @@ def test_coord_takes_its_knob_from_veri_reset_growth_coord_and_prints_the_arm_li
     )
     state = tmp_path / ".tdd" / "role-coord.state"
     state.parent.mkdir()
-    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\ndecision 1 2026-11-13T09:30:00 use the bus\n")
 
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_COORD": "1000"})
 
@@ -279,9 +279,28 @@ def test_dev_takes_its_knob_from_veri_reset_growth_dev_and_prints_the_arm_line_a
     )
     state = tmp_path / ".tdd" / "role-dev.state"
     state.parent.mkdir()
-    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\ndecision 1 2026-11-13T09:30:00 use the bus\n")
 
     code, out, _ = run_cli(role_growth, ["dev"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_DEV": "1000", "VERI_RESET_GROWTH_COORD": "999999"})
 
     line = out.rstrip("\n")
     assert (code, len(out.splitlines()), "850" in line, "1000" in line, "reset at the next quiet point" in line) == (0, 1, True, True, True)
+
+
+def test_at_the_arm_point_with_nothing_launched_since_recovery_prints_the_refusal_once_in_place_of_the_growth_line_and_records_refused_at(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":50000,"cache_creation_input_tokens":10000}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    refused = [l for l in state.read_text().splitlines() if l.startswith("refused-at=") and len(l) > len("refused-at=")]
+    assert (code, len(out.splitlines()), "report it to the operator, do not retry" in out, "context grew" in out, len(refused)) == (0, 1, True, False, 1)
