@@ -1,6 +1,6 @@
 # Plan for #3763 — preflight-refused.sh takes no cause, so a refusal's comment and event name the check but not why it refused
 
-- [x] `preflight-refused.sh <n> <check> <cause>` given an optional third argument posts an issue comment whose body contains the cause text (faked `gh`, in-process via `run_cli`, a small unit case in `skills/tdd/scripts/tests/py/unit/test_preflight_refused.py`) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `preflight-refused.sh <n> <check> <cause>` given an optional third argument posts an issue comment whose body contains the cause text (faked `gh`, in-process via `run_cli`, a small unit case in `skills/tdd/scripts/tests/py/unit/test_preflight_refused.py`) ⟦criterion 1⟧
 - [ ] `preflight-refused.sh <n> <check> <cause>` given an optional third argument writes a `preflight-refused` event to the run's `.tdd/events.jsonl` that contains the cause text (faked `gh`, in-process via `run_cli`, a small unit case in `skills/tdd/scripts/tests/py/unit/test_preflight_refused.py`) ⟦criterion 1⟧
 - [ ] Guard: `preflight-refused.sh <n> <check>` with no cause argument posts a comment whose body is exactly `### ⛔ Preflight refused — <check>\n`, as today (faked `gh`, in-process via `run_cli`, no production change) ⟦criterion 2⟧
 - [ ] Guard: `preflight-refused.sh <n> <check>` with no cause argument writes a `preflight-refused` event carrying no `detail` or cause-text field, only `check=`, `cause=preflight-refused` and `classification=` as today (faked `gh`, in-process via `run_cli`, no production change) ⟦criterion 2⟧
