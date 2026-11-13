@@ -3183,3 +3183,26 @@ def test_3707_a_sigint_mid_mutation_replay_leaves_the_mutated_file_as_it_was_bef
                 pass
 
     assert (repo / "guard.txt").read_bytes() == b"if guard\nmore\n"
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a range that touches a recorded file which is then absent from the tree")
+def test_3740_a_mutation_record_whose_file_is_absent_and_not_deleted_in_the_range_is_reported_stale_and_skipped(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "guard.txt").write_text("if guard\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3740-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="touch ran.witness")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    (tmp_path / "guard.txt").unlink()
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode != 2, "FileNotFoundError" in ran.stderr, ran.stdout, (tmp_path / "ran.witness").exists()) == (
+        True, False, "stale: .tdd/issue-3740-mutations.md guard.txt\n", False), ran.stderr
