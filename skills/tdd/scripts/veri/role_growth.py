@@ -9,6 +9,7 @@ from full_tier_time import main_tree
 import growth
 import role_state
 
+KNOB = 70000
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 
@@ -42,10 +43,10 @@ def main(argv):
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
     else:
         grown = growth.growth(_records(transcript), int(fields["baseline"]))
-        if grown is not None and grown >= 2 * 70000:
-            print("context grew %d against the knob %d: reset now, even mid-task" % (grown, 70000))
-        elif grown is not None and grown >= 0.85 * 70000:
-            print("context grew %d against the knob %d: reset at the next quiet point" % (grown, 70000))
+        if grown is not None and grown >= 2 * KNOB:
+            print("context grew %d against the knob %d: reset now, even mid-task" % (grown, KNOB))
+        elif grown is not None and grown >= 0.85 * KNOB:
+            print("context grew %d against the knob %d: reset at the next quiet point" % (grown, KNOB))
     role_state.append(path, text)
     return 0
 
