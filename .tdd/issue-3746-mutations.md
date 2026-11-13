@@ -1,0 +1,18 @@
+before 40
+eb9160fb3ec3d5a8fa1431a508f2b0195f1272b6
+keep 48
+skills/tdd/scripts/tests/py/unit/test_wait_ci.py
+command 198
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_waits_for_the_rate_limit_reset_when_no_deadline_mark_exists_and_treats_a_reset_equal_to_the_deadline_as_past_it_issue_3746
+
+file 34
+skills/tdd/scripts/veri/wait_ci.py
+old-b64 20
+cmVzZXQgPj0gbGltaXQ=
+new-b64 20
+cmVzZXQgPiBsaW1pdA==
+context-b64 60
+ICAgIGlmIGxpbWl0IGlzIG5vdCBOb25lIGFuZCByZXNldCA+PSBsaW1pdDo=
+command 198
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wait_ci.py::test_main_waits_for_the_rate_limit_reset_when_no_deadline_mark_exists_and_treats_a_reset_equal_to_the_deadline_as_past_it_issue_3746
+

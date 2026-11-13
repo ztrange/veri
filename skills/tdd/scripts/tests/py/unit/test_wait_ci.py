@@ -1200,6 +1200,72 @@ def test_main_waits_until_the_rate_limit_reset_before_the_deadline_then_reads_ag
     assert (code, len(reads), sum(slept) >= 500) == (0, 2, True)
 
 
+def test_main_exits_2_without_sleeping_when_the_rate_limit_reset_falls_past_the_deadline_issue_3746(
+        monkeypatch, tmp_path, wait_ci, fake_processes, run_cli):
+    import veri.github
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text("6000\n")
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    reads, slept = [], []
+
+    def limited_first(line):
+        if line == f"{COMMITS}/status":
+            reads.append(line)
+            if len(reads) == 1:
+                return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+    def clocked(inner):
+        def spy(line, **kwargs):
+            if line == "date +%s":
+                return 0, "1000\n", ""
+            if line.startswith("sleep "):
+                slept.append(float(line.split()[1]))
+            return inner(line, **kwargs)
+        fake_processes(spy)
+
+    monkeypatch.setattr(veri.github, "rate_limit_reset", lambda *_, **__: 9000)
+    monkeypatch.setattr(veri.github.time, "sleep", slept.append)
+    served(clocked, bodies, limited_first)
+    code, _, err = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (code, sum(slept) < 500, "rate limit" in err and "9000" in err) == (2, True, True)
+
+
+def test_main_waits_for_the_rate_limit_reset_when_no_deadline_mark_exists_and_treats_a_reset_equal_to_the_deadline_as_past_it_issue_3746(
+        monkeypatch, tmp_path, wait_ci, fake_processes, run_cli):
+    import veri.github
+    observed = []
+    for n, (mark, reset) in enumerate([(None, 1500), ("6000\n", 6000)]):
+        work = tmp_path / str(n)
+        (work / ".tdd").mkdir(parents=True)
+        if mark:
+            (work / ".tdd" / f"ci-deadline-{FULL_SHA}").write_text(mark)
+        bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+        reads, slept = [], []
+
+        def limited_once(line, reads=reads):
+            if line == f"{COMMITS}/status":
+                reads.append(line)
+                if len(reads) == 1:
+                    return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+        def clocked(inner):
+            def spy(line, **kwargs):
+                if line == "date +%s":
+                    return 0, "1000\n", ""
+                return inner(line, **kwargs)
+            fake_processes(spy)
+
+        monkeypatch.setattr(veri.github, "rate_limit_reset", lambda *_, reset=reset, **__: reset)
+        monkeypatch.setattr(veri.github.time, "sleep", slept.append)
+        served(clocked, bodies, limited_once)
+        code, _, _ = run_cli(wait_ci, [PR, "1800", "6000", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, len(reads), sum(slept) >= 500))
+
+    assert observed == [(0, 2, True), (2, 1, False)]
+
+
 def backoff_run(wait_ci, fake_processes, run_cli, work, env, fails, clock=None):
     """Runs wait-ci over a status endpoint that answers HTTP 503 on its <fails> -numbered reads,
     pending on the others until the last; answers (code, sleeps, status reads)."""
