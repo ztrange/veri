@@ -20,3 +20,13 @@ ICAgIGVsaWYgbGVuKG93biA6PSBsb2NhbF9pc3N1ZV9icmFuY2hlcyhwYXRoLCBpc3N1ZV9vZihicmFu
 command 166
 make test TESTS=skills/tdd/scripts/tests/py/test_issue_worktree.py::test_a_resume_under_another_slug_reuses_the_issues_one_local_branch_and_cuts_no_new_one_issue_3765
 
+file 41
+skills/tdd/scripts/veri/issue_worktree.py
+old-b64 32
+ICAgICAgICBpZiBsZW4ob3duKSA+IDE6
+new-b64 36
+ICAgICAgICBpZiBsZW4ob3duKSA+IDk5Og==
+context-b64 32
+ICAgICAgICBpZiBsZW4ob3duKSA+IDE6
+command 206
+make test TESTS=skills/tdd/scripts/tests/py/test_issue_worktree.py::test_a_resume_under_another_slug_with_two_of_the_issues_branches_exits_2_naming_both_and_the_requested_one_creating_no_worktree_issue_3765
