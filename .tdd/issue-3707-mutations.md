@@ -1,0 +1,7 @@
+before 40
+19456e9a131bb7c4b3cf0c5801b6d77892655bf7
+keep 55
+skills/tdd/scripts/tests/py/test_pin_recheck_process.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/test_pin_recheck_process.py::test_3707_a_sigint_mid_mutation_replay_leaves_the_mutated_file_as_it_was_before_the_replay
+

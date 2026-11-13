@@ -3141,3 +3141,45 @@ def test_3707_a_sigterm_mid_mutation_replay_leaves_the_mutated_file_as_it_was_be
                 pass
 
     assert (repo / "guard.txt").read_bytes() == b"if guard\nmore\n"
+
+
+@pytest.mark.process("git, and pin-recheck.sh sent SIGINT while its mutation replay is running")
+def test_3707_a_sigint_mid_mutation_replay_leaves_the_mutated_file_as_it_was_before_the_replay(tmp_path):
+    import signal
+    import time
+
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git("init", "-q")
+    (repo / "guard.txt").write_text("if guard\n")
+    (repo / ".tdd").mkdir()
+    record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command="sh -c 'grep -q \"if guard\" guard.txt || { echo $$ > sleeper.pid; exec sleep 20; }'")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (repo / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+    sleeper = repo / "sleeper.pid"
+
+    proc = subprocess.Popen(["sh", RECHECK, base], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        deadline = time.monotonic() + 15
+        while not sleeper.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        proc.send_signal(signal.SIGINT)
+        proc.wait(timeout=15)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+        if sleeper.exists() and sleeper.read_text().strip():
+            try:
+                os.kill(int(sleeper.read_text().strip()), signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+    assert (repo / "guard.txt").read_bytes() == b"if guard\nmore\n"
