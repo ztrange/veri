@@ -70,6 +70,11 @@ repository's main working tree. If the fix it needs
 landed after the commit recorded in `.tdd/issue-<n>-skill-commit`, set `VERI_NEW_SKILL=1`
 on that resume so it re-pins the skill; otherwise resume as it was.
 
+The resume takes a slot like any launch. Count the live conductors fresh at that moment, with
+`kill -0` on each recorded conductor pid, never from a remembered count. Run the resume only
+when that count is fewer than N, an unexpired timed N included, as read from the dev role
+state. Otherwise hold the resume: the next freed slot goes to it ahead of the solvable queue.
+
 ## A second bail: park
 
 If the run has already been resumed once and bails again, park it with
