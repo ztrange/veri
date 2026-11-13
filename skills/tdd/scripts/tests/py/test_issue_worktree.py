@@ -141,6 +141,8 @@ def routing_git(monkeypatch, answers):
 
     def fake_run(args, **kwargs):
         calls.append(list(args))
+        if tuple(args) not in answers and list(args[:2]) == ["git", "for-each-ref"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
         if tuple(args) not in answers:
             raise AssertionError("unexpected command: %r" % (args,))
         code, stdout, stderr = answers[tuple(args)]
@@ -570,6 +572,8 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     get_url = ("git", "remote", "get-url", "origin")
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
     claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
+    own_refs = ("git", "for-each-ref", "--format=%(refname)", "refs/heads/tdd/7-*")
+    origin_refs = ("git", "for-each-ref", "--format=%(refname)", "refs/remotes/origin/tdd/7-*")
     refusal = ("issue-worktree: cannot determine origin's default branch"
                " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
     sha = "2222222222222222222222222222222222222222"
@@ -582,7 +586,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
 
     base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
             get_url: (0, "/srv/origin.git\n", "url noise\n"),
-            claims: (0, "", "")}
+            claims: (0, "", ""), own_refs: (0, "", ""), origin_refs: (0, "", "")}
     named = (
         ("origin/HEAD", {symref: (0, "origin/trunk\n", "")}, "trunk"),
         ("symref", {symref: (1, "", "symref noise\n"),
@@ -600,7 +604,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
         assert (label, fetch in calls, calls.count(get_url),
                 [c for c in calls if c[-1] in ("refs/heads/main", "refs/heads/master")],
                 "noise" in out + err) == (label, True, 1, [], False)
-        assert (label, sorted(set(before) - {ls_remote})) == (label, sorted({listing, local, remote, symref, get_url, claims}))
+        assert (label, sorted(set(before) - {ls_remote})) == (label, sorted({listing, local, remote, symref, get_url, claims, own_refs, origin_refs}))
 
     unnamed = (
         ("no ref: line", (0, "%s\tHEAD\n" % sha, "ls noise\n")),
@@ -610,7 +614,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     for label, answer in unnamed:
         code, captured, calls = run({**base, symref: (1, "", "symref noise\n"), ls_remote: answer})
         assert (label, code, captured, calls[-1], sorted(calls)) == (
-            label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, claims, ls_remote]))
+            label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, claims, own_refs, origin_refs, ls_remote]))
 
 
 def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(
@@ -1756,6 +1760,27 @@ def test_a_resume_under_another_slug_reuses_the_issues_one_local_branch_and_cuts
     subprocess.run(["git", "clone", "-q", str(bare), str(clone)], capture_output=True)
     scratch_git(clone, "branch", "tdd/3765-alpha-beta")
     scratch_git(clone, "push", "-q", "origin", "tdd/3765-alpha-beta")
+    monkeypatch.setattr(issue_worktree.github, "gh_issue_view", lambda issue, field: "taken:main")
+    want = scratch_wt_path(clone, 3765)
+
+    code, out, _ = run_cli(issue_worktree, ["3765", "gamma-delta"], cwd=clone)
+
+    assert (code, out.strip(), scratch_git(want, "branch", "--show-current"),
+            scratch_git(clone, "branch", "--list", "tdd/3765-gamma-delta")) == (0, want, "tdd/3765-alpha-beta", "")
+
+
+@pytest.mark.process("git clone of a local bare origin and git worktree add on a scratch repository, the lane lookup faked")
+def test_a_resume_under_another_slug_reuses_the_issues_one_packed_branch_and_ignores_a_longer_issue_number_issue_3765(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "packed-upstream")
+    bare = tmp_path / "packed-origin.git"
+    subprocess.run(["git", "clone", "-q", "--bare", str(upstream), str(bare)], capture_output=True)
+    clone = tmp_path / "packed-clone"
+    subprocess.run(["git", "clone", "-q", str(bare), str(clone)], capture_output=True)
+    for branch in ("tdd/3765-alpha-beta", "tdd/37650-other"):
+        scratch_git(clone, "branch", branch)
+        scratch_git(clone, "push", "-q", "origin", branch)
+    scratch_git(clone, "pack-refs", "--all")
     monkeypatch.setattr(issue_worktree.github, "gh_issue_view", lambda issue, field: "taken:main")
     want = scratch_wt_path(clone, 3765)
 
