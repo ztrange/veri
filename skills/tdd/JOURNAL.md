@@ -23,7 +23,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `pin-retired` | `reason` | pin-recheck.sh retired a pin that a later issue's design supersedes: the reason the declaration gave. |
 | `plan` | `steps` | The plan was written to the ledger: the number of steps. |
 | `prediction-diverged` | — | A step's predicted outcome differed from the observed one. |
-| `preflight-refused` | `check`, `cause`, `classification` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`). |
+| `preflight-refused` | `check`, `cause`, `classification`, `detail` | A preflight check refused the run's start: `check` names the failing check, `cause` is always `preflight-refused`, and `classification` is its bail classification (`system`); `detail` is optional: the refusing check's own cause line, present only when `preflight-refused.sh` was given a non-blank third argument. |
 | `production-file-restored` | `name`, `file` | A production file a leaf changed was put back as it was before the leaf ran: `name` is the leaf, `file` the restored path. |
 | `push-failed` | `error`, `attempts` | Pushing the branch failed after `attempts` tries: the git error. |
 | `push-rejected` | `remote_sha`, `error` | The remote refused the push: the remote tip sha and the git error. |
