@@ -220,3 +220,21 @@ def test_3763_with_no_cause_given_the_posted_comment_body_is_exactly_the_heading
 
     assert code == 0
     assert posted == [("3241", "### ⛔ Preflight refused — issue-worktree\n")]
+
+
+def test_3763_with_no_cause_given_the_preflight_refused_event_carries_only_check_cause_and_classification(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment", lambda number, body: None)
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    code = run_cli(preflight_refused, ["3241", "issue-worktree"], cwd=main)[0]
+
+    log = main / ".tdd" / "wt" / "3241" / ".tdd" / "events.jsonl"
+    events = [json.loads(text) for text in log.read_text().splitlines()]
+    assert code == 0
+    assert len(events) == 1
+    assert "detail" not in events[0]
+    assert (events[0]["classification"], events[0]["event"]) == ("system", "preflight-refused")
+    assert (events[0]["check"], events[0]["cause"]) == ("issue-worktree", "preflight-refused")
