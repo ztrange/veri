@@ -5,3 +5,10 @@ skills/tdd/scripts/tests/py/unit/test_replaces_case.py
 command 156
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_replaces_case.py::test_parse_3624_yields_the_names_and_the_file_of_a_step_whose_suite_is_a_pytest_node
 
+before 40
+f8a92d37c3fb869f7185dc460ff0006738cc7a03
+keep 56
+skills/tdd/scripts/tests/py/test_tests_frozen_process.py
+command 188
+make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_exits_1_for_an_unnamed_case_a_green_rewrote_beside_a_case_a_replaces_case_step_names_3624
+
