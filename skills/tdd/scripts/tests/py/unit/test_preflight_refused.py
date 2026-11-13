@@ -169,3 +169,21 @@ def test_2700_a_refusal_of_a_run_already_marked_refused_whose_conductor_is_live_
     assert (first[0], second[0]) == (0, 3)
     assert [e["check"] for e in events] == ["full-tier baseline red"]
     assert len(posted) == 1
+
+
+def test_3763_a_cause_given_as_the_third_argument_appears_in_the_posted_issue_comment(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+    cause = "issue-worktree: tdd/3241-x is already on origin — another run holds it"
+
+    code = run_cli(preflight_refused, ["3241", "issue-worktree", cause], cwd=main)[0]
+
+    assert code == 0
+    assert len(posted) == 1
+    assert "issue-worktree" in posted[0][1]
+    assert cause in posted[0][1]
