@@ -3064,3 +3064,38 @@ def test_3713_a_record_holding_only_a_keep_value_is_selected_when_that_file_is_t
     ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
 
     assert (ran.returncode, (tmp_path / "ran.witness").exists()) == (0, True), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run four times over a range touching the recorded file")
+def test_3707_a_mutation_record_already_red_at_an_unchanged_tree_is_not_replayed_and_is_again_once_the_file_or_head_changes(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=repo,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    counter = tmp_path / "runs.log"
+    git("init", "-q")
+    (repo / "guard.txt").write_text("if guard\n")
+    (repo / ".tdd").mkdir()
+    record(repo / ".tdd" / "issue-835-mutations.md", file="guard.txt", old="if guard", new="if (true)",
+           command=f"sh -c \"echo result; echo run >> {counter}; grep -q 'if guard' guard.txt\"")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (repo / "guard.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch guard.txt")
+
+    def recheck():
+        ran = subprocess.run(["sh", RECHECK, base], cwd=repo, capture_output=True, text=True, timeout=20)
+        runs = len(counter.read_text().splitlines()) if counter.exists() else 0
+        return ran.returncode, runs
+
+    first = recheck()
+    again = recheck()
+    (repo / "guard.txt").write_text("if guard\nmore\nedited\n")
+    after_edit = recheck()
+    git("commit", "-q", "--allow-empty", "-m", "move HEAD")
+    after_head = recheck()
+
+    assert (first[0], again, after_edit[0], after_head[0]) == (0, (0, first[1]), 0, 0)
+    assert first[1] > 0 and after_edit[1] > again[1] and after_head[1] > after_edit[1], (first, again, after_edit, after_head)

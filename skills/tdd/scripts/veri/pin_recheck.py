@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import base64
 import contextlib
 import glob
+import hashlib
 import os
 import shutil
 import tempfile
@@ -276,6 +277,11 @@ def recheck(argv, looks):
         if "context" in pin and pin["context"] not in original.decode().splitlines():
             needs_a_look(looks, pin["file"], "old text moved off its recorded line")
             continue
+        seen = Path(".tdd/pin-recheck-red") / hashlib.sha256(
+            b"\0".join([git_out("rev-parse", "HEAD").encode(), original, pin["old"].encode(), pin["new"].encode(),
+                        pin["command"].encode()])).hexdigest()
+        if seen.exists():
+            continue
         base = run_captured(pin["command"])
         if base.returncode == 127 or "no makefile found" in base.stderr.lower():
             sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
@@ -310,6 +316,9 @@ def recheck(argv, looks):
                 continue
             sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
             status = 1
+            continue
+        seen.parent.mkdir(parents=True, exist_ok=True)
+        seen.touch()
     if retired == len(pins):
         return 3
     return status
