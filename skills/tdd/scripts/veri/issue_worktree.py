@@ -250,6 +250,10 @@ def cut(path, branch):
         branch = theirs[0]
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
     else:
+        existing = sorted(own)
+        if len(existing) > 1:
+            return refuse("%s exist for the issue — cannot pick one for the requested %s"
+                          % (", ".join(existing), branch))
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
