@@ -303,10 +303,12 @@ def main(argv):
         draft = False
         try:
             mergeable, head, draft = pr_head(
-                repo, pr, lambda err, is_draft: wait_for_reset(err, want, is_draft, total, bound))
+                repo, pr, lambda err, is_draft: wait_for_reset(err, want, is_draft, total, bound, call_end))
         except NoAnswer as error:
             if str(error) == "permanent":
                 return unreadable(want or pr)
+            if str(error) == "slice":
+                return 3
             head = ""
         except Exception:
             traceback.print_exc()

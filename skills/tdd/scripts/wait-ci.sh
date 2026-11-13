@@ -5,7 +5,7 @@
 #        wait-ci.sh --fresh-window <head-sha>   (forget that sha's deadline, queued and no-run marks; exit 0)
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
-# concluded anything else · 2 no answer (bad arguments, a <head-sha> that is not a full 40-hex sha (one stderr line), a read of the checks still failing at the deadline (a rate limit is waited out to its reset when that falls before the deadline, else exit 2 at once; a refused read of the check runs or commit status whose reset falls past this call's slice end sleeps only to the slice end and exits 3), a 4xx other than
+# concluded anything else · 2 no answer (bad arguments, a <head-sha> that is not a full 40-hex sha (one stderr line), a read of the checks still failing at the deadline (a rate limit is waited out to its reset when that falls before the deadline, else exit 2 at once; any refused read (PR head, check runs or commit status) whose reset falls past this call's slice end sleeps only to the slice end and exits 3), a 4xx other than
 # 403/429 at once), a
 # check still pending past the deadline an earlier call recorded for the same head commit, or
 # checks never started: still queued VERI_CI_QUEUE_WAIT secs after the first call that saw them
