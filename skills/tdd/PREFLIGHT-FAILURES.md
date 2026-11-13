@@ -7,9 +7,11 @@ What each preflight check does when it fails. The checks and their order are in
 which check failed and stop. This is a degenerate bail — no commits, nothing to revert or push — and a
 red, dirty or unauthenticated baseline never gets a cycle.
 
-**Every refusal is recorded.** A preflight refusal writes a `preflight-refused` event naming the failing
-check and posts one issue comment naming it (`$S/preflight-refused.sh <n> <check>`), so a refused run is
-visible to `status.sh` and to a reader of the issue, not only in the conductor's log.
+**Every refusal is recorded.** A preflight refusal calls `$S/preflight-refused.sh <n> <check> <cause>`,
+passing the refusing check's own stderr line as `<cause>` (the `issue-worktree.sh` refusal's
+`already on origin` message is the covering case). The `preflight-refused` event and the one issue
+comment then name the failing check and why it refused, so a refused run is visible to `status.sh` and
+to a reader of the issue, not only in the conductor's log.
 
 ### Check 1 — repo and clean tree
 
@@ -40,7 +42,7 @@ If the caller's checkout is dirty, stop and ask the user to commit or stash.
   one of two defects, all named at once: a `## Requirements` row that clashes with a held ID (it needs
   `<ID><reword>`), or a `⟦skill-edit⟧` step whose unit has no `### <path>` heading in the issue. Like every
   other preflight refusal it writes a `preflight-refused` event and posts one issue comment naming the
-  check (`$S/preflight-refused.sh <n> <check>`). The fix is to correct the issue's `## Requirements`.
+  check and its cause (`$S/preflight-refused.sh <n> <check> <cause>`). The fix is to correct the issue's `## Requirements`.
 - `detach-command.sh wait` answers 1 when it finished red with its code on stdout (a red suite: stop
   and report) and 2 when it died recording nothing. A 2 while `$S/stop-requested.sh` exits 0 and prints
   `now` is the stop being carried out: not a preflight failure and not a poisoned baseline. The
