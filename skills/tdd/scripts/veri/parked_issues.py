@@ -33,14 +33,14 @@ def blockers_status(blocked_by):
         state = read(github.gh_api, "repos/{owner}/{repo}/issues/%s" % blocker, "reading the state of #%s" % blocker)
         if state is None:
             return None
-        info = json.loads(state)
+        info = json.loads(state.stdout)
         if info.get("state") != "closed":
             status = "waiting"
         elif "pull_request" in info:
             pull = read(github.gh_api, "repos/{owner}/{repo}/pulls/%s" % blocker, "reading the merged state of #%s" % blocker)
             if pull is None:
                 return None
-            if not json.loads(pull).get("merged"):
+            if not json.loads(pull.stdout).get("merged"):
                 status = "waiting"
     return status
 
