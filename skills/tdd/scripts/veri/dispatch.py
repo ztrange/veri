@@ -419,7 +419,7 @@ def main(argv):
                     say("queue-empty\n")
                     return 3
             else:
-                held_at = clock() if queue and not free else None
+                held_at = clock() if not free and (queue or live) else None
                 if free:
                     previous = free[0]
                     launch(previous)

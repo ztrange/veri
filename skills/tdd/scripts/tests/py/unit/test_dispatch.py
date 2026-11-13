@@ -3786,3 +3786,36 @@ def test_launchable_skips_for_a_run_draft_pr_whose_issue_number_merely_starts_wi
     result = dispatch.launchable("3686", dispatch.run_pr_paths(), set())
 
     assert (result, capsys.readouterr().out) == (False, f"skip 3686 {path} {url}\n")
+
+
+def test_main_reads_an_empty_queue_once_per_overlap_poll_interval_with_a_free_slot_and_one_live_conductor_issue_3748(
+        monkeypatch, tmp_path, dispatch):
+    (tmp_path / ".tdd").mkdir()
+    now = [1000]
+    reads = []
+
+    def solvable():
+        reads.append(now[0])
+        return []
+
+    def wait():
+        if len(reads) == 2:
+            raise _StopWaiting
+        now[0] += 10
+
+    monkeypatch.delenv("VERI_DISPATCH_OVERLAP_POLL", raising=False)
+    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch, "clock", lambda: now[0])
+    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
+    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
+    monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
+    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
+    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
+    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+
+    try:
+        dispatch.main(["--target", "2"])
+    except _StopWaiting:
+        pass
+
+    assert reads == [1000, 1060]
