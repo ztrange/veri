@@ -218,25 +218,23 @@ def took_by_this_lane(issue):
     return tunables.taken_label(opt_in) in github.gh_issue_view(issue, "labels").split("\n")
 
 
-def local_issue_branches(path, issue):
+def issue_branches(path, issue, *ref_dir):
     git_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), ".git")
-    prefix = "tdd/%s-" % issue
-    found = set()
-    for root, _, names in os.walk(os.path.join(git_dir, "refs", "heads", "tdd")):
-        for name in names:
-            found.add(os.path.relpath(os.path.join(root, name), os.path.join(git_dir, "refs", "heads")))
-    return sorted(name for name in found if name.startswith(prefix))
-
-
-def origin_issue_branches(path, issue):
-    git_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), ".git")
-    root = os.path.join(git_dir, "refs", "remotes", "origin")
+    root = os.path.join(git_dir, "refs", *ref_dir)
     prefix = "tdd/%s-" % issue
     found = set()
     for here, _, names in os.walk(os.path.join(root, "tdd")):
         for name in names:
             found.add(os.path.relpath(os.path.join(here, name), root))
     return sorted(name for name in found if name.startswith(prefix))
+
+
+def local_issue_branches(path, issue):
+    return issue_branches(path, issue, "heads")
+
+
+def origin_issue_branches(path, issue):
+    return issue_branches(path, issue, "remotes", "origin")
 
 
 def cut(path, branch):
