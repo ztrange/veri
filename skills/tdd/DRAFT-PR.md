@@ -49,11 +49,16 @@ When the branch's own full run is green, record its elapsed seconds and its comm
 `$S/full-tier-time.sh --record <seconds> '<full-cmd>'`, `<full-cmd>` being the command that run used: the
 record replaces the earlier time for that command.
 
-`VERI_REBASED_TIP_SUITE` takes `local`, the default, or `ci`. Under `local` the rebased tip gets a
+`VERI_REBASED_TIP_SUITE` takes `ci` or `local`. Settle the mode by running
+`$S/rebased-tip-suite.sh` at the root of this run's worktree and follow its output: unset, it prints `ci` when a
+workflow under `.github/workflows/` triggers on pull requests and `local` otherwise (`VERI_CI_ON_PR`,
+when set, answers that in the tree's place), so a repository with no CI on its pull requests gets
+the local run; an explicit value is printed as given. Wherever this step says "under
+`VERI_REBASED_TIP_SUITE=local`" or "under `ci`", the mode is the one that script printed, never the
+environment read directly. Under `local` the rebased tip gets a
 full test run of its own. Under `ci` it gets none: the regrade block and the pinned-lease push
 still run, and the `wait-ci.sh` line on the pushed rebased tip is that tip's full-suite verdict,
-its first red appending the `⟦ci-repair⟧` step as any CI red does. A repository with no CI keeps
-`local`.
+its first red appending the `⟦ci-repair⟧` step as any CI red does.
 
 A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
 so it is still unchecked here — and this step ticks it, only once the run's last full-suite
