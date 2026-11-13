@@ -205,3 +205,18 @@ def test_3763_a_cause_given_as_the_third_argument_appears_in_the_preflight_refus
     assert [e["event"] for e in events] == ["preflight-refused"]
     assert events[0]["check"] == "issue-worktree"
     assert cause in json.dumps(events[0], ensure_ascii=False)
+
+
+def test_3763_with_no_cause_given_the_posted_comment_body_is_exactly_the_heading_naming_the_check(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append((str(number), body)))
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    code = run_cli(preflight_refused, ["3241", "issue-worktree"], cwd=main)[0]
+
+    assert code == 0
+    assert posted == [("3241", "### ⛔ Preflight refused — issue-worktree\n")]

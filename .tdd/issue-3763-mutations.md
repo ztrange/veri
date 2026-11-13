@@ -1,0 +1,11 @@
+file 44
+skills/tdd/scripts/veri/preflight_refused.py
+old-b64 64
+ICAgICAgICBpZiBkZXRhaWwgaXMgbm90IE5vbmU6CiAgICAgICAgICAgIGJvZHk=
+new-b64 44
+ICAgICAgICBpZiBUcnVlOgogICAgICAgICAgICBib2R5
+context-b64 40
+ICAgICAgICBpZiBkZXRhaWwgaXMgbm90IE5vbmU6
+command 169
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_refused.py::test_3763_with_no_cause_given_the_posted_comment_body_is_exactly_the_heading_naming_the_check
+
