@@ -3739,3 +3739,18 @@ def test_main_does_not_report_stalled_when_events_conductor_log_and_outputs_are_
         code = None
 
     assert (code, capsys.readouterr().out) == (None, "")
+
+
+def test_launchable_ignores_the_candidates_own_run_draft_pr_naming_a_path_it_changes_and_prints_no_skip_issue_3690(
+        monkeypatch, capsys, dispatch):
+    path = "skills/tdd/scripts/veri/dispatch.py"
+    dispatch._reads.clear()
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [{"number": 88, "url": "https://github.com/o/r/pull/88", "isDraft": True,
+                          "headRefName": "tdd/86-x", "headRefOid": "aaa"}],
+                        {"86": f"Change `{path}`.\n"},
+                        {88: [path]})
+
+    result = dispatch.launchable("86", dispatch.run_pr_paths(), set())
+
+    assert (result, capsys.readouterr().out) == (True, "")

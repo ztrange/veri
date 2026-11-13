@@ -177,7 +177,9 @@ def run_prs():
             if "parked" in {label.get("name") for label in pr.get("labels") or []}:
                 continue
             if pr["isDraft"] and (pr.get("headRefName") or head.get("ref") or "").startswith("tdd/"):
-                prs.append((pr.get("url") or pr.get("html_url"), pr["number"], pr.get("headRefOid") or head.get("sha")))
+                url = pr.get("url") or pr.get("html_url")
+                _reads.setdefault("heads", {})[url] = pr.get("headRefName") or head.get("ref")
+                prs.append((url, pr["number"], pr.get("headRefOid") or head.get("sha")))
         listed = _reads["listed"] = (clock(), prs)
     return listed[1]
 
@@ -195,7 +197,8 @@ def run_pr_paths():
 
 def overlap(issue, changed):
     """(path, PR url) of the first path <issue> names that an open run draft PR in <changed> changes, else None."""
-    return next(((path, url) for path in issue_paths(issue) for url, files in changed.items() if path in files), None)
+    return next(((path, url) for path in issue_paths(issue) for url, files in changed.items()
+                 if path in files and not (_reads.get("heads", {}).get(url) or "").startswith(f"tdd/{issue}-")), None)
 
 
 def say(text):
