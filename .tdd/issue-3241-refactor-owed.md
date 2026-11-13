@@ -13,3 +13,6 @@
 ### `role-growth.sh coord` takes its knob from `VERI_RESET_GROWTH_COORD` (e.g. 1000: the arm line at a growth of 850); a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 5⟧
 - the `KNOBS.get(argv[0], "")` default lookup could go once `dev` gets its own knob, which a later step covers
 - test-only | extract the repeated home/transcript/state setup in test_role_growth.py into a fixture or helper
+### `role-growth.sh` with a malformed role state file exits 2 with one stderr line naming the problem; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
+- extract the malformed-state-file check in role_growth.main into a helper, or into role_state, where state-file parsing lives
+- split role_growth.main's baseline branch and growth-reading branch into helper functions
