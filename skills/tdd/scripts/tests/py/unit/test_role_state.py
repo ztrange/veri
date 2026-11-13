@@ -61,3 +61,14 @@ def test_issue_3676_lane_flag_with_no_lane_prints_usage_and_exits_2_writing_no_s
     code, _, err = run_cli(role_state, ["coord", "--lane"])
 
     assert (code, err, list(tmp_path.iterdir())) == (2, role_state.USAGE, [])
+
+
+def test_issue_3752_add_numbers_items_only_from_list_lines_past_a_spaced_coordinator_line(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("coordinator=veri coord\nmessage 1 2026-11-13T00:00:00 hello\n")
+
+    code, out, _ = run_cli(role_state, ["dev", "add", "message", "x"])
+
+    assert (code, out) == (0, "2\n")
