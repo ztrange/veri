@@ -11,15 +11,17 @@ description: >-
 ## Invocation
 
 Invoked as `/vinstall [repo-root]`. Run `$S/install-links.sh [repo-root]`, passing the
-argument through when the user gave one. Then report each skill the script linked or
-repaired, by name.
+argument through when the user gave one. Then report each skill the script linked,
+repaired or removed, by name (a removed one prints as `removed <name>`).
 
 ## Checking readiness
 
-Only when the script linked or repaired at least one skill: run `/vready` through a
-subagent, on the cheapest model that can do it (haiku). Brief the subagent to return at
-most 10 lines, and report its answer. When the script changed nothing, skip this: do not
-run `/vready`.
+Only when the script linked, repaired or removed at least one skill: run the readiness
+check through a subagent, on the cheapest model that can do it (haiku). Brief the
+subagent to read `<base dir>/../vready/SKILL.md` (this skill's base directory) and follow
+it, and to return at most 10 lines. Never tell it to run `/vready`: vready is not linked
+into projects. Report the subagent's answer. When the script changed nothing, skip this:
+do not run the readiness check.
 
 ## On exit 2
 
