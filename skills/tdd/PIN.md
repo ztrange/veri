@@ -70,7 +70,9 @@ Every other step takes the verdict as follows:
 - **REJECT (exit 1):** run
   `$S/pin-reject-route.sh [--missing-reroute] .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`,
   passing `--missing-reroute` on a step reached by a `missing` reroute, and `<target-test>`
-  the step's `TARGET_TEST` from the red leaf's report. The script retires the step only when
+  the step's `TARGET_TEST` from the red leaf's report. On a step reached by a `missing`
+  reroute, take `<target-test>` from `pin-target.sh` (the step's own red report's
+  `TARGET_TEST:`), never from the `red-missing` leaf's report. The script retires the step only when
   that case passes, and it runs the case to find out; a failing case makes it print `revise`
   and exit 1, leaving the line unticked and unmarked with no retirement event, so you enter
   the revise loop for red (or park the step when the revise budget is spent), never retiring
