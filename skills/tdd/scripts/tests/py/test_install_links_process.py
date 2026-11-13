@@ -421,3 +421,23 @@ def test_install_links_sh_removes_the_retired_veri_links_names_each_and_drops_th
     named = sorted(line[len("removed "):] for line in done.stdout.splitlines() if line.startswith("removed "))
     listed = sorted(n for n in retired if "/.claude/skills/" + n in exclude.read_text().splitlines())
     assert (done.returncode, left, named, listed) == (0, [], retired, [])
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against non-veri entries at retired names")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_leaves_a_non_veri_entry_at_a_retired_name_untouched_3750(tmp_path):
+    _, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    skills = project / ".claude" / "skills"
+    (skills / "vstatus").mkdir(parents=True)
+    (skills / "vstatus" / "SKILL.md").write_text("mine\n")
+    elsewhere = tmp_path / "elsewhere" / "vready"
+    elsewhere.mkdir(parents=True)
+    os.symlink(elsewhere, skills / "vready")
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    vstatus = (skills / "vstatus" / "SKILL.md").read_text() if (skills / "vstatus" / "SKILL.md").exists() else None
+    vready = os.readlink(skills / "vready") if (skills / "vready").is_symlink() else None
+    assert (done.returncode, vstatus, vready, "removed" in done.stdout) == (0, "mine\n", str(elsewhere), False)
