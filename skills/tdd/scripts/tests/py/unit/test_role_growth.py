@@ -210,3 +210,21 @@ def test_growth_of_59499_against_the_baseline_with_the_default_knob_prints_nothi
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, out) == (0, "")
+
+
+def test_growth_of_140000_against_the_baseline_with_the_default_knob_prints_one_reset_now_even_mid_task_line_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":140000,"cache_creation_input_tokens":10000}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=10500\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, len(out.splitlines()), "reset now, even mid-task" in out) == (0, 1, True)

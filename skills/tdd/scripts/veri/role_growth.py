@@ -42,7 +42,9 @@ def main(argv):
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
     else:
         grown = growth.growth(_records(transcript), int(fields["baseline"]))
-        if grown is not None and grown >= 0.85 * 70000:
+        if grown is not None and grown >= 2 * 70000:
+            print("context grew %d against the knob %d: reset now, even mid-task" % (grown, 70000))
+        elif grown is not None and grown >= 0.85 * 70000:
             print("context grew %d against the knob %d: reset at the next quiet point" % (grown, 70000))
     role_state.append(path, text)
     return 0
