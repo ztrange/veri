@@ -871,6 +871,9 @@ def run_cli(monkeypatch, capfd):
             monkeypatch.chdir(cwd)
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
         monkeypatch.setattr(sys, "path", list(sys.path))
+        for name, mod in list(sys.modules.items()):
+            if isinstance(getattr(mod, "__file__", None), str) and not os.path.exists(mod.__file__):
+                monkeypatch.delitem(sys.modules, name)
         environ, start = dict(os.environ), os.getcwd()
         try:
             code = entry.exit_code(module.main, argv, on_broken_pipe=lambda: None)
