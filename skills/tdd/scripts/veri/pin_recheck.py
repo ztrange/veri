@@ -266,8 +266,11 @@ def recheck(argv, looks):
             sys.stdout.write(f"retired: {ledger} {pin['file']} {pin['file']}\n")
             retired += 1
             continue
-        pin["command"] = current_wrapper(pin["command"])
         path = Path(pin["file"])
+        if not path.exists():
+            sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
+            continue
+        pin["command"] = current_wrapper(pin["command"])
         original = path.read_bytes()
         if pin["old"].encode() not in original:
             needs_a_look(looks, pin["file"], "old text gone")
