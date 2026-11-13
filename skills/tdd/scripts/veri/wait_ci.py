@@ -10,13 +10,15 @@ import traceback
 from datetime import datetime
 
 try:
-    from github import NoAnswer, _gh, gh_api, gh_rest_list
-    from json_documents import documents
-    import tunables
-except ImportError:
+    from . import github
     from .github import NoAnswer, _gh, gh_api, gh_rest_list
     from .json_documents import documents
     from . import tunables
+except ImportError:
+    import github
+    from github import NoAnswer, _gh, gh_api, gh_rest_list
+    from json_documents import documents
+    import tunables
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")
@@ -100,6 +102,8 @@ def sha_state(repo, sha):
     if status.returncode != 0:
         sys.stderr.write(status.stderr or "")
         refused = re.search(r"HTTP (4\d\d)", status.stderr or "")
+        if "rate limit" in (status.stderr or ""):
+            wait_for_reset()
         raise NoAnswer("permanent" if refused and refused.group(1) not in ("403", "429") else "")
     statuses = status.stdout
     docs = documents(runs + statuses)
@@ -120,6 +124,10 @@ def sha_state(repo, sha):
         statuses_of = [r.get("status") for r in check_runs]
         return "pending", "", "queued" in statuses_of and "in_progress" not in statuses_of
     return "green", "", False
+
+
+def wait_for_reset():
+    github.time.sleep(github.rate_limit_reset(subprocess.run) - epoch())
 
 
 def no_pull_request_workflow(repo, head):
