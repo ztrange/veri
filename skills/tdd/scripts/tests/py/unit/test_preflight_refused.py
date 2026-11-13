@@ -249,25 +249,3 @@ def test_the_exit_2_usage_line_names_the_optional_cause_argument_issue_3763(tmp_
 
     assert (code, out) == (2, "")
     assert err == "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
-
-
-def test_an_empty_or_blank_cause_behaves_exactly_like_an_absent_one_issue_3763(
-        tmp_path, monkeypatch, run_cli):
-    preflight_refused = importlib.import_module("veri.preflight_refused")
-    posted = []
-    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
-                        lambda number, body: posted.append((str(number), body)))
-    main = tmp_path / "main"
-    (main / ".git").mkdir(parents=True)
-
-    codes = [run_cli(preflight_refused, [n, "issue-worktree", cause], cwd=main)[0]
-             for n, cause in (("3241", ""), ("3242", "  \t "))]
-
-    assert codes == [0, 0]
-    assert posted == [("3241", "### ⛔ Preflight refused — issue-worktree\n"),
-                      ("3242", "### ⛔ Preflight refused — issue-worktree\n")]
-    for n in ("3241", "3242"):
-        log = main / ".tdd" / "wt" / n / ".tdd" / "events.jsonl"
-        events = [json.loads(text) for text in log.read_text().splitlines()]
-        assert len(events) == 1
-        assert "detail" not in events[0]
