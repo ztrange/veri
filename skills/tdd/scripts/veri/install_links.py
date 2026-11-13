@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 
-LINKED = ("vdev", "vcoord", "vplan", "vgroom", "vstatus", "vreport", "vfile", "vstop", "vready")
+LINKED = ("vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan")
 SKILLS = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".."))
 
 
