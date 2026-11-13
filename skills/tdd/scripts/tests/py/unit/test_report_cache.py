@@ -1871,3 +1871,75 @@ def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issue
     cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
     assert (code, err, asked, [i["number"] for i in cache["issues"]], cache.get("landed"), cache.get("since")) == (
         0, "", [["updated:>=2026-10-01T00:00:00Z"]], [7], [], 0)
+
+
+def _windowed_comments_gh(issues, comment_reads):
+    """gh issue list that times out on a comments search with no created: window, as GitHub does for ~280 PRDs."""
+    import json
+    import re
+    import subprocess
+
+    def fake_run(args, **kwargs):
+        if str(args[0]) == "git":
+            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+        args = [str(arg) for arg in args]
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        fields = args[args.index("--json") + 1]
+        search = args[args.index("--search") + 1] if "--search" in args else ""
+        if fields == "number,createdAt":
+            return subprocess.CompletedProcess(args, 0, json.dumps(
+                [{"number": i["number"], "createdAt": i["createdAt"]} for i in issues]), "")
+        if fields == "number,comments":
+            window = re.search(r"created:(\S+)\.\.(\S+)", search)
+            if not window:
+                return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout")
+            comment_reads.append(search)
+            rows = [{"number": i["number"], "comments": i["comments"]} for i in issues
+                    if window.group(1) <= i["createdAt"] <= window.group(2)]
+            return subprocess.CompletedProcess(args, 0, json.dumps(rows), "")
+        return subprocess.CompletedProcess(args, 0, json.dumps(
+            [{k: v for k, v in i.items() if k not in ("comments", "createdAt")} for i in issues]), "")
+    return fake_run
+
+
+def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and_keeps_every_link(run_cli, monkeypatch, tmp_path):
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [{"number": n, "title": "PRD %03d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-%02dT10:00:00Z" % n,
+               "body": "", "comments": [{"body": "child #%d" % (100 + n)}]} for n in range(1, 6)]
+    reads = []
+    monkeypatch.setattr(subprocess, "run", _windowed_comments_gh(issues, reads))
+    monkeypatch.setenv("VERI_COMMENT_CHUNK", "2")
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    cache = json.loads((tmp_path / ".tdd" / "report-cache.json").read_text())
+    links = {i["number"]: i["links"] for i in cache["issues"]}
+    assert (code, links, len(reads) >= 3) == (0, {n: [100 + n] for n in range(1, 6)}, True)
+
+
+def test_refresh_whose_windowed_comments_read_also_fails_exits_2_naming_the_failure(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [{"number": 1, "title": "PRD 001", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-01T10:00:00Z",
+               "body": "", "comments": []}]
+    windowed = _windowed_comments_gh(issues, [])
+
+    def fake_run(args, **kwargs):
+        if "created:" in " ".join(str(a) for a in args):
+            return subprocess.CompletedProcess([str(a) for a in args], 1, "", "HTTP 502: window failed")
+        return windowed(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "window failed" in err, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, True, False)

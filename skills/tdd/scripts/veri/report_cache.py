@@ -74,13 +74,34 @@ def fetch_comments():
     week_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
     by_number = {}
     for search in ("PRD in:title", "closed:>=" + week_ago):
-        args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,comments", "--search", search)
-        rows = json.loads(github.gh_issue_list(*args))
-        if len(rows) >= SEARCH_CAP:
-            raise github.NoAnswer("the comments search hit the %d-row cap" % SEARCH_CAP)
+        try:
+            rows = comment_rows(search)
+        except github.NoAnswer:
+            rows = windowed_comment_rows(search)
         for row in rows:
             by_number[row["number"]] = row.get("comments", [])
     return by_number
+
+
+def comment_rows(search):
+    args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,comments", "--search", search)
+    rows = json.loads(github.gh_issue_list(*args))
+    if len(rows) >= SEARCH_CAP:
+        raise github.NoAnswer("the comments search hit the %d-row cap" % SEARCH_CAP)
+    return rows
+
+
+def windowed_comment_rows(search):
+    """GitHub times out (504) loading ~280 issues' comment threads in one search, so read them in
+    created:<first>..<last> windows of VERI_COMMENT_CHUNK issues each; windows may overlap at a shared second."""
+    chunk = max(1, int(tunables.read("VERI_COMMENT_CHUNK", "25")))
+    args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,createdAt", "--search", search)
+    created = sorted(row["createdAt"] for row in json.loads(github.gh_issue_list(*args)))
+    rows = []
+    for start in range(0, len(created), chunk):
+        window = created[start:start + chunk]
+        rows += comment_rows("%s created:%s..%s" % (search, window[0], window[-1]))
+    return rows
 
 
 def fetch_pages(since=None):
