@@ -23,3 +23,4 @@
 not-done | transform-rejected | extract a shared `key=value` state-file parser into `role_state.py`, used by `role_growth.py`'s `fields` parse and by `do_request_reset` (`role_state.py` lines 104 and 111)
 applied | 1014f149898935802293ac39c7ef711cf5115db3 | the `KNOBS.get(argv[0], "")` default lookup could go once `dev` gets its own knob, which a later step covers	chore: record the structural pass's not-done candidate (#3241)
 not-done | transform-rejected | extract the malformed-state-file check in role_growth.main into a helper, or into role_state, where state-file parsing lives
+applied | 9977c0ca0dbffa2b0cce444fc7a450ea7b11006e | split role_growth.main's baseline branch and growth-reading branch into helper functions	refactor: split role_growth.main's baseline and growth-reading branches into helpers (#3241)
