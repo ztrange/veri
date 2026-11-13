@@ -11,7 +11,7 @@ On re-run, preflight step 3 calls `issue-worktree.sh` again; because it is **ide
 prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
 worktree the previous run committed in — the branch is already checked out there, nothing is
 re-created or switched (a branch only origin holds, whose issue carries this lane's `taken:<lane>` label,
-is resumed by recreating the worktree from origin's branch tip; another lane's claim is refused, exit 2), and a resumed run's baseline runs on the branch head there, before
+is resumed by recreating the worktree from origin's branch tip; another lane's claim is refused, exit 2; with no exact branch the issue's one `tdd/<n>-*` branch is reused whatever slug is passed, and two or more such branches exit 2 naming each and the requested branch), and a resumed run's baseline runs on the branch head there, before
 any cycle of the resumed run starts. When that baseline is red, preflight step 3 first runs each test file the red baseline
 names alone, once, with the repo's own runner (`make test TESTS="<file>"` here), and asks
 `$S/suite-red-resume.sh flake resume <red-file> <alone-red-file>`: on exit 0 — every file passed alone — the `suite-flake` event names

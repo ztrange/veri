@@ -331,7 +331,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   resume) — with one exception, the **own lane**: when the issue carries this lane's `taken:<lane>`
   label (the text after the last `:` of `VERI_LABEL`, `main` without one), the run is a resume and the
   worktree is recreated from origin's branch tip, ledger included; another lane's claim is still
-  refused. A refused one creates no branch and no worktree, and names the takeover — `git branch
+  refused. With no exact `tdd/<n>-<slug>` branch, the issue's **one** `tdd/<n>-*` branch is reused
+  **whatever slug is passed**: a local one, or an origin one this lane holds (`taken:<lane>`). **Two or
+  more** such branches, local or on origin, exit 2 with stderr naming each one and the requested
+  branch. A refused one creates no branch and no worktree, and names the takeover — `git branch
   tdd/<n>-<slug> origin/tdd/<n>-<slug>` — after which the next run is a resume. A **stale**
   remote-tracking ref, whose branch origin no longer holds, is not a claim: the run cuts fresh
   from `origin/<default>`, as above. **Exit 0** = the path. **Exit 2** = no answer
