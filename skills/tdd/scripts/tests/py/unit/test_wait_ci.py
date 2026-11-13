@@ -2630,3 +2630,37 @@ def test_main_sleeps_no_longer_than_its_slice_and_exits_3_when_the_rate_limit_re
     code, _, _ = run_cli(wait_ci, [PR, "540", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, sum(slept) <= 540) == (3, True)
+
+
+def test_main_caps_a_rate_limit_sleep_at_the_time_left_until_the_slice_end_when_the_clock_has_advanced_issue_3758(
+        monkeypatch, tmp_path, wait_ci, fake_processes, run_cli):
+    import veri.github
+    bodies = sha_bodies([[check_run("gates", FULL_SHA, "completed", "success")]], [], "success")
+    observed = []
+    # call starts at 1000 with a 540 s slice (ends 1540); the refusal lands at <refused_at>
+    for case, (refused_at, reset, left) in enumerate(((1100, 1590, 440), (1600, 1650, 0))):
+        work = tmp_path / f"work{case}"
+        (work / ".tdd").mkdir(parents=True)
+        clock, reads, slept = {"now": 1000}, [], []
+
+        def limited_once(line):
+            if line == f"{COMMITS}/status":
+                reads.append(line)
+                if len(reads) == 1:
+                    clock["now"] = refused_at
+                    return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
+
+        def clocked(inner):
+            def spy(line, **kwargs):
+                if line == "date +%s":
+                    return 0, f"{clock['now']}\n", ""
+                return inner(line, **kwargs)
+            fake_processes(spy)
+
+        monkeypatch.setattr(veri.github, "rate_limit_reset", lambda *_, reset=reset, **__: reset)
+        monkeypatch.setattr(veri.github.time, "sleep", slept.append)
+        served(clocked, bodies, limited_once)
+        code, _, _ = run_cli(wait_ci, [PR, "540", "600", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+        observed.append((code, slept, left))
+
+    assert observed == [(3, [440], 440), (3, [0], 0)]
