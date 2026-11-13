@@ -21,3 +21,4 @@
 ### `role-growth.sh` with an unreadable transcript (not valid JSONL) exits 2 with one stderr line naming the transcript; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
 - route `_main`'s repeated stderr-write-and-return-2 exits through one exception type, renaming `Unreadable` to a general usage/failure error, once the remaining criterion 7 steps add more such exits
 not-done | transform-rejected | extract a shared `key=value` state-file parser into `role_state.py`, used by `role_growth.py`'s `fields` parse and by `do_request_reset` (`role_state.py` lines 104 and 111)
+applied | 1014f149898935802293ac39c7ef711cf5115db3 | the `KNOBS.get(argv[0], "")` default lookup could go once `dev` gets its own knob, which a later step covers	chore: record the structural pass's not-done candidate (#3241)
