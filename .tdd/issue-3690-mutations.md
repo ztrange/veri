@@ -9,3 +9,14 @@ ICAgICAgICAgICAgICAgICBpZiBwYXRoIGluIGZpbGVzIGFuZCBub3QgKF9yZWFkcy5nZXQoImhlYWRz
 command 173
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_launchable_still_skips_for_another_issues_run_draft_pr_changing_a_path_the_candidate_names_issue_3690
 
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 36
+c3RhcnRzd2l0aChmInRkZC97aXNzdWV9LSIp
+new-b64 36
+c3RhcnRzd2l0aChmInRkZC97aXNzdWV9Iik=
+context-b64 160
+ICAgICAgICAgICAgICAgICBpZiBwYXRoIGluIGZpbGVzIGFuZCBub3QgKF9yZWFkcy5nZXQoImhlYWRzIiwge30pLmdldCh1cmwpIG9yICIiKS5zdGFydHN3aXRoKGYidGRkL3tpc3N1ZX0tIikpLCBOb25lKQ==
+command 171
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_launchable_skips_for_a_run_draft_pr_whose_issue_number_merely_starts_with_the_candidates_issue_3690
+
