@@ -12,6 +12,7 @@ import event
 import event_log
 import github
 import metrics as metrics_module
+import paths
 from ledger import handed_out, ledger_path, ledger_steps
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
@@ -260,7 +261,7 @@ def post_stopped(issue, note_file=None):
     if restart_pending():
         body += "The conductor is being restarted for context growth.\n"
     else:
-        scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        scripts = paths.resolved_scripts_of(__file__)
         body += f"branch={current_branch()}\nworktree={os.getcwd()}\n{scripts}/run-conductor.sh {issue}\n"
     return post_and_record(issue, "stopped", with_note(body, note_file))
 
