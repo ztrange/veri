@@ -112,3 +112,10 @@ skills/tdd/scripts/tests/py/unit/test_role_growth.py
 command 160
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_growth_of_59499_against_the_baseline_with_the_default_knob_prints_nothing_and_exits_0
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_growth_of_139999_against_the_baseline_with_the_default_knob_prints_the_arm_line_not_the_reset_now_line_and_exits_0
+
