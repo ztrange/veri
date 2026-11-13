@@ -126,3 +126,14 @@ skills/tdd/scripts/tests/py/unit/test_role_growth.py
 command 192
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_call_at_the_arm_point_with_refused_at_recorded_and_a_launch_since_recovery_prints_the_growth_line_again_and_exits_0
 
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 28
+ImRyb3BwZWQtZGVjaXNpb24gIiwg
+new-b64 0
+
+context-b64 180
+ICAgIGlmIGFueSgiPSIgbm90IGluIGwgYW5kIG5vdCBsLnN0YXJ0c3dpdGgoKCJkZWNpc2lvbiAiLCAiZHJvcHBlZC1kZWNpc2lvbiAiLCAibWVzc2FnZSAiLCAib3ZlcnJpZGUgIiwgInRpbWVkLW4gIikpIGZvciBsIGluIGxpbmVzKTo=
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits_0
+

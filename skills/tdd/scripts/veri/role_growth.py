@@ -36,6 +36,9 @@ def main(argv):
     path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
     lines = (role_state.read(path) or "").splitlines()
+    if any("=" not in l and not l.startswith(("decision ", "dropped-decision ", "message ", "override ", "timed-n ")) for l in lines):
+        sys.stderr.write("malformed state file %s\n" % path)
+        return 2
     fields = dict(l.split("=", 1) for l in lines if "=" in l)
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):

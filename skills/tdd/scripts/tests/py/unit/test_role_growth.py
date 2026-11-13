@@ -341,3 +341,59 @@ def test_a_call_at_the_arm_point_with_refused_at_recorded_and_a_launch_since_rec
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, len(out.splitlines()), "context grew" in out, "reset at the next quiet point" in out) == (0, 1, True, True)
+
+
+def test_a_state_file_holding_a_line_that_is_not_a_field_exits_2_with_one_stderr_line_naming_the_state_file(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nthis line is not a field\n")
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, len(err.splitlines()), "role-coord.state" in err) == (2, 1, True)
+
+
+def test_a_state_file_holding_message_override_and_timed_n_list_lines_is_not_malformed_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text(
+        "recovered-at=2026-11-13T09:00:00\n"
+        "message 1 2026-11-13T09:01:00 hello\n"
+        "override 2 2026-11-13T09:02:00 skip it\n"
+        "timed-n 3 2026-11-13T09:03:00 5 until 2026-11-14T09:00:00\n"
+    )
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, "malformed" in err) == (0, False)
+
+
+def test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text(
+        "recovered-at=2026-11-13T09:00:00\n"
+        "dropped-decision 7 2026-11-13T09:04:00\n"
+    )
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, "malformed" in err) == (0, False)
