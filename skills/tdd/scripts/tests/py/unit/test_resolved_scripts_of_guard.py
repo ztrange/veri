@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-VERI = Path(__file__).resolve().parents[2] / "veri"
+VERI = Path(__file__).resolve().parents[3] / "veri"
 INLINE = "os.path.dirname(os.path.dirname(os.path.realpath(__file__)))"
 MODULES = ["queued_merge.py", "ready_check.py", "restart_conductor.py", "status.py",
            "tick_ledger.py", "comment.py", "update_veri.py"]
