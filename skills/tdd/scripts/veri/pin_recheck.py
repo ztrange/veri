@@ -6,6 +6,7 @@ import glob
 import hashlib
 import os
 import shutil
+import signal
 import tempfile
 import re
 import subprocess
@@ -294,8 +295,10 @@ def recheck(argv, looks):
             write_tail(base)
             continue
         path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
-        mutated = run_keeping_journal(lambda: run_captured(pin["command"]))
-        path.write_bytes(original)
+        try:
+            mutated = run_keeping_journal(lambda: run_captured(pin["command"]))
+        finally:
+            path.write_bytes(original)
         green = mutated.returncode == 0
         base_lines = output_lines(base)
         if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated) and not is_pytest_failure(mutated):
@@ -328,6 +331,7 @@ RECEIPT = Path(".tdd/pin-recheck-ok")
 
 
 def main(argv):
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     RECEIPT.unlink(missing_ok=True)
     looks = {}
     status = recheck(argv, looks)
