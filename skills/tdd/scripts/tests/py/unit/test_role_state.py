@@ -72,3 +72,14 @@ def test_issue_3752_add_numbers_items_only_from_list_lines_past_a_spaced_coordin
     code, out, _ = run_cli(role_state, ["dev", "add", "message", "x"])
 
     assert (code, out) == (0, "2\n")
+
+
+def test_issue_3752_add_numbers_the_first_item_1_when_only_a_spaced_coordinator_line_is_present(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev.state").write_text("coordinator=veri coord\n")
+
+    code, out, _ = run_cli(role_state, ["dev", "add", "message", "x"])
+
+    assert (code, out) == (0, "1\n")
