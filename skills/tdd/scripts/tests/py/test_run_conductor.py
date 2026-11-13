@@ -658,6 +658,22 @@ def test_main_on_a_fresh_launch_with_baseline_full_tier_reuse_writes_reuse_to_th
     assert (pin.read_text() if pin.is_file() else None) == "reuse\n"
 
 
+def test_main_on_a_fresh_launch_with_baseline_full_tier_unset_writes_reuse_to_the_baseline_full_tier_file(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.delenv("VERI_BASELINE_FULL_TIER", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1" * 40
+    fake_pin(monkeypatch, commit, {commit + "^{commit}"})
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    pin = tmp_path / ".tdd" / "issue-4242-baseline-full-tier"
+    assert (pin.read_text() if pin.is_file() else None) == "reuse\n"
+
+
 def test_main_on_a_resume_with_a_different_baseline_full_tier_leaves_the_pinned_baseline_full_tier_file_unchanged_3436(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)

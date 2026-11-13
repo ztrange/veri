@@ -99,7 +99,7 @@ TABLE = {
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
     "VERI_REBASED_TIP_SUITE": Tunable(rebased_tip_suite, "local", "local or ci"),
-    "VERI_BASELINE_FULL_TIER": Tunable(baseline_full_tier, "run", "run or reuse"),
+    "VERI_BASELINE_FULL_TIER": Tunable(baseline_full_tier, "reuse", "run or reuse"),
 }
 
 

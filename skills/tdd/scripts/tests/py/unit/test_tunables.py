@@ -101,11 +101,11 @@ def test_2847_baseline_full_tier_set_to_a_value_but_run_or_reuse_makes_run_condu
         2, "", 1, True, True, ())
 
 
-def test_2847_baseline_full_tier_unset_resolves_to_run_with_no_error(monkeypatch):
+def test_2847_baseline_full_tier_unset_resolves_to_reuse_with_no_error(monkeypatch):
     tunables = importlib.import_module("veri.tunables")
     monkeypatch.delenv("VERI_BASELINE_FULL_TIER", raising=False)
 
-    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)
+    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
 
 
 def test_2847_baseline_full_tier_set_to_reuse_resolves_to_reuse_with_no_error(monkeypatch):
@@ -126,11 +126,11 @@ def test_2847_baseline_full_tier_set_to_any_value_but_run_or_reuse_is_refused_na
     assert (value, error[0]) == (None, raw)
 
 
-def test_2847_baseline_full_tier_set_empty_resolves_to_the_default_run(monkeypatch):
+def test_2847_baseline_full_tier_set_empty_resolves_to_the_default_reuse(monkeypatch):
     tunables = importlib.import_module("veri.tunables")
     monkeypatch.setenv("VERI_BASELINE_FULL_TIER", "")
 
-    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("run", None)
+    assert tunables.resolve("VERI_BASELINE_FULL_TIER") == ("reuse", None)
 
 
 def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_70000_and_refusing_zero():
