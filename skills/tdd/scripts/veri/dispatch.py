@@ -76,7 +76,16 @@ def launch(issue):
 
 
 def comment_bodies(issue):
-    comments = json_documents.items(github.gh_rest_list(f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"))
+    path = f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"
+    try:
+        listed = github.gh_rest_list(path)
+    except github.NoAnswer as failure:
+        if "rate limit" not in (failure.detail or str(failure.answer)):
+            raise
+        reset = github.rate_limit_reset(subprocess.run)
+        time.sleep(reset - time.time())
+        listed = github.gh_rest_list(path)
+    comments = json_documents.items(listed)
     return [comment["body"] for comment in comments]
 
 

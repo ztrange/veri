@@ -1,0 +1,11 @@
+file 35
+skills/tdd/scripts/veri/dispatch.py
+old-b64 32
+aWYgInJhdGUgbGltaXQiIG5vdCBpbg==
+new-b64 44
+aWYgRmFsc2UgYW5kICJyYXRlIGxpbWl0IiBub3QgaW4=
+context-b64 120
+ICAgICAgICBpZiAicmF0ZSBsaW1pdCIgbm90IGluICIgIi5qb2luKChmYWlsdXJlLmRldGFpbCBvciBzdHIoZmFpbHVyZS5hbnN3ZXIpKS5zcGxpdCgpKTo=
+command 202
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_dispatch.py::test_exit_line_raises_no_answer_after_one_read_and_waits_for_no_reset_when_the_comments_read_is_refused_without_a_rate_limit_issue_3747
+
