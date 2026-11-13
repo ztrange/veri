@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 LINKED = ("vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan")
+RETIRED = ("vready", "vreport", "vstatus", "vstop")
 SKILLS = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", ".."))
 
 
@@ -36,6 +37,13 @@ def main(argv):
         if os.path.lexists(link) and not held:
             print("install-links.sh: not a veri link, left untouched: " + link, file=sys.stderr)
             return 2
+    removed = []
+    for name in RETIRED:
+        link = os.path.join(target, name)
+        if os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep):
+            os.unlink(link)
+            removed.append("/.claude/skills/" + name)
+            print("removed " + name)
     for name in LINKED:
         link = os.path.join(target, name)
         if os.path.islink(link) and not os.path.exists(link):
@@ -48,6 +56,11 @@ def main(argv):
     with open(exclude, "a+") as out:
         out.seek(0)
         listed = out.read().splitlines()
+        if any(line in removed for line in listed):
+            listed = [line for line in listed if line not in removed]
+            out.seek(0)
+            out.truncate()
+            out.write("".join(line + "\n" for line in listed))
         for name in LINKED:
             entry_line = "/.claude/skills/" + name
             if entry_line not in listed:
