@@ -3770,3 +3770,19 @@ def test_launchable_still_skips_for_another_issues_run_draft_pr_changing_a_path_
     result = dispatch.launchable("86", dispatch.run_pr_paths(), set())
 
     assert (result, capsys.readouterr().out) == (False, f"skip 86 {path} {url}\n")
+
+
+def test_launchable_skips_for_a_run_draft_pr_whose_issue_number_merely_starts_with_the_candidates_issue_3690(
+        monkeypatch, capsys, dispatch):
+    path = "skills/tdd/scripts/veri/dispatch.py"
+    url = "https://github.com/o/r/pull/90"
+    dispatch._reads.clear()
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [{"number": 90, "url": url, "isDraft": True,
+                          "headRefName": "tdd/36860-x", "headRefOid": "ccc"}],
+                        {"3686": f"Change `{path}`.\n"},
+                        {90: [path]})
+
+    result = dispatch.launchable("3686", dispatch.run_pr_paths(), set())
+
+    assert (result, capsys.readouterr().out) == (False, f"skip 3686 {path} {url}\n")
