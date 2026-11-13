@@ -2,7 +2,7 @@
 import importlib
 import json
 
-USAGE = "usage: preflight-refused.sh <issue-number> <check>\n"
+USAGE = "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
 
 
 def test_2481_a_preflight_refusal_writes_one_event_naming_the_check_from_either_checkout(tmp_path, monkeypatch, run_cli):
@@ -238,3 +238,14 @@ def test_3763_with_no_cause_given_the_preflight_refused_event_carries_only_check
     assert "detail" not in events[0]
     assert (events[0]["classification"], events[0]["event"]) == ("system", "preflight-refused")
     assert (events[0]["check"], events[0]["cause"]) == ("issue-worktree", "preflight-refused")
+
+
+def test_the_exit_2_usage_line_names_the_optional_cause_argument_issue_3763(tmp_path, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+
+    code, out, err = run_cli(preflight_refused, [], cwd=main)
+
+    assert (code, out) == (2, "")
+    assert err == "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
