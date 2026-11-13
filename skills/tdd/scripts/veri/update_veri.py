@@ -5,15 +5,16 @@ import subprocess
 import sys
 
 try:
+    import paths
     import tunables
 except ImportError:
-    from . import tunables
+    from . import paths, tunables
 
 USAGE = "usage: update-veri.sh [--consent yes|no]"
 
 
 def git(*args):
-    root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    root = paths.resolved_scripts_of(__file__)
     return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
 
 
