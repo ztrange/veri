@@ -35,4 +35,4 @@
 - [x] `role-growth.sh` with a bad knob (`VERI_RESET_GROWTH_COORD` not a whole number ≥ 1, e.g. `0` or `abc`) exits 2 with one stderr line naming the knob; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
 - [x] `role-growth.sh` with an unreadable transcript (not valid JSONL) exits 2 with one stderr line naming the transcript; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
 - [x] `role-growth.sh` with a bad role (not `coord` or `dev`) exits 2 with its usage line on stderr; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
-- [ ] `role-growth.sh <role> --lane` with no lane value exits 2 with its usage line on stderr; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
+- [x] `role-growth.sh <role> --lane` with no lane value exits 2 with its usage line on stderr; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧

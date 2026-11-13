@@ -455,3 +455,12 @@ def test_a_transcript_that_is_not_valid_jsonl_exits_2_with_one_stderr_line_namin
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, len(err.splitlines()), str(transcript) in err) == (2, 1, True)
+
+
+def test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, err = run_cli(role_growth, ["dev", "--lane"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, out, err) == (2, "", "usage: role-growth.sh <coord|dev> [--lane <lane>]\n")

@@ -151,3 +151,10 @@ skills/tdd/scripts/tests/py/unit/test_role_growth.py
 command 167
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_wrongly_cased_role_with_a_lane_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout
+
