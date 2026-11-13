@@ -31,7 +31,7 @@ def main(argv):
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
     fields = dict(l.split("=", 1) for l in (role_state.read(path) or "").splitlines() if "=" in l)
     recovered = fields.get("recovered-at")
-    if recovered and recovered > fields.get("baseline-at", ""):
+    if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
         with open(transcript) as f:
             records = [json.loads(l) for l in f if l.strip()]
         context = growth.growth(records, 0)

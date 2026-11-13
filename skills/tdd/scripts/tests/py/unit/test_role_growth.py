@@ -152,3 +152,24 @@ def test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_
     code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, out, "baseline=2400" in state.read_text().splitlines()) == (0, "", True)
+
+
+def test_first_call_with_no_recovered_at_and_no_baseline_at_records_the_last_usage_context_as_baseline_and_now_as_baseline_at(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m1","usage":{"input_tokens":1,"cache_read_input_tokens":2,"cache_creation_input_tokens":3}}}\n'
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":100,"cache_read_input_tokens":2000,"cache_creation_input_tokens":300}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("session=old\n")
+
+    code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    lines = state.read_text().splitlines()
+    stamps = [l for l in lines if l.startswith("baseline-at=") and len(l) > len("baseline-at=")]
+    assert (code, out, "baseline=2400" in lines, len(stamps)) == (0, "", True, 1)
