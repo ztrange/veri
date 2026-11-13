@@ -37,6 +37,12 @@ def main(argv):
         context = growth.growth(records, 0)
         if context is not None:
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
+    else:
+        with open(transcript) as f:
+            records = [json.loads(l) for l in f if l.strip()]
+        grown = growth.growth(records, int(fields["baseline"]))
+        if grown is not None and grown >= 0.85 * 70000:
+            print("context grew %d against the knob %d: reset at the next quiet point" % (grown, 70000))
     role_state.append(path, text)
     return 0
 
