@@ -433,3 +433,16 @@ def test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_l
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_COORD": "abc"})
 
     assert (code, len(err.splitlines()), "VERI_RESET_GROWTH_COORD" in err) == (2, 1, True)
+
+
+def test_a_transcript_that_is_not_valid_jsonl_exits_2_with_one_stderr_line_naming_the_transcript(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("this is not json\n")
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, len(err.splitlines()), str(transcript) in err) == (2, 1, True)

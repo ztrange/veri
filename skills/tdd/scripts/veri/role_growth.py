@@ -13,12 +13,27 @@ KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 
+class Unreadable(Exception):
+    pass
+
+
 def _records(transcript):
-    with open(transcript) as f:
-        return [json.loads(l) for l in f if l.strip()]
+    try:
+        with open(transcript) as f:
+            return [json.loads(l) for l in f if l.strip()]
+    except json.JSONDecodeError:
+        raise Unreadable("unreadable transcript %s\n" % transcript)
 
 
 def main(argv):
+    try:
+        return _main(argv)
+    except Unreadable as e:
+        sys.stderr.write(str(e))
+        return 2
+
+
+def _main(argv):
     lane = None
     if len(argv) == 3 and argv[1] == "--lane":
         lane = argv[2]
