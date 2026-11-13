@@ -129,11 +129,7 @@ def sha_state(repo, sha):
 
 def wait_for_reset(sha):
     reset = github.rate_limit_reset(subprocess.run)
-    try:
-        with open(deadline_mark(sha)) as found:
-            limit = int(found.read())
-    except OSError:
-        limit = None
+    limit = read_deadline(deadline_mark(sha))
     if limit is not None and reset >= limit:
         warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
         return False
@@ -187,13 +183,17 @@ def deadline_mark(key):
     return ".tdd/ci-deadline-" + key
 
 
-def before_deadline(mark):
+def read_deadline(mark):
     try:
         with open(mark) as found:
-            limit = int(found.read())
+            return int(found.read())
     except (OSError, ValueError):
-        return False
-    return epoch() < limit
+        return None
+
+
+def before_deadline(mark):
+    limit = read_deadline(mark)
+    return limit is not None and epoch() < limit
 
 
 def retry_sleep(poll, unread):
