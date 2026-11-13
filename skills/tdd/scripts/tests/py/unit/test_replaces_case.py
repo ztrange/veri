@@ -56,3 +56,12 @@ def test_parse_1603_does_not_raise_for_a_quoted_replaces_clause_with_no_suite_af
     step = "- [x] the old guard replaces 'a case that is gone' ⟦replaces-case⟧ ⟦criterion 6⟧"
 
     replaces_case.parse(step)
+
+
+def test_parse_3624_yields_the_names_and_suite_of_a_step_whose_suite_is_a_pytest_file():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    suite = "skills/tdd/scripts/tests/py/test_release_issue.py"
+    case = "test_3579_release_by_the_owner_leaves_a_token_file_holding_another_owners_token"
+    step = f"- [x] the owner's release: replaces '{case}' in {suite} ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+    assert replaces_case.parse(step) == ([case], suite)
