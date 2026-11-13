@@ -75,16 +75,20 @@ def launch(issue):
                              stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
-def comment_bodies(issue):
-    path = f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"
+def _read_after_rate_limit(read, path):
     try:
-        listed = github.gh_rest_list(path)
+        return read(path)
     except github.NoAnswer as failure:
         if "rate limit" not in (failure.detail or str(failure.answer)):
             raise
         reset = github.rate_limit_reset(subprocess.run)
         time.sleep(reset - time.time())
-        listed = github.gh_rest_list(path)
+        return read(path)
+
+
+def comment_bodies(issue):
+    path = f"repos/{{owner}}/{{repo}}/issues/{issue}/comments?per_page=100"
+    listed = _read_after_rate_limit(github.gh_rest_list, path)
     comments = json_documents.items(listed)
     return [comment["body"] for comment in comments]
 
@@ -112,14 +116,7 @@ def queued_merges():
 def pr_state(pr_url):
     owner, repo, number = pr_url.split("/")[-4], pr_url.split("/")[-3], pr_url.split("/")[-1]
     path = f"repos/{owner}/{repo}/pulls/{number}"
-    try:
-        read = github.gh_api(path)
-    except github.NoAnswer as failure:
-        if "rate limit" not in (failure.detail or str(failure.answer)):
-            raise
-        reset = github.rate_limit_reset(subprocess.run)
-        time.sleep(reset - time.time())
-        read = github.gh_api(path)
+    read = _read_after_rate_limit(github.gh_api, path)
     pull = json.loads(read.stdout)
     if "merged" not in pull:
         return "UNRESOLVED"
