@@ -1,6 +1,7 @@
 """In-process cases for veri/parked_issues.py, the reader of the parked set."""
 import importlib
 import json
+import subprocess
 
 import pytest
 
@@ -97,7 +98,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
 
     def fake_api(path, *args, **kwargs):
         assert "3420" in path
-        return json.dumps({"number": 3420, "state": "open", "merged": False})
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=json.dumps({"number": 3420, "state": "open", "merged": False}), stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
@@ -145,7 +146,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
 
     def fake_api(path, *args, **kwargs):
         assert "3420" in path
-        return closed
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=closed, stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
@@ -174,7 +175,7 @@ def test_main_3683_prints_ready_as_the_fifth_field_when_the_blocked_by_line_name
         return json.dumps(listing)
 
     def fake_api(path, *args, **kwargs):
-        return answer(path)
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=answer(path), stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
@@ -203,7 +204,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
         return json.dumps(listing)
 
     def fake_api(path, *args, **kwargs):
-        return answer(path)
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=answer(path), stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
@@ -232,7 +233,7 @@ def test_main_3683_prints_waiting_as_the_fifth_field_when_the_blocked_by_line_na
         return json.dumps(listing)
 
     def fake_api(path, *args, **kwargs):
-        return answer(path)
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=answer(path), stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
@@ -254,7 +255,7 @@ def test_main_3683_exits_2_naming_the_blocker_and_printing_no_row_when_gh_gives_
     def fake_api(path, *args, **kwargs):
         if "/pulls/3309" in path:
             raise parked_issues.github.NoAnswer("")
-        return as_issue
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=as_issue, stderr="")
 
     monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
     monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
