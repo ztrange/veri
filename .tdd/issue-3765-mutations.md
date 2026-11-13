@@ -1,0 +1,11 @@
+file 41
+skills/tdd/scripts/veri/issue_worktree.py
+old-b64 100
+ID09IDEgYW5kIHRvb2tfYnlfdGhpc19sYW5lKGlzc3VlX29mKGJyYW5jaCkpOgogICAgICAgIGJyYW5jaCA9IHRoZWlyc1swXQ==
+new-b64 44
+ID09IDE6CiAgICAgICAgYnJhbmNoID0gdGhlaXJzWzBd
+context-b64 156
+ICAgIGVsaWYgbGVuKHRoZWlycyA6PSBvcmlnaW5faXNzdWVfYnJhbmNoZXMocGF0aCwgaXNzdWVfb2YoYnJhbmNoKSkpID09IDEgYW5kIHRvb2tfYnlfdGhpc19sYW5lKGlzc3VlX29mKGJyYW5jaCkpOg==
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/test_issue_worktree.py::test_a_resume_under_another_slug_still_refuses_an_origin_only_branch_another_lane_took_issue_3765
+

@@ -1783,3 +1783,23 @@ def test_a_resume_under_another_slug_reuses_the_issues_one_origin_only_branch_ta
 
     assert (code, out.strip(), scratch_git(want, "branch", "--show-current") if os.path.isdir(want) else None,
             scratch_git(clone, "branch", "--list", "tdd/3765-gamma-delta")) == (0, want, "tdd/3765-alpha-beta", "")
+
+
+@pytest.mark.process("git clone of a local bare origin and git worktree add on a scratch repository, the lane lookup faked")
+def test_a_resume_under_another_slug_still_refuses_an_origin_only_branch_another_lane_took_issue_3765(
+        tmp_path, monkeypatch, issue_worktree, run_cli):
+    upstream = scratch_repo(tmp_path / "other-lane-upstream")
+    bare = tmp_path / "other-lane-origin.git"
+    subprocess.run(["git", "clone", "-q", "--bare", str(upstream), str(bare)], capture_output=True)
+    clone = tmp_path / "other-lane-clone"
+    subprocess.run(["git", "clone", "-q", str(bare), str(clone)], capture_output=True)
+    scratch_git(clone, "branch", "tdd/3765-alpha-beta")
+    scratch_git(clone, "push", "-q", "origin", "tdd/3765-alpha-beta")
+    scratch_git(clone, "branch", "-q", "-D", "tdd/3765-alpha-beta")
+    monkeypatch.setattr(issue_worktree.github, "gh_issue_view", lambda issue, field: "taken:other")
+    want = scratch_wt_path(clone, 3765)
+
+    code, out, _ = run_cli(issue_worktree, ["3765", "gamma-delta"], cwd=clone)
+
+    assert (code, out, os.path.exists(want),
+            scratch_git(clone, "branch", "--list", "tdd/3765-gamma-delta")) == (2, "", False, "")
