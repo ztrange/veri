@@ -12,3 +12,10 @@ skills/tdd/scripts/tests/py/unit/test_parked_issues.py
 command 167
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an_open_issue_blocker
 
+before 40
+b19071ba70f398c51c3ac62e1b6f17157463293b
+keep 54
+skills/tdd/scripts/tests/py/unit/test_parked_issues.py
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_merged_pull_request_blocker
+
