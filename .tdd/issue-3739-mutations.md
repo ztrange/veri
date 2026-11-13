@@ -1,0 +1,7 @@
+before 40
+19456e9a131bb7c4b3cf0c5801b6d77892655bf7
+keep 54
+skills/tdd/scripts/tests/py/unit/test_parked_issues.py
+command 173
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_parked_issues.py::test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_merged_pull_request_blocker
+

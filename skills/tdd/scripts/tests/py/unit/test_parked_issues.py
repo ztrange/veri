@@ -264,3 +264,27 @@ def test_main_3683_exits_2_naming_the_blocker_and_printing_no_row_when_gh_gives_
 
     assert (code, out, err) == (
         2, "", "parked-issues.sh: no answer from gh to reading the merged state of #3309\n")
+
+
+def test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_merged_pull_request_blocker(
+        monkeypatch, parked_issues, run_cli):
+    import subprocess
+
+    listing = [{"number": 3324, "title": "An issue"}]
+    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3309 merges\nBlocked by: #3309"}]
+    as_issue = json.dumps({"number": 3309, "state": "closed", "pull_request": {"url": "x"}})
+    as_pull = json.dumps({"number": 3309, "state": "closed", "merged": True})
+
+    def fake_rest_list(path, *args):
+        return json.dumps(comments if "/comments" in path else listing)
+
+    def fake_api(path, *args, **kwargs):
+        body = as_pull if "/pulls/" in path else as_issue
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=body, stderr="")
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+    monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\n")
