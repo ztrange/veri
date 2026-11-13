@@ -232,7 +232,7 @@ def test_a_serial_pass_over_a_target_naming_one_class_runs_that_class_s_serial_c
 def test_a_subset_leg_started_inside_the_directory_holding_its_serial_case_with_no_ini_file_leaves_none_unselected_and_exits_0(run_cli, tmp_path):
     planted = tmp_path / "planted"
     (planted / "second").mkdir(parents=True)
-    (planted / "second" / "test_planted_second.py").write_text("import pytest\n@pytest.mark.serial\ndef test_serial():\n    pass\n")
+    (planted / "second" / "test_planted_serial_in_second.py").write_text("import pytest\n@pytest.mark.serial\ndef test_serial():\n    pass\n")
     env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
 
     code, out, err = run_cli(importlib.import_module("veri.pytest_leg"),
