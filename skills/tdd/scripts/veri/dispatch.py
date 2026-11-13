@@ -75,15 +75,28 @@ def launch(issue):
                              stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
 
+class RateLimitPersists(watch_runs.QueueUnreadable):
+    pass
+
+
 def _read_after_rate_limit(read, path):
-    try:
-        return read(path)
-    except github.NoAnswer as failure:
-        if "rate limit" not in (failure.detail or str(failure.answer)):
-            raise
-        reset = github.rate_limit_reset(subprocess.run)
-        time.sleep(reset - time.time())
-        return read(path)
+    """read(path); a rate limit waits for the reset (none already past) and reads again, at most
+    VERI_GH_REFUSAL_RETRIES waits, then RateLimitPersists; a reset gh cannot report is the read's own NoAnswer."""
+    waits = 0
+    while True:
+        try:
+            return read(path)
+        except github.NoAnswer as failure:
+            detail = failure.detail or str(failure.answer)
+            if "rate limit" not in detail:
+                raise
+            if waits >= github._wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+                raise RateLimitPersists(f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n")
+            reset = github.rate_limit_reset(subprocess.run)
+            if reset is None:
+                raise
+            waits += 1
+            time.sleep(max(0, reset - time.time()))
 
 
 def comment_bodies(issue):
@@ -127,10 +140,6 @@ def issue_states(issues):
     listed = json.loads(github.gh_issue_list("--state", "all", "--limit", "1000", "--json", "number,state"))
     states = {str(item["number"]): item["state"] for item in listed}
     return {issue: states[issue] for issue in issues if issue in states}
-
-
-class RateLimitPersists(watch_runs.QueueUnreadable):
-    pass
 
 
 TRANSIENT_RETRY_BOUND = 12
