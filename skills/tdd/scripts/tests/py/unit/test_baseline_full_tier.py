@@ -38,7 +38,7 @@ def test_main_with_reuse_and_a_recorded_time_prints_reuse_and_the_seconds_and_ex
     assert (code, out.strip()) == (0, "reuse 727")
 
 
-def test_main_prints_run_when_unset_with_a_recorded_time_and_under_reuse_with_none_recorded_3436(
+def test_main_prints_reuse_when_unset_with_a_recorded_time_and_run_when_set_to_run_or_none_is_recorded_3436(
         tmp_path, run_cli, baseline_full_tier):
     full_tier_time = importlib.import_module("veri.full_tier_time")
     (tmp_path / ".git").mkdir()
@@ -46,14 +46,13 @@ def test_main_prints_run_when_unset_with_a_recorded_time_and_under_reuse_with_no
     assert code == 0
 
     unset = run_cli(baseline_full_tier, ["3436", "make test"], cwd=tmp_path)
-    reuse_unrecorded = run_cli(baseline_full_tier, ["3436", "make other"],
-                               env={"VERI_BASELINE_FULL_TIER": "reuse"}, cwd=tmp_path)
-    reuse_recorded = run_cli(baseline_full_tier, ["3436", "make test"],
-                             env={"VERI_BASELINE_FULL_TIER": "reuse"}, cwd=tmp_path)
+    unset_unrecorded = run_cli(baseline_full_tier, ["3436", "make other"], cwd=tmp_path)
+    run_recorded = run_cli(baseline_full_tier, ["3436", "make test"],
+                           env={"VERI_BASELINE_FULL_TIER": "run"}, cwd=tmp_path)
 
-    assert (unset[0], unset[1].strip()) == (0, "run")
-    assert (reuse_unrecorded[0], reuse_unrecorded[1].strip()) == (0, "run")
-    assert reuse_recorded[1].strip() == "reuse 727"
+    assert (unset[0], unset[1].strip()) == (0, "reuse 727")
+    assert (unset_unrecorded[0], unset_unrecorded[1].strip()) == (0, "run")
+    assert (run_recorded[0], run_recorded[1].strip()) == (0, "run")
 
 
 def test_main_with_reuse_and_no_recorded_time_for_the_command_prints_run_and_exits_0_3436(

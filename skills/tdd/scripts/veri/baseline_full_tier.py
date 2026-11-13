@@ -14,7 +14,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     pin = os.path.join(os.path.dirname(full_tier_time.record_path()), "issue-%s-baseline-full-tier" % argv[0])
-    mode = tunables.read("VERI_BASELINE_FULL_TIER", "run")
+    mode = tunables.read("VERI_BASELINE_FULL_TIER", "reuse")
     if os.path.exists(pin):
         with open(pin) as f:
             mode = f.read().strip()
