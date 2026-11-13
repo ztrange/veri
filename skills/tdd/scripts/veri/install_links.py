@@ -20,6 +20,10 @@ def _veri_skills():
     return os.path.join(os.path.dirname(done.stdout.strip()), "skills")
 
 
+def _is_veri_link(link, veri_skills):
+    return os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
+
+
 def main(argv):
     root = argv[0] if argv else os.getcwd()
     done = _common_dir(root)
@@ -33,14 +37,13 @@ def main(argv):
     veri_skills = _veri_skills()
     for name in LINKED:
         link = os.path.join(target, name)
-        held = os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
-        if os.path.lexists(link) and not held:
+        if os.path.lexists(link) and not _is_veri_link(link, veri_skills):
             print("install-links.sh: not a veri link, left untouched: " + link, file=sys.stderr)
             return 2
     removed = []
     for name in RETIRED:
         link = os.path.join(target, name)
-        if os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep):
+        if _is_veri_link(link, veri_skills):
             os.unlink(link)
             removed.append("/.claude/skills/" + name)
             print("removed " + name)
