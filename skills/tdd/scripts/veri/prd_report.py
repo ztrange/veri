@@ -48,7 +48,8 @@ def _owed():
 
 
 def _stale(stored, nnn, issue):
-    return stored.get(nnn, {}).get("updatedAt") != issue["updatedAt"]
+    entry = stored.get(nnn, {})
+    return "answer" not in entry or entry.get("updatedAt") != issue["updatedAt"]
 
 
 def _print_stale():

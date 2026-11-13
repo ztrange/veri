@@ -731,3 +731,28 @@ def test_no_argument_prints_the_usage_line_on_stderr_and_exits_2(run_cli, tmp_pa
     assert (code, out) == (2, "")
     assert "report.sh" in err
     assert "--report" in err
+
+
+def test_an_owed_entry_without_an_answer_from_the_old_format_counts_as_stale_in_report_and_stale(
+        run_cli, tmp_path, monkeypatch):
+    prd_report = importlib.import_module("veri.prd_report")
+    solvable_issues = importlib.import_module("solvable_issues")
+    issue_worktree = importlib.import_module("issue_worktree")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(solvable_issues, "solvable", lambda label, priority="priority", repo=None: (0, []))
+    monkeypatch.setattr(issue_worktree, "remote_issue_branch", lambda n: "")
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    issues = [{"number": 5, "title": "PRD 013: old entry", "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-29T21:25:46Z", "body": "", "blockedBy": [], "links": [],
+               "wallSeconds": 0, "lane": None}]
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": fetched, "issues": issues}))
+    (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps(
+        {"013": {"updatedAt": "2026-10-29T21:25:46Z", "owed": [{"item": "x", "section": "body"}]}}))
+
+    report_code, report_out, _ = run_cli(prd_report, ["--report"], cwd=tmp_path)
+    stale_code, stale_out, _ = run_cli(prd_report, ["--stale"], cwd=tmp_path)
+
+    owed = [line for line in report_out.splitlines() if line.startswith("owed")]
+    assert (report_code, owed, stale_code, stale_out) == (0, ["owed: stale"], 0, "013\n")
