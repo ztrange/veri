@@ -31,7 +31,10 @@ def main(argv):
     code = event.mark(run, {"issue": issue}, CAUSE,
                       ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE]])
     try:
-        github.gh_issue_comment(issue, "### ⛔ Preflight refused — %s\n" % check)
+        body = "### ⛔ Preflight refused — %s\n" % check
+        if len(argv) > 2:
+            body += "\n%s\n" % argv[2]
+        github.gh_issue_comment(issue, body)
     except github.NoAnswer:
         return 2
     return code
