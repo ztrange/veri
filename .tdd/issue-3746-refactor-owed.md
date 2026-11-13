@@ -1,0 +1,2 @@
+### With the checks read faked to refuse with a 403 rate-limit message and `github.rate_limit_reset` faked to report a reset after the CI deadline, wait-ci.sh exits 2 without sleeping until the reset, its stderr naming the rate limit and the reset time; a small in-process case faking only the gh boundary, the clock and the sleep ⟦criterion 2⟧
+- test-only | the three rate-limit cases in test_wait_ci.py repeat the same setup (work dir, deadline mark, clocked spy, limited_once reader) and could share a helper
