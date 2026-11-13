@@ -406,7 +406,7 @@ def test_both_scripts_exit_2_naming_the_step_when_a_quoted_name_is_followed_by_a
 
 
 def test_unreplaced_cases_exits_2_naming_the_step_and_the_suite_when_the_suite_is_not_a_test_sh_file_1538(tmp_path, run_cli, unreplaced):
-    step = "- [ ] x: replaces 'a' in t/x.py ⟦replaces-case⟧ ⟦criterion 6⟧"
+    step = "- [ ] x: replaces 'a' in t/x.txt ⟦replaces-case⟧ ⟦criterion 6⟧"
     report = tmp_path / "report.txt"
     report.write_text("")
 
@@ -414,8 +414,8 @@ def test_unreplaced_cases_exits_2_naming_the_step_and_the_suite_when_the_suite_i
 
     assert code == 2
     assert len(err.splitlines()) == 1
-    assert "replaces 'a' in t/x.py" in err
-    assert "t/x.py" in err
+    assert "replaces 'a' in t/x.txt" in err
+    assert "t/x.txt" in err
 
 
 def test_unreplaced_cases_exits_2_with_one_stderr_line_naming_the_step_when_the_clause_mixes_quoted_and_unquoted_names_1882(tmp_path, run_cli, unreplaced):
