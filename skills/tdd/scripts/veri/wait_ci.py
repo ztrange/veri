@@ -88,23 +88,30 @@ def ci_bound(repo, n=5):
     return str(min(CEILING, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
 
 
-def pr_head(repo, pr):
-    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
+def pr_head(repo, pr, on_limit=None):
+    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]), stderr=subprocess.PIPE)
     if run.returncode != 0:
+        sys.stderr.write(run.stderr or "")
+        if on_limit:
+            on_limit(run.stderr or "", False)
         return None, "", False
     pull = json.loads(run.stdout)
     return pull.get("mergeable"), pull["head"]["sha"] or "", bool(pull.get("draft"))
 
 
-def sha_state(repo, sha):
-    runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
+def sha_state(repo, sha, on_limit=None, draft=False):
+    try:
+        runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
+    except NoAnswer as error:
+        if on_limit:
+            on_limit(error.detail or "", draft)
+        raise
     status = gh_api("repos/%s/commits/%s/status" % (repo, sha), stderr=subprocess.PIPE)
     if status.returncode != 0:
         sys.stderr.write(status.stderr or "")
         refused = re.search(r"HTTP (4\d\d)", status.stderr or "")
-        if "rate limit" in (status.stderr or ""):
-            if not wait_for_reset(sha):
-                raise NoAnswer("permanent")
+        if on_limit:
+            on_limit(status.stderr or "", draft)
         raise NoAnswer("permanent" if refused and refused.group(1) not in ("403", "429") else "")
     statuses = status.stdout
     docs = documents(runs + statuses)
@@ -127,14 +134,27 @@ def sha_state(repo, sha):
     return "green", "", False
 
 
-def wait_for_reset(sha):
+def wait_for_reset(stderr, key, draft, total, bound):
+    """On a rate-limit refusal in <stderr>, sleeps until GitHub's reset when it falls before the CI deadline
+    (the key's mark, else the one made now and recorded unless a draft); raises NoAnswer("permanent") when it
+    falls at or past it. An unknown reset, or any other refusal, returns for the caller's backoff retry."""
+    if "rate limit" not in stderr:
+        return
     reset = github.rate_limit_reset(subprocess.run)
-    limit = read_deadline(deadline_mark(sha))
-    if limit is not None and reset >= limit:
+    if reset is None:
+        return
+    mark = deadline_mark(key) if key else None
+    limit = read_deadline(mark) if mark else None
+    if limit is None:
+        if "limit" not in bound:
+            bound["limit"] = epoch() + int(total)
+        limit = bound["limit"]
+        if mark and not draft and not os.path.exists(mark):
+            record(mark, str(limit))
+    if reset >= limit:
         warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
-        return False
-    github.time.sleep(reset - epoch())
-    return True
+        raise NoAnswer("permanent")
+    github.time.sleep(max(0, reset - epoch()))
 
 
 def no_pull_request_workflow(repo, head):
@@ -270,6 +290,7 @@ def main(argv):
             total = span
     poll = tunables.read("VERI_POLL", unless_empty="10")
     deadline = ""
+    bound = {}
     slice_end = None
     unread = 0
     first_none = None
@@ -277,7 +298,12 @@ def main(argv):
     while True:
         draft = False
         try:
-            mergeable, head, draft = pr_head(repo, pr)
+            mergeable, head, draft = pr_head(
+                repo, pr, lambda err, is_draft: wait_for_reset(err, want, is_draft, total, bound))
+        except NoAnswer as error:
+            if str(error) == "permanent":
+                return unreadable(want or pr)
+            head = ""
         except Exception:
             traceback.print_exc()
             head = ""
@@ -286,7 +312,8 @@ def main(argv):
         queued = False
         if head:
             try:
-                state, failed, queued = sha_state(repo, head)
+                state, failed, queued = sha_state(
+                    repo, head, lambda err, is_draft: wait_for_reset(err, want or head, is_draft, total, bound), draft)
             except NoAnswer as error:
                 if str(error) == "permanent":
                     return unreadable(head)
