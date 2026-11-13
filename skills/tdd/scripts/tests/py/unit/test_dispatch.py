@@ -3754,3 +3754,19 @@ def test_launchable_ignores_the_candidates_own_run_draft_pr_naming_a_path_it_cha
     result = dispatch.launchable("86", dispatch.run_pr_paths(), set())
 
     assert (result, capsys.readouterr().out) == (True, "")
+
+
+def test_launchable_still_skips_for_another_issues_run_draft_pr_changing_a_path_the_candidate_names_issue_3690(
+        monkeypatch, capsys, dispatch):
+    path = "skills/tdd/scripts/veri/dispatch.py"
+    url = "https://github.com/o/r/pull/89"
+    dispatch._reads.clear()
+    _real_overlap_reads(monkeypatch, dispatch,
+                        [{"number": 89, "url": url, "isDraft": True,
+                          "headRefName": "tdd/87-x", "headRefOid": "bbb"}],
+                        {"86": f"Change `{path}`.\n"},
+                        {89: [path]})
+
+    result = dispatch.launchable("86", dispatch.run_pr_paths(), set())
+
+    assert (result, capsys.readouterr().out) == (False, f"skip 86 {path} {url}\n")
