@@ -397,3 +397,27 @@ def test_install_links_sh_on_a_fresh_repo_links_and_excludes_exactly_the_six_ope
                     if line.strip().strip("/").startswith(".claude/skills/")) if exclude.exists() else []
     six = ["vcoord", "vdev", "vfile", "vgroom", "vhandoff", "vplan"]
     assert (done.returncode, links, listed) == (0, six, six)
+
+
+@pytest.mark.process("git init on a scratch project, then install-links.sh run against it holding the retired veri links")
+@pytest.mark.tree_audit("copies the scripts lib and veri directories into a scratch clone")
+def test_install_links_sh_removes_the_retired_veri_links_names_each_and_drops_their_exclude_lines_3750(tmp_path):
+    clone, shim = _clone(tmp_path)
+    project = (tmp_path / "project").resolve()
+    project.mkdir()
+    subprocess.run(["git", "-C", str(project), "init", "-q", "-b", "main"], check=True)
+    retired = ["vready", "vreport", "vstatus", "vstop"]
+    skills = project / ".claude" / "skills"
+    skills.mkdir(parents=True)
+    exclude = project / ".git" / "info" / "exclude"
+    exclude.parent.mkdir(exist_ok=True)
+    for name in retired:
+        (clone / "skills" / name).mkdir()
+        os.symlink(clone / "skills" / name, skills / name)
+    exclude.write_text("".join("/.claude/skills/" + n + "\n" for n in retired))
+    done = subprocess.run(["/bin/sh", str(shim), str(project)], stdin=subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    left = sorted(n for n in retired if os.path.lexists(skills / n))
+    named = sorted(line[len("removed "):] for line in done.stdout.splitlines() if line.startswith("removed "))
+    listed = sorted(n for n in retired if "/.claude/skills/" + n in exclude.read_text().splitlines())
+    assert (done.returncode, left, named, listed) == (0, [], retired, [])
