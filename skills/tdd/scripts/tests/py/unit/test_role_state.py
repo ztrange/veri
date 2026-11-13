@@ -352,3 +352,19 @@ def test_issue_3241_dev_request_reset_with_no_recovered_at_does_not_crash_and_wr
 
     marker = (tmp_path / ".tdd" / "reset-request-dev").read_text().split()
     assert (code, err, marker) == (0, "", ["2026-11-12T10:00:00"])
+
+
+def test_issue_3241_dev_request_reset_with_no_recovered_at_still_refuses_at_the_hourly_cap(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    before = "reset-at=2026-11-12T09:20:00\nreset-at=2026-11-12T09:40:00\n"
+    state.write_text(before)
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
+        1, True, before, [])
