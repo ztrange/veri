@@ -10,3 +10,6 @@
 - test-only | the repeated `role_growth` import, `main_tree` monkeypatch, home and transcript setup, and state-file setup in `test_role_growth.py` could move into fixtures or helpers
 ### On the first call after `recovered-at` is later than `baseline-at` (or no `baseline-at` yet) whose transcript has a usage line, `role-growth.sh` records the context of the last usage line as `baseline` and now as `baseline-at`, prints nothing and exits 0; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 4⟧
 - out-of-scope | extract a shared `key=value` state-file parser into `role_state.py`, used by `role_growth.py`'s `fields` parse and by `do_request_reset` (`role_state.py` lines 104 and 111)
+### `role-growth.sh coord` takes its knob from `VERI_RESET_GROWTH_COORD` (e.g. 1000: the arm line at a growth of 850); a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 5⟧
+- the `KNOBS.get(argv[0], "")` default lookup could go once `dev` gets its own knob, which a later step covers
+- test-only | extract the repeated home/transcript/state setup in test_role_growth.py into a fixture or helper
