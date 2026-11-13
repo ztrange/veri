@@ -1,0 +1,1 @@
+- [ ] the six test_main_3683_* fakes in tests/py/unit/test_parked_issues.py return a CompletedProcess whose stdout holds the JSON, for both the issue-state read and the /pulls/ read ⟦added⟧ ⟦criterion 1⟧
