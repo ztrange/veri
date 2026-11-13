@@ -24,17 +24,18 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     issue, check = argv[0], argv[1]
+    detail = argv[2] if len(argv) > 2 else None
     run = os.path.join(main_checkout(), ".tdd", "wt", issue)
     log = os.path.join(run, ".tdd", "events.jsonl")
     if os.path.isfile(log) and run_end.run_end(run)[2].get("event") == CAUSE:
         return 3
     code = event.mark(run, {"issue": issue}, CAUSE,
                       ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE],
-                       *(["detail=" + argv[2]] if len(argv) > 2 else [])])
+                       *(["detail=" + detail] if detail is not None else [])])
     try:
         body = "### ⛔ Preflight refused — %s\n" % check
-        if len(argv) > 2:
-            body += "\n%s\n" % argv[2]
+        if detail is not None:
+            body += "\n%s\n" % detail
         github.gh_issue_comment(issue, body)
     except github.NoAnswer:
         return 2
