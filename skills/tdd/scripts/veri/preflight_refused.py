@@ -10,7 +10,7 @@ import event
 import github
 import run_end
 
-USAGE = "usage: preflight-refused.sh <issue-number> <check>\n"
+USAGE = "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
 CAUSE = "preflight-refused"
 
 
