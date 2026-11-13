@@ -16,7 +16,7 @@ from frozen_record import (_body_digest, _body_line, _body_record, _helper_recor
                            _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
                            _write_pass_marker)
 import frozen_record
-from ledger import KIND_RE, carries_mark, trailing_markers
+from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
@@ -612,6 +612,11 @@ def rerecord_refactored(ledger, green):
         write(sys.stderr, "skipped: %s %s (%s)" % (name, case, reason))
         return record
 
+    exempt = []
+    for line in lines:
+        item = ITEM_RE.match(line)
+        parsed = replaces_case.parse(item.group(2)) if item and replaces_case.is_replaces_case_step(item.group(2)) else None
+        exempt += parsed[0] if parsed else []
     seen = {}
     repaired = _is_suite_repair_green(lines, green)
 
@@ -620,6 +625,8 @@ def rerecord_refactored(ledger, green):
         return found[k] if k < len(found) else None
 
     def rewrite(_, record, name, case, digest):
+        if case in exempt:
+            return record
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
         head = nth("HEAD", name, case, k)
@@ -651,7 +658,7 @@ def rerecord_refactored(ledger, green):
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
     if not _rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
-    return _check_earlier(ledger, "")
+    return _check_earlier(ledger, "", exempt)
 
 
 def rerecord_rebased(ledger, pre):
