@@ -9,3 +9,14 @@ ICAgICAgICBpZiBkZXRhaWwgaXMgbm90IE5vbmU6
 command 169
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_refused.py::test_3763_with_no_cause_given_the_posted_comment_body_is_exactly_the_heading_naming_the_check
 
+file 44
+skills/tdd/scripts/veri/preflight_refused.py
+old-b64 72
+KihbImRldGFpbD0iICsgZGV0YWlsXSBpZiBkZXRhaWwgaXMgbm90IE5vbmUgZWxzZSBbXSk=
+new-b64 32
+ImRldGFpbD0iICsgc3RyKGRldGFpbCk=
+context-b64 104
+ICAgICAgICAgICAgICAgICAgICAgICAqKFsiZGV0YWlsPSIgKyBkZXRhaWxdIGlmIGRldGFpbCBpcyBub3QgTm9uZSBlbHNlIFtdKV0p
+command 177
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_refused.py::test_3763_with_no_cause_given_the_preflight_refused_event_carries_only_check_cause_and_classification
+
