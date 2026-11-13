@@ -1,10 +1,12 @@
 """role-growth.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
+import json
 import os
 import sys
 
 from full_tier_time import main_tree
+import growth
 import role_state
 
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
@@ -26,7 +28,16 @@ def main(argv):
         return 2
     transcript = found[0]
     path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
-    role_state.append(path, "session=%s\ntranscript=%s\n" % (session, transcript))
+    text = "session=%s\ntranscript=%s\n" % (session, transcript)
+    fields = dict(l.split("=", 1) for l in (role_state.read(path) or "").splitlines() if "=" in l)
+    recovered = fields.get("recovered-at")
+    if recovered and recovered > fields.get("baseline-at", ""):
+        with open(transcript) as f:
+            records = [json.loads(l) for l in f if l.strip()]
+        context = growth.growth(records, 0)
+        if context is not None:
+            text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
+    role_state.append(path, text)
     return 0
 
 

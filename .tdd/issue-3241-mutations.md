@@ -69,3 +69,39 @@ skills/tdd/scripts/tests/py/unit/test_role_growth.py
 command 179
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_prints_nothing_and_records_no_baseline
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_and_keeps_baseline_at
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 56
+cmVjb3ZlcmVkID4gZmllbGRzLmdldCgiYmFzZWxpbmUtYXQiLCAiIik=
+new-b64 12
+cmVjb3ZlcmVk
+context-b64 84
+ICAgIGlmIHJlY292ZXJlZCBhbmQgcmVjb3ZlcmVkID4gZmllbGRzLmdldCgiYmFzZWxpbmUtYXQiLCAiIik6
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_and_keeps_baseline_at
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_the_baseline
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 32
+Zm9yIGwgaW4gZiBpZiBsLnN0cmlwKCld
+new-b64 16
+Zm9yIGwgaW4gZl0=
+context-b64 84
+ICAgICAgICAgICAgcmVjb3JkcyA9IFtqc29uLmxvYWRzKGwpIGZvciBsIGluIGYgaWYgbC5zdHJpcCgpXQ==
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_the_baseline
+
