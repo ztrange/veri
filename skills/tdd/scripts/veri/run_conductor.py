@@ -142,7 +142,7 @@ def main(argv):
                 listed = tunables.read("VERI_SKIP_VERIFY", "")
                 skip.write(listed + "\n" if listed else "")
             with open(os.path.join(run_state, "issue-%s-baseline-full-tier" % argv[0]), "w") as pin:
-                pin.write(tunables.read("VERI_BASELINE_FULL_TIER", "reuse") + "\n")
+                pin.write(tunables.read("VERI_BASELINE_FULL_TIER", tunables.TABLE["VERI_BASELINE_FULL_TIER"].default) + "\n")
             if readable:
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
