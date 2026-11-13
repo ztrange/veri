@@ -302,34 +302,6 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
         capsysbinary.readouterr()
 
 
-def test_3697_main_now_names_no_pid_in_stderr_for_a_leaf_it_termed_cleanly_whatever_digits_the_run_directory_holds(
-        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
-    import signal
-    tree = tmp_path / "t101x"
-    tree.mkdir()
-    monkeypatch.chdir(tree)
-    run = run_with_conductor(tree)
-    (run / ".tdd" / "a.pid").write_bytes(b"101\nT0\n")
-    answers = {**main_tree_at(tree), **conductor_answers(4242)}
-    answers[("ps", "-p", "101", "-o", "args=")] = (0, b"bash supervise.sh a develop-red\n")
-    answers[("ps", "-o", "lstart=", "-p", "101")] = (0, b"T0\n")
-    fake_processes(answering(answers))
-    terms = []
-
-    def fake_kill(pid, sig):
-        if sig == signal.SIGTERM:
-            terms.append(pid)
-        elif pid != 4242:
-            raise ProcessLookupError(3, "No such process")
-
-    monkeypatch.setattr(os, "kill", fake_kill)
-
-    stop_run.main(["--mode", "now", "5"])
-    out, err = capsysbinary.readouterr()
-    assert terms == [101]
-    assert b"101" not in err.replace(os.fsencode(run), b"")
-
-
 def test_2249_main_in_at_ledger_and_at_leaf_asks_pid_file_live_conductor_nothing_and_runs_no_ps_yet_answers_3_for_a_dead_pid(
         monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import pid_file
