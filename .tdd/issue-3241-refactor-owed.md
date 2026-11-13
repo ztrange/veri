@@ -16,3 +16,5 @@
 ### `role-growth.sh` with a malformed role state file exits 2 with one stderr line naming the problem; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
 - extract the malformed-state-file check in role_growth.main into a helper, or into role_state, where state-file parsing lives
 - split role_growth.main's baseline branch and growth-reading branch into helper functions
+### `role-growth.sh` with a bad knob (`VERI_RESET_GROWTH_COORD` not a whole number ≥ 1, e.g. `0` or `abc`) exits 2 with one stderr line naming the knob; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
+- test-only | the two new bad-knob cases in `test_role_growth.py` repeat the same transcript and state-file setup, and could be one parametrized case or a shared helper
