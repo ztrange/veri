@@ -65,3 +65,12 @@ def test_parse_3624_yields_the_names_and_suite_of_a_step_whose_suite_is_a_pytest
     step = f"- [x] the owner's release: replaces '{case}' in {suite} ⟦replaces-case⟧ ⟦criterion 1⟧"
 
     assert replaces_case.parse(step) == ([case], suite)
+
+
+def test_parse_3624_yields_the_names_and_the_file_of_a_step_whose_suite_is_a_pytest_node():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    suite = "skills/tdd/scripts/tests/py/test_release_issue.py"
+    case = "test_3579_release_by_the_owner_leaves_a_token_file_holding_another_owners_token"
+    step = f"- [x] the owner's release: replaces '{case}' in {suite}::{case} ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+    assert replaces_case.parse(step) == ([case], suite)
