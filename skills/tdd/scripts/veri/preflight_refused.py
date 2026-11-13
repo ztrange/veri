@@ -24,7 +24,7 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     issue, check = argv[0], argv[1]
-    detail = argv[2] if len(argv) > 2 else None
+    detail = argv[2] if len(argv) > 2 and argv[2].strip() else None
     run = os.path.join(main_checkout(), ".tdd", "wt", issue)
     log = os.path.join(run, ".tdd", "events.jsonl")
     if os.path.isfile(log) and run_end.run_end(run)[2].get("event") == CAUSE:
