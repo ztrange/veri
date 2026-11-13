@@ -23,7 +23,7 @@ def main(argv):
     if len(argv) == 3 and argv[1] == "--lane":
         lane = argv[2]
         argv = argv[:1]
-    if len(argv) != 1 or argv[0] not in ("coord", "dev"):
+    if len(argv) != 1 or argv[0] not in KNOBS:
         sys.stderr.write(USAGE)
         return 2
     session = os.environ["CLAUDE_CODE_SESSION_ID"]
@@ -42,7 +42,7 @@ def main(argv):
         if context is not None:
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
     else:
-        knob = int(os.environ.get(KNOBS.get(argv[0], ""), 70000))
+        knob = int(os.environ.get(KNOBS[argv[0]], 70000))
         grown = growth.growth(_records(transcript), int(fields["baseline"]))
         if grown is not None and grown >= 0.85 * knob:
             advice = "reset now, even mid-task" if grown >= 2 * knob else "reset at the next quiet point"
