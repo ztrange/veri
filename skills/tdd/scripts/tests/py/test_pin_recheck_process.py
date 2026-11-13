@@ -3206,3 +3206,34 @@ def test_3740_a_mutation_record_whose_file_is_absent_and_not_deleted_in_the_rang
 
     assert (ran.returncode != 2, "FileNotFoundError" in ran.stderr, ran.stdout, (tmp_path / "ran.witness").exists()) == (
         True, False, "stale: .tdd/issue-3740-mutations.md guard.txt\n", False), ran.stderr
+
+
+@pytest.mark.process("git, and pin-recheck.sh run over a green pin beside a record whose file is absent at HEAD")
+def test_3740_a_pin_green_under_its_mutation_beside_a_record_whose_file_is_absent_still_exits_1_naming_it_and_leaves_its_file_alone(tmp_path):
+    def git(*words):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
+                              capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    git("init", "-q")
+    (tmp_path / "live.txt").write_text("if guard\n")
+    (tmp_path / "gone.txt").write_text("if guard\n")
+    git("add", "-A")
+    git("commit", "-q", "-m", "main")
+    git("update-ref", "refs/remotes/origin/main", "HEAD")
+    (tmp_path / "live.txt").write_text("if guard\nthrows\n")
+    (tmp_path / ".tdd").mkdir()
+    record(tmp_path / ".tdd" / "issue-3740a-mutations.md", file="live.txt", old="if guard", new="if (true)",
+           command="grep -q throws live.txt")
+    record(tmp_path / ".tdd" / "issue-3740b-mutations.md", file="gone.txt", old="if guard", new="if (true)",
+           command="touch ran.witness")
+    git("add", "-A")
+    git("commit", "-q", "-m", "base")
+    base = git("rev-parse", "HEAD")
+    (tmp_path / "live.txt").write_text("if guard\nthrows\nsafe\n")
+    (tmp_path / "gone.txt").write_text("if guard\nmore\n")
+    git("commit", "-q", "-am", "touch both files")
+    (tmp_path / "gone.txt").unlink()
+
+    ran = subprocess.run(["sh", RECHECK, base], cwd=tmp_path, capture_output=True, text=True, timeout=20)
+
+    assert (ran.returncode, "live.txt" in ran.stderr, (tmp_path / "live.txt").read_bytes()) == (
+        1, True, b"if guard\nthrows\nsafe\n"), ran.stderr
