@@ -73,3 +73,20 @@ def test_dev_with_a_lane_records_session_and_transcript_in_the_lane_state_file(t
     state = tmp_path / ".tdd" / "role-dev-alpha.state"
     lines = state.read_text().splitlines() if state.exists() else []
     assert (code, "session=sess-42" in lines, "transcript=%s" % transcript in lines) == (0, True, True)
+
+
+def test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_prints_nothing_and_records_no_baseline(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text('{"type":"user","message":{"role":"user","content":"hello"}}\n')
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T10:00:00\nbaseline-at=2026-11-13T09:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    baselines = [l for l in state.read_text().splitlines() if l.startswith("baseline=")]
+    assert (code, out, baselines) == (0, "", [])

@@ -62,3 +62,10 @@ skills/tdd/scripts/tests/py/unit/test_role_growth.py
 command 130
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_unset_session_id_exits_2_with_one_stderr_line_naming_it
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_prints_nothing_and_records_no_baseline
+
