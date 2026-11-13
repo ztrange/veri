@@ -12,3 +12,14 @@ skills/tdd/scripts/tests/py/test_tests_frozen_process.py
 command 188
 make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_rerecord_refactored_exits_1_for_an_unnamed_case_a_green_rewrote_beside_a_case_a_replaces_case_step_names_3624
 
+file 39
+skills/tdd/scripts/veri/tests_frozen.py
+old-b64 52
+aWYgY2FzZSBub3QgaW4gZXhlbXB0IGFuZCBub3QgKGZpeHR1cmU=
+new-b64 40
+aWYgbm90IGV4ZW1wdCBhbmQgbm90IChmaXh0dXJl
+context-b64 112
+ICAgICAgICBpZiBjYXNlIG5vdCBpbiBleGVtcHQgYW5kIG5vdCAoZml4dHVyZSBhbmQgbmFtZSA9PSBmaXh0dXJlLmdyb3VwKDEpKSBhbmQgKA==
+command 203
+make test TESTS=skills/tdd/scripts/tests/py/test_tests_frozen_process.py::test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_naming_another_case_of_the_same_pytest_file_does_not_3624
+
