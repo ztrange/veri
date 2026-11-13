@@ -35,7 +35,8 @@ def main(argv):
     transcript = found[0]
     path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
-    fields = dict(l.split("=", 1) for l in (role_state.read(path) or "").splitlines() if "=" in l)
+    lines = (role_state.read(path) or "").splitlines()
+    fields = dict(l.split("=", 1) for l in lines if "=" in l)
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
         context = growth.growth(_records(transcript), 0)
@@ -45,7 +46,7 @@ def main(argv):
         knob = int(os.environ.get(KNOBS[argv[0]], 70000))
         grown = growth.growth(_records(transcript), int(fields["baseline"]))
         if grown is not None and grown >= 0.85 * knob:
-            reason = role_state.refusal(path, (role_state.read(path) or "").splitlines(), role_state.now())
+            reason = role_state.refusal(path, lines, role_state.now())
             if reason:
                 print("%s: report it to the operator, do not retry" % reason)
                 text += "refused-at=%s\n" % role_state.now()
