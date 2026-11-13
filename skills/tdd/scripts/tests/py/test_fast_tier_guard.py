@@ -771,3 +771,9 @@ def test_3238_the_adr_0034_suite_whose_cases_start_no_process_lives_under_tests_
     tier = SCRIPTS / "tests" / "py"
     name = "test_adr_0034.py"
     assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
+
+
+@pytest.mark.tree_audit("every test_*.py under tests/py and tests/py/unit")
+def test_3711_the_resolved_scripts_of_guard_suite_is_not_named_as_guard_clean_outside_the_tier(tests_py_index):
+    named = [line for line in _misplaced(SCRIPTS / "tests" / "py") if line.startswith("test_resolved_scripts_of_guard.py")]
+    assert named == []
