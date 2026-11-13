@@ -332,3 +332,13 @@ def test_issue_3241_dev_recovered_clears_refused_at_from_the_state_file_and_keep
 
     assert (code, state.read_text().splitlines()) == (0, [
         "baseline=1000", "recovered-at=2026-11-12T10:00:00", "session-id=sess-1"])
+
+
+def test_issue_3241_usage_names_request_reset_and_every_set_field(run_cli):
+    role_state = importlib.import_module("veri.role_state")
+
+    code, _, err = run_cli(role_state, [])
+
+    missing = [w for w in ("request-reset [--idle]", *role_state.SET_FIELDS) if w not in err]
+    assert (code, missing) == (2, [])
+

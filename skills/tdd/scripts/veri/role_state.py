@@ -10,9 +10,9 @@ from full_tier_time import main_tree
 import timed_n_format
 import tunables
 
-USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator> <value>"
+USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered\n")
+         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered | request-reset [--idle]\n")
 
 
 def state_path(tree, role, lane=None):
