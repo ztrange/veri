@@ -10,7 +10,7 @@ _START = re.compile(_REPLACES + "(?=" + _QUOTE + ")")
 _UNQUOTED = re.compile(_REPLACES + "(?!" + _QUOTE + r")\S")
 _OTHER_SUITE = re.compile(_REPLACES + "(?=" + _QUOTE + r").*? in ([\w./-]+)")
 _JOINT = "(?:, | and )"
-_SUITE = re.compile(r" in ([\w./-]+\.test\.sh)")
+_SUITE = re.compile(r" in ([\w./-]+\.(?:test\.sh|py))")
 
 
 def is_replaces_case_step(step):
