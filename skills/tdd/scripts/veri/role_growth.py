@@ -26,6 +26,10 @@ def main(argv):
     if len(argv) != 1 or argv[0] not in KNOBS:
         sys.stderr.write(USAGE)
         return 2
+    raw = os.environ.get(KNOBS[argv[0]], "70000")
+    if not raw.isdigit() or int(raw) < 1:
+        sys.stderr.write("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
+        return 2
     session = os.environ["CLAUDE_CODE_SESSION_ID"]
     pattern = os.path.join(os.path.expanduser("~"), ".claude", "projects", "*", session + ".jsonl")
     found = glob.glob(pattern)
@@ -46,7 +50,7 @@ def main(argv):
         if context is not None:
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
     else:
-        knob = int(os.environ.get(KNOBS[argv[0]], 70000))
+        knob = int(raw)
         grown = growth.growth(_records(transcript), int(fields["baseline"]))
         if grown is not None and grown >= 0.85 * knob:
             reason = role_state.refusal(path, lines, role_state.now())

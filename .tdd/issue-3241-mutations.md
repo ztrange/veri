@@ -137,3 +137,10 @@ ICAgIGlmIGFueSgiPSIgbm90IGluIGwgYW5kIG5vdCBsLnN0YXJ0c3dpdGgoKCJkZWNpc2lvbiAiLCAi
 command 148
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits_0
 
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_line_naming_the_knob
+

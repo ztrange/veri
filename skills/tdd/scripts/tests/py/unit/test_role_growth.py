@@ -397,3 +397,39 @@ def test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, "malformed" in err) == (0, False)
+
+
+def test_a_veri_reset_growth_coord_that_is_not_a_whole_number_of_at_least_1_exits_2_with_one_stderr_line_naming_the_knob(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":50000,"cache_creation_input_tokens":10000}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_COORD": "0"})
+
+    assert (code, len(err.splitlines()), "VERI_RESET_GROWTH_COORD" in err) == (2, 1, True)
+
+
+def test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_line_naming_the_knob(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":50000,"cache_creation_input_tokens":10000}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_COORD": "abc"})
+
+    assert (code, len(err.splitlines()), "VERI_RESET_GROWTH_COORD" in err) == (2, 1, True)
