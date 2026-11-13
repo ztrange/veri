@@ -228,6 +228,17 @@ def local_issue_branches(path, issue):
     return sorted(name for name in found if name.startswith(prefix))
 
 
+def origin_issue_branches(path, issue):
+    git_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), ".git")
+    root = os.path.join(git_dir, "refs", "remotes", "origin")
+    prefix = "tdd/%s-" % issue
+    found = set()
+    for here, _, names in os.walk(os.path.join(root, "tdd")):
+        for name in names:
+            found.add(os.path.relpath(os.path.join(here, name), root))
+    return sorted(name for name in found if name.startswith(prefix))
+
+
 def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
@@ -237,6 +248,9 @@ def cut(path, branch):
     elif len(own := local_issue_branches(path, issue_of(branch))) == 1:
         branch = own[0]
         code = worktree_add(path, branch)
+    elif len(theirs := origin_issue_branches(path, issue_of(branch))) == 1 and took_by_this_lane(issue_of(branch)):
+        branch = theirs[0]
+        code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
     else:
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
