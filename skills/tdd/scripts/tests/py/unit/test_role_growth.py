@@ -464,3 +464,12 @@ def test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_
     code, out, err = run_cli(role_growth, ["dev", "--lane"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, out, err) == (2, "", "usage: role-growth.sh <coord|dev> [--lane <lane>]\n")
+
+
+def test_an_extra_argument_after_lane_and_its_value_prints_usage_on_stderr_and_exits_2(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, err = run_cli(role_growth, ["dev", "--lane", "x", "extra"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, out, err) == (2, "", "usage: role-growth.sh <coord|dev> [--lane <lane>]\n")
