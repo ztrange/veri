@@ -288,3 +288,22 @@ def test_main_3739_prints_ready_when_gh_api_returns_a_completed_process_for_a_me
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out) == (0, "3324\tAn issue\twaiting on upstream\t#3309 merges\tready\n")
+
+
+def test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an_open_issue_blocker(
+        monkeypatch, parked_issues, run_cli):
+    listing = [{"number": 3711, "title": "A parked issue"}]
+    comments = [{"body": "### ⏸ Parked\n\nCause: waiting on upstream\nUnblock: #3737 merges\nBlocked by: #3737"}]
+
+    def fake_rest_list(path, *args):
+        return json.dumps(comments if "/comments" in path else listing)
+
+    def fake_api(path, *args, **kwargs):
+        return subprocess.CompletedProcess(args=["gh"], returncode=0, stdout=json.dumps({"number": 3737, "state": "open"}), stderr="")
+
+    monkeypatch.setattr(parked_issues.github, "gh_rest_list", fake_rest_list)
+    monkeypatch.setattr(parked_issues.github, "gh_api", fake_api)
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out) == (0, "3711\tA parked issue\twaiting on upstream\t#3737 merges\twaiting\n")
