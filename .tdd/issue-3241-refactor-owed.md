@@ -20,3 +20,4 @@
 - test-only | the two new bad-knob cases in `test_role_growth.py` repeat the same transcript and state-file setup, and could be one parametrized case or a shared helper
 ### `role-growth.sh` with an unreadable transcript (not valid JSONL) exits 2 with one stderr line naming the transcript; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 7⟧
 - route `_main`'s repeated stderr-write-and-return-2 exits through one exception type, renaming `Unreadable` to a general usage/failure error, once the remaining criterion 7 steps add more such exits
+not-done | transform-rejected | extract a shared `key=value` state-file parser into `role_state.py`, used by `role_growth.py`'s `fields` parse and by `do_request_reset` (`role_state.py` lines 104 and 111)
