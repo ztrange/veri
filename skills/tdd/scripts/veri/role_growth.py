@@ -9,7 +9,7 @@ from full_tier_time import main_tree
 import growth
 import role_state
 
-KNOBS = {"coord": "VERI_RESET_GROWTH_COORD"}
+KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 

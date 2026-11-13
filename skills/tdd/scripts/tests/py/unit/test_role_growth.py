@@ -266,3 +266,22 @@ def test_coord_takes_its_knob_from_veri_reset_growth_coord_and_prints_the_arm_li
 
     line = out.rstrip("\n")
     assert (code, len(out.splitlines()), "850" in line, "1000" in line, "reset at the next quiet point" in line) == (0, 1, True, True, True)
+
+
+def test_dev_takes_its_knob_from_veri_reset_growth_dev_and_prints_the_arm_line_at_a_growth_of_850_against_1000(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":1350,"cache_creation_input_tokens":0}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\n")
+
+    code, out, _ = run_cli(role_growth, ["dev"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42", "VERI_RESET_GROWTH_DEV": "1000", "VERI_RESET_GROWTH_COORD": "999999"})
+
+    line = out.rstrip("\n")
+    assert (code, len(out.splitlines()), "850" in line, "1000" in line, "reset at the next quiet point" in line) == (0, 1, True, True, True)
