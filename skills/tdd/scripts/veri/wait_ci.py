@@ -103,7 +103,8 @@ def sha_state(repo, sha):
         sys.stderr.write(status.stderr or "")
         refused = re.search(r"HTTP (4\d\d)", status.stderr or "")
         if "rate limit" in (status.stderr or ""):
-            wait_for_reset()
+            if not wait_for_reset(sha):
+                raise NoAnswer("permanent")
         raise NoAnswer("permanent" if refused and refused.group(1) not in ("403", "429") else "")
     statuses = status.stdout
     docs = documents(runs + statuses)
@@ -126,8 +127,18 @@ def sha_state(repo, sha):
     return "green", "", False
 
 
-def wait_for_reset():
-    github.time.sleep(github.rate_limit_reset(subprocess.run) - epoch())
+def wait_for_reset(sha):
+    reset = github.rate_limit_reset(subprocess.run)
+    try:
+        with open(deadline_mark(sha)) as found:
+            limit = int(found.read())
+    except OSError:
+        limit = None
+    if limit is not None and reset >= limit:
+        warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
+        return False
+    github.time.sleep(reset - epoch())
+    return True
 
 
 def no_pull_request_workflow(repo, head):
