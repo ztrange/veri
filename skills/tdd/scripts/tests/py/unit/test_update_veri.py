@@ -288,3 +288,21 @@ def test_main_exits_2_with_the_git_error_on_stderr_and_prints_no_old_and_new_sha
 
     assert (code, out) == (2, "")
     assert "would be overwritten by merge" in err
+
+
+def test_git_runs_git_against_the_clone_holding_the_scripts_directory_two_levels_above_update_veri_py(
+        update_veri, monkeypatch):
+    import os
+    import types
+    calls = []
+
+    def spy_run(cmd, *args, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(update_veri, "subprocess", types.SimpleNamespace(run=spy_run))
+
+    update_veri.git("status")
+
+    root = os.path.dirname(os.path.dirname(os.path.realpath(update_veri.__file__)))
+    assert calls == [["git", "-C", root, "status"]]
