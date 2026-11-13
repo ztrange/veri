@@ -304,3 +304,21 @@ def test_at_the_arm_point_with_nothing_launched_since_recovery_prints_the_refusa
 
     refused = [l for l in state.read_text().splitlines() if l.startswith("refused-at=") and len(l) > len("refused-at=")]
     assert (code, len(out.splitlines()), "report it to the operator, do not retry" in out, "context grew" in out, len(refused)) == (0, 1, True, False, 1)
+
+
+def test_a_later_call_at_the_arm_point_with_refused_at_recorded_and_the_guard_still_refusing_prints_nothing_and_exits_0(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    home = tmp_path / "home"
+    transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text(
+        '{"type":"assistant","message":{"id":"m2","usage":{"input_tokens":500,"cache_read_input_tokens":50000,"cache_creation_input_tokens":10000}}}\n'
+    )
+    state = tmp_path / ".tdd" / "role-coord.state"
+    state.parent.mkdir()
+    state.write_text("recovered-at=2026-11-13T09:00:00\nbaseline=1000\nbaseline-at=2026-11-13T10:00:00\nrefused-at=2026-11-13T10:30:00\n")
+
+    code, out, _ = run_cli(role_growth, ["coord"], env={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-42"})
+
+    assert (code, out) == (0, "")

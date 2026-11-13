@@ -48,8 +48,9 @@ def main(argv):
         if grown is not None and grown >= 0.85 * knob:
             reason = role_state.refusal(path, lines, role_state.now())
             if reason:
-                print("%s: report it to the operator, do not retry" % reason)
-                text += "refused-at=%s\n" % role_state.now()
+                if not fields.get("refused-at"):
+                    print("%s: report it to the operator, do not retry" % reason)
+                    text += "refused-at=%s\n" % role_state.now()
             else:
                 advice = "reset now, even mid-task" if grown >= 2 * knob else "reset at the next quiet point"
                 print("context grew %d against the knob %d: %s" % (grown, knob, advice))
