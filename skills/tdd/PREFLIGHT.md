@@ -125,7 +125,7 @@ run it. A preflight that passes never reads it.
    test target (a failing pytest node id, else a test file) passes when run alone (`--alone`), as for the baseline, it is a flake: a
    `suite-flake` event names the targets, and preflight goes on.
 
-   `VERI_BASELINE_FULL_TIER` takes `run`, the default, or `reuse`. The fast-tier baseline
+   `VERI_BASELINE_FULL_TIER` takes `reuse`, the default, or `run`. The fast-tier baseline
    runs in both modes. Settle the mode by running
    `$S/baseline-full-tier.sh <n> <full-tier-command>` and follow its output: `reuse <seconds>`
    means `full` is that many seconds (taken from `$S/full-tier-time.sh`, which holds a time for
