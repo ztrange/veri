@@ -1,0 +1,1 @@
+- [ ] each linked skill's .on-demand marker says /vinstall links it, and vready vreport vstatus vstop markers say they are not linked and are read by path when wanted ⟦added⟧ ⟦criterion 1⟧
