@@ -187,3 +187,21 @@ def test_3763_a_cause_given_as_the_third_argument_appears_in_the_posted_issue_co
     assert len(posted) == 1
     assert "issue-worktree" in posted[0][1]
     assert cause in posted[0][1]
+
+
+def test_3763_a_cause_given_as_the_third_argument_appears_in_the_preflight_refused_event(
+        tmp_path, monkeypatch, run_cli):
+    preflight_refused = importlib.import_module("veri.preflight_refused")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment", lambda number, body: None)
+    main = tmp_path / "main"
+    (main / ".git").mkdir(parents=True)
+    cause = "issue-worktree: tdd/3241-x is already on origin — another run holds it"
+
+    code = run_cli(preflight_refused, ["3241", "issue-worktree", cause], cwd=main)[0]
+
+    log = main / ".tdd" / "wt" / "3241" / ".tdd" / "events.jsonl"
+    events = [json.loads(text) for text in log.read_text().splitlines()]
+    assert code == 0
+    assert [e["event"] for e in events] == ["preflight-refused"]
+    assert events[0]["check"] == "issue-worktree"
+    assert cause in json.dumps(events[0], ensure_ascii=False)

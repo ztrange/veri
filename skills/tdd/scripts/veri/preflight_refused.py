@@ -29,7 +29,8 @@ def main(argv):
     if os.path.isfile(log) and run_end.run_end(run)[2].get("event") == CAUSE:
         return 3
     code = event.mark(run, {"issue": issue}, CAUSE,
-                      ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE]])
+                      ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE],
+                       *(["detail=" + argv[2]] if len(argv) > 2 else [])])
     try:
         body = "### ⛔ Preflight refused — %s\n" % check
         if len(argv) > 2:
