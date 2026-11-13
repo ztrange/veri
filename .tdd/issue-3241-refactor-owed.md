@@ -6,3 +6,7 @@
 - test-only | extract the repeated `main_tree` monkeypatch and home/transcript setup in test_role_growth.py into a shared fixture
 ### `role-growth.sh dev --lane <lane>` records `session` and `transcript` in the lane's state file `.tdd/role-dev-<lane>.state`; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 3⟧
 - test-only | extract the repeated home/transcript setup (and the `main_tree` monkeypatch) in `test_role_growth.py` into a fixture
+### On the first call after `recovered-at` is later than `baseline-at` (or no `baseline-at` yet) whose transcript has a usage line, `role-growth.sh` records the context of the last usage line as `baseline` and now as `baseline-at`, prints nothing and exits 0; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 4⟧
+- test-only | the repeated `role_growth` import, `main_tree` monkeypatch, home and transcript setup, and state-file setup in `test_role_growth.py` could move into fixtures or helpers
+### On the first call after `recovered-at` is later than `baseline-at` (or no `baseline-at` yet) whose transcript has a usage line, `role-growth.sh` records the context of the last usage line as `baseline` and now as `baseline-at`, prints nothing and exits 0; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_role_growth.py` ⟦criterion 4⟧
+- out-of-scope | extract a shared `key=value` state-file parser into `role_state.py`, used by `role_growth.py`'s `fields` parse and by `do_request_reset` (`role_state.py` lines 104 and 111)
