@@ -218,23 +218,19 @@ def took_by_this_lane(issue):
     return tunables.taken_label(opt_in) in github.gh_issue_view(issue, "labels").split("\n")
 
 
-def issue_branches(path, issue, *ref_dir):
-    git_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(path))), ".git")
-    root = os.path.join(git_dir, "refs", *ref_dir)
-    prefix = "tdd/%s-" % issue
-    found = set()
-    for here, _, names in os.walk(os.path.join(root, "tdd")):
-        for name in names:
-            found.add(os.path.relpath(os.path.join(here, name), root))
-    return sorted(name for name in found if name.startswith(prefix))
+def issue_branches(issue, *ref_dir):
+    root = "refs/" + "/".join(ref_dir) + "/"
+    listed = git("for-each-ref", "--format=%(refname)", root + "tdd/%s-*" % issue,
+                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
+    return sorted(line.removeprefix(root) for line in listed.splitlines())
 
 
-def local_issue_branches(path, issue):
-    return issue_branches(path, issue, "heads")
+def local_issue_branches(issue):
+    return issue_branches(issue, "heads")
 
 
-def origin_issue_branches(path, issue):
-    return issue_branches(path, issue, "remotes", "origin")
+def origin_issue_branches(issue):
+    return issue_branches(issue, "remotes", "origin")
 
 
 def cut(path, branch):
@@ -243,8 +239,8 @@ def cut(path, branch):
         code = worktree_add(path, branch)
     elif (on_origin := ref_exists(remote_ref)) and took_by_this_lane(issue_of(branch)):
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
-    elif len(names := sorted({*(own := local_issue_branches(path, issue_of(branch))),
-                              *origin_issue_branches(path, issue_of(branch))})) == 1 and own:
+    elif len(names := sorted({*(own := local_issue_branches(issue_of(branch))),
+                              *origin_issue_branches(issue_of(branch))})) == 1 and own:
         branch = names[0]
         code = worktree_add(path, branch)
     elif len(names) == 1 and took_by_this_lane(issue_of(branch)):
