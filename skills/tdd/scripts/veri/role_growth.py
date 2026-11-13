@@ -8,6 +8,7 @@ import sys
 from full_tier_time import main_tree
 import growth
 import role_state
+import tunables
 
 KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
@@ -41,7 +42,7 @@ def _main(argv):
     if len(argv) != 1 or argv[0] not in KNOBS:
         sys.stderr.write(USAGE)
         return 2
-    raw = os.environ.get(KNOBS[argv[0]], "70000")
+    raw = tunables.read(KNOBS[argv[0]], "70000")
     if not raw.isdigit() or int(raw) < 1:
         sys.stderr.write("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
         return 2
