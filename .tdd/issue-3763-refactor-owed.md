@@ -1,0 +1,2 @@
+### `preflight-refused.sh <n> <check> <cause>` given an optional third argument posts an issue comment whose body contains the cause text (faked `gh`, in-process via `run_cli`, a small unit case in `skills/tdd/scripts/tests/py/unit/test_preflight_refused.py`) ⟦criterion 1⟧
+- test-only | extract the repeated `posted`-recording `gh_issue_comment` monkeypatch and `main/.git` setup into a fixture in test_preflight_refused.py (touches only frozen cases' setup)
