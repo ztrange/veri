@@ -3941,3 +3941,62 @@ def test_pr_state_raises_no_answer_after_one_read_and_waits_for_no_reset_when_th
         dispatch.pr_state("https://github.com/o/r/pull/9")
 
     assert (len(reads), sleeps) == (1, [])
+
+
+_LIMITED_403 = "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n"
+
+
+def _limited_pull_then_answer(monkeypatch, dispatch, *, now, reset, limited_reads):
+    """pr_state's pull read refused as rate-limited <limited_reads> times, then answering; time.sleep refuses a negative."""
+    import json
+    import types
+
+    reads = []
+    sleeps = []
+
+    def gh_api(path, *args, **kwargs):
+        reads.append(path)
+        if len(reads) <= limited_reads:
+            raise dispatch.github.NoAnswer("", _LIMITED_403)
+        return types.SimpleNamespace(stdout=json.dumps({"merged": True, "state": "closed"}))
+
+    def sleep(seconds):
+        if seconds < 0:
+            raise ValueError("sleep length must be non-negative")
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(dispatch.github, "gh_api", gh_api)
+    monkeypatch.setattr(dispatch.github, "rate_limit_reset", lambda run=None: reset)
+    monkeypatch.setattr(dispatch.time, "time", lambda: now)
+    monkeypatch.setattr(dispatch.time, "sleep", sleep)
+    return reads, sleeps
+
+
+def test_pr_state_rereads_at_once_without_a_negative_sleep_when_the_reported_reset_is_already_past_issue_3747(
+        monkeypatch, dispatch):
+    reads, sleeps = _limited_pull_then_answer(monkeypatch, dispatch, now=1000, reset=990, limited_reads=1)
+
+    state = dispatch.pr_state("https://github.com/o/r/pull/9")
+
+    assert (state, len(reads), sleeps) == ("MERGED", 2, [0])
+
+
+def test_pr_state_raises_no_answer_not_a_type_error_when_a_rate_limited_pull_read_cannot_get_the_reset_issue_3747(
+        monkeypatch, dispatch):
+    reads, sleeps = _limited_pull_then_answer(monkeypatch, dispatch, now=1000, reset=None, limited_reads=1)
+
+    with pytest.raises(dispatch.github.NoAnswer):
+        dispatch.pr_state("https://github.com/o/r/pull/9")
+
+    assert (len(reads), sleeps) == (1, [])
+
+
+def test_pr_state_raises_rate_limit_persists_after_the_refusal_budget_of_waits_instead_of_sleeping_on_issue_3747(
+        monkeypatch, dispatch):
+    monkeypatch.setenv("VERI_GH_REFUSAL_RETRIES", "2")
+    reads, sleeps = _limited_pull_then_answer(monkeypatch, dispatch, now=1000, reset=1025, limited_reads=10 ** 6)
+
+    with pytest.raises(dispatch.RateLimitPersists) as raised:
+        dispatch.pr_state("https://github.com/o/r/pull/9")
+
+    assert (len(reads), sleeps, "rate limit" in str(raised.value)) == (3, [25, 25], True)
