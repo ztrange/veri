@@ -1,0 +1,1 @@
+- [ ] The 14 cases in skills/tdd/scripts/tests/py/unit/test_wait_ci.py that pin wait_ci's exact clock-call sequence tolerate an extra early date +%s read by main() before its first read, while still asserting their behaviour (outputs and exit codes) ⟦added⟧ ⟦criterion 1⟧

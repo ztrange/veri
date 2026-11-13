@@ -1,4 +1,5 @@
 # Plan for #3758 — wait-ci's rate-limit wait sleeps past the slice end, so a call near its deadline outlives the 600 s tool cap and gets no answer
 
+- [ ] The 14 cases in skills/tdd/scripts/tests/py/unit/test_wait_ci.py that pin wait_ci's exact clock-call sequence tolerate an extra early date +%s read by main() before its first read, while still asserting their behaviour (outputs and exit codes) ⟦added⟧ ⟦criterion 1⟧
 - [ ] With GitHub's rate-limit reset past the slice end (call start + slice seconds) and before the CI deadline, a wait_ci call sleeps no longer than the time left in the slice (as a fake sleep records it) and exits 3 rather than 2; one small in-process case in skills/tdd/scripts/tests/py/unit/test_wait_ci.py faking only gh, the clock and the sleep ⟦criterion 1⟧
 - [ ] Guard: with the reset before the slice end the call still sleeps until the reset and carries on, and with the reset at or past the deadline it still exits 2 without sleeping — the existing #3746 cases in skills/tdd/scripts/tests/py/unit/test_wait_ci.py stay green ⟦full-suite⟧ ⟦criterion 2⟧
