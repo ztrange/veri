@@ -111,7 +111,16 @@ def queued_merges():
 
 def pr_state(pr_url):
     owner, repo, number = pr_url.split("/")[-4], pr_url.split("/")[-3], pr_url.split("/")[-1]
-    pull = json.loads(github.gh_api(f"repos/{owner}/{repo}/pulls/{number}").stdout)
+    path = f"repos/{owner}/{repo}/pulls/{number}"
+    try:
+        read = github.gh_api(path)
+    except github.NoAnswer as failure:
+        if "rate limit" not in (failure.detail or str(failure.answer)):
+            raise
+        reset = github.rate_limit_reset(subprocess.run)
+        time.sleep(reset - time.time())
+        read = github.gh_api(path)
+    pull = json.loads(read.stdout)
     if "merged" not in pull:
         return "UNRESOLVED"
     return "MERGED" if pull["merged"] else pull["state"].upper()
