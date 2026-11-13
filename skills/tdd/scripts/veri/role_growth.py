@@ -12,6 +12,11 @@ import role_state
 USAGE = "usage: role-growth.sh <coord|dev> [--lane <lane>]\n"
 
 
+def _records(transcript):
+    with open(transcript) as f:
+        return [json.loads(l) for l in f if l.strip()]
+
+
 def main(argv):
     lane = None
     if len(argv) == 3 and argv[1] == "--lane":
@@ -32,15 +37,11 @@ def main(argv):
     fields = dict(l.split("=", 1) for l in (role_state.read(path) or "").splitlines() if "=" in l)
     recovered = fields.get("recovered-at")
     if "baseline-at" not in fields or (recovered and recovered > fields["baseline-at"]):
-        with open(transcript) as f:
-            records = [json.loads(l) for l in f if l.strip()]
-        context = growth.growth(records, 0)
+        context = growth.growth(_records(transcript), 0)
         if context is not None:
             text += "baseline=%d\nbaseline-at=%s\n" % (context, role_state.now())
     else:
-        with open(transcript) as f:
-            records = [json.loads(l) for l in f if l.strip()]
-        grown = growth.growth(records, int(fields["baseline"]))
+        grown = growth.growth(_records(transcript), int(fields["baseline"]))
         if grown is not None and grown >= 0.85 * 70000:
             print("context grew %d against the knob %d: reset at the next quiet point" % (grown, 70000))
     role_state.append(path, text)
