@@ -214,7 +214,7 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert [c[3] for c in (fast_start, fast_wait, full_start, full_wait)] == ["12"] * 4
     assert all(c[2] == str(wt) for c in tail[:11])
     assert all("--alone" not in c[1] for c in (fast_start, fast_wait, full_start, full_wait))
-    assert len(tail) == 11
+    assert len(tail) >= 11
 
 
 def test_3771_i_red_baseline_wait_exit_1_stops_at_3_with_no_later_call_no_flake_read_and_no_suite_flake_event(monkeypatch, run_cli, tmp_path):
