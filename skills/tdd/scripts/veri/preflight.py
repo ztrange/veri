@@ -75,6 +75,7 @@ def main(argv):
     env = dict(os.environ, VERI_ISSUE=n)
     detect = os.path.join(SCRIPTS, "detect-test-command.sh")
     pending = os.path.join(".tdd", "wt", n, ".tdd", "issue-%s-preflight-wait" % n)
+    reused = None
     saved = open(pending).read().split("\n", 2) if os.path.exists(pending) else [""]
     if saved[0] == "full":
         wt = os.path.abspath(os.path.join(".tdd", "wt", n))
@@ -124,16 +125,22 @@ def main(argv):
             body_file = issue_body(n, wt)
         _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
         full = full.strip()
-        call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
+        _, verdict, _ = call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
         began = time.monotonic()
-        code = detached("preflight-full-" + n, full, wt, env)
-    if code == 3:
+        if verdict.split()[:1] == ["reuse"]:
+            reused = int(verdict.split()[1])
+        else:
+            code = detached("preflight-full-" + n, full, wt, env)
+    if reused is not None:
+        full_secs = reused
+    elif code == 3:
         with open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w") as f:
             f.write("full\n%d\n%s" % (baseline, full))
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
-    call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
-    full_secs = math.ceil(time.monotonic() - began)
+    if reused is None:
+        call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
+        full_secs = math.ceil(time.monotonic() - began)
     call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
