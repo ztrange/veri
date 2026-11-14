@@ -44,6 +44,11 @@ def detached(name, cmd, wt, env):
     return call(detach, "wait", name, cwd=wt, env=env)[0]
 
 
+def stopped(step, what, code):
+    sys.stdout.write("stopped at %d %s\n" % (step, what))
+    return code
+
+
 def main(argv):
     if len(argv) != 2:
         sys.stderr.write(USAGE + "\n")
@@ -61,8 +66,7 @@ def main(argv):
         if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
             code = 1
         if code != 0:
-            sys.stdout.write("stopped at %d %s\n" % (step, label(*cmd)))
-            return code
+            return stopped(step, label(*cmd), code)
     _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
     wt = out.strip()
     call(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
@@ -82,8 +86,7 @@ def main(argv):
     fast = fast.strip()
     code = detached("preflight-fast-" + n, fast, wt, env)
     if code != 0:
-        sys.stdout.write("stopped at 3 detach-command.sh wait\n")
-        return code
+        return stopped(3, "detach-command.sh wait", code)
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
     full = full.strip()
     call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
