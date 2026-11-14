@@ -2521,6 +2521,46 @@ def test_cli_a_run_that_ends_leaves_no_conductor_pid_file_for_its_worktree_issue
     assert (code, seen, pid_file.exists()) == (0, [True], False)
 
 
+def test_cli_a_conductor_pid_file_overwritten_with_another_live_conductor_is_left_byte_identical_and_still_live_on_exit_3772(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    pid_file_module = importlib.import_module("veri.pid_file")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+    other, other_start = os.getppid(), "Fri Nov 13 22:10:56 2026"
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    worktree = cwd / ".tdd" / "wt" / "4242"
+    pid_file = worktree / ".tdd" / "conductor.pid"
+    overwritten = []
+
+    def with_another_live_conductor(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["ps"]:
+            field = args[args.index("-o") + 1] if "-o" in args else ""
+            who = args[args.index("-p") + 1] if "-p" in args else ""
+            answers = {"lstart=": other_start if who == str(other) else "Tue Oct 27 13:40:12 2026",
+                       "ppid=": "1", "command=": "claude run_conductor.py 4242"}
+            if field in answers:
+                return subprocess.CompletedProcess(args, 0, stdout=answers[field] + "\n", stderr="")
+        if args[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            pid_file.write_text("%d\n%s\n" % (other, other_start))
+            overwritten.append(pid_file.read_bytes())
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", with_another_live_conductor)
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, pid_file.read_bytes() if pid_file.exists() else None,
+            pid_file_module.live_conductor(str(worktree))) == (0, overwritten[0], str(other))
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)

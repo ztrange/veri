@@ -278,14 +278,17 @@ def conduct(text, issue, env):
         reader = threading.Thread(target=relay, args=(os.fdopen(read_end, "rb"), terminal, unread, seen), daemon=True)
         reader.start()
         os.dup2(write_end, 1)
+        recorded_read, recorded_write = os.pipe()
         try:
             pid_file = os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
             os.makedirs(os.path.dirname(pid_file), exist_ok=True)
 
             def record_pid():
                 started = pids._ps("lstart", os.getpid())
+                recorded = "%d\n%s\n" % (os.getpid(), started)
                 with open(pid_file, "w") as handle:
-                    handle.write("%d\n%s\n" % (os.getpid(), started))
+                    handle.write(recorded)
+                os.write(recorded_write, recorded.encode())
                 event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
                            "conductor-start", ["pid=%d" % os.getpid(), "started=%s" % started])
             code = subprocess.run([binary, "-p", "--output-format", "stream-json",
@@ -294,8 +297,13 @@ def conduct(text, issue, env):
                                    conductor_model()],
                                   input=text, env=env, preexec_fn=record_pid).returncode
         finally:
+            os.close(recorded_write)
+            with os.fdopen(recorded_read, "rb") as recorded:
+                ours = recorded.read()
             try:
-                os.remove(pid_file)
+                with open(pid_file, "rb") as handle:
+                    if handle.read() == ours:
+                        os.remove(pid_file)
             except FileNotFoundError:
                 pass
             os.dup2(terminal, 1)
