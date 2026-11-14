@@ -64,6 +64,9 @@ def main(argv):
     if argv[:1] == ["idle"] and len(argv) in (2, 3, 5):
         tdd = tdd_dir()
         transcript = state_field(tdd, argv_key(argv), "transcript")
+        if not transcript:
+            print("reset-wait.sh: no transcript recorded for %s" % argv[1], file=sys.stderr)
+            return 2
         seconds = argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_IDLE", "3000")
         while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()
