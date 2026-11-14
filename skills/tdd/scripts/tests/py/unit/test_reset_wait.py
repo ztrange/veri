@@ -483,3 +483,24 @@ def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_stil
 
     assert (code, out) == (0, "idle coord 3000\n")
     assert clock[0] - start == 3000.0
+
+
+def test_issue_3242_idle_coord_with_no_transcript_recorded_in_the_state_file_exits_2_with_one_stderr_line_naming_the_transcript_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    def no_wait(*args, **kwargs):
+        raise AssertionError("reset_wait slept")
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "role-coord.state").write_text("session-id=s1\n")
+    monkeypatch.setattr(time, "sleep", no_wait)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, err = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (2, "")
+    assert len(err.splitlines()) == 1
+    assert "transcript" in err
