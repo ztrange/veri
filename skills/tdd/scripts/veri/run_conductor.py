@@ -36,6 +36,7 @@ from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
 CLAIM_DIRS = []
+CLAIM_STARTED = []
 HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
@@ -61,7 +62,8 @@ def main(argv):
         made.insert(0, directory)
         directory = os.path.dirname(directory)
     os.makedirs(os.path.dirname(claim), exist_ok=True)
-    ours = ("%d\n" % os.getpid()).encode()
+    CLAIM_STARTED[:] = [pids._ps("lstart", os.getpid())]
+    ours = ("%d\n%s\n" % (os.getpid(), CLAIM_STARTED[0])).encode()
     with open(claim, "wb") as handle:
         handle.write(ours)
     try:
@@ -316,7 +318,7 @@ def conduct(text, issue, env):
             del CLAIM_DIRS[:]
 
             def record_pid():
-                started = pids._ps("lstart", os.getpid())
+                started = CLAIM_STARTED[0]
                 recorded = "%d\n%s\n" % (os.getpid(), started)
                 with open(pid_file, "w") as handle:
                     handle.write(recorded)
