@@ -69,7 +69,13 @@ def main(argv):
     env = dict(os.environ, VERI_ISSUE=n)
     detect = os.path.join(SCRIPTS, "detect-test-command.sh")
     pending = os.path.join(".tdd", "wt", n, ".tdd", "issue-%s-preflight-wait" % n)
-    if os.path.exists(pending):
+    saved = open(pending).read().split("\n", 2) if os.path.exists(pending) else [""]
+    if saved[0] == "full":
+        wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+        baseline, full = int(saved[1]), saved[2]
+        began = time.monotonic()
+        code = call(os.path.join(SCRIPTS, "detach-command.sh"), "wait", "preflight-full-" + n, cwd=wt, env=env)[0]
+    elif os.path.exists(pending):
         wt = os.path.abspath(os.path.join(".tdd", "wt", n))
         body_file = None
         fast_began = time.monotonic()
@@ -101,19 +107,25 @@ def main(argv):
         code = detached("preflight-fast-" + n, fast, wt, env)
         if code == 3:
             open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w").close()
+    if saved[0] != "full":
+        if code == 3:
+            sys.stdout.write("waiting on preflight-fast-%s\n" % n)
+            return 3
+        if code != 0:
+            return stopped(3, "detach-command.sh wait", code)
+        baseline = math.ceil(time.monotonic() - fast_began)
+        if body_file is None:
+            body_file = issue_body(n, wt)
+        _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
+        full = full.strip()
+        call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
+        began = time.monotonic()
+        code = detached("preflight-full-" + n, full, wt, env)
     if code == 3:
-        sys.stdout.write("waiting on preflight-fast-%s\n" % n)
+        with open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w") as f:
+            f.write("full\n%d\n%s" % (baseline, full))
+        sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
-    if code != 0:
-        return stopped(3, "detach-command.sh wait", code)
-    baseline = math.ceil(time.monotonic() - fast_began)
-    if body_file is None:
-        body_file = issue_body(n, wt)
-    _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
-    full = full.strip()
-    call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
-    began = time.monotonic()
-    detached("preflight-full-" + n, full, wt, env)
     call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
     full_secs = math.ceil(time.monotonic() - began)
     call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
