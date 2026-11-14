@@ -756,3 +756,40 @@ def test_3771_v_never_prints_a_detached_run_output_file_and_a_test_run_appears_a
     assert "SENTINEL-OUTPUT-FILE-CONTENTS" not in out
     assert "WAIT-PRINTED-<preflight-fast-12>" in out.splitlines()
     assert "WAIT-PRINTED-<preflight-full-12>" in out.splitlines()
+
+
+def test_3771_w_a_stop_handles_no_refusal_no_bail_event_no_comment_and_no_branch_reset(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+
+    def stop_run(stop):
+        calls = []
+
+        def run_script(name, *args, **kwargs):
+            base = os.path.basename(name)
+            calls.append((base, args))
+            if base == "leaf-launchable.sh" and stop == "launchable":
+                return 1, "", "not launchable\n"
+            if base == "issue-worktree.sh":
+                return 0, str(wt) + "\n", ""
+            if base == "detect-test-command.sh":
+                return 0, "make unit\n", ""
+            if base == "detach-command.sh" and args[0] == "wait" and stop == "baseline":
+                return 1, "FAILED tests/test_x.py::test_y\n", ""
+            return 0, "", ""
+
+        monkeypatch.setattr(preflight, "run_script", run_script)
+        code, out, err = run_cli(preflight, ["12", "my-slug"])
+        assert code == 1
+        assert out.splitlines()[-1].startswith("stopped at ")
+        return calls
+
+    for stop in ("launchable", "baseline"):
+        calls = stop_run(stop)
+        names = [n for n, _ in calls]
+        assert "preflight-refused.sh" not in names, stop
+        assert "event.sh" not in names, stop
+        assert "comment.sh" not in names, stop
+        assert not [c for c in calls if c[0] == "gh" and any("comment" in a for a in c[1])], stop
+        assert not [c for c in calls if c[0] == "git" and "reset" in c[1]], stop
