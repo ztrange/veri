@@ -248,7 +248,7 @@ def test_cli_a_skip_verify_naming_plan_exits_2_naming_plan_on_stderr_before_any_
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
-    assert (code, "plan" in stderr, calls) == (2, True, []), stderr
+    assert (code, "plan" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
 def test_cli_a_skip_verify_naming_green_exits_2_naming_green_on_stderr_before_any_process_starts(
@@ -260,7 +260,7 @@ def test_cli_a_skip_verify_naming_green_exits_2_naming_green_on_stderr_before_an
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
 
-    assert (code, "green" in stderr, calls) == (2, True, []), stderr
+    assert (code, "green" in stderr, calls) == (2, True, ["ps -o lstart= -p %d" % os.getpid()]), stderr
 
 
 def test_prompt_with_revise_budget_unset_holds_no_line_naming_a_revise_budget_value_2705(tmp_path, monkeypatch):
@@ -1198,6 +1198,19 @@ def fake_claude_launch(monkeypatch):
     return launches
 
 
+def answering_the_claims_start_time(monkeypatch):
+    """The launch's own `ps -o lstart=` answered, before the process stub it wraps, and left out of its record."""
+    inner = subprocess.run
+
+    def run(args, *rest, **kwargs):
+        words = [str(word) for word in args]
+        if words[:1] == ["ps"] and "lstart=" in words:
+            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+        return inner(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+
 def runs_update_veri(argv):
     return any(os.path.basename(str(word)) == "update-veri.sh" for word in argv)
 
@@ -1234,6 +1247,7 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
     cwd.mkdir()
     monkeypatch.chdir(cwd)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1267,6 +1281,7 @@ def test_main_with_no_model_variable_set_launches_claude_with_model_opus(tmp_pat
     cwd.mkdir()
     monkeypatch.chdir(cwd)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1296,6 +1311,7 @@ def test_main_with_veri_model_conductor_set_to_a_value_launches_claude_with_that
     cwd.mkdir()
     monkeypatch.chdir(cwd)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1325,6 +1341,7 @@ def test_main_with_veri_model_conductor_set_but_empty_launches_claude_with_model
     cwd.mkdir()
     monkeypatch.chdir(cwd)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1470,6 +1487,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     unpinned.mkdir()
     monkeypatch.chdir(unpinned)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
     codes = [run_conductor.main(["4242", "extra", "more"])]
     capfdbinary.readouterr()
     recorded = "".join(f.read_text() for f in sorted((unpinned / ".tdd").glob("*")) if f.is_file())
@@ -1481,6 +1499,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     monkeypatch.chdir(pinned)
     calls = fake_pin(monkeypatch, commit, set())
     fake_snapshot(monkeypatch, calls, 0, 0)
+    answering_the_claims_start_time(monkeypatch)
     popen, run, stdins, snapshots, updates = subprocess.Popen, subprocess.run, [], [], []
 
     def tar_extracts_a_skill_md_with_trailing_newlines(args, *a, **kwargs):
@@ -1547,6 +1566,7 @@ def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_adde
         return run(args, *a, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", claude_records_its_environment)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1573,6 +1593,7 @@ def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_bin
         return run(args, *a, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", claude_records_its_environment)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -1608,6 +1629,7 @@ def test_main_records_the_skill_repin_event_then_hands_claude_no_veri_new_skill_
             monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
             monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
             fake_claude_launch(monkeypatch)
+        answering_the_claims_start_time(monkeypatch)
         events.refuse_event_sh()
         run, started = subprocess.run, []
 
@@ -2694,6 +2716,35 @@ def test_cli_a_second_launch_while_the_first_is_still_in_preflight_exits_2_namin
     (code, _, err), during, launched = second
     ran = [call for call in during if os.path.basename(call[0]) in ("update-veri.sh", "git", "fake-claude")]
     assert (code, "already live (pid %d)" % os.getpid() in err, ran, launched) == (2, True, [], 0), err
+
+
+def test_cli_a_launch_whose_pid_file_names_a_dead_pid_is_not_refused_and_has_claimed_the_file_with_its_own_pid_and_start_time_before_preflight_3774(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+    cwd = tmp_path / "cwd"
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    pid_file.write_text("99999999\nTue Oct 27 13:40:12 2026\n")
+    seen = []
+
+    def observing_preflight(args, *rest, **kwargs):
+        args = [str(word) for word in args]
+        if args[:1] == ["ps"] and "lstart=" in args:
+            return subprocess.CompletedProcess(args, 0, stdout="Fri Nov 13 22:10:53 2026\n", stderr="")
+        if os.path.basename(args[0]) == "update-veri.sh" and not seen:
+            seen.append(pid_file.read_bytes() if pid_file.exists() else None)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", observing_preflight)
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen) == (0, [("%d\nFri Nov 13 22:10:53 2026\n" % os.getpid()).encode()]), err
 
 
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
@@ -4837,6 +4888,7 @@ def test_main_with_the_issue_body_fetch_unanswered_writes_one_skip_line_on_stder
 
     monkeypatch.setattr(github, "gh_issue_view", refused)
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -4867,6 +4919,7 @@ def test_main_with_a_requirements_row_id_of_bare_next_refuses_in_preflight_namin
             "| SK1 | a well-formed row | because |\n| <next> | a bare row | because |\n")
     monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -4896,6 +4949,7 @@ def test_main_with_well_formed_requirements_rows_beside_other_tables_launches_th
             "| SK1 | a numbered row | because |\n| SK<next> | a next row | because |\n")
     monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -4922,6 +4976,7 @@ def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stde
     monkeypatch.chdir(cwd)
     monkeypatch.setattr(github, "gh_api", lambda path, stderr=None: types.SimpleNamespace(returncode=0, stdout="", stderr=""))
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -4950,6 +5005,7 @@ def test_main_with_a_non_json_issue_body_from_gh_writes_only_the_skip_line_on_st
     monkeypatch.chdir(cwd)
     monkeypatch.setattr(github, "gh_api", lambda path, stderr=None: types.SimpleNamespace(returncode=0, stdout="<html>502 Bad Gateway</html>\n", stderr=""))
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
@@ -5000,6 +5056,7 @@ def test_main_with_multi_digit_and_prefix_next_requirements_row_ids_passes_the_r
             "| RC12 | a multi-digit row | because |\n| RC<next> | a next row | because |\n")
     monkeypatch.setattr(github, "gh_issue_view", lambda number, field: body if field == "body" else "")
     launches = fake_claude_launch(monkeypatch)
+    answering_the_claims_start_time(monkeypatch)
 
     code = run_conductor.main(["4242"])
 
