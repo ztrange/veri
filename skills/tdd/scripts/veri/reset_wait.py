@@ -22,6 +22,10 @@ def role_key(role, lane=None):
     return role + ("-" + lane if lane else "")
 
 
+def argv_key(argv):
+    return role_key(argv[1], argv[3] if len(argv) >= 4 else None)
+
+
 def marker_path(tdd, key):
     return os.path.join(tdd, "reset-request-" + key)
 
@@ -34,7 +38,7 @@ def state_field(tdd, key, name):
 
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
-        path = marker_path(tdd_dir(), role_key(argv[1], argv[3] if len(argv) == 4 else None))
+        path = marker_path(tdd_dir(), argv_key(argv))
         while not os.path.exists(path):
             poll()
         with open(path) as f:
@@ -42,7 +46,7 @@ def main(argv):
         return 0
     if argv[:1] == ["recovered"] and len(argv) in (2, 3, 5):
         tdd = tdd_dir()
-        role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
+        role = argv_key(argv)
         try:
             with open(marker_path(tdd, role)) as f:
                 since = f.read().strip()
@@ -59,7 +63,7 @@ def main(argv):
         return 1
     if argv[:1] == ["idle"] and len(argv) in (2, 3, 5):
         tdd = tdd_dir()
-        transcript = state_field(tdd, role_key(argv[1], argv[3] if len(argv) == 5 else None), "transcript")
+        transcript = state_field(tdd, argv_key(argv), "transcript")
         seconds = argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_IDLE", "3000")
         while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()
