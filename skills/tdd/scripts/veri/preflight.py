@@ -70,6 +70,11 @@ def pending_in(wt, n):
     return os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n)
 
 
+def save_pending(wt, n, text):
+    with open(pending_in(wt, n), "w") as f:
+        f.write(text)
+
+
 def stopped(step, what, code):
     sys.stdout.write("stopped at %d %s\n" % (step, what))
     return code
@@ -126,8 +131,7 @@ def main(argv):
         fast_began = time.monotonic()
         code = detached("preflight-fast-" + n, fast, wt, env)
         if code == 3:
-            with open(pending_in(wt, n), "w") as f:
-                f.write("fast\n" + fast)
+            save_pending(wt, n, "fast\n" + fast)
     if saved[0] != "full":
         if code == 3:
             sys.stdout.write("waiting on preflight-fast-%s\n" % n)
@@ -149,8 +153,7 @@ def main(argv):
     if reused is not None:
         full_secs = reused
     elif code == 3:
-        with open(pending_in(wt, n), "w") as f:
-            f.write("full\n%d\n%s\n%s\n%s" % (baseline, full, fast, alone))
+        save_pending(wt, n, "full\n%d\n%s\n%s\n%s" % (baseline, full, fast, alone))
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
     if reused is None:
