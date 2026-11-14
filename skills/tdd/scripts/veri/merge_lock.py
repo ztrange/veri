@@ -116,6 +116,10 @@ def _take(lock, record, args):
             if not os.path.isdir(lock):
                 try:
                     os.rename(staged, lock)
+                    git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
+                    for path in glob.glob(os.path.join(git_dir, "veri-merge-*.token")):
+                        if _read(path).strip() != owner:
+                            os.remove(path)
                     return 0
                 except OSError:
                     if not os.path.isdir(staged):
