@@ -30,3 +30,21 @@ skills/tdd/scripts/tests/py/unit/test_preflight.py
 command 176
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_u_run_resumed_after_a_full_tier_wait_exit_3_writes_and_prints_the_original_fast_and_alone_commands
 
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 50
+skills/tdd/scripts/tests/py/unit/test_preflight.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_v_never_prints_a_detached_run_output_file_and_a_test_run_appears_as_what_wait_printed
+
+file 36
+skills/tdd/scripts/veri/preflight.py
+old-b64 76
+ICAgIHJldHVybiBjYWxsKERFVEFDSCwgIndhaXQiLCBuYW1lLCBjd2Q9d3QsIGVudj1lbnYpWzBd
+new-b64 192
+ICAgIHIgPSBjYWxsKERFVEFDSCwgIndhaXQiLCBuYW1lLCBjd2Q9d3QsIGVudj1lbnYpWzBdCiAgICBzeXMuc3Rkb3V0LndyaXRlKG9wZW4ob3MucGF0aC5qb2luKHd0LCAiLnRkZCIsIG5hbWUgKyAiLm91dCIpKS5yZWFkKCkpCiAgICByZXR1cm4gcg==
+context-b64 76
+ICAgIHJldHVybiBjYWxsKERFVEFDSCwgIndhaXQiLCBuYW1lLCBjd2Q9d3QsIGVudj1lbnYpWzBd
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_v_never_prints_a_detached_run_output_file_and_a_test_run_appears_as_what_wait_printed
+
