@@ -54,7 +54,7 @@ def main(argv):
     if live:
         sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (argv[0], live))
         return 2
-    claim = os.path.join(run_worktree(argv[0]), ".tdd", "conductor.pid")
+    claim = pid_file_path(argv[0])
     del CLAIM_DIRS[:]
     made, directory = CLAIM_DIRS, os.path.dirname(os.path.abspath(claim))
     while not os.path.isdir(directory):
@@ -77,6 +77,10 @@ def main(argv):
             for directory in reversed(made):
                 with contextlib.suppress(OSError):
                     os.rmdir(directory)
+
+
+def pid_file_path(issue):
+    return os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
 
 
 def preflight_and_launch(argv):
@@ -307,7 +311,7 @@ def conduct(text, issue, env):
         os.dup2(write_end, 1)
         recorded_read, recorded_write = os.pipe()
         try:
-            pid_file = os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
+            pid_file = pid_file_path(issue)
             os.makedirs(os.path.dirname(pid_file), exist_ok=True)
             del CLAIM_DIRS[:]
 
