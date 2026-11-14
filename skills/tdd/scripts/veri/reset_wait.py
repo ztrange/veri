@@ -18,9 +18,13 @@ def role_key(role, lane=None):
     return role + ("-" + lane if lane else "")
 
 
+def marker_path(tdd, key):
+    return os.path.join(tdd, "reset-request-" + key)
+
+
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
-        path = os.path.join(main_tree(os.getcwd()), ".tdd", "reset-request-" + role_key(argv[1], argv[3] if len(argv) == 4 else None))
+        path = marker_path(os.path.join(main_tree(os.getcwd()), ".tdd"), role_key(argv[1], argv[3] if len(argv) == 4 else None))
         while not os.path.exists(path):
             poll()
         with open(path) as f:
@@ -30,7 +34,7 @@ def main(argv):
         tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
         role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
         try:
-            with open(os.path.join(tdd, "reset-request-" + role)) as f:
+            with open(marker_path(tdd, role)) as f:
                 since = f.read().strip()
         except FileNotFoundError:
             return 3
