@@ -65,3 +65,10 @@ skills/tdd/scripts/tests/py/unit/test_reset_wait.py
 command 182
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_a_verb_other_than_marker_recovered_or_idle_exits_2_with_the_usage_line_on_stderr_without_sleeping
 
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 175
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_marker_dev_with_lane_given_no_value_exits_2_with_the_usage_line_on_stderr_without_sleeping
+

@@ -540,3 +540,22 @@ def test_issue_3242_marker_with_a_role_other_than_coord_or_dev_exits_2_with_the_
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "marker|recovered|idle" in err
     assert naps == []
+
+
+def test_issue_3242_marker_dev_with_lane_given_no_value_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    naps = []
+    monkeypatch.setattr(time, "sleep", naps.append)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+
+    code, out, err = run_cli(reset_wait, ["marker", "dev", "--lane"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (2, "")
+    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert naps == []
