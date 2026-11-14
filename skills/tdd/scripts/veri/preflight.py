@@ -39,10 +39,16 @@ def call(name, *args, cwd=None, env=None):
     return code, out, err
 
 
+DETACH = os.path.join(SCRIPTS, "detach-command.sh")
+
+
+def wait_on(name, wt, env):
+    return call(DETACH, "wait", name, cwd=wt, env=env)[0]
+
+
 def detached(name, cmd, wt, env):
-    detach = os.path.join(SCRIPTS, "detach-command.sh")
-    call(detach, "start", name, cmd, cwd=wt, env=env)
-    return call(detach, "wait", name, cwd=wt, env=env)[0]
+    call(DETACH, "start", name, cmd, cwd=wt, env=env)
+    return wait_on(name, wt, env)
 
 
 def issue_body(n, wt):
@@ -74,12 +80,12 @@ def main(argv):
         wt = os.path.abspath(os.path.join(".tdd", "wt", n))
         baseline, full = int(saved[1]), saved[2]
         began = time.monotonic()
-        code = call(os.path.join(SCRIPTS, "detach-command.sh"), "wait", "preflight-full-" + n, cwd=wt, env=env)[0]
+        code = wait_on("preflight-full-" + n, wt, env)
     elif os.path.exists(pending):
         wt = os.path.abspath(os.path.join(".tdd", "wt", n))
         body_file = None
         fast_began = time.monotonic()
-        code = call(os.path.join(SCRIPTS, "detach-command.sh"), "wait", "preflight-fast-" + n, cwd=wt, env=env)[0]
+        code = wait_on("preflight-fast-" + n, wt, env)
     else:
         for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                            (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
