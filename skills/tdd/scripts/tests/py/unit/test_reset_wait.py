@@ -37,3 +37,25 @@ def test_issue_3242_marker_with_the_coord_reset_marker_already_present_prints_it
     code, out, _ = run_cli(reset_wait, ["marker", "coord"])
 
     assert (code, out) == (0, "reset-request coord 2026-11-12T10:00:00\n")
+
+
+def test_issue_3242_marker_with_no_dev_reset_marker_polls_at_veri_poll_until_it_appears_then_prints_its_time_and_exits_0(
+        tmp_path, monkeypatch, run_cli):
+    naps = []
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) == 3:
+            (tdd / "reset-request-dev").write_text("2026-11-12T11:30:00\n")
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["marker", "dev"], env={"VERI_POLL": "7"})
+
+    assert (code, out, naps) == (0, "reset-request dev 2026-11-12T11:30:00\n", [7.0, 7.0, 7.0])
