@@ -331,6 +331,7 @@
 | PL69 | In the same section, the planner is told to check each candidate step against the earlier steps' tests too, including the case a missing reroute would add, and a step whose behaviour an earlier step's test already covers is folded into that earlier step, never kept as a separate step. | An earlier step's test already passes the later step's behaviour, so the later step is green on its before-state and bails the run as in PL68 (#3691). |
 | CY144 | After a `missing` reroute, SKILL.md has the conductor take verify-pin's `<target-test-id>` from `pin-target.sh` only when the step's own red reported `AGAINST_UNMODIFIED: PASSES` (itself a pin, so verify-pin runs on it). | The step's own pinning case stays the pin target instead of the case the `red-missing` leaf appended last (#3324). |
 | CY145 | When the step's own red FAILS, SKILL.md judges the `missing` reroute as before: the added case is verified by verify-red, and verify-pin runs only when it reports `PASSES`. | `pin-target.sh` applies only to a pin; a failing red's reroute keeps today's judgment (#3324). |
+| CY146 | Where step 3 lists the answers of `wrong-test-route.sh`, it names `prep <case> …` as an exit-0 answer given once the step's free reroute is spent, and tells the conductor to `Read` `<base directory>/REVISE.md` for what to do on it. | A route the conductor is not told about is not followed; the procedure itself lives in `REVISE.md` because `SKILL.md` is at its size limit. |
 
 ## skills/tdd/DIFF-CHECKED.md
 
