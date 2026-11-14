@@ -66,12 +66,12 @@ def main(argv):
     if os.path.exists(os.path.join(".tdd", "wt", n, ".tdd", "issue-%s.md" % n)):
         sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
         return 2
+    env = dict(os.environ, VERI_ISSUE=n)
+    detect = os.path.join(SCRIPTS, "detect-test-command.sh")
     pending = os.path.join(".tdd", "wt", n, ".tdd", "issue-%s-preflight-wait" % n)
     if os.path.exists(pending):
         wt = os.path.abspath(os.path.join(".tdd", "wt", n))
         body_file = None
-        env = dict(os.environ, VERI_ISSUE=n)
-        detect = os.path.join(SCRIPTS, "detect-test-command.sh")
         fast_began = time.monotonic()
         code = call(os.path.join(SCRIPTS, "detach-command.sh"), "wait", "preflight-fast-" + n, cwd=wt, env=env)[0]
     else:
@@ -95,8 +95,6 @@ def main(argv):
         call(os.path.join(SCRIPTS, "worktree-setup.sh"), n, cwd=wt)
         body_file = issue_body(n, wt)
         call(os.path.join(SCRIPTS, "requirements-preflight.sh"), body_file, cwd=wt)
-        detect = os.path.join(SCRIPTS, "detect-test-command.sh")
-        env = dict(os.environ, VERI_ISSUE=n)
         _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
         fast = fast.strip()
         fast_began = time.monotonic()
