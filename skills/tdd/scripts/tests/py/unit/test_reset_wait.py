@@ -417,3 +417,36 @@ def test_issue_3242_idle_coord_with_a_transcript_write_at_the_third_injected_sle
 
     assert (code, out) == (0, "idle coord 50\n")
     assert written[0] + 50 <= clock[0] < written[0] + 50 + 10
+
+
+def test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_60_returns_once_the_transcript_has_gone_60_injected_seconds_unwritten_printing_idle_coord_60_and_exits_0(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    start = 1_000_000.0
+    clock = [start]
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    transcript = tmp_path / "coord.jsonl"
+    transcript.write_text("{}\n")
+    os.utime(transcript, (start, start))
+    (tdd / "role-coord.state").write_text("transcript=%s\n" % transcript)
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) > 100:
+            raise AssertionError("idle never returned")
+        clock[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: clock[0])
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["idle", "coord"],
+                           env={"VERI_RESET_IDLE": "60", "VERI_POLL": "20"})
+
+    assert (code, out) == (0, "idle coord 60\n")
+    assert 60 <= clock[0] - start < 80

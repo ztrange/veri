@@ -57,12 +57,13 @@ def main(argv):
                 return 0
         print("not-recovered %s" % argv[1])
         return 1
-    if argv[:1] == ["idle"] and len(argv) in (3, 5):
+    if argv[:1] == ["idle"] and len(argv) in (2, 3, 5):
         tdd = tdd_dir()
         transcript = state_field(tdd, role_key(argv[1], argv[3] if len(argv) == 5 else None), "transcript")
-        while time.time() - os.path.getmtime(transcript) < float(argv[-1]):
+        seconds = argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_IDLE", "3000")
+        while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()
-        print("idle %s %s" % (argv[1], argv[-1]))
+        print("idle %s %s" % (argv[1], seconds))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
