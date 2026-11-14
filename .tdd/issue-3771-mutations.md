@@ -77,3 +77,32 @@ UlVMRSA9ICgiLnRkZC8qIiwgIiEudGRkL2lzc3VlLSoubWQiLCAiLnRkZC9pc3N1ZS0qLXNwZWMubWQi
 command 130
 make test TESTS=skills/tdd/scripts/tests/py/test_ensure_run_state_ignored.py::test_the_rule_ignores_the_preflight_file_of_an_issue
 
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 56
+skills/tdd/scripts/tests/py/unit/test_preflight_steps.py
+command 72
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_steps.py
+
+file 36
+skills/tdd/scripts/veri/preflight.py
+old-b64 48
+ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0IiksCg==
+new-b64 0
+
+context-b64 44
+ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0Iiks
+command 72
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_steps.py
+
+file 36
+skills/tdd/scripts/veri/preflight.py
+old-b64 48
+ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0IiksCg==
+new-b64 72
+ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0IiksCiAgICAoOCwgImJvZ3VzIiksCg==
+context-b64 44
+ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0Iiks
+command 72
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_steps.py
+
