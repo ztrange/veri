@@ -278,10 +278,10 @@ full-suite lock wait.
    the run, a bail included (ADR-0024). Until that PR exists this lock is the only mark of the
    run there is, which is why the window between this worktree and the plan commit is the one
    place two machines can still collide.
-   `run_conductor.py` writes the pid of the `claude -p` process, which lives as long as this run, rather
+   `run_conductor.py` claims the lock with its own pid and start time before preflight, then the forked `claude -p` process, which lives as long as this run, writes its own pid and start time over it, rather
    than a shell's `$$`, which is gone when anyone reads the lock, so the guard is never dead on arrival
    or left naming a number since handed to a stranger. `run_conductor.py` deletes the lock when the run it launched ends; a crash
-   or a `kill` that skips that leaves a lock no live process matches, which frees the worktree — never the issue, which its PR goes on holding — and a resume's `run_conductor.py` overwrites it with its own before preflight.
+   or a `kill` that skips that leaves a lock no live process matches, which frees the worktree — never the issue, which its PR goes on holding — and a resume's `run_conductor.py` takes over a lock naming a dead pid with its own claim before preflight.
    This step does not run `$S/stop-requested.sh --clear` itself: the stale-request clear is left to preflight.
    Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
    reads it — never from the caller's checkout, where preflight ran:
