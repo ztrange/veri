@@ -253,3 +253,18 @@ def test_3579_take_removes_a_leftover_token_file_whose_token_the_new_holder_reco
     leftover.write_text("token-b\n")
     taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     assert (taken, mine.exists(), leftover.exists()) == (0, True, False)
+
+
+def test_3579_take_keeps_an_old_token_file_the_live_holder_names_and_removes_a_fresh_one_naming_another_owner(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    old_live = tmp_path / ".git" / "veri-merge-42.token"
+    fresh_other = tmp_path / ".git" / "veri-merge-43.token"
+    old_live.parent.mkdir()
+    old_live.write_text("token-a\n")
+    fresh_other.write_text("token-b\n")
+    os.utime(old_live, (1, 1))
+    taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    assert (taken, old_live.exists(), fresh_other.exists()) == (0, True, False)

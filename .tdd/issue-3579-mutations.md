@@ -25,3 +25,10 @@ context 53
 command 159
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3579_release_by_a_different_owner_token_leaves_the_holders_token_file_untouched
 
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 57
+skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py
+command 180
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3579_take_keeps_an_old_token_file_the_live_holder_names_and_removes_a_fresh_one_naming_another_owner
+
