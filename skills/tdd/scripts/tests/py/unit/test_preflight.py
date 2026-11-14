@@ -53,3 +53,30 @@ def test_3771_b_fresh_run_makes_front_calls_in_order_with_the_worktree_as_cwd(mo
     assert not (wt / ".tdd" / "ci-conflict-rebased").exists()
     assert [n for n, _ in preflight.STEPS] == [1, 2, 3, 4, 5, 6, 7]
     assert all(isinstance(t, str) and t for _, t in preflight.STEPS)
+
+
+def test_3771_c_each_inner_call_prints_a_line_naming_it_and_its_exit_then_its_stdout_and_stderr(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append(base)
+        out = str(wt) + "\n" if base == "issue-worktree.sh" else ""
+        return 0, out + "OUT<%d>\n" % len(calls), "ERR<%d>\n" % len(calls)
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    lines = out.splitlines()
+    heads = []
+    for i, base in enumerate(calls, 1):
+        idx = next(j for j, l in enumerate(lines) if base in l and "OUT<" not in l and l not in heads)
+        heads.append(lines[idx])
+        assert "0" in lines[idx]
+        assert lines[idx + 1 + (base == "issue-worktree.sh")] == "OUT<%d>" % i
+        assert "ERR<%d>" % i in err
+    assert [lines.index(h) for h in heads] == sorted(lines.index(h) for h in heads)
