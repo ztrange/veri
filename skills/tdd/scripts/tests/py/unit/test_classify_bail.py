@@ -213,3 +213,9 @@ def test_main_classifies_skill_edit_refused_as_a_process_failure_with_0_3584(cap
     code = classify_bail.main(["skill-edit-refused"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_prep_owed_as_a_process_failure_with_0_3785(capsys, classify_bail):
+    code = classify_bail.main(["prep-owed"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
