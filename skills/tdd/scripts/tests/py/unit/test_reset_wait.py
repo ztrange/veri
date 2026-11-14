@@ -279,3 +279,21 @@ def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_u
 
     assert (code, out) == (1, "not-recovered coord\n")
     assert now[0] - 1_000_000.0 == 300.0
+
+
+def test_issue_3242_recovered_coord_with_no_reset_marker_for_the_role_exits_3_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    def no_wait(*args, **kwargs):
+        raise AssertionError("reset_wait slept")
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.setattr(time, "sleep", no_wait)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"])
+
+    assert (code, out) == (3, "")
