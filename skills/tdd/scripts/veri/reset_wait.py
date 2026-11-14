@@ -48,6 +48,14 @@ def main(argv):
                 return 0
         print("not-recovered %s" % argv[1])
         return 1
+    if argv[:1] == ["idle"] and len(argv) == 3:
+        tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
+        with open(os.path.join(tdd, "role-%s.state" % argv[1])) as f:
+            transcript = [l.strip().split("=", 1)[1] for l in f if l.startswith("transcript=")][-1]
+        while time.time() - os.path.getmtime(transcript) < float(argv[2]):
+            poll()
+        print("idle %s %s" % (argv[1], argv[2]))
+        return 0
     print(USAGE, file=sys.stderr)
     return 2
 

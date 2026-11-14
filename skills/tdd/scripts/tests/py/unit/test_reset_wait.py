@@ -297,3 +297,60 @@ def test_issue_3242_recovered_coord_with_no_reset_marker_for_the_role_exits_3_wi
     code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"])
 
     assert (code, out) == (3, "")
+
+
+def test_issue_3242_idle_coord_with_the_recorded_transcript_last_written_the_seconds_before_now_prints_idle_coord_and_the_seconds_and_exits_0(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    transcript = tmp_path / "coord.jsonl"
+    transcript.write_text("{}\n")
+    os.utime(transcript, (1_000_000.0 - 600, 1_000_000.0 - 600))
+    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    naps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (0, "idle coord 600\n")
+    assert len(naps) <= 1
+
+
+def test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_seconds_unwritten_and_a_write_during_the_wait_restarts_the_window(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    start = 1_000_000.0
+    clock = [start]
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    transcript = tmp_path / "coord.jsonl"
+    transcript.write_text("{}\n")
+    os.utime(transcript, (start - 250, start - 250))
+    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    naps = []
+    written = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        clock[0] += seconds
+        if len(naps) == 2:
+            written.append(clock[0])
+            os.utime(transcript, (clock[0], clock[0]))
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: clock[0])
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "100"})
+
+    assert (code, out) == (0, "idle coord 600\n")
+    assert written and clock[0] >= written[0] + 600

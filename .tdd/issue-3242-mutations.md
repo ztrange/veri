@@ -26,3 +26,10 @@ skills/tdd/scripts/tests/py/unit/test_reset_wait.py
 command 251
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_unset_is_still_waiting_at_299_injected_seconds_and_gives_up_at_300_printing_not_recovered_coord_and_exits_1
 
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 207
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_seconds_unwritten_and_a_write_during_the_wait_restarts_the_window
+
