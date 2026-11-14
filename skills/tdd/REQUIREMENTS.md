@@ -497,6 +497,7 @@
 | PF60 | The resume exception states that when every unit the red is explained by has a pending `⟦skill-edit⟧` step but a non-skill-edit unchecked step separates them, `suite-red-resume.sh insert` inserts no `⟦suite-repair⟧` step and exits 2 with the reorder named. | A repair step cannot regrade a signed unit; the refusal names the one reorder that unblocks the run. |
 | PF62 | Preflight checks the issue's `## Requirements` rows against the units' lists, and each `⟦skill-edit⟧` step's unit against the issue's `### <path>` tables, and refuses with exit 2 naming every defect at once, before any leaf is launched. | A defect found at its skill-edit step costs a bail, a resume and an operator round trip each (#3257: 3 bails; #3550: 1). |
 | PF63 | Step 5 (Tunables parse) checks `VERI_ADJUDICATE_BUDGET` as a non-negative integer. A bad value exits 2 before the baseline, naming it. | A bad budget stops the run before it spends anything. |
+| PF64 | Before its step 1, `PREFLIGHT.md` tells the conductor of a fresh run to run `$S/preflight.sh <n> <slug>`, to call it again on exit 3, to take preflight's values from its output, and on any other non-zero exit to continue from the step its last line names by the steps below. Steps 1 to 7 stay stated. | The prose remains the path for everything that is not clean (PRD 027 D4), and one call replaces a median of 11 requests. |
 
 ## skills/tdd/PIN.md
 
