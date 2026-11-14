@@ -1714,6 +1714,32 @@ def test_refresh_whose_comments_search_returns_search_cap_rows_exits_2_and_write
     assert (code, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, False)
 
 
+def test_refresh_whose_comments_search_fails_and_whose_created_listing_returns_search_cap_rows_exits_2_naming_the_cap_and_writes_no_cache(run_cli, monkeypatch, tmp_path):
+    import json
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    paged = [{"number": 7, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
+              "updatedAt": "2026-10-20T10:00:00Z", "body": ""}]
+
+    def fake_gh_issue_list(*args):
+        fields = args[args.index("--json") + 1]
+        if fields == "number,createdAt":
+            return json.dumps([{"number": n, "createdAt": "2026-10-01T10:00:%02dZ" % (n % 60)}
+                               for n in range(1, report_cache.SEARCH_CAP + 1)])
+        if fields == "number,comments":
+            if "created:" in args[args.index("--search") + 1]:
+                return json.dumps([])
+            raise report_cache.github.NoAnswer("HTTP 504: 504 Gateway Timeout")
+        return json.dumps(paged)
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", fake_gh_issue_list)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "1000-row cap" in err, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, True, False)
+
+
 @pytest.mark.process("git started for real over a scratch repository holding annotated tags cut at set dates")
 def test_refresh_records_the_landed_tags_cut_since_status_last_with_name_date_and_subject_and_not_an_older_one(run_cli, monkeypatch, tmp_path):
     import json

@@ -19,6 +19,10 @@ SEARCH_CAP = 1000
 FIELDS = "number,title,state,labels,closedAt,updatedAt,body"
 
 
+class CapReached(github.NoAnswer):
+    """A listing filled the search cap: a truncated snapshot, never to be retried in windows."""
+
+
 def main_tree():
     dot_git = os.path.join(os.getcwd(), ".git")
     if not os.path.isfile(dot_git):
@@ -76,6 +80,8 @@ def fetch_comments():
     for search in ("PRD in:title", "closed:>=" + week_ago):
         try:
             rows = comment_rows(search)
+        except CapReached:
+            raise
         except github.NoAnswer:
             rows = windowed_comment_rows(search)
         for row in rows:
@@ -87,7 +93,7 @@ def comment_rows(search):
     args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,comments", "--search", search)
     rows = json.loads(github.gh_issue_list(*args))
     if len(rows) >= SEARCH_CAP:
-        raise github.NoAnswer("the comments search hit the %d-row cap" % SEARCH_CAP)
+        raise CapReached("the comments search hit the %d-row cap" % SEARCH_CAP)
     return rows
 
 
@@ -96,7 +102,10 @@ def windowed_comment_rows(search):
     created:<first>..<last> windows of VERI_COMMENT_CHUNK issues each; windows may overlap at a shared second."""
     chunk = max(1, int(tunables.read("VERI_COMMENT_CHUNK", "25")))
     args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,createdAt", "--search", search)
-    created = sorted(row["createdAt"] for row in json.loads(github.gh_issue_list(*args)))
+    listed = json.loads(github.gh_issue_list(*args))
+    if len(listed) >= SEARCH_CAP:
+        raise CapReached("the comments search hit the %d-row cap" % SEARCH_CAP)
+    created = sorted(row["createdAt"] for row in listed)
     rows = []
     for start in range(0, len(created), chunk):
         window = created[start:start + chunk]
