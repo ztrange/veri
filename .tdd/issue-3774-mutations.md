@@ -1,0 +1,11 @@
+file 40
+skills/tdd/scripts/veri/run_conductor.py
+old-b64 44
+d2l0aCBvcGVuKGNsYWltLCAid2IiKSBhcyBoYW5kbGU6
+new-b64 52
+d2l0aCBvcGVuKG9zLmRldm51bGwsICJ3YiIpIGFzIGhhbmRsZTo=
+context-b64 52
+ICAgIHdpdGggb3BlbihjbGFpbSwgIndiIikgYXMgaGFuZGxlOg==
+command 193
+make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_a_second_launch_while_the_first_is_still_in_preflight_exits_2_naming_the_first_launchs_pid_and_runs_no_preflight_3774
+
