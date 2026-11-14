@@ -441,3 +441,36 @@ def test_3771_n_called_again_after_the_full_tier_wait_exit_3_continues_from_that
     assert not any(b == "detach-command.sh" and a[0] == "start" for b, a in calls)
     assert second == 0
     assert next(a for b, a in calls if b == "leaf-timeout.sh")[0] == "8"
+
+
+def test_3771_o_baseline_full_tier_reuse_starts_no_full_tier_run_records_nothing_and_passes_that_figure_to_leaf_timeout(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "reuse 55\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    starts = [a for b, a in calls if b == "detach-command.sh" and a[0] == "start"]
+    assert len(starts) == 1
+    assert not [a for b, a in calls if b == "full-tier-time.sh"]
+    assert calls[-1] == ("leaf-timeout.sh", ("8", "--full", "55"))
+    assert code == 0
