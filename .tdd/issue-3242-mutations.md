@@ -19,3 +19,10 @@ skills/tdd/scripts/tests/py/unit/test_reset_wait.py
 command 219
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_recovered_coord_keeps_waiting_through_a_state_file_with_no_recovered_at_and_one_not_later_than_the_marker_and_returns_on_the_later_one
 
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 251
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_unset_is_still_waiting_at_299_injected_seconds_and_gives_up_at_300_printing_not_recovered_coord_and_exits_1
+
