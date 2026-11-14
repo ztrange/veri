@@ -25,6 +25,13 @@ def run_script(name, *args, cwd=None):
     return proc.returncode, proc.stdout, proc.stderr
 
 
+def call(name, *args, cwd=None):
+    code, out, err = run_script(name, *args, cwd=cwd)
+    sys.stdout.write(" ".join([os.path.basename(name), *args]) + " exit " + str(code) + "\n" + out)
+    sys.stderr.write(err)
+    return code, out, err
+
+
 def main(argv):
     if len(argv) != 2:
         sys.stderr.write(USAGE + "\n")
@@ -33,14 +40,14 @@ def main(argv):
     for cmd in (("git", "rev-parse", "--is-inside-work-tree"), ("git", "status", "--porcelain"),
                 ("gh", "api", "user"), ("claude", "auth", "status"),
                 (os.path.join(SCRIPTS, "leaf-launchable.sh"),)):
-        run_script(*cmd)
-    _, out, _ = run_script(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
+        call(*cmd)
+    _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
     wt = out.strip()
-    run_script(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
+    call(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
     marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
     if os.path.exists(marker):
         os.remove(marker)
-    run_script(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
+    call(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
     return 0
 
 
