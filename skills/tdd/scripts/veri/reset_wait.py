@@ -13,12 +13,13 @@ def poll():
     time.sleep(float(os.environ.get("VERI_POLL", "1")))
 
 
+def role_key(role, lane=None):
+    return role + ("-" + lane if lane else "")
+
+
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
-        name = "reset-request-" + argv[1]
-        if len(argv) == 4:
-            name += "-" + argv[3]
-        path = os.path.join(main_tree(os.getcwd()), ".tdd", name)
+        path = os.path.join(main_tree(os.getcwd()), ".tdd", "reset-request-" + role_key(argv[1], argv[3] if len(argv) == 4 else None))
         while not os.path.exists(path):
             poll()
         with open(path) as f:
@@ -26,7 +27,7 @@ def main(argv):
         return 0
     if argv[:1] == ["recovered"] and len(argv) in (3, 5):
         tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
-        role = argv[1] + ("-" + argv[3] if len(argv) == 5 else "")
+        role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
         with open(os.path.join(tdd, "reset-request-" + role)) as f:
             since = f.read().strip()
         while True:
