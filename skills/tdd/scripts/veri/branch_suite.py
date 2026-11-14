@@ -20,10 +20,10 @@ def triggers_on_pull_request():
 
 
 def main(argv):
-    mode = tunables.read("VERI_BRANCH_SUITE")
-    if mode:
-        if mode not in ("local", "ci"):
-            print("branch-suite.sh: VERI_BRANCH_SUITE '%s' is not local or ci" % mode, file=sys.stderr)
+    if tunables.read("VERI_BRANCH_SUITE"):
+        mode, bad = tunables.resolve("VERI_BRANCH_SUITE")
+        if bad:
+            print("branch-suite.sh: VERI_BRANCH_SUITE '%s' is not %s" % bad, file=sys.stderr)
             return 2
         print(mode)
         return 0
