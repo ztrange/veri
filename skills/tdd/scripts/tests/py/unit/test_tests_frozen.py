@@ -1,4 +1,5 @@
 """In-process cases for veri/tests_frozen.py, the module tests-frozen.sh is a shim over."""
+import json
 import hashlib
 import importlib
 import types
@@ -75,7 +76,7 @@ def test_record_refuses_a_red_case_value_with_an_empty_half_around_the_double_co
 
     code, out, err = run_cli(tests_frozen, ["record", ".tdd/x.record", "--red-case", value, "a.test.sh"], cwd=tmp_path)
 
-    assert (code, out, "--red-case" in err and value in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (
+    assert (code, out, "--red-case" in err and value in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir() if p.name != "events.jsonl")) == (
         2, "", True, [])
 
 
@@ -125,7 +126,7 @@ def test_record_with_a_red_case_flag_and_no_value_is_exit_2_printing_the_usage_l
         tmp_path, run_cli, tests_frozen):
     code, out, err = run_cli(tests_frozen, ["record", "--step", "x", "--red-case"], cwd=tmp_path)
 
-    assert (code, out, tests_frozen.USAGE in err, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
+    assert (code, out, tests_frozen.USAGE in err, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*") if p.name not in (".tdd", "events.jsonl"))) == (
         2, "", True, False, [])
 
 
@@ -1460,18 +1461,27 @@ def test_rerecord_earlier_exits_0_not_2_and_keeps_the_record_when_every_earlier_
     assert (code, (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (0, True)
 
 
+def _refusals(tmp_path):
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    lines = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+    return [json.loads(line) for line in lines]
+
+
 def test_record_over_a_deleted_red_case_exits_1_and_writes_a_refusal_event_naming_it_3778(
-        tmp_path, run_cli, tests_frozen):
+        tmp_path, run_cli, tests_frozen, monkeypatch):
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "test_a.py").write_text("def test_kept():\n    assert 1\n")
+    monkeypatch.setenv("VERI_ISSUE", "3778")
+    monkeypatch.setenv("VERI_ACTOR", "conductor")
 
     code, _, _ = run_cli(
         tests_frozen, ["record", "--step", "step one", "--red-case", "test_a.py::test_gone", "test_a.py"],
         cwd=tmp_path)
-    journal = tmp_path / ".tdd" / "events.jsonl"
-    events = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+    events = _refusals(tmp_path)
 
-    assert (code, [("test_a.py::test_gone" in line or "test_gone" in line) for line in events]) == (1, [True])
+    assert (code, [(e["event"], e["exit"], "test_a.py::test_gone" in e["reason"], e["issue"], e["actor"],
+                    isinstance(e["ts"], int)) for e in events]) == (
+        1, [("tests-frozen-refused", "1", True, "3778", "conductor", True)])
 
 
 def test_record_step_given_no_test_file_exits_2_and_writes_a_refusal_event_carrying_the_exit_code_3778(
@@ -1482,7 +1492,34 @@ def test_record_step_given_no_test_file_exits_2_and_writes_a_refusal_event_carry
     monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
 
     code, _, _ = run_cli(tests_frozen, ["record", "--step", "step one"], cwd=tmp_path)
-    journal = tmp_path / ".tdd" / "events.jsonl"
-    events = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
 
-    assert (code, [("2" in line and "exit" in line) for line in events]) == (2, [True])
+    assert (code, [(e["event"], e["exit"]) for e in _refusals(tmp_path)]) == (
+        2, [("tests-frozen-refused", "2")])
+
+
+def test_record_with_a_malformed_red_case_exits_2_and_writes_a_refusal_event_with_its_reason_3778(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+
+    code, _, _ = run_cli(tests_frozen, ["record", "rec", "--red-case", "no_separator", "test_a.py"], cwd=tmp_path)
+
+    assert (code, [(e["event"], e["exit"], "--red-case no_separator" in e["reason"])
+                   for e in _refusals(tmp_path)]) == (2, [("tests-frozen-refused", "2", True)])
+
+
+def test_record_whose_every_recorded_case_is_gone_exits_2_and_writes_a_refusal_event_3778(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "test_a.py").write_text("")
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "_added_cases", lambda name: [])
+    monkeypatch.setattr(tests_frozen, "_guard_subjects", lambda step: [])
+    monkeypatch.setattr(tests_frozen, "_kept_cases", lambda *a, **k: [])
+    monkeypatch.setattr(tests_frozen, "_recorded_digests", lambda record, name: ["old"])
+
+    code, _, _ = run_cli(tests_frozen, ["record", "--step", "step one", "test_a.py"], cwd=tmp_path)
+
+    assert (code, [(e["event"], e["exit"], "nothing left to record" in e["reason"])
+                   for e in _refusals(tmp_path)]) == (2, [("tests-frozen-refused", "2", True)])

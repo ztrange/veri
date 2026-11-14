@@ -706,7 +706,7 @@ def test_record_step_run_outside_any_git_repository_exits_2_with_stderr_naming_t
 
     code, out, err = run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
 
-    assert (code, out, "repository" in err, list((tmp_path / ".tdd").iterdir())) == (2, "", True, [])
+    assert (code, out, "repository" in err, [p.name for p in (tmp_path / ".tdd").iterdir() if p.name != "events.jsonl"]) == (2, "", True, [])
 
 
 @pytest.mark.process("a real git repository with no commits under tmp_path, asked which test files differ from HEAD")

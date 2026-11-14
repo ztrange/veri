@@ -2,7 +2,6 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import collections
 import hashlib
-import json
 import os
 import re
 import subprocess
@@ -12,11 +11,11 @@ import ledger
 import renamed_case
 import replaces_case
 import tunables
-from entry import write
+import entry
 from frozen_record import (_body_digest, _body_line, _body_record, _helper_records, _pass_marker_path,
                            _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
                            _write_pass_marker)
-import event_log
+import event
 import frozen_record
 from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
@@ -719,10 +718,18 @@ def rerecord_rebased(ledger, pre):
     return 1 if refused else 0 if stale else 3
 
 
-def _log_refusal(**fields):
-    os.makedirs(".tdd", exist_ok=True)
-    event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
-        {"event": "tests-frozen-refused", **fields}) + "\n").encode())
+_said = []
+
+
+def write(stream, text):
+    _said.append(text)
+    entry.write(stream, text)
+
+
+def _log_refusal(code):
+    """Journal a refused `record` (exit 1 or 2) as a tests-frozen-refused event: the exit code and the last thing said."""
+    reason = " ".join(_said[-1].split()) if _said else ""
+    event.mark(".", event.context(os.environ), "tests-frozen-refused", ["exit=%d" % code, "reason=" + reason])
 
 
 def _take_red_case(files):
@@ -744,13 +751,20 @@ def _take_red_case(files):
         present = False
     if not present:
         write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
-        _log_refusal(case="%s::%s" % (path, case))
         return 1
     del files[at:at + 2]
     return None
 
 
 def main(argv):
+    del _said[:]
+    code = _main(argv)
+    if argv[:1] == ["record"] and code in (1, 2):
+        _log_refusal(code)
+    return code
+
+
+def _main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
         return rerecord_earlier(argv[1], argv[3])
@@ -803,7 +817,6 @@ def main(argv):
                 (files if os.path.exists(name) else deleted).append(name)
         if not files and not deleted:
             write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
-            _log_refusal(exit=2)
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
@@ -889,5 +902,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

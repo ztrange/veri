@@ -46,6 +46,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `stop` | `mode`, `at` | The run stopped on request: the mode and the point it stopped at. |
 | `structural-pass` | `transforms`, `budget`, `stopped` | The issue-wide structural pass finished: transforms applied, the `VERI_ISSUE_REFACTOR_BUDGET`, and why it stopped (`candidates-done`, `budget-spent`, `nothing-structural`; required). |
 | `suite-repair-retired` | — | A suite-repair step was retired. |
+| `tests-frozen-refused` | `exit`, `reason` | `tests-frozen.sh record` refused (exit 1 or 2) and wrote no record: its exit code and the message it printed. |
 | `test-run` | `tier`, `suites`, `seconds`, `status` | A timed test run ended: its tier (`fast`, `affected`, `full`), the suites it ran, seconds taken, exit status. |
 | `usage` | `duration_ms`, `duration_api_ms`, `num_turns`, `total_cost_usd`, `input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `model`, `model_usage` | What a leaf cost, from its closing result record: durations, turns, dollars, the four token counts, the model names (comma-joined) and a JSON object of per-model usage (`model_usage` absent when the record has none). |
 | `verdict` | `verdict`, `reason`, `cause` | A verifier ruled: `PASS`, `REJECT` or `malformed`; the first line of its reason; `cause=no-verdict` only when it never wrote a `VERDICT:` line. |
