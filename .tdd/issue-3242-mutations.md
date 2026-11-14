@@ -58,3 +58,10 @@ ICAgICAgICBzZWNvbmRzID0gYXJndlstMV0gaWYgbGVuKGFyZ3YpIGluICgzLCA1KSBlbHNlIHR1bmFi
 command 223
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_coord_3000_at_3000_exit_0
 
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_a_verb_other_than_marker_recovered_or_idle_exits_2_with_the_usage_line_on_stderr_without_sleeping
+
