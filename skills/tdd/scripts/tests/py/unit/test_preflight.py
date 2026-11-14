@@ -272,3 +272,51 @@ def test_3771_j_baseline_wait_exit_3_makes_no_later_call_exits_3_and_ends_on_wai
     assert code == 3
     assert calls[-1] == ("detach-command.sh", ("wait", start[1]))
     assert out.splitlines()[-1] == "waiting on " + start[1]
+
+
+def test_3771_k_after_the_full_tier_steps_4_to_7_run_in_order_with_the_tier_seconds_and_exit_0(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    waits = []
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            waits.append(args)
+            now[0] += 7.2 if len(waits) == 1 else 101.5
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        if base == "refactor-budget.sh":
+            return 3, "", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    names = [c[0] for c in calls]
+    tail = calls[names.index("full-tier-time.sh") + 1:]
+    assert tail == [
+        ("gh", ("api", "repos/{owner}/{repo}", "-q", ".default_branch")),
+        ("refactor-budget.sh", ("0",)),
+        ("refactor-budget.sh", ("--issue", "0")),
+        ("step-budget.sh", ()),
+        ("adjudicate.sh", ("--check-budget",)),
+        ("leaf-model.sh", ("develop-red",)),
+        ("leaf-model.sh", ("revise-green",)),
+        ("leaf-model.sh", ("verify-green",)),
+        ("leaf-timeout.sh", ("8", "--full", "102")),
+    ]
+    assert code == 0

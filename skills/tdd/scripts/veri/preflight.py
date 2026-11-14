@@ -1,5 +1,6 @@
 """preflight.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import math
 import os
 import subprocess
 import sys
@@ -84,18 +85,29 @@ def main(argv):
     env = dict(os.environ, VERI_ISSUE=n)
     _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
     fast = fast.strip()
+    fast_began = time.monotonic()
     code = detached("preflight-fast-" + n, fast, wt, env)
     if code == 3:
         sys.stdout.write("waiting on preflight-fast-%s\n" % n)
         return 3
     if code != 0:
         return stopped(3, "detach-command.sh wait", code)
+    baseline = math.ceil(time.monotonic() - fast_began)
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
     full = full.strip()
     call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
     began = time.monotonic()
     detached("preflight-full-" + n, full, wt, env)
     call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
+    full_secs = math.ceil(time.monotonic() - began)
+    call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
+    for args in (("0",), ("--issue", "0")):
+        call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
+    call(os.path.join(SCRIPTS, "step-budget.sh"), cwd=wt)
+    call(os.path.join(SCRIPTS, "adjudicate.sh"), "--check-budget", cwd=wt)
+    for leaf in ("develop-red", "revise-green", "verify-green"):
+        call(os.path.join(SCRIPTS, "leaf-model.sh"), leaf, cwd=wt)
+    call(os.path.join(SCRIPTS, "leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
     return 0
 
 
