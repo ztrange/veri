@@ -858,12 +858,12 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
-   Once verify-red PASSes, record the step's test files as they stand, before the comment or any leaf launch. `<red-test-id>` is `<test-path>::<case>`, the path of the test file and the case name joined by `::`:
+   Once verify-red PASSes, record the test files before comment or leaf launch (`<red-test-id>` is `<test-path>::<case>`):
    ```
    $S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>… > .tdd/verify-red.reason; rc=$?
    [ "$rc" = 0 ] || exit "$rc"
    ```
-   Exit 1 (the step's own Red case is gone) is a verify-red REJECT that spends `REVISE_BUDGET` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`); exit 2 is a bail (see `<base directory>/BAIL.md`).
+   Exit 1 (its Red case is gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (see `<base directory>/BAIL.md`).
    With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
    prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
    often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
