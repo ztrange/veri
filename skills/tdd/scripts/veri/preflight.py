@@ -85,6 +85,9 @@ def main(argv):
     _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
     fast = fast.strip()
     code = detached("preflight-fast-" + n, fast, wt, env)
+    if code == 3:
+        sys.stdout.write("waiting on preflight-fast-%s\n" % n)
+        return 3
     if code != 0:
         return stopped(3, "detach-command.sh wait", code)
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
