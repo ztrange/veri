@@ -106,3 +106,21 @@ ICAgICg3LCAic2l6ZSB0aGUgaGFyZCB0aW1lb3V0Iiks
 command 72
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight_steps.py
 
+file 36
+skills/tdd/scripts/veri/supervise.py
+old-b64 84
+ICAgIGV4Y2VwdCBCYXNlRXhjZXB0aW9uOgogICAgICAgIHN0YXJ0ZWQucG9wKCkKICAgICAgICByYWlzZQ==
+new-b64 52
+ICAgIGV4Y2VwdCBCYXNlRXhjZXB0aW9uOgogICAgICAgIHJhaXNl
+context-b64 36
+ICAgIGV4Y2VwdCBCYXNlRXhjZXB0aW9uOg==
+command 81
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_launch_failure.py
+
+before 40
+ec79ee90dda3a707d608ea1741d2ac32995c52b4
+keep 65
+skills/tdd/scripts/tests/py/unit/test_supervise_launch_failure.py
+command 157
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_supervise_launch_failure.py::test_signals_arriving_during_launch_are_held_then_kill_the_leaf_and_exit_2
+

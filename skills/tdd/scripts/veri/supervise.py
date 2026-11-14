@@ -333,10 +333,18 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
     t0 = now()
     a0 = awake_seconds()
     prev_t, prev_a = int(t0), a0
-    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
-                             "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
-                            restore_signals=False, preexec_fn=preexec)
+    started.append(None)
+    try:
+        leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
+                                 "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
+                                restore_signals=False, preexec_fn=preexec)
+    except BaseException:
+        started.pop()
+        raise
     started.append(leaf)
+    held = started.pop(-2)
+    if held is not None:
+        signal.raise_signal(held)
     waitfile = leaf_env["PYTEST_LEG_LOCK_WAIT_MARKER"]
     status = reason = ""
     rc = "0"
@@ -393,7 +401,10 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
 
 
 def trap(started, exitfile, kill_poll, ignored):
-    def on_signal(*_):
+    def on_signal(signum, _frame):
+        if started and (started[-1] is None or isinstance(started[-1], int)):
+            started[-1] = signum
+            return
         if started:
             kill_tree(started[-1], kill_poll)
         write_line(exitfile, 2)
