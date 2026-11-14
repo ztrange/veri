@@ -36,6 +36,10 @@ def state_field(tdd, key, name):
     return values[-1] if values else None
 
 
+def seconds_arg(argv, name, default):
+    return argv[-1] if len(argv) in (3, 5) else tunables.read(name, default)
+
+
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
         path = marker_path(tdd_dir(), argv_key(argv))
@@ -52,7 +56,7 @@ def main(argv):
                 since = f.read().strip()
         except FileNotFoundError:
             return 3
-        deadline = time.monotonic() + float(argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_ACK_TIMEOUT", "300"))
+        deadline = time.monotonic() + float(seconds_arg(argv, "VERI_RESET_ACK_TIMEOUT", "300"))
         while time.monotonic() < deadline:
             poll()
             at = state_field(tdd, role, "recovered-at")
@@ -67,7 +71,7 @@ def main(argv):
         if not transcript:
             print("reset-wait.sh: no transcript recorded for %s" % argv[1], file=sys.stderr)
             return 2
-        seconds = argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_IDLE", "3000")
+        seconds = seconds_arg(argv, "VERI_RESET_IDLE", "3000")
         while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()
         print("idle %s %s" % (argv[1], seconds))
