@@ -36,6 +36,7 @@ from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
 CLAIM_DIRS = []
+CLAIM = []
 HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
@@ -64,12 +65,13 @@ def main(argv):
     ours = ("%d\n%s\n" % (os.getpid(), pids._ps("lstart", os.getpid()))).encode()
     with open(claim, "wb") as handle:
         handle.write(ours)
+    CLAIM[:] = [ours]
     try:
         return preflight_and_launch(argv)
     finally:
         try:
             with open(claim, "rb") as handle:
-                mine = handle.read() == ours
+                mine = CLAIM == [handle.read()]
         except FileNotFoundError:
             mine = False
         if mine:
@@ -332,6 +334,8 @@ def conduct(text, issue, env):
             os.close(recorded_write)
             with os.fdopen(recorded_read, "rb") as recorded:
                 ours = recorded.read()
+            if ours:
+                del CLAIM[:]
             try:
                 with open(pid_file, "rb") as handle:
                     if handle.read() == ours:
