@@ -81,15 +81,16 @@ def main(argv):
     resumed_wt = os.path.abspath(os.path.join(".tdd", "wt", n))
     pending = pending_in(resumed_wt, n)
     reused = None
-    saved = open(pending).read().split("\n", 2) if os.path.exists(pending) else [""]
+    body_file = None
+    saved = open(pending).read().split("\n") if os.path.exists(pending) else [""]
     if saved[0] == "full":
         wt = resumed_wt
-        baseline, full = int(saved[1]), saved[2]
+        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
         began = time.monotonic()
         code = wait_on("preflight-full-" + n, wt, env)
     elif os.path.exists(pending):
         wt = resumed_wt
-        body_file = None
+        fast = saved[1]
         fast_began = time.monotonic()
         code = wait_on("preflight-fast-" + n, wt, env)
     else:
@@ -118,7 +119,8 @@ def main(argv):
         fast_began = time.monotonic()
         code = detached("preflight-fast-" + n, fast, wt, env)
         if code == 3:
-            open(pending_in(wt, n), "w").close()
+            with open(pending_in(wt, n), "w") as f:
+                f.write("fast\n" + fast)
     if saved[0] != "full":
         if code == 3:
             sys.stdout.write("waiting on preflight-fast-%s\n" % n)
@@ -131,6 +133,7 @@ def main(argv):
         _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
         full = full.strip()
         _, verdict, _ = call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
+        alone = call(detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt)[1].strip()
         began = time.monotonic()
         if verdict.split()[:1] == ["reuse"]:
             reused = int(verdict.split()[1])
@@ -140,13 +143,13 @@ def main(argv):
         full_secs = reused
     elif code == 3:
         with open(pending_in(wt, n), "w") as f:
-            f.write("full\n%d\n%s" % (baseline, full))
+            f.write("full\n%d\n%s\n%s\n%s" % (baseline, full, fast, alone))
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
     if reused is None:
         call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
         full_secs = math.ceil(time.monotonic() - began)
-    call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
+    _, branch, _ = call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
     if "plan" in os.environ.get("VERI_SKIP_VERIFY", "").replace(",", " ").split():
@@ -157,9 +160,17 @@ def main(argv):
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
     call(os.path.join(SCRIPTS, "step-budget.sh"), cwd=wt)
     call(os.path.join(SCRIPTS, "adjudicate.sh"), "--check-budget", cwd=wt)
-    for leaf in ("develop-red", "revise-green", "verify-green"):
-        call(os.path.join(SCRIPTS, "leaf-model.sh"), leaf, cwd=wt)
-    call(os.path.join(SCRIPTS, "leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
+    models = [call(os.path.join(SCRIPTS, "leaf-model.sh"), leaf, cwd=wt)[1].strip()
+              for leaf in ("develop-red", "revise-green", "verify-green")]
+    _, timeout, _ = call(os.path.join(SCRIPTS, "leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
+    lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
+             "baseline=%d" % baseline, "full=%d" % full_secs, "full_tier_mode=" + ("reuse" if reused is not None else "run"),
+             "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
+             "model_revise_green=" + models[1], "model_verify_green=" + models[2], "timeout=" + timeout.strip()]
+    text = "\n".join(lines) + "\n"
+    with open(os.path.join(wt, ".tdd", "issue-%s-preflight" % n), "w") as f:
+        f.write(text)
+    sys.stdout.write(text)
     return 0
 
 
