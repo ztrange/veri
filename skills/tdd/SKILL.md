@@ -102,6 +102,9 @@ budget: **call `wait-leaf.sh` again**, as many times as it takes. Make every for
 the 600 s foreground cap is the limit, so a wait costs one call per 590 s and no fewer. Only a 0, 1 or 2 is an
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
+Read it with `$S/extract-result.sh < .tdd/<name>.out`, which prints the report alone. Never `tail`,
+`head` or `cat` the file: it is the leaf's stream-json, so a few of its lines are the leaf's whole
+transcript.
 
 A leaf's `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` follow its effective timeout, the one
 `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
