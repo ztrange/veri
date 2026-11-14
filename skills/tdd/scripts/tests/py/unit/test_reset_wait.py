@@ -354,3 +354,30 @@ def test_issue_3242_idle_coord_returns_only_once_the_transcript_has_gone_the_sec
 
     assert (code, out) == (0, "idle coord 600\n")
     assert written and clock[0] >= written[0] + 600
+
+
+def test_issue_3242_idle_coord_with_lane_reads_the_transcript_recorded_in_the_lane_state_not_the_plain_roles(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    fresh = tmp_path / "plain.jsonl"
+    fresh.write_text("{}\n")
+    os.utime(fresh, (1_000_000.0, 1_000_000.0))
+    old = tmp_path / "lane.jsonl"
+    old.write_text("{}\n")
+    os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
+    (tdd / "role-coord.state").write_text("transcript=%s\n" % fresh)
+    (tdd / "role-coord-a.state").write_text("transcript=%s\n" % old)
+    naps = []
+    monkeypatch.setattr(time, "sleep", lambda seconds: naps.append(seconds))
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["idle", "coord", "--lane", "a", "600"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (0, "idle coord 600\n")
+    assert naps == []
