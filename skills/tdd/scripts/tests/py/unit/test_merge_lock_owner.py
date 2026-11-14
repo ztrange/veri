@@ -207,8 +207,8 @@ def test_3579_forced_release_removes_the_token_file_holding_the_token_the_freed_
     theirs = tmp_path / ".git" / "veri-merge-43.token"
     mine.parent.mkdir()
     mine.write_text("token-a\n")
-    theirs.write_text("token-b\n")
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    theirs.write_text("token-b\n")
     monkeypatch.setattr(merge_lock, "_alive", lambda pid: False)
     released = merge_lock._release(lock, record, ["--force"])
     assert (released, os.path.isdir(lock), mine.exists(), theirs.exists()) == (0, False, False, True)
@@ -239,3 +239,17 @@ def test_3579_release_by_a_different_owner_token_leaves_the_holders_token_file_u
     merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     refused = merge_lock._release(lock, record, ["--pid", me, "--owner", "token-b"])
     assert (refused, os.path.isdir(lock), token_file.read_text()) == (1, True, "token-a\n")
+
+
+def test_3579_take_removes_a_leftover_token_file_whose_token_the_new_holder_record_does_not_name(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    mine = tmp_path / ".git" / "veri-merge-42.token"
+    leftover = tmp_path / ".git" / "veri-merge-43.token"
+    mine.parent.mkdir()
+    mine.write_text("token-a\n")
+    leftover.write_text("token-b\n")
+    taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
+    assert (taken, mine.exists(), leftover.exists()) == (0, True, False)
