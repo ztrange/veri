@@ -10,8 +10,11 @@ USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] 
 
 
 def main(argv):
-    if argv[:1] == ["marker"] and len(argv) == 2:
-        path = os.path.join(main_tree(os.getcwd()), ".tdd", "reset-request-" + argv[1])
+    if argv[:1] == ["marker"] and len(argv) in (2, 4):
+        name = "reset-request-" + argv[1]
+        if len(argv) == 4:
+            name += "-" + argv[3]
+        path = os.path.join(main_tree(os.getcwd()), ".tdd", name)
         while not os.path.exists(path):
             time.sleep(float(os.environ.get("VERI_POLL", "1")))
         with open(path) as f:
