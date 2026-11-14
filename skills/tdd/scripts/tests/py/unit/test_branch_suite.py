@@ -37,3 +37,15 @@ def test_main_with_branch_suite_unset_or_empty_prints_ci_where_a_workflow_trigge
     assert run_cli(branch_suite, [], env={"VERI_BRANCH_SUITE": ""}, cwd=triggered)[:2] == (0, "ci\n")
     assert run_cli(branch_suite, [], cwd=push_only)[:2] == (0, "local\n")
     assert run_cli(branch_suite, [], cwd=bare)[:2] == (0, "local\n")
+
+
+def test_main_with_branch_suite_unset_prints_ci_for_ci_on_pr_1_and_local_for_0_whatever_the_tree_holds(
+        tmp_path, run_cli, branch_suite):
+    triggered = _tree(tmp_path / "triggered", "pull_request")
+    push_only = _tree(tmp_path / "push-only", "push")
+    bare = tmp_path / "bare"
+    bare.mkdir()
+
+    assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "0"}, cwd=triggered)[:2] == (0, "local\n")
+    assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "1"}, cwd=push_only)[:2] == (0, "ci\n")
+    assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "1"}, cwd=bare)[:2] == (0, "ci\n")

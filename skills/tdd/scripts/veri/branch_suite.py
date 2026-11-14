@@ -22,7 +22,8 @@ def triggers_on_pull_request():
 def main(argv):
     mode = tunables.read("VERI_BRANCH_SUITE")
     if not mode:
-        mode = "ci" if triggers_on_pull_request() else "local"
+        on_pr = tunables.read("VERI_CI_ON_PR")
+        mode = "ci" if on_pr == "1" or not on_pr and triggers_on_pull_request() else "local"
     print(mode)
     return 0
 
