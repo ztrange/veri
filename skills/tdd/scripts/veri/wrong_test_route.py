@@ -273,7 +273,7 @@ def _unresolved_superseded(report, step, own_id):
     own = _recorded_cases(step)
     for line in _lines_with(report, "SUPERSEDED:"):
         case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
-        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and _exists(case) is None:
+        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and (_exists(case) is None or len(_defining_files(case)) > 1):
             return True
     return False
 
