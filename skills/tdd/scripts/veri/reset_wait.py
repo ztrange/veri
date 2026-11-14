@@ -4,8 +4,8 @@ import os
 import sys
 import time
 
-from veri import tunables
-from veri.full_tier_time import main_tree
+from full_tier_time import main_tree
+import tunables
 
 USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] [<seconds>]"
 
@@ -22,8 +22,22 @@ def role_key(role, lane=None):
     return role + ("-" + lane if lane else "")
 
 
-def argv_key(argv):
-    return role_key(argv[1], argv[3] if len(argv) >= 4 else None)
+def parse(argv):
+    """(verb, role, key, seconds) for a well-formed argv, else None. Nothing touches a file before this."""
+    if len(argv) < 2 or argv[0] not in ("marker", "recovered", "idle") or argv[1] not in ("coord", "dev"):
+        return None
+    rest, lane, seconds = argv[2:], None, None
+    if rest[:1] == ["--lane"]:
+        if len(rest) < 2 or not rest[1]:
+            return None
+        lane, rest = rest[1], rest[2:]
+    if rest and argv[0] != "marker":
+        seconds, rest = rest[0], rest[1:]
+        if not (seconds.isascii() and seconds.isdigit() and int(seconds) >= 1):
+            return None
+    if rest:
+        return None
+    return argv[0], argv[1], role_key(argv[1], lane), seconds
 
 
 def marker_path(tdd, key):
@@ -31,56 +45,56 @@ def marker_path(tdd, key):
 
 
 def state_field(tdd, key, name):
-    with open(os.path.join(tdd, "role-%s.state" % key)) as f:
-        values = [l.strip().split("=", 1)[1] for l in f if l.startswith(name + "=")]
+    try:
+        with open(os.path.join(tdd, "role-%s.state" % key)) as f:
+            values = [l.strip().split("=", 1)[1] for l in f if l.startswith(name + "=")]
+    except FileNotFoundError:
+        return None
     return values[-1] if values else None
 
 
-def seconds_arg(argv, name, default):
-    return argv[-1] if len(argv) in (3, 5) else tunables.read(name, default)
-
-
 def main(argv):
-    if argv[:1] == ["marker"] and len(argv) in (2, 4) and argv[1] in ("coord", "dev"):
-        path = marker_path(tdd_dir(), argv_key(argv))
+    parsed = parse(argv)
+    if parsed is None:
+        print(USAGE, file=sys.stderr)
+        return 2
+    verb, role, key, seconds = parsed
+    tdd = tdd_dir()
+    if verb == "marker":
+        path = marker_path(tdd, key)
         while not os.path.exists(path):
             poll()
         with open(path) as f:
-            print("reset-request %s %s" % (argv[1], f.read().strip()))
+            print("reset-request %s %s" % (role, f.read().strip()))
         return 0
-    if argv[:1] == ["recovered"] and len(argv) in (2, 3, 5):
-        if len(argv) in (3, 5) and not (argv[-1].isascii() and argv[-1].isdigit() and int(argv[-1]) >= 1):
-            print(USAGE, file=sys.stderr)
-            return 2
-        tdd = tdd_dir()
-        role = argv_key(argv)
+    if verb == "recovered":
         try:
-            with open(marker_path(tdd, role)) as f:
+            with open(marker_path(tdd, key)) as f:
                 since = f.read().strip()
         except FileNotFoundError:
             return 3
-        deadline = time.monotonic() + float(seconds_arg(argv, "VERI_RESET_ACK_TIMEOUT", "300"))
+        deadline = time.monotonic() + float(seconds or tunables.read("VERI_RESET_ACK_TIMEOUT", "300"))
         while time.monotonic() < deadline:
             poll()
-            at = state_field(tdd, role, "recovered-at")
+            at = state_field(tdd, key, "recovered-at")
             if at and at > since:
-                print("recovered %s %s" % (argv[1], at))
+                print("recovered %s %s" % (role, at))
                 return 0
-        print("not-recovered %s" % argv[1])
+        print("not-recovered %s" % role)
         return 1
-    if argv[:1] == ["idle"] and len(argv) in (2, 3, 5):
-        tdd = tdd_dir()
-        transcript = state_field(tdd, argv_key(argv), "transcript")
-        if not transcript:
-            print("reset-wait.sh: no transcript recorded for %s" % argv[1], file=sys.stderr)
-            return 2
-        seconds = seconds_arg(argv, "VERI_RESET_IDLE", "3000")
+    transcript = state_field(tdd, key, "transcript")
+    if not transcript:
+        print("reset-wait.sh: no transcript recorded for %s" % role, file=sys.stderr)
+        return 2
+    seconds = seconds or tunables.read("VERI_RESET_IDLE", "3000")
+    try:
         while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()
-        print("idle %s %s" % (argv[1], seconds))
-        return 0
-    print(USAGE, file=sys.stderr)
-    return 2
+    except FileNotFoundError:
+        print("reset-wait.sh: recorded transcript %s is missing" % transcript, file=sys.stderr)
+        return 2
+    print("idle %s %s" % (role, seconds))
+    return 0
 
 
 if __name__ == "__main__":
