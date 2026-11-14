@@ -3898,7 +3898,7 @@ def test_main_3785_exits_2_with_nothing_on_stdout_for_a_superseded_case_that_res
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (2, "")
+    assert (code, stdout, stderr) == (2, "", "")
 
 
 def test_main_3785_exits_2_with_nothing_on_stdout_for_a_superseded_case_defined_in_more_than_one_test_file_once_the_step_log_holds_a_reroute_event(
@@ -3920,7 +3920,7 @@ def test_main_3785_exits_2_with_nothing_on_stdout_for_a_superseded_case_defined_
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (2, "")
+    assert (code, stdout, stderr) == (2, "", "")
 
 
 def test_main_3785_exits_2_with_nothing_on_stdout_for_a_contradicted_case_that_resolves_to_no_test_once_the_step_log_holds_a_reroute_event(
@@ -3940,7 +3940,7 @@ def test_main_3785_exits_2_with_nothing_on_stdout_for_a_contradicted_case_that_r
 
     code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
 
-    assert (code, stdout) == (2, "")
+    assert (code, stdout, stderr) == (2, "", "")
 
 
 def test_main_3785_prints_prep_naming_each_resolvable_superseded_case_other_than_the_own_red_once_the_step_log_holds_a_reroute_event(
