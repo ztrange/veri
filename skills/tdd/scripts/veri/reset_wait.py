@@ -14,6 +14,10 @@ def poll():
     time.sleep(float(os.environ.get("VERI_POLL", "1")))
 
 
+def tdd_dir():
+    return os.path.join(main_tree(os.getcwd()), ".tdd")
+
+
 def role_key(role, lane=None):
     return role + ("-" + lane if lane else "")
 
@@ -30,14 +34,14 @@ def state_field(tdd, key, name):
 
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
-        path = marker_path(os.path.join(main_tree(os.getcwd()), ".tdd"), role_key(argv[1], argv[3] if len(argv) == 4 else None))
+        path = marker_path(tdd_dir(), role_key(argv[1], argv[3] if len(argv) == 4 else None))
         while not os.path.exists(path):
             poll()
         with open(path) as f:
             print("reset-request %s %s" % (argv[1], f.read().strip()))
         return 0
     if argv[:1] == ["recovered"] and len(argv) in (2, 3, 5):
-        tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
+        tdd = tdd_dir()
         role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
         try:
             with open(marker_path(tdd, role)) as f:
@@ -54,7 +58,7 @@ def main(argv):
         print("not-recovered %s" % argv[1])
         return 1
     if argv[:1] == ["idle"] and len(argv) in (3, 5):
-        tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
+        tdd = tdd_dir()
         transcript = state_field(tdd, role_key(argv[1], argv[3] if len(argv) == 5 else None), "transcript")
         while time.time() - os.path.getmtime(transcript) < float(argv[-1]):
             poll()
