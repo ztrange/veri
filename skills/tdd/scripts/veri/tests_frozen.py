@@ -719,6 +719,12 @@ def rerecord_rebased(ledger, pre):
     return 1 if refused else 0 if stale else 3
 
 
+def _log_refusal(**fields):
+    os.makedirs(".tdd", exist_ok=True)
+    event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
+        {"event": "tests-frozen-refused", **fields}) + "\n").encode())
+
+
 def _take_red_case(files):
     if "--red-case" not in files:
         return None
@@ -738,9 +744,7 @@ def _take_red_case(files):
         present = False
     if not present:
         write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
-        os.makedirs(".tdd", exist_ok=True)
-        event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
-            {"event": "tests-frozen-refused", "case": "%s::%s" % (path, case)}) + "\n").encode())
+        _log_refusal(case="%s::%s" % (path, case))
         return 1
     del files[at:at + 2]
     return None
@@ -799,8 +803,7 @@ def main(argv):
                 (files if os.path.exists(name) else deleted).append(name)
         if not files and not deleted:
             write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
-            event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
-                {"event": "tests-frozen-refused", "exit": 2}) + "\n").encode())
+            _log_refusal(exit=2)
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
