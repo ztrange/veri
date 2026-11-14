@@ -100,7 +100,7 @@ def comment_rows(search):
 def windowed_comment_rows(search):
     """GitHub times out (504) loading ~280 issues' comment threads in one search, so read them in
     created:<first>..<last> windows of VERI_COMMENT_CHUNK issues each; windows may overlap at a shared second."""
-    chunk = max(1, int(tunables.read("VERI_COMMENT_CHUNK", "25")))
+    chunk = tunables.resolve("VERI_COMMENT_CHUNK")[0]
     args = ("--state", "all", "--limit", str(SEARCH_CAP), "--json", "number,createdAt", "--search", search)
     listed = json.loads(github.gh_issue_list(*args))
     if len(listed) >= SEARCH_CAP:
@@ -154,6 +154,10 @@ def landed(root, since):
 
 
 def refresh():
+    bad = tunables.resolve("VERI_COMMENT_CHUNK")[1]
+    if bad:
+        sys.stderr.write("report-cache.sh: VERI_COMMENT_CHUNK '%s' is not %s\n" % bad)
+        return 2
     tdd = os.path.join(main_tree(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
     kept = {}

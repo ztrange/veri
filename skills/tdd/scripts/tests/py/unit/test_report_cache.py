@@ -1740,6 +1740,36 @@ def test_refresh_whose_comments_search_fails_and_whose_created_listing_returns_s
     assert (code, "1000-row cap" in err, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, True, False)
 
 
+@pytest.mark.parametrize("value", ["x", "0", "-3", "2.5"])
+def test_refresh_with_a_bad_comment_chunk_exits_2_naming_the_knob_and_its_value_before_any_gh_call(run_cli, monkeypatch, tmp_path, value):
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    calls = []
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", lambda *args: calls.append(args) or "[]")
+    monkeypatch.setenv("VERI_COMMENT_CHUNK", value)
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, "VERI_COMMENT_CHUNK" in err and value in err, calls) == (2, True, [])
+
+
+def test_refresh_with_an_empty_comment_chunk_reads_windows_of_25(run_cli, monkeypatch, tmp_path):
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    (tmp_path / ".git").mkdir()
+    issues = [{"number": n, "title": "PRD %03d" % n, "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-01T10:00:%02dZ" % n,
+               "body": "", "comments": []} for n in range(1, 31)]
+    reads = []
+    monkeypatch.setattr(subprocess, "run", _windowed_comments_gh(issues, reads))
+    monkeypatch.setenv("VERI_COMMENT_CHUNK", "")
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
+
+    assert (code, len(reads)) == (0, 2 * 2)
+
+
 @pytest.mark.process("git started for real over a scratch repository holding annotated tags cut at set dates")
 def test_refresh_records_the_landed_tags_cut_since_status_last_with_name_date_and_subject_and_not_an_older_one(run_cli, monkeypatch, tmp_path):
     import json
