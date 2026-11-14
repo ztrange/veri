@@ -2594,6 +2594,37 @@ def test_cli_a_conductor_pid_file_naming_the_conductors_own_pid_and_start_time_i
         0, ["%d\n%s\n" % (os.getpid(), own_start)], False, None)
 
 
+def test_cli_a_conductor_pid_file_naming_the_conductors_own_pid_at_another_start_time_is_left_byte_identical_on_exit_3772(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, written = subprocess.run, []
+    own_start, other_start = "Fri Nov 13 22:10:53 2026", "Fri Nov 13 22:10:56 2026"
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+
+    def with_the_pid_reused_at_another_start(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["ps"] and "lstart=" in args:
+            return subprocess.CompletedProcess(args, 0, stdout=own_start + "\n", stderr="")
+        if args[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            pid_file.write_text("%d\n%s\n" % (os.getpid(), other_start))
+            written.append(pid_file.read_bytes())
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", with_the_pid_reused_at_another_start)
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, pid_file.read_bytes() if pid_file.exists() else None) == (0, written[0])
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
