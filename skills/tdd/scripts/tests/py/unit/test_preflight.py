@@ -179,7 +179,7 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
         if base == "gh" and args[:1] == ("api",) and "issues/12" in args[1]:
             return 0, "ISSUE BODY\n", ""
         if base == "detect-test-command.sh":
-            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
         if base == "baseline-full-tier.sh":
             return 0, "run\n", ""
         return 0, "", ""
@@ -190,6 +190,8 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
 
     names = [c[0] for c in calls]
     tail = calls[names.index("unlabel-issue.sh") + 1:]
+    alone_calls = [c for c in tail if c[0] == "detect-test-command.sh" and c[1][:2] == ("--tier", "one test file")]
+    tail = [c for c in tail if c not in alone_calls]
     body = tail[2][1][0] if len(tail) > 2 and tail[2][1] else None
     assert [(c[0], c[1][:1] if c[0] == "gh" else c[1][:2] if c[0] == "detect-test-command.sh" else c[1][:1]) for c in tail[:3]] == [
         ("worktree-setup.sh", ("12",)),
@@ -215,6 +217,9 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert all(c[2] == str(wt) for c in tail[:11])
     assert all("--alone" not in c[1] for c in (fast_start, fast_wait, full_start, full_wait))
     assert len(tail) >= 11
+    assert len(alone_calls) == 1
+    assert alone_calls[0][1] == ("--tier", "one test file", "--issue", body, str(wt))
+    assert alone_calls[0][2] == str(wt)
 
 
 def test_3771_i_red_baseline_wait_exit_1_stops_at_3_with_no_later_call_no_flake_read_and_no_suite_flake_event(monkeypatch, run_cli, tmp_path):
@@ -374,7 +379,7 @@ def test_3771_m_resumed_baseline_wait_exit_0_refetches_the_issue_body_runs_the_f
         if base == "detect-test-command.sh":
             if args[1] == "all":
                 seen_body.append(open(args[3]).read())
-            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
         if base == "baseline-full-tier.sh":
             return 0, "run\n", ""
         if base == "detach-command.sh" and args[0] == "wait":
@@ -394,7 +399,7 @@ def test_3771_m_resumed_baseline_wait_exit_0_refetches_the_issue_body_runs_the_f
     assert first == 3 and second == 0
     assert calls[0][0] == "detach-command.sh" and calls[0][1][0] == "wait"
     assert names.index("gh") < names.index("detect-test-command.sh")
-    assert [a[:2] for b, a in calls if b == "detect-test-command.sh"] == [("--tier", "all")]
+    assert sorted(a[:2] for b, a in calls if b == "detect-test-command.sh") == [("--tier", "all"), ("--tier", "one test file")]
     assert seen_body == ["the issue body\n"]
     assert ("leaf-timeout.sh", ("9", "--full", "20")) == next(c for c in calls if c[0] == "leaf-timeout.sh")
 
@@ -576,3 +581,142 @@ def test_3771_r_skip_verify_plan_stops_at_5_after_refactor_budget_issue_0_with_n
     assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
     assert code == 2
     assert out.splitlines()[-1] == "stopped at 5 VERI_SKIP_VERIFY"
+
+
+def test_3771_s_exit_0_writes_the_preflight_file_in_the_worktree_and_prints_the_same_lines_last(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    models = {"develop-red": "m-red", "revise-green": "m-rev", "verify-green": "m-ver"}
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        if base == "leaf-model.sh":
+            return 0, models[args[0]] + "\n", ""
+        if base == "leaf-timeout.sh":
+            return 0, "1800\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    expected = [
+        "worktree=%s" % wt,
+        "fast_cmd=make unit",
+        "full_cmd=make test",
+        "alone_cmd=make test TESTS=x",
+        "baseline=8",
+        "full=8",
+        "full_tier_mode=run",
+        "default_branch=main",
+        "model_develop_red=m-red",
+        "model_revise_green=m-rev",
+        "model_verify_green=m-ver",
+        "timeout=1800",
+    ]
+    assert code == 0
+    assert (wt / ".tdd" / "issue-12-preflight").read_text().splitlines() == expected
+    assert out.splitlines()[-len(expected):] == expected
+
+
+def test_3771_t_resumed_run_whose_baseline_full_tier_says_reuse_writes_the_real_commands_and_the_reuse_mode_and_figure(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    waits = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
+        if base == "baseline-full-tier.sh":
+            return 0, "reuse 55\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            waits.append(args)
+            if len(waits) == 1:
+                return 3, "still running\n", ""
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        if base == "leaf-model.sh":
+            return 0, "m-" + args[0] + "\n", ""
+        if base == "leaf-timeout.sh":
+            return 0, "1800\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+    code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    written = dict(l.split("=", 1) for l in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
+    assert first == 3
+    assert code == 0
+    assert written["fast_cmd"] == "make unit"
+    assert written["full_cmd"] == "make test"
+    assert written["alone_cmd"] == "make test TESTS=x"
+    assert written["full_tier_mode"] == "reuse"
+    assert written["full"] == "55"
+    assert "full_tier_mode=reuse" in out.splitlines() and "full=55" in out.splitlines()
+
+
+def test_3771_u_run_resumed_after_a_full_tier_wait_exit_3_writes_and_prints_the_original_fast_and_alone_commands(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    waits = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            waits.append(args)
+            if len(waits) == 2:
+                return 3, "still running\n", ""
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        if base == "leaf-model.sh":
+            return 0, "m-" + args[0] + "\n", ""
+        if base == "leaf-timeout.sh":
+            return 0, "1800\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+    code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    written = dict(l.split("=", 1) for l in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
+    assert first == 3
+    assert code == 0
+    assert written["fast_cmd"] == "make unit"
+    assert written["alone_cmd"] == "make test TESTS=x"
+    assert "fast_cmd=make unit" in out.splitlines() and "alone_cmd=make test TESTS=x" in out.splitlines()

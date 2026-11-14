@@ -16,3 +16,17 @@ ICAgIGlmIGJvZHlfZmlsZSBpcyBOb25lOg==
 command 186
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_m_resumed_baseline_wait_exit_0_refetches_the_issue_body_runs_the_full_tier_with_it_and_measures_the_baseline
 
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 50
+skills/tdd/scripts/tests/py/unit/test_preflight.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_t_resumed_run_whose_baseline_full_tier_says_reuse_writes_the_real_commands_and_the_reuse_mode_and_figure
+
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 50
+skills/tdd/scripts/tests/py/unit/test_preflight.py
+command 176
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_u_run_resumed_after_a_full_tier_wait_exit_3_writes_and_prints_the_original_fast_and_alone_commands
+
