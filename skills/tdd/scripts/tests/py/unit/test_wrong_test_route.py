@@ -3965,3 +3965,26 @@ def test_main_3785_prints_prep_naming_each_resolvable_superseded_case_other_than
     words = bare_route(stdout).split()
     assert (code, words[:1], sorted(words[1:])) == (
         0, ["prep"], sorted("tests/py/test_solvable.py::%s" % name for name in older))
+
+
+def test_main_3785_prints_prep_naming_the_resolvable_contradicted_case_other_than_the_own_red_once_the_step_log_holds_a_reroute_event(
+        run_cli, tmp_path, monkeypatch):
+    wrong_test_route = importlib.import_module("veri.wrong_test_route")
+    suite = tmp_path / "tests" / "py"
+    suite.mkdir(parents=True)
+    added = "test_main_prints_the_usage_with_not_running"
+    older = "test_main_prints_usage_on_no_arguments"
+    (suite / "test_solvable.py").write_text(
+        "def %s():\n    pass\n\ndef %s():\n    pass\n" % (older, added))
+    (tmp_path / ".tdd").mkdir()
+    step = "solvable-issues.sh usage mentions --not-running, prep for a contradicted case"
+    monkeypatch.setenv("VERI_STEP", step)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        '{"event": "reroute", "step": "%s", "kind": "red"}\n' % step)
+    report = tmp_path / "green-report.txt"
+    report.write_text("SUITE: make test\nCONTRADICTS: %s\n" % older)
+
+    code, stdout, stderr = run_cli(wrong_test_route, SPEC + [str(report), added], cwd=tmp_path)
+
+    assert (code, bare_route(stdout).split()) == (
+        0, ["prep", "tests/py/test_solvable.py::" + older])
