@@ -196,3 +196,30 @@ def test_issue_3242_recovered_coord_with_lane_waits_on_the_lane_marker_and_lane_
     code, out, _ = run_cli(reset_wait, ["recovered", "coord", "--lane", "a", "60"])
 
     assert (code, out) == (0, "recovered coord 2026-11-12T10:04:00\n")
+
+
+def test_issue_3242_recovered_coord_with_no_recovered_at_later_than_the_marker_once_the_seconds_pass_prints_not_recovered_coord_and_exits_1(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-coord.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
+    now = [1_000_000.0]
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) > 50:
+            raise AssertionError("recovered never gave up waiting")
+        now[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"], env={"VERI_POLL": "20"})
+
+    assert len(naps) <= 50, "recovered never gave up waiting"
+    assert (code, out) == (1, "not-recovered coord\n")

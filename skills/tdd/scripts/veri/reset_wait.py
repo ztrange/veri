@@ -30,13 +30,16 @@ def main(argv):
         role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
         with open(os.path.join(tdd, "reset-request-" + role)) as f:
             since = f.read().strip()
-        while True:
+        deadline = time.monotonic() + float(argv[-1])
+        while time.monotonic() < deadline:
             poll()
             with open(os.path.join(tdd, "role-%s.state" % role)) as f:
                 at = [l.strip().split("=", 1)[1] for l in f if l.startswith("recovered-at=")]
             if at and at[-1] > since:
                 print("recovered %s %s" % (argv[1], at[-1]))
                 return 0
+        print("not-recovered %s" % argv[1])
+        return 1
     print(USAGE, file=sys.stderr)
     return 2
 
