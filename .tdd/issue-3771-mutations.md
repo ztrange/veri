@@ -66,3 +66,14 @@ ICAgIHN5cy5zdGRvdXQud3JpdGUoInN0b3BwZWQgYXQgJWQgJXNcbiIgJSAoc3RlcCwgd2hhdCkp
 command 150
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_w_a_stop_handles_no_refusal_no_bail_event_no_comment_and_no_branch_reset
 
+file 51
+skills/tdd/scripts/veri/ensure_run_state_ignored.py
+old-b64 16
+Ii50ZGQvKiIsIA==
+new-b64 0
+
+context-b64 84
+UlVMRSA9ICgiLnRkZC8qIiwgIiEudGRkL2lzc3VlLSoubWQiLCAiLnRkZC9pc3N1ZS0qLXNwZWMubWQiKQ==
+command 130
+make test TESTS=skills/tdd/scripts/tests/py/test_ensure_run_state_ignored.py::test_the_rule_ignores_the_preflight_file_of_an_issue
+
