@@ -42,8 +42,13 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
 decision. An `N` on the invocation wins over the file's and is written to it (see *Role state*).
 Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
-with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. With no state
-file for this role and lane, start fresh.
+with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
+ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
+
+**Resetter.** On a `/vdev` turn the human typed (never a recovery turn), start one resetter
+session on Haiku, briefed with the *Resetter* section, and record its id with
+`$S/role-state.sh dev [--lane <lane>] set resetter <id>`. Keep it until the dev session ends,
+then archive it.
 
 **Attached.** A coordinator is attached when this session has received a message from one, or
 when the role state records one (recovery lists `coordinator <session-id>` under State). From
@@ -223,10 +228,42 @@ the job, briefed to return at most 10 lines and to read the skill at
 
 Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
 
-Once your own context passes 15% of your context window (150k tokens of a 1M window), or the harness warns that context is nearly full,
-reset yourself with `/vhandoff dev` at the next point where no human decision is pending and no
-run awaits your ruling or merge instruction (between batches), never in the middle of an
-instruction.
+Your own reset is governed by *Resetting*, not by a context threshold you judge yourself.
+
+## Resetting
+
+Every turn of the dev session, whatever began it (the human, another session's message, a
+background command's exit), starts with `$S/role-growth.sh dev [--lane <lane>]`, before anything
+else. Act on what it prints:
+
+- **Arm line** (growth since recovery ≥ 0.85 × `VERI_RESET_GROWTH_DEV`, default 70000 tokens):
+  reset at the next quiet point — no launch half done, no merge in flight.
+- **Reset-now line** (2 × the knob): reset at once, even mid-task.
+- **A refused reset:** report the reason once (to the coordinator when attached, P4) and do not
+  retry it.
+- **Exit 2:** report it once and the turn goes on.
+
+A reset is `$S/role-state.sh dev [--lane <lane>] request-reset` followed by the app's clear of the
+dev session's own session. Nothing else is written at reset time (*Role state*). When
+`request-reset` exits 1, report the reason once (to the coordinator when attached, P4) and do not
+retry it.
+
+After recovery, arm `$S/reset-wait.sh idle dev [--lane <lane>]` as a background command. When it
+returns, run `request-reset --idle` and clear yourself; the resetter recovers you at once, as after
+any other reset.
+
+## Resetter
+
+The resetter is a Haiku session started by the dev session and briefed with this section.
+
+1. Wait in the background with `$S/reset-wait.sh marker dev [--lane <lane>]`.
+2. Then wait until the dev session is idle and its context has dropped.
+3. Only then send one sentence asking it to invoke the `vdev` skill with the Skill tool and
+   `<lane>` as the argument, never the text `/vdev <lane>`.
+4. With no `ack` within `VERI_RESET_ACK_TIMEOUT`, run `$S/reset-wait.sh recovered dev [--lane <lane>]`,
+   re-send at most twice, then notify the operator. After an `ack`, wait for the next marker.
+
+The resetter never clears itself, and ends as few turns as it can.
 
 ## Parked issues
 
