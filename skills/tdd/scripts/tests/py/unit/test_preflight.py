@@ -80,3 +80,22 @@ def test_3771_c_each_inner_call_prints_a_line_naming_it_and_its_exit_then_its_st
         assert lines[idx + 1 + (base == "issue-worktree.sh")] == "OUT<%d>" % i
         assert "ERR<%d>" % i in err
     assert [lines.index(h) for h in heads] == sorted(lines.index(h) for h in heads)
+
+
+def test_3771_d_leaf_launchable_exit_1_stops_with_no_later_call_and_a_stopped_at_last_line(monkeypatch, run_cli):
+    preflight = importlib.import_module("veri.preflight")
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append(base)
+        return (1, "", "") if base == "leaf-launchable.sh" else (0, "", "")
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert code == 1
+    assert calls[-1] == "leaf-launchable.sh"
+    assert "issue-worktree.sh" not in calls and "unlabel-issue.sh" not in calls
+    assert out.splitlines()[-1] == "stopped at 2 leaf-launchable.sh"
