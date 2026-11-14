@@ -29,8 +29,11 @@ def main(argv):
     if argv[:1] == ["recovered"] and len(argv) in (2, 3, 5):
         tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
         role = role_key(argv[1], argv[3] if len(argv) == 5 else None)
-        with open(os.path.join(tdd, "reset-request-" + role)) as f:
-            since = f.read().strip()
+        try:
+            with open(os.path.join(tdd, "reset-request-" + role)) as f:
+                since = f.read().strip()
+        except FileNotFoundError:
+            return 3
         deadline = time.monotonic() + float(argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_ACK_TIMEOUT", "300"))
         while time.monotonic() < deadline:
             poll()
