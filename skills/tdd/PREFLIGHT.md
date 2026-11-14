@@ -28,11 +28,13 @@ its last line names, by the steps below. Steps 1 to 7 stay stated here.
    `### ▶️ Resuming` comment on the issue thread.
 3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
    the issue's worktree first, as step 1.2 describes — slug from the title — and clear any stale stop request there before anything else. The
-   worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` writes the
-   pid of the `claude -p` process it started into it before this preflight runs, and refuses
-   the launch instead (exit 2, `already live (pid <pid>)` on stderr, the pid file unchanged,
-   before it writes any run record) when the file already names a live process started at
-   the time it records (or with no time recorded). The conductor itself never writes it, and
+   worktree's lock, `.tdd/conductor.pid`, is not yours to write: `run_conductor.py` claims it
+   with its own pid and start time before this preflight runs (the forked `claude -p` child's
+   `record_pid` then writes the child's own pid and start time, and on exit the file is removed
+   only when it still names this conductor), and refuses the launch instead (exit 2,
+   `already live (pid <pid>)` on stderr, the pid file unchanged, before it writes any run
+   record or runs preflight) when the file already names a live process started at the time it
+   records (or with no time recorded); a file naming a dead pid is taken over. The conductor itself never writes it, and
    the lock is taken here in step 3, never in step 1.2:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
