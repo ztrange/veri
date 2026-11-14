@@ -19,3 +19,4 @@
 - the fresh-run step sequence in `main` is one long function, and extracting its phases (fresh setup, fast wait, full wait, settings) would move behaviour, so I didn't do it here
 - the `"0"` and `"--issue", "0"` `refactor-budget.sh` loop and the three `VERI_*` checks could be table-driven, but that is not duplication removal
 applied | 82d1f9259285df0203a90d6af92814e74aec7635 | the wait-marker path `<wt>/.tdd/issue-<n>-preflight-wait` is built in three places (`pending`, the fast-tier write and the full-tier write); give it one helper	chore: regrade the run's signed units after the rebase onto main (#3771)
+applied | ce57fb81cd3e3084d7efb336ef6a4717f23e49be | `main` is a single long function with three branches (full-wait resume, fast-wait resume, fresh run); splitting it into functions is a larger restructure than the budget allows	refactor: split preflight main into check_environment, start_fast, start_full and finish (#3771)
