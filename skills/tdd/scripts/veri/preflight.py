@@ -46,6 +46,18 @@ def call(name, *args, cwd=None, env=None):
     return code, out, err
 
 
+class Stop(Exception):
+    def __init__(self, step, what, code):
+        self.step, self.what, self.code = step, what, code
+
+
+def checked(step, name, *args, ok=(0,), **kw):
+    code, out, _ = call(name, *args, **kw)
+    if code not in ok:
+        raise Stop(step, label(name, *args), code)
+    return out
+
+
 DETACH = script("detach-command.sh")
 
 
@@ -54,12 +66,12 @@ def wait_on(name, wt, env):
 
 
 def detached(name, cmd, wt, env):
-    call(DETACH, "start", name, cmd, cwd=wt, env=env)
+    checked(3, DETACH, "start", name, cmd, cwd=wt, env=env)
     return wait_on(name, wt, env)
 
 
 def issue_body(n, wt):
-    _, body, _ = call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
+    body = checked(3, "gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
     fd, body_file = tempfile.mkstemp(prefix="veri-preflight-body-")
     with os.fdopen(fd, "w") as f:
         f.write(body)
@@ -100,18 +112,16 @@ def check_environment():
 
 
 def start_fast(n, slug, detect, env):
-    _, out, _ = call(script("issue-worktree.sh"), n, slug)
-    wt = out.strip()
-    call(script("stop-requested.sh"), "--clear", cwd=wt)
+    wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
+    checked(3, script("stop-requested.sh"), "--clear", cwd=wt, ok=(0, 3))
     marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
     if os.path.exists(marker):
         os.remove(marker)
-    call(script("unlabel-issue.sh"), n, cwd=wt)
-    call(script("worktree-setup.sh"), n, cwd=wt)
+    checked(3, script("unlabel-issue.sh"), n, cwd=wt)
+    checked(3, script("worktree-setup.sh"), n, cwd=wt, ok=(0, 3))
     body_file = issue_body(n, wt)
-    call(script("requirements-preflight.sh"), body_file, cwd=wt)
-    _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
-    fast = fast.strip()
+    checked(3, script("requirements-preflight.sh"), body_file, cwd=wt)
+    fast = checked(3, detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt).strip()
     fast_began = time.monotonic()
     code = detached("preflight-fast-" + n, fast, wt, env)
     if code == 3:
@@ -128,10 +138,9 @@ def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
     baseline = math.ceil(time.monotonic() - fast_began)
     if body_file is None:
         body_file = issue_body(n, wt)
-    _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
-    full = full.strip()
-    _, verdict, _ = call(script("baseline-full-tier.sh"), n, full, cwd=wt)
-    alone = call(detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt)[1].strip()
+    full = checked(3, detect, "--tier", "all", "--issue", body_file, wt, cwd=wt).strip()
+    verdict = checked(3, script("baseline-full-tier.sh"), n, full, cwd=wt)
+    alone = checked(3, detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt).strip()
     began = time.monotonic()
     reused = None
     code = None
@@ -149,23 +158,25 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
         save_pending(wt, n, "full", str(baseline), full, fast, alone)
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
+    elif code != 0:
+        return stopped(3, "detach-command.sh wait", code)
     if reused is None:
-        call(script("full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
+        checked(3, script("full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
         full_secs = math.ceil(time.monotonic() - began)
-    _, branch, _ = call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
+    branch = checked(4, "gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
-        call(script("refactor-budget.sh"), *args, cwd=wt)
+        checked(5, script("refactor-budget.sh"), *args, cwd=wt, ok=(0, 3))
     if "plan" in tunables.read("VERI_SKIP_VERIFY").replace(",", " ").split():
         return stopped(5, "VERI_SKIP_VERIFY", 2)
     if tunables.read("VERI_STEP_GROWTH", "unset") == "":
         return stopped(5, "VERI_STEP_GROWTH", 2)
     if not tunables.read("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
-    call(script("step-budget.sh"), cwd=wt)
-    call(script("adjudicate.sh"), "--check-budget", cwd=wt)
-    models = [call(script("leaf-model.sh"), leaf, cwd=wt)[1].strip()
+    checked(5, script("step-budget.sh"), cwd=wt)
+    checked(5, script("adjudicate.sh"), "--check-budget", cwd=wt)
+    models = [checked(6, script("leaf-model.sh"), leaf, cwd=wt).strip()
               for leaf in ("develop-red", "revise-green", "verify-green")]
-    _, timeout, _ = call(script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
+    timeout = checked(7, script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
              "baseline=%d" % baseline, "full=%d" % full_secs, "full_tier_mode=" + ("reuse" if reused is not None else "run"),
              "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
@@ -178,6 +189,13 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
 
 
 def main(argv):
+    try:
+        return run(argv)
+    except Stop as s:
+        return stopped(s.step, s.what, s.code)
+
+
+def run(argv):
     if len(argv) != 2:
         sys.stderr.write(USAGE + "\n")
         return 2

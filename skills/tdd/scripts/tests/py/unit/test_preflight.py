@@ -793,3 +793,86 @@ def test_3771_w_a_stop_handles_no_refusal_no_bail_event_no_comment_and_no_branch
         assert "comment.sh" not in names, stop
         assert not [c for c in calls if c[0] == "gh" and any("comment" in a for a in c[1])], stop
         assert not [c for c in calls if c[0] == "git" and "reset" in c[1]], stop
+
+
+def _drive(preflight, run_cli, tmp_path, failing, fail_code, monkeypatch):
+    import types
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    waits = []
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if failing(base, args, waits):
+            return fail_code, "", "boom\n"
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            waits.append(args)
+            now[0] += 5
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+    return wt, calls, code, out
+
+
+def test_3771_x_a_red_full_tier_wait_exit_1_stops_at_3_with_no_later_call_and_no_preflight_file(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+
+    def failing(base, args, waits):
+        return base == "detach-command.sh" and args[0] == "wait" and len(waits) == 1
+
+    wt, calls, code, out = _drive(preflight, run_cli, tmp_path, failing, 1, monkeypatch)
+
+    assert code == 1
+    assert out.splitlines()[-1] == "stopped at 3 detach-command.sh wait"
+    assert calls[-1][0] == "detach-command.sh" and calls[-1][1][0] == "wait"
+    assert "full-tier-time.sh" not in [n for n, _ in calls]
+    assert not (wt / ".tdd" / "issue-12-preflight").exists()
+
+
+import pytest
+
+
+@pytest.mark.parametrize("bad, step, fail_code", [
+    ("requirements-preflight.sh", 3, 2),
+    ("worktree-setup.sh", 3, 2),
+    ("issue-worktree.sh", 3, 2),
+    ("unlabel-issue.sh", 3, 2),
+    ("full-tier-time.sh", 3, 2),
+    ("step-budget.sh", 5, 2),
+    ("leaf-model.sh", 6, 2),
+    ("leaf-timeout.sh", 7, 2),
+])
+def test_3771_y_a_failing_inner_call_stops_there_with_its_code_runs_no_later_call_and_writes_no_preflight_file(
+        monkeypatch, run_cli, tmp_path, bad, step, fail_code):
+    preflight = importlib.import_module("veri.preflight")
+
+    wt, calls, code, out = _drive(preflight, run_cli, tmp_path,
+                                  lambda base, args, waits: base == bad, fail_code, monkeypatch)
+
+    assert code == fail_code
+    assert calls[-1][0] == bad
+    assert out.splitlines()[-1].startswith("stopped at %d %s" % (step, bad))
+    assert not (wt / ".tdd" / "issue-12-preflight").exists()
+
+
+def test_3771_z_exit_3_of_worktree_setup_and_stop_requested_goes_on(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+
+    wt, calls, code, out = _drive(preflight, run_cli, tmp_path,
+                                  lambda base, args, waits: base in ("worktree-setup.sh", "stop-requested.sh"), 3, monkeypatch)
+
+    assert code == 0
+    assert (wt / ".tdd" / "issue-12-preflight").exists()
