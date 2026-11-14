@@ -159,3 +159,59 @@ def test_3771_g_a_branch_already_holding_a_ledger_exits_2_before_any_inner_call_
     assert code == 2
     assert calls == []
     assert "RESUME.md" in err
+
+
+def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full_tier_and_records_the_time(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        env = kwargs.get("env") or {}
+        entry = [base, args, str(kwargs.get("cwd")), env.get("VERI_ISSUE")]
+        if base == "requirements-preflight.sh":
+            entry.append(open(args[0]).read())
+        calls.append(entry)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "gh" and args[:1] == ("api",) and "issues/12" in args[1]:
+            return 0, "ISSUE BODY\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    names = [c[0] for c in calls]
+    tail = calls[names.index("unlabel-issue.sh") + 1:]
+    body = tail[2][1][0] if len(tail) > 2 and tail[2][1] else None
+    assert [(c[0], c[1][:1] if c[0] == "gh" else c[1][:2] if c[0] == "detect-test-command.sh" else c[1][:1]) for c in tail[:3]] == [
+        ("worktree-setup.sh", ("12",)),
+        ("gh", ("api",)),
+        ("requirements-preflight.sh", (body,)),
+    ]
+    assert tail[1][1] == ("api", "repos/{owner}/{repo}/issues/12", "-q", ".body")
+    assert body and not os.path.abspath(body).startswith(str(wt))
+    assert tail[2][4] == "ISSUE BODY\n"
+    assert [(c[0], c[1][:4]) for c in tail[3:4]] == [("detect-test-command.sh", ("--tier", "fast", "--issue", body))]
+    assert tail[3][1][4:] == (str(wt),)
+    fast_start, fast_wait = tail[4], tail[5]
+    assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("make unit",)
+    assert fast_wait[0] == "detach-command.sh" and fast_wait[1] == ("wait", fast_start[1][1])
+    assert tail[6][:2] == ["detect-test-command.sh", ("--tier", "all", "--issue", body, str(wt))]
+    assert tail[7][:2] == ["baseline-full-tier.sh", ("12", "make test")]
+    full_start, full_wait = tail[8], tail[9]
+    assert full_start[0] == "detach-command.sh" and full_start[1][0] == "start" and full_start[1][2:] == ("make test",)
+    assert full_wait[0] == "detach-command.sh" and full_wait[1] == ("wait", full_start[1][1])
+    assert tail[10][0] == "full-tier-time.sh" and tail[10][1][0] == "--record" and tail[10][1][1].isdigit()
+    assert tail[10][1][2:] == ("make test",)
+    assert [c[3] for c in (fast_start, fast_wait, full_start, full_wait)] == ["12"] * 4
+    assert all(c[2] == str(wt) for c in tail[:11])
+    assert all("--alone" not in c[1] for c in (fast_start, fast_wait, full_start, full_wait))
+    assert len(tail) == 11
