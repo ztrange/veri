@@ -720,3 +720,39 @@ def test_3771_u_run_resumed_after_a_full_tier_wait_exit_3_writes_and_prints_the_
     assert written["fast_cmd"] == "make unit"
     assert written["alone_cmd"] == "make test TESTS=x"
     assert "fast_cmd=make unit" in out.splitlines() and "alone_cmd=make test TESTS=x" in out.splitlines()
+
+
+def test_3771_v_never_prints_a_detached_run_output_file_and_a_test_run_appears_as_what_wait_printed(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    for name in ("preflight-fast-12", "preflight-full-12"):
+        for ext in (".out", ".log", ".txt", ""):
+            (wt / ".tdd" / (name + ext)).write_text("SENTINEL-OUTPUT-FILE-CONTENTS\n")
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, {"fast": "make unit\n", "all": "make test\n", "one test file": "make test TESTS=x\n"}[args[1]], ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            return 0, "WAIT-PRINTED-<%s>\n" % args[1], ""
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        if base == "leaf-model.sh":
+            return 0, "m-" + args[0] + "\n", ""
+        if base == "leaf-timeout.sh":
+            return 0, "1800\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    assert code == 0
+    assert "SENTINEL-OUTPUT-FILE-CONTENTS" not in out
+    assert "WAIT-PRINTED-<preflight-fast-12>" in out.splitlines()
+    assert "WAIT-PRINTED-<preflight-full-12>" in out.splitlines()
