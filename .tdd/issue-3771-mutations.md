@@ -48,3 +48,21 @@ ICAgIHJldHVybiBjYWxsKERFVEFDSCwgIndhaXQiLCBuYW1lLCBjd2Q9d3QsIGVudj1lbnYpWzBd
 command 163
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_v_never_prints_a_detached_run_output_file_and_a_test_run_appears_as_what_wait_printed
 
+before 40
+fdb5dc528ec6e2b87fc410c8c534e5d5489f406c
+keep 50
+skills/tdd/scripts/tests/py/unit/test_preflight.py
+command 150
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_w_a_stop_handles_no_refusal_no_bail_event_no_comment_and_no_branch_reset
+
+file 36
+skills/tdd/scripts/veri/preflight.py
+old-b64 100
+ICAgIHN5cy5zdGRvdXQud3JpdGUoInN0b3BwZWQgYXQgJWQgJXNcbiIgJSAoc3RlcCwgd2hhdCkpCiAgICByZXR1cm4gY29kZQ==
+new-b64 156
+ICAgIHN5cy5zdGRvdXQud3JpdGUoInN0b3BwZWQgYXQgJWQgJXNcbiIgJSAoc3RlcCwgd2hhdCkpCiAgICBydW5fc2NyaXB0KCJwcmVmbGlnaHQtcmVmdXNlZC5zaCIsICJ4IikKICAgIHJldHVybiBjb2Rl
+context-b64 76
+ICAgIHN5cy5zdGRvdXQud3JpdGUoInN0b3BwZWQgYXQgJWQgJXNcbiIgJSAoc3RlcCwgd2hhdCkp
+command 150
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_preflight.py::test_3771_w_a_stop_handles_no_refusal_no_bail_event_no_comment_and_no_branch_reset
+
