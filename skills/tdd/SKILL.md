@@ -1087,9 +1087,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
    the re-read of the spec and of the touched files are paid once for the step instead of
-   once for every transform it applies. That is what #150 measured — the refactor loop and
-   verify-refactor took 2,147 of #144's 3,735 leaf-seconds, and one #137 step's five
-   transforms took 49 minutes between them.
+   once for every transform it applies.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
    `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
