@@ -22,6 +22,12 @@ def marker_path(tdd, key):
     return os.path.join(tdd, "reset-request-" + key)
 
 
+def state_field(tdd, key, name):
+    with open(os.path.join(tdd, "role-%s.state" % key)) as f:
+        values = [l.strip().split("=", 1)[1] for l in f if l.startswith(name + "=")]
+    return values[-1] if values else None
+
+
 def main(argv):
     if argv[:1] == ["marker"] and len(argv) in (2, 4):
         path = marker_path(os.path.join(main_tree(os.getcwd()), ".tdd"), role_key(argv[1], argv[3] if len(argv) == 4 else None))
@@ -41,17 +47,15 @@ def main(argv):
         deadline = time.monotonic() + float(argv[-1] if len(argv) in (3, 5) else tunables.read("VERI_RESET_ACK_TIMEOUT", "300"))
         while time.monotonic() < deadline:
             poll()
-            with open(os.path.join(tdd, "role-%s.state" % role)) as f:
-                at = [l.strip().split("=", 1)[1] for l in f if l.startswith("recovered-at=")]
-            if at and at[-1] > since:
-                print("recovered %s %s" % (argv[1], at[-1]))
+            at = state_field(tdd, role, "recovered-at")
+            if at and at > since:
+                print("recovered %s %s" % (argv[1], at))
                 return 0
         print("not-recovered %s" % argv[1])
         return 1
     if argv[:1] == ["idle"] and len(argv) == 3:
         tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
-        with open(os.path.join(tdd, "role-%s.state" % argv[1])) as f:
-            transcript = [l.strip().split("=", 1)[1] for l in f if l.startswith("transcript=")][-1]
+        transcript = state_field(tdd, argv[1], "transcript")
         while time.time() - os.path.getmtime(transcript) < float(argv[2]):
             poll()
         print("idle %s %s" % (argv[1], argv[2]))
