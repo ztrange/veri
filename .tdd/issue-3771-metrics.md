@@ -1,19 +1,19 @@
 ### 📊 Metrics — issue 3771
 
-Wall time for the issue: 14290 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 24003 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 26 of 28 planned.
+Steps done: 27 of 29 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3773.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $24.01 over 416 turns, in 6 sessions, on opus (estimate).
+Conductor own spending: $28.04 over 477 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80913 tokens, largest 155894 tokens
 Conductor context: first turn 80913 tokens, largest 152210 tokens
 Conductor context: first turn 80914 tokens, largest 145548 tokens
 Conductor context: first turn 80939 tokens, largest 134734 tokens
 Conductor context: first turn 135160 tokens, largest 199443 tokens
-Conductor context: first turn 80895 tokens, largest 271286 tokens
+Conductor context: first turn 80895 tokens, largest 319828 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -433,6 +433,67 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 411 | $0.06 | 270370 |
 | 412 | $0.06 | 270829 |
 | 413 | $0.06 | 271286 |
+| 414 | $0.06 | 271861 |
+| 415 | $0.06 | 272016 |
+| 416 | $0.06 | 273041 |
+| 417 | $0.06 | 274160 |
+| 418 | $0.06 | 274718 |
+| 419 | $0.07 | 276146 |
+| 420 | $0.06 | 277067 |
+| 421 | $0.06 | 278158 |
+| 422 | $0.06 | 278678 |
+| 423 | $0.06 | 279543 |
+| 424 | $0.06 | 280174 |
+| 425 | $0.06 | 281265 |
+| 426 | $0.06 | 281720 |
+| 427 | $0.06 | 282206 |
+| 428 | $0.06 | 282543 |
+| 429 | $0.07 | 283896 |
+| 430 | $0.07 | 284926 |
+| 431 | $0.06 | 285497 |
+| 432 | $0.06 | 285758 |
+| 433 | $0.06 | 286082 |
+| 434 | $0.06 | 286299 |
+| 435 | $0.07 | 287925 |
+| 436 | $0.06 | 288272 |
+| 437 | $0.06 | 288877 |
+| 438 | $0.06 | 289700 |
+| 439 | $0.11 | 296612 |
+| 440 | $0.06 | 297181 |
+| 441 | $0.07 | 297973 |
+| 442 | $0.06 | 298441 |
+| 443 | $0.07 | 299525 |
+| 444 | $0.07 | 300784 |
+| 445 | $0.06 | 301269 |
+| 446 | $0.07 | 302410 |
+| 447 | $0.07 | 303472 |
+| 448 | $0.07 | 304416 |
+| 449 | $0.07 | 304980 |
+| 450 | $0.07 | 305632 |
+| 451 | $0.07 | 306689 |
+| 452 | $0.07 | 307353 |
+| 453 | $0.06 | 307522 |
+| 454 | $0.07 | 308431 |
+| 455 | $0.07 | 309058 |
+| 456 | $0.06 | 309378 |
+| 457 | $0.07 | 309801 |
+| 458 | $0.06 | 310155 |
+| 459 | $0.07 | 310666 |
+| 460 | $0.07 | 311116 |
+| 461 | $0.07 | 312144 |
+| 462 | $0.07 | 312830 |
+| 463 | $0.07 | 313398 |
+| 464 | $0.07 | 313851 |
+| 465 | $0.07 | 314429 |
+| 466 | $0.07 | 315043 |
+| 467 | $0.07 | 315788 |
+| 468 | $0.07 | 316229 |
+| 469 | $0.07 | 316516 |
+| 470 | $0.07 | 317237 |
+| 471 | $0.07 | 318016 |
+| 472 | $0.07 | 318953 |
+| 473 | $0.07 | 319457 |
+| 474 | $0.07 | 319828 |
 
 #### Conductor comments, by family
 
@@ -459,31 +520,31 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 5 | 5 | 0 | 0 | 101 | 87 | 14 | 28 | 10810 | 277190 | 142920 | 0.49 |
-| prose | 11 | 0 | 0 | 0 | 324 | 297 | 11 | 22 | 48355 | 84986 | 513189 | 1.78 |
+| prose | 17 | 0 | 0 | 0 | 625 | 579 | 17 | 34 | 95723 | 92824 | 945933 | 3.33 |
 | skill-edit | 2 | 0 | 0 | 0 | 22 | 17 | 7 | 14 | 1883 | 279675 | 120168 | 0.35 |
-| red | 50 | 23 | 1 | 0 | 2151 | 707 | 221 | 428 | 85174 | 4015534 | 1002377 | 4.08 |
-| green | 58 | 19 | 7 | 0 | 8208 | 1009 | 316 | 602 | 116178 | 6454773 | 1192792 | 5.53 |
-| refactor | 27 | 8 | 0 | 0 | 851 | 200 | 93 | 172 | 21880 | 1388732 | 504107 | 1.62 |
+| red | 51 | 23 | 1 | 0 | 2203 | 738 | 227 | 440 | 88956 | 4141288 | 1031988 | 4.20 |
+| green | 68 | 20 | 11 | 0 | 14696 | 1305 | 383 | 728 | 147028 | 8013248 | 1419446 | 7.02 |
+| refactor | 28 | 8 | 0 | 0 | 858 | 204 | 95 | 176 | 22263 | 1408877 | 525364 | 1.68 |
 | red-repair | 1 | 0 | 0 | 0 | 22 | 15 | 6 | 10 | 2042 | 98926 | 20128 | 0.08 |
 | red-contradicted | 1 | 0 | 0 | 0 | 40 | 24 | 7 | 12 | 3550 | 129136 | 22561 | 0.10 |
 | exhausted | 1 | 0 | 0 | 0 | 130 | 10 | 3 | 6 | 1010 | 44126 | 14898 | 0.10 |
 | diff | 8 | 4 | 1 | 0 | 1002 | 84 | 35 | 68 | 8678 | 516831 | 156999 | 0.53 |
-| red-missing | 3 | 0 | 0 | 0 | 103 | 65 | 16 | 30 | 9661 | 313322 | 97411 | 0.37 |
-| pin | 7 | 6 | 1 | 0 | 283 | 134 | 44 | 88 | 14613 | 864012 | 134981 | 0.57 |
+| red-missing | 5 | 0 | 0 | 0 | 176 | 113 | 28 | 54 | 15444 | 547270 | 150680 | 0.59 |
+| pin | 9 | 8 | 1 | 0 | 329 | 155 | 52 | 104 | 17068 | 1002232 | 169894 | 0.70 |
 | red-supersede | 1 | 0 | 0 | 0 | 53 | 40 | 8 | 14 | 4685 | 190136 | 33036 | 0.15 |
-| rebase | 2 | 1 | 0 | 0 | 766 | 34 | 12 | 24 | 4001 | 209231 | 69184 | 0.23 |
-| predicate | 4 | 0 | 0 | 0 | 46 | 33 | 16 | 28 | 3209 | 203709 | 61489 | 0.21 |
-| cover | 3 | 0 | 0 | 0 | 84 | 57 | 22 | 40 | 5895 | 366270 | 52249 | 0.23 |
-| structural | 3 | 0 | 0 | 0 | 69 | 49 | 16 | 32 | 7153 | 288898 | 54719 | 0.24 |
-| transform | 3 | 2 | 1 | 0 | 57 | 31 | 14 | 24 | 3316 | 191703 | 47276 | 0.17 |
+| rebase | 4 | 2 | 0 | 0 | 1418 | 59 | 23 | 44 | 6941 | 354692 | 131689 | 0.43 |
+| predicate | 5 | 0 | 0 | 0 | 55 | 38 | 19 | 34 | 3667 | 240407 | 80226 | 0.26 |
+| cover | 4 | 0 | 0 | 0 | 114 | 73 | 29 | 54 | 7563 | 496472 | 69767 | 0.30 |
+| structural | 4 | 0 | 0 | 0 | 114 | 68 | 25 | 44 | 9552 | 406874 | 75810 | 0.33 |
+| transform | 4 | 2 | 2 | 0 | 81 | 41 | 18 | 32 | 4469 | 248858 | 67612 | 0.24 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 79 | 68 | 11 | 0 | 9771 | 1004 | 330 | 646 | 108286 | 5858027 | 1547687 | 5.54 |
-| developer | claude-sonnet-5-5 | 91 | 0 | 0 | 0 | 3756 | 1450 | 481 | 896 | 179755 | 9084829 | 1916608 | 8.19 |
-| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 439 | 125 | 32 | 64 | 13814 | 609673 | 142832 | 0.97 |
+| verifier | claude-sonnet-5-5 | 88 | 72 | 16 | 0 | 12011 | 1119 | 371 | 726 | 122195 | 6524056 | 1734432 | 6.21 |
+| developer | claude-sonnet-5-5 | 103 | 0 | 0 | 0 | 8771 | 1791 | 563 | 1048 | 215720 | 10884833 | 2216686 | 9.86 |
+| developer | claude-opus-5-5 | 8 | 0 | 0 | 0 | 610 | 144 | 38 | 74 | 15811 | 707674 | 161900 | 1.13 |
 
 #### Rework and waste, by phase
 
@@ -493,7 +554,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
 | red | 178 | 0.41 | 86 | 0.21 |
-| green | 9909 | 6.39 | 144 | 0.13 |
+| green | 35177 | 11.75 | 144 | 0.13 |
 | refactor | 0 | 0.00 | 56 | 0.11 |
 | red-repair | 0 | 0.00 | 0 | 0.00 |
 | red-contradicted | 0 | 0.00 | 0 | 0.00 |
@@ -506,7 +567,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | cover | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
-| transform | 57 | 0.17 | 0 | 0.00 |
+| transform | 81 | 0.24 | 0 | 0.00 |
 
 #### By step
 
@@ -540,6 +601,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | Go-red control, no production change and no commit: with one entry removed from `veri/preflight.py`'s ordered list of steps the guard case of skills/tdd/scripts/tests/py/unit/test_preflight_steps.py fails, and again with one entry added that names no step of `PREFLIGHT.md`; restored to the branch's code it passes, and the tree is left as the branch holds it ⟦diff-checked⟧ ⟦criterion 15⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 18 | 7 | 14 | 1905 | 104396 | 27634 | 0.10 | 218 | n/a | n/a | n/a |  |  | full |
 | ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md`: before its step 1 it tells the conductor of a fresh run to run `$S/preflight.sh <n> <slug>`, to call it again on exit 3, to take preflight's values from its output, and on any other non-zero exit to continue from the step its last line names by the steps below; steps 1 to 7 stay stated ⟦criterion 16⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 61 | 8 | 16 | 9476 | 100869 | 73277 | 0.29 | 107 | unknown | unknown | unknown |  |  | full |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 21 | 6 | 1 | 0 | 0 | 0 | 280 | 111 | 208 | 32533 | 1796772 | 431934 | 1.59 | 1128 | unknown | 1/5 | structural-owed |  |  | full |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_ignored_signals_process.py — FAILED test_a_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_ignored_2294 - assert 1 == 0 (its nested FAILED test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently - AssertionError at test_supervise.py:3342), CI run 43585682525 on the metrics: commit ⟦ci-repair⟧ ⟦criterion 16⟧ | 22 | 4 | 5 | 0 | 1 | 0 | 475 | 129 | 242 | 51871 | 2564034 | 505891 | 2.51 | 8282 | 2/2 | 0/5 | structural-owed |  |  | already-satisfied |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -566,6 +628,7 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | With `VERI_SKIP_VERIFY=plan` (a phase that is never skipped), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_SKIP_VERIFY` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.05 |
 | On exit 0, `preflight.sh` writes `.tdd/issue-<n>-preflight` in the run's worktree, one `key=value` per line with the keys `worktree`, `fast_cmd`, `full_cmd`, `alone_cmd` (from `detect-test-command.sh --tier "one test file"`), `baseline`, `full`, `full_tier_mode` (`run` or `reuse`), `default_branch`, `model_develop_red`, `model_revise_green`, `model_verify_green` and `timeout`, and prints the same lines as its last stdout lines (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 9⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 85 | 0.15 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 90 | 0.16 |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_ignored_signals_process.py — FAILED test_a_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_ignored_2294 - assert 1 == 0 (its nested FAILED test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently - AssertionError at test_supervise.py:3342), CI run 43585682525 on the metrics: commit ⟦ci-repair⟧ ⟦criterion 16⟧ | 1 | 0/5 | structural-owed | skipped | 0 | 7 | 0.06 |
 
 #### Structural pass
 
@@ -596,19 +659,20 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | With `VERI_SKIP_VERIFY=plan` (a phase that is never skipped), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_SKIP_VERIFY` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
 | On exit 0, `preflight.sh` writes `.tdd/issue-<n>-preflight` in the run's worktree, one `key=value` per line with the keys `worktree`, `fast_cmd`, `full_cmd`, `alone_cmd` (from `detect-test-command.sh --tier "one test file"`), `baseline`, `full`, `full_tier_mode` (`run` or `reuse`), `default_branch`, `model_develop_red`, `model_revise_green`, `model_verify_green` and `timeout`, and prints the same lines as its last stdout lines (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 9⟧ | 1 | 1 | 0 | structural-owed 1 |
 | fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 1 | 1 | 0 | structural-owed 1 |
-| issue | 20 | 10 | 11 | candidates-done 1, nothing-left 14, nothing-structural 2, structural-owed 3 |
+| fix the CI failure: skills/tdd/scripts/tests/py/test_ignored_signals_process.py — FAILED test_a_signal_case_passes_in_a_pytest_run_started_with_int_term_and_hup_ignored_2294 - assert 1 == 0 (its nested FAILED test_supervise.py::test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently - AssertionError at test_supervise.py:3342), CI run 43585682525 on the metrics: commit ⟦ci-repair⟧ ⟦criterion 16⟧ | 1 | 0 | 1 | structural-owed 1 |
+| issue | 21 | 10 | 12 | candidates-done 1, nothing-left 14, nothing-structural 2, structural-owed 4 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s | run 137 s | run 138 s | run 139 s | run 140 s | run 141 s | run 142 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 4 | 3 | 2 | 3 | 4 | 3 | 3 | 4 | 5 | 3 | 3 | 3 | 4 | 7 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 3 | 4 | 5 | 7 | 6 | 5 | 4 | 5 | 5 | 10 | 3 | 4 | 4 | 3 | 5 | 10 | 6 | 5 | 3 | 9 | 5 | 7 | 5 | 9 | 6 | 8 | 9 | 9 | 5 | 4 | 6 | 6 | 5 | 5 | 6 | 4 | 7 | 5 | 8 | 7 | 7 | 5 | 8 | 7 | 6 | 23 | 7 | 6 | 5 | 5 | 4 | 6 | 3 | 7 | 4 | 3 | 12 | 4 | 6 | 8 | 8 | 6 | 8 | 4 | 5 | 4 | 7 | 5 | 6 | 8 | 5 | 5 | 5 | 5 | 6 | 7 | 4 | 4 | 5 | 8 | 3 | 3 | 4 | 6 | 4 | 5 | 7 | 7 | 7 | 4 | 8 | 7 | 3 | 5 | 10 | 5 | 7 | 6 | 3 | 3 | 8 | 530 | 4 | 6 | 3 | 4 | 5 | 9 | 5 | 9 | 3 | 3 | 3 | 0 | 10 | 0 | 5 | 4 | 7 | 3 |
-| fast | 0 | 22 | 21 | 23 | 23 | 29 | 25 | 23 | 25 | 24 | 25 | 26 | 26 | 42 | 46 | 30 | 32 | 51 | 40 | 27 | 29 | 73 | 44 | 65 | 75 | 58 | 76 | 65 | 34 | 26 | 58 | 33 | 61 | 47 | 58 | 76 | 76 | 31 | 31 | 31 | 45 | 32 | 65 | 54 | 121 | 45 | 51 | 39 | 48 | 47 | 42 | 47 | 26 | 28 | 23 | 29 | 48 | 24 | 30 | 37 | 36 | 40 | 47 | 48 | 31 | 45 | 44 | 24 | 46 | 39 | 28 | 46 | 33 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 3 | 4 | 3 | 4 | 6 | 4 | 6 | 3 | 7 | 11 | 5 | 4 | 8 | 4 | 3 | 4 | 3 | 4 | 5 | 6 | 7 | 7 | 6 | 4 | 4 | 4 | 5 | 3 | 7 | 6 | 6 | 4 | 6 | 7 | 5 | 5 | 4 | 5 | 4 | 4 | 4 | 4 | 5 | 4 | 4 | 5 | 4 | 6 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 35 | 625 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s | run 137 s | run 138 s | run 139 s | run 140 s | run 141 s | run 142 s | run 143 s | run 144 s | run 145 s | run 146 s | run 147 s | run 148 s | run 149 s | run 150 s | run 151 s | run 152 s | run 153 s | run 154 s | run 155 s | run 156 s | run 157 s | run 158 s | run 159 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 4 | 3 | 2 | 3 | 4 | 3 | 3 | 4 | 5 | 3 | 3 | 3 | 4 | 7 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 3 | 4 | 5 | 7 | 6 | 5 | 4 | 5 | 5 | 10 | 3 | 4 | 4 | 3 | 5 | 10 | 6 | 5 | 3 | 9 | 5 | 7 | 5 | 9 | 6 | 8 | 9 | 9 | 5 | 4 | 6 | 6 | 5 | 5 | 6 | 4 | 7 | 5 | 8 | 7 | 7 | 5 | 8 | 7 | 6 | 23 | 7 | 6 | 5 | 5 | 4 | 6 | 3 | 7 | 4 | 3 | 12 | 4 | 6 | 8 | 8 | 6 | 8 | 4 | 5 | 4 | 7 | 5 | 6 | 8 | 5 | 5 | 5 | 5 | 6 | 7 | 4 | 4 | 5 | 8 | 3 | 3 | 4 | 6 | 4 | 5 | 7 | 7 | 7 | 4 | 8 | 7 | 3 | 5 | 10 | 5 | 7 | 6 | 3 | 3 | 8 | 530 | 4 | 6 | 3 | 4 | 5 | 9 | 5 | 9 | 3 | 3 | 3 | 0 | 10 | 0 | 5 | 4 | 7 | 3 | 6 | 5 | 10 | 35 | 15 | 66 | 121 | 4 | 16 | 15 | 4 | 15 | 13 | 4 | 4 | 12 | 11 |
+| fast | 0 | 22 | 21 | 23 | 23 | 29 | 25 | 23 | 25 | 24 | 25 | 26 | 26 | 42 | 46 | 30 | 32 | 51 | 40 | 27 | 29 | 73 | 44 | 65 | 75 | 58 | 76 | 65 | 34 | 26 | 58 | 33 | 61 | 47 | 58 | 76 | 76 | 31 | 31 | 31 | 45 | 32 | 65 | 54 | 121 | 45 | 51 | 39 | 48 | 47 | 42 | 47 | 26 | 28 | 23 | 29 | 48 | 24 | 30 | 37 | 36 | 40 | 47 | 48 | 31 | 45 | 44 | 24 | 46 | 39 | 28 | 46 | 33 | 30 | 29 | 45 | 72 | 82 | 42 | 32 | 36 | 33 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 3 | 4 | 3 | 4 | 6 | 4 | 6 | 3 | 7 | 11 | 5 | 4 | 8 | 4 | 3 | 4 | 3 | 4 | 5 | 6 | 7 | 7 | 6 | 4 | 4 | 4 | 5 | 3 | 7 | 6 | 6 | 4 | 6 | 7 | 5 | 5 | 4 | 5 | 4 | 4 | 4 | 4 | 5 | 4 | 4 | 5 | 4 | 6 | 6 | 5 | 8 | 4 | 3 | 3 | 6 | 2 | 4 | 5 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 35 | 625 | 23 | 40 | 534 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 861 | 1642 | 352093 | 15917190 | 4240484 | 40.84 (estimate) |
+| total | 996 | 1896 | 451332 | 18489062 | 5179119 | 48.92 (estimate) |
