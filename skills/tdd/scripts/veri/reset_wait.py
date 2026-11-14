@@ -11,7 +11,7 @@ USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] 
 
 
 def poll():
-    time.sleep(float(os.environ.get("VERI_POLL", "1")))
+    time.sleep(float(tunables.read("VERI_POLL", "1")))
 
 
 def tdd_dir():
