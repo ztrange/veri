@@ -23,6 +23,10 @@ STEPS = [
 SCRIPTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
+def script(name):
+    return os.path.join(SCRIPTS, name)
+
+
 def run_script(name, *args, cwd=None, env=None):
     proc = subprocess.run([name, *args], capture_output=True, text=True, cwd=cwd, env=env)
     return proc.returncode, proc.stdout, proc.stderr
@@ -39,7 +43,7 @@ def call(name, *args, cwd=None, env=None):
     return code, out, err
 
 
-DETACH = os.path.join(SCRIPTS, "detach-command.sh")
+DETACH = script("detach-command.sh")
 
 
 def wait_on(name, wt, env):
@@ -77,7 +81,7 @@ def main(argv):
         sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
         return 2
     env = dict(os.environ, VERI_ISSUE=n)
-    detect = os.path.join(SCRIPTS, "detect-test-command.sh")
+    detect = script("detect-test-command.sh")
     resumed_wt = os.path.abspath(os.path.join(".tdd", "wt", n))
     pending = pending_in(resumed_wt, n)
     reused = None
@@ -96,7 +100,7 @@ def main(argv):
     else:
         for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                            (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
-                           (2, os.path.join(SCRIPTS, "leaf-launchable.sh"))):
+                           (2, script("leaf-launchable.sh"))):
             code, out, _ = call(*cmd)
             if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
                 code = 1
@@ -104,16 +108,16 @@ def main(argv):
                 code = 1
             if code != 0:
                 return stopped(step, label(*cmd), code)
-        _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
+        _, out, _ = call(script("issue-worktree.sh"), n, slug)
         wt = out.strip()
-        call(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
+        call(script("stop-requested.sh"), "--clear", cwd=wt)
         marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
         if os.path.exists(marker):
             os.remove(marker)
-        call(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
-        call(os.path.join(SCRIPTS, "worktree-setup.sh"), n, cwd=wt)
+        call(script("unlabel-issue.sh"), n, cwd=wt)
+        call(script("worktree-setup.sh"), n, cwd=wt)
         body_file = issue_body(n, wt)
-        call(os.path.join(SCRIPTS, "requirements-preflight.sh"), body_file, cwd=wt)
+        call(script("requirements-preflight.sh"), body_file, cwd=wt)
         _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
         fast = fast.strip()
         fast_began = time.monotonic()
@@ -132,7 +136,7 @@ def main(argv):
             body_file = issue_body(n, wt)
         _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
         full = full.strip()
-        _, verdict, _ = call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
+        _, verdict, _ = call(script("baseline-full-tier.sh"), n, full, cwd=wt)
         alone = call(detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt)[1].strip()
         began = time.monotonic()
         if verdict.split()[:1] == ["reuse"]:
@@ -147,22 +151,22 @@ def main(argv):
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
     if reused is None:
-        call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
+        call(script("full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
         full_secs = math.ceil(time.monotonic() - began)
     _, branch, _ = call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
-        call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
+        call(script("refactor-budget.sh"), *args, cwd=wt)
     if "plan" in os.environ.get("VERI_SKIP_VERIFY", "").replace(",", " ").split():
         return stopped(5, "VERI_SKIP_VERIFY", 2)
     if os.environ.get("VERI_STEP_GROWTH") == "":
         return stopped(5, "VERI_STEP_GROWTH", 2)
     if not os.environ.get("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
-    call(os.path.join(SCRIPTS, "step-budget.sh"), cwd=wt)
-    call(os.path.join(SCRIPTS, "adjudicate.sh"), "--check-budget", cwd=wt)
-    models = [call(os.path.join(SCRIPTS, "leaf-model.sh"), leaf, cwd=wt)[1].strip()
+    call(script("step-budget.sh"), cwd=wt)
+    call(script("adjudicate.sh"), "--check-budget", cwd=wt)
+    models = [call(script("leaf-model.sh"), leaf, cwd=wt)[1].strip()
               for leaf in ("develop-red", "revise-green", "verify-green")]
-    _, timeout, _ = call(os.path.join(SCRIPTS, "leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
+    _, timeout, _ = call(script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
              "baseline=%d" % baseline, "full=%d" % full_secs, "full_tier_mode=" + ("reuse" if reused is not None else "run"),
              "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
