@@ -13,13 +13,14 @@ Update the expectation of the one existing test case named below to the step's c
 {{CASE}}
 
 This existing case asserts the opposite of the criterion above, so a green that implements the
-criterion would turn it red. Change its expectation so it pins the criterion instead; leave every
+criterion would turn it red. Change its expectation so it pins the criterion instead. Delete,
+rename or merge no case, in this file or any other: a case that now asserts the same thing as
+another, the step's own new case included, stays as it is. Leave every
 other case, and all production code, untouched.
 
 {{INCLUDE:_develop-red-valid-test.md}}
 
 {{INCLUDE:_develop-red-spec-and-testability.md}}
-1. Read the existing suite the case belongs in and add it in that suite's own style,
-   leaving its other cases untouched and green. If no suite fits, create one that matches
-   the repository's testing idiom.
+1. Read the existing suite the case belongs in and update the case in that suite's own style,
+   leaving its other cases untouched and green. Create no suite and no new case.
 {{INCLUDE:_develop-red-run-and-report.md}}
