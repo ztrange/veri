@@ -114,8 +114,11 @@ def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_a
         ["record", "--step", "step one", "--red-case", "gone/test_a.py::test_gone", "test_b.py"],
         cwd=tmp_path)
 
-    assert (code, "gone/test_a.py::test_gone" in out, "Traceback" in err, sorted(p.name for p in tmp_path.rglob("*"))) == (
-        1, True, False, ["test_b.py"])
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    events = journal.read_text().splitlines() if journal.exists() else []
+    assert (code, "gone/test_a.py::test_gone" in out, "Traceback" in err,
+            sorted(p.name for p in tmp_path.rglob("*.record")),
+            ["gone/test_a.py::test_gone" in line for line in events]) == (1, True, False, [], [True])
 
 
 def test_record_with_a_red_case_flag_and_no_value_is_exit_2_printing_the_usage_line_without_a_traceback_2269(
@@ -1455,3 +1458,17 @@ def test_rerecord_earlier_exits_0_not_2_and_keeps_the_record_when_every_earlier_
     code = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
 
     assert (code, (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (0, True)
+
+
+def test_record_over_a_deleted_red_case_exits_1_and_writes_a_refusal_event_naming_it_3778(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "test_a.py").write_text("def test_kept():\n    assert 1\n")
+
+    code, _, _ = run_cli(
+        tests_frozen, ["record", "--step", "step one", "--red-case", "test_a.py::test_gone", "test_a.py"],
+        cwd=tmp_path)
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    events = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+
+    assert (code, [("test_a.py::test_gone" in line or "test_gone" in line) for line in events]) == (1, [True])

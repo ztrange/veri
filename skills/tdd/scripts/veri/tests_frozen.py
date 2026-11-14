@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import collections
 import hashlib
+import json
 import os
 import re
 import subprocess
@@ -15,6 +16,7 @@ from entry import write
 from frozen_record import (_body_digest, _body_line, _body_record, _helper_records, _pass_marker_path,
                            _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
                            _write_pass_marker)
+import event_log
 import frozen_record
 from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
@@ -736,6 +738,9 @@ def _take_red_case(files):
         present = False
     if not present:
         write(sys.stdout, "tests-frozen.sh: red case %s::%s no longer exists\n" % (path, case))
+        os.makedirs(".tdd", exist_ok=True)
+        event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
+            {"event": "tests-frozen-refused", "case": "%s::%s" % (path, case)}) + "\n").encode())
         return 1
     del files[at:at + 2]
     return None
