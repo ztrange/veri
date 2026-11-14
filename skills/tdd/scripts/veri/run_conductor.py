@@ -35,6 +35,7 @@ from git import symref_default
 from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
+CLAIM_DIRS = []
 HELD_REF_LOCK = ("cannot lock ref", "reference already exists")
 
 
@@ -53,6 +54,32 @@ def main(argv):
     if live:
         sys.stderr.write("run-conductor: a conductor for issue %s is already live (pid %s)\n" % (argv[0], live))
         return 2
+    claim = os.path.join(run_worktree(argv[0]), ".tdd", "conductor.pid")
+    del CLAIM_DIRS[:]
+    made, directory = CLAIM_DIRS, os.path.dirname(os.path.abspath(claim))
+    while not os.path.isdir(directory):
+        made.insert(0, directory)
+        directory = os.path.dirname(directory)
+    os.makedirs(os.path.dirname(claim), exist_ok=True)
+    ours = ("%d\n" % os.getpid()).encode()
+    with open(claim, "wb") as handle:
+        handle.write(ours)
+    try:
+        return preflight_and_launch(argv)
+    finally:
+        try:
+            with open(claim, "rb") as handle:
+                mine = handle.read() == ours
+        except FileNotFoundError:
+            mine = False
+        if mine:
+            os.remove(claim)
+            for directory in reversed(made):
+                with contextlib.suppress(OSError):
+                    os.rmdir(directory)
+
+
+def preflight_and_launch(argv):
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
     if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
@@ -282,6 +309,7 @@ def conduct(text, issue, env):
         try:
             pid_file = os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
             os.makedirs(os.path.dirname(pid_file), exist_ok=True)
+            del CLAIM_DIRS[:]
 
             def record_pid():
                 started = pids._ps("lstart", os.getpid())
