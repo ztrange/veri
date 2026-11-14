@@ -41,6 +41,9 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n, slug = argv
+    if os.path.exists(os.path.join(".tdd", "wt", n, ".tdd", "issue-%s.md" % n)):
+        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
+        return 2
     for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                        (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
                        (2, os.path.join(SCRIPTS, "leaf-launchable.sh"))):
