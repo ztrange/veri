@@ -6336,7 +6336,7 @@ def test_rerecord_refactored_exits_2_not_1_when_check_earlier_cannot_obtain_an_a
     suite.write_text(suite.read_text().replace("x = 1\n", "x = 2 - 1\n"))
     _commit(tmp_path, "A refactor")
     (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
-    monkeypatch.setattr(tests_frozen, "_check_earlier", lambda ledger, step, exempt=(): 2)
+    monkeypatch.setattr(tests_frozen, "_check_earlier", lambda ledger, step, exempt=(), sanctioned=(): 2)
     monkeypatch.chdir(tmp_path)
 
     assert tests_frozen.rerecord_refactored(".tdd/issue-9.md", green) == 2
