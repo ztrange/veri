@@ -41,7 +41,7 @@ def seconds_arg(argv, name, default):
 
 
 def main(argv):
-    if argv[:1] == ["marker"] and len(argv) in (2, 4):
+    if argv[:1] == ["marker"] and len(argv) in (2, 4) and argv[1] in ("coord", "dev"):
         path = marker_path(tdd_dir(), argv_key(argv))
         while not os.path.exists(path):
             poll()
