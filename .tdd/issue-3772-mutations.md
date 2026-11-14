@@ -1,0 +1,11 @@
+file 40
+skills/tdd/scripts/veri/run_conductor.py
+old-b64 36
+aWYgaGFuZGxlLnJlYWQoKSA9PSBvdXJzOg==
+new-b64 36
+aWYgaGFuZGxlLnJlYWQoKSAhPSBvdXJzOg==
+context-b64 60
+ICAgICAgICAgICAgICAgICAgICBpZiBoYW5kbGUucmVhZCgpID09IG91cnM6
+command 190
+make test TESTS=skills/tdd/scripts/tests/py/test_run_conductor.py::test_cli_a_conductor_pid_file_naming_the_conductors_own_pid_and_start_time_is_removed_and_no_conductor_is_live_on_exit_3772
+

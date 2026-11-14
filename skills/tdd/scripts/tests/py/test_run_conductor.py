@@ -2561,6 +2561,39 @@ def test_cli_a_conductor_pid_file_overwritten_with_another_live_conductor_is_lef
             pid_file_module.live_conductor(str(worktree))) == (0, overwritten[0], str(other))
 
 
+def test_cli_a_conductor_pid_file_naming_the_conductors_own_pid_and_start_time_is_removed_and_no_conductor_is_live_on_exit_3772(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    pid_file_module = importlib.import_module("veri.pid_file")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, seen = subprocess.run, []
+    own_start = "Fri Nov 13 22:10:53 2026"
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    worktree = cwd / ".tdd" / "wt" / "4242"
+    pid_file = worktree / ".tdd" / "conductor.pid"
+
+    def with_the_file_naming_this_conductor(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["ps"] and "lstart=" in args:
+            return subprocess.CompletedProcess(args, 0, stdout=own_start + "\n", stderr="")
+        if args[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                kwargs["preexec_fn"]()
+            seen.append(pid_file.read_text())
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", with_the_file_naming_this_conductor)
+
+    code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, seen, pid_file.exists(), pid_file_module.live_conductor(str(worktree))) == (
+        0, ["%d\n%s\n" % (os.getpid(), own_start)], False, None)
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
