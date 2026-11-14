@@ -171,7 +171,7 @@ def _release(lock, record, args):
         owner = (_read(record).split()[3:4] or [""])[0]
     shutil.rmtree(lock)
     for path in _token_files(lock):
-        if not forced or _read(path).strip() == owner:
+        if _read(path).strip() == owner:
             os.remove(path)
     return 0
 
