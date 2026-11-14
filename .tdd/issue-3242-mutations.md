@@ -40,3 +40,21 @@ skills/tdd/scripts/tests/py/unit/test_reset_wait.py
 command 203
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_idle_coord_with_a_transcript_write_at_the_third_injected_sleep_returns_within_one_poll_of_the_seconds_after_that_write
 
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 223
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_coord_3000_at_3000_exit_0
+
+file 37
+skills/tdd/scripts/veri/reset_wait.py
+old-b64 36
+IlZFUklfUkVTRVRfSURMRSIsICIzMDAwIg==
+new-b64 36
+IlZFUklfUkVTRVRfSURMRSIsICIzMDAxIg==
+context-b64 128
+ICAgICAgICBzZWNvbmRzID0gYXJndlstMV0gaWYgbGVuKGFyZ3YpIGluICgzLCA1KSBlbHNlIHR1bmFibGVzLnJlYWQoIlZFUklfUkVTRVRfSURMRSIsICIzMDAwIik=
+command 223
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_idle_coord_with_no_seconds_and_veri_reset_idle_unset_is_still_waiting_at_2999_unwritten_seconds_and_returns_idle_coord_3000_at_3000_exit_0
+
