@@ -149,6 +149,8 @@ def main(argv):
     call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
+    if os.environ.get("VERI_STEP_GROWTH") == "":
+        return stopped(5, "VERI_STEP_GROWTH", 2)
     call(os.path.join(SCRIPTS, "step-budget.sh"), cwd=wt)
     call(os.path.join(SCRIPTS, "adjudicate.sh"), "--check-budget", cwd=wt)
     for leaf in ("develop-red", "revise-green", "verify-green"):
