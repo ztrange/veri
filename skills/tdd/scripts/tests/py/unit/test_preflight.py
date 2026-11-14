@@ -845,26 +845,39 @@ def test_3771_x_a_red_full_tier_wait_exit_1_stops_at_3_with_no_later_call_and_no
 import pytest
 
 
-@pytest.mark.parametrize("bad, step, fail_code", [
-    ("requirements-preflight.sh", 3, 2),
-    ("worktree-setup.sh", 3, 2),
-    ("issue-worktree.sh", 3, 2),
-    ("unlabel-issue.sh", 3, 2),
-    ("full-tier-time.sh", 3, 2),
-    ("step-budget.sh", 5, 2),
-    ("leaf-model.sh", 6, 2),
-    ("leaf-timeout.sh", 7, 2),
+@pytest.mark.parametrize("bad, step, fail_code, only_args, last_line", [
+    ("requirements-preflight.sh", 3, 2, None, None),
+    ("worktree-setup.sh", 3, 2, None, None),
+    ("issue-worktree.sh", 3, 2, None, None),
+    ("unlabel-issue.sh", 3, 2, None, None),
+    ("full-tier-time.sh", 3, 2, None, None),
+    ("gh", 4, 1, ".default_branch", "stopped at 4 gh api repos/{owner}/{repo} -q .default_branch"),
+    ("refactor-budget.sh", 5, 2, ("0",), "stopped at 5 refactor-budget.sh 0"),
+    ("refactor-budget.sh", 5, 2, ("--issue", "0"), "stopped at 5 refactor-budget.sh --issue 0"),
+    ("step-budget.sh", 5, 2, None, None),
+    ("adjudicate.sh", 5, 2, ("--check-budget",), "stopped at 5 adjudicate.sh --check-budget"),
+    ("leaf-model.sh", 6, 2, None, None),
+    ("leaf-timeout.sh", 7, 2, None, None),
 ])
 def test_3771_y_a_failing_inner_call_stops_there_with_its_code_runs_no_later_call_and_writes_no_preflight_file(
-        monkeypatch, run_cli, tmp_path, bad, step, fail_code):
+        monkeypatch, run_cli, tmp_path, bad, step, fail_code, only_args, last_line):
     preflight = importlib.import_module("veri.preflight")
 
-    wt, calls, code, out = _drive(preflight, run_cli, tmp_path,
-                                  lambda base, args, waits: base == bad, fail_code, monkeypatch)
+    def failing(base, args, waits):
+        if base != bad:
+            return False
+        if only_args is None:
+            return True
+        return args[-1] == only_args if isinstance(only_args, str) else tuple(args) == only_args
+
+    wt, calls, code, out = _drive(preflight, run_cli, tmp_path, failing, fail_code, monkeypatch)
 
     assert code == fail_code
     assert calls[-1][0] == bad
-    assert out.splitlines()[-1].startswith("stopped at %d %s" % (step, bad))
+    if last_line is None:
+        assert out.splitlines()[-1].startswith("stopped at %d %s" % (step, bad))
+    else:
+        assert out.splitlines()[-1] == last_line
     assert not (wt / ".tdd" / "issue-12-preflight").exists()
 
 
