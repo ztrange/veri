@@ -1,0 +1,1 @@
+- [ ] No prose change: the branch leaves the merge-lock entry of skills/tdd/SCRIPTS.md, its requirement SC133 and skills/vmerge/SKILL.md requirement M18 unchanged and edits no graded file (no unit with a requirements list, no REQUIREMENTS.md); outside the .tdd/ run state, only skills/tdd/scripts/veri/merge_lock.py and its tests change ⟦diff-checked⟧ ⟦criterion 4⟧
