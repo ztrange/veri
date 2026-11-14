@@ -414,7 +414,11 @@ def main(argv):
         write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))
         return 0
     if case is None and rerouted:
-        prep = [_file_case(_defining_file(c), c) for c in _superseded(argv[0], step, argv[1])]
+        cases = _superseded(argv[0], step, argv[1])
+        contradicted = route(argv[0], argv[1])
+        if contradicted is not None:
+            cases.append(contradicted)
+        prep = [_file_case(_defining_file(c), c) for c in cases]
         if prep:
             write(sys.stdout, "prep " + " ".join(prep))
             return 0
