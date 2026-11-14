@@ -1,0 +1,22 @@
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old-b64 24
+ICAgICAgICBpZiBwcmVwOg==
+new-b64 24
+ICAgICAgICBpZiBUcnVlOg==
+context-b64 24
+ICAgICAgICBpZiBwcmVwOg==
+command 226
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3785_prints_revise_and_exits_3_for_a_green_report_whose_superseded_and_contradicts_lines_name_no_case_once_the_step_log_holds_a_reroute_event
+
+file 43
+skills/tdd/scripts/veri/wrong_test_route.py
+old-b64 104
+aWYgZm91bmQgYW5kIGZvdW5kIG5vdCBpbiBjYXNlcyBhbmQgbm90IChvd25faWQgYW5kIF9pc19vd24oZm91bmQsIG93bl9pZCkpOg==
+new-b64 44
+aWYgZm91bmQgYW5kIGZvdW5kIG5vdCBpbiBjYXNlczo=
+context-b64 112
+ICAgICAgICBpZiBmb3VuZCBhbmQgZm91bmQgbm90IGluIGNhc2VzIGFuZCBub3QgKG93bl9pZCBhbmQgX2lzX293bihmb3VuZCwgb3duX2lkKSk6
+command 224
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_wrong_test_route.py::test_main_3785_prints_revise_and_exits_3_for_a_green_report_whose_superseded_line_names_only_the_own_red_case_once_the_step_log_holds_a_reroute_event
+

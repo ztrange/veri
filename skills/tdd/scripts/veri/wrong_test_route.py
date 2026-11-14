@@ -10,7 +10,7 @@ import sys
 import tunables
 from entry import write
 
-USAGE = "usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, repair <case> <superseded>…, supersede <cases> or revise; repair-exhausted <case> on exit 1; a WRONG_TEST naming no case gets one extra repair after the free reroute, then repair-exhausted and exit 1)"
+USAGE = "usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, fixture <path> <name>, repair <case> <superseded>…, supersede <cases>, supersede-diff <cases>, prep <cases> or revise; repair-exhausted <case> on exit 1; a WRONG_TEST naming no case gets one extra repair after the free reroute, then repair-exhausted and exit 1)"
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
@@ -166,7 +166,7 @@ def _names_a_case(name, own_id):
 def _supersedes_own(report, own_id):
     """A SUPERSEDED: name that expands to the own red case names a case: #1957 owns revise for it."""
     for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+        case = _superseded_line_case(line)
         found = case and _exists(case)
         if found and _is_own(found, own_id):
             return True
@@ -250,12 +250,15 @@ def _superseded_case(body):
     return words[0].strip("`").rpartition("::")[2] if words else ""
 
 
+def _superseded_line_case(line):
+    return _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+
+
 def _superseded(report, step, own_id=None):
     own = _recorded_cases(step)
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
-        body = re.sub(r"^[-*]\s+", "", line[11:].strip())
-        case = _superseded_case(body)
+        case = _superseded_line_case(line)
         if case in own:
             continue
         if not case:
@@ -272,8 +275,8 @@ def _superseded(report, step, own_id=None):
 def _unresolved_superseded(report, step, own_id):
     own = _recorded_cases(step)
     for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
-        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and _exists(case) is None:
+        case = _superseded_line_case(line)
+        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and (_exists(case) is None or len(_defining_files(case)) > 1):
             return True
     return False
 
@@ -402,14 +405,23 @@ def main(argv):
     if _unparseable_claim(argv[0], argv[1]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
-    if case is None and not rerouted and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
+    if case is None and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
         return 2
-    if case is None and not rerouted and _unresolved_superseded(argv[0], step, argv[1]):
+    if case is None and _unresolved_superseded(argv[0], step, argv[1]):
         return 2
     if case is None and (_unparseable_claim(argv[0], argv[1]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         file, sep, _ = argv[1].partition("::")
         write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))
         return 0
+    if case is None and rerouted:
+        cases = _superseded(argv[0], step, argv[1])
+        contradicted = route(argv[0], argv[1])
+        if contradicted is not None:
+            cases.append(contradicted)
+        prep = [_file_case(_defining_file(c), c) for c in cases]
+        if prep:
+            write(sys.stdout, "prep " + " ".join(prep))
+            return 0
     if case is None:
         write(sys.stdout, "revise")
         return 3

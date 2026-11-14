@@ -49,6 +49,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   sites because the anchor matched no step or several, `VERI_STEP_GROWTH` was unreadable, or
   `--criterion` was malformed (the conductor passed a call the script refused, not a
   methodology answer).
+- `prep-owed` — `add-ledger-step.sh` refused with exit **1** the step a `prep` answer asks
+  for (the insertion would exceed `VERI_STEP_GROWTH`) → **process** failure (the methodology
+  spoke: the prep step is owed and the plan has no room for it, and the plumbing did not
+  break); the bail comment names the cases the step was to update.
 - `pr-ready-failed` — `pr-ready.sh` exited non-zero at the Draft PR step (GitHub refused or
   never answered the ready request, after its refusal retries) → **system** failure (#2581).
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
