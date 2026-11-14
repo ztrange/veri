@@ -9,7 +9,7 @@
 - [x] With no reroute event recorded for the step, a green report whose SUPERSEDED: lines name two or more older cases while the step's own Red case is not recorded still gets `supersede <file::case> …` from wrong-test-route.sh, never prep ⟦criterion 3⟧ ⟂ retired unpinnable
 - [x] With no reroute event recorded for the step, a green report whose SUPERSEDED: lines name two or more older cases while the step's own Red case is in its red record still gets `supersede-diff <case> …` from wrong-test-route.sh, never prep ⟦criterion 3⟧ ⟂ retired unpinnable
 - [x] With no reroute event recorded for the step, a green report whose CONTRADICTS: line names one resolvable older case still gets `red <file::case>` from wrong-test-route.sh, never prep ⟦criterion 3⟧ ⟂ retired unpinnable
-- [ ] With a reroute event recorded for the step, a green report whose SUPERSEDED: and CONTRADICTS: lines name no case still gets `revise` and exit 3 from wrong-test-route.sh ⟦criterion 4⟧
+- [x] With a reroute event recorded for the step, a green report whose SUPERSEDED: and CONTRADICTS: lines name no case still gets `revise` and exit 3 from wrong-test-route.sh ⟦criterion 4⟧
 - [ ] With a reroute event recorded for the step, a green report whose SUPERSEDED: line names only the step's own Red case still gets `revise` and exit 3 from wrong-test-route.sh ⟦criterion 4⟧
 - [ ] classify-bail.sh prep-owed prints the process-failure classification and exits 0 ⟦criterion 5⟧
 - [ ] `skills/tdd/REVISE.md` gains the section for the prep answer of wrong-test-route.sh that its requirements rows in the issue's ## Requirements state ⟦skill-edit⟧ ⟦criterion 6⟧
