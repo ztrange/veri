@@ -559,3 +559,48 @@ def test_issue_3242_marker_dev_with_lane_given_no_value_exits_2_with_the_usage_l
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "marker|recovered|idle" in err
     assert naps == []
+
+
+def test_issue_3242_recovered_coord_with_seconds_abc_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    naps = []
+    monkeypatch.setattr(time, "sleep", naps.append)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+
+    code, out, err = run_cli(reset_wait, ["recovered", "coord", "abc"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (2, "")
+    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert naps == []
+
+
+def test_issue_3242_recovered_coord_with_seconds_0_or_a_non_ascii_digit_string_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        assert len(naps) < 3, "waited instead of refusing"
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+
+    results = {}
+    for bad in ("0", "٣"):
+        code, out, err = run_cli(reset_wait, ["recovered", "coord", bad], env={"VERI_POLL": "1"})
+        results[bad] = (code, out, err.startswith("usage:") and "marker|recovered|idle" in err)
+
+    assert results == {"0": (2, "", True), "٣": (2, "", True)}
+    assert naps == []
