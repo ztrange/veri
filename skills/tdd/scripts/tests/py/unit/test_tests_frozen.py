@@ -1472,3 +1472,17 @@ def test_record_over_a_deleted_red_case_exits_1_and_writes_a_refusal_event_namin
     events = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
 
     assert (code, [("test_a.py::test_gone" in line or "test_gone" in line) for line in events]) == (1, [True])
+
+
+def test_record_step_given_no_test_file_exits_2_and_writes_a_refusal_event_carrying_the_exit_code_3778(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+
+    code, _, _ = run_cli(tests_frozen, ["record", "--step", "step one"], cwd=tmp_path)
+    journal = tmp_path / ".tdd" / "events.jsonl"
+    events = [line for line in journal.read_text().splitlines() if line.strip()] if journal.exists() else []
+
+    assert (code, [("2" in line and "exit" in line) for line in events]) == (2, [True])

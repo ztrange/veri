@@ -799,6 +799,8 @@ def main(argv):
                 (files if os.path.exists(name) else deleted).append(name)
         if not files and not deleted:
             write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
+            event_log.append_bytes(".tdd/events.jsonl", (json.dumps(
+                {"event": "tests-frozen-refused", "exit": 2}) + "\n").encode())
             return 2
         try:
             lines = ["%s  %s\n" % (_digest(name), name) for name in files]
