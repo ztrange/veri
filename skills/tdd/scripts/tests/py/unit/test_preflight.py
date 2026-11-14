@@ -215,3 +215,33 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert all(c[2] == str(wt) for c in tail[:11])
     assert all("--alone" not in c[1] for c in (fast_start, fast_wait, full_start, full_wait))
     assert len(tail) == 11
+
+
+def test_3771_i_red_baseline_wait_exit_1_stops_at_3_with_no_later_call_no_flake_read_and_no_suite_flake_event(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, "make unit\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            return 1, "FAILED tests/test_x.py::test_y\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert code == 1
+    assert out.splitlines()[-1] == "stopped at 3 detach-command.sh wait"
+    assert calls[-1][0] == "detach-command.sh" and calls[-1][1][0] == "wait"
+    assert [c for c in calls if c[0] == "detach-command.sh"].__len__() == 2
+    assert "baseline-full-tier.sh" not in [n for n, _ in calls]
+    assert "event.sh" not in [n for n, _ in calls]
+    assert all("--alone" not in a for _, a in calls)

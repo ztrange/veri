@@ -41,7 +41,7 @@ def call(name, *args, cwd=None, env=None):
 def detached(name, cmd, wt, env):
     detach = os.path.join(SCRIPTS, "detach-command.sh")
     call(detach, "start", name, cmd, cwd=wt, env=env)
-    call(detach, "wait", name, cwd=wt, env=env)
+    return call(detach, "wait", name, cwd=wt, env=env)[0]
 
 
 def main(argv):
@@ -80,7 +80,10 @@ def main(argv):
     env = dict(os.environ, VERI_ISSUE=n)
     _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
     fast = fast.strip()
-    detached("preflight-fast-" + n, fast, wt, env)
+    code = detached("preflight-fast-" + n, fast, wt, env)
+    if code != 0:
+        sys.stdout.write("stopped at 3 detach-command.sh wait\n")
+        return code
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
     full = full.strip()
     call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
