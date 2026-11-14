@@ -70,9 +70,14 @@ def pending_in(wt, n):
     return os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n)
 
 
-def save_pending(wt, n, text):
+def save_pending(wt, n, *fields):
     with open(pending_in(wt, n), "w") as f:
-        f.write(text)
+        f.write("\n".join(fields))
+
+
+def load_pending(wt, n):
+    path = pending_in(wt, n)
+    return open(path).read().split("\n") if os.path.exists(path) else None
 
 
 def stopped(step, what, code):
@@ -110,7 +115,7 @@ def start_fast(n, slug, detect, env):
     fast_began = time.monotonic()
     code = detached("preflight-fast-" + n, fast, wt, env)
     if code == 3:
-        save_pending(wt, n, "fast\n" + fast)
+        save_pending(wt, n, "fast", fast)
     return wt, fast, body_file, fast_began, code
 
 
@@ -141,7 +146,7 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
     if reused is not None:
         full_secs = reused
     elif code == 3:
-        save_pending(wt, n, "full\n%d\n%s\n%s\n%s" % (baseline, full, fast, alone))
+        save_pending(wt, n, "full", str(baseline), full, fast, alone)
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
     if reused is None:
@@ -183,14 +188,13 @@ def main(argv):
     env = tunables.with_values(VERI_ISSUE=n)
     detect = script("detect-test-command.sh")
     wt = os.path.abspath(os.path.join(".tdd", "wt", n))
-    pending = pending_in(wt, n)
-    saved = open(pending).read().split("\n") if os.path.exists(pending) else [""]
-    if saved[0] == "full":
+    saved = load_pending(wt, n)
+    if saved is not None and saved[0] == "full":
         baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
         began = time.monotonic()
         code = wait_on("preflight-full-" + n, wt, env)
         return finish(n, wt, baseline, full, fast, alone, began, None, code)
-    if os.path.exists(pending):
+    if saved is not None:
         fast = saved[1]
         body_file = None
         fast_began = time.monotonic()
