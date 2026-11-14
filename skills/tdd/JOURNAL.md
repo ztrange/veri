@@ -31,7 +31,7 @@ Keys and events are append-only: a key or event is never removed or renamed, onl
 | `refactor` | `transforms`, `budget`, `stopped`, `pass` | A refactor leaf finished: transforms applied, the `VERI_REFACTOR_BUDGET`, why it stopped, and whether the pass landed. |
 | `relaunch` | `cause` | A verifier was launched again: `tree-change` (the tree moved under it) or `no-verdict` (it finished without a `VERDICT:` line). |
 | `report-missing` | `name`, `missing` | A suite's output left no report line: the suite's name and the missing line (`SUITE`). |
-| `reroute` | `case`, `kind` | A step was rerouted: the case id (absent for `later`) and the kind (`red`, `later`, `missing`). |
+| `reroute` | `case`, `kind` | A step was rerouted: the case id (absent for `later`) and the kind (`red`, `repair`, `supersede`, `supersede-diff`, `fixture`, `missing`, `later`, `prep`). |
 | `resume` | — | A run resumed. |
 | `resume-rebase` | `from`, `rebased` | A resume rebased: the pre-rebase sha and the new tip. |
 | `retry` | `cause` | The supervisor relaunched a stuck leaf: why. |
