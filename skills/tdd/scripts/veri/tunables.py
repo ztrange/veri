@@ -98,6 +98,7 @@ TABLE = {
     "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
     "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
     "REVISE_BUDGET": Tunable(tokens, "2", "a whole number"),
+    "VERI_COMMENT_CHUNK": Tunable(positive_tokens, "25", "a whole number >= 1"),
     "VERI_REBASED_TIP_SUITE": Tunable(rebased_tip_suite, "local", "local or ci"),
     "VERI_BASELINE_FULL_TIER": Tunable(baseline_full_tier, "reuse", "run or reuse"),
 }
