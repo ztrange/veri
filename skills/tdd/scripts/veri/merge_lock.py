@@ -95,6 +95,11 @@ def _poll_wait():
 _MISSING_RECORD_GRACE = 5
 
 
+def _token_files(lock):
+    git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
+    return glob.glob(os.path.join(git_dir, "veri-merge-*.token"))
+
+
 @_usage_guarded
 def _take(lock, record, args):
     if _needs_pid(args, False):
@@ -116,8 +121,7 @@ def _take(lock, record, args):
             if not os.path.isdir(lock):
                 try:
                     os.rename(staged, lock)
-                    git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
-                    for path in glob.glob(os.path.join(git_dir, "veri-merge-*.token")):
+                    for path in _token_files(lock):
                         if _read(path).strip() != owner:
                             os.remove(path)
                     return 0
@@ -166,8 +170,7 @@ def _release(lock, record, args):
     if os.path.isfile(record):
         owner = (_read(record).split()[3:4] or [""])[0]
     shutil.rmtree(lock)
-    git_dir = os.path.join(os.path.dirname(os.path.dirname(lock)), ".git")
-    for path in glob.glob(os.path.join(git_dir, "veri-merge-*.token")):
+    for path in _token_files(lock):
         if not forced or _read(path).strip() == owner:
             os.remove(path)
     return 0
