@@ -45,6 +45,14 @@ def detached(name, cmd, wt, env):
     return call(detach, "wait", name, cwd=wt, env=env)[0]
 
 
+def issue_body(n, wt):
+    _, body, _ = call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
+    fd, body_file = tempfile.mkstemp(prefix="veri-preflight-body-")
+    with os.fdopen(fd, "w") as f:
+        f.write(body)
+    return body_file
+
+
 def stopped(step, what, code):
     sys.stdout.write("stopped at %d %s\n" % (step, what))
     return code
@@ -58,41 +66,51 @@ def main(argv):
     if os.path.exists(os.path.join(".tdd", "wt", n, ".tdd", "issue-%s.md" % n)):
         sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
         return 2
-    for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
-                       (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
-                       (2, os.path.join(SCRIPTS, "leaf-launchable.sh"))):
-        code, out, _ = call(*cmd)
-        if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
-            code = 1
-        if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
-            code = 1
-        if code != 0:
-            return stopped(step, label(*cmd), code)
-    _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
-    wt = out.strip()
-    call(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
-    marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
-    if os.path.exists(marker):
-        os.remove(marker)
-    call(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
-    call(os.path.join(SCRIPTS, "worktree-setup.sh"), n, cwd=wt)
-    _, body, _ = call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
-    fd, body_file = tempfile.mkstemp(prefix="veri-preflight-body-")
-    with os.fdopen(fd, "w") as f:
-        f.write(body)
-    call(os.path.join(SCRIPTS, "requirements-preflight.sh"), body_file, cwd=wt)
-    detect = os.path.join(SCRIPTS, "detect-test-command.sh")
-    env = dict(os.environ, VERI_ISSUE=n)
-    _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
-    fast = fast.strip()
-    fast_began = time.monotonic()
-    code = detached("preflight-fast-" + n, fast, wt, env)
+    pending = os.path.join(".tdd", "wt", n, ".tdd", "issue-%s-preflight-wait" % n)
+    if os.path.exists(pending):
+        wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+        body_file = None
+        env = dict(os.environ, VERI_ISSUE=n)
+        detect = os.path.join(SCRIPTS, "detect-test-command.sh")
+        fast_began = time.monotonic()
+        code = call(os.path.join(SCRIPTS, "detach-command.sh"), "wait", "preflight-fast-" + n, cwd=wt, env=env)[0]
+    else:
+        for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
+                           (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
+                           (2, os.path.join(SCRIPTS, "leaf-launchable.sh"))):
+            code, out, _ = call(*cmd)
+            if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
+                code = 1
+            if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
+                code = 1
+            if code != 0:
+                return stopped(step, label(*cmd), code)
+        _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
+        wt = out.strip()
+        call(os.path.join(SCRIPTS, "stop-requested.sh"), "--clear", cwd=wt)
+        marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
+        if os.path.exists(marker):
+            os.remove(marker)
+        call(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
+        call(os.path.join(SCRIPTS, "worktree-setup.sh"), n, cwd=wt)
+        body_file = issue_body(n, wt)
+        call(os.path.join(SCRIPTS, "requirements-preflight.sh"), body_file, cwd=wt)
+        detect = os.path.join(SCRIPTS, "detect-test-command.sh")
+        env = dict(os.environ, VERI_ISSUE=n)
+        _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
+        fast = fast.strip()
+        fast_began = time.monotonic()
+        code = detached("preflight-fast-" + n, fast, wt, env)
+        if code == 3:
+            open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w").close()
     if code == 3:
         sys.stdout.write("waiting on preflight-fast-%s\n" % n)
         return 3
     if code != 0:
         return stopped(3, "detach-command.sh wait", code)
     baseline = math.ceil(time.monotonic() - fast_began)
+    if body_file is None:
+        body_file = issue_body(n, wt)
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
     full = full.strip()
     call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
