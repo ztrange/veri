@@ -139,3 +139,23 @@ def test_3771_f_claude_auth_status_logged_out_stops_with_no_later_call_exit_1_an
     assert calls[-1] == ("claude", ("auth", "status"))
     assert "leaf-launchable.sh" not in [n for n, _ in calls]
     assert out.splitlines()[-1] == "stopped at 2 claude auth status"
+
+
+def test_3771_g_a_branch_already_holding_a_ledger_exits_2_before_any_inner_call_and_names_resume_md(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    ledger = tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text("- [ ] step\n")
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        calls.append((os.path.basename(name), args))
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    assert code == 2
+    assert calls == []
+    assert "RESUME.md" in err
