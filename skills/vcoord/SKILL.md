@@ -19,8 +19,16 @@ project specific (labels, test commands, where PRDs live).
 **Recover first.** When a state file for your role and lane exists, you recover: read it through
 `$S/status.sh --recover coord [--lane <lane>]` and read nothing else before your first action.
 Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
-with `$S/role-state.sh coord [--lane <lane>] recovered`. With no state file for your role and
-lane, start fresh: steps 1–4 below read the state as they do today.
+with `$S/role-state.sh coord [--lane <lane>] recovered`, then sends the resetter `ack` (see
+*Resetter*). After recovery, arm `$S/reset-wait.sh idle coord [--lane <lane>]` as a background
+command; when it returns, run `$S/role-state.sh coord [--lane <lane>] request-reset --idle` and
+clear yourself, and the resetter recovers you at once, as after any other reset. With no state
+file for your role and lane, start fresh: steps 1–4 below read the state as they do today.
+
+**The resetter.** On a `/vcoord` turn the human typed (never a recovery turn), start one resetter
+session on Haiku, briefed with the *Resetter* section below, and record its id with
+`$S/role-state.sh coord [--lane <lane>] set resetter <id>`. Keep it until the coordinator ends,
+then archive it.
 
 1. Invoked as `/vcoord [<lane>] [--resume <file>]`. The optional first word names the
    lane: `/vcoord mu` runs every read and every launch with
@@ -101,9 +109,7 @@ The harness may report this skill's base dir as a symlink. Resolve it first, wit
 subagent to read the skill at that path and to return at most 10 lines.
 
 **Load `vhandoff` yourself**, by reading `<resolved base dir>/../vhandoff/SKILL.md` (base dir resolved as above).
-Once your own context passes 15% of your context window (150k tokens of a 1M window), or the harness warns that context is nearly full, reset
-yourself with `/vhandoff coord` at the next point where no human decision is pending and no run
-awaits your ruling or merge instruction (between batches), never in the middle of an instruction.
+Your own reset is governed by *Resetting* below.
 
 ## Watching
 
@@ -166,6 +172,35 @@ never at reset time:
 - each message sent to the dev session and not yet confirmed.
 
 Drop the item when the decision is answered, the change expires or the message is confirmed.
+
+## Resetting
+
+Every turn of yours, whatever began it (the human, another session's message, a background
+command's exit), starts with `$S/role-growth.sh coord [--lane <lane>]`, before anything else.
+
+- Its **arm line** (growth since recovery ≥ 0.85 × `VERI_RESET_GROWTH_COORD`, default 70000
+  tokens): reset at the next quiet point — no merge in flight, no launch half done, no decision
+  mid-answer.
+- Its **reset-now line** (2 × the knob): reset at once, even mid-task.
+- Its exit 2: report it once and go on with the turn.
+
+A reset is `$S/role-state.sh coord [--lane <lane>] request-reset` followed by the app's clear of
+your own session. Write nothing else at reset time: the state is already in the file (*Role
+state*). When `request-reset` exits 1, or `role-growth.sh` prints a refused reset, tell the
+operator the reason once and do not retry it.
+
+## Resetter
+
+Brief for the resetter session (Haiku):
+
+1. Wait in the background with `$S/reset-wait.sh marker coord [--lane <lane>]`.
+2. Then wait until the coordinator is idle and its context has dropped.
+3. Only then send the coordinator one sentence asking it to invoke the `vcoord` skill with the
+   Skill tool and `<lane>` as the argument. Never send the text `/vcoord <lane>`.
+4. Wait for the coordinator's `ack`. With no ack within `VERI_RESET_ACK_TIMEOUT`, run
+   `$S/reset-wait.sh recovered coord [--lane <lane>]`, re-send at most twice, then notify the
+   operator. After an ack, wait for the next marker.
+5. Never clear yourself. End as few turns as you can, since each one wakes the coordinator.
 
 ## Stopping
 
