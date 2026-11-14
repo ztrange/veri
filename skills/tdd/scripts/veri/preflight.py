@@ -80,76 +80,64 @@ def stopped(step, what, code):
     return code
 
 
-def main(argv):
-    if len(argv) != 2:
-        sys.stderr.write(USAGE + "\n")
-        return 2
-    n, slug = argv
-    if os.path.exists(ledger_path(os.path.join(".tdd", "wt", n), n)):
-        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
-        return 2
-    env = tunables.with_values(VERI_ISSUE=n)
-    detect = script("detect-test-command.sh")
-    resumed_wt = os.path.abspath(os.path.join(".tdd", "wt", n))
-    pending = pending_in(resumed_wt, n)
-    reused = None
-    body_file = None
-    saved = open(pending).read().split("\n") if os.path.exists(pending) else [""]
-    if saved[0] == "full":
-        wt = resumed_wt
-        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
-        began = time.monotonic()
-        code = wait_on("preflight-full-" + n, wt, env)
-    elif os.path.exists(pending):
-        wt = resumed_wt
-        fast = saved[1]
-        fast_began = time.monotonic()
-        code = wait_on("preflight-fast-" + n, wt, env)
-    else:
-        for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
-                           (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
-                           (2, script("leaf-launchable.sh"))):
-            code, out, _ = call(*cmd)
-            if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
-                code = 1
-            if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
-                code = 1
-            if code != 0:
-                return stopped(step, label(*cmd), code)
-        _, out, _ = call(script("issue-worktree.sh"), n, slug)
-        wt = out.strip()
-        call(script("stop-requested.sh"), "--clear", cwd=wt)
-        marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
-        if os.path.exists(marker):
-            os.remove(marker)
-        call(script("unlabel-issue.sh"), n, cwd=wt)
-        call(script("worktree-setup.sh"), n, cwd=wt)
-        body_file = issue_body(n, wt)
-        call(script("requirements-preflight.sh"), body_file, cwd=wt)
-        _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
-        fast = fast.strip()
-        fast_began = time.monotonic()
-        code = detached("preflight-fast-" + n, fast, wt, env)
-        if code == 3:
-            save_pending(wt, n, "fast\n" + fast)
-    if saved[0] != "full":
-        if code == 3:
-            sys.stdout.write("waiting on preflight-fast-%s\n" % n)
-            return 3
+def check_environment():
+    for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
+                       (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
+                       (2, script("leaf-launchable.sh"))):
+        code, out, _ = call(*cmd)
+        if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
+            code = 1
+        if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
+            code = 1
         if code != 0:
-            return stopped(3, "detach-command.sh wait", code)
-        baseline = math.ceil(time.monotonic() - fast_began)
-        if body_file is None:
-            body_file = issue_body(n, wt)
-        _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
-        full = full.strip()
-        _, verdict, _ = call(script("baseline-full-tier.sh"), n, full, cwd=wt)
-        alone = call(detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt)[1].strip()
-        began = time.monotonic()
-        if verdict.split()[:1] == ["reuse"]:
-            reused = int(verdict.split()[1])
-        else:
-            code = detached("preflight-full-" + n, full, wt, env)
+            return stopped(step, label(*cmd), code)
+    return None
+
+
+def start_fast(n, slug, detect, env):
+    _, out, _ = call(script("issue-worktree.sh"), n, slug)
+    wt = out.strip()
+    call(script("stop-requested.sh"), "--clear", cwd=wt)
+    marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
+    if os.path.exists(marker):
+        os.remove(marker)
+    call(script("unlabel-issue.sh"), n, cwd=wt)
+    call(script("worktree-setup.sh"), n, cwd=wt)
+    body_file = issue_body(n, wt)
+    call(script("requirements-preflight.sh"), body_file, cwd=wt)
+    _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
+    fast = fast.strip()
+    fast_began = time.monotonic()
+    code = detached("preflight-fast-" + n, fast, wt, env)
+    if code == 3:
+        save_pending(wt, n, "fast\n" + fast)
+    return wt, fast, body_file, fast_began, code
+
+
+def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
+    if code == 3:
+        sys.stdout.write("waiting on preflight-fast-%s\n" % n)
+        return 3
+    if code != 0:
+        return stopped(3, "detach-command.sh wait", code)
+    baseline = math.ceil(time.monotonic() - fast_began)
+    if body_file is None:
+        body_file = issue_body(n, wt)
+    _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
+    full = full.strip()
+    _, verdict, _ = call(script("baseline-full-tier.sh"), n, full, cwd=wt)
+    alone = call(detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt)[1].strip()
+    began = time.monotonic()
+    reused = None
+    code = None
+    if verdict.split()[:1] == ["reuse"]:
+        reused = int(verdict.split()[1])
+    else:
+        code = detached("preflight-full-" + n, full, wt, env)
+    return baseline, full, alone, began, reused, code
+
+
+def finish(n, wt, baseline, full, fast, alone, began, reused, code):
     if reused is not None:
         full_secs = reused
     elif code == 3:
@@ -182,6 +170,41 @@ def main(argv):
         f.write(text)
     sys.stdout.write(text)
     return 0
+
+
+def main(argv):
+    if len(argv) != 2:
+        sys.stderr.write(USAGE + "\n")
+        return 2
+    n, slug = argv
+    if os.path.exists(ledger_path(os.path.join(".tdd", "wt", n), n)):
+        sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
+        return 2
+    env = tunables.with_values(VERI_ISSUE=n)
+    detect = script("detect-test-command.sh")
+    wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+    pending = pending_in(wt, n)
+    saved = open(pending).read().split("\n") if os.path.exists(pending) else [""]
+    if saved[0] == "full":
+        baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
+        began = time.monotonic()
+        code = wait_on("preflight-full-" + n, wt, env)
+        return finish(n, wt, baseline, full, fast, alone, began, None, code)
+    if os.path.exists(pending):
+        fast = saved[1]
+        body_file = None
+        fast_began = time.monotonic()
+        code = wait_on("preflight-fast-" + n, wt, env)
+    else:
+        stop = check_environment()
+        if stop is not None:
+            return stop
+        wt, fast, body_file, fast_began, code = start_fast(n, slug, detect, env)
+    started = start_full(n, wt, fast, body_file, fast_began, code, detect, env)
+    if isinstance(started, int):
+        return started
+    baseline, full, alone, began, reused, code = started
+    return finish(n, wt, baseline, full, fast, alone, began, reused, code)
 
 
 if __name__ == "__main__":
