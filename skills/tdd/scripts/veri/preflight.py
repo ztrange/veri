@@ -40,9 +40,11 @@ def main(argv):
     for step, *cmd in ((1, "git", "rev-parse", "--is-inside-work-tree"), (1, "git", "status", "--porcelain"),
                        (2, "gh", "api", "user"), (2, "claude", "auth", "status"),
                        (2, os.path.join(SCRIPTS, "leaf-launchable.sh"))):
-        code, _, _ = call(*cmd)
+        code, out, _ = call(*cmd)
+        if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
+            code = 1
         if code != 0:
-            sys.stdout.write("stopped at %d %s\n" % (step, os.path.basename(cmd[0])))
+            sys.stdout.write("stopped at %d %s\n" % (step, " ".join([os.path.basename(cmd[0]), *cmd[1:]])))
             return code
     _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
     wt = out.strip()

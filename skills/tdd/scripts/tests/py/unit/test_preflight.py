@@ -99,3 +99,23 @@ def test_3771_d_leaf_launchable_exit_1_stops_with_no_later_call_and_a_stopped_at
     assert calls[-1] == "leaf-launchable.sh"
     assert "issue-worktree.sh" not in calls and "unlabel-issue.sh" not in calls
     assert out.splitlines()[-1] == "stopped at 2 leaf-launchable.sh"
+
+
+def test_3771_e_dirty_status_porcelain_stops_with_no_later_call_exit_1_and_a_stopped_at_last_line(monkeypatch, run_cli):
+    preflight = importlib.import_module("veri.preflight")
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        calls.append((os.path.basename(name), args))
+        if os.path.basename(name) == "git" and args == ("status", "--porcelain"):
+            return 0, " M some/file.py\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert code == 1
+    assert calls[-1] == ("git", ("status", "--porcelain"))
+    assert ("gh", ("api", "user")) not in calls
+    assert out.splitlines()[-1] == "stopped at 1 git status --porcelain"
