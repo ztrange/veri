@@ -53,12 +53,12 @@ def main(argv):
                 return 0
         print("not-recovered %s" % argv[1])
         return 1
-    if argv[:1] == ["idle"] and len(argv) == 3:
+    if argv[:1] == ["idle"] and len(argv) in (3, 5):
         tdd = os.path.join(main_tree(os.getcwd()), ".tdd")
-        transcript = state_field(tdd, argv[1], "transcript")
-        while time.time() - os.path.getmtime(transcript) < float(argv[2]):
+        transcript = state_field(tdd, role_key(argv[1], argv[3] if len(argv) == 5 else None), "transcript")
+        while time.time() - os.path.getmtime(transcript) < float(argv[-1]):
             poll()
-        print("idle %s %s" % (argv[1], argv[2]))
+        print("idle %s %s" % (argv[1], argv[-1]))
         return 0
     print(USAGE, file=sys.stderr)
     return 2
