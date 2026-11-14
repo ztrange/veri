@@ -1,0 +1,7 @@
+before 40
+cab321aae9a8b1794c206d34880d0eb6510ac067
+keep 51
+skills/tdd/scripts/tests/py/unit/test_reset_wait.py
+command 214
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_reset_wait.py::test_issue_3242_marker_dev_with_no_marker_at_the_start_keeps_polling_until_the_injected_sleep_writes_it_then_prints_reset_request_dev_and_exits_0
+
