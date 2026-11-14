@@ -13,6 +13,6 @@
 - [x] With a reroute event recorded for the step, a green report whose SUPERSEDED: line names only the step's own Red case still gets `revise` and exit 3 from wrong-test-route.sh ⟦criterion 4⟧
 - [x] classify-bail.sh prep-owed prints the process-failure classification and exits 0 ⟦criterion 5⟧
 - [x] `skills/tdd/REVISE.md` gains the section for the prep answer of wrong-test-route.sh that its requirements rows in the issue's ## Requirements state ⟦skill-edit⟧ ⟦criterion 6⟧
-- [x] `skills/tdd/SKILL.md`'s list of wrong-test-route.sh answers names `prep <case> …` and sends the conductor to REVISE.md, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 7⟧
+- [ ] `skills/tdd/SKILL.md`'s list of wrong-test-route.sh answers names `prep <case> …` and sends the conductor to REVISE.md, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ change: shorten SKILL.md to at most 139698 bytes, the ceiling test_skill_md_is_at_least_30000_bytes_smaller_than_before_draft_pr_moved_3174 pins (CI read 139907), by tightening wording without dropping any instruction, the prep answer included ⟦added⟧ ⟦criterion 7⟧
 - [x] `skills/tdd/SCRIPTS.md`'s wrong-test-route.sh entry lists the prep answer, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 8⟧
 - [x] `skills/tdd/BAIL.md` names the cause prep-owed, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 9⟧
