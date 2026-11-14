@@ -151,6 +151,8 @@ def main(argv):
         call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
     if os.environ.get("VERI_STEP_GROWTH") == "":
         return stopped(5, "VERI_STEP_GROWTH", 2)
+    if not os.environ.get("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
+        return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
     call(os.path.join(SCRIPTS, "step-budget.sh"), cwd=wt)
     call(os.path.join(SCRIPTS, "adjudicate.sh"), "--check-budget", cwd=wt)
     for leaf in ("develop-red", "revise-green", "verify-green"):
