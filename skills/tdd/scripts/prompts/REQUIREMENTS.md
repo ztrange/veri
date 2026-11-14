@@ -157,6 +157,16 @@
 | SU12 | Step 6 tells the leaf to leave no change to any file other than the test files, and no change in them outside the named cases. (What to do, item 6.) | Only the named cases move. |
 | SU13 | The issue's behavior spec section is headed context only, pin only the step above, and the test command has its own section. (Sections before "What to do".) | The spec informs without widening the pin. |
 | SU14 | The prompt ends by asking for the red report lines in order, with `TARGET_TEST:` fixed as `NONE — the named cases are updated together, so no single case is the target`: `TEST_PATH:`, `TARGET_TEST:`, `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:`, `PREDICTED_FAILURE:`, `PREDICTION: MATCHED | DIVERGED`, `PREDICTION_NOTE:`. (Report section.) | Several cases change together, so no single case is named as the target. |
+| SU15 | The paragraph after `{{CASES}}` tells the leaf to delete, rename or merge no case, in the named files or any other, and that a case which now asserts the same thing as another, the step's own new case included, stays as it is. | Three fix leaves, having made an older case pin the criterion, deleted the step's own Red case as redundant or folded it into the older one; the verifier rejected that, the step's one free reroute was spent, and the run bailed `revise-exhausted` (#3686, #3739, #3771; PRD 029 D1). |
+
+## skills/tdd/scripts/prompts/develop-red-contradicted.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| RC1 | The prompt opens by telling the leaf to update the expectation of the one existing test case named below to the step's criterion, and to edit that case **only**: **NO** new test and **NO** production code. (Opening paragraph after the phase heading.) | The leaf turns the contradicting pin into a pin of the criterion and writes nothing else. |
+| RC2 | Under "The case to update" (`{{CASE}}`) the prompt says the existing case asserts the opposite of the criterion, so a green implementing it would turn it red, and tells the leaf to change its expectation so it pins the criterion instead. (The paragraph after `{{CASE}}`.) | The edited case is this route's red evidence: it must fail on the unmodified code, as verify-red requires. |
+| RC3 | The same paragraph tells the leaf to delete, rename or merge no case, in the named file or any other, that a case which now asserts the same thing as another, the step's own new case included, stays as it is, and to leave every other case and all production code untouched. | A fix leaf that deleted the step's own Red case as redundant was rejected, spending the step's one free reroute (#3686, #3771; PRD 029 D1). |
+| RC4 | The prompt includes `_develop-red-valid-test.md`, `_develop-red-spec-and-testability.md` and `_develop-red-run-and-report.md`, with one numbered item between the last two telling the leaf to read the suite the case belongs in and update the case in that suite's own style, leaving its other cases untouched and green, creating no suite and no new case. | The contradicted leaf is held to the same test rules, testability check and report as any red leaf, and its one job is an edit: the item used to say "add it" and "create one", against the prompt's own opening. |
 
 ## skills/tdd/scripts/prompts/develop-red-repair.md
 

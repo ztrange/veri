@@ -13,7 +13,9 @@ Update the expectation of every existing test case named below to the step's cri
 {{CASES}}
 
 These existing cases pin what the criterion above supersedes, so a green that implements the
-criterion would turn them red. Change each one's expectation so it pins the criterion instead; leave every
+criterion would turn them red. Change each one's expectation so it pins the criterion instead. Delete,
+rename or merge no case, in these files or any other: a case that now asserts the same thing as
+another, the step's own new case included, stays as it is. Leave every
 other case, and all production code, untouched.
 
 {{INCLUDE:_develop-red-valid-test.md}}
