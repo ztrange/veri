@@ -850,20 +850,19 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
 
    On a matched prediction, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
-   reason) to a file** — the revise step takes the reason as a *path*, not as text you
-   retype:
+   reason) to a file** — the revise step takes the reason as a *path*:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
-   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # see *The step's cost check*
    ```
    Once verify-red PASSes, record the test files before comment or leaf (`<red-test-id>` is `<test-path>::<case>`):
    ```
    $S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" --red-case '<red-test-id>' <test-path>… > .tdd/verify-red.reason; rc=$?
    [ "$rc" = 0 ] || exit "$rc"
    ```
-   Exit 1 (its Red case is gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (see `<base directory>/BAIL.md`).
+   Exit 1 (Red case gone) is a verify-red REJECT spending `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`); exit 2, a bail (`BAIL.md`).
    With `--step "<step text>"` in place of a record file, the record file is the one `$S/tests-frozen.sh path "<step text>"`
    prints, `.tdd/tests-frozen-<k>.record` with `<k>` the first 16 hex digits of the step text's SHA-256: a step text is
    often longer than a filename may be and may hold a `/`, so the text itself is never the filename.
@@ -889,7 +888,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
-   overwrites it — the newest objection is the only one a revise leaf should answer.
+   overwrites it.
 3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment, by running `$S/comment.sh <n> red --note-file <path>`, with the test, the
    failing output, the leaf's `PREDICTED_FAILURE:` and whether the prediction **matched or
    diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: the
