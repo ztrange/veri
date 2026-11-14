@@ -474,3 +474,37 @@ def test_3771_o_baseline_full_tier_reuse_starts_no_full_tier_run_records_nothing
     assert not [a for b, a in calls if b == "full-tier-time.sh"]
     assert calls[-1] == ("leaf-timeout.sh", ("8", "--full", "55"))
     assert code == 0
+
+
+def test_3771_p_empty_step_growth_stops_at_5_after_refactor_budget_issue_0_with_no_step_budget_call(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    monkeypatch.setenv("VERI_STEP_GROWTH", "")
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert calls[-1] == ("refactor-budget.sh", ("--issue", "0"))
+    assert code == 2
+    assert out.splitlines()[-1] == "stopped at 5 VERI_STEP_GROWTH"
