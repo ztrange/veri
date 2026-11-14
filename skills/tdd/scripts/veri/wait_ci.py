@@ -14,11 +14,13 @@ try:
     from .github import NoAnswer, _gh, gh_api, gh_rest_list
     from .json_documents import documents
     from . import tunables
+    from .ci_on_pr import declared, trigger_lines
 except ImportError:
     import github
     from github import NoAnswer, _gh, gh_api, gh_rest_list
     from json_documents import documents
     import tunables
+    from ci_on_pr import declared, trigger_lines
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")
@@ -179,20 +181,6 @@ def no_pull_request_workflow(repo, head):
     return True
 
 
-def trigger_lines(text):
-    indent = None
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        depth = len(line) - len(line.lstrip(" "))
-        if indent is not None and depth > indent:
-            yield line
-            continue
-        indent = depth if line.lstrip(" ").startswith("on:") else None
-        if indent is not None:
-            yield line
-
-
 def unreadable(what):
     warn("could not read the checks of %s" % what)
     return 2
@@ -254,11 +242,13 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    explicit = bool(tunables.read("VERI_CI_ON_PR"))
-    on_pr = tunables.read("VERI_CI_ON_PR", unless_empty="1")
-    if on_pr not in ("0", "1"):
-        warn("VERI_CI_ON_PR '%s' is not 0 or 1" % on_pr)
+    try:
+        stated = declared()
+    except ValueError as refusal:
+        warn(str(refusal))
         return 2
+    explicit = bool(stated)
+    on_pr = stated or "1"
     backoff = tunables.read("VERI_CI_RETRY_BACKOFF", unless_empty="1")
     if backoff not in ("0", "1"):
         warn("VERI_CI_RETRY_BACKOFF '%s' is not 0 or 1" % backoff)
