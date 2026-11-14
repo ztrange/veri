@@ -640,3 +640,83 @@ def test_issue_3242_idle_with_a_recorded_transcript_that_is_gone_exits_2_naming_
 
     assert (code, out) == (2, "")
     assert "gone.jsonl" in err
+
+
+def test_issue_3242_recovered_coord_with_two_recovered_at_lines_answers_from_the_latest_not_the_stale_first(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-coord.state").write_text(
+        "recovered-at=2026-11-12T09:30:00\nreset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:02:30\n")
+    now = [1_000_000.0]
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) > 50:
+            raise AssertionError("recovered never gave up waiting")
+        now[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path))
+
+    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "60"], env={"VERI_POLL": "20"})
+
+    assert (code, out) == (0, "recovered coord 2026-11-12T10:02:30\n")
+
+
+def test_issue_3242_idle_coord_with_two_transcript_lines_reads_the_latest_recorded_not_the_first(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    fresh = tmp_path / "first.jsonl"
+    fresh.write_text("{}\n")
+    os.utime(fresh, (1_000_000.0, 1_000_000.0))
+    old = tmp_path / "latest.jsonl"
+    old.write_text("{}\n")
+    os.utime(old, (1_000_000.0 - 600, 1_000_000.0 - 600))
+    (tdd / "role-coord.state").write_text("transcript=%s\ntranscript=%s\n" % (fresh, old))
+    now = [1_000_000.0]
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) > 700:
+            raise AssertionError("idle never returned")
+        now[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path))
+
+    code, out, _ = run_cli(reset_wait, ["idle", "coord", "600"], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (0, "idle coord 600\n")
+    assert naps == []
+
+
+def test_issue_3242_marker_dev_with_lane_given_an_empty_value_exits_2_with_the_usage_line_on_stderr_without_sleeping(
+        tmp_path, monkeypatch, run_cli):
+    naps = []
+    monkeypatch.setattr(time, "sleep", naps.append)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path))
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+
+    code, out, err = run_cli(reset_wait, ["marker", "dev", "--lane", ""], env={"VERI_POLL": "1"})
+
+    assert (code, out) == (2, "")
+    assert err.startswith("usage:") and "marker|recovered|idle" in err
+    assert naps == []
