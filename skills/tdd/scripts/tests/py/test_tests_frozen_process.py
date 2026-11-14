@@ -7141,6 +7141,32 @@ def test_rerecord_refactored_exits_1_for_an_unnamed_case_a_green_rewrote_beside_
     assert (code, _skip_lines(err, "test_suite.py test_one"), _skip_lines(err, "test_suite.py test_two")) == (1, 0, 1)
 
 
+@pytest.mark.process("a real git repository under tmp_path, its history and its committed ledger walked")
+def test_rerecord_refactored_exits_1_for_a_same_named_case_in_another_suite_than_the_replaces_case_marker_names_3624(
+        tmp_path, run_cli, tests_frozen, monkeypatch):
+    step = STEPS[1]
+    _plan_repo(tmp_path, monkeypatch)
+    for suite in ("test_a.py", "test_b.py"):
+        (tmp_path / suite).write_text("\n\n".join([CASE % ("base", 0), BODY % ("one", 1)]))
+    run_cli(tests_frozen, ["record", "--step", step, "test_a.py", "test_b.py"], cwd=tmp_path)
+    git(tmp_path, "add", "test_a.py", "test_b.py")
+    _commit(tmp_path, "A red")
+    ledger = ".tdd/issue-9.md"
+    replacing = "step B reverses it, replaces 'test_one' in test_a.py ⟦replaces-case⟧"
+    (tmp_path / ledger).write_text(
+        "- [x] %s\n- [x] %s\n- [x] %s ⟂ refactor pending\n" % (STEPS[0], step, replacing))
+    for suite in ("test_a.py", "test_b.py"):
+        (tmp_path / suite).write_text((tmp_path / suite).read_text().replace("x = 1\n", "x = 7\n"))
+    _commit(tmp_path, "B green")
+    green = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
+                           text=True).stdout.strip()
+    (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ledger, green], cwd=tmp_path)
+
+    assert (code, _skip_lines(err, "test_a.py test_one"), _skip_lines(err, "test_b.py test_one")) == (1, 0, 1)
+
+
 @pytest.mark.process("a real git repository under tmp_path, asked which test files differ from HEAD")
 def test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_naming_another_case_of_the_same_pytest_file_does_not_3624(
         tmp_path, run_cli, tests_frozen):

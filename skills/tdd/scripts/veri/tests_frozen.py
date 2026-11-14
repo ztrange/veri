@@ -347,7 +347,7 @@ def _parse_replaces(step):
     return replaces_case.parse(step) if replaces_case.is_replaces_case_step(step) else None
 
 
-def _check_earlier(ledger, step, exempt=()):
+def _check_earlier(ledger, step, exempt=(), sanctioned=()):
     root = _toplevel()
     if root is None:
         _remove_pass_marker(step)
@@ -403,7 +403,7 @@ def _check_earlier(ledger, step, exempt=()):
             write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
             return 2
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
-        if case not in exempt and not (fixture and name == fixture.group(1)) and (
+        if case not in exempt and (name, case) not in sanctioned and not (fixture and name == fixture.group(1)) and (
                 not nows or any(d not in held for d, held in zip(digests, accepted))
                 or ((name, case) in helper_digests
                     and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows)))):
@@ -616,11 +616,12 @@ def rerecord_refactored(ledger, green):
         write(sys.stderr, "skipped: %s %s (%s)" % (name, case, reason))
         return record
 
-    exempt = []
+    exempt = set()
     for line in lines:
         item = ITEM_RE.match(line)
         parsed = _parse_replaces(item.group(2)) if item else None
-        exempt += parsed[0] if parsed else []
+        if parsed:
+            exempt.update((parsed[1], c) for c in parsed[0])
     seen = {}
     repaired = _is_suite_repair_green(lines, green)
 
@@ -629,7 +630,7 @@ def rerecord_refactored(ledger, green):
         return found[k] if k < len(found) else None
 
     def rewrite(_, record, name, case, digest):
-        if case in exempt:
+        if (name, case) in exempt:
             return record
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
@@ -662,7 +663,7 @@ def rerecord_refactored(ledger, green):
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
     if not _rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
-    return _check_earlier(ledger, "", exempt)
+    return _check_earlier(ledger, "", sanctioned=exempt)
 
 
 def rerecord_rebased(ledger, pre):
