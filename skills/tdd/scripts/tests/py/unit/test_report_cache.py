@@ -1700,10 +1700,16 @@ def test_refresh_whose_comments_search_returns_search_cap_rows_exits_2_and_write
     paged = [{"number": 7, "title": "plain", "state": "OPEN", "labels": [], "closedAt": None,
               "updatedAt": "2026-10-20T10:00:00Z", "body": ""}]
 
+    searches = []
+
     def fake_gh_issue_list(*args):
-        if args[args.index("--json") + 1] != "number,comments":
+        fields = args[args.index("--json") + 1]
+        if fields == "number,createdAt":
+            return json.dumps([{"number": n, "createdAt": "2026-10-01T10:00:0%dZ" % n} for n in range(1, 6)])
+        if fields != "number,comments":
             return json.dumps(paged)
-        if args[args.index("--search") + 1] != "PRD in:title":
+        searches.append(args[args.index("--search") + 1])
+        if searches[-1] != "PRD in:title":
             return json.dumps([])
         return json.dumps([{"number": n, "comments": []} for n in range(1, report_cache.SEARCH_CAP + 1)])
 
@@ -1711,7 +1717,8 @@ def test_refresh_whose_comments_search_returns_search_cap_rows_exits_2_and_write
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
-    assert (code, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, False)
+    assert (code, (tmp_path / ".tdd" / "report-cache.json").exists(), [s for s in searches if "created:" in s]) == (
+        2, False, [])
 
 
 def test_refresh_whose_comments_search_fails_and_whose_created_listing_returns_search_cap_rows_exits_2_naming_the_cap_and_writes_no_cache(run_cli, monkeypatch, tmp_path):
