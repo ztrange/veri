@@ -49,6 +49,9 @@ def main(argv):
             print("reset-request %s %s" % (argv[1], f.read().strip()))
         return 0
     if argv[:1] == ["recovered"] and len(argv) in (2, 3, 5):
+        if len(argv) in (3, 5) and not (argv[-1].isascii() and argv[-1].isdigit() and int(argv[-1]) >= 1):
+            print(USAGE, file=sys.stderr)
+            return 2
         tdd = tdd_dir()
         role = argv_key(argv)
         try:
