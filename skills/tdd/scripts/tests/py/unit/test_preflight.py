@@ -320,3 +320,80 @@ def test_3771_k_after_the_full_tier_steps_4_to_7_run_in_order_with_the_tier_seco
         ("leaf-timeout.sh", ("8", "--full", "102")),
     ]
     assert code == 0
+
+
+def test_3771_l_called_again_after_the_baseline_wait_exit_3_continues_from_that_wait_with_no_second_claim_or_start(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, "make unit\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            return 3, "still running\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+    run_name = next(a[1] for b, a in calls if b == "detach-command.sh" and a[0] == "start")
+    calls.clear()
+    second, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    assert first == 3
+    assert calls[0] == ("detach-command.sh", ("wait", run_name))
+    names = [b for b, _ in calls]
+    assert "issue-worktree.sh" not in names and "unlabel-issue.sh" not in names
+    assert not any(b == "detach-command.sh" and a[0] == "start" for b, a in calls)
+
+
+def test_3771_m_resumed_baseline_wait_exit_0_refetches_the_issue_body_runs_the_full_tier_with_it_and_measures_the_baseline(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    waits = []
+    seen_body = []
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "gh" and args[:2] == ("api", "repos/{owner}/{repo}/issues/12"):
+            return 0, "the issue body\n", ""
+        if base == "detect-test-command.sh":
+            if args[1] == "all":
+                seen_body.append(open(args[3]).read())
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            waits.append(args)
+            if len(waits) == 1:
+                return 3, "still running\n", ""
+            now[0] += 9.0 if len(waits) == 2 else 20.0
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+    calls.clear()
+    second, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
+
+    names = [b for b, _ in calls]
+    assert first == 3 and second == 0
+    assert calls[0][0] == "detach-command.sh" and calls[0][1][0] == "wait"
+    assert names.index("gh") < names.index("detect-test-command.sh")
+    assert [a[:2] for b, a in calls if b == "detect-test-command.sh"] == [("--tier", "all")]
+    assert seen_body == ["the issue body\n"]
+    assert ("leaf-timeout.sh", ("9", "--full", "20")) == next(c for c in calls if c[0] == "leaf-timeout.sh")
