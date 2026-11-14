@@ -1,15 +1,18 @@
 """role-state.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import glob
+import json
 import os
 import sys
 import time
 
 from full_tier_time import main_tree
 import timed_n_format
+import tunables
 
-USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator> <value>"
+USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinator|session|transcript|baseline|baseline-at|refused-at|resetter> <value>"
          " | add <decision|message|override|timed-n> <text>"
-         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered\n")
+         " | drop <decision|message|override|timed-n> <id> | drop coordinator | show | recovered | request-reset [--idle]\n")
 
 
 def state_path(tree, role, lane=None):
@@ -17,8 +20,20 @@ def state_path(tree, role, lane=None):
     return os.path.join(tree, ".tdd", "role-%s.state" % name)
 
 
+STAMP = "%Y-%m-%dT%H:%M:%S"
+
+
+def marker_path(path):
+    name = os.path.basename(path)[len("role-"):-len(".state")]
+    return os.path.join(os.path.dirname(path), "reset-request-" + name)
+
+
 def now():
-    return time.strftime("%Y-%m-%dT%H:%M:%S")
+    return time.strftime(STAMP)
+
+
+def epoch(stamp):
+    return time.mktime(time.strptime(stamp, STAMP))
 
 
 def replace(path, text):
@@ -67,12 +82,50 @@ def do_recovered(path, argv):
     session = os.environ.get("CLAUDE_CODE_SESSION_ID")
     if not session:
         return usage()
-    append(path, "recovered-at=%s\nsession-id=%s\n" % (now(), session))
+    kept = [l for l in (read(path) or "").splitlines(True) if not l.startswith("refused-at=")]
+    replace(path, "".join(kept) + "recovered-at=%s\nsession-id=%s\n" % (now(), session))
+    try:
+        os.remove(marker_path(path))
+    except FileNotFoundError:
+        pass
+    return 0
+
+
+def launched_since(path, recovered):
+    since = epoch(recovered)
+    tdd = os.path.dirname(path)
+    journals = [os.path.join(tdd, "events.jsonl")] + sorted(glob.glob(os.path.join(tdd, "wt", "*", ".tdd", "events.jsonl")))
+    events = [json.loads(l) for j in journals for l in (read(j) or "").splitlines()]
+    return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
+
+
+def refusal(path, lines, stamp):
+    recovered = [l.split("=", 1)[1] for l in lines if l.startswith("recovered-at=")]
+    if recovered:
+        decided = any(l.split()[2] > recovered[-1] for l in lines if l.startswith(("decision ", "dropped-decision ")))
+        if not decided and not launched_since(path, recovered[-1]):
+            return "request-reset refused: nothing launched, merged or decided since the last recovery"
+    hour_ago = epoch(stamp) - 3600
+    recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
+    if len(recent) >= int(tunables.read("VERI_RESET_MAX_PER_HOUR", "2")):
+        return "request-reset refused: %d resets in the last hour" % len(recent)
+    return None
+
+
+def do_request_reset(path, argv):
+    lines = (read(path) or "").splitlines()
+    stamp = now()
+    reason = refusal(path, lines, stamp)
+    if reason:
+        sys.stderr.write(reason + "\n")
+        return 1
+    append(path, "reset-at=%s\n" % stamp)
+    replace(marker_path(path), stamp + ("\nidle\n" if argv[2:] == ["--idle"] else "\n"))
     return 0
 
 
 def do_set(path, argv):
-    if len(argv) != 4 or argv[2] not in ("n", "lane", "coordinator"):
+    if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
     if argv[2] == "n" and not argv[3].isdigit():
         return usage()
@@ -109,7 +162,10 @@ def do_drop(path, argv):
         return drop_lines(path, lambda l: l.startswith("coordinator="))
     if argv[2] not in LISTS:
         return usage()
-    return drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
+    code = drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
+    if code == 0 and argv[2] == "decision":
+        append(path, "dropped-decision %s %s\n" % (argv[3], now()))
+    return code
 
 
 def do_show(path, argv):
@@ -120,8 +176,9 @@ def do_show(path, argv):
     return 0
 
 
+SET_FIELDS = ("n", "lane", "coordinator", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
-VERBS = {"recovered": do_recovered, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
+VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 
 
 if __name__ == "__main__":

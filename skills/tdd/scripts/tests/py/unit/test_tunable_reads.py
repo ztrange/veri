@@ -213,3 +213,7 @@ def test_build_verify_prompt_takes_the_issue_number_from_the_one_reader_3404():
 
 def test_restart_conductor_takes_its_veri_values_from_the_one_reader_3402():
     assert direct_reads(VERI / "restart_conductor.py") == []
+
+
+def test_role_state_takes_its_veri_values_from_the_one_reader_3241():
+    assert direct_reads(VERI / "role_state.py") == []

@@ -1,0 +1,160 @@
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_lane_request_reset_writes_the_marker_with_the_lane_suffix_and_exits_0
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 178
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_accepts_when_only_a_conductor_start_in_a_run_journal_is_later_than_recovery
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 192
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_since_recovery_but_accepts_once_a_decision_is_too
+
+file 37
+skills/tdd/scripts/veri/role_state.py
+old-b64 92
+IGFuZCB0aW1lLm1rdGltZSh0aW1lLnN0cnB0aW1lKGwuc3BsaXQoIj0iLCAxKVsxXSwgZm10KSkgPiBob3VyX2Fnb10=
+new-b64 4
+XQ==
+context-b64 172
+ICAgIHJlY2VudCA9IFtsIGZvciBsIGluIGxpbmVzIGlmIGwuc3RhcnRzd2l0aCgicmVzZXQtYXQ9IikgYW5kIHRpbWUubWt0aW1lKHRpbWUuc3RycHRpbWUobC5zcGxpdCgiPSIsIDEpWzFdLCBmbXQpKSA+IGhvdXJfYWdvXQ==
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 51
+skills/tdd/scripts/tests/py/unit/test_role_state.py
+command 182
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_state.py::test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 152
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 44
+YXJndlswXSBub3QgaW4gKCJjb29yZCIsICJkZXYiKQ==
+new-b64 8
+RmFsc2U=
+context-b64 76
+ICAgIGlmIGxlbihhcmd2KSAhPSAxIG9yIGFyZ3ZbMF0gbm90IGluICgiY29vcmQiLCAiZGV2Iik6
+command 152
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 130
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_unset_session_id_exits_2_with_one_stderr_line_naming_it
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_prints_nothing_and_records_no_baseline
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_and_keeps_baseline_at
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 56
+cmVjb3ZlcmVkID4gZmllbGRzLmdldCgiYmFzZWxpbmUtYXQiLCAiIik=
+new-b64 12
+cmVjb3ZlcmVk
+context-b64 84
+ICAgIGlmIHJlY292ZXJlZCBhbmQgcmVjb3ZlcmVkID4gZmllbGRzLmdldCgiYmFzZWxpbmUtYXQiLCAiIik6
+command 166
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_and_keeps_baseline_at
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_the_baseline
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 32
+Zm9yIGwgaW4gZiBpZiBsLnN0cmlwKCld
+new-b64 16
+Zm9yIGwgaW4gZl0=
+context-b64 84
+ICAgICAgICAgICAgcmVjb3JkcyA9IFtqc29uLmxvYWRzKGwpIGZvciBsIGluIGYgaWYgbC5zdHJpcCgpXQ==
+command 158
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_the_baseline
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 160
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_growth_of_59499_against_the_baseline_with_the_default_knob_prints_nothing_and_exits_0
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 189
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_growth_of_139999_against_the_baseline_with_the_default_knob_prints_the_arm_line_not_the_reset_now_line_and_exits_0
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 192
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_call_at_the_arm_point_with_refused_at_recorded_and_a_launch_since_recovery_prints_the_growth_line_again_and_exits_0
+
+file 38
+skills/tdd/scripts/veri/role_growth.py
+old-b64 28
+ImRyb3BwZWQtZGVjaXNpb24gIiwg
+new-b64 0
+
+context-b64 180
+ICAgIGlmIGFueSgiPSIgbm90IGluIGwgYW5kIG5vdCBsLnN0YXJ0c3dpdGgoKCJkZWNpc2lvbiAiLCAiZHJvcHBlZC1kZWNpc2lvbiAiLCAibWVzc2FnZSAiLCAib3ZlcnJpZGUgIiwgInRpbWVkLW4gIikpIGZvciBsIGluIGxpbmVzKTo=
+command 148
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits_0
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 165
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_line_naming_the_knob
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 167
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_a_wrongly_cased_role_with_a_lane_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout
+
+before 40
+c6af119292e92c8774078c9f7d3cea7b8080df5b
+keep 52
+skills/tdd/scripts/tests/py/unit/test_role_growth.py
+command 163
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_role_growth.py::test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout
+
