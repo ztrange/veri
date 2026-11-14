@@ -119,3 +119,23 @@ def test_3771_e_dirty_status_porcelain_stops_with_no_later_call_exit_1_and_a_sto
     assert calls[-1] == ("git", ("status", "--porcelain"))
     assert ("gh", ("api", "user")) not in calls
     assert out.splitlines()[-1] == "stopped at 1 git status --porcelain"
+
+
+def test_3771_f_claude_auth_status_logged_out_stops_with_no_later_call_exit_1_and_a_stopped_at_last_line(monkeypatch, run_cli):
+    preflight = importlib.import_module("veri.preflight")
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        calls.append((os.path.basename(name), args))
+        if os.path.basename(name) == "claude" and args == ("auth", "status"):
+            return 0, '{"loggedIn": false}\n', ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert code == 1
+    assert calls[-1] == ("claude", ("auth", "status"))
+    assert "leaf-launchable.sh" not in [n for n, _ in calls]
+    assert out.splitlines()[-1] == "stopped at 2 claude auth status"

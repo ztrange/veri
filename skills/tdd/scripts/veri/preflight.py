@@ -47,6 +47,8 @@ def main(argv):
         code, out, _ = call(*cmd)
         if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
             code = 1
+        if cmd[1:] == ["auth", "status"] and '"loggedIn": false' in out:
+            code = 1
         if code != 0:
             sys.stdout.write("stopped at %d %s\n" % (step, label(*cmd)))
             return code
