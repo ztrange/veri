@@ -59,6 +59,10 @@ def issue_body(n, wt):
     return body_file
 
 
+def pending_in(wt, n):
+    return os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n)
+
+
 def stopped(step, what, code):
     sys.stdout.write("stopped at %d %s\n" % (step, what))
     return code
@@ -74,16 +78,17 @@ def main(argv):
         return 2
     env = dict(os.environ, VERI_ISSUE=n)
     detect = os.path.join(SCRIPTS, "detect-test-command.sh")
-    pending = os.path.join(".tdd", "wt", n, ".tdd", "issue-%s-preflight-wait" % n)
+    resumed_wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+    pending = pending_in(resumed_wt, n)
     reused = None
     saved = open(pending).read().split("\n", 2) if os.path.exists(pending) else [""]
     if saved[0] == "full":
-        wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+        wt = resumed_wt
         baseline, full = int(saved[1]), saved[2]
         began = time.monotonic()
         code = wait_on("preflight-full-" + n, wt, env)
     elif os.path.exists(pending):
-        wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+        wt = resumed_wt
         body_file = None
         fast_began = time.monotonic()
         code = wait_on("preflight-fast-" + n, wt, env)
@@ -113,7 +118,7 @@ def main(argv):
         fast_began = time.monotonic()
         code = detached("preflight-fast-" + n, fast, wt, env)
         if code == 3:
-            open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w").close()
+            open(pending_in(wt, n), "w").close()
     if saved[0] != "full":
         if code == 3:
             sys.stdout.write("waiting on preflight-fast-%s\n" % n)
@@ -134,7 +139,7 @@ def main(argv):
     if reused is not None:
         full_secs = reused
     elif code == 3:
-        with open(os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n), "w") as f:
+        with open(pending_in(wt, n), "w") as f:
             f.write("full\n%d\n%s" % (baseline, full))
         sys.stdout.write("waiting on preflight-full-%s\n" % n)
         return 3
