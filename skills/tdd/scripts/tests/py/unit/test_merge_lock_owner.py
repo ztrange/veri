@@ -268,3 +268,18 @@ def test_3579_take_keeps_an_old_token_file_the_live_holder_names_and_removes_a_f
     os.utime(old_live, (1, 1))
     taken = merge_lock._take(lock, record, ["--pid", me, "--owner", "token-a"])
     assert (taken, old_live.exists(), fresh_other.exists()) == (0, True, False)
+
+
+def test_3793_release_with_no_other_holder_removes_every_token_of_its_owner_and_frees_the_lock(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "A"])
+    (git_dir / "veri-merge-1.token").write_text("A\n")
+    (git_dir / "veri-merge-0.token").write_text("A\n")
+    released = merge_lock._release(lock, record, ["--pid", me, "--owner", "A"])
+    left = sorted(p.name for p in git_dir.glob("veri-merge-*.token"))
+    assert (released, os.path.isdir(lock), left) == (0, False, [])
