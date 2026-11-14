@@ -265,3 +265,28 @@ def test_3793_release_with_no_other_holder_removes_every_token_of_its_owner_and_
     released = merge_lock._release(lock, record, ["--pid", me, "--owner", "A"])
     left = sorted(p.name for p in git_dir.glob("veri-merge-*.token"))
     assert (released, os.path.isdir(lock), left) == (0, False, [])
+
+
+def test_3793_release_leaves_the_token_of_an_owner_that_took_the_lock_while_it_ran(tmp_path, monkeypatch):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    me = str(os.getpid())
+    lock = str(tmp_path / ".tdd" / "merge.lock")
+    record = os.path.join(lock, "holder")
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    merge_lock._take(lock, record, ["--pid", me, "--owner", "A"])
+    (git_dir / "veri-merge-1.token").write_text("A\n")
+    real_rmtree = merge_lock.shutil.rmtree
+
+    def rmtree_then_b_takes(path, *a, **kw):
+        real_rmtree(path, *a, **kw)
+        if path == lock:
+            os.makedirs(lock)
+            with open(record, "w") as f:
+                f.write(f"{me} host t B\n")
+            (git_dir / "veri-merge-2.token").write_text("B\n")
+
+    monkeypatch.setattr(merge_lock.shutil, "rmtree", rmtree_then_b_takes)
+    released = merge_lock._release(lock, record, ["--pid", me, "--owner", "A"])
+    holder = open(record).read().split()
+    assert (released, (git_dir / "veri-merge-2.token").exists(), holder[3]) == (0, True, "B")
