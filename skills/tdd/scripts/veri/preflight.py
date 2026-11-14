@@ -25,9 +25,13 @@ def run_script(name, *args, cwd=None):
     return proc.returncode, proc.stdout, proc.stderr
 
 
+def label(name, *args):
+    return " ".join([os.path.basename(name), *args])
+
+
 def call(name, *args, cwd=None):
     code, out, err = run_script(name, *args, cwd=cwd)
-    sys.stdout.write(" ".join([os.path.basename(name), *args]) + " exit " + str(code) + "\n" + out)
+    sys.stdout.write(label(name, *args) + " exit " + str(code) + "\n" + out)
     sys.stderr.write(err)
     return code, out, err
 
@@ -44,7 +48,7 @@ def main(argv):
         if cmd[1:] == ["status", "--porcelain"] and code == 0 and out.strip():
             code = 1
         if code != 0:
-            sys.stdout.write("stopped at %d %s\n" % (step, " ".join([os.path.basename(cmd[0]), *cmd[1:]])))
+            sys.stdout.write("stopped at %d %s\n" % (step, label(*cmd)))
             return code
     _, out, _ = call(os.path.join(SCRIPTS, "issue-worktree.sh"), n, slug)
     wt = out.strip()
