@@ -2,7 +2,14 @@
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the
 `⟦full-suite⟧` and `⟦human-owed⟧` lines, which that script skips and no cycle closes: an
-unchecked line carrying either does not hold the run back from this step. The full suite
+unchecked line carrying either does not hold the run back from this step. Each time the run enters this step, first settle
+whether CI stands in for the branch's own full run: run `$S/branch-suite.sh` at the root of this run's worktree and follow its output. Unset,
+`VERI_BRANCH_SUITE` makes it print `ci` when a workflow under `.github/workflows/` triggers on pull requests and `local` otherwise
+(`VERI_CI_ON_PR`, when set, answers that in the tree's place); an explicit `ci` or `local` is printed as given. Wherever this step says
+"under `VERI_BRANCH_SUITE=local`" or "under `VERI_BRANCH_SUITE=ci`", the mode is the one that script printed, never the environment read directly.
+Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full-tier-time.sh` record: go on to sub-step 1, and the first
+`wait-ci.sh` of sub-step 2 is the branch's full-suite verdict, its first red appending the `⟦ci-repair⟧` step as any CI red does; a run that
+comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the rest of this opening applies. The full suite
 must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` once,
 in the same start-then-wait shape as the preflight baseline — the branch's own full-suite gate, since every leaf runs the fast
 command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. That nothing is left uncommitted and no step is still only
@@ -41,7 +48,7 @@ and the conductor does not count repair steps in the ledger itself.
 VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>'
 ```
 
-The branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
+Under `VERI_BRANCH_SUITE=local` the branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
 finish green before sub-step 1 runs `rebase-onto-default.sh`: the rebased tip's run there is
 the extra run a rebase owes under `VERI_REBASED_TIP_SUITE=local`, never a replacement for the branch's own.
 
@@ -61,19 +68,23 @@ still run, and the `wait-ci.sh` line on the pushed rebased tip is that tip's ful
 its first red appending the `⟦ci-repair⟧` step as any CI red does.
 
 A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
-so it is still unchecked here — and this step ticks it, only once the run's last full-suite
+so it is still unchecked here — and this step ticks it. When a local full run was made before the PR is readied, it ticks it only once the run's last full-suite
 run before the PR is readied is green: the rebased tip's run when sub-step 1 rebased the
-branch under `VERI_REBASED_TIP_SUITE=local`, this step's own run otherwise, including under `ci`
-(ticking after CI would push a new head and cancel the CI run being waited on). Tick each with `tick-ledger.sh`, handed the literal
+branch under `VERI_REBASED_TIP_SUITE=local`, this step's own run under `VERI_BRANCH_SUITE=local` otherwise, including under `VERI_REBASED_TIP_SUITE=ci`
+(a tick pushed on its own after CI would be a new head, cancelling the CI run being waited on). Under `VERI_BRANCH_SUITE=ci`, when no local
+full run was made on the head being readied (the branch's own is not run, and sub-step 1 either did not rebase or ran under
+`VERI_REBASED_TIP_SUITE=ci`), no `⟦full-suite⟧` line is ticked before `pr-ready.sh`: tick them, and each line's issue criterion, in the
+way described next once sub-step 2's first `wait-ci.sh` exits 0, and commit the ledger before the `metrics:` commit, so the push and the
+second `wait-ci.sh` that follow that commit carry the tick. A CI that is red, timed out or unread ticks nothing, and neither does a `wait-ci.sh` exit 0 whose `.tdd/wait-ci.err` says the PR `has no checks`: no run proved anything, so the line stays unchecked and the PR body says so. A local rebased-tip run made after the PR was readied (the conflict rebase of sub-step 2 under `VERI_REBASED_TIP_SUITE=local`) changes nothing here: the tick still waits for the next `wait-ci.sh` exit 0. Tick each with `tick-ledger.sh`, handed the literal
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
 "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | $S/ledger-steps.sh criterion <k>)"`),
-and commit the ledger before sub-step 2. A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
+and commit the ledger before sub-step 2 (under `VERI_BRANCH_SUITE=ci` with no local full run before readying, before the `metrics:` commit instead, as said above). A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
 red full-suite run, whatever an earlier run said.
 
 With a stop request pending, this step is **not interrupted** and runs to completion: once
-`next-unchecked.sh` exits 3 there is no next ledger commit, and what remains launches no leaf
+`next-unchecked.sh` exits 3 there is no next step's ledger commit (only this step's own `⟦full-suite⟧` tick), and what remains launches no leaf
 and loses nothing. So no checkpoint runs here — sub-step 4 asks once, clears the request with
 `$S/stop-requested.sh --clear` and says so in the final comment. The exception is the repair
 step a red full run appends: it launches leaves and ends in a ledger commit like any other
@@ -173,7 +184,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The branch is left un-rebased, and the run does **bail** with cause `rebase-unresolved`, a **process** failure, with the PR left a draft, its
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human it hands the conflict to knows where it is (`Read` `<base directory>/BAIL.md`).
 
-   The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh` (a unit whose `GRADED` line the branch adds since `git merge-base HEAD origin/<default>`, in a `GRADED` file at any depth of the tree, the repository root's included), and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step through that same block, so a refused insertion (exit 2) is followed by the `step-add-refused` bail and by no `step-added` or `step-start` event; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
+   The regrade runs after the run's last rebase and before the full suite runs on the rebased tip, so a `GRADED` line made stale only by the rebase never turns that suite red; with no rebase it runs here, before the PR is readied. It regrades every unit the run signed with `grade-prose.sh` (a unit whose `GRADED` line the branch adds since `git merge-base HEAD origin/<default>`, in a `GRADED` file at any depth of the tree, the repository root's included), and reads the block's exit: exit 1 (a REJECT) is handled as a red full suite is, by appending a repair step through that same block, so a refused insertion (exit 2) is followed by the `step-add-refused` bail and by no `step-added` or `step-start` event; exit 2 (no verdict could be obtained) is a system-failure bail with cause `no-verdict`, never a repair step (see `<base directory>/BAIL.md`). Once a unit's text has been REJECTed, a regrade of the same text (the same signature input) may not re-sign it: only an author run that changes the text, followed by a PASS, may. Once that repair step's cycle closes, the run comes back to this Draft PR step and, under `VERI_BRANCH_SUITE=local`, runs the full suite again, then the rebase and the regrade, as it does after a `⟦suite-repair⟧` step.
    ```
    base=$(git merge-base HEAD origin/<default>)
    git diff "$base" HEAD -U0 -- ':(glob)**/GRADED' | sed -n 's/^+\([^+][^ ]*\) .*/\1/p' | { rc=0; while read -r unit; do
@@ -230,6 +241,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    A `ci-timeout` or `ci-red` bail ends the step there, and neither the `done` mark nor the
    `metrics:` commit below follows it (`Read` `<base directory>/BAIL.md`). Otherwise:
    ```
+   # Only under VERI_BRANCH_SUITE=ci when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
+   # (CI's green run is the proof): tick each ⟦full-suite⟧ line and its issue criterion as the ⟦full-suite⟧ paragraph above describes, then
+   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"
+   # In every other case skip this: the lines were ticked before readying, or nothing proved them.
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
    if [ "$metrics" = 0 ]; then
