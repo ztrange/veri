@@ -49,3 +49,17 @@ def test_main_with_branch_suite_unset_prints_ci_for_ci_on_pr_1_and_local_for_0_w
     assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "0"}, cwd=triggered)[:2] == (0, "local\n")
     assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "1"}, cwd=push_only)[:2] == (0, "ci\n")
     assert run_cli(branch_suite, [], env={"VERI_CI_ON_PR": "1"}, cwd=bare)[:2] == (0, "ci\n")
+
+
+def test_main_exits_2_naming_the_variable_and_its_value_on_a_bad_branch_suite_or_a_bad_ci_on_pr_when_the_mode_is_not_explicit(
+        tmp_path, run_cli, branch_suite):
+    code, out, err = run_cli(branch_suite, [], env={"VERI_BRANCH_SUITE": "remote"}, cwd=tmp_path)
+    assert (code, out) == (2, "")
+    assert "VERI_BRANCH_SUITE" in err and "remote" in err and len(err.splitlines()) == 1
+
+    code, out, err = run_cli(branch_suite, [], env={"VERI_BRANCH_SUITE": "", "VERI_CI_ON_PR": "yes"}, cwd=tmp_path)
+    assert (code, out) == (2, "")
+    assert "VERI_CI_ON_PR" in err and "yes" in err and len(err.splitlines()) == 1
+
+    explicit = run_cli(branch_suite, [], env={"VERI_BRANCH_SUITE": "ci", "VERI_CI_ON_PR": "yes"}, cwd=tmp_path)
+    assert explicit[:2] == (0, "ci\n")
