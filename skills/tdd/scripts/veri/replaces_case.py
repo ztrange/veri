@@ -58,7 +58,7 @@ def refusal(step):
         return unreadable_message(step)
     other = other_suite(step)
     if parsed is None and other:
-        return "suite " + other + " is not a .test.sh file in step: " + step.replace("\n", " ")
+        return "suite " + other + " is neither a .test.sh nor a .py file in step: " + step.replace("\n", " ")
     return None
 
 

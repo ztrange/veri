@@ -74,3 +74,11 @@ def test_parse_3624_yields_the_names_and_the_file_of_a_step_whose_suite_is_a_pyt
     step = f"- [x] the owner's release: replaces '{case}' in {suite}::{case} ⟦replaces-case⟧ ⟦criterion 1⟧"
 
     assert replaces_case.parse(step) == ([case], suite)
+
+
+def test_refusal_3624_names_both_suite_forms_it_parses_when_the_suite_is_neither():
+    replaces_case = importlib.import_module("veri.replaces_case")
+    step = "- [x] the notes: replaces 'a case' in docs/notes.md ⟦replaces-case⟧ ⟦criterion 1⟧"
+
+    assert replaces_case.refusal(step) == (
+        "suite docs/notes.md is neither a .test.sh nor a .py file in step: " + step)
