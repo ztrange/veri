@@ -14,5 +14,5 @@
 - [x] classify-bail.sh prep-owed prints the process-failure classification and exits 0 ⟦criterion 5⟧
 - [x] `skills/tdd/REVISE.md` gains the section for the prep answer of wrong-test-route.sh that its requirements rows in the issue's ## Requirements state ⟦skill-edit⟧ ⟦criterion 6⟧
 - [x] `skills/tdd/SKILL.md`'s list of wrong-test-route.sh answers names `prep <case> …` and sends the conductor to REVISE.md, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 7⟧
-- [ ] `skills/tdd/SCRIPTS.md`'s wrong-test-route.sh entry lists the prep answer, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 8⟧
+- [x] `skills/tdd/SCRIPTS.md`'s wrong-test-route.sh entry lists the prep answer, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 8⟧
 - [ ] `skills/tdd/BAIL.md` names the cause prep-owed, as its requirements row in the issue's ## Requirements states ⟦skill-edit⟧ ⟦criterion 9⟧
