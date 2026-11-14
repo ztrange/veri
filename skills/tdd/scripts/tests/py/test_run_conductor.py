@@ -2663,6 +2663,39 @@ def test_cli_a_conductor_that_exits_before_recording_its_pid_leaves_another_live
             pid_file_module.live_conductor(str(worktree))) == (0, written[0], str(other))
 
 
+def test_cli_a_second_launch_while_the_first_is_still_in_preflight_exits_2_naming_the_first_launchs_pid_and_runs_no_preflight_3774(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    answer = subprocess.run
+    calls, second, started = [], [], []
+
+    def first_launch_in_preflight(args, *rest, **kwargs):
+        args = [str(word) for word in args]
+        calls.append(args)
+        if args[:1] == ["ps"] and "lstart=" in args:
+            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+        if os.path.basename(args[0]) == "update-veri.sh" and not started:
+            started.append(True)
+            before = len(calls)
+            second.append(run_cli(run_conductor, ["4242"], cwd=tmp_path / "cwd"))
+            second.append(calls[before:])
+            second.append(len(launches))
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", first_launch_in_preflight)
+    (tmp_path / "cwd").mkdir()
+
+    run_cli(run_conductor, ["4242"], cwd=tmp_path / "cwd")
+
+    (code, _, err), during, launched = second
+    ran = [call for call in during if os.path.basename(call[0]) in ("update-veri.sh", "git", "fake-claude")]
+    assert (code, "already live (pid %d)" % os.getpid() in err, ran, launched) == (2, True, [], 0), err
+
+
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
