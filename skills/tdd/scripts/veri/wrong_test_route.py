@@ -402,7 +402,7 @@ def main(argv):
     if _unparseable_claim(argv[0], argv[1]) and any(e.get("kind") == "repair" for e in _reroutes(step)[1:]):
         write(sys.stdout, "repair-exhausted " + _case_name(argv[1]))
         return 1
-    if case is None and not rerouted and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
+    if case is None and any(not _is_own(c, argv[1]) and not _exists(c) for c in _contradicted(argv[0])):
         return 2
     if case is None and _unresolved_superseded(argv[0], step, argv[1]):
         return 2
