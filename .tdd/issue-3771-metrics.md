@@ -1,18 +1,19 @@
 ### 📊 Metrics — issue 3771
 
-Wall time for the issue: 4288 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 26 planned.
-Outcome: the run bailed — revise-exhausted, a process failure.
+Wall time for the issue: 14290 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
+Steps done: 26 of 28 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/3773.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $12.77 over 237 turns, in 5 sessions, on opus (estimate).
+Conductor own spending: $24.01 over 416 turns, in 6 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 80913 tokens, largest 155894 tokens
 Conductor context: first turn 80913 tokens, largest 152210 tokens
 Conductor context: first turn 80914 tokens, largest 145548 tokens
 Conductor context: first turn 80939 tokens, largest 134734 tokens
-Conductor context: first turn 135160 tokens, largest 197394 tokens
+Conductor context: first turn 135160 tokens, largest 199443 tokens
+Conductor context: first turn 80895 tokens, largest 271286 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -188,72 +189,250 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 167 | $0.04 | 131227 |
 | 168 | $0.06 | 134408 |
 | 169 | $0.04 | 134734 |
-| 170 | $0.03 | 135160 |
-| 171 | $0.03 | 135953 |
-| 172 | $0.03 | 136711 |
-| 173 | $0.03 | 137205 |
-| 174 | $0.03 | 138086 |
-| 175 | $0.03 | 138614 |
-| 176 | $0.03 | 139162 |
-| 177 | $0.04 | 140315 |
-| 178 | $0.03 | 141043 |
-| 179 | $0.04 | 142477 |
-| 180 | $0.03 | 143163 |
-| 181 | $0.03 | 143710 |
-| 182 | $0.03 | 144170 |
-| 183 | $0.04 | 145103 |
-| 184 | $0.04 | 146202 |
-| 185 | $0.03 | 146631 |
-| 186 | $0.04 | 147890 |
-| 187 | $0.04 | 148688 |
-| 188 | $0.04 | 149421 |
-| 189 | $0.04 | 150244 |
-| 190 | $0.03 | 150710 |
-| 191 | $0.04 | 151791 |
-| 192 | $0.04 | 153257 |
-| 193 | $0.04 | 153971 |
-| 194 | $0.04 | 154929 |
-| 195 | $0.05 | 157058 |
-| 196 | $0.04 | 157836 |
-| 197 | $0.04 | 158666 |
-| 198 | $0.04 | 159416 |
-| 199 | $0.04 | 160586 |
-| 200 | $0.05 | 162424 |
-| 201 | $0.04 | 162843 |
-| 202 | $0.04 | 164046 |
-| 203 | $0.04 | 164332 |
-| 204 | $0.07 | 168854 |
-| 205 | $0.04 | 169129 |
-| 206 | $0.04 | 169755 |
-| 207 | $0.05 | 171169 |
-| 208 | $0.04 | 172111 |
-| 209 | $0.04 | 172446 |
-| 210 | $0.04 | 172767 |
-| 211 | $0.04 | 173096 |
-| 212 | $0.04 | 173657 |
-| 213 | $0.05 | 175195 |
-| 214 | $0.04 | 175725 |
-| 215 | $0.04 | 175999 |
-| 216 | $0.04 | 176664 |
-| 217 | $0.04 | 177699 |
-| 218 | $0.05 | 179027 |
-| 219 | $0.05 | 180368 |
-| 220 | $0.04 | 180679 |
-| 221 | $0.04 | 181023 |
-| 222 | $0.05 | 182172 |
-| 223 | $0.05 | 183674 |
-| 224 | $0.05 | 185343 |
-| 225 | $0.04 | 186140 |
-| 226 | $0.04 | 186861 |
-| 227 | $0.04 | 187062 |
-| 228 | $0.05 | 188279 |
-| 229 | $0.05 | 189425 |
-| 230 | $0.04 | 189631 |
-| 231 | $0.04 | 190081 |
-| 232 | $0.05 | 191184 |
-| 233 | $0.04 | 191647 |
-| 234 | $0.04 | 192248 |
-| 235 | $0.08 | 197394 |
+| 170 | $0.07 | 135160 |
+| 171 | $0.07 | 135953 |
+| 172 | $0.08 | 136711 |
+| 173 | $0.07 | 137205 |
+| 174 | $0.07 | 138086 |
+| 175 | $0.07 | 138614 |
+| 176 | $0.07 | 139162 |
+| 177 | $0.08 | 140315 |
+| 178 | $0.07 | 141043 |
+| 179 | $0.08 | 142477 |
+| 180 | $0.08 | 143163 |
+| 181 | $0.07 | 143710 |
+| 182 | $0.07 | 144170 |
+| 183 | $0.08 | 145103 |
+| 184 | $0.07 | 146202 |
+| 185 | $0.08 | 146631 |
+| 186 | $0.07 | 147890 |
+| 187 | $0.08 | 148688 |
+| 188 | $0.08 | 149421 |
+| 189 | $0.07 | 150244 |
+| 190 | $0.07 | 150710 |
+| 191 | $0.08 | 151791 |
+| 192 | $0.08 | 153257 |
+| 193 | $0.08 | 153971 |
+| 194 | $0.08 | 154929 |
+| 195 | $0.09 | 157058 |
+| 196 | $0.07 | 157836 |
+| 197 | $0.08 | 158666 |
+| 198 | $0.08 | 159416 |
+| 199 | $0.08 | 160586 |
+| 200 | $0.08 | 162424 |
+| 201 | $0.08 | 162843 |
+| 202 | $0.08 | 164046 |
+| 203 | $0.08 | 164332 |
+| 204 | $0.10 | 168854 |
+| 205 | $0.08 | 169129 |
+| 206 | $0.08 | 169755 |
+| 207 | $0.08 | 171169 |
+| 208 | $0.08 | 172111 |
+| 209 | $0.08 | 172446 |
+| 210 | $0.08 | 172767 |
+| 211 | $0.07 | 173096 |
+| 212 | $0.08 | 173657 |
+| 213 | $0.09 | 175195 |
+| 214 | $0.08 | 175725 |
+| 215 | $0.08 | 175999 |
+| 216 | $0.08 | 176664 |
+| 217 | $0.08 | 177699 |
+| 218 | $0.08 | 179027 |
+| 219 | $0.09 | 180368 |
+| 220 | $0.08 | 180679 |
+| 221 | $0.08 | 181023 |
+| 222 | $0.08 | 182172 |
+| 223 | $0.09 | 183674 |
+| 224 | $0.09 | 185343 |
+| 225 | $0.08 | 186140 |
+| 226 | $0.08 | 186861 |
+| 227 | $0.08 | 187062 |
+| 228 | $0.09 | 188279 |
+| 229 | $0.09 | 189425 |
+| 230 | $0.07 | 189631 |
+| 231 | $0.09 | 190081 |
+| 232 | $0.08 | 191184 |
+| 233 | $0.08 | 191647 |
+| 234 | $0.09 | 192248 |
+| 235 | $0.12 | 197394 |
+| 236 | $0.08 | 198512 |
+| 237 | $0.09 | 199443 |
+| 238 | $0.51 | 80895 |
+| 239 | $0.07 | 87763 |
+| 240 | $0.04 | 90533 |
+| 241 | $0.02 | 90969 |
+| 242 | $0.09 | 99652 |
+| 243 | $0.06 | 104348 |
+| 244 | $0.03 | 105832 |
+| 245 | $0.02 | 106163 |
+| 246 | $0.03 | 106856 |
+| 247 | $0.03 | 107614 |
+| 248 | $0.02 | 108026 |
+| 249 | $0.02 | 108336 |
+| 250 | $0.02 | 108563 |
+| 251 | $0.03 | 109249 |
+| 252 | $0.03 | 109905 |
+| 253 | $0.03 | 110990 |
+| 254 | $0.03 | 111416 |
+| 255 | $0.04 | 113793 |
+| 256 | $0.03 | 114645 |
+| 257 | $0.09 | 122821 |
+| 258 | $0.03 | 123466 |
+| 259 | $0.03 | 124179 |
+| 260 | $0.03 | 124800 |
+| 261 | $0.03 | 125180 |
+| 262 | $0.03 | 125571 |
+| 263 | $0.04 | 127778 |
+| 264 | $0.03 | 128539 |
+| 265 | $0.03 | 129076 |
+| 266 | $0.03 | 129500 |
+| 267 | $0.03 | 130191 |
+| 268 | $0.04 | 131423 |
+| 269 | $0.03 | 132043 |
+| 270 | $0.03 | 132520 |
+| 271 | $0.03 | 133331 |
+| 272 | $0.03 | 134113 |
+| 273 | $0.03 | 134841 |
+| 274 | $0.03 | 135284 |
+| 275 | $0.03 | 136068 |
+| 276 | $0.03 | 136984 |
+| 277 | $0.06 | 141542 |
+| 278 | $0.03 | 141951 |
+| 279 | $0.03 | 142258 |
+| 280 | $0.03 | 142593 |
+| 281 | $0.03 | 142980 |
+| 282 | $0.10 | 152435 |
+| 283 | $0.03 | 152796 |
+| 284 | $0.04 | 153988 |
+| 285 | $0.04 | 155021 |
+| 286 | $0.03 | 155378 |
+| 287 | $0.04 | 155921 |
+| 288 | $0.04 | 156979 |
+| 289 | $0.04 | 157449 |
+| 290 | $0.03 | 157876 |
+| 291 | $0.04 | 159192 |
+| 292 | $0.03 | 159532 |
+| 293 | $0.03 | 159859 |
+| 294 | $0.04 | 160268 |
+| 295 | $0.04 | 160675 |
+| 296 | $0.03 | 160922 |
+| 297 | $0.03 | 161180 |
+| 298 | $0.03 | 161419 |
+| 299 | $0.03 | 161655 |
+| 300 | $0.04 | 162132 |
+| 301 | $0.04 | 162610 |
+| 302 | $0.04 | 162972 |
+| 303 | $0.04 | 163542 |
+| 304 | $0.04 | 163890 |
+| 305 | $0.04 | 164425 |
+| 306 | $0.04 | 165448 |
+| 307 | $0.04 | 165797 |
+| 308 | $0.04 | 166138 |
+| 309 | $0.04 | 166498 |
+| 310 | $0.04 | 166937 |
+| 311 | $0.04 | 167660 |
+| 312 | $0.04 | 168052 |
+| 313 | $0.04 | 168295 |
+| 314 | $0.04 | 168832 |
+| 315 | $0.04 | 169463 |
+| 316 | $0.04 | 169850 |
+| 317 | $0.04 | 170406 |
+| 318 | $0.04 | 171070 |
+| 319 | $0.04 | 171408 |
+| 320 | $0.04 | 171980 |
+| 321 | $0.04 | 172949 |
+| 322 | $0.04 | 173775 |
+| 323 | $0.05 | 175203 |
+| 324 | $0.04 | 175822 |
+| 325 | $0.05 | 177090 |
+| 326 | $0.04 | 177789 |
+| 327 | $0.04 | 178767 |
+| 328 | $0.06 | 181533 |
+| 329 | $0.07 | 185145 |
+| 330 | $0.04 | 185946 |
+| 331 | $0.04 | 186635 |
+| 332 | $0.04 | 187221 |
+| 333 | $0.04 | 188075 |
+| 334 | $0.04 | 188464 |
+| 335 | $0.05 | 189676 |
+| 336 | $0.04 | 190011 |
+| 337 | $0.04 | 190444 |
+| 338 | $0.04 | 190856 |
+| 339 | $0.05 | 191890 |
+| 340 | $0.04 | 192268 |
+| 341 | $0.05 | 193348 |
+| 342 | $0.04 | 193921 |
+| 343 | $0.05 | 195179 |
+| 344 | $0.05 | 195933 |
+| 345 | $0.04 | 196424 |
+| 346 | $0.04 | 196883 |
+| 347 | $0.05 | 197628 |
+| 348 | $0.04 | 198100 |
+| 349 | $0.04 | 198517 |
+| 350 | $0.06 | 201327 |
+| 351 | $0.04 | 201709 |
+| 352 | $0.05 | 202537 |
+| 353 | $0.04 | 202996 |
+| 354 | $0.04 | 203409 |
+| 355 | $0.05 | 204496 |
+| 356 | $0.04 | 204977 |
+| 357 | $0.05 | 205742 |
+| 358 | $0.05 | 207106 |
+| 359 | $0.05 | 208664 |
+| 360 | $0.05 | 209812 |
+| 361 | $0.05 | 210710 |
+| 362 | $0.05 | 211216 |
+| 363 | $0.04 | 211512 |
+| 364 | $0.05 | 212316 |
+| 365 | $0.05 | 212750 |
+| 366 | $0.05 | 213489 |
+| 367 | $0.04 | 213681 |
+| 368 | $0.05 | 214683 |
+| 369 | $0.05 | 215324 |
+| 370 | $0.06 | 217056 |
+| 371 | $0.05 | 217793 |
+| 372 | $0.05 | 218160 |
+| 373 | $0.05 | 218752 |
+| 374 | $0.05 | 219301 |
+| 375 | $0.05 | 220048 |
+| 376 | $0.05 | 221280 |
+| 377 | $0.05 | 222224 |
+| 378 | $0.18 | 238973 |
+| 379 | $0.05 | 239330 |
+| 380 | $0.07 | 242493 |
+| 381 | $0.05 | 243255 |
+| 382 | $0.07 | 245951 |
+| 383 | $0.05 | 246434 |
+| 384 | $0.05 | 247024 |
+| 385 | $0.05 | 247472 |
+| 386 | $0.05 | 247918 |
+| 387 | $0.08 | 251096 |
+| 388 | $0.06 | 251975 |
+| 389 | $0.06 | 252665 |
+| 390 | $0.05 | 253120 |
+| 391 | $0.06 | 253743 |
+| 392 | $0.05 | 254102 |
+| 393 | $0.06 | 255071 |
+| 394 | $0.06 | 255932 |
+| 395 | $0.05 | 256258 |
+| 396 | $0.05 | 256653 |
+| 397 | $0.06 | 257287 |
+| 398 | $0.06 | 257972 |
+| 399 | $0.06 | 258624 |
+| 400 | $0.06 | 259034 |
+| 401 | $0.06 | 259598 |
+| 402 | $0.06 | 260418 |
+| 403 | $0.05 | 260748 |
+| 404 | $0.05 | 260977 |
+| 405 | $0.06 | 261682 |
+| 406 | $0.08 | 265024 |
+| 407 | $0.08 | 267992 |
+| 408 | $0.06 | 268592 |
+| 409 | $0.06 | 269295 |
+| 410 | $0.06 | 269914 |
+| 411 | $0.06 | 270370 |
+| 412 | $0.06 | 270829 |
+| 413 | $0.06 | 271286 |
 
 #### Conductor comments, by family
 
@@ -262,7 +441,7 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ✅ Step done | 0 | 0 | $0.00 |
 | ✅ Done | 0 | 0 | $0.00 |
 | 🔴 Red | 0 | 0 | $0.00 |
-| 🟢 Green | 2 | 24 | $0.00 |
+| 🟢 Green | 2 | 1144 | $0.02 |
 | 🛠️ Refactor | 0 | 0 | $0.00 |
 | 🔎 verify-green | 0 | 0 | $0.00 |
 | 🔎 verify-refactor | 0 | 0 | $0.00 |
@@ -272,30 +451,39 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | ▶️ Resuming | 0 | 0 | $0.00 |
 | ⛔ Bailed | 0 | 0 | $0.00 |
 | ⏹️ Stopped | 0 | 0 | $0.00 |
-| Total | 2 | 24 | $0.00 |
+| Total | 2 | 1144 | $0.02 |
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset, VERI_MODEL_REVISE unset; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 4 | 4 | 0 | 0 | 85 | 73 | 13 | 26 | 9081 | 277190 | 115417 | 0.41 |
-| prose | 4 | 0 | 0 | 0 | 107 | 99 | 4 | 8 | 16138 | 60317 | 243561 | 0.78 |
-| skill-edit | 1 | 0 | 0 | 0 | 12 | 10 | 3 | 6 | 1006 | 199556 | 100592 | 0.28 |
-| red | 28 | 14 | 1 | 0 | 1238 | 396 | 123 | 236 | 46080 | 2226674 | 545936 | 2.36 |
-| green | 28 | 10 | 1 | 0 | 2717 | 382 | 137 | 258 | 45339 | 2628021 | 509392 | 2.20 |
-| refactor | 13 | 3 | 0 | 0 | 332 | 80 | 42 | 72 | 8247 | 544315 | 236404 | 0.73 |
+| plan | 5 | 5 | 0 | 0 | 101 | 87 | 14 | 28 | 10810 | 277190 | 142920 | 0.49 |
+| prose | 11 | 0 | 0 | 0 | 324 | 297 | 11 | 22 | 48355 | 84986 | 513189 | 1.78 |
+| skill-edit | 2 | 0 | 0 | 0 | 22 | 17 | 7 | 14 | 1883 | 279675 | 120168 | 0.35 |
+| red | 50 | 23 | 1 | 0 | 2151 | 707 | 221 | 428 | 85174 | 4015534 | 1002377 | 4.08 |
+| green | 58 | 19 | 7 | 0 | 8208 | 1009 | 316 | 602 | 116178 | 6454773 | 1192792 | 5.53 |
+| refactor | 27 | 8 | 0 | 0 | 851 | 200 | 93 | 172 | 21880 | 1388732 | 504107 | 1.62 |
 | red-repair | 1 | 0 | 0 | 0 | 22 | 15 | 6 | 10 | 2042 | 98926 | 20128 | 0.08 |
 | red-contradicted | 1 | 0 | 0 | 0 | 40 | 24 | 7 | 12 | 3550 | 129136 | 22561 | 0.10 |
 | exhausted | 1 | 0 | 0 | 0 | 130 | 10 | 3 | 6 | 1010 | 44126 | 14898 | 0.10 |
+| diff | 8 | 4 | 1 | 0 | 1002 | 84 | 35 | 68 | 8678 | 516831 | 156999 | 0.53 |
+| red-missing | 3 | 0 | 0 | 0 | 103 | 65 | 16 | 30 | 9661 | 313322 | 97411 | 0.37 |
+| pin | 7 | 6 | 1 | 0 | 283 | 134 | 44 | 88 | 14613 | 864012 | 134981 | 0.57 |
+| red-supersede | 1 | 0 | 0 | 0 | 53 | 40 | 8 | 14 | 4685 | 190136 | 33036 | 0.15 |
+| rebase | 2 | 1 | 0 | 0 | 766 | 34 | 12 | 24 | 4001 | 209231 | 69184 | 0.23 |
+| predicate | 4 | 0 | 0 | 0 | 46 | 33 | 16 | 28 | 3209 | 203709 | 61489 | 0.21 |
+| cover | 3 | 0 | 0 | 0 | 84 | 57 | 22 | 40 | 5895 | 366270 | 52249 | 0.23 |
+| structural | 3 | 0 | 0 | 0 | 69 | 49 | 16 | 32 | 7153 | 288898 | 54719 | 0.24 |
+| transform | 3 | 2 | 1 | 0 | 57 | 31 | 14 | 24 | 3316 | 191703 | 47276 | 0.17 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 33 | 31 | 2 | 0 | 2825 | 377 | 124 | 242 | 41470 | 2257885 | 619482 | 2.19 |
-| developer | claude-sonnet-5-5 | 31 | 0 | 0 | 0 | 965 | 362 | 135 | 244 | 46327 | 2239838 | 598197 | 2.18 |
-| developer | claude-opus-5-5 | 12 | 0 | 0 | 0 | 774 | 241 | 72 | 134 | 27552 | 1450665 | 247057 | 1.62 |
+| verifier | claude-sonnet-5-5 | 79 | 68 | 11 | 0 | 9771 | 1004 | 330 | 646 | 108286 | 5858027 | 1547687 | 5.54 |
+| developer | claude-sonnet-5-5 | 91 | 0 | 0 | 0 | 3756 | 1450 | 481 | 896 | 179755 | 9084829 | 1916608 | 8.19 |
+| developer | claude-opus-5-5 | 7 | 0 | 0 | 0 | 439 | 125 | 32 | 64 | 13814 | 609673 | 142832 | 0.97 |
 
 #### Rework and waste, by phase
 
@@ -304,12 +492,21 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | plan | 0 | 0.00 | 0 | 0.00 |
 | prose | 0 | 0.00 | 0 | 0.00 |
 | skill-edit | 0 | 0.00 | 0 | 0.00 |
-| red | 178 | 0.41 | 331 | 0.81 |
-| green | 420 | 0.32 | 479 | 0.62 |
+| red | 178 | 0.41 | 86 | 0.21 |
+| green | 9909 | 6.39 | 144 | 0.13 |
 | refactor | 0 | 0.00 | 56 | 0.11 |
 | red-repair | 0 | 0.00 | 0 | 0.00 |
-| red-contradicted | 0 | 0.00 | 40 | 0.10 |
-| exhausted | 0 | 0.00 | 130 | 0.10 |
+| red-contradicted | 0 | 0.00 | 0 | 0.00 |
+| exhausted | 0 | 0.00 | 0 | 0.00 |
+| diff | 121 | 0.12 | 0 | 0.00 |
+| red-missing | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 33 | 0.07 |
+| red-supersede | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 0 | 0.00 |
+| predicate | 0 | 0.00 | 0 | 0.00 |
+| cover | 0 | 0.00 | 0 | 0.00 |
+| structural | 0 | 0.00 | 0 | 0.00 |
+| transform | 57 | 0.17 | 0 | 0.00 |
 
 #### By step
 
@@ -326,7 +523,23 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | After the claim, with every inner call faked clean and `baseline-full-tier.sh` printing `run`, `preflight.sh` makes PREFLIGHT.md step 3's remaining calls in the worktree in this order: `worktree-setup.sh <n>` (its exit 3 goes on), the issue body read `gh api repos/{owner}/{repo}/issues/<n> -q .body` into a temp file outside the worktree, `requirements-preflight.sh <body-file>`, `detect-test-command.sh --tier fast --issue <body-file> <worktree>`, `detach-command.sh start <name> <fast-cmd>` then `detach-command.sh wait <name>` with `VERI_ISSUE=<n>` and no `--alone`, `detect-test-command.sh --tier all --issue <body-file> <worktree>`, `baseline-full-tier.sh <n> <full-cmd>`, then the full tier's `detach-command.sh start` and `wait` (no `--alone`), then `full-tier-time.sh --record <seconds> <full-cmd>` for the green full tier (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 9 | 4 | 0 | 0 | 0 | 0 | 136 | 46 | 86 | 17279 | 883436 | 151451 | 0.64 | 690 | 0/? | 1/5 | nothing-left |  |  | full |
 | When the baseline's `detach-command.sh wait` exits 1 (a red baseline), `preflight.sh` exits 1 with last stdout line `stopped at 3 detach-command.sh wait`, makes no later call, re-runs no failing test alone and writes no `suite-flake` event (no `event.sh` call, no `--alone` on the wait); the flake judgement stays the conductor's (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 12⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 60 | 21 | 42 | 7186 | 361608 | 109684 | 0.38 | 543 | unknown | 1/5 | nothing-left |  |  | full |
 | When the baseline's `detach-command.sh wait` exits 3 (its slice ran out), `preflight.sh` makes no later call, exits 3, and its last stdout line is `waiting on <name>`, the detached run's name (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 6⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 45 | 18 | 32 | 5485 | 272573 | 98468 | 0.33 | 509 | unknown | 0/5 | nothing-left |  |  | full |
-| After the full tier, with every inner call faked clean, `preflight.sh` makes PREFLIGHT.md steps 4 to 7 in this order and then exits 0: `gh api repos/{owner}/{repo} -q .default_branch`, `refactor-budget.sh 0` and `refactor-budget.sh --issue 0` (each exit 0 or 3 goes on), `step-budget.sh`, `adjudicate.sh --check-budget`, `leaf-model.sh develop-red`, `leaf-model.sh revise-green`, `leaf-model.sh verify-green`, `leaf-timeout.sh <baseline> --full <full>`, `<baseline>` and `<full>` being the elapsed whole seconds (rounded up) of the two tier runs read from an injected clock (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 12 | 3 | 0 | 0 | 0 | 0 | 228 | 71 | 128 | 26119 | 1389070 | 236988 | 1.38 | unknown | red 1/2, green 2/2 | unknown | unknown |  |  | full |
+| After the full tier, with every inner call faked clean, `preflight.sh` makes PREFLIGHT.md steps 4 to 7 in this order and then exits 0: `gh api repos/{owner}/{repo} -q .default_branch`, `refactor-budget.sh 0` and `refactor-budget.sh --issue 0` (each exit 0 or 3 goes on), `step-budget.sh`, `adjudicate.sh --check-budget`, `leaf-model.sh develop-red`, `leaf-model.sh revise-green`, `leaf-model.sh verify-green`, `leaf-timeout.sh <baseline> --full <full>`, `<baseline>` and `<full>` being the elapsed whole seconds (rounded up) of the two tier runs read from an injected clock (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 17 | 5 | 0 | 0 | 0 | 0 | 291 | 91 | 166 | 34070 | 1730243 | 339084 | 1.74 | 659 | red 1/2, green 2/2 | 0/5 | nothing-left |  |  | full |
+| Test-only: in `skills/tdd/scripts/tests/py/unit/test_preflight.py`, `test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full_tier_and_records_the_time` asserts the calls up to and including `full-tier-time.sh --record` and no longer that nothing follows it: its last assertion `assert len(tail) == 11` becomes `assert len(tail) >= 11` (the per-call assertions already read `tail[:11]`), so the later steps 4 to 7 can follow the record; no other case and no production file changes ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 19 | 10 | 18 | 1898 | 136570 | 33844 | 0.12 | 254 | n/a | n/a | n/a |  |  | full |
+| Called again with the same arguments after it exited 3 at the baseline's wait, `preflight.sh` continues from that wait: its first inner call is the baseline's `detach-command.sh wait <name>`, and it makes no second `issue-worktree.sh`, `unlabel-issue.sh` or `detach-command.sh start` for the baseline (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 14 | 4 | 3 | 0 | 0 | 0 | 292 | 76 | 152 | 32157 | 1657525 | 280940 | 1.40 | 1795 | 2/2 | 1/5 | nothing-structural |  |  | already-satisfied |
+| Called again with the same arguments after it exited 3 at the full tier's wait (that first call ending with `waiting on <name>` as its last line), `preflight.sh` continues from that wait: its first inner call is the full tier's `detach-command.sh wait <name>`, it makes no `detach-command.sh start` for either tier, and the baseline seconds measured by the first call still reach `leaf-timeout.sh` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 87 | 27 | 50 | 10651 | 476071 | 121364 | 0.46 | 696 | unknown | 1/5 | structural-owed |  |  | full |
+| When `baseline-full-tier.sh` prints `reuse <seconds>`, `preflight.sh` starts no full-tier run (no second `detach-command.sh start`, no `full-tier-time.sh --record`) and `leaf-timeout.sh` is called with `--full <seconds>`, that figure (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 70 | 26 | 48 | 8299 | 433644 | 114230 | 0.41 | 467 | unknown | 1/5 | nothing-structural |  |  | full |
+| With `VERI_STEP_GROWTH` set but empty, `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_STEP_GROWTH` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 50 | 18 | 36 | 6058 | 312115 | 95407 | 0.33 | 383 | unknown | 0/5 | nothing-left |  |  | full |
+| With `VERI_MISSING_REROUTE_BUDGET=x` (not a whole number), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_MISSING_REROUTE_BUDGET` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 50 | 23 | 40 | 6434 | 350322 | 87103 | 0.32 | 397 | unknown | 0/5 | nothing-left |  |  | full |
+| With `VERI_SKIP_VERIFY=plan` (a phase that is never skipped), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_SKIP_VERIFY` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 51 | 19 | 36 | 5787 | 310127 | 90806 | 0.32 | 307 | unknown | 0/5 | nothing-left |  |  | full |
+| On exit 0, `preflight.sh` writes `.tdd/issue-<n>-preflight` in the run's worktree, one `key=value` per line with the keys `worktree`, `fast_cmd`, `full_cmd`, `alone_cmd` (from `detect-test-command.sh --tier "one test file"`), `baseline`, `full`, `full_tier_mode` (`run` or `reuse`), `default_branch`, `model_develop_red`, `model_revise_green`, `model_verify_green` and `timeout`, and prints the same lines as its last stdout lines (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 9⟧ | 19 | 6 | 4 | 0 | 0 | 0 | 429 | 113 | 222 | 49821 | 2528963 | 508838 | 2.34 | 2905 | 1/2 | 1/5 | structural-owed |  |  | already-satisfied |
+| Pin: `preflight.sh` never prints the contents of a suite's or a leaf's output file: with a sentinel string in the detached runs' output files under the worktree's `.tdd/`, its stdout holds no sentinel and a test run appears only as what the faked `detach-command.sh wait` printed (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 42 | 11 | 22 | 5280 | 220924 | 43151 | 0.18 | unknown | unknown | unknown | unknown |  |  | pin |
+| Pin: on a stop (`leaf-launchable.sh` exiting 1, and the baseline's wait exiting 1), `preflight.sh` has called neither `preflight-refused.sh` nor `event.sh bail`, posted no comment (no `comment.sh`, no `gh` comment call) and reset no branch (no `git reset`) (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 43 | 16 | 32 | 5552 | 341491 | 42585 | 0.20 | unknown | unknown | unknown | unknown |  |  | pin |
+| Pin: `ensure-run-state-ignored.sh`'s rule covers `.tdd/issue-<n>-preflight`: a repository with the rule it writes ignores `.tdd/issue-3771-preflight` (git check-ignore answers it ignored), so the file is never committed; no production change expected ⟦criterion 10⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 31 | 11 | 22 | 3631 | 205410 | 35427 | 0.15 | unknown | unknown | unknown | unknown |  |  | full |
+| `skills/tdd/scripts/veri/preflight.py` writes no event and posts no comment of its own: every event and comment a fresh preflight produces comes from the same inner script that produces it today, called in PREFLIGHT.md's order ⟦diff-checked⟧ ⟦criterion 13⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 28 | 12 | 24 | 2973 | 192749 | 58937 | 0.20 | 746 | n/a | n/a | n/a |  |  | full |
+| A guard case in skills/tdd/scripts/tests/py/unit/test_preflight_steps.py fails when a numbered step of `skills/tdd/PREFLIGHT.md` (a `<k>. **…**` line) has no entry in `veri/preflight.py`'s own ordered list of steps, or an entry there names no numbered step of it; it passes on the branch's code ⟦criterion 14⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 32 | 11 | 22 | 3847 | 195889 | 40592 | 0.16 | unknown | unknown | unknown | unknown |  |  | pin |
+| Go-red control, no production change and no commit: with one entry removed from `veri/preflight.py`'s ordered list of steps the guard case of skills/tdd/scripts/tests/py/unit/test_preflight_steps.py fails, and again with one entry added that names no step of `PREFLIGHT.md`; restored to the branch's code it passes, and the tree is left as the branch holds it ⟦diff-checked⟧ ⟦criterion 15⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 18 | 7 | 14 | 1905 | 104396 | 27634 | 0.10 | 218 | n/a | n/a | n/a |  |  | full |
+| ⟦skill-edit⟧ `skills/tdd/PREFLIGHT.md`: before its step 1 it tells the conductor of a fresh run to run `$S/preflight.sh <n> <slug>`, to call it again on exit 3, to take preflight's values from its output, and on any other non-zero exit to continue from the step its last line names by the steps below; steps 1 to 7 stay stated ⟦criterion 16⟧ | 5 | 0 | 0 | 0 | 0 | 0 | 61 | 8 | 16 | 9476 | 100869 | 73277 | 0.29 | 107 | unknown | unknown | unknown |  |  | full |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 21 | 6 | 1 | 0 | 0 | 0 | 280 | 111 | 208 | 32533 | 1796772 | 431934 | 1.59 | 1128 | unknown | 1/5 | structural-owed |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.
 
@@ -344,6 +557,21 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | After the claim, with every inner call faked clean and `baseline-full-tier.sh` printing `run`, `preflight.sh` makes PREFLIGHT.md step 3's remaining calls in the worktree in this order: `worktree-setup.sh <n>` (its exit 3 goes on), the issue body read `gh api repos/{owner}/{repo}/issues/<n> -q .body` into a temp file outside the worktree, `requirements-preflight.sh <body-file>`, `detect-test-command.sh --tier fast --issue <body-file> <worktree>`, `detach-command.sh start <name> <fast-cmd>` then `detach-command.sh wait <name>` with `VERI_ISSUE=<n>` and no `--alone`, `detect-test-command.sh --tier all --issue <body-file> <worktree>`, `baseline-full-tier.sh <n> <full-cmd>`, then the full tier's `detach-command.sh start` and `wait` (no `--alone`), then `full-tier-time.sh --record <seconds> <full-cmd>` for the green full tier (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 111 | 0.11 |
 | When the baseline's `detach-command.sh wait` exits 1 (a red baseline), `preflight.sh` exits 1 with last stdout line `stopped at 3 detach-command.sh wait`, makes no later call, re-runs no failing test alone and writes no `suite-flake` event (no `event.sh` call, no `--alone` on the wait); the flake judgement stays the conductor's (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 12⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 116 | 0.11 |
 | When the baseline's `detach-command.sh wait` exits 3 (its slice ran out), `preflight.sh` makes no later call, exits 3, and its last stdout line is `waiting on <name>`, the detached run's name (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 6⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.06 |
+| After the full tier, with every inner call faked clean, `preflight.sh` makes PREFLIGHT.md steps 4 to 7 in this order and then exits 0: `gh api repos/{owner}/{repo} -q .default_branch`, `refactor-budget.sh 0` and `refactor-budget.sh --issue 0` (each exit 0 or 3 goes on), `step-budget.sh`, `adjudicate.sh --check-budget`, `leaf-model.sh develop-red`, `leaf-model.sh revise-green`, `leaf-model.sh verify-green`, `leaf-timeout.sh <baseline> --full <full>`, `<baseline>` and `<full>` being the elapsed whole seconds (rounded up) of the two tier runs read from an injected clock (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 7 | 0.06 |
+| Called again with the same arguments after it exited 3 at the baseline's wait, `preflight.sh` continues from that wait: its first inner call is the baseline's `detach-command.sh wait <name>`, and it makes no second `issue-worktree.sh`, `unlabel-issue.sh` or `detach-command.sh start` for the baseline (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 67 | 0.11 |
+| Called again with the same arguments after it exited 3 at the full tier's wait (that first call ending with `waiting on <name>` as its last line), `preflight.sh` continues from that wait: its first inner call is the full tier's `detach-command.sh wait <name>`, it makes no `detach-command.sh start` for either tier, and the baseline seconds measured by the first call still reach `leaf-timeout.sh` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 167 | 0.12 |
+| When `baseline-full-tier.sh` prints `reuse <seconds>`, `preflight.sh` starts no full-tier run (no second `detach-command.sh start`, no `full-tier-time.sh --record`) and `leaf-timeout.sh` is called with `--full <seconds>`, that figure (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 8⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 77 | 0.12 |
+| With `VERI_STEP_GROWTH` set but empty, `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_STEP_GROWTH` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.06 |
+| With `VERI_MISSING_REROUTE_BUDGET=x` (not a whole number), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_MISSING_REROUTE_BUDGET` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 8 | 0.05 |
+| With `VERI_SKIP_VERIFY=plan` (a phase that is never skipped), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_SKIP_VERIFY` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0/5 | nothing-left | skipped | 0 | 9 | 0.05 |
+| On exit 0, `preflight.sh` writes `.tdd/issue-<n>-preflight` in the run's worktree, one `key=value` per line with the keys `worktree`, `fast_cmd`, `full_cmd`, `alone_cmd` (from `detect-test-command.sh --tier "one test file"`), `baseline`, `full`, `full_tier_mode` (`run` or `reuse`), `default_branch`, `model_develop_red`, `model_revise_green`, `model_verify_green` and `timeout`, and prints the same lines as its last stdout lines (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 9⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 85 | 0.15 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 90 | 0.16 |
+
+#### Structural pass
+
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 2/10 | candidates-done |
 
 #### Refactor totals
 
@@ -359,18 +587,28 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | After the claim, with every inner call faked clean and `baseline-full-tier.sh` printing `run`, `preflight.sh` makes PREFLIGHT.md step 3's remaining calls in the worktree in this order: `worktree-setup.sh <n>` (its exit 3 goes on), the issue body read `gh api repos/{owner}/{repo}/issues/<n> -q .body` into a temp file outside the worktree, `requirements-preflight.sh <body-file>`, `detect-test-command.sh --tier fast --issue <body-file> <worktree>`, `detach-command.sh start <name> <fast-cmd>` then `detach-command.sh wait <name>` with `VERI_ISSUE=<n>` and no `--alone`, `detect-test-command.sh --tier all --issue <body-file> <worktree>`, `baseline-full-tier.sh <n> <full-cmd>`, then the full tier's `detach-command.sh start` and `wait` (no `--alone`), then `full-tier-time.sh --record <seconds> <full-cmd>` for the green full tier (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 1 | 0 | nothing-left 1 |
 | When the baseline's `detach-command.sh wait` exits 1 (a red baseline), `preflight.sh` exits 1 with last stdout line `stopped at 3 detach-command.sh wait`, makes no later call, re-runs no failing test alone and writes no `suite-flake` event (no `event.sh` call, no `--alone` on the wait); the flake judgement stays the conductor's (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 12⟧ | 1 | 1 | 0 | nothing-left 1 |
 | When the baseline's `detach-command.sh wait` exits 3 (its slice ran out), `preflight.sh` makes no later call, exits 3, and its last stdout line is `waiting on <name>`, the detached run's name (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 6⟧ | 1 | 0 | 1 | nothing-left 1 |
-| issue | 10 | 3 | 7 | nothing-left 10 |
+| After the full tier, with every inner call faked clean, `preflight.sh` makes PREFLIGHT.md steps 4 to 7 in this order and then exits 0: `gh api repos/{owner}/{repo} -q .default_branch`, `refactor-budget.sh 0` and `refactor-budget.sh --issue 0` (each exit 0 or 3 goes on), `step-budget.sh`, `adjudicate.sh --check-budget`, `leaf-model.sh develop-red`, `leaf-model.sh revise-green`, `leaf-model.sh verify-green`, `leaf-timeout.sh <baseline> --full <full>`, `<baseline>` and `<full>` being the elapsed whole seconds (rounded up) of the two tier runs read from an injected clock (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| Called again with the same arguments after it exited 3 at the baseline's wait, `preflight.sh` continues from that wait: its first inner call is the baseline's `detach-command.sh wait <name>`, and it makes no second `issue-worktree.sh`, `unlabel-issue.sh` or `detach-command.sh start` for the baseline (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 1 | 1 | 0 | nothing-structural 1 |
+| Called again with the same arguments after it exited 3 at the full tier's wait (that first call ending with `waiting on <name>` as its last line), `preflight.sh` continues from that wait: its first inner call is the full tier's `detach-command.sh wait <name>`, it makes no `detach-command.sh start` for either tier, and the baseline seconds measured by the first call still reach `leaf-timeout.sh` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 7⟧ | 1 | 1 | 0 | structural-owed 1 |
+| When `baseline-full-tier.sh` prints `reuse <seconds>`, `preflight.sh` starts no full-tier run (no second `detach-command.sh start`, no `full-tier-time.sh --record`) and `leaf-timeout.sh` is called with `--full <seconds>`, that figure (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 8⟧ | 1 | 1 | 0 | nothing-structural 1 |
+| With `VERI_STEP_GROWTH` set but empty, `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_STEP_GROWTH` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| With `VERI_MISSING_REROUTE_BUDGET=x` (not a whole number), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_MISSING_REROUTE_BUDGET` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| With `VERI_SKIP_VERIFY=plan` (a phase that is never skipped), `preflight.sh` makes no call after `refactor-budget.sh --issue 0` (no `step-budget.sh`), exits 2, and its last stdout line is `stopped at 5 VERI_SKIP_VERIFY` (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 1⟧ | 1 | 0 | 1 | nothing-left 1 |
+| On exit 0, `preflight.sh` writes `.tdd/issue-<n>-preflight` in the run's worktree, one `key=value` per line with the keys `worktree`, `fast_cmd`, `full_cmd`, `alone_cmd` (from `detect-test-command.sh --tier "one test file"`), `baseline`, `full`, `full_tier_mode` (`run` or `reuse`), `default_branch`, `model_develop_red`, `model_revise_green`, `model_verify_green` and `timeout`, and prints the same lines as its last stdout lines (a small unit case in skills/tdd/scripts/tests/py/unit/test_preflight.py driven in-process with run_cli, every inner call made through the one wrapper `veri/preflight.py` calls them by and faked there by an in-process spy that records each call and answers its exit code, stdout and stderr; no real git, gh, claude, suite or clock) ⟦criterion 9⟧ | 1 | 1 | 0 | structural-owed 1 |
+| fix the full-suite failure: skills/tdd/scripts/tests/py/unit/test_ledger_path_single_source.py — FAILED test_no_module_but_ledger_spells_the_ledger_file_name - AssertionError: assert ['preflight.py'] == []; skills/tdd/scripts/tests/py/unit/test_tunable_reads.py — FAILED test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment and test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt - AssertionError: veri/preflight.py reads VERI_* names straight from the environment (preflight.py:83 and three more lines); skills/tdd/scripts/tests/py/unit/test_file_location_resolves_symlinks.py — FAILED test_no_veri_module_locates_itself_through_abspath_of_file_3501 - AssertionError: assert {'preflight.py': [23]} == {} ⟦suite-repair⟧ ⟦criterion 16⟧ | 1 | 1 | 0 | structural-owed 1 |
+| issue | 20 | 10 | 11 | candidates-done 1, nothing-left 14, nothing-structural 2, structural-owed 3 |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 4 | 3 | 2 | 3 | 4 | 3 | 3 | 4 | 5 | 3 | 3 | 3 | 4 | 7 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 3 | 4 | 5 | 7 | 6 | 5 | 4 | 5 | 5 | 10 | 3 | 4 | 4 | 3 | 5 | 10 | 6 | 5 | 3 | 9 | 5 | 7 | 5 | 9 | 6 | 8 | 9 | 9 | 5 | 4 | 6 | 6 | 5 | 5 | 6 | 4 | 7 |
-| fast | 0 | 22 | 21 | 23 | 23 | 29 | 25 | 23 | 25 | 24 | 25 | 26 | 26 | 42 | 46 | 30 | 32 | 51 | 40 | 27 | 29 | 73 | 44 | 65 | 75 | 58 | 76 | 65 | 34 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 3 | 3 | 4 | 3 | 4 | 6 | 4 | 6 | 3 | 7 | 11 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s | run 105 s | run 106 s | run 107 s | run 108 s | run 109 s | run 110 s | run 111 s | run 112 s | run 113 s | run 114 s | run 115 s | run 116 s | run 117 s | run 118 s | run 119 s | run 120 s | run 121 s | run 122 s | run 123 s | run 124 s | run 125 s | run 126 s | run 127 s | run 128 s | run 129 s | run 130 s | run 131 s | run 132 s | run 133 s | run 134 s | run 135 s | run 136 s | run 137 s | run 138 s | run 139 s | run 140 s | run 141 s | run 142 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 4 | 3 | 2 | 3 | 4 | 3 | 3 | 4 | 5 | 3 | 3 | 3 | 4 | 7 | 4 | 4 | 4 | 4 | 3 | 3 | 4 | 3 | 3 | 4 | 5 | 7 | 6 | 5 | 4 | 5 | 5 | 10 | 3 | 4 | 4 | 3 | 5 | 10 | 6 | 5 | 3 | 9 | 5 | 7 | 5 | 9 | 6 | 8 | 9 | 9 | 5 | 4 | 6 | 6 | 5 | 5 | 6 | 4 | 7 | 5 | 8 | 7 | 7 | 5 | 8 | 7 | 6 | 23 | 7 | 6 | 5 | 5 | 4 | 6 | 3 | 7 | 4 | 3 | 12 | 4 | 6 | 8 | 8 | 6 | 8 | 4 | 5 | 4 | 7 | 5 | 6 | 8 | 5 | 5 | 5 | 5 | 6 | 7 | 4 | 4 | 5 | 8 | 3 | 3 | 4 | 6 | 4 | 5 | 7 | 7 | 7 | 4 | 8 | 7 | 3 | 5 | 10 | 5 | 7 | 6 | 3 | 3 | 8 | 530 | 4 | 6 | 3 | 4 | 5 | 9 | 5 | 9 | 3 | 3 | 3 | 0 | 10 | 0 | 5 | 4 | 7 | 3 |
+| fast | 0 | 22 | 21 | 23 | 23 | 29 | 25 | 23 | 25 | 24 | 25 | 26 | 26 | 42 | 46 | 30 | 32 | 51 | 40 | 27 | 29 | 73 | 44 | 65 | 75 | 58 | 76 | 65 | 34 | 26 | 58 | 33 | 61 | 47 | 58 | 76 | 76 | 31 | 31 | 31 | 45 | 32 | 65 | 54 | 121 | 45 | 51 | 39 | 48 | 47 | 42 | 47 | 26 | 28 | 23 | 29 | 48 | 24 | 30 | 37 | 36 | 40 | 47 | 48 | 31 | 45 | 44 | 24 | 46 | 39 | 28 | 46 | 33 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 3 | 3 | 4 | 3 | 4 | 6 | 4 | 6 | 3 | 7 | 11 | 5 | 4 | 8 | 4 | 3 | 4 | 3 | 4 | 5 | 6 | 7 | 7 | 6 | 4 | 4 | 4 | 5 | 3 | 7 | 6 | 6 | 4 | 6 | 7 | 5 | 5 | 4 | 5 | 4 | 4 | 4 | 4 | 5 | 4 | 4 | 5 | 4 | 6 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 35 | 625 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 338 | 634 | 132493 | 6208261 | 1808889 | 19.82 (estimate) |
+| total | 861 | 1642 | 352093 | 15917190 | 4240484 | 40.84 (estimate) |
