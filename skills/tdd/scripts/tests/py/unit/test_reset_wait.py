@@ -81,3 +81,24 @@ def test_issue_3242_marker_dev_with_no_marker_at_the_start_keeps_polling_until_t
 
     assert (code, out) == (0, "reset-request dev 2026-11-12T12:15:00\n")
     assert len(naps) == 1
+
+
+def test_issue_3242_marker_with_veri_poll_0_25_sleeps_0_25_between_polls(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        (tdd / "reset-request-dev").write_text("2026-11-12T13:00:00\n")
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, _, _ = run_cli(reset_wait, ["marker", "dev"], env={"VERI_POLL": "0.25"})
+
+    assert (code, naps) == (0, [0.25])
