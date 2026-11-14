@@ -30,8 +30,6 @@ and the supervisor's **stuck-retry**, all still in force):
 - **Resume.** Re-running `/tdd <n>` reads the ledger and continues from the first
   unchecked step.
 
-Hardened edges (#7) have since landed too, and are described below: the preflight
-baseline bail, reverting only the half-done step, and deterministic cause classification.
 Still **out of scope**: the loop and parallel rungs of the scope ladder. A step that
 exhausts its revise budget, or a leaf that stays killed-stuck past the supervisor's
 budget, **bails** — preserving completed steps' commits and classifying the cause
@@ -1088,9 +1086,7 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
    the re-read of the spec and of the touched files are paid once for the step instead of
-   once for every transform it applies. That is what #150 measured — the refactor loop and
-   verify-refactor took 2,147 of #144's 3,735 leaf-seconds, and one #137 step's five
-   transforms took 49 minutes between them.
+   once for every transform it applies.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
    `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
