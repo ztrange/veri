@@ -166,7 +166,7 @@ def _names_a_case(name, own_id):
 def _supersedes_own(report, own_id):
     """A SUPERSEDED: name that expands to the own red case names a case: #1957 owns revise for it."""
     for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+        case = _superseded_line_case(line)
         found = case and _exists(case)
         if found and _is_own(found, own_id):
             return True
@@ -250,12 +250,15 @@ def _superseded_case(body):
     return words[0].strip("`").rpartition("::")[2] if words else ""
 
 
+def _superseded_line_case(line):
+    return _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+
+
 def _superseded(report, step, own_id=None):
     own = _recorded_cases(step)
     cases = []
     for line in _lines_with(report, "SUPERSEDED:"):
-        body = re.sub(r"^[-*]\s+", "", line[11:].strip())
-        case = _superseded_case(body)
+        case = _superseded_line_case(line)
         if case in own:
             continue
         if not case:
@@ -272,7 +275,7 @@ def _superseded(report, step, own_id=None):
 def _unresolved_superseded(report, step, own_id):
     own = _recorded_cases(step)
     for line in _lines_with(report, "SUPERSEDED:"):
-        case = _superseded_case(re.sub(r"^[-*]\s+", "", line[11:].strip()))
+        case = _superseded_line_case(line)
         if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and (_exists(case) is None or len(_defining_files(case)) > 1):
             return True
     return False
