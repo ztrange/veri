@@ -223,3 +223,31 @@ def test_issue_3242_recovered_coord_with_no_recovered_at_later_than_the_marker_o
 
     assert len(naps) <= 50, "recovered never gave up waiting"
     assert (code, out) == (1, "not-recovered coord\n")
+
+
+def test_issue_3242_recovered_coord_with_no_seconds_and_veri_reset_ack_timeout_50_gives_up_after_50_injected_seconds_printing_not_recovered_coord_and_exits_1(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-coord.state").write_text("reset-at=2026-11-12T10:00:00\nsession-id=s1\n")
+    now = [1_000_000.0]
+    naps = []
+
+    def nap(seconds):
+        naps.append(seconds)
+        if len(naps) > 50:
+            raise AssertionError("recovered never gave up waiting")
+        now[0] += seconds
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "monotonic", lambda: now[0])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["recovered", "coord"],
+                           env={"VERI_RESET_ACK_TIMEOUT": "50", "VERI_POLL": "20"})
+
+    assert (code, out) == (1, "not-recovered coord\n")
+    assert 50 <= now[0] - 1_000_000.0 < 70
