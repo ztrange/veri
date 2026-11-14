@@ -318,7 +318,7 @@ def conduct(text, issue, env):
             del CLAIM_DIRS[:]
 
             def record_pid():
-                started = CLAIM_STARTED[0]
+                started = pids._ps("lstart", os.getpid())
                 recorded = "%d\n%s\n" % (os.getpid(), started)
                 with open(pid_file, "w") as handle:
                     handle.write(recorded)

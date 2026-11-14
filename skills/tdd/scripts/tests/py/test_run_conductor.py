@@ -2337,13 +2337,20 @@ def test_cli_a_launch_whose_run_worktree_does_not_exist_yet_records_the_conducto
     cwd.mkdir()
     pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
 
+    in_child = []
+
     def running_the_child_setup(args, *rest, **kwargs):
         if list(args)[:1] == ["ps"] and "lstart=" in list(args):
             asked.append(list(args)[-1])
-            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+            start = "Tue Oct 27 13:40:15 2026" if in_child else "Tue Oct 27 13:40:12 2026"
+            return subprocess.CompletedProcess(args, 0, stdout=start + "\n", stderr="")
         if list(args)[:1] == ["fake-claude"]:
             if kwargs.get("preexec_fn") is not None:
-                kwargs["preexec_fn"]()
+                in_child.append(True)
+                try:
+                    kwargs["preexec_fn"]()
+                finally:
+                    in_child.clear()
             seen.append(pid_file.read_text() if pid_file.is_file() else None)
         return answer(args, *rest, **kwargs)
 
@@ -2352,7 +2359,8 @@ def test_cli_a_launch_whose_run_worktree_does_not_exist_yet_records_the_conducto
 
     code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
 
-    assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
+    assert (code, seen, asked) == (
+        0, ["%d\nTue Oct 27 13:40:15 2026\n" % os.getpid()], [str(os.getpid()), str(os.getpid())])
 
 
 def test_cli_with_help_as_the_issue_exits_2_with_the_usage_line_creates_no_run_worktree_and_never_launches_claude_3218(
@@ -2402,13 +2410,20 @@ def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of
     cwd.mkdir()
     pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
 
+    in_child = []
+
     def running_the_child_setup(args, *rest, **kwargs):
         if list(args)[:1] == ["ps"] and "lstart=" in list(args):
             asked.append(list(args)[-1])
-            return subprocess.CompletedProcess(args, 0, stdout="Tue Oct 27 13:40:12 2026\n", stderr="")
+            start = "Tue Oct 27 13:40:15 2026" if in_child else "Tue Oct 27 13:40:12 2026"
+            return subprocess.CompletedProcess(args, 0, stdout=start + "\n", stderr="")
         if list(args)[:1] == ["fake-claude"]:
             if kwargs.get("preexec_fn") is not None:
-                kwargs["preexec_fn"]()
+                in_child.append(True)
+                try:
+                    kwargs["preexec_fn"]()
+                finally:
+                    in_child.clear()
             seen.append(pid_file.read_text() if pid_file.is_file() else None)
         return answer(args, *rest, **kwargs)
 
@@ -2416,7 +2431,8 @@ def test_cli_a_launch_records_the_conductors_ps_start_time_on_the_second_line_of
 
     code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
 
-    assert (code, seen, asked) == (0, ["%d\nTue Oct 27 13:40:12 2026\n" % os.getpid()], [str(os.getpid())])
+    assert (code, seen, asked) == (
+        0, ["%d\nTue Oct 27 13:40:15 2026\n" % os.getpid()], [str(os.getpid()), str(os.getpid())])
 
 
 def test_cli_a_launch_whose_conductor_pid_file_names_a_live_process_exits_non_zero_naming_that_pid_launches_no_claude_and_leaves_the_file_unchanged_3633(
@@ -2745,6 +2761,41 @@ def test_cli_a_launch_whose_pid_file_names_a_dead_pid_is_not_refused_and_has_cla
     code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     assert (code, seen) == (0, [("%d\nFri Nov 13 22:10:53 2026\n" % os.getpid()).encode()]), err
+
+
+def test_cli_the_pid_file_the_forked_child_records_names_the_childs_own_pid_and_its_own_start_time_not_the_launchers_at_claim_3774(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    fake_claude_exiting(monkeypatch, 0, 0)
+    answer, recorded, in_child = subprocess.run, [], []
+    launcher_start, child_start = "Fri Nov 13 22:10:53 2026", "Fri Nov 13 22:10:56 2026"
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    pid_file = cwd / ".tdd" / "wt" / "4242" / ".tdd" / "conductor.pid"
+
+    def forking_a_child_that_started_later(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["ps"] and "lstart=" in args:
+            start = child_start if in_child else launcher_start
+            return subprocess.CompletedProcess(args, 0, stdout=start + "\n", stderr="")
+        if args[:1] == ["fake-claude"]:
+            if kwargs.get("preexec_fn") is not None:
+                in_child.append(True)
+                try:
+                    kwargs["preexec_fn"]()
+                finally:
+                    in_child.clear()
+            recorded.append(pid_file.read_text() if pid_file.exists() else None)
+        return answer(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", forking_a_child_that_started_later)
+
+    code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+
+    assert (code, recorded) == (0, ["%d\n%s\n" % (os.getpid(), child_start)]), err
 
 
 def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records_the_veri_run_n_directory_and_the_launchers_pid_under_tdd_issue_2183(
