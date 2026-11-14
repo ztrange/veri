@@ -3,6 +3,8 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import subprocess
 import sys
+import tempfile
+import time
 
 USAGE = "usage: preflight.sh <n> <slug>"
 
@@ -20,8 +22,8 @@ STEPS = [
 SCRIPTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 
-def run_script(name, *args, cwd=None):
-    proc = subprocess.run([name, *args], capture_output=True, text=True, cwd=cwd)
+def run_script(name, *args, cwd=None, env=None):
+    proc = subprocess.run([name, *args], capture_output=True, text=True, cwd=cwd, env=env)
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -29,8 +31,8 @@ def label(name, *args):
     return " ".join([os.path.basename(name), *args])
 
 
-def call(name, *args, cwd=None):
-    code, out, err = run_script(name, *args, cwd=cwd)
+def call(name, *args, cwd=None, env=None):
+    code, out, err = run_script(name, *args, cwd=cwd, env=env)
     sys.stdout.write(label(name, *args) + " exit " + str(code) + "\n" + out)
     sys.stderr.write(err)
     return code, out, err
@@ -62,6 +64,26 @@ def main(argv):
     if os.path.exists(marker):
         os.remove(marker)
     call(os.path.join(SCRIPTS, "unlabel-issue.sh"), n, cwd=wt)
+    call(os.path.join(SCRIPTS, "worktree-setup.sh"), n, cwd=wt)
+    _, body, _ = call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt)
+    fd, body_file = tempfile.mkstemp(prefix="veri-preflight-body-")
+    with os.fdopen(fd, "w") as f:
+        f.write(body)
+    call(os.path.join(SCRIPTS, "requirements-preflight.sh"), body_file, cwd=wt)
+    detect = os.path.join(SCRIPTS, "detect-test-command.sh")
+    env = dict(os.environ, VERI_ISSUE=n)
+    _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
+    fast = fast.strip()
+    detach = os.path.join(SCRIPTS, "detach-command.sh")
+    call(detach, "start", "preflight-fast-" + n, fast, cwd=wt, env=env)
+    call(detach, "wait", "preflight-fast-" + n, cwd=wt, env=env)
+    _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
+    full = full.strip()
+    call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
+    began = time.monotonic()
+    call(detach, "start", "preflight-full-" + n, full, cwd=wt, env=env)
+    call(detach, "wait", "preflight-full-" + n, cwd=wt, env=env)
+    call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
     return 0
 
 
