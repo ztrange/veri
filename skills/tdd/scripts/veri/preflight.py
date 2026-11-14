@@ -7,6 +7,9 @@ import sys
 import tempfile
 import time
 
+import tunables
+from ledger import ledger_path
+
 USAGE = "usage: preflight.sh <n> <slug>"
 
 
@@ -20,7 +23,7 @@ STEPS = [
     (7, "size the hard timeout"),
 ]
 
-SCRIPTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+SCRIPTS = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 
 
 def script(name):
@@ -77,10 +80,10 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n, slug = argv
-    if os.path.exists(os.path.join(".tdd", "wt", n, ".tdd", "issue-%s.md" % n)):
+    if os.path.exists(ledger_path(os.path.join(".tdd", "wt", n), n)):
         sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
         return 2
-    env = dict(os.environ, VERI_ISSUE=n)
+    env = tunables.with_values(VERI_ISSUE=n)
     detect = script("detect-test-command.sh")
     resumed_wt = os.path.abspath(os.path.join(".tdd", "wt", n))
     pending = pending_in(resumed_wt, n)
@@ -156,11 +159,11 @@ def main(argv):
     _, branch, _ = call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         call(script("refactor-budget.sh"), *args, cwd=wt)
-    if "plan" in os.environ.get("VERI_SKIP_VERIFY", "").replace(",", " ").split():
+    if "plan" in tunables.read("VERI_SKIP_VERIFY").replace(",", " ").split():
         return stopped(5, "VERI_SKIP_VERIFY", 2)
-    if os.environ.get("VERI_STEP_GROWTH") == "":
+    if tunables.read("VERI_STEP_GROWTH", "unset") == "":
         return stopped(5, "VERI_STEP_GROWTH", 2)
-    if not os.environ.get("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
+    if not tunables.read("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
     call(script("step-budget.sh"), cwd=wt)
     call(script("adjudicate.sh"), "--check-budget", cwd=wt)
