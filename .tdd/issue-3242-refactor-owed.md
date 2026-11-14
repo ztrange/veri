@@ -6,3 +6,4 @@
 - the `.tdd` directory path (`main_tree(os.getcwd())`) is computed in both the `marker` and `recovered` branches and could be hoisted into a helper
 ### `reset-wait.sh idle coord <seconds>` whose recorded `transcript` (the `transcript=` field of the role's state file) was last written `<seconds>` or more before the injected clock's now prints `idle coord <seconds>` and exits 0; a small in-process case in `skills/tdd/scripts/tests/py/unit/test_reset_wait.py`, the clock and the sleep injected, no real wait ⟦criterion 3⟧
 - extract a helper for the `os.path.join(main_tree(os.getcwd()), ".tdd")` line repeated in all three modes
+applied | 321b36838b10300032a3106c5be91c9abc0beea1 | the `.tdd` directory path (`main_tree(os.getcwd())`) is computed in both the `marker` and `recovered` branches and could be hoisted into a helper	fix: reset_wait reads VERI_POLL through tunables, as main's guard requires (#3242)
