@@ -172,3 +172,27 @@ def test_issue_3242_recovered_coord_keeps_waiting_through_a_state_file_with_no_r
 
     assert (code, out) == (0, "recovered coord 2026-11-12T10:03:10\n")
     assert len(naps) == 3
+
+
+def test_issue_3242_recovered_coord_with_lane_waits_on_the_lane_marker_and_lane_recovered_at_not_the_plain_roles(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-coord").write_text("2026-11-12T09:00:00\n")
+    (tdd / "reset-request-coord-a").write_text("2026-11-12T10:00:00\n")
+    (tdd / "role-coord.state").write_text("recovered-at=2026-11-12T09:30:00\n")
+
+    def nap(seconds):
+        (tdd / "role-coord-a.state").write_text(
+            "reset-at=2026-11-12T10:00:00\nrecovered-at=2026-11-12T10:04:00\n")
+        (tdd / "reset-request-coord-a").unlink()
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: 1_000_000.0)
+    monkeypatch.setattr(time, "monotonic", lambda: 1_000_000.0)
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait, "main_tree", lambda cwd: str(tmp_path), raising=False)
+
+    code, out, _ = run_cli(reset_wait, ["recovered", "coord", "--lane", "a", "60"])
+
+    assert (code, out) == (0, "recovered coord 2026-11-12T10:04:00\n")
