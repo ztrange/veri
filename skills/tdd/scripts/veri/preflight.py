@@ -149,6 +149,8 @@ def main(argv):
     call("gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
     for args in (("0",), ("--issue", "0")):
         call(os.path.join(SCRIPTS, "refactor-budget.sh"), *args, cwd=wt)
+    if "plan" in os.environ.get("VERI_SKIP_VERIFY", "").replace(",", " ").split():
+        return stopped(5, "VERI_SKIP_VERIFY", 2)
     if os.environ.get("VERI_STEP_GROWTH") == "":
         return stopped(5, "VERI_STEP_GROWTH", 2)
     if not os.environ.get("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
