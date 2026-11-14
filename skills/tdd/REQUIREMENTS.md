@@ -641,6 +641,7 @@
 | BL48 | `repair-reroutes-exhausted`: a step's `WRONG_TEST` naming no case took its `repair` once more after the free reroute, and the next such report still names no case; a **process** failure. | The red was repaired twice and the green still calls it wrong without naming it, so the human decides. |
 | BL49 | `unpinnable-missing`: a missing-reroute's demanded case is green on the before-state and cannot be pinned; a **process** failure. | The tests cannot pin the criterion; the plumbing worked. |
 | BL50 | The cause list has a bullet for a skill-edit step whose runner refused with exit 2 and a refusal message: cause `skill-edit-refused`, a **process** failure that names the refusal; a bare exit 2 with no refusal message stays the `no-verdict` system failure. | `classify-bail.sh` listed no process cause for a skill-edit refusal, so a bad issue read as `system` (#3584). |
+| BL51 | `BAIL.md` names the cause `prep-owed`: the bail when `add-ledger-step.sh` refuses, with exit 1, the step a `prep` answer asks for, a process failure whose comment names the cases the step was to update. | Every cause the procedure can bail with is named where bails are described. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
