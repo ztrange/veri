@@ -245,3 +245,30 @@ def test_3771_i_red_baseline_wait_exit_1_stops_at_3_with_no_later_call_no_flake_
     assert "baseline-full-tier.sh" not in [n for n, _ in calls]
     assert "event.sh" not in [n for n, _ in calls]
     assert all("--alone" not in a for _, a in calls)
+
+
+def test_3771_j_baseline_wait_exit_3_makes_no_later_call_exits_3_and_ends_on_waiting_on_the_run_name(monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, "make unit\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            return 3, "still running\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    start = next(a for b, a in calls if b == "detach-command.sh" and a[0] == "start")
+    assert code == 3
+    assert calls[-1] == ("detach-command.sh", ("wait", start[1]))
+    assert out.splitlines()[-1] == "waiting on " + start[1]
