@@ -9,7 +9,7 @@ whether CI stands in for the branch's own full run: run `$S/branch-suite.sh` at 
 "under `VERI_BRANCH_SUITE=local`" or "under `VERI_BRANCH_SUITE=ci`", the mode is the one that script printed, never the environment read directly.
 Under `VERI_BRANCH_SUITE=ci` the branch gets no local full run here and no `full-tier-time.sh` record: go on to sub-step 1, and the first
 `wait-ci.sh` of sub-step 2 is the branch's full-suite verdict, its first red appending the `⟦ci-repair⟧` step as any CI red does; a run that
-comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the rest of this opening applies. The full suite
+comes back here after that step's cycle makes no local full run either. Under `VERI_BRANCH_SUITE=local` the two sentences that follow apply. The full suite
 must be green before this step: each time the run enters this step, run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` once,
 in the same start-then-wait shape as the preflight baseline — the branch's own full-suite gate, since every leaf runs the fast
 command, the affected suites, or both. A run that comes back here after a repair step's cycle runs it again. That nothing is left uncommitted and no step is still only
@@ -75,7 +75,7 @@ branch under `VERI_REBASED_TIP_SUITE=local`, this step's own run under `VERI_BRA
 full run was made on the head being readied (the branch's own is not run, and sub-step 1 either did not rebase or ran under
 `VERI_REBASED_TIP_SUITE=ci`), no `⟦full-suite⟧` line is ticked before `pr-ready.sh`: tick them, and each line's issue criterion, in the
 way described next once sub-step 2's first `wait-ci.sh` exits 0, and commit the ledger before the `metrics:` commit, so the push and the
-second `wait-ci.sh` that follow that commit carry the tick. A CI that is red, timed out or unread ticks nothing, and neither does a `wait-ci.sh` exit 0 whose `.tdd/wait-ci.err` says the PR `has no checks`: no run proved anything, so the line stays unchecked and the PR body says so. A local rebased-tip run made after the PR was readied (the conflict rebase of sub-step 2 under `VERI_REBASED_TIP_SUITE=local`) changes nothing here: the tick still waits for the next `wait-ci.sh` exit 0. Tick each with `tick-ledger.sh`, handed the literal
+second `wait-ci.sh` that follow that commit carry the tick. A CI that is red, timed out or unread ticks nothing, and neither does a `wait-ci.sh` exit 0 whose `.tdd/wait-ci.err` says the PR `has no checks`: no run proved anything, so the line stays unchecked. A local rebased-tip run made after the PR was readied (the conflict rebase of sub-step 2 under `VERI_REBASED_TIP_SUITE=local`) changes nothing here: the tick still waits for the next `wait-ci.sh` exit 0. Tick each with `tick-ledger.sh`, handed the literal
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
@@ -243,7 +243,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    # Only under VERI_BRANCH_SUITE=ci when no ⟦full-suite⟧ line was ticked before pr-ready.sh, and only when .tdd/wait-ci.err does not say `has no checks`
    # (CI's green run is the proof): tick each ⟦full-suite⟧ line and its issue criterion as the ⟦full-suite⟧ paragraph above describes, then
-   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"
+   #   git add .tdd/issue-<n>.md && git commit -m "plan: the full suite is green on CI (#<n>)"      # only when a line was ticked: with none there is nothing to commit
    # In every other case skip this: the lines were ticked before readying, or nothing proved them.
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md; metrics=$?
