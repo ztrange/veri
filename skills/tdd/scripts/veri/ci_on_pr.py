@@ -21,7 +21,7 @@ def trigger_lines(text):
 
 
 def declared():
-    """"0", "1", or "" when unset or empty; a ValueError carrying the one-line refusal on anything else."""
+    """VERI_CI_ON_PR as set: `0`, `1`, or the empty string when unset or empty; a ValueError carrying the one-line refusal on anything else."""
     raw = tunables.read("VERI_CI_ON_PR")
     if raw not in ("", "0", "1"):
         raise ValueError("VERI_CI_ON_PR '%s' is not 0 or 1" % raw)

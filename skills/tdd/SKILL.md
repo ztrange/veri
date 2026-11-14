@@ -1477,6 +1477,8 @@ hatch.
   `detect-test-command.sh --tier all`'s command, run through `detach-command.sh` at the Draft PR step — the
   branch's own full run, again after each `⟦suite-repair⟧` step a red result adds, and under
   `VERI_REBASED_TIP_SUITE=local` one more on the rebased tip when sub-step 1 rebased the branch.
+  Under `VERI_BRANCH_SUITE=ci` (what `$S/branch-suite.sh` prints where a workflow triggers on pull
+  requests) no local full run of the branch is made: CI's run on the readied PR, read by `wait-ci.sh`, is the branch's full run.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying

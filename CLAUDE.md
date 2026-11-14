@@ -167,7 +167,9 @@ affected suites; a revise leaf runs the tiers of the phase it redoes. `make test
 **full suite**, runs once per PR before the PR is readied, again per repair step a red result
 appends (#539), and on the rebased tip if the Draft PR step rebased (#1026) — unless
 `rebased-tip-suite.sh` prints `ci`, the default where a workflow triggers on pull requests, which
-leaves that tip's run to CI.
+leaves that tip's run to CI. Where `branch-suite.sh` prints `ci`, by the same default, the run before
+readying is not made either: CI's run on the readied PR is the PR's full suite, and a red one gets
+the one `⟦ci-repair⟧` step.
 
 Tests inject rather than wait on a real model or clock: `CLAUDE_BIN` swaps in a stub,
 `VERI_HEARTBEAT` / `VERI_TOOL_IDLE` / `VERI_TIMEOUT` / `VERI_STUCK_RETRIES` shrink the supervisor's windows,
