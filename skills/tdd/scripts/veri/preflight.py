@@ -38,6 +38,12 @@ def call(name, *args, cwd=None, env=None):
     return code, out, err
 
 
+def detached(name, cmd, wt, env):
+    detach = os.path.join(SCRIPTS, "detach-command.sh")
+    call(detach, "start", name, cmd, cwd=wt, env=env)
+    call(detach, "wait", name, cwd=wt, env=env)
+
+
 def main(argv):
     if len(argv) != 2:
         sys.stderr.write(USAGE + "\n")
@@ -74,15 +80,12 @@ def main(argv):
     env = dict(os.environ, VERI_ISSUE=n)
     _, fast, _ = call(detect, "--tier", "fast", "--issue", body_file, wt, cwd=wt)
     fast = fast.strip()
-    detach = os.path.join(SCRIPTS, "detach-command.sh")
-    call(detach, "start", "preflight-fast-" + n, fast, cwd=wt, env=env)
-    call(detach, "wait", "preflight-fast-" + n, cwd=wt, env=env)
+    detached("preflight-fast-" + n, fast, wt, env)
     _, full, _ = call(detect, "--tier", "all", "--issue", body_file, wt, cwd=wt)
     full = full.strip()
     call(os.path.join(SCRIPTS, "baseline-full-tier.sh"), n, full, cwd=wt)
     began = time.monotonic()
-    call(detach, "start", "preflight-full-" + n, full, cwd=wt, env=env)
-    call(detach, "wait", "preflight-full-" + n, cwd=wt, env=env)
+    detached("preflight-full-" + n, full, wt, env)
     call(os.path.join(SCRIPTS, "full-tier-time.sh"), "--record", str(int(time.monotonic() - began)), full, cwd=wt)
     return 0
 
