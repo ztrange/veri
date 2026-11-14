@@ -9,3 +9,10 @@ ICAgICAgICAgICAgICAgICAgICAgICAgICAgIG9zLnJlbW92ZShwYXRoKQ==
 command 165
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3793_release_with_no_other_holder_removes_every_token_of_its_owner_and_frees_the_lock
 
+before 40
+01c856da4b92172e037953dad99ac23c8c8df283
+keep 57
+skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py
+command 179
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_merge_lock_owner.py::test_3793_second_release_by_the_previous_owner_leaves_the_token_of_the_holder_that_took_over_mid_release
+
