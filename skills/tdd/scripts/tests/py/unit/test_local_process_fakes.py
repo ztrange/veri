@@ -104,7 +104,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_structural_predicate_cli.py": "not inventoried",
     "unit/test_supervise_launch_failure.py": "not inventoried",
     "unit/test_tests_frozen.py": "not inventoried",
-    "unit/test_tick_ledger.py": "detect-test-command, captures env",
     "unit/test_unlabel_issue.py": "gh label read/claim log",
     "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
     "unit/test_watch_runs.py": "not inventoried",
