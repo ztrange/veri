@@ -1,8 +1,6 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import base64
 import contextlib
-import glob
 import hashlib
 import os
 import shutil
@@ -14,36 +12,9 @@ import sys
 from pathlib import Path
 
 import event
+import mutation_record
 from event_log import run_keeping_journal
 from ledger import ledger_path
-
-
-def records(text):
-    out, i = [], 0
-    while i < len(text):
-        if text[i] == "\n":
-            i += 1
-            continue
-        record = {}
-        while i < len(text) and text[i] != "\n":
-            end = text.index("\n", i)
-            name, size = text[i:end].split()
-            record[name] = text[end + 1:end + 1 + int(size)]
-            i = end + 2 + int(size)
-        for name in ("old", "new", "context"):
-            if name + "-b64" in record:
-                record[name] = base64.b64decode(record.pop(name + "-b64")).decode()
-        out.append(record)
-    return out
-
-
-def encoded(record):
-    out = {}
-    for k, v in record.items():
-        if k in ("old", "new", "context"):
-            k, v = k + "-b64", base64.b64encode(v.encode()).decode()
-        out[k] = v
-    return out
 
 
 def current_wrapper(command):
@@ -95,7 +66,7 @@ def git_out(*args):
 
 
 def tick_commit(ledger):
-    number = Path(ledger).name.removeprefix("issue-").removesuffix("-mutations.md")
+    number = mutation_record.number(ledger)
     return subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger_path(".", number)],
                           capture_output=True, text=True).stdout.strip()
 
@@ -188,7 +159,7 @@ def recheck(argv, looks):
         sys.stderr.write("usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
         return 2
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
-    found = [(f, r) for f in sorted(glob.glob(".tdd/issue-*-mutations.md")) for r in records(Path(f).read_text())]
+    found = [(f, r) for f in mutation_record.paths() for r in mutation_record.records(Path(f).read_text())]
     for f, r in found:
         if "before" not in r and "file" not in r:
             sys.stderr.write(f"unparseable mutation record in {f}: {r}\n")
@@ -224,8 +195,7 @@ def recheck(argv, looks):
             retired += 1
             event.append("", {}, "pin-retired", [f"reason={reason}"])
             pin["retired"] = reason
-            Path(ledger).write_text("".join(
-                "".join(f"{k} {len(v)}\n{v}\n" for k, v in encoded(r).items()) + "\n" for f, r in found if f == ledger))
+            Path(ledger).write_text("".join(mutation_record.format_record(r.items()) for f, r in found if f == ledger))
             continue
         named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
         gone = [n for n in named if n.split("::")[0] in deleted]
