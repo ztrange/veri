@@ -1624,15 +1624,8 @@ def test_2195_after_a_full_run_releases_the_lock_the_lock_file_names_no_pid(pyte
     assert "pid" not in open(pytest_leg.full_lock_path()).read()
 
 
-def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
-    def sysctl_answer(argv, *args, **kwargs):
-        assert list(argv) == ["sysctl", "-n", "hw.physicalcpu"]
-        return subprocess.CompletedProcess(argv, 0, stdout="8\n", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", sysctl_answer)
-    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, fake_processes):
+    fake_processes.answers({"sysctl -n hw.physicalcpu": (0, "8\n", "")}, exact=True)
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1648,14 +1641,8 @@ def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_coun
     assert (alone, beside_six) == (8, 2)
 
 
-def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_count_less_the_live_legs_workers_never_the_physical_core_count(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
-    def sysctl_answer(argv, *args, **kwargs):
-        return subprocess.CompletedProcess(argv, 0, stdout="4\n", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", sysctl_answer)
-    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_count_less_the_live_legs_workers_never_the_physical_core_count(pytest_leg, monkeypatch, tmp_path, fake_processes):
+    fake_processes.answers({"sysctl": (0, "4\n", "")})
     monkeypatch.setattr(os, "cpu_count", lambda: 12)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 12, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(12)), raising=False)
@@ -1671,14 +1658,8 @@ def test_2386_off_macos_with_no_worker_count_the_budget_is_the_cpu_affinity_coun
     assert (alone, beside_five) == (12, 7)
 
 
-def test_2386_on_macos_a_set_worker_count_is_used_as_given_even_above_the_physical_core_count(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
-    def sysctl_answer(argv, *args, **kwargs):
-        return subprocess.CompletedProcess(argv, 0, stdout="8\n", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", sysctl_answer)
-    monkeypatch.setattr(subprocess, "check_output", lambda argv, *a, **k: sysctl_answer(argv).stdout)
+def test_2386_on_macos_a_set_worker_count_is_used_as_given_even_above_the_physical_core_count(pytest_leg, monkeypatch, tmp_path, fake_processes):
+    fake_processes.answers({"sysctl": (0, "8\n", "")})
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1690,14 +1671,8 @@ def test_2386_on_macos_a_set_worker_count_is_used_as_given_even_above_the_physic
     assert pytest_leg.worker_count("12") == 12
 
 
-def test_2386_on_macos_with_no_sysctl_on_the_path_the_budget_falls_back_to_the_cpu_count_instead_of_crashing(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
-    def no_sysctl(argv, *args, **kwargs):
-        raise FileNotFoundError(2, "No such file or directory", "sysctl")
-
-    monkeypatch.setattr(subprocess, "run", no_sysctl)
-    monkeypatch.setattr(subprocess, "check_output", no_sysctl)
+def test_2386_on_macos_with_no_sysctl_on_the_path_the_budget_falls_back_to_the_cpu_count_instead_of_crashing(pytest_leg, monkeypatch, tmp_path, fake_processes):
+    fake_processes.answers({"sysctl": FileNotFoundError(2, "No such file or directory", "sysctl")})
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(16)), raising=False)
@@ -1710,9 +1685,7 @@ def test_2386_on_macos_with_no_sysctl_on_the_path_the_budget_falls_back_to_the_c
     assert pytest_leg.worker_count(None) == 16
 
 
-def test_2397_on_a_mac_whose_sysctl_runs_and_fails_with_empty_stdout_the_worker_count_falls_back_to_the_affinity_count(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
+def test_2397_on_a_mac_whose_sysctl_runs_and_fails_with_empty_stdout_the_worker_count_falls_back_to_the_affinity_count(pytest_leg, monkeypatch, tmp_path, fake_processes):
     legs = tmp_path / "legs"
     legs.mkdir()
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
@@ -1720,13 +1693,11 @@ def test_2397_on_a_mac_whose_sysctl_runs_and_fails_with_empty_stdout_the_worker_
     monkeypatch.setattr(sys, "platform", "darwin")
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(8)), raising=False)
     monkeypatch.setattr(os, "cpu_count", lambda: 8)
-    monkeypatch.setattr(pytest_leg.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="sysctl: failed"))
+    fake_processes.answers({"sysctl": (1, "", "sysctl: failed")})
     assert pytest_leg.worker_count(None) == 8
 
 
-def test_2397_on_a_mac_whose_sysctl_exits_0_with_non_numeric_stdout_the_worker_count_falls_back_to_the_affinity_count(pytest_leg, monkeypatch, tmp_path):
-    import subprocess
-
+def test_2397_on_a_mac_whose_sysctl_exits_0_with_non_numeric_stdout_the_worker_count_falls_back_to_the_affinity_count(pytest_leg, monkeypatch, tmp_path, fake_processes):
     legs = tmp_path / "legs"
     legs.mkdir()
     monkeypatch.setenv("VERI_PYTEST_LEGS", str(legs))
@@ -1734,5 +1705,5 @@ def test_2397_on_a_mac_whose_sysctl_exits_0_with_non_numeric_stdout_the_worker_c
     monkeypatch.setattr(sys, "platform", "darwin")
     monkeypatch.setattr(os, "sched_getaffinity", lambda pid: set(range(8)), raising=False)
     monkeypatch.setattr(os, "cpu_count", lambda: 8)
-    monkeypatch.setattr(pytest_leg.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(argv, 0, stdout="not a number\n", stderr=""))
+    fake_processes.answers({"sysctl": (0, "not a number\n", "")})
     assert pytest_leg.worker_count(None) == 8
