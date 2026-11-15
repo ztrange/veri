@@ -660,12 +660,14 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
     sys.path.insert(0, str(standin))
     del sys.modules["event_log"]
     try:
+        importlib.reload(sys.modules["run_activity"])
         importlib.reload(status)
         decoy_code = status.main(["--scope", "cogs-label"])
         decoy = capsys.readouterr().out
     finally:
         sys.path.remove(str(standin))
         sys.modules["event_log"] = real_event_log
+        importlib.reload(sys.modules["run_activity"])
         importlib.reload(status)
 
     assert (text_code, text, json_code, figures, decoy_code, decoy) == (
