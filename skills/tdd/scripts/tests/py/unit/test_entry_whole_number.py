@@ -21,3 +21,18 @@ def test_the_minimum_defaults_to_one():
     entry = importlib.import_module("veri.entry")
 
     assert (entry.whole_number("0"), entry.whole_number("1")) == (None, 1)
+
+
+def test_a_digit_string_past_the_interpreters_int_conversion_limit_is_none_not_an_error():
+    import sys
+
+    entry = importlib.import_module("veri.entry")
+    limit = sys.get_int_max_str_digits()
+    sys.set_int_max_str_digits(4300)
+    try:
+        answers = [entry.whole_number("9" * 5000), entry.whole_number("9" * 5000, 0), entry.whole_number("9" * 4300)]
+    finally:
+        sys.set_int_max_str_digits(limit)
+
+    assert answers[:2] == [None, None]
+    assert answers[2] == int("9" * 4300)
