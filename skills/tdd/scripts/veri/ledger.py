@@ -39,8 +39,8 @@ BEFORE_STATE_GREEN = re.compile(
 
 
 def ledger_path(run_dir, issue):
-    """One-line delegate of run_dir.ledger, kept only because wrong_test_route.py (owned by an open PR) still calls it;
-    delete it, and its tests, once that module calls run_dir.ledger."""
+    """One-line delegate of run_dir.ledger. Its only caller is wrong_test_route.py (line 312, owned by open PR #3792);
+    delete it, and its tests (test_ledger.py, test_wrong_test_route.py), once #3792 lands and that module calls run_dir.ledger."""
     return run_ledger(run_dir, issue)
 
 
