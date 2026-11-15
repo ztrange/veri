@@ -196,7 +196,7 @@ def issue_of(branch):
 
 
 def took_by_this_lane(issue):
-    opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+    opt_in = tunables.get("VERI_LABEL")
     return tunables.taken_label(opt_in) in github.gh_issue_view(issue, "labels").split("\n")
 
 

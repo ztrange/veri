@@ -607,7 +607,7 @@ def fold(issue, path, ledger):
                 issue_wall=awake_span_or_wall(tally.opening, ending, clocked),
                 asleep=None if awake_span is None or wall_span is None else max(0, wall_span - awake_span),
                 steps_done=counted(len(tally.recovered) + full_suite), planned=planned,
-                lane=tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent"),
+                lane=tunables.get("VERI_LABEL", unless_empty=True),
                 flaked=[name for mark in marks if mark.get("event") == "suite-flake"
                         for name in str(mark.get("files", "")).split(",")],
                 pinned=pinned,

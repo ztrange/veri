@@ -37,7 +37,7 @@ def scope_label():
     """The opt-in label, or None when VERI_LABEL is set but empty."""
     if refused_if_empty("VERI_LABEL"):
         return None
-    return tunables.read("VERI_LABEL", "ready-for-agent")
+    return tunables.get("VERI_LABEL")
 
 
 def priority_label():

@@ -190,7 +190,7 @@ def done_fields(path, ts, awake):
         fields.append(b"wall_seconds=%d" % wall)
     if span is not None:
         fields.append(b"awake_seconds=%d" % span)
-    fields.append(b"lane=" + os.fsencode(tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
+    fields.append(b"lane=" + os.fsencode(tunables.get("VERI_LABEL", unless_empty=True)))
     return fields
 
 
@@ -241,7 +241,7 @@ def state_labels(event, issue):
             github.gh_issue_remove_label(issue, "pr-ready")
         elif event == b"resume":
             github.gh_issue_remove_label(issue, "bailed")
-            opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+            opt_in = tunables.get("VERI_LABEL")
             github.gh_issue_add_label(issue, tunables.taken_label(opt_in))
             github.gh_issue_remove_label(issue, opt_in)
         elif event == b"start":

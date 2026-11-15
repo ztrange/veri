@@ -73,7 +73,7 @@ def push_access_row():
 
 
 def label_row():
-    label = tunables.read("VERI_LABEL", "ready-for-agent")
+    label = tunables.get("VERI_LABEL")
     if not label:
         return "label", "VERI_LABEL is set but empty: name a label or leave VERI_LABEL unset"
     listed = gh("label", "list", "--json", "name")

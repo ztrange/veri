@@ -25,7 +25,7 @@ def main(argv):
         return entry.refuse(usage="usage: unlabel-issue.sh <issue-number>")
     if not argv[0].isdecimal():
         return _refuse("issue number must be numeric, got '%s'" % argv[0])
-    opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+    opt_in = tunables.get("VERI_LABEL")
     label = urllib.parse.quote(opt_in, safe="")
     read = github.gh_api("repos/{owner}/{repo}/issues/%s/labels" % argv[0], stderr=subprocess.PIPE)
     if read.returncode != 0:
