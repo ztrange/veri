@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 
+import git
 import ledger
 import renamed_case
 import replaces_case
@@ -674,8 +675,10 @@ def rerecord_rebased(ledger, pre):
     except FileNotFoundError:
         return 3
     os.chdir(_toplevel())
-    upstream = os.fsdecode(subprocess.run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
-                                          stdout=subprocess.PIPE, check=True).stdout).strip()
+    default = git.default_branch(remote=False)
+    if default is None:
+        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None, "no refs/remotes/origin/HEAD")
+    upstream = "origin/" + default
     refused, missing, stale = [], [], False
     try:
         earlier = list(_earlier_records(lines, "", strict=True))
