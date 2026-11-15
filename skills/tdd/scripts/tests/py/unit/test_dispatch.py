@@ -13,6 +13,12 @@ _USAGE_LINE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --targ
 _OVERLAP = ("skills/tdd/scripts/veri/dispatch.py", "https://github.com/o/r/pull/90")
 
 
+def _tick(live, gone=True, alive=()):
+    """One poll of a world whose run 7 closes with a Done comment; <gone>: it has no worktree (yet or any more)."""
+    return {"live": live, "queue": ["12"], "closing": {"7": "done 7 https://github.com/o/r/pull/9"},
+            "alive": list(alive), **({"no_worktree": ["7"]} if gone else {})}
+
+
 @pytest.fixture
 def dispatch():
     return importlib.import_module("veri.dispatch")
@@ -878,386 +884,124 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
 
 
 def test_main_exits_2_naming_the_vanished_run_and_prints_no_closing_line_when_a_live_conductor_exits_leaving_no_worktree(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], [], []]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick([]), _tick([]))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 6:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = None
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
+    assert (code, world.said, world.complained) == (2, [], ["run 7 vanished: no worktree left behind\n"])
 
 
 def test_main_does_not_exit_2_vanished_and_keeps_watching_when_the_worktree_and_conductor_are_back_after_the_grace_wait_issue_3635(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    live = {"now": ["7"]}
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick([]), _tick(["7"], gone=False), _tick(["7"], gone=False),
+                      _tick(["7"], gone=False))
 
-    def live_conductors():
-        current = live["now"]
-        if len(waits) == 0:
-            live["now"] = []
-        return current
+    code = dispatch.main(["--target", "1"], world=world)
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
-            live["now"] = ["7"]
-        if len(waits) == 6:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == ("looping", "", "")
+    assert (code, world.said, world.complained) == (None, [], [])
 
 
-@pytest.mark.parametrize("lives, events, expected", [
-    ([["7"], [], [], []], {3: "mk"}, (0, "done 7 https://github.com/o/r/pull/9\n", "")),
-    ([["7"], [], [], ["7"]], {}, (2, "", "run 7 vanished: no worktree left behind\n")),
-    ([["7"], [], [], [], [], ["7"]], {3: "mk", 4: "rm", 6: "mk"}, ("looping", "", "")),
+@pytest.mark.parametrize("ticks, expected", [
+    ([_tick(["7"]), _tick([]), _tick([]), _tick([], gone=False), _tick([], gone=False)],
+     (0, ["done 7 https://github.com/o/r/pull/9\n"], [])),
+    ([_tick(["7"]), _tick([]), _tick([]), _tick(["7"])],
+     (2, [], ["run 7 vanished: no worktree left behind\n"])),
+    ([_tick(["7"]), _tick([]), _tick([]), _tick([], gone=False), _tick([]), _tick([]), _tick([], gone=False)],
+     (None, [], [])),
 ], ids=["worktree-back-conductor-gone", "conductor-live-worktree-absent", "recovered-then-gone-again"])
 def test_main_exits_2_vanished_after_the_grace_wait_only_while_the_worktree_stays_absent_and_regrants_grace_after_recovery_issue_3635(
-        monkeypatch, capsys, tmp_path, dispatch, lives, events, expected):
-    (tmp_path / ".tdd").mkdir()
-    wt = tmp_path / ".tdd" / "wt" / "7"
-    calls = []
-    waits = []
+        dispatch, ticks, expected):
+    world = FakeWorld(*ticks)
 
-    def live_conductors():
-        calls.append(1)
-        return lives[min(len(calls), len(lives)) - 1]
+    code = dispatch.main(["--target", "1"], world=world)
 
-    def wait():
-        waits.append(1)
-        action = events.get(len(waits))
-        if action == "mk":
-            wt.mkdir(parents=True)
-        elif action == "rm":
-            wt.rmdir()
-        if len(waits) == 7:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == expected
+    assert (code, world.said, world.complained) == expected
 
 
 def test_main_still_exits_2_vanished_when_the_worktree_is_still_absent_at_the_recheck_after_the_grace_wait_issue_3635(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], [], [], ["7"]]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick([]), _tick(["7"]))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 6:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
+    assert (code, world.said, world.complained) == (2, [], ["run 7 vanished: no worktree left behind\n"])
 
 
 def test_main_does_not_exit_2_vanished_and_keeps_watching_across_polls_while_the_run_conductor_process_is_alive_in_preflight_with_no_worktree_issue_3693(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], []]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), *(_tick([], alive=["7"]) for _ in range(7)))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 8:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == ("looping", "", "")
+    assert (code, world.said, world.complained) == (None, [], [])
 
 
 def test_main_launches_nothing_at_target_1_while_a_seen_run_is_in_preflight_with_its_conductor_process_alive_and_no_worktree_issue_3693(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], []]
-    launches = []
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), *(_tick([], alive=["7"]) for _ in range(3)))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 4:
-            raise _StopWaiting
+    dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
-
-    assert launches == []
+    assert world.launched == []
 
 
 def test_main_counts_a_preflight_run_as_one_held_slot_across_five_polls_so_every_poll_still_launches_at_target_3_issue_3693(
-        monkeypatch, tmp_path, dispatch):
-    lives = [["7"], []]
-    launches = []
-    waits = []
+        dispatch):
+    queue = ["12", "15", "18", "21", "24", "27"]
+    world = FakeWorld({**_tick(["7"]), "queue": queue},
+                      *({**_tick([], alive=["7"]), "queue": queue[polls:]} for polls in range(1, 5)))
 
-    def launch(issue):
-        launches.append(issue)
-        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
-        ledger.parent.mkdir(parents=True)
-        ledger.write_text("- [ ] step\n")
+    dispatch.main(["--target", "3"], world=world)
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 5:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15", "18", "21", "24", "27"] if i not in launches],
-                        raising=False)
-    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "3"])
-
-    assert launches == ["12", "15", "18", "21", "24"]
+    assert world.launched == ["12", "15", "18", "21", "24"]
 
 
 def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_exists_and_no_run_conductor_process_is_alive_issue_3693(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], []]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), *(_tick([]) for _ in range(7)))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 8:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: [])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
+    assert (code, world.said, world.complained) == (2, [], ["run 7 vanished: no worktree left behind\n"])
 
 
 def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_exists_and_only_another_issues_conductor_process_is_alive_issue_3693(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], []]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), *(_tick([], alive=["9"]) for _ in range(7)))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 8:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["9"])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == (2, "", "run 7 vanished: no worktree left behind\n")
+    assert (code, world.said, world.complained) == (2, [], ["run 7 vanished: no worktree left behind\n"])
 
 
 def test_main_exits_2_vanished_only_after_two_fresh_absent_polls_when_the_run_conductor_process_was_alive_in_preflight_between_absences_issue_3693(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    polls = []
-    alive_in_preflight = {3}
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick([], alive=["7"]), _tick([]), _tick([]), _tick([]))
 
-    def live_conductors():
-        polls.append(1)
-        return ["7"] if len(polls) == 1 else []
+    code = dispatch.main(["--target", "1"], world=world)
 
-    def wait():
-        if len(polls) > 12:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes",
-                        lambda: ["7"] if len(polls) in alive_in_preflight else [])
-    monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### \u2705 Done \u2014 https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, len(polls), captured.out, captured.err) == (
-        2, 5, "", "run 7 vanished: no worktree left behind\n")
+    polls = [read for read in world.reads if read[0] == "live"]
+    assert (code, len(polls), world.said, world.complained) == (
+        2, 5, [], ["run 7 vanished: no worktree left behind\n"])
 
 
 def test_main_does_not_exit_or_report_vanished_and_keeps_looping_when_a_run_with_no_worktree_is_absent_for_one_pass_then_live_again_issue_3345(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], [], ["7"]]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick(["7"]))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == ("looping", "", "")
+    assert (code, world.said, world.complained) == (None, [], [])
 
 
 def test_main_does_not_exit_or_report_vanished_when_a_run_with_no_worktree_is_absent_once_live_again_then_absent_once_more_issue_3345(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    lives = [["7"], [], ["7"], []]
-    waits = []
+        dispatch):
+    world = FakeWorld(_tick(["7"]), _tick([]), _tick(["7"]), _tick([]))
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 4:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "last_comment",
-                        lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = "looping"
-
-    captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == ("looping", "", "")
+    assert (code, world.said, world.complained) == (None, [], [])
 
 
 def test_main_prints_merge_failed_with_the_pr_url_and_exits_0_when_a_running_queued_merge_ends_with_the_pr_not_merged(
@@ -1561,26 +1305,10 @@ def test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty
 
 
 def test_main_with_target_0_and_a_live_run_that_exits_prints_its_done_line_and_exits_0_launching_nothing_issue_3520(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd" / "wt" / "7").mkdir(parents=True)
-
+        dispatch):
     def run(target):
-        lives = [[], ["7"], []]
-        launches = []
-
-        monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-        monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-        monkeypatch.setattr(dispatch, "live_conductors",
-                            lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
-        monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-        monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-        monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-        monkeypatch.setattr(dispatch, "last_comment",
-                            lambda issue: "### ✅ Done — https://github.com/o/r/pull/9\n\nbody", raising=False)
-        monkeypatch.setattr(dispatch, "wait", lambda: None, raising=False)
-
-        code = dispatch.main(["--target", target])
-        return code, capsys.readouterr().out, launches
+        world = FakeWorld(*(_tick(live, gone=False) for live in ([], ["7"], [])))
+        return dispatch.main(["--target", target], world=world), "".join(world.said), world.launched
 
     done = "done 7 https://github.com/o/r/pull/9\n"
     assert (run("0"), run("1")) == ((0, done, []), (0, done, ["12"]))
