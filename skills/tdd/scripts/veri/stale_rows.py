@@ -55,7 +55,7 @@ def grade(unit, rows):
             f.write("## %s\n\n%s\n" % (unit, rows))
         out = io.StringIO()
         with contextlib.redirect_stdout(out), reading_default_branch():
-            code = grade_prose.main([path, unit])
+            code = grade_prose.grade_unit(path, unit)
     return code, out.getvalue()
 
 
