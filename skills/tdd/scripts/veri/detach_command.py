@@ -86,7 +86,7 @@ def _refused(argv):
         return True
     if argv[0] == "start":
         return len(argv) < 3
-    return len(argv) > 2 and argv[2] != "" and not re.fullmatch("[0-9]+", argv[2])
+    return len(argv) > 2 and argv[2] != "" and entry.whole_number(argv[2], minimum=0) is None
 
 
 def main(argv):
