@@ -2,7 +2,6 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import sys
-import traceback
 
 import entry
 import event
@@ -57,6 +56,7 @@ def harvest(name, env):
         no_usage_event(name, "%s is a directory" % log)
         return 2
     except Exception:
+        import traceback
         traceback.print_exc()
         return 1
     role = leaf_role.leaf_role(name)
