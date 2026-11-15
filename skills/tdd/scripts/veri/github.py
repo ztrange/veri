@@ -29,6 +29,28 @@ class NoAnswer(Exception):
         self.answer = answer
         self.detail = detail
 
+    @property
+    def kind(self):
+        """refusal_kind of the detail, else of the answer when that is what carries gh's words."""
+        return refusal_kind(self.detail or str(self.answer))
+
+
+_RATE_LIMIT_MARKERS = ("rate limit",)
+_RATE_LIMIT_HEADERS = ("retry-after", "x-ratelimit-remaining: 0")
+_TRANSIENT_MARKERS = ("HTTP 5", "error connecting to api.github.com")
+
+
+def refusal_kind(text):
+    """What kind of refusal gh's stderr <text> describes: "rate-limit" (the words `rate limit`, or a
+    Retry-After or exhausted X-RateLimit-Remaining header), "transient" (an HTTP 5xx, or no connection
+    to api.github.com), else "refused". A rate limit outranks a transient marker in the same text."""
+    lowered = text.lower()
+    if any(m in text for m in _RATE_LIMIT_MARKERS) or any(m in lowered for m in _RATE_LIMIT_HEADERS):
+        return "rate-limit"
+    if any(m in text for m in _TRANSIENT_MARKERS):
+        return "transient"
+    return "refused"
+
 
 def _gh_api_said(path):
     """gh api <path> with its stderr captured and still written to ours, so a caller can read why it failed."""
@@ -465,7 +487,7 @@ def _retry_refused(call, stream):
     while True:
         done = call()
         text = getattr(done, stream) or ""
-        marked = "rate limit" in text or "retry-after" in text.lower() or "x-ratelimit-remaining: 0" in text.lower()
+        marked = refusal_kind(text) == "rate-limit"
         if done.returncode == 0 or not marked:
             return done
         if refusals >= refusal_retries():
@@ -525,7 +547,7 @@ def gh_pr_ready(number, head_sha=""):
         ccr_err = ccr.stdout.rstrip("\n")
         if _api_graphql_ready(number):
             return
-    for err in sorted((gql_err, ccr_err), key=lambda err: "rate limit" in err):
+    for err in sorted((gql_err, ccr_err), key=lambda err: refusal_kind(err) == "rate-limit"):
         if err:
             print(err, file=sys.stderr)
     raise NoAnswer("")
