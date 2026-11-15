@@ -17,7 +17,7 @@ import run_end
 from pid_file import live_conductor
 from run_activity import activity
 from event_log import read_events, usage_totals
-from ledger import ledger_path, ledger_steps
+from ledger import ledger_steps
 import run_dir
 import tunables
 import role_state
@@ -146,7 +146,7 @@ def render(as_json, scope, read_states=True):
         run = run.rstrip("/")
         branch = branch_of(run)
         activity = ""
-        ledger = ledger_path(run, os.path.basename(run))
+        ledger = run_dir.ledger(run, os.path.basename(run))
         has_ledger = os.path.isfile(ledger)
         text = ""
         if has_ledger:
@@ -476,7 +476,7 @@ def recover_runs():
     for run in glob.glob(os.path.join(run_dir.worktrees(run_dir.main_tree(missing="")), "*")):
         n = os.path.basename(run)
         try:
-            with open(ledger_path(run, n)) as f:
+            with open(run_dir.ledger(run, n)) as f:
                 heading = f.readline().rstrip("\n")
         except FileNotFoundError:
             continue
