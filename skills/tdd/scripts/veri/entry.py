@@ -10,6 +10,9 @@ exit_code(main, argv, on_broken_pipe=silence_stdout)
 refuse(*lines, usage=None, prefix="")
                          writes each non-None str/bytes line to stderr as prefix + line + newline, then
                          usage (a newline added only if it lacks one); returns 2.
+no_arguments(argv, usage)
+                         for a script that takes none: returns None when argv is empty, else refuses (returns 2)
+                         with "<shim>: unexpected argument '<first>'" and then usage.
 to_contract(code)        returns code when it is 0, 1, 2 or 3, else 2 (signals, values above 3, None).
 write(stream, text, *, before=True, after=True, end="\n")
                          writes str or bytes text plus end to stream.buffer as raw bytes, flushing the
@@ -60,6 +63,14 @@ def refuse(*lines, usage=None, prefix=""):
         data = usage if isinstance(usage, bytes) else os.fsencode(usage)
         write(sys.stderr, data, end="" if data.endswith(b"\n") else "\n")
     return 2
+
+
+def no_arguments(argv, usage):
+    """Return None when argv is empty; else refuse the first argument, naming the script usage opens with, and return 2."""
+    if not argv:
+        return None
+    script = usage[usage.index("usage: ") + len("usage: "):].split()[0]
+    return refuse(f"{script}: unexpected argument '{argv[0]}'", usage=usage)
 
 
 def to_contract(code):

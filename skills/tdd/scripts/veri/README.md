@@ -56,6 +56,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `refusal(main, exc)`: the one-line `<shim>: <Type>: <reason> (at file:line)` text for an exception.
 - `silence_stdout()`: points fd 1 at `/dev/null`; ignores failure.
 - `refuse(*lines, usage=None, prefix="")`: writes each str/bytes line (prefixed) and then the usage to stderr; returns 2. The one way to refuse.
+- `no_arguments(argv, usage)`: for a script that takes none, `None` when `argv` is empty, else refuses (2) naming the first argument, then the usage.
 - `to_contract(code)`: the code when it is 0, 1, 2 or 3, else 2.
 
 ## git
