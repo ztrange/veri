@@ -32,22 +32,16 @@ def test_main_returns_2_with_empty_stdout_when_origin_is_unreachable_or_origin_h
     assert [line for line in unreachable_calls if line.startswith("gh")] == []
 
 
-def fake_git(monkeypatch, answers):
-    """subprocess.run answering each git command from <answers>, a list of
+def fake_git(fake_processes, answers):
+    """fake_processes answering each git command from <answers>, a list of
     (words the command line holds, exit code, stdout); an unlisted command exits 0 silently."""
-    def fake_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        code, out = 0, ""
+    def answer(line, **_):
         for words, answer_code, answer_out in answers:
             if all(word in line.split(" ") for word in words):
-                code, out = answer_code, answer_out
-                break
-        if kwargs.get("check") and code != 0:
-            raise subprocess.CalledProcessError(code, args, out, "")
-        text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
-        return subprocess.CompletedProcess(args, code, out if text else out.encode(), "" if text else b"")
+                return answer_code, answer_out, ""
+        return 0, "", ""
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    return fake_processes(answer)
 
 
 def sweep_answers(remotes, locals_):
@@ -70,13 +64,13 @@ def sweep_answers(remotes, locals_):
 
 
 def test_main_prints_remote_findings_then_local_findings_and_returns_3_when_there_are_none(
-        monkeypatch, tmp_path, capsys):
+        monkeypatch, tmp_path, capsys, fake_processes):
     invisible_work = importlib.import_module("veri.invisible_work")
     (tmp_path / "issues.json").write_text('[{"number": 7, "state": "open"}]')
     (tmp_path / "prs.json").write_text("[]")
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
 
-    fake_git(monkeypatch, sweep_answers(
+    fake_git(fake_processes, sweep_answers(
         "refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n"
         "refs/remotes/origin/tdd/007-x aaaa\nrefs/remotes/origin/zeta bbbb\n",
         "refs/heads/feature cccc\nrefs/heads/main 1111\n"
@@ -84,7 +78,7 @@ def test_main_prints_remote_findings_then_local_findings_and_returns_3_when_ther
     found = invisible_work.main([])
     found_out = capsys.readouterr()
 
-    fake_git(monkeypatch, sweep_answers(
+    fake_git(fake_processes, sweep_answers(
         "refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n",
         "refs/heads/main 1111\n"))
     nothing = invisible_work.main([])
@@ -117,7 +111,7 @@ def test_main_returns_2_with_the_gh_diagnostic_when_a_veri_gh_json_fixture_is_mi
 
 
 def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_back_to_rest_pages(
-        monkeypatch, tmp_path, capsys):
+        monkeypatch, tmp_path, capsys, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     invisible_work = importlib.import_module("veri.invisible_work")
     issues_rest = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
@@ -132,23 +126,18 @@ def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_bac
     def fake_subprocess(gh_answers):
         calls = []
 
-        def fake_run(args, **kwargs):
-            args = [str(a) for a in args]
-            line = " ".join([os.path.basename(args[0])] + args[1:])
+        def answer(line, **kwargs):
+            args = [str(a) for a in processes.argvs[-1]]
             if os.path.basename(args[0]) == "gh":
                 calls.append(["gh"] + args[1:])
                 code, out = gh_answers.get(tuple(args[1:]), (0, ""))
-            else:
-                code, out = 0, ""
-                for words, answer_code, answer_out in git_answers:
-                    if all(word in line.split(" ") for word in words):
-                        code, out = answer_code, answer_out
-                        break
-            text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
-            return subprocess.CompletedProcess(args, code, out if text else out.encode(),
-                                               "" if text else b"")
+                return code, out, ""
+            for words, answer_code, answer_out in git_answers:
+                if all(word in line.split(" ") for word in words):
+                    return answer_code, answer_out, ""
+            return 0, "", ""
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         return calls
 
     (tmp_path / "issues.json").write_text('[{"number": 7, "state": "OPEN"}]')
@@ -218,10 +207,10 @@ def test_main_exits_2_never_1_after_reaching_gh_when_its_rest_call_fails_with_a_
 
 
 def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_malformed_answer(
-        monkeypatch, tmp_path, capsys):
+        monkeypatch, tmp_path, capsys, fake_processes):
     invisible_work = importlib.import_module("veri.invisible_work")
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
-    fake_git(monkeypatch, [
+    fake_git(fake_processes, [
         (["rev-list", "--count", "origin/main..refs/remotes/origin/closed-pr"], 0, "5\n"),
         (["rev-list", "--count", "origin/main..refs/remotes/origin/merged-pr"], 0, "6\n"),
         (["rev-list", "--count", "refs/heads/done"], 0, "7\n"),
@@ -261,11 +250,10 @@ def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_mal
             invisible_work.main([])
 
 
-def fake_git_passing_stderr(monkeypatch, answers):
+def fake_git_passing_stderr(fake_processes, answers):
     """fake_git, with each answer also carrying git's stderr, written to sys.stderr unless the
     caller redirected it: a list of (words the command line holds, exit code, stdout, stderr)."""
-    def fake_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **kwargs):
         code, out, err = 0, "", ""
         for words, answer_code, answer_out, answer_err in answers:
             if all(word in line.split(" ") for word in words):
@@ -273,14 +261,14 @@ def fake_git_passing_stderr(monkeypatch, answers):
                 break
         if "stderr" not in kwargs and not kwargs.get("capture_output"):
             sys.stderr.write(err)
-        text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
-        return subprocess.CompletedProcess(args, code, out if text else out.encode(), "" if text else b"")
+            err = ""
+        return code, out, err
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    return fake_processes(answer)
 
 
 def test_main_resolves_the_default_branch_from_each_ls_remote_shape_when_origin_head_is_unset(
-        monkeypatch, tmp_path, capsys):
+        monkeypatch, tmp_path, capsys, fake_processes):
     invisible_work = importlib.import_module("veri.invisible_work")
     (tmp_path / "issues.json").write_text("[]")
     (tmp_path / "prs.json").write_text("[]")
@@ -300,17 +288,17 @@ def test_main_resolves_the_default_branch_from_each_ls_remote_shape_when_origin_
             (["show-ref"], 1, "", ""),
         ]
 
-    fake_git_passing_stderr(monkeypatch, answers(
+    fake_git_passing_stderr(fake_processes, answers(
         0, "ref: refs/heads/trunk\tHEAD\n1111111111111111111111111111111111111111\tHEAD\n", ""))
     symref = invisible_work.main([])
     symref_out = capsys.readouterr()
 
-    fake_git_passing_stderr(monkeypatch, answers(
+    fake_git_passing_stderr(fake_processes, answers(
         0, "1111111111111111111111111111111111111111\tHEAD\n", ""))
     no_symref = invisible_work.main([])
     no_symref_out = capsys.readouterr()
 
-    fake_git_passing_stderr(monkeypatch, answers(
+    fake_git_passing_stderr(fake_processes, answers(
         128, "", "fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host\n"))
     unreachable = invisible_work.main([])
     unreachable_out = capsys.readouterr()
