@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 
+import entry
 import tunables
 
 PARKED_HEADING = "### ⏸ Parked"
@@ -36,10 +37,11 @@ def _gh_api_said(path):
 
 def wait_seconds(name, default, least):
     raw = tunables.read(name, default)
-    if not re.fullmatch(r"[0-9]+", raw) or int(raw) < least:
+    value = entry.whole_number(raw, least)
+    if value is None:
         print("%s: invalid value %r" % (name, raw), file=sys.stderr)
         raise NoAnswer("")
-    return int(raw)
+    return value
 
 
 def refusal_retries():

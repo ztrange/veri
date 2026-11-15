@@ -5,6 +5,7 @@ import contextlib
 import glob
 import importlib
 import io
+import entry
 import os
 import paths
 import pinned_scripts
@@ -50,7 +51,7 @@ def main(argv):
             return 2
     if launch_floor.bash_refusal("run-conductor") or launch_floor.python_refusal("run-conductor"):
         return 2
-    if not argv or not re.fullmatch(r"[0-9]+", argv[0], re.ASCII) or int(argv[0]) == 0:
+    if not argv or entry.whole_number(argv[0]) is None:
         sys.stderr.write(USAGE + "\n")
         return 2
     live = pids.recorded_started(run_worktree(argv[0]))

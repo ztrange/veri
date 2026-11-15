@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import entry
 import event_log
 import run_dir
 import run_end
@@ -34,7 +35,7 @@ def main(argv):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
     gap = tunables.read("VERI_SLEEP_GAP", "900")
-    if not (gap.isascii() and gap.isdigit() and int(gap) >= 1):
+    if entry.whole_number(gap) is None:
         sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
         return 2
     log = event_log.path(run)

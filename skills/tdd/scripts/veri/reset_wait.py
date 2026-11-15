@@ -5,6 +5,7 @@ import sys
 import time
 
 from full_tier_time import main_tree
+import entry
 import tunables
 
 USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] [<seconds>]"
@@ -33,7 +34,7 @@ def parse(argv):
         lane, rest = rest[1], rest[2:]
     if rest and argv[0] != "marker":
         seconds, rest = rest[0], rest[1:]
-        if not (seconds.isascii() and seconds.isdigit() and int(seconds) >= 1):
+        if entry.whole_number(seconds) is None:
             return None
     if rest:
         return None

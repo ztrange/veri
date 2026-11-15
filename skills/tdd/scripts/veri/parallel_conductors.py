@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 
+import entry
 import tunables
 import traceback
 
@@ -139,7 +140,7 @@ def _finish(code):
 
 
 def _whole_number(name, value, floor):
-    if re.fullmatch(r"[0-9]+", value) and int(value) >= floor:
+    if entry.whole_number(value, floor) is not None:
         return True
     print("parallel-conductors: %s must be a whole number >= %d: '%s'" % (name, floor, value), file=sys.stderr)
     return False

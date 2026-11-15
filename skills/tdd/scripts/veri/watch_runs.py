@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 
+import entry
 import github
 import paths
 import pid_file
@@ -109,7 +110,7 @@ def _restart_pending(issue):
 
 
 def _whole_number(text):
-    return text.isascii() and text.isdigit() and int(text) >= 1
+    return entry.whole_number(text) is not None
 
 
 def main(argv):
