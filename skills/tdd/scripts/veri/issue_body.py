@@ -77,19 +77,34 @@ def blockers(body, repo):
 
 
 def add_blocker(body, new):
-    """body with `- #<new>` (new a string of digits) listed under its first `## Blocked by` heading: replacing a
-    `None.` line, after the last blocker line, or directly under the heading; a body with no such heading gains one
-    at its end."""
+    """body with `- #<new>` (new a string of digits) listed under its `## Blocked by` heading: replacing a `None.`
+    line, after the last blocker line, or under the heading; a body with no such heading gains one at its end.
+    Pinned by test_coverage_blocker: it writes into EVERY section whose heading starts with `## Blocked by`
+    (`## Blocked byproduct` too), replaces every line starting `None`, and adds its line again after the last
+    blocker line when it also replaced a `None` line; only the exact heading line counts as a heading to create
+    under. So it is not blockers()'s reading; coverage_blocker re-reads its result with blockers()."""
     blocker = "- #" + new
-    lines, fenced = _scan(body)
-    found = _spans(lines, fenced, BLOCKED_BY, False)
-    if not found:
-        return "\n".join(["## Blocked by", "", blocker] if not body else lines + ["", "## Blocked by", "", blocker])
-    start, end = found[0]
-    none = next((i for i in range(start, end) if lines[i].startswith("None")), None)
-    if none is not None:
-        lines[none] = blocker
-    else:
-        last = max((i for i in range(start, end) if lines[i].startswith("- #")), default=start - 1)
+    lines = []
+    last = None
+    in_blocked = False
+    heading = None
+    placed = False
+    for line in body.split("\n"):
+        if line.startswith("## "):
+            in_blocked = line.startswith("## Blocked by")
+            if line == "## Blocked by" and heading is None:
+                heading = len(lines)
+        if in_blocked and line.startswith("None"):
+            lines.append(blocker)
+            placed = True
+            continue
+        if in_blocked and line.startswith("- #"):
+            last = len(lines)
+        lines.append(line)
+    if last is not None:
         lines.insert(last + 1, blocker)
+    elif heading is not None and not placed:
+        lines.insert(heading + 1, blocker)
+    if not any(line == "## Blocked by" for line in lines):
+        lines = ["## Blocked by", "", blocker] if not body else lines + ["", "## Blocked by", "", blocker]
     return "\n".join(lines)

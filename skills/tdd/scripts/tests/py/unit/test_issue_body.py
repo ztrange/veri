@@ -112,5 +112,7 @@ def test_add_blocker_creates_the_section_when_the_body_has_none(ib):
         "## Blocked by\n\n- #7", "text\n\n## Blocked by\n\n- #7")
 
 
-def test_add_blocker_finds_a_heading_with_trailing_whitespace_instead_of_adding_a_second(ib):
-    assert ib.add_blocker("## Blocked by \n\n- #1\n", "7") == "## Blocked by \n\n- #1\n- #7\n"
+def test_add_blocker_writes_into_every_section_whose_heading_starts_with_it_as_coverage_blocker_pins(ib):
+    body = "## Blocked by\n\nNone.\n\n## Blocked byproduct\n\nNone.\n"
+
+    assert ib.add_blocker(body, "77") == "## Blocked by\n\n- #77\n\n## Blocked byproduct\n\n- #77\n"
