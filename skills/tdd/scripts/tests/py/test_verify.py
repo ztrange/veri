@@ -2916,7 +2916,7 @@ def test_verify_sh_green_exits_2_when_the_named_cases_check_cannot_read_the_suit
     write_inputs(tmp_path)
     answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: the named cases are gone.")
     verify = importlib.import_module("veri.verify")
-    monkeypatch.setattr(verify.replaces_case_survivors, "main", lambda argv: 2)
+    monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (2, "", ""))
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"
@@ -3001,7 +3001,7 @@ def test_verify_sh_green_returns_the_leafs_reject_with_exit_1_and_its_own_reason
     answering_leaf(monkeypatch, "VERDICT: REJECT\nREASON: the replacement asserts nothing.")
     verify = importlib.import_module("veri.verify")
     if check is not None:
-        monkeypatch.setattr(verify.replaces_case_survivors, "main", lambda argv: check)
+        monkeypatch.setattr(verify.replaces_case_survivors, "survivors", lambda step: (check, "", ""))
 
     code, out, _ = run_cli(
         verify, ["--step", "the replacement takes over: replaces 'stale first' in tests/demo.test.sh"

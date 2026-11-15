@@ -1,7 +1,6 @@
 """verify.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
-import io
 import os
 import re
 import shutil
@@ -378,25 +377,13 @@ def main(argv):
 
 
 def survivors(step):
-    stdout = sys.stdout
-    sys.stdout = io.StringIO()
-    try:
-        code = replaces_case_survivors.main([step])
-        printed = sys.stdout.getvalue().rstrip("\n")
-    finally:
-        sys.stdout = stdout
-    return (code, printed) if code in (1, 2) else (0, "")
+    code, printed, err = replaces_case_survivors.survivors(step)
+    sys.stderr.write(err)
+    return (code, printed.rstrip("\n")) if code in (1, 2) else (0, "")
 
 
 def parse(out):
-    stdin, stdout, stderr = sys.stdin, sys.stdout, sys.stderr
-    sys.stdin = io.StringIO(out.replace(b"\0", b"").decode("utf-8", "surrogateescape"))
-    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
-    try:
-        code = parse_verdict.main([])
-        return code, sys.stdout.getvalue().rstrip("\n"), sys.stderr.getvalue()
-    finally:
-        sys.stdin, sys.stdout, sys.stderr = stdin, stdout, stderr
+    return parse_verdict.verdict(out.replace(b"\0", b"").decode("utf-8", "surrogateescape"))
 
 
 if __name__ == "__main__":
