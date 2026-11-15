@@ -9,6 +9,7 @@ import event
 import git
 import grade_prose
 import requirements
+from ledger import OPEN_STEP, carries_mark
 
 USAGE = "usage: prose-owed.sh <repo-root>"
 
@@ -43,7 +44,7 @@ def owed_listed(path="REQUIREMENTS.md"):
 
 
 def waive(ledger, owed):
-    steps = [l for l in ledger.splitlines() if l.startswith("- [ ]") and "⟦skill-edit⟧" in l]
+    steps = [l for l in ledger.splitlines() if l.startswith(OPEN_STEP) and carries_mark(l, "skill-edit")]
     still, waived = [], []
     for unit in owed:
         step = next((s for s in steps if re.search(r"(?<![\w./-])" + re.escape(unit) + r"(?![\w/-]|\.\w)", s)), None)
