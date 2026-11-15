@@ -96,11 +96,11 @@ def mutations_path(ledger_path):
 
 def main(argv):
     pending, phase, owed, reason_file, case = False, None, False, None, None
-    retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
+    retire = None
     while True:
         if argv[:1] in (["--already-holds"], ["--unpinnable"]) and len(argv) > 1:
             if argv[0] == "--already-holds":
-                retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
+                retire = "already-holds"
             reason_file, argv = argv[1], argv[2:]
             continue
         if argv[:1] == ["--case"] and len(argv) > 1:
@@ -116,8 +116,29 @@ def main(argv):
     if argv[:1] == ["--case"]:
         print(USAGE, file=sys.stderr)
         return 2
+    return tick((argv or [""])[0], (argv[1:] or [""])[0], case=case, pending=pending, phase=phase, owed=owed,
+                retire=retire, reason_file=reason_file)
+
+
+def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=False, retire=None, reason_file=None):
+    """Tick the one unchecked step of the ledger at `ledger_path` that `matcher` names: what `tick-ledger.sh`
+    does once its arguments are parsed.
+
+    `case` is a test id to run first (the tick waits for it to pass); `pending` appends the `⟂ refactor pending`
+    mark; `phase` ticks one phase of a step that lists phases, `owed` marking it owed (contract phases only);
+    `retire` ("unpinnable" or "already-holds") with a non-empty `reason_file` retires the step instead, dropping
+    the mutation records whose test is gone and appending the matching `unpinnable-step` / `already-holds-step`
+    event; it needs a `case`. `pending` and `phase` do not combine.
+    Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
+    case); 2 no answer (case never ran, bad combination, unreadable ledger, no mutation record for the step's
+    go-red control, missing receipt, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to
+    tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
+    record; stderr as the script prints it.
+    """
+    retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
+    if retire == "already-holds":
+        retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
     reason_text = ""
-    matcher = (argv[1:] or [""])[0]
     if reason_file and not case:
         complain(f"{matcher}: no case is named")
         return 1
@@ -144,13 +165,13 @@ def main(argv):
     if owed and phase not in ("contract-a", "contract-b"):
         complain(f"--phase-owed {phase}: only a contract phase can be owed")
         return 2
-    if not argv or not argv[0]:
+    if not ledger_path:
         print(USAGE, file=sys.stderr)
         return 2
     try:
-        text = ledger.read_ledger(argv[0])
+        text = ledger.read_ledger(ledger_path)
     except OSError as error:
-        complain(f"{argv[0]}: {error.strerror}")
+        complain(f"{ledger_path}: {error.strerror}")
         return 2
     if phase:
         try:
@@ -174,26 +195,26 @@ def main(argv):
     before = re.search(r"mutation-probe\.sh --before ([0-9a-f]{7,40})", step_line)
     control = re.search(r"the go-red control is (\S+) at ([0-9a-f]+)", step_line)
     if before or control:
-        record = mutations_path(argv[0])
+        record = mutations_path(ledger_path)
         named = [before.group(1)] if before else [control.group(1), control.group(2)]
         if not os.path.exists(record) or not re.search(
                 "^(?:" + "|".join(map(re.escape, named)) + ")$", open(record, encoding="utf-8").read(), re.M):
             complain(f"{record}: no mutation record for the step's go-red control")
             return 2
     if tests_frozen.is_diff_checked(step_line):
-        refusal = ledger.receipt_refusal(argv[0])
+        refusal = ledger.receipt_refusal(ledger_path)
         if refusal:
-            complain(f"{argv[0]}: {refusal}")
+            complain(f"{ledger_path}: {refusal}")
             return 2
-    left = ledger.rewrite_ledger(argv[0], new)
+    left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
-        tick_added(argv[0], step_line)
+        tick_added(ledger_path, step_line)
     if left is None and reason_file:
         step = step_line
         reason = next((l[7:].strip() for l in reason_text.splitlines()
                        if l.startswith("REASON:") and l[7:].strip()), "")
-        tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(argv[0])))
-        mutations = mutations_path(os.path.abspath(argv[0]))
+        tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(ledger_path)))
+        mutations = mutations_path(os.path.abspath(ledger_path))
         if os.path.exists(mutations):
             try:
                 drop_missing_cases(mutations, tdd_parent)
@@ -205,11 +226,11 @@ def main(argv):
     if left is None:
         ticked_line = step_line
         if tests_frozen.is_diff_checked(ticked_line):
-            return tests_frozen.rerecord_earlier(argv[0], ticked_line.split("] ", 1)[1])
+            return tests_frozen.rerecord_earlier(ledger_path, ticked_line.split("] ", 1)[1])
         if pending:
             return tests_frozen.rerecord_committed(
                 ticked_line.split("] ", 1)[1].removesuffix(ledger.PENDING_MARK),
-                os.path.dirname(os.path.dirname(os.path.abspath(argv[0]))))
+                os.path.dirname(os.path.dirname(os.path.abspath(ledger_path))))
         return 0
     if left:
         complain(f"left {left} behind")
