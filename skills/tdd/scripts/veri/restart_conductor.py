@@ -132,7 +132,7 @@ def main(argv):
     if not argv or not _positive_int(argv[0]):
         print(USAGE, file=sys.stderr)
         return 2
-    knob = tunables.read("VERI_RESET_GROWTH_CONDUCTOR", "70000")
+    knob = tunables.get("VERI_RESET_GROWTH_CONDUCTOR")
     if not _positive_int(knob):
         print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
         return 2
