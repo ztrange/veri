@@ -422,6 +422,16 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `gh_pr_ready(number, head_sha="")`, `gh_pr_diff_names(number)`: mark a draft PR ready, list the paths of a PR.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `wait_seconds(name, default, least)`: an int tunable, NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
 
+## issue_body
+The one reading of a GitHub issue's markdown body: its `## <heading>` sections, acceptance criteria and blockers. Built on `markdown_sections.fenced_lines`; indexes count lines of `body.split("\n")`.
+- `spans(body, heading, *, prefix=False)`: `[(start, end)]`, the content lines under each matching heading (start the line after it, end exclusive).
+- `section(body, heading, *, prefix=False, occurrence="last")`: the text, `None` when the heading is absent. `occurrence` is `first`, `last` or `all`.
+- `criteria(body, *, prefix=False, occurrence="last")`: `[(index, line)]`, the unfenced checkbox lines (`ledger.STEP_RE`) under `## Acceptance criteria`; the k-th criterion is `[k - 1]`.
+- `blockers(body, repo)`: the issue numbers under the first `## Blocked by`, as `#<n>` or `https://github.com/<repo>/issues/<n>`; an empty `repo` reads any github.com issue URL as local.
+- `add_blocker(body, n)`: `body` with `- #<n>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
+
+A heading matches when it equals the heading once stripped (CRLF and trailing whitespace tolerated; `prefix=True` also accepts a suffix); a heading inside a fenced block is none; a section ends at the next unfenced `# ` or `## `; the last occurrence wins unless `first` or `all` is asked. Callers: `blocked_by`, `report_cache`, `tick_issue_criterion`, `ledger_steps`, `add_ledger_step`, `refresh_spec`.
+
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
 - `solvable_in_scope()`: the same for the configured scope. `priority_label()`: the label, `None` when set but empty.
