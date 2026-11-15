@@ -221,17 +221,19 @@ def red_gate_failure():
 
 
 def main(argv):
-    args = list(argv)
-    while args and (takes_a_value(args[0]) or args[0] == "--supersede-base"):
-        if len(args) < 2 or not args[1]:
-            return entry.refuse("verify: %s needs a value" % args[0], usage=USAGE)
-        args = args[2:]
-    if len(args) < 3:
+    options = {"--step": "", "--fast-cmd": "", "--supersede-base": ""}
+    words = list(argv)
+    while words and takes_a_value(words[0]):
+        if len(words) < 2 or not words[1]:
+            return entry.refuse("verify: %s needs a value" % words[0], usage=USAGE)
+        options[words[0]] = words[1]
+        words = words[2:]
+    if len(words) < 3:
         return entry.refuse(usage=USAGE)
-    leaf = "verify-" + args[0]
-    words = os.environ.get("VERIFY_LEAF_ARGS")
-    flags = leaf_args(words)
-    if words:
+    leaf = "verify-" + words[0]
+    leaf_words = os.environ.get("VERIFY_LEAF_ARGS")
+    flags = leaf_args(leaf_words)
+    if leaf_words:
         model = resolve(leaf)
         if (model and not is_echo_flag(model) and "--model" in flags
                 and (env_value("VERI_MODEL_VERIFIER") or env_value("VERI_MODEL"))):
@@ -239,11 +241,6 @@ def main(argv):
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
-    options = {"--step": "", "--fast-cmd": "", "--supersede-base": ""}
-    words = list(argv)
-    while words[:1] and words[0] in options:
-        options[words[0]] = words[1]
-        words = words[2:]
     if not all(words[:3]):
         return entry.to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
