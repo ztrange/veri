@@ -48,5 +48,6 @@ def test_no_tracked_file_outside_the_record_names_the_removed_scripts(monkeypatc
 
 
 def test_invisible_work_suite_samples_never_use_the_removed_page_name():
-    text = (SCRIPTS / "tests/py/test_invisible_work.py").read_text()
+    text = ((SCRIPTS / "tests/py/unit/test_invisible_work.py").read_text()
+            + (SCRIPTS / "tests/py/test_invisible_work_process.py").read_text())
     assert DASH not in text.lower()
