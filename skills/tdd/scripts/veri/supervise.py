@@ -53,8 +53,8 @@ def not_a_number(var, value):
     return None
 
 
-def numeric_env(var, default):
-    value = tunables.read(var, unless_empty=default)
+def numeric_env(var):
+    value = tunables.get(var, unless_empty=True)
     return value, not_a_number(var, value)
 
 
@@ -467,17 +467,17 @@ def main(argv):
                 return refused
             if not timeout or int(timeout, 10) < 1:
                 return entry.refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
-    timeout = timeout or "900"
+    timeout = timeout or tunables.default("VERI_TIMEOUT")
     kill_poll, bad = tunables.resolve("VERI_KILL_POLL")
     if bad:
         return entry.refuse(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
-    heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
+    heartbeat, refused = numeric_env("VERI_HEARTBEAT")
     if refused:
         return refused
-    tool_idle, refused = numeric_env("VERI_TOOL_IDLE", "600")
+    tool_idle, refused = numeric_env("VERI_TOOL_IDLE")
     if refused:
         return refused
-    retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
+    retries, refused = numeric_env("VERI_STUCK_RETRIES")
     if refused:
         return refused
     poll = tunables.read("VERI_POLL", unless_empty="1")
