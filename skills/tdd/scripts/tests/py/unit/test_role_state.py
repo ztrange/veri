@@ -500,3 +500,20 @@ def test_request_reset_with_only_a_torn_journal_line_since_recovery_refuses_as_n
     code, _, err = run_cli(role_state, ["dev", "request-reset"])
 
     assert (code, err) == (1, "request-reset refused: nothing launched, merged or decided since the last recovery\n")
+
+
+def test_dev_request_reset_with_an_empty_veri_reset_max_per_hour_reads_it_as_empty_and_fails_not_as_the_default_2(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    monkeypatch.setenv("VERI_RESET_MAX_PER_HOUR", "")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    state = tdd / "role-dev.state"
+    before = "recovered-at=2026-11-12T09:00:00\nreset-at=2026-11-12T09:20:00\nreset-at=2026-11-12T09:40:00\n"
+    state.write_text(before)
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, "ValueError" in err, state.read_text()) == (2, True, before)

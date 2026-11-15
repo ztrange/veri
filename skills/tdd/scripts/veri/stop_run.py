@@ -129,7 +129,7 @@ def stop_leaves(run, killed=None):
         except PermissionError:
             refused.append(int(pid))
     if termed:
-        time.sleep(float(tunables.read("VERI_STOP_KILL_GRACE") or "5"))
+        time.sleep(float(tunables.get("VERI_STOP_KILL_GRACE", unless_empty=True)))
         for group in termed:
             if killed is not None:
                 killed.append(group)
@@ -200,5 +200,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    os.chdir(tunables.read("VERI_CALLER_DIR") or ".")
+    os.chdir(tunables.get("VERI_CALLER_DIR", unless_empty=True))
     entry.run(main, sys.argv[1:])

@@ -88,7 +88,7 @@ def pid_file_path(issue):
 
 
 def preflight_and_launch(argv):
-    raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
+    raw_minimum = tunables.get("VERI_MIN_FREE_GB")
     minimum = entry.whole_number(raw_minimum, 0)
     if minimum is None:
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
@@ -105,7 +105,7 @@ def preflight_and_launch(argv):
     released = run_dir.issue_file(event.toplevel(), argv[0], "-released")
     resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1" and not os.path.exists(released)
     if not resuming:
-        for word in tunables.read("VERI_SKIP_VERIFY", "").split(","):
+        for word in tunables.get("VERI_SKIP_VERIFY").split(","):
             if word and word != "refactor":
                 sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor can)\n" % word)
                 return 2
@@ -174,7 +174,7 @@ def preflight_and_launch(argv):
             if os.path.exists(released):
                 os.remove(released)
             with open(run_dir.issue_file(event.toplevel(), argv[0], "-skip-verify"), "w") as skip:
-                listed = tunables.read("VERI_SKIP_VERIFY", "")
+                listed = tunables.get("VERI_SKIP_VERIFY")
                 skip.write(listed + "\n" if listed else "")
             with open(run_dir.issue_file(event.toplevel(), argv[0], "-baseline-full-tier"), "w") as pin:
                 pin.write(tunables.get("VERI_BASELINE_FULL_TIER") + "\n")

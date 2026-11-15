@@ -182,7 +182,7 @@ def refusal(path, lines, stamp):
             return "request-reset refused: nothing launched, merged or decided since the last recovery"
     hour_ago = epoch(stamp) - 3600
     recent = [l for l in lines if l.startswith("reset-at=") and epoch(l.split("=", 1)[1]) > hour_ago]
-    if len(recent) >= int(tunables.read("VERI_RESET_MAX_PER_HOUR", "2")):
+    if len(recent) >= int(tunables.get("VERI_RESET_MAX_PER_HOUR")):
         return "request-reset refused: %d resets in the last hour" % len(recent)
     return None
 
