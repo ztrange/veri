@@ -48,17 +48,6 @@ class Watch(NamedTuple):
     tool_idle: str = "600"
 
 
-def not_a_number(var, value):
-    if entry.whole_number(value, 0) is None:
-        return entry.refuse(f"supervise: {var} is not a number: '{value}'")
-    return None
-
-
-def numeric_env(var):
-    value = tunables.get(var, unless_empty=True)
-    return value, not_a_number(var, value)
-
-
 def write_line(path, value):
     with open(path, "w") as f:
         f.write(f"{value}\n")
@@ -281,10 +270,51 @@ def restore_production_files(before, role, env, name):
         mark(role, env, "production-file-restored", f"name={name}", f"file={path}")
 
 
-def refuse_launch(role, env, name, reason):
-    write_line(run_dir.run_file("", f"{name}.exit"), 2)
-    mark(role or "actor=supervisor", env, "launch-refused", f"name={name}", f"reason={reason}")
-    return entry.refuse(f"supervise: refusing to launch {name}: {reason}")
+class Refusal:
+    """A launch the gates refused: its stderr lines, and the side effects `perform` makes before printing them.
+
+    `exit_file` is the `.exit` path that gets `2`, or None; `journal` the `(role, env, fields)` of the one event
+    `mark` writes, or None. Every refusal exits 2.
+    """
+    __slots__ = ("lines", "exit_file", "journal")
+    code = 2
+
+    def __init__(self, *lines, exit_file=None, journal=None):
+        self.lines, self.exit_file, self.journal = lines, exit_file, journal
+
+    def __repr__(self):
+        return f"Refusal{self.lines!r} exit_file={self.exit_file!r} journal={self.journal and self.journal[2]!r}"
+
+    def perform(self):
+        """Write the `.exit` file, then the event, then the lines to stderr; return the exit code."""
+        if self.exit_file is not None:
+            write_line(self.exit_file, 2)
+        if self.journal is not None:
+            role, env, fields = self.journal
+            mark(role, env, *fields)
+        entry.refuse(*self.lines)
+        return self.code
+
+
+def launch_refused(role, env, name, reason):
+    """The refusal that writes `.exit` and a `launch-refused` event (name=, reason=)."""
+    return Refusal(f"supervise: refusing to launch {name}: {reason}", exit_file=run_dir.run_file("", f"{name}.exit"),
+                   journal=(role or "actor=supervisor", env, ("launch-refused", f"name={name}", f"reason={reason}")))
+
+
+class Launch(NamedTuple):
+    """What the attempt loop reads once every gate has let a leaf launch."""
+    name: str
+    cmd: list
+    role: str
+    model: str
+    leaf_env: dict
+    log: str
+    rcfile: str
+    exitfile: str
+    ownerfile: str
+    retries: str
+    watch: Watch
 
 
 def preserve_killed_attempt(name, attempt, env):
@@ -442,16 +472,52 @@ def step_text(issue, step):
         return None
 
 
-def main(argv):
-    ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
-    if signal.SIGINT not in ignored:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+def whole_number_refusal(var, value):
+    """`not_a_number`'s refusal as a value: the line it prints, or None."""
+    if entry.whole_number(value, 0) is None:
+        return Refusal(f"supervise: {var} is not a number: '{value}'")
+    return None
+
+
+def launch_plan(argv):
+    """May this leaf launch, and with what settings: a `Launch`, or the first gate's `Refusal`.
+
+    The gates, in the order they are tried (an input tripping two reports the first). Every refusal exits 2;
+    "journal" is one `launch-refused` event (name=, reason=), written after `.exit` and before stderr:
+
+    | # | gate                                                     | stderr (after `supervise: `)              | `.exit` | journal |
+    |---|----------------------------------------------------------|-------------------------------------------|---------|---------|
+    | 1 | no argument, or an empty name                            | the usage line alone (no prefix)          | no      | no      |
+    | 2 | a name and no command                                    | `missing <cmd>`, then the usage line      | no      | no      |
+    | 3 | VERI_TIMEOUT set, not a whole number                     | `VERI_TIMEOUT is not a number: '<v>'`     | no      | no      |
+    | 4 | no VERI_TIMEOUT, VERI_ISSUE set: the run's timeout pin   | `<pin> is not a number: '<v>'`            | no      | no      |
+    |   | (`git rev-parse --show-toplevel` finds it) not a number  |                                           |         |         |
+    | 5 | that pin empty or below 1                                | `<pin> must hold a whole number of …`     | no      | no      |
+    | 6 | VERI_KILL_POLL invalid                                   | `VERI_KILL_POLL must be <rule>: <v>`      | no      | no      |
+    | 7 | VERI_HEARTBEAT, 8 VERI_TOOL_IDLE, 9 VERI_STUCK_RETRIES   | `<VAR> is not a number: '<v>'`            | no      | no      |
+    |   | not a whole number (each in that order)                  |                                           |         |         |
+    |   | -- then: chdir to the work tree, create .tdd, read the leaf's role and model, `git -C <skill> rev-parse HEAD` |
+    | 10| VERI_STEP set but empty                                  | `refusing to launch <n>: VERI_STEP is …`  | yes     | yes     |
+    | 11| `--step` with an empty value                             | `refusing to launch <n>: --step is empty` | yes     | yes     |
+    | 12| run-leaf.sh with no prompt argument                      | `… run-leaf.sh was given no prompt …`     | yes     | yes     |
+    | 13| run-leaf.sh, prompt file missing                         | `… the prompt file <f> does not exist`    | yes     | yes     |
+    | 14| run-leaf.sh, prompt file empty                           | `… the prompt file <f> is empty`          | yes     | yes     |
+    | 15| `.tdd/stop` holds at-leaf or now                         | `… a stop (<mode>) is pending`            | yes     | yes     |
+    | 16| develop-green, the step's latest red has no verify-red   | `… step <s> has no verify-red PASS …`     | yes     | no      |
+    |   | PASS, and the step is no `⟦ci-repair⟧` step              |                                           |         |         |
+    | 17| verify-red/verify-green, work-tree hash not computable   | `… the work-tree hash could not be …`     | yes     | no      |
+    | 18| verify-red/verify-green, no current check-earlier marker | `… step <s> has no current check-earlier …` | yes   | no      |
+    | 19| `.tdd/leaf.owner` names a live other leaf                | `… leaf <o> (pid <p>) is still alive …`   | yes     | no      |
+    |   | … names a live leaf of this same name                    | the same                                  | no      | no      |
+
+    Gates 1-9 change nothing on disk; from gate 10 on the working directory is the work tree.
+    """
     if not argv or not argv[0]:
-        return entry.refuse(USAGE)
+        return Refusal(USAGE)
     if len(argv) < 2:
-        return entry.refuse("supervise: missing <cmd>", USAGE)
+        return Refusal("supervise: missing <cmd>", USAGE)
     timeout = tunables.read("VERI_TIMEOUT")
-    if timeout and (refused := not_a_number("VERI_TIMEOUT", timeout)):
+    if timeout and (refused := whole_number_refusal("VERI_TIMEOUT", timeout)):
         return refused
     issue = tunables.read("VERI_ISSUE")
     if not timeout and issue:
@@ -460,21 +526,19 @@ def main(argv):
             timeout = leaf_timeout.settled("" if top is None else top, issue) or timeout
         except leaf_timeout.Malformed as bad:
             if bad.not_a_number:
-                return entry.refuse(f"supervise: {bad.path} is not a number: '{bad.text}'")
-            return entry.refuse(f"supervise: {bad.path} must hold a whole number of seconds >= 1: '{bad.text}'")
+                return Refusal(f"supervise: {bad.path} is not a number: '{bad.text}'")
+            return Refusal(f"supervise: {bad.path} must hold a whole number of seconds >= 1: '{bad.text}'")
     timeout = timeout or tunables.default("VERI_TIMEOUT")
     kill_poll, bad = tunables.resolve("VERI_KILL_POLL")
     if bad:
-        return entry.refuse(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
-    heartbeat, refused = numeric_env("VERI_HEARTBEAT")
-    if refused:
-        return refused
-    tool_idle, refused = numeric_env("VERI_TOOL_IDLE")
-    if refused:
-        return refused
-    retries, refused = numeric_env("VERI_STUCK_RETRIES")
-    if refused:
-        return refused
+        return Refusal(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
+    numbers = []
+    for var in ("VERI_HEARTBEAT", "VERI_TOOL_IDLE", "VERI_STUCK_RETRIES"):
+        value = tunables.get(var, unless_empty=True)
+        if refused := whole_number_refusal(var, value):
+            return refused
+        numbers.append(value)
+    heartbeat, tool_idle, retries = numbers
     poll = tunables.read("VERI_POLL", unless_empty="1")
     name = argv[0]
     if top := event.toplevel():
@@ -494,43 +558,52 @@ def main(argv):
                     PYTEST_LEG_LOCK_WAIT_MARKER=full_run_lock.wait_marker(os.getpid()))
     step = tunables.read("VERI_STEP")
     if "VERI_STEP" in tunables.environment() and not step:
-        return refuse_launch(role, leaf_env, name, "VERI_STEP is set but empty")
+        return launch_refused(role, leaf_env, name, "VERI_STEP is set but empty")
     if "--step" in argv and argv[argv.index("--step") + 1:][:1] == [""]:
-        return refuse_launch(role, leaf_env, name, "--step is empty")
+        return launch_refused(role, leaf_env, name, "--step is empty")
     runs_leaf = os.path.basename(argv[1]) == "run-leaf.sh"
     if runs_leaf and len(argv) < 3:
-        return refuse_launch(role, leaf_env, name, "run-leaf.sh was given no prompt argument")
+        return launch_refused(role, leaf_env, name, "run-leaf.sh was given no prompt argument")
     if runs_leaf and not os.path.exists(argv[2]):
-        return refuse_launch(role, leaf_env, name, f"the prompt file {argv[2]} does not exist")
+        return launch_refused(role, leaf_env, name, f"the prompt file {argv[2]} does not exist")
     if runs_leaf and os.path.isfile(argv[2]) and not os.path.getsize(argv[2]):
-        return refuse_launch(role, leaf_env, name, f"the prompt file {argv[2]} is empty")
+        return launch_refused(role, leaf_env, name, f"the prompt file {argv[2]} is empty")
     stopfile = run_dir.run_file("", "stop")
     if os.path.isfile(stopfile):
         with open(stopfile) as f:
             if (mode := f.read().strip()) in ("at-leaf", "now"):
-                return refuse_launch(role, leaf_env, name, f"a stop ({mode}) is pending")
+                return launch_refused(role, leaf_env, name, f"a stop ({mode}) is pending")
+    refusing = f"supervise: refusing to launch {name}: "
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
-        write_line(exitfile, 2)
-        return entry.refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
+        return Refusal(f"{refusing}step {step} has no verify-red PASS after its latest red leaf", exit_file=exitfile)
     if name.startswith(("verify-red", "verify-green")) and not work_tree_hash():
-        write_line(exitfile, 2)
-        return entry.refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
+        return Refusal(f"{refusing}the work-tree hash could not be computed", exit_file=exitfile)
     if name.startswith(("verify-red", "verify-green")) \
             and not ((text := step_text(issue, step) if step else None) is not None and pass_marker_current(text)):
-        write_line(exitfile, 2)
-        return entry.refuse(f"supervise: refusing to launch {name}: step {step or '(unset)'} has no current check-earlier pass marker"
-                      " (run tests-frozen.sh check-earlier first)")
+        return Refusal(f"{refusing}step {step or '(unset)'} has no current check-earlier pass marker"
+                       " (run tests-frozen.sh check-earlier first)", exit_file=exitfile)
     ownerfile = run_dir.run_file("", "leaf.owner")
     owner = still_alive_owner(ownerfile)
     if owner is not None:
         owner_pid, owner_name = owner
-        if owner_name != name:
-            write_line(exitfile, 2)
-        return entry.refuse(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
-                      " is still alive in this worktree")
+        return Refusal(f"{refusing}leaf {owner_name or '?'} (pid {owner_pid}) is still alive in this worktree",
+                       exit_file=exitfile if owner_name != name else None)
+    return Launch(name, argv[1:], role, model, leaf_env, log, rcfile, exitfile, ownerfile, retries,
+                  Watch(watched, timeout, heartbeat, poll, kill_poll, tool_idle))
+
+
+def main(argv):
+    ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
+    if signal.SIGINT not in ignored:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+    plan = launch_plan(argv)
+    if isinstance(plan, Refusal):
+        return plan.perform()
+    name, cmd, role, model, leaf_env, log, rcfile, exitfile, ownerfile, retries, watch = plan
+    watched, kill_poll = watch.watched, watch.kill_poll
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
-    mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
+    mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(cmd)}", f"model={model}")
     pidfile = run_dir.run_file("", f"{name}.pid")
     tolerated(name, "write", pidfile, record, pidfile, os.getpid())
     discard(exitfile)
@@ -539,10 +612,9 @@ def main(argv):
     started = []
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
-    watch = Watch(watched, timeout, heartbeat, poll, kill_poll, tool_idle)
     tries = 0
     while True:
-        status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watch)
+        status, reason, rc, a0 = attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch)
         if status != "killed-stuck":
             break
         preserve_killed_attempt(name, tries + 1, leaf_env)
