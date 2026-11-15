@@ -1292,3 +1292,31 @@ def test_a_failed_graphql_gh_call_carries_gh_stderr_in_the_no_answer_detail_only
         github.GraphQLAdapter().list("pr", "list", "--json", "number")
 
     assert no_answer.value.detail == "gh: Service Unavailable (HTTP 503)\n"
+
+
+@pytest.mark.parametrize("text, kind", [
+    ("gh: API rate limit exceeded for user (HTTP 403)", "rate-limit"),
+    ("HTTP 403: secondary thing\nRetry-After: 30", "rate-limit"),
+    ("X-RateLimit-Remaining: 0", "rate-limit"),
+    ("HTTP 502: Bad Gateway", "transient"),
+    ("error connecting to api.github.com", "transient"),
+    ("HTTP 404: Not Found", "refused"),
+    ("", "refused"),
+])
+def test_refusal_kind_names_what_kind_of_refusal_gh_stderr_describes(github, text, kind):
+    assert github.refusal_kind(text) == kind
+
+
+def test_a_rate_limit_marker_wins_over_a_transient_one(github):
+    assert github.refusal_kind("HTTP 503 and then: rate limit exceeded") == "rate-limit"
+
+
+@pytest.mark.parametrize("answer, detail, kind", [
+    ("", "API rate limit exceeded", "rate-limit"),
+    ("API rate limit exceeded", "", "rate-limit"),
+    ("", "HTTP 503", "transient"),
+    ("", "", "refused"),
+    ("partial answer", "", "refused"),
+])
+def test_no_answer_kind_classifies_its_detail_else_its_answer(github, answer, detail, kind):
+    assert github.NoAnswer(answer, detail).kind == kind
