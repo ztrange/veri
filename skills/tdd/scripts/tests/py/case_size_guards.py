@@ -232,9 +232,9 @@ STARTS_GIT_IN_REPOSITORY_EXEMPT = {
         "the repository's own ignore rules are the subject",
     "test_prd_016_tracked_names_process.py::test_no_tracked_file_outside_specs_and_tdd_contains_veri_dash_a_renamed_skill_name":
         "the repository's own tracked files are the subject",
-    "test_skill_identity.py::test_no_tracked_file_outside_the_two_stubs_still_names_the_old_scripts_dir":
+    "test_skill_identity_process.py::test_no_tracked_file_outside_the_two_stubs_still_names_the_old_scripts_dir":
         "the repository's own tracked files are the subject",
-    "test_skill_identity.py::test_no_tracked_file_outside_the_two_stubs_names_either_old_command":
+    "test_skill_identity_process.py::test_no_tracked_file_outside_the_two_stubs_names_either_old_command":
         "the repository's own tracked files are the subject",
     "test_refactor_budget_process.py::test_no_tracked_file_outside_the_docs_and_tdd_trees_states_3_as_the_veri_issue_refactor_budget_default":
         "the repository's own tracked files are the subject",
