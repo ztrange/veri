@@ -1,10 +1,7 @@
 """GRADED and REQUIREMENTS.md files are listed by one function under skills/tdd/scripts/veri/."""
 import ast
-import pathlib
 
 import pytest
-
-VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
 
 
 def listing_sites(tree, module):
@@ -23,14 +20,13 @@ def listing_sites(tree, module):
 
 
 @pytest.mark.tree_audit("parses every module under skills/tdd/scripts/veri/ for a glob or pathspec naming GRADED or REQUIREMENTS.md")
-def test_2674_one_function_lists_graded_and_requirements_files_at_any_depth():
+def test_2674_one_function_lists_graded_and_requirements_files_at_any_depth(veri_modules_index):
     sites = set()
-    for path in sorted(VERI.glob("*.py")):
-        sites |= listing_sites(ast.parse(path.read_text(encoding="utf-8")), path.name)
+    for name in veri_modules_index.names:
+        sites |= listing_sites(veri_modules_index.tree(name), veri_modules_index.path(name).name)
     assert len(sites) == 1, f"GRADED/REQUIREMENTS.md listed by {sorted(sites)}, expected exactly one function"
 
 
 @pytest.mark.tree_audit("parses requirements.py for the glob or pathspec naming GRADED or REQUIREMENTS.md")
-def test_2702_requirements_tracked_is_found_as_the_listing_site():
-    tree = ast.parse((VERI / "requirements.py").read_text(encoding="utf-8"))
-    assert listing_sites(tree, "requirements.py") == {"requirements.py:tracked"}
+def test_2702_requirements_tracked_is_found_as_the_listing_site(veri_modules_index):
+    assert listing_sites(veri_modules_index.tree("requirements"), "requirements.py") == {"requirements.py:tracked"}
