@@ -199,17 +199,11 @@ def test_check_earlier_except_a_vitest_case_by_title_leaves_it_unreported_while_
 
 
 def test_differing_tests_counts_a_spec_ts_and_a_ts_file_under_tests_dir_as_test_files_and_not_a_plain_ts_or_d_ts_2426(
-        tmp_path, tests_frozen, monkeypatch):
+        tmp_path, tests_frozen, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
     listings = {"diff": b"src/app.spec.ts\0src/app.ts\0", "ls-files": b"src/__tests__/sum.ts\0src/types.d.ts\0"}
 
-    class Done:
-        returncode = 0
-
-        def __init__(self, stdout):
-            self.stdout = stdout
-
-    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", lambda command, **_: Done(listings[command[1]]))
+    fake_processes.answers({"git ": lambda line, **_: (0, listings[line.split()[1]], b"")})
 
     assert tests_frozen.differing_tests() == ["src/app.spec.ts", "src/__tests__/sum.ts"]
 
@@ -607,7 +601,7 @@ def test_rerecord_rebased_with_no_pre_rebase_sha_or_an_extra_argument_is_exit_2_
 
 
 def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_another_unchanged_since_head_2543(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
+        tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "test_dup.py"
     suite.write_text("def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n")
@@ -618,11 +612,7 @@ def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_anoth
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
 
-    def git_show(command, **kwargs):
-        assert command[:2] == ["git", "show"]
-        return types.SimpleNamespace(returncode=0, stdout=suite.read_bytes(), stderr=b"")
-
-    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
+    fake_processes.answers({"git show": lambda line, **kwargs: (0, suite.read_bytes(), b"")})
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -634,7 +624,7 @@ def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_anoth
 
 
 def test_check_earlier_exits_0_for_a_js_call_form_case_sharing_its_name_under_two_describes_unchanged_since_head_2543(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
+        tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "dup.test.ts"
     suite.write_text(
@@ -647,11 +637,7 @@ def test_check_earlier_exits_0_for_a_js_call_form_case_sharing_its_name_under_tw
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
 
-    def git_show(command, **kwargs):
-        assert command[:2] == ["git", "show"]
-        return types.SimpleNamespace(returncode=0, stdout=suite.read_bytes(), stderr=b"")
-
-    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
+    fake_processes.answers({"git show": lambda line, **kwargs: (0, suite.read_bytes(), b"")})
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -707,7 +693,7 @@ def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_js_call
 
 
 def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing_a_name_and_leaves_the_untouched_one_out_2543(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
+        tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "test_dup.py"
     at_head = "def test_dup():\n    assert 1 + 1 == 2\n\n\ndef test_dup():\n    assert 2 + 2 == 4\n"
@@ -717,11 +703,7 @@ def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
 
-    def git_show(command, **kwargs):
-        assert command[:2] == ["git", "show"]
-        return types.SimpleNamespace(returncode=0, stdout=at_head.encode(), stderr=b"")
-
-    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
+    fake_processes.answers({"git show": lambda line, **kwargs: (0, at_head.encode(), b"")})
     step = "step A"
     recorded = run_cli(tests_frozen, ["record", "--step", step, "test_dup.py"], cwd=tmp_path)
     record = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
@@ -847,7 +829,7 @@ def test_check_earlier_flags_an_edit_inside_the_second_of_two_js_call_form_cases
     assert (recorded, answer) == (0, (1, "dup (step A)\n"))
 
 
-def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first):
+def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, fake_processes, edited_first):
     """A step records only the twin it edited (one digest) out of two same-named twins that head holds."""
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "test_dup.py"
@@ -860,16 +842,15 @@ def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_fir
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
-    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", lambda command, **kwargs: types.SimpleNamespace(
-        returncode=0, stdout=at_head.encode(), stderr=b""))
+    fake_processes.answers({"git show": (0, at_head.encode(), b"")})
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] step A\n- [ ] step B\n")
     return suite, ledger
 
 
 def test_check_earlier_exits_0_when_a_step_recorded_only_the_first_of_two_same_named_twins_and_both_are_unchanged_2543(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first=True)
+        tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
+    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, fake_processes, edited_first=True)
     recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
     path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
     digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]
@@ -880,8 +861,8 @@ def test_check_earlier_exits_0_when_a_step_recorded_only_the_first_of_two_same_n
 
 
 def test_check_earlier_exits_0_when_a_step_recorded_only_the_second_of_two_same_named_twins_and_both_are_unchanged_2543(
-        tmp_path, run_cli, tests_frozen, monkeypatch):
-    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_first=False)
+        tmp_path, run_cli, tests_frozen, monkeypatch, fake_processes):
+    suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, fake_processes, edited_first=False)
     recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
     path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
     digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]

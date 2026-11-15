@@ -71,7 +71,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_status_report_waiting.py": "not inventoried",
     "unit/test_status_report_zone.py": "not inventoried",
     "unit/test_supervise_launch_failure.py": "not inventoried",
-    "unit/test_tests_frozen.py": "not inventoried",
     "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
     "unit/test_watch_runs.py": "not inventoried",
 }
