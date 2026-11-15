@@ -455,13 +455,10 @@ def red_awaits_pass(step):
 def ledger_step(issue, step, **rule):
     """The Step the reference `step` names in the run's ledger, or None; `rule` is ledger.step_at's.
 
-    OSError, and ValueError for a digit that int() cannot read ("²"), reach the caller. "0" names the LAST step,
-    as indexing boxes[-1] always did here (ledger.step_at names none for it).
+    OSError, and ValueError for a digit that int() cannot read ("²"), reach the caller.
     """
     with open(run_dir.ledger(".", issue)) as f:
         steps = ledger_steps(f.read())
-    if step.isdigit() and int(step) == 0 and steps:
-        step = str(len(steps))
     return step_at(steps, step, **rule)
 
 
