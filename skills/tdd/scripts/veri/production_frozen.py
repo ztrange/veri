@@ -2,15 +2,16 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import entry
 from case_reader import is_test_path
-from transform_touches_tests import changed_paths, refuse
+from transform_touches_tests import changed_paths
 
 USAGE = "usage: production-frozen.sh <base-sha>"
 
 
 def main(argv):
     if not argv:
-        return refuse(usage=USAGE)
+        return entry.refuse(usage=USAGE)
     base = argv[0]
     paths = changed_paths(base)
     if paths is None:
