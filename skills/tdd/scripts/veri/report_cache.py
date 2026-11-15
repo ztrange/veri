@@ -11,6 +11,7 @@ import tempfile
 import time
 
 import github
+import issue_body
 import tunables
 
 USAGE = "usage: report-cache.sh refresh\n"
@@ -33,8 +34,8 @@ def main_tree():
 
 
 def blocked_by(body):
-    section = re.search(r"^## Blocked by\s*\n(.*?)(?=^## |\Z)", body or "", re.M | re.S)
-    return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
+    """The issues under `## Blocked by`; no repository is known here, so any github.com issue URL reads as local."""
+    return issue_body.blockers(body or "", "")
 
 
 def links(own, body, comments):
