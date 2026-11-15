@@ -7,9 +7,45 @@ import subprocess
 import run_dir
 
 
+def listing(*, quiet=False):
+    """The process table as `ps -axo pid=,command=` prints it, one `<pid> <command line>` per line.
+
+    Whatever ps printed is the answer, whatever it exited with; `quiet` sends its stderr to /dev/null. A machine
+    without ps raises FileNotFoundError: every caller lets that propagate."""
+    return subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE,
+                          **({"stderr": subprocess.DEVNULL} if quiet else {}), text=True).stdout
+
+
+def argument_lines():
+    """Every process's arguments as `ps -axo args=` prints them, one line each.
+
+    A ps that exits non-zero raises CalledProcessError, a missing one FileNotFoundError."""
+    return subprocess.run(["ps", "-axo", "args="], capture_output=True, text=True, check=True).stdout
+
+
+def started_as(pid):
+    """The start time of <pid> as `ps -o lstart=` prints it, stripped: the text a pid file records on line 2.
+
+    A pid ps does not know answers "" (ps's exit is not read); a machine without ps raises FileNotFoundError."""
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+
+
+def pids_matching(pattern):
+    """The pids `pgrep -f <pattern>` prints, as strings in its order; none when pgrep matches nothing.
+
+    A machine without pgrep raises FileNotFoundError."""
+    return subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
+
+
+def commands_of(pids):
+    """The `<pid> <command line>` lines `ps -p <pids> -o pid=,command=` prints for those pids, in one call.
+
+    A pid ps does not know is absent from the text; a machine without ps raises FileNotFoundError."""
+    return subprocess.run(["ps", "-p", ",".join(pids), "-o", "pid=,command="], capture_output=True, text=True).stdout
+
+
 def conductors():
-    listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE, text=True).stdout
-    return re.findall(r"^\s*(\d+)\s+(?:\S*(?:python|/sh)\S*\s+)?\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
+    return re.findall(r"^\s*(\d+)\s+(?:\S*(?:python|/sh)\S*\s+)?\S*run_conductor\.py (\d+)(?=\s|$)", listing(), re.M)
 
 
 def cwd_of(pid):

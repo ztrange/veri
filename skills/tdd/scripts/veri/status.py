@@ -14,6 +14,7 @@ import time
 import paths
 import event_log
 import run_end
+import pid_file
 from pid_file import live_conductor
 from run_activity import activity
 from event_log import read_events, usage_totals
@@ -343,7 +344,7 @@ def conductor_alive(start):
         os.kill(pid, 0)
     except OSError:
         return False
-    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip() == start["started"]
+    return pid_file.started_as(pid) == start["started"]
 
 
 def sum_since(events, since, value=lambda e: 1):
@@ -436,11 +437,11 @@ def unjournaled_notes():
 
 
 def refresh_running():
-    pids = subprocess.run(["pgrep", "-f", "report-cache.sh refresh"], capture_output=True, text=True).stdout.split()
+    pids = pid_file.pids_matching("report-cache.sh refresh")
     if not pids:
         return False
     own = os.path.join(paths.resolved_scripts_of(__file__), "report-cache.sh")
-    listing = subprocess.run(["ps", "-p", ",".join(pids), "-o", "pid=,command="], capture_output=True, text=True).stdout
+    listing = pid_file.commands_of(pids)
     for m in re.finditer(r"(\S*/report-cache\.sh) refresh", listing):
         if m.group(1) == own:
             return True
