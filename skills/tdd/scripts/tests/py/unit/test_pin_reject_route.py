@@ -139,7 +139,7 @@ def test_main_missing_reroute_with_fewer_than_four_arguments_exits_2_printing_us
 
 def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_3300(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
-    monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 2)
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "tick", lambda *args, **kw: 2)
 
     code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one", TARGET])
 
@@ -148,7 +148,7 @@ def test_main_unpinnable_no_answer_exit_2_passes_through_and_prints_no_revise_33
 
 def test_main_unpinnable_no_step_matched_exit_3_passes_through_and_prints_no_revise_3300(
         tmp_path, run_cli, pin_reject_route, monkeypatch):
-    monkeypatch.setattr(pin_reject_route.tick_ledger, "main", lambda argv: 3)
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "tick", lambda *args, **kw: 3)
 
     code, out, err = run_cli(pin_reject_route, [str(tmp_path / "r.txt"), str(tmp_path / "l.md"), "a one", TARGET])
 
