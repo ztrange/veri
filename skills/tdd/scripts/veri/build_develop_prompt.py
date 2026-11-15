@@ -157,7 +157,7 @@ def main(argv):
             values["SUPERSEDED_CASES"] = os.fsencode(
                 "\n\nThe step also supersedes these older cases:" + _bullets(args[5:]))
     if phase == "refactor":
-        values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
+        values["REFACTOR_BUDGET"] = os.fsencode(tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True))
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
         text = expand_includes(_read(paths[0]), prompts_b)

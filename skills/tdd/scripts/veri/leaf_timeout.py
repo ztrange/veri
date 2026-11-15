@@ -56,7 +56,7 @@ def main(argv):
         baseline = full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
-        budget = tunables.read("VERI_REFACTOR_BUDGET") or "5"
+        budget = tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True)
         if not is_whole(budget):
             return entry.refuse(f"leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: {budget}")
         derived = derived * max(1, int(budget))
