@@ -452,7 +452,7 @@ def refresh_if_stale():
         age = snapshot_age()
     except OSError:
         return
-    if age > int(tunables.read("VERI_SNAPSHOT_MAX_AGE", "60")) and not refresh_running():
+    if age > int(tunables.get("VERI_SNAPSHOT_MAX_AGE")) and not refresh_running():
         script = os.path.join(paths.resolved_scripts_of(__file__), "report-cache.sh")
         subprocess.Popen([script, "refresh"], start_new_session=True, stdin=subprocess.DEVNULL,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -1114,3 +1114,28 @@ def test_stop_run_mode_now_does_not_term_a_supervisor_whose_pid_file_start_time_
 
     assert signalled == []
     assert (code, capsys.readouterr().err) == (0, "")
+
+
+def test_stop_leaves_waits_the_default_kill_grace_when_veri_stop_kill_grace_is_set_but_empty(monkeypatch, tmp_path, stop_run):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "fulltier.pid").write_text("777\nT0\n")
+    events = []
+    monkeypatch.setattr(stop_run.pid_file, "supervising", lambda pid, name: False)
+    monkeypatch.setattr(stop_run.pid_file, "detached", lambda pid: True)
+    fake_lstart(monkeypatch, stop_run)
+    monkeypatch.setattr(os, "killpg", lambda group, sig: events.append(("killpg", group)))
+    monkeypatch.setattr(stop_run.time, "sleep", lambda seconds: events.append(("sleep", seconds)))
+    monkeypatch.setenv("VERI_STOP_KILL_GRACE", "")
+
+    stop_run.stop_leaves(str(tmp_path))
+
+    assert events == [("killpg", 777), ("sleep", 5.0), ("killpg", 777)]
+
+
+@pytest.mark.process("python3 on veri/stop_run.py as a script, with VERI_CALLER_DIR set but empty")
+def test_stop_run_run_as_a_script_with_an_empty_veri_caller_dir_stays_in_its_directory(tmp_path):
+    ran = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "stop_run.py"), "--help"], cwd=tmp_path,
+                         env={**os.environ, "VERI_CALLER_DIR": ""}, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+
+    assert (ran.returncode, ran.stdout.startswith("usage: stop-run.sh")) == (0, True)

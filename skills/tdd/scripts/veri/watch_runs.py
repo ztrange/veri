@@ -126,7 +126,7 @@ def main(argv):
         given[flag] = int(value[0])
     target = given.get("--target")
     max_wait = given.get("--max-wait")
-    interval = tunables.read("VERI_WATCH_QUEUE_INTERVAL", "60")
+    interval = tunables.get("VERI_WATCH_QUEUE_INTERVAL")
     if not _whole_number(interval):
         print("VERI_WATCH_QUEUE_INTERVAL must be a whole number >= 1, got %r" % interval, file=sys.stderr)
         return 2

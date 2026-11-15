@@ -34,7 +34,7 @@ def main(argv):
     if not os.path.isdir(run):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
-    gap = tunables.read("VERI_SLEEP_GAP", "900")
+    gap = tunables.get("VERI_SLEEP_GAP")
     if entry.whole_number(gap) is None:
         sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
         return 2

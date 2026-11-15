@@ -74,7 +74,7 @@ def main(argv):
                 since = f.read().strip()
         except FileNotFoundError:
             return 3
-        deadline = time.monotonic() + float(seconds or tunables.read("VERI_RESET_ACK_TIMEOUT", "300"))
+        deadline = time.monotonic() + float(seconds or tunables.get("VERI_RESET_ACK_TIMEOUT"))
         while time.monotonic() < deadline:
             poll()
             at = state_field(tdd, key, "recovered-at")
@@ -87,7 +87,7 @@ def main(argv):
     if not transcript:
         print("reset-wait.sh: no transcript recorded for %s" % role, file=sys.stderr)
         return 2
-    seconds = seconds or tunables.read("VERI_RESET_IDLE", "3000")
+    seconds = seconds or tunables.get("VERI_RESET_IDLE")
     try:
         while time.time() - os.path.getmtime(transcript) < float(seconds):
             poll()

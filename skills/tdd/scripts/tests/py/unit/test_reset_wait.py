@@ -720,3 +720,48 @@ def test_issue_3242_marker_dev_with_lane_given_an_empty_value_exits_2_with_the_u
     assert (code, out) == (2, "")
     assert err.startswith("usage:") and "marker|recovered|idle" in err
     assert naps == []
+
+
+def test_recovered_with_an_empty_veri_reset_ack_timeout_reads_it_as_empty_and_fails_not_as_the_default_300(
+        tmp_path, monkeypatch, run_cli):
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
+    clock = {"now": 1_000_000.0}
+
+    def nap(seconds):
+        clock["now"] += 100
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "monotonic", lambda: clock["now"])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    code, out, err = run_cli(reset_wait, ["recovered", "dev"], env={"VERI_POLL": "1", "VERI_RESET_ACK_TIMEOUT": ""})
+
+    assert (code, out, "ValueError" in err, clock["now"]) == (2, "", True, 1_000_000.0)
+
+
+def test_idle_with_an_empty_veri_reset_idle_reads_it_as_empty_and_fails_not_as_the_default_3000(
+        tmp_path, monkeypatch, run_cli):
+    import os
+
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    transcript = tmp_path / "coord.jsonl"
+    transcript.write_text("{}\n")
+    os.utime(transcript, (1_000_000.0, 1_000_000.0))
+    (tdd / "role-coord.state").write_text("session-id=s1\ntranscript=%s\n" % transcript)
+    clock = {"now": 1_000_600.0}
+
+    def nap(seconds):
+        clock["now"] += 1000
+
+    monkeypatch.setattr(time, "sleep", nap)
+    monkeypatch.setattr(time, "time", lambda: clock["now"])
+    reset_wait = importlib.import_module("veri.reset_wait")
+    monkeypatch.setattr(reset_wait.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    code, out, err = run_cli(reset_wait, ["idle", "coord"], env={"VERI_POLL": "1", "VERI_RESET_IDLE": ""})
+
+    assert (code, out, "ValueError" in err) == (2, "", True)
