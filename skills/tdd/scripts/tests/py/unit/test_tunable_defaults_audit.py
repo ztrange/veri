@@ -44,9 +44,13 @@ def _read_of(node, names):
 
 
 def literal_defaults(source, names):
+    return literal_defaults_in(ast.parse(source), names)
+
+
+def literal_defaults_in(tree, names):
     """[(line, name)] for each read of a name in `names` that carries a literal default."""
     found = []
-    for node in ast.walk(ast.parse(source)):
+    for node in ast.walk(tree):
         name = _read_of(node, names)
         if name and (any(_is_literal(a) for a in node.args[1:]) or any(_is_literal(k.value) for k in node.keywords)):
             found.append((node.lineno, name))
@@ -87,17 +91,16 @@ def test_a_read_that_asks_tunables_or_reads_another_name_is_not_named(source):
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri")
-def test_no_module_writes_a_literal_default_for_a_name_tunables_defines():
-    from conftest import SCRIPTS
+def test_no_module_writes_a_literal_default_for_a_name_tunables_defines(veri_modules_index):
     from veri import tunables
 
     names = set(tunables.TABLE) | set(tunables.DEFAULTED)
     found = {}
-    for source in sorted((SCRIPTS / "veri").glob("*.py")):
-        if source.name == "tunables.py":
+    for module in veri_modules_index.names:
+        if module == "tunables":
             continue
-        for line, name in literal_defaults(source.read_text(), names):
-            found[(source.name, name)] = found.get((source.name, name), []) + [line]
+        for line, name in literal_defaults_in(veri_modules_index.tree(module), names):
+            found[(f"{module}.py", name)] = found.get((f"{module}.py", name), []) + [line]
 
     assert {key: lines for key, lines in found.items() if key not in EXEMPT} == {}
     assert set(EXEMPT) == set(found), "an exemption names a site that no longer writes a literal default"
