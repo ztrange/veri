@@ -1846,3 +1846,10 @@ def test_add_refuses_an_anchor_that_matches_no_single_step_with_exit_2_and_chang
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (2, "", "add-ledger-step.sh: anchor matches no single step: zzz\n")
     assert ledger.read_bytes() == LEDGER
+
+
+def test_add_refuses_an_empty_path_position_or_anchor_with_the_usage_line_and_exit_2(tmp_path, capsys, add_ledger_step):
+    for args in (("", "after", "b two"), (str(tmp_path / "l.md"), "", "b two"), (str(tmp_path / "l.md"), "after", "")):
+        code = add_ledger_step.add(*args, ["t"])
+        captured = capsys.readouterr()
+        assert (args, code, captured.out, captured.err) == (args, 2, "", USAGE)
