@@ -68,7 +68,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_merge_lock_owner.py": "not inventoried",
     "unit/test_mutation_probe.py": "wraps the red fake, records text",
     "unit/test_orchestrate.py": "not inventoried",
-    "unit/test_pin_reject_route.py": "detect-test-command answer, setup error",
     "unit/test_prose_owed_gate.py": "not inventoried",
     "unit/test_refresh_spec.py": "not inventoried",
     "unit/test_report_cache.py": "git -> 0, gh issue list JSON, 45 inline",

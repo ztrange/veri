@@ -273,9 +273,7 @@ def test_main_target_test_missing_exits_2_with_usage_naming_it_and_leaves_ledger
 
 
 def test_main_missing_reroute_bare_name_case_whose_command_fails_in_setup_prints_nothing_exits_2_and_spends_no_revise_3425(
-        tmp_path, run_cli, pin_reject_route, monkeypatch):
-    import subprocess
-
+        tmp_path, run_cli, pin_reject_route, monkeypatch, fake_processes):
     monkeypatch.undo()
     ledger = tmp_path / ".tdd" / "issue-99.md"
     ledger.parent.mkdir()
@@ -286,15 +284,7 @@ def test_main_missing_reroute_bare_name_case_whose_command_fails_in_setup_prints
     bare = "TestIssue99CheckExitsZero"
     setup_error = f"stat {tmp_path}/{bare}: directory not found\nFAIL {bare} [setup failed]\n"
 
-    def fake_run(argv, *args, **kwargs):
-        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = 'go test "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
-        return subprocess.CompletedProcess(argv, 1, stdout="" if text else b"",
-                                           stderr=setup_error if text else setup_error.encode())
-
-    monkeypatch.setattr(pin_reject_route.tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, 'go test "$1"\n', ""), "": (1, "", setup_error)})
 
     code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", bare],
                              env={"VERI_ISSUE": "99"}, cwd=tmp_path)
@@ -552,9 +542,7 @@ def test_main_reject_with_each_before_state_green_exclusion_word_is_not_before_s
 
 
 def test_main_on_a_case_that_never_ran_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617(
-        tmp_path, run_cli, pin_reject_route, monkeypatch):
-    import subprocess
-
+        tmp_path, run_cli, pin_reject_route, monkeypatch, fake_processes):
     monkeypatch.undo()
     ledger = tmp_path / ".tdd" / "issue-99.md"
     ledger.parent.mkdir()
@@ -563,15 +551,8 @@ def test_main_on_a_case_that_never_ran_exits_2_with_nothing_on_stdout_and_names_
     reason.write_text("VERDICT: REJECT\nREASON: the mutation (< 2 to < 1) stays green\n")
     case = str(tmp_path / "gone" / "test_missing.py")
 
-    def fake_run(argv, *args, **kwargs):
-        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = "stub-case-command --flag\n"
-            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
-        err = "ERROR: file or directory not found\n"
-        return subprocess.CompletedProcess(argv, 4, stdout="" if text else b"", stderr=err if text else err.encode())
-
-    monkeypatch.setattr(pin_reject_route.tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command --flag\n", ""),
+                            "": (4, "", "ERROR: file or directory not found\n")})
 
     code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", case],
                              env={"VERI_ISSUE": "99"}, cwd=tmp_path)
