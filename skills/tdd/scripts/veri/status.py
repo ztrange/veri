@@ -526,17 +526,17 @@ def recover_lock():
     return [out or "free"]
 
 
-def recover_items(role, lane, prefix):
-    return [line for line in role_state.read_lines(role, lane) or [] if line.startswith(prefix)]
+def recover_items(role, lane, *kinds):
+    return role_state.State(role_state.read_lines(role, lane) or []).items(*kinds)
 
 
 def recover_state(role, lane=None):
     lines = role_state.read_lines(role, lane)
     if lines is None:
         return ["no state file"]
-    fields = dict(line.partition("=")[::2] for line in lines)
-    return ["%s %s" % (key, fields[key]) for key in ("n", "lane", "coordinator") if key in fields] + recover_items(
-        role, lane, ("timed-n ", "override "))
+    state = role_state.State(lines)
+    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane", "coordinator") if state.field(key) is not None] + state.items(
+        "timed-n", "override")
 
 
 def recover(role, lane=None):
@@ -545,8 +545,8 @@ def recover(role, lane=None):
         return 2
     bodies = {"Runs": recover_runs, "Bailed": recover_bailed, "PRs": recover_prs, "Merge lock": recover_lock,
               "State": lambda: recover_state(role, lane),
-              "Pending decisions": lambda: recover_items(role, lane, "decision "),
-              "Pending messages": lambda: recover_items(role, lane, "message ")}
+              "Pending decisions": lambda: recover_items(role, lane, "decision"),
+              "Pending messages": lambda: recover_items(role, lane, "message")}
     try:
         sections = [(heading, bodies[heading]()) for heading in RECOVER_HEADINGS]
     except OSError as refused:
