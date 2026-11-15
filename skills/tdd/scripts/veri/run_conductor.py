@@ -1,6 +1,7 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
+import collections
 import contextlib
 import glob
 import importlib
@@ -102,9 +103,9 @@ def preflight_and_launch(argv):
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
     record = record_path(argv[0])
-    readable = os.access(record, os.R_OK)
     released = run_dir.issue_file(event.toplevel(), argv[0], "-released")
-    resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1" and not os.path.exists(released)
+    mode = pin_mode(record, released)
+    resuming = mode == "resume"
     if not resuming:
         for word in tunables.get("VERI_SKIP_VERIFY").split(","):
             if word and word != "refactor":
@@ -147,36 +148,26 @@ def preflight_and_launch(argv):
             head_rev = "refs/remotes/origin/" + default
             if not verifies(base, head_rev):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
-    resolved = git(base, "rev-parse", head_rev,
-                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    if resolved.returncode == 0:
-        commit = resolved.stdout.strip()
+    snap = skill_snapshot(base, head_rev, record, mode)
+    if snap.kind != "unpinned":
+        commit = snap.commit
         run_state = os.path.join(event.toplevel(), ".tdd")
         os.makedirs(run_state, exist_ok=True)
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
                 seed.write(run_pins.gitignore_seed())
-        if resuming:
-            try:
-                with open(record) as recorded_file:
-                    recorded = recorded_file.read().rstrip("\n")
-            except OSError:
-                recorded = ""
-            if git(base, "cat-file", "-e", recorded + "^{commit}",
-                   stderr=subprocess.DEVNULL).returncode != 0:
-                sys.stderr.write("run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
-                                 "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base))
-                return 2
-            commit = recorded
-        else:
+        if snap.kind == "refused":
+            sys.stderr.write(snap.message)
+            return snap.code
+        if snap.kind != "kept":
             with open(record, "w") as out:
                 out.write(commit + "\n")
             if os.path.exists(released):
                 os.remove(released)
             run_pins.write_skip_verify(event.toplevel(), argv[0], tunables.get("VERI_SKIP_VERIFY"))
             run_pins.write_baseline_full_tier(event.toplevel(), argv[0], tunables.get("VERI_BASELINE_FULL_TIER"))
-            if readable:
+            if snap.kind == "repin":
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
                 if event.mark(worktree, event.context(tunables.with_values(VERI_ISSUE=argv[0])),
@@ -195,6 +186,60 @@ def preflight_and_launch(argv):
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
     return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
+
+
+Snapshot = collections.namedtuple("Snapshot", "kind commit why message code")
+
+
+def pin_mode(record, released):
+    """Whether a launch resumes its pinned skill or takes the current one, from the run's files and env.
+
+    | record readable | VERI_NEW_SKILL=1 | released marker | mode       |
+    |-----------------|------------------|-----------------|------------|
+    | no              | any              | any             | "first"    |
+    | yes             | yes              | any             | "env"      |
+    | yes             | no               | exists          | "released" |
+    | yes             | no               | absent          | "resume"   |
+    """
+    if not os.access(record, os.R_OK):
+        return "first"
+    if tunables.read("VERI_NEW_SKILL", None) == "1":
+        return "env"
+    return "released" if os.path.exists(released) else "resume"
+
+
+def skill_snapshot(base, head_rev, record, mode):
+    """Which skill snapshot this run executes, decided from `mode` (see pin_mode) and git; no side effect.
+
+    Answers Snapshot(kind, commit, why, message, code), after `git rev-parse head_rev` in `base`:
+
+    | rev-parse | mode            | recorded commit in `base` | kind       | commit        | why        | effects the caller performs |
+    |-----------|-----------------|---------------------------|------------|---------------|------------|-----------------------------|
+    | fails     | any             | not looked up             | "unpinned" | None          | ""         | message, launch unpinned    |
+    | ok        | "resume"        | resolves (cat-file -e)    | "kept"     | the recorded  | ""         | seed .tdd/.gitignore        |
+    | ok        | "resume"        | does not resolve          | "refused"  | None          | ""         | seed; message on stderr, code 2 |
+    | ok        | "first"         | not looked up             | "first"    | resolved head | "first"    | seed, write pin, consume marker, other pins |
+    | ok        | "env"/"released"| not looked up             | "repin"    | resolved head | the mode   | as "first", then the skill-repin event |
+
+    An unreadable recorded file reads as "" (which does not resolve). `message` is the exact stderr text.
+    """
+    resolved = git(base, "rev-parse", head_rev,
+                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if resolved.returncode != 0:
+        return Snapshot("unpinned", None, "", "", 0)
+    commit = resolved.stdout.strip()
+    if mode != "resume":
+        return Snapshot("first" if mode == "first" else "repin", commit, mode, "", 0)
+    try:
+        with open(record) as recorded_file:
+            recorded = recorded_file.read().rstrip("\n")
+    except OSError:
+        recorded = ""
+    if git(base, "cat-file", "-e", recorded + "^{commit}",
+           stderr=subprocess.DEVNULL).returncode != 0:
+        return Snapshot("refused", None, "", "run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
+                        "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base), 2)
+    return Snapshot("kept", recorded, "", "", 0)
 
 
 def keep_pinned_scripts(snapshot, issue):
