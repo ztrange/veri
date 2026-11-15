@@ -8,6 +8,7 @@ say (empty, mid-write, non-digit, unreadable, probe denied) is the caller's call
 states each rule at its script's entry)."""
 import os
 
+import entry
 import run_dir
 
 
@@ -42,10 +43,11 @@ def in_flight(run, *, unreadable):
         return False
     except (OSError, ValueError):
         return unreadable
-    if not (text.isascii() and text.isdigit()):
+    pid = entry.whole_number(text, 0)
+    if pid is None:
         return unreadable
     try:
-        os.kill(int(text), 0)
+        os.kill(pid, 0)
     except (ProcessLookupError, OverflowError):
         return False
     except OSError:

@@ -2,6 +2,8 @@
 accepts: the same probes through every site's own refusal path, so a site that moves onto the shared check cannot
 shift what it takes."""
 import importlib
+import json
+import os
 
 import pytest
 
@@ -96,3 +98,28 @@ def test_refactor_budget_refuses_a_value_that_is_not_ascii_digits(capsys, probe,
 def test_ledger_steps_criterion_takes_its_number_only_of_ascii_digits(run_cli, probe, value):
     code, out, err = run_cli(module("ledger_steps"), ["criterion", probe], stdin="")
     assert ((code == 2 and "usage: ledger-steps.sh" in err)) is (value is None)
+
+
+@probes
+def test_full_tier_time_takes_a_stored_time_only_of_ascii_digits(tmp_path, run_cli, probe, value):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "full-tier-time.json").write_text(json.dumps({"make test": probe}))
+    code, out, err = run_cli(module("full_tier_time"), ["make test"], cwd=tmp_path)
+    assert (code, out) == ((0, probe + "\n") if value is not None else (2, ""))
+
+
+@pytest.mark.parametrize("probe, value", [(p, v) for p, v in PROBES.items() if p.strip() == p],
+                         ids=[repr(p) for p in PROBES if p.strip() == p])
+def test_restart_marker_takes_a_pid_only_of_ascii_digits(tmp_path, monkeypatch, probe, value):
+    # the marker's text is stripped before the check, so the two probes padded with whitespace are not probes of it
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "restart-pending").write_text(probe)
+    probed = []
+
+    def gone(pid, sig):
+        probed.append(pid)
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", gone)
+    answer = module("restart_marker").in_flight(str(tmp_path), unreadable="refused")
+    assert (answer, probed) == (("refused", []) if value is None else (False, [value]))

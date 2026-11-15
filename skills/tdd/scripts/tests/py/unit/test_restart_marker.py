@@ -52,6 +52,7 @@ def test_clear_removes_the_marker_and_raises_when_there_is_none(tmp_path):
     (b"\xff\xfe", "policy"),
     (DEAD_PID.encode() + b"\n", "no"),
     (b"99999999999999999999\n", "no"),
+    (b"9" * 5000 + b"\n", "policy"),
     ("live", "yes"),
 ])
 def test_in_flight_follows_the_truth_table(tmp_path, unreadable, content, expect):
