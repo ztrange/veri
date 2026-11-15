@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import typing
 import uuid
 
 import event
@@ -90,15 +91,36 @@ def read(file):
         return f.read()
 
 
-def unit_text(unit):
+def unit_text(unit, reader=None):
     file, _, heading = unit.partition("#")
-    text = read(file)
+    text = (reader or read)(file)
     return section(text, heading) if heading else text
 
 
 def signature(path, unit):
     parts = [unit_text(unit), requirements.claims(path, unit), grader_model()]
+    return stamp(parts)
+
+
+def stamp(parts):
     return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
+
+
+class Grading(typing.NamedTuple):
+    """One grading's answer. `code` is grade-prose.sh's exit (0 PASS, 1 REJECT, 2 no answer); `verdict` the grader's
+    last word; `failing` the ids of the rows it failed; `lines` what grade-prose.sh prints, the failing rows' grade
+    lines or the same-text refusal; `cost` the grader leaves' dollars; `grading_id` the `grading` event's id."""
+    code: int
+    verdict: str = None
+    failing: tuple = ()
+    lines: tuple = ()
+    cost: float = None
+    grading_id: str = None
+
+    @property
+    def out(self):
+        """The bytes grade-prose.sh writes to stdout for this grading: nothing when no answer was obtained."""
+        return "" if self.code == 2 else "\n".join(self.lines) + "\n"
 
 
 def signer():
@@ -184,7 +206,7 @@ def drop_off_list(lines, allowed):
 
 def no_verdict(detail):
     print("grade-prose.sh: no verdict obtained: %s" % detail, file=sys.stderr)
-    return 2
+    return Grading(2)
 
 
 def keeps_protocol(reply, wanted):
@@ -221,28 +243,34 @@ def convert(path):
 def main(argv):
     if argv == ["--owed"]:
         path = "REQUIREMENTS.md"
-        return max([grade_unit(p, unit) for p, unit in owed_listed(path)[0]], default=0)
+        return max([printed(grade_unit(p, unit)) for p, unit in owed_listed(path)[0]], default=0)
     if argv == ["--convert"]:
         return convert("REQUIREMENTS.md")
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
     path, unit = argv
-    return grade_unit(path, unit)
+    return printed(grade_unit(path, unit))
 
 
-def grade_unit(path, unit):
+def printed(grading):
+    sys.stdout.write(grading.out)
+    return grading.code
+
+
+def grade_unit(path, unit, read=None):
     """Grade `unit` against the requirements list `path` names: what `grade-prose.sh <path> <unit>` does.
 
-    Launches the grader leaf (retrying a reply without a verdict, and re-grading failed rows), prints the grades
-    and the verdict to stdout, signs the unit into its GRADED file on PASS, and appends a `grading` event.
-    Returns 0 PASS; 1 REJECT; 2 no answer (a grader model naming no version, no requirements list, a reply that
-    breaks the protocol, a signature disagreement)."""
+    `read(file)` answers the text of the unit's file (None: `read`, the working tree). Launches the grader leaf
+    (retrying a reply without a verdict, and re-grading failed rows), signs the unit into its GRADED file on PASS,
+    appends a `grading` event, and returns a `Grading`: code 0 PASS; 1 REJECT; 2 no answer (a grader model naming
+    no version, no requirements list, a reply that breaks the protocol, a signature disagreement), whose reason is
+    on stderr."""
     model = grader_model()
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
-        return 2
-    text = unit_text(unit)
+        return Grading(2)
+    text = unit_text(unit, read)
     claims = requirements.claims(path, unit)
     if not claims.strip():
         return no_verdict("%s has no requirements list for %s" % (path, unit))
@@ -259,7 +287,7 @@ def grade_unit(path, unit):
     except ValueError:
         print("grade-prose.sh: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '%s'"
               % raw_retries, file=sys.stderr)
-        return 2
+        return Grading(2)
     launches = {}
 
     def launch(path, retry=""):
@@ -360,14 +388,16 @@ def grade_unit(path, unit):
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
                                        "failing=" + ",".join(l.split(":")[0] for l in failed),
                                        "cost_usd=%s" % cost, "id=" + grading_id])
-    ours = signature(path, unit)
+    ours = stamp([text, claims, model])
     try:
         own = signer()
-        sig = own.signature(path, unit)
+        sig = ours if own is sys.modules[__name__] else own.signature(path, unit)
     except Exception as e:
         print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
               % (unit, ours, e), file=sys.stderr)
-        return 2
+        return Grading(2)
+    answered = dict(verdict=said[-1], failing=tuple(l.split(":")[0] for l in failed), cost=cost,
+                    grading_id=grading_id)
     rejected = os.path.join(".tdd", "grade-prose-rejected")
     if not failed:
         if os.path.exists(rejected):
@@ -375,16 +405,14 @@ def grade_unit(path, unit):
                 earlier = [l for l in f.read().splitlines()
                            if l.split(" ")[:2] == [unit, sig]]
             if earlier:
-                print("grade-prose.sh: %s was REJECTed on this same text (%s); change the text before it can be signed"
-                      % (unit, earlier[-1]))
-                return 1
+                return Grading(1, lines=("grade-prose.sh: %s was REJECTed on this same text (%s); change the text "
+                                         "before it can be signed" % (unit, earlier[-1]),), **answered)
         own.record_graded(unit, sig, grading_id)
     else:
         os.makedirs(".tdd", exist_ok=True)
         with open(rejected, "a", encoding="utf-8") as f:
             f.write("%s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id))
-    print("\n".join(failed))
-    return 1 if failed else 0
+    return Grading(1 if failed else 0, lines=tuple(failed), **answered)
 
 
 if __name__ == "__main__":
