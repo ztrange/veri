@@ -23,7 +23,6 @@ silence_stdout()         points fd 1 at /dev/null so a broken pipe cannot raise 
 """
 import os
 import sys
-import traceback
 
 BROKEN_PIPE = 141
 
@@ -34,6 +33,8 @@ def _shim_name(main):
 
 
 def refusal(main, exc):
+    import traceback  # here, not at module level: it costs about 20 ms and only an escaped exception needs it
+
     reason = " ".join(str(exc).split())
     frame = traceback.extract_tb(exc.__traceback__)[-1]
     where = f" (at {os.path.basename(frame.filename)}:{frame.lineno}"
