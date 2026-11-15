@@ -22,48 +22,20 @@ class Calls(list):
 
 
 @pytest.fixture
-def calls(monkeypatch):
-    """subprocess.run, call and Popen recording each argv; the command exits 7 unless status says otherwise."""
+def calls(fake_processes):
+    """Every way subprocess starts a process, recording each argv; the command exits 7 unless status says otherwise."""
     record = Calls()
+    fake = None
 
-    def note(args, rest, kwargs):
+    def answer(line, **kwargs):
+        args = fake.argvs[-1]
+        rest = fake.rests[-1]
         record.append([str(a) for a in args])
         if record.log is not None:
             record.log.append(("call", list(args), rest, kwargs))
+        return (record.status(args), "", "")
 
-    def fake_run(args, *rest, **kwargs):
-        note(args, rest, kwargs)
-        return subprocess.CompletedProcess(args, record.status(args))
-
-    def fake_call(args, *rest, **kwargs):
-        note(args, rest, kwargs)
-        return record.status(args)
-
-    class FakePopen:
-        def __init__(self, args, *rest, **kwargs):
-            note(args, rest, kwargs)
-            self.args = args
-            self.returncode = record.status(args)
-            self.pid = 0
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-        def poll(self):
-            return self.returncode
-
-        def communicate(self, input=None, timeout=None):
-            return None, None
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({"": answer})
     return record
 
 
