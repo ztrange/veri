@@ -87,13 +87,15 @@ def silence_stdout():
 
 def _usage(main):
     usage = main.__globals__["USAGE"]
-    return usage[usage.index("usage: "):]
+    marker = b"usage: " if isinstance(usage, bytes) else "usage: "
+    return usage[usage.index(marker):]
 
 
 def exit_code(main, argv, on_broken_pipe=silence_stdout):
     try:
         if argv == ["--help"] and "USAGE" in main.__globals__:
-            write(sys.stdout, _usage(main))
+            text = _usage(main)
+            write(sys.stdout, text, end="" if text.endswith(b"\n" if isinstance(text, bytes) else "\n") else "\n")
             return 0
         code = main(argv)
         sys.stdout.flush()
