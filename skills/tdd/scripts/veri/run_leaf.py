@@ -1,8 +1,10 @@
 """run-leaf.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import entry
 import os
 import paths
+import run_dir
 import shutil
 import signal
 import subprocess
@@ -44,7 +46,7 @@ def effective_timeout():
     issue = tunables.read("VERI_ISSUE")
     if not seconds and issue:
         with contextlib.suppress(OSError):
-            with open(f".tdd/issue-{issue}-timeout") as f:
+            with open(run_dir.issue_file("", issue, "-timeout")) as f:
                 seconds = f.read().strip()
     return seconds or "900"
 
@@ -140,8 +142,7 @@ def main(argv):
                 os.remove(path)
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
-    return status if 0 <= status <= 3 else 2
+    return entry.to_contract(status)
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

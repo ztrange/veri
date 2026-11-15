@@ -277,4 +277,4 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     loaded = _load(farm / "leaf_timeout.py", "symlinked_leaf_timeout")
     monkeypatch.chdir(real.parent.parent)
 
-    assert loaded.inside_own_scripts() is True
+    assert loaded.paths.inside_scripts(loaded.__file__) is True
