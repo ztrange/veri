@@ -2928,7 +2928,7 @@ def test_real_kill_teardown_kills_each_leaked_stub_pid_by_its_recorded_pid_and_f
         try:
             real_kill(tmp_path, supervise, run_cli, "runaway",
                       "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
-                      VERI_HEARTBEAT="60", VERI_TIMEOUT="1")
+                      VERI_HEARTBEAT="60", VERI_TIMEOUT="1", boundary_on_first_poll=True)
         except (AssertionError, pytest.fail.Exception) as failed:
             failure = str(failed)
         pids = [int((work / file).read_text()) for file in ("stub.pid", "child.pid")]
