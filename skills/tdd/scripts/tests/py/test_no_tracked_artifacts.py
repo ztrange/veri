@@ -7,17 +7,12 @@ import subprocess
 import pytest
 
 from conftest import ROOT
+from repo_builder import new_repo
 
 
 def tracked_artifacts(repo):
     listed = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"], capture_output=True, text=True, check=True).stdout
     return [path for path in listed.split("\0") if "/.tdd/" in path]
-
-
-def new_repo(path):
-    subprocess.run(["git", "-C", str(path), "init", "-q"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
-    subprocess.run(["git", "-C", str(path), "config", "user.email", "test@example.com"], check=True)
 
 
 @pytest.mark.process("git ls-files over a planted repository holding a tracked file under a nested .tdd/")
