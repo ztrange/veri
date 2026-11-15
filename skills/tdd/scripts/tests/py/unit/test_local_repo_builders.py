@@ -9,7 +9,6 @@ import pytest
 FILES_WITH_A_LOCAL_REPO_BUILDER = {
     "test_affected_suites.py": "allow-empty commit through another git helper",
     "test_push_branch_process.py": "remote and a branch with a ledger",
-    "test_skill_drift.py": "configured identity for plain git commit",
     "test_skill_preflight.py": "bare repository and configured identity for plain git commit",
     "test_watch_process.py": "copy of the Makefile",
 }
