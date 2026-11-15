@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from repo_builder import new_repo
+
 USAGE = b"usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all\n"
 
 
@@ -505,12 +507,6 @@ def started(request):
 def git(*args, cwd):
     subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=cwd, check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-
-def new_repo(path):
-    path.mkdir(parents=True)
-    git("init", "-q", "-b", "main", cwd=path)
-    return path
 
 
 class ConductorHolder:
