@@ -6,6 +6,8 @@ import subprocess
 
 import pytest
 
+from repo_builder import new_repo
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 RULE = ".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
 
@@ -279,19 +281,13 @@ def git(repo, *args, **kwargs):
                           capture_output=True, text=True, **kwargs)
 
 
-def make_repo(path):
-    path.mkdir(parents=True)
-    git(path, "init", "-q", "-b", "main")
-    return path
-
-
 def ignored(repo, name):
     return git(repo, "check-ignore", "-q", name).returncode
 
 
 @pytest.mark.process("git: check-ignore over the .gitignore the script wrote in a real scratch repository")
 def test_no_gitignore_creates_one_ignoring_the_run_log_but_not_the_ledger(tmp_path, run_cli, ensure_run_state_ignored):
-    repo = make_repo(tmp_path / "fresh")
+    repo = new_repo(tmp_path / "fresh")
 
     run_cli(ensure_run_state_ignored, [str(repo)])
 
@@ -301,7 +297,7 @@ def test_no_gitignore_creates_one_ignoring_the_run_log_but_not_the_ledger(tmp_pa
 @pytest.mark.process("git: check-ignore over a .gitignore the script appended to in a real scratch repository")
 def test_an_unrelated_gitignore_keeps_every_existing_line_and_reports_added(tmp_path, run_cli,
                                                                             ensure_run_state_ignored):
-    repo = make_repo(tmp_path / "unrelated")
+    repo = new_repo(tmp_path / "unrelated")
     (repo / ".gitignore").write_bytes(b"node_modules/\n*.log")
 
     code, out, err = run_cli(ensure_run_state_ignored, [str(repo)])
@@ -314,7 +310,7 @@ def test_an_unrelated_gitignore_keeps_every_existing_line_and_reports_added(tmp_
 @pytest.mark.process("git: the caller's checkout and a linked worktree under .tdd/wt/1, both real")
 def test_the_callers_checkout_stays_clean_while_the_worktree_holding_the_rule_exists(tmp_path, run_cli,
                                                                                       ensure_run_state_ignored):
-    repo = make_repo(tmp_path / "caller")
+    repo = new_repo(tmp_path / "caller")
     git(repo, "commit", "-q", "--allow-empty", "-m", "initial")
     git(repo, "worktree", "add", str(repo / ".tdd" / "wt" / "1"), "-b", "tdd/1")
     wt = repo / ".tdd" / "wt" / "1"
@@ -329,7 +325,7 @@ def test_the_callers_checkout_stays_clean_while_the_worktree_holding_the_rule_ex
 @pytest.mark.process("git: check-ignore in a real worktree whose common directory also carries the rule")
 def test_a_worktree_with_the_rule_in_info_exclude_too_still_ignores_the_run_log_and_not_the_ledger(
         tmp_path, run_cli, ensure_run_state_ignored):
-    repo = make_repo(tmp_path / "caller")
+    repo = new_repo(tmp_path / "caller")
     git(repo, "commit", "-q", "--allow-empty", "-m", "initial")
     git(repo, "worktree", "add", str(repo / ".tdd" / "wt" / "1"), "-b", "tdd/1")
     wt = repo / ".tdd" / "wt" / "1"
@@ -373,8 +369,8 @@ def test_a_gitignore_that_is_a_directory_exits_2_says_why_on_stderr_and_leaves_i
 @pytest.mark.process("ensure-run-state-ignored.sh run as a real process through a symlink to the skill directory")
 def test_a_run_through_a_symlink_to_the_skill_directory_from_another_directory_answers_as_in_place(tmp_path):
     (tmp_path / "linked-skill").symlink_to(SCRIPTS.parent, target_is_directory=True)
-    in_place = make_repo(tmp_path / "in-place")
-    linked = make_repo(tmp_path / "linked")
+    in_place = new_repo(tmp_path / "in-place")
+    linked = new_repo(tmp_path / "linked")
 
     ran_in_place = subprocess.run([str(SCRIPTS / "ensure-run-state-ignored.sh")], cwd=in_place,
                                   capture_output=True, text=True)
@@ -390,8 +386,8 @@ def test_a_run_through_a_symlink_to_the_skill_directory_from_another_directory_a
 @pytest.mark.tree_audit("copies the skill's veri/ module directory into a decoy tree")
 def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_directory_writes_nothing_outside_the_scratch_repository(
         tmp_path):
-    repo = make_repo(tmp_path / "pinned-scratch")
-    decoy = make_repo(tmp_path / "decoy")
+    repo = new_repo(tmp_path / "pinned-scratch")
+    decoy = new_repo(tmp_path / "decoy")
     exclude_before = (decoy / ".git" / "info" / "exclude").read_bytes()
     mutant = decoy / "skills" / "tdd" / "scripts"
     mutant.mkdir(parents=True)
