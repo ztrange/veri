@@ -91,4 +91,4 @@ Run with `make test TESTS="skills/tdd/scripts/tests/py/<file> ..."`.
 | `unit/test_tree_index_guard.py` | a `tree_audit` case reads test files and `veri/` through `tests_py_index` / `veri_modules_index`, never `rglob` or its own `ast.walk` |
 | `unit/test_module_importers.py` | every helper module here has an importer besides its own suite |
 | `unit/test_tests_py_readme.py` | every helper module and conftest fixture has a bullet above, and no bullet names a missing one |
-| `test_shims.py` | shell shims are the canonical `exec python3` form (for a new script, see "Adding a script" in the production README) |
+| `unit/test_shims.py` | shell shims are the canonical `exec python3` form (for a new script, see "Adding a script" in the production README) |
