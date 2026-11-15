@@ -25,7 +25,7 @@ from frozen_record import work_tree_hash, pass_marker_current
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
-from ledger import carries_mark, ledger_path, ledger_steps, trailing_markers
+from ledger import carries_mark, ledger_steps, trailing_markers
 from pid_file import number_in, record
 from pytest_leg import lock_wait_path
 
@@ -423,7 +423,7 @@ def red_awaits_pass(step):
 
 def ci_repair_step(issue, step):
     try:
-        with open(ledger_path(".", issue)) as f:
+        with open(run_dir.ledger(".", issue)) as f:
             boxes = [record[6] for record in ledger_steps(f.read())]
         if not step.isdigit():
             return carries_mark(trailing_markers(step), "ci-repair") and any(t.startswith(step) for t in boxes)
@@ -434,7 +434,7 @@ def ci_repair_step(issue, step):
 
 def step_text(issue, step):
     try:
-        with open(ledger_path(".", issue)) as f:
+        with open(run_dir.ledger(".", issue)) as f:
             boxes = [record[6] for record in ledger_steps(f.read())]
         return boxes[int(step) - 1] if step.isdigit() else step if step in boxes else None
     except (OSError, ValueError, IndexError):
