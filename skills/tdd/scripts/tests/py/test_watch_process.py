@@ -6,6 +6,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import git, new_repo
 
 ROOT = SCRIPTS.parents[2]
 LIB = SCRIPTS / "lib" / "watch.sh"
@@ -28,18 +29,18 @@ def stub(path, text):
     path.chmod(0o755)
 
 
-def git_init_and_add(repo):
-    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
-    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+def init_and_add(repo):
+    new_repo(repo)
+    git(repo, "add", "-A")
 
 
-def fixture_repo(tmp_path):
+def watch_fixture(tmp_path):
     fixture = tmp_path / "repo"
     (fixture / "skills" / "tdd" / "scripts" / "lib").mkdir(parents=True)
     shutil.copy(ROOT / "Makefile", fixture / "Makefile")
     shutil.copy(LIB, fixture / "skills" / "tdd" / "scripts" / "lib" / "watch.sh")
     (fixture / "tracked.txt").write_text("original\n")
-    git_init_and_add(fixture)
+    init_and_add(fixture)
     return fixture
 
 
@@ -101,7 +102,7 @@ def test_veri_watch_interval_malformed_exits_2_naming_the_variable_unset_default
 
 @pytest.mark.process("make watch started over a scratch git repo with stub sleep and stub nested make")
 def test_make_watch_reruns_make_unit_once_per_detected_change_never_between_changes(tmp_path):
-    runs = run_watch(tmp_path, fixture_repo(tmp_path), "2 4", 6)
+    runs = run_watch(tmp_path, watch_fixture(tmp_path), "2 4", 6)
     assert [run[0] for run in runs] == ["2", "4"]
 
 
@@ -113,7 +114,7 @@ def test_make_watch_one_poll_pass_calls_its_stat_wrapper_exactly_once_whatever_t
         repo.mkdir()
         for i in range(n):
             (repo / ("f%d.txt" % i)).write_text("%d\n" % i)
-        git_init_and_add(repo)
+        init_and_add(repo)
         spy = tmp_path / ("spy-%d.log" % n)
         script = '. "$1"; watch_stat() { echo call >> "$SPY_LOG"; cat > /dev/null; }; watch_snapshot'
         subprocess.run(["sh", "-c", script, "sh", str(LIB)], cwd=repo, env=dict(os.environ, SPY_LOG=str(spy)), capture_output=True, text=True, check=True)
@@ -123,7 +124,7 @@ def test_make_watch_one_poll_pass_calls_its_stat_wrapper_exactly_once_whatever_t
 
 @pytest.mark.process("make watch started over a scratch git repo with a nested make that logs its goals")
 def test_make_watch_never_runs_any_make_target_besides_unit(tmp_path):
-    runs = run_watch(tmp_path, fixture_repo(tmp_path), "2", 4)
+    runs = run_watch(tmp_path, watch_fixture(tmp_path), "2", 4)
     assert runs, "the loop never ran a nested make after a change, so nothing was checked"
     assert [[w for w in run[1:] if not w.startswith("-")] for run in runs] == [["unit"]] * len(runs)
 
