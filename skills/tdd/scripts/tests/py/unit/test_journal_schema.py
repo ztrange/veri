@@ -1,0 +1,83 @@
+"""In-process cases for veri/journal_schema.py: what JOURNAL.md's table documents, and what writers pass."""
+from pathlib import Path
+
+from veri import journal_schema
+
+TABLE = (
+    "# Journal\n\nThe `prose-only` event is mentioned here but has no row.\n\n"
+    "| Event | Keys | Meaning |\n|---|---|---|\n"
+    "| `alpha` | `one`, `two` | Two keys. |\n"
+    "| `beta` | — | No keys. |\n"
+    "| `gamma` | `need`, `maybe`, `gone` | `maybe` is optional: present only sometimes. The `gone` key is absent otherwise. |\n"
+)
+
+
+def test_kinds_are_the_first_column_of_the_table_rows_only():
+    assert journal_schema.kinds(TABLE) == {"alpha", "beta", "gamma"}
+
+
+def test_fields_are_the_backticked_names_of_the_keys_column_in_order():
+    assert journal_schema.fields(TABLE, "alpha") == ("one", "two")
+
+
+def test_a_row_with_a_dash_documents_no_fields():
+    assert journal_schema.fields(TABLE, "beta") == ()
+
+
+def test_a_kind_without_a_row_has_no_documented_fields():
+    assert journal_schema.fields(TABLE, "prose-only") is None
+
+
+def test_a_key_the_meaning_calls_optional_or_absent_is_optional():
+    assert journal_schema.optional(TABLE, "gamma") == {"maybe", "gone"}
+    assert journal_schema.optional(TABLE, "alpha") == set()
+
+
+def test_the_real_journal_documents_bail_with_its_optional_suites():
+    text = (Path(journal_schema.__file__).resolve().parents[2] / "JOURNAL.md").read_text(encoding="utf-8")
+
+    assert journal_schema.fields(text, "bail") == ("cause", "classification", "suites")
+    assert journal_schema.optional(text, "bail") == {"classification", "suites"}
+    assert "usage" in journal_schema.kinds(text)
+
+
+def test_a_writer_call_gives_its_literal_kind_and_field_names():
+    source = 'event.mark(".", ctx, "plan", ["steps=%d" % n, f"x={y}", "k=" + v, "c=1", other])\n'
+
+    assert journal_schema.writer_calls(source) == [(1, "plan", ["steps", "x", "k", "c"])]
+
+
+def test_every_writer_call_shape_is_seen():
+    source = (
+        'event.append(".", {}, "a", ["f1=1"])\n'
+        'verify.mark(role, "b", "f2=1", "f3=2")\n'
+        'supervise.mark(role, env, "c", f"f4={x}")\n'
+        'push_branch.record("d", "f5=1")\n'
+    )
+
+    assert [(kind, names) for _, kind, names in journal_schema.writer_calls(source)] == [
+        ("a", ["f1"]), ("b", ["f2", "f3"]), ("c", ["f4"]), ("d", ["f5"])]
+
+
+def test_a_bare_mark_is_a_writer_only_inside_the_module_that_defines_it():
+    assert journal_schema.writer_calls('mark(role, env, "launch", "name=x")\n') == []
+    assert journal_schema.writer_calls('mark(role, env, "launch", "name=x")\n', "supervise") == [(1, "launch", ["name"])]
+    assert journal_schema.writer_calls('mark(role, "relaunch", "cause=y")\n', "verify") == [(1, "relaunch", ["cause"])]
+
+
+def test_a_conditional_or_starred_field_list_is_read_through():
+    source = 'event.mark(d, c, "exit", ["a=1", *(["detail=" + x] if x else [])])\n'
+
+    assert journal_schema.writer_calls(source) == [(1, "exit", ["a", "detail"])]
+
+
+def test_a_computed_kind_is_reported_without_a_kind_and_a_variable_field_list_without_names():
+    source = 'event.mark(d, c, event_name, pairs)\nevent.mark(d, c, "usage", pairs)\n'
+
+    assert journal_schema.writer_calls(source) == [(1, None, []), (2, "usage", [])]
+
+
+def test_other_calls_named_mark_or_append_are_not_writers():
+    source = 'rows.append(1)\nledger.mark(x, "y", "z=1")\nevent.context(env)\n'
+
+    assert journal_schema.writer_calls(source) == []
