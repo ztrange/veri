@@ -12,7 +12,7 @@ from conftest import SCRIPTS
 
 PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|migrate|contract-a|contract-b"
 WANT_PHASES = PHASES + b"|dual-stub"
-USAGE = importlib.import_module("veri.build_develop_prompt").USAGE.encode() + b"\n"
+USAGE = b"usage: build-develop-prompt.sh " + WANT_PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 NAMED_REVISABLE = {"expand", "beside", "migrate", "contract-a", "contract-b", "rebase"}
 
 
@@ -119,7 +119,7 @@ def test_main_names_in_its_unknown_phase_refusal_and_its_usage_line_every_phase_
     refusal, usage = err.decode().splitlines()
 
     assert (code, [(p, p in refusal.split("(want ")[1].rstrip(")").split("|"),
-                    p in usage.split("usage: ")[1].split(" ")[0].split("|")) for p in accepted]) == (
+                    p in usage.split("usage: build-develop-prompt.sh ")[1].split(" ")[0].split("|")) for p in accepted]) == (
         2, [(p, True, True) for p in accepted])
 
 
@@ -2123,7 +2123,7 @@ def test_main_with_no_arguments_exits_2_and_prints_a_usage_line_naming_dual_stub
         capsysbinary, build_develop_prompt):
     code = build_develop_prompt.main([])
     out, err = capsysbinary.readouterr()
-    phases = err.decode().splitlines()[0].split("usage: ")[1].split(" ")[0].split("|")
+    phases = err.decode().splitlines()[0].split("usage: build-develop-prompt.sh ")[1].split(" ")[0].split("|")
 
     assert (code, out, "dual-stub" in phases, "beside" in phases) == (2, b"", True, True)
 
