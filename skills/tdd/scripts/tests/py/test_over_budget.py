@@ -170,14 +170,13 @@ def test_main_with_stdout_closed_returns_2_with_one_line_on_stderr_when_over_and
     assert (code, err) == (1, "")
 
 
-def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_sh_is_refused(capsys, monkeypatch, over_budget):
+def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_sh_is_refused(capsys, monkeypatch, over_budget, fake_processes):
     import os
-    import subprocess
 
     def refuse(*args, **kwargs):
         raise OSError("refused: a process start at the boundary")
 
-    monkeypatch.setattr(subprocess, "Popen", refuse)
+    fake = fake_processes.answers({})
     monkeypatch.setattr(os, "system", refuse)
     monkeypatch.setattr(os, "posix_spawn", refuse)
     monkeypatch.setattr(os, "fork", refuse)
@@ -200,6 +199,7 @@ def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_s
     code = over_budget.main(["unit", "12", "100"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: x\n")
+    assert fake.calls == []
 
 
 def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_that_is_not(run_cli, over_budget):
