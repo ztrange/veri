@@ -10,10 +10,11 @@ READS_DIRECTLY = frozenset((
 ))
 
 
-def direct_reads(path):
-    source = path.read_text()
+def direct_reads(path, index=None):
+    """The environment reads in the module at `path`; `index` (veri_modules_index) supplies its text and tree."""
+    source = index.text(path.stem) if index else path.read_text()
     lines = source.splitlines()
-    tree = ast.parse(source)
+    tree = index.tree(path.stem) if index else ast.parse(source)
     parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
 
     def keyed_by_a_variable(node):
@@ -110,10 +111,11 @@ def direct_reads(path):
 
 
 @pytest.mark.tree_audit("every module under veri/")
-def test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment():
-    modules = sorted(path for path in VERI.glob("*.py") if path.stem not in ("tunables", *READS_DIRECTLY))
+def test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment(veri_modules_index):
+    modules = [veri_modules_index.path(name) for name in veri_modules_index.names
+               if name not in ("tunables", *READS_DIRECTLY)]
 
-    assert [read for path in modules for read in direct_reads(path)] == []
+    assert [read for path in modules for read in direct_reads(path, veri_modules_index)] == []
 
 
 def test_supervise_verify_wait_leaf_wait_ci_and_detach_command_take_their_veri_values_from_the_one_reader():
@@ -144,10 +146,11 @@ def test_github_solvable_issues_skill_drift_launch_floor_and_event_take_their_ve
 
 
 @pytest.mark.tree_audit("every module under veri/")
-def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt():
-    modules = sorted(path for path in VERI.glob("*.py") if path.stem != "tunables")
+def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt(
+        veri_modules_index):
+    modules = [veri_modules_index.path(name) for name in veri_modules_index.names if name != "tunables"]
 
-    assert [read for path in modules for read in direct_reads(path)] == []
+    assert [read for path in modules for read in direct_reads(path, veri_modules_index)] == []
 
 
 def test_stop_reason_takes_its_veri_values_from_the_one_reader():
@@ -207,8 +210,8 @@ def test_watch_runs_takes_its_veri_values_from_the_one_reader_2958():
 
 
 @pytest.mark.tree_audit("build_verify_prompt.py")
-def test_build_verify_prompt_takes_the_issue_number_from_the_one_reader_3404():
-    assert direct_reads(VERI / "build_verify_prompt.py") == []
+def test_build_verify_prompt_takes_the_issue_number_from_the_one_reader_3404(veri_modules_index):
+    assert direct_reads(veri_modules_index.path("build_verify_prompt"), veri_modules_index) == []
 
 
 def test_restart_conductor_takes_its_veri_values_from_the_one_reader_3402():
