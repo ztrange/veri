@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import glob
 import json
 import os
+import re
 import sys
 import time
 
@@ -57,6 +58,74 @@ def read_lines(role, lane=None):
     """The role's state lines (`.tdd/role-<role>[-<lane>].state` of the main tree), `None` when the file is missing."""
     text = read(state_path(run_dir.main_tree(missing=""), role, lane))
     return None if text is None else text.splitlines()
+
+
+class Malformed(ValueError):
+    """The one way a state line is refused. `kind` is "n-missing" (no `n=` line, `line` None), "n", "timed-n", "override" or "state"; `line` is the offending line. Each caller words it."""
+
+    def __init__(self, kind, line=None):
+        super().__init__("%s: %s" % (kind, line))
+        self.kind = kind
+        self.line = line
+
+
+class State:
+    """The grammar of a role's state file, over its lines: `key=value` lines and `<kind> <id> <stamp> <text>` item lines."""
+
+    def __init__(self, lines):
+        self.lines = list(lines)
+
+    def field(self, name):
+        """The value of the last `<name>=<value>` line, `None` when there is none."""
+        found = None
+        for line in self.lines:
+            key, _, value = line.partition("=")
+            if key == name:
+                found = value
+        return found
+
+    def items(self, *kinds):
+        """The raw lines of the given item kinds, in file order."""
+        return [line for line in self.lines if line.startswith(tuple(kind + " " for kind in kinds))]
+
+    def check(self):
+        """Raises Malformed("state") on a line that is neither `key=value` nor an item line."""
+        for line in self.lines:
+            if "=" not in line and not line.startswith(tuple(kind + " " for kind in ITEM_KINDS)):
+                raise Malformed("state", line)
+
+    def last_n(self):
+        """The target from the last `n=` line, as an int."""
+        ns = [line for line in self.lines if line.startswith("n=")]
+        if not ns:
+            raise Malformed("n-missing")
+        try:
+            return int(ns[-1][2:])
+        except ValueError:
+            raise Malformed("n", ns[-1])
+
+    def timed_ns(self):
+        """`(value, expiry epoch)` of each timed-n line, in file order."""
+        found = []
+        for line in self.items("timed-n"):
+            try:
+                found.append(timed_n_format.parse(line.split(None, 3)[3]))
+            except (IndexError, ValueError):
+                raise Malformed("timed-n", line)
+        return found
+
+    def override_numbers(self):
+        """The first number each override line names (a string), `None` when it names none, in file order."""
+        found = []
+        for line in self.lines:
+            if not line.startswith("override "):
+                continue
+            fields = line.split(None, 3)
+            if len(fields) < 4:
+                raise Malformed("override", line)
+            named = re.search(r"\d+", fields[3])
+            found.append(named.group() if named else None)
+        return found
 
 
 def append(path, text):
@@ -185,6 +254,7 @@ def do_show(path, argv):
 
 SET_FIELDS = ("n", "lane", "coordinator", "session", "transcript", "baseline", "baseline-at", "refused-at", "resetter")
 LISTS = ("decision", "message", "override", "timed-n")
+ITEM_KINDS = LISTS + ("dropped-decision",)
 VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do_set, "add": do_add, "drop": do_drop, "show": do_show}
 
 

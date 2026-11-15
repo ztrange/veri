@@ -135,9 +135,6 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## session_env
 - `strip_session_env(env)`: removes the Claude Code session variables, and values carrying a session id, from `env`.
 
-## timed_n_format
-- `parse(text)`: `(n, expiry epoch)` from `<n> until <ISO-8601>`; ValueError when malformed.
-
 ## tunables
 The one reader of `VERI_*` and related environment variables.
 - `read(name, default="", unless_empty=None)`: the value as a string. `read_bytes(name, default=b"")`: as bytes.
@@ -548,6 +545,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `script-help.sh`: look up a script's help.
 - `status.sh`: the runs and scope totals view.
 - `suite-red-resume.sh`: resume after a red suite.
+- `timed_n_format`: the `<n> until <ISO-8601>` text of a timed-n line; role_state's reader and writer both parse it.
 - `unreachable.sh`: walk reachability of the modules.
 - `update-veri.sh`: update veri itself.
 - `watch-runs.sh`: watch the runs of a queue.
@@ -555,6 +553,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 ## role_state
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
+- `State(lines)`: the grammar of the state file. `field(name)` (last `name=` value, `None`), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
 - `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## status

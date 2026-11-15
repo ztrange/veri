@@ -380,3 +380,75 @@ def test_read_lines_returns_the_role_files_lines_or_none_when_missing_for_the_ma
 
     assert role_state.read_lines("dev", "mu") == ["n=2", "lane=mu"]
     assert role_state.read_lines("dev") == ["n=9"]
+
+
+def _state(lines):
+    return importlib.import_module("veri.role_state").State(lines)
+
+
+def test_state_last_n_is_the_last_n_line_as_an_int():
+    assert _state(["n=2", "lane=mu", "n=0007"]).last_n() == 7
+
+
+def test_state_last_n_with_no_n_line_raises_malformed_of_kind_n_missing():
+    role_state = importlib.import_module("veri.role_state")
+    try:
+        _state(["lane=mu"]).last_n()
+    except role_state.Malformed as why:
+        assert (why.kind, why.line) == ("n-missing", None)
+    else:
+        raise AssertionError("no Malformed raised")
+
+
+def test_state_last_n_that_int_refuses_raises_malformed_of_kind_n_carrying_the_line():
+    role_state = importlib.import_module("veri.role_state")
+    try:
+        _state(["n=2", "n=²"]).last_n()
+    except role_state.Malformed as why:
+        assert (why.kind, why.line) == ("n", "n=²")
+    else:
+        raise AssertionError("no Malformed raised")
+
+
+def test_state_timed_ns_lists_value_and_expiry_of_each_timed_n_line_in_file_order():
+    state = _state(["n=1", "timed-n 1 2026-11-07T10:00:00 3 until 2026-11-08T10:00:00",
+                    "timed-n 2 2026-11-07T10:01:00 5 until 2026-11-09T10:00:00"])
+    assert [value for value, _ in state.timed_ns()] == [3, 5]
+    assert state.timed_ns()[0][1] < state.timed_ns()[1][1]
+
+
+def test_state_timed_ns_raises_malformed_of_kind_timed_n_carrying_the_bad_line():
+    role_state = importlib.import_module("veri.role_state")
+    for bad in ("timed-n 1 2026-11-07T10:00:00", "timed-n 1 2026-11-07T10:00:00 x until nowhere"):
+        try:
+            _state([bad]).timed_ns()
+        except role_state.Malformed as why:
+            assert (why.kind, why.line) == ("timed-n", bad)
+        else:
+            raise AssertionError("no Malformed raised for " + bad)
+
+
+def test_state_override_numbers_gives_the_first_number_each_override_names_or_none():
+    state = _state(["override dev-1 2026-11-07T10:00:00 take #15 first", "override dev-2 2026-11-07T10:01:00 no number"])
+    assert state.override_numbers() == ["15", None]
+
+
+def test_state_override_numbers_raises_malformed_of_kind_override_for_a_line_of_fewer_than_4_fields():
+    role_state = importlib.import_module("veri.role_state")
+    try:
+        _state(["override dev-1 2026-11-07T10:00:00"]).override_numbers()
+    except role_state.Malformed as why:
+        assert (why.kind, why.line) == ("override", "override dev-1 2026-11-07T10:00:00")
+    else:
+        raise AssertionError("no Malformed raised")
+
+
+def test_state_field_is_the_last_value_of_a_key_line_or_none():
+    state = _state(["n=2", "coordinator=a", "coordinator=b", "decision 1 2026-11-07T10:00:00 x=y"])
+    assert (state.field("coordinator"), state.field("lane"), state.field("decision 1 2026-11-07T10:00:00 x")) == ("b", None, "y")
+
+
+def test_state_items_are_the_raw_lines_of_the_named_kinds_in_file_order():
+    lines = ["n=1", "timed-n 1 t 3 until x", "override 2 t y", "message 3 t z", "decision 4 t w"]
+    state = _state(lines)
+    assert (state.items("timed-n", "override"), state.items("decision")) == (lines[1:3], [lines[4]])
