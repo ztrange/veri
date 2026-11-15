@@ -7,7 +7,7 @@ from ledger import ledger_steps, read_ledger_stdin
 
 
 def refactor_pending(record):
-    return record[1] == "done" and record[3] == "1"
+    return record.state == "done" and record.pending == "1"
 
 
 USAGE = "usage: next-pending-refactor.sh (the ledger on stdin)"
@@ -19,7 +19,7 @@ def main(argv):
         return refused
     for record in ledger_steps(read_ledger_stdin()):
         if refactor_pending(record):
-            sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))
+            sys.stdout.buffer.write((record.text + "\n").encode(errors="surrogateescape"))
             return 0
     return 3
 

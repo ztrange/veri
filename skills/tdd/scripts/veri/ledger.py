@@ -11,6 +11,7 @@ import re
 import shutil
 import sys
 import tempfile
+from collections import namedtuple
 
 from git import git
 from run_dir import ledger as run_ledger
@@ -114,7 +115,7 @@ def read_ledger_stdin():
 
 def handed_out(record):
     """True when record is an open step or diff-checked step."""
-    return record[1] == "open" and record[2] in ("step", "diff-checked")
+    return record.state == "open" and record.kind in ("step", "diff-checked")
 
 
 def is_added(step):
@@ -229,8 +230,16 @@ def items_at(rev, path):
     return ledger_items(done.stdout.decode("utf-8", "replace"))
 
 
+# One ledger step. A tuple, so it unpacks, compares and tab-joins as the plain 7-tuple always did; the flag fields
+# (pending, added) stay the strings "1"/"0" that ledger-steps.sh prints. `number` is the 1-based position among
+# step lines (named so it does not shadow tuple.index), `state` "open" or "done", `kind` "step", "full-suite",
+# "diff-checked" or "human-owed". `collections.namedtuple`, not typing.NamedTuple: typing costs ~3 ms of import
+# every importer of this module would pay.
+Step = namedtuple("Step", "number state kind pending added criterion text")
+
+
 def ledger_steps(text):
-    """One (index, state, kind, pending, added, criterion, text) record per step line."""
+    """One Step (number, state, kind, pending, added, criterion, text) per step line."""
     records = []
     for line in text.split("\n"):
         match = STEP_RE.fullmatch(line)
@@ -246,7 +255,7 @@ def ledger_steps(text):
         pending = state == "done" and step.endswith(PENDING_MARK)
         if pending:
             step = step[: -len(PENDING_MARK)]
-        records.append((
+        records.append(Step(
             str(len(records) + 1),
             state,
             kind.group(1) if kind else "human-owed" if is_human_owed(step) else "step",

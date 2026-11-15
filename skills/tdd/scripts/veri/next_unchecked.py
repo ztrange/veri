@@ -18,7 +18,7 @@ def main(argv):
     text = read_ledger_stdin()
     for record in ledger_steps(text):
         if handed_out(record):
-            sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))
+            sys.stdout.buffer.write((record.text + "\n").encode(errors="surrogateescape"))
             return 0
     return 3
 

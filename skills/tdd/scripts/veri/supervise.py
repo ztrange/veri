@@ -455,7 +455,7 @@ def red_awaits_pass(step):
 def ci_repair_step(issue, step):
     try:
         with open(run_dir.ledger(".", issue)) as f:
-            boxes = [record[6] for record in ledger_steps(f.read())]
+            boxes = [record.text for record in ledger_steps(f.read())]
         if not step.isdigit():
             return carries_mark(trailing_markers(step), "ci-repair") and any(t.startswith(step) for t in boxes)
         return carries_mark(trailing_markers(boxes[int(step) - 1]), "ci-repair")
@@ -466,7 +466,7 @@ def ci_repair_step(issue, step):
 def step_text(issue, step):
     try:
         with open(run_dir.ledger(".", issue)) as f:
-            boxes = [record[6] for record in ledger_steps(f.read())]
+            boxes = [record.text for record in ledger_steps(f.read())]
         return boxes[int(step) - 1] if step.isdigit() else step if step in boxes else None
     except (OSError, ValueError, IndexError):
         return None

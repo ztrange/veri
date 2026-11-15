@@ -42,7 +42,7 @@ def refuse(message=None):
 
 
 def _later_steps(ledger, step_arg):
-    unchecked = [step[6] for step in ledger_steps(_read(ledger).decode()) if step[1] == "open"]
+    unchecked = [step.text for step in ledger_steps(_read(ledger).decode()) if step.state == "open"]
     return list(itertools.dropwhile(lambda text: text != step_arg, unchecked))[1:]
 
 
