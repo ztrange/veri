@@ -7,7 +7,9 @@ from pathlib import Path
 import classify_bail
 import entry
 import event
+import event_log
 import github
+import run_dir
 import run_end
 
 USAGE = "usage: preflight-refused.sh <issue-number> <check> [<cause>]\n"
@@ -25,9 +27,8 @@ def main(argv):
         return 2
     issue, check = argv[0], argv[1]
     detail = argv[2] if len(argv) > 2 else None
-    run = os.path.join(main_checkout(), ".tdd", "wt", issue)
-    log = os.path.join(run, ".tdd", "events.jsonl")
-    if os.path.isfile(log) and run_end.run_end(run)[2].get("event") == CAUSE:
+    run = run_dir.worktree(main_checkout(), issue)
+    if os.path.isfile(event_log.path(run)) and run_end.run_end(run)[2].get("event") == CAUSE:
         return 3
     code = event.mark(run, {"issue": issue}, CAUSE,
                       ["check=" + check, "cause=" + CAUSE, "classification=" + classify_bail.CATEGORIES[CAUSE],

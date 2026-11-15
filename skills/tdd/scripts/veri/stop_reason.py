@@ -4,6 +4,7 @@ import os
 import sys
 
 import event_log
+import run_dir
 import run_end
 import tunables
 
@@ -27,14 +28,16 @@ def main(argv):
     if len(argv) != 1:
         sys.stderr.write(USAGE)
         return 2
-    if not os.path.isdir(os.path.join(".tdd", "wt", argv[0])):
+    # The empty main tree keeps the spelling relative to here: ".tdd/wt/<n>", as the messages print it.
+    run = run_dir.worktree("", argv[0])
+    if not os.path.isdir(run):
         sys.stderr.write("stop-reason.sh: no run for issue %s under .tdd/wt\n" % argv[0])
         return 2
     gap = tunables.read("VERI_SLEEP_GAP", "900")
     if not (gap.isascii() and gap.isdigit() and int(gap) >= 1):
         sys.stderr.write("stop-reason.sh: VERI_SLEEP_GAP must be a whole number >= 1, got %r\n" % gap)
         return 2
-    log = os.path.join(".tdd", "wt", argv[0], ".tdd", "events.jsonl")
+    log = event_log.path(run)
     if not os.path.isfile(log):
         sys.stderr.write("stop-reason.sh: no events log at %s\n" % log)
         return 2
@@ -42,9 +45,8 @@ def main(argv):
     if not events:
         sys.stderr.write("stop-reason.sh: no events in %s\n" % log)
         return 2
-    run_dir = os.path.join(".tdd", "wt", argv[0])
-    ended, cause, mark = run_end.run_end(run_dir)
-    conductor_log = run_end.conductor_log(run_dir, argv[0])
+    ended, cause, mark = run_end.run_end(run)
+    conductor_log = run_end.conductor_log(run, argv[0])
     if not ended:
         sys.stdout.write("running\n")
     elif cause == "done":
