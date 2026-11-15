@@ -42,8 +42,9 @@ import sys, time
 sys.path[:0] = [%r, %r]
 import pytest
 from veri import pytest_leg
+import full_run_lock
 pytest.main = lambda args: pytest.ExitCode.OK
-pytest_leg.acquire_full_lock = lambda: time.sleep(3600)
+full_run_lock.acquire = lambda: time.sleep(3600)
 sys.exit(pytest_leg.main([]))
 """
 

@@ -14,6 +14,7 @@ from typing import NamedTuple
 import entry
 import event
 import event_log
+import full_run_lock
 import harvest_usage
 import leaf_timeout
 import mutation_record
@@ -28,7 +29,6 @@ from leaf_model import leaf_model
 from leaf_role import leaf_role
 from ledger import carries_mark, ledger_steps, trailing_markers
 from pid_file import number_in, record
-from pytest_leg import lock_wait_path
 
 HERE = paths.scripts_of(__file__)
 
@@ -491,7 +491,7 @@ def main(argv):
     skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or tunables.read("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ}
     leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit,
-                    PYTEST_LEG_LOCK_WAIT_MARKER=lock_wait_path(os.getpid()))
+                    PYTEST_LEG_LOCK_WAIT_MARKER=full_run_lock.wait_marker(os.getpid()))
     step = tunables.read("VERI_STEP")
     if "VERI_STEP" in tunables.environment() and not step:
         return refuse_launch(role, leaf_env, name, "VERI_STEP is set but empty")

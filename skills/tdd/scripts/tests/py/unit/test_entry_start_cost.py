@@ -14,7 +14,7 @@ RARE_PATH_IMPORTS = {
     "harvest_usage": {"traceback": "only the crash path prints one, and supervise imports this module at every leaf start"},
     "wait_ci": {"traceback": "only the unexpected-error paths of the poll loop print one; ready_check imports this module"},
     "status": {"statistics": "only eta_range() needs it, and only once three runs have finished"},
-    "pytest_leg": {"concurrent.futures": "only the cache sweep's thread pool needs it, and supervise imports this module for lock_wait_path"},
+    "pytest_leg": {"concurrent.futures": "only the cache sweep's thread pool needs it"},
 }
 
 
