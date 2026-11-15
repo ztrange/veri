@@ -3,7 +3,6 @@ import importlib
 import itertools
 import json
 import os
-import subprocess
 
 import pytest
 
@@ -257,7 +256,7 @@ def test_main_with_target_and_max_wait_in_either_order_prints_slot_free_and_retu
 
 
 def test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exits_non_zero_1930(
-        monkeypatch, capsys, watch_runs):
+        monkeypatch, capsys, watch_runs, fake_processes):
     waits = []
 
     def wait():
@@ -265,11 +264,8 @@ def test_main_with_target_exits_2_and_passes_on_stderr_when_solvable_issues_exit
         if len(waits) > 3:
             raise RuntimeError("waited on after the queue read failed")
 
-    def run(*args, **kwargs):
-        return subprocess.CompletedProcess(args[0], 1, stdout="", stderr="gh: not logged in\n")
-
+    fake_processes.answers({"": (1, "", "gh: not logged in\n")})
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
-    monkeypatch.setattr(watch_runs.subprocess, "run", run)
     monkeypatch.setattr(watch_runs, "wait", wait)
 
     try:
@@ -738,18 +734,12 @@ def test_2768_main_reports_vanished_and_returns_2_for_a_started_run_whose_worktr
 
 
 def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_several_polls_while_its_run_conductor_process_is_alive(
-        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes, fake_processes):
     listings = iter([[("5", "running")]])
     ticks = itertools.count(0, 1)
 
-    def ps(argv, **kwargs):
-        if argv[0] == "lsof":
-            return subprocess.CompletedProcess(argv, 0, stdout=f"p4242\nn{tmp_path}/.tdd/wt/5\n", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
-
+    fake_processes.answers({"lsof": (0, f"p4242\nn{tmp_path}/.tdd/wt/5\n", "")}, default=(0, "4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", ""))
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
-    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -761,18 +751,12 @@ def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_sev
 
 
 def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_process_works_in_a_sibling_path_that_merely_starts_with_the_main_working_tree_path(
-        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes, fake_processes):
     listings = iter([[("5", "running")]])
     ticks = itertools.count(0, 1)
 
-    def ps(argv, **kwargs):
-        if argv[0] == "lsof":
-            return subprocess.CompletedProcess(argv, 0, stdout=f"p4242\nn{tmp_path}-other/.tdd/wt/5\n", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
-
+    fake_processes.answers({"lsof": (0, f"p4242\nn{tmp_path}-other/.tdd/wt/5\n", "")}, default=(0, "4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", ""))
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
-    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -784,18 +768,12 @@ def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_p
 
 
 def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_process_has_a_working_directory_lsof_cannot_read(
-        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes, fake_processes):
     listings = iter([[("5", "running")]])
     ticks = itertools.count(0, 1)
 
-    def ps(argv, **kwargs):
-        if argv[0] == "lsof":
-            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
-
+    fake_processes.answers({"lsof": (1, "", "")}, default=(0, "4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", ""))
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
-    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -807,18 +785,12 @@ def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_p
 
 
 def test_2832_main_keeps_watching_a_started_run_whose_run_conductor_process_works_in_exactly_the_main_working_tree(
-        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes):
+        monkeypatch, capsys, tmp_path, watch_runs, real_conductor_processes, fake_processes):
     listings = iter([[("5", "running")]])
     ticks = itertools.count(0, 1)
 
-    def ps(argv, **kwargs):
-        if argv[0] == "lsof":
-            return subprocess.CompletedProcess(argv, 0, stdout=f"p4242\nn{tmp_path}\n", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 0, stdout="4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", stderr="")
-
+    fake_processes.answers({"lsof": (0, f"p4242\nn{tmp_path}\n", "")}, default=(0, "4242 /usr/bin/python3 /repo/veri/run_conductor.py 5\n", ""))
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
-    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -830,7 +802,7 @@ def test_2832_main_keeps_watching_a_started_run_whose_run_conductor_process_work
 
 
 def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_resumes_reading_the_queue_2958(
-        monkeypatch, capsys, watch_runs):
+        monkeypatch, capsys, watch_runs, fake_processes):
     epoch = 1_000_000
     reset = epoch + 32
     now = [0]
@@ -838,17 +810,20 @@ def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_
     gh_calls = []
     ticks = []
 
-    def run(argv, **kwargs):
-        if os.path.basename(argv[0]) == "gh":
-            gh_calls.append((now[0], list(argv)))
-            body = str(reset) if "--jq" in argv else json.dumps(
-                {"resources": {"core": {"remaining": 0, "reset": reset}}})
-            return subprocess.CompletedProcess(argv, 0, stdout=body + "\n", stderr="")
+    def gh(line, **kwargs):
+        argv = fake.argvs[-1]
+        gh_calls.append((now[0], list(argv)))
+        body = str(reset) if "--jq" in argv else json.dumps(
+            {"resources": {"core": {"remaining": 0, "reset": reset}}})
+        return 0, body + "\n", ""
+
+    def read(line, **kwargs):
         reads.append(now[0])
         if epoch + now[0] < reset:
-            return subprocess.CompletedProcess(
-                argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
-        return subprocess.CompletedProcess(argv, 0, stdout="12 title\n", stderr="")
+            return 2, "", "gh: API rate limit exceeded for user ID 1 (HTTP 403)\n"
+        return 0, "12 title\n", ""
+
+    fake = fake_processes.answers({"gh ": gh}, default=read)
 
     def wait():
         now[0] += 2
@@ -859,7 +834,6 @@ def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_
         ticks.append(now[0])
         return ["5"]
 
-    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
     monkeypatch.setattr(watch_runs, "time", type("T", (), {
         "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
         "sleep": staticmethod(lambda s: None)}))
@@ -875,27 +849,25 @@ def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_
 
 
 def test_main_with_target_waits_for_the_rate_limit_reset_after_an_http_429_refusal_as_after_a_403_2958(
-        monkeypatch, capsys, watch_runs):
+        monkeypatch, capsys, watch_runs, fake_processes):
     epoch = 1_000_000
     reset = epoch + 32
     now = [0]
     reads = []
 
-    def run(argv, **kwargs):
-        if os.path.basename(argv[0]) == "gh":
-            return subprocess.CompletedProcess(argv, 0, stdout=str(reset) + "\n", stderr="")
+    def read(line, **kwargs):
         reads.append(now[0])
         if epoch + now[0] < reset:
-            return subprocess.CompletedProcess(
-                argv, 2, stdout="", stderr="gh: Too many requests: API rate limit exceeded (HTTP 429)\n")
-        return subprocess.CompletedProcess(argv, 0, stdout="12 title\n", stderr="")
+            return 2, "", "gh: Too many requests: API rate limit exceeded (HTTP 429)\n"
+        return 0, "12 title\n", ""
+
+    fake_processes.answers({"gh ": (0, str(reset) + "\n", "")}, default=read)
 
     def wait():
         now[0] += 2
         if now[0] > 200:
             raise RuntimeError("never printed slot-free")
 
-    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
     monkeypatch.setattr(watch_runs, "time", type("T", (), {
         "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
         "sleep": staticmethod(lambda s: None)}))
@@ -909,14 +881,9 @@ def test_main_with_target_waits_for_the_rate_limit_reset_after_an_http_429_refus
 
 
 def test_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_when_no_reset_time_can_be_obtained_2958(
-        monkeypatch, capsys, watch_runs):
-    def run(argv, **kwargs):
-        if os.path.basename(argv[0]) == "gh":
-            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="gh: unreachable\n")
-        return subprocess.CompletedProcess(
-            argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
-
-    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
+        monkeypatch, capsys, watch_runs, fake_processes):
+    fake_processes.answers({"gh ": (1, "", "gh: unreachable\n")},
+                           default=(2, "", "gh: API rate limit exceeded for user ID 1 (HTTP 403)\n"))
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: ["5"])
 
@@ -929,23 +896,19 @@ def test_main_with_target_exits_2_naming_the_rate_limit_and_the_missing_reset_wh
 
 
 def test_main_with_target_and_max_wait_exits_2_at_once_naming_the_rate_limit_and_reset_when_the_reset_lies_beyond_the_deadline_2958(
-        monkeypatch, capsys, watch_runs):
+        monkeypatch, capsys, watch_runs, fake_processes):
     epoch = 1_000_000
     reset = epoch + 300
     now = [0]
 
-    def run(argv, **kwargs):
-        if os.path.basename(argv[0]) == "gh":
-            return subprocess.CompletedProcess(argv, 0, stdout=str(reset) + "\n", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 2, stdout="", stderr="gh: API rate limit exceeded for user ID 1 (HTTP 403)\n")
+    fake_processes.answers({"gh ": (0, str(reset) + "\n", "")},
+                           default=(2, "", "gh: API rate limit exceeded for user ID 1 (HTTP 403)\n"))
 
     def wait():
         now[0] += 2
         if now[0] > 200:
             raise RuntimeError("never exited")
 
-    monkeypatch.setattr(watch_runs, "subprocess", type("S", (), {"run": staticmethod(run)}))
     monkeypatch.setattr(watch_runs, "time", type("T", (), {
         "time": staticmethod(lambda: epoch + now[0]), "monotonic": staticmethod(lambda: float(now[0])),
         "sleep": staticmethod(lambda s: None)}))
@@ -1178,16 +1141,10 @@ def test_3247_main_never_prints_an_exited_line_whose_state_is_running_for_a_run_
 
 
 def test_3448_live_conductors_names_no_run_for_a_process_that_only_mentions_run_conductor_py_with_the_issue_number(
-        monkeypatch, tmp_path, watch_runs):
+        monkeypatch, tmp_path, watch_runs, fake_processes):
     (tmp_path / ".tdd" / "wt" / "103" / ".tdd").mkdir(parents=True)
 
-    def ps(argv, **kwargs):
-        if argv[0] == "lsof":
-            return subprocess.CompletedProcess(argv, 0, stdout=f"p500\nn{tmp_path}/.tdd/wt/103\n", stderr="")
-        return subprocess.CompletedProcess(
-            argv, 0, stdout="  500 claude -p review run_conductor.py 103 now\n", stderr="")
-
-    monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
+    fake_processes.answers({"lsof": (0, f"p500\nn{tmp_path}/.tdd/wt/103\n", "")}, default=(0, "  500 claude -p review run_conductor.py 103 now\n", ""))
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [])
     monkeypatch.setattr(watch_runs, "_starting", lambda: watch_runs.pid_file.starting_runs(str(tmp_path)))
