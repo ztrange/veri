@@ -6,8 +6,6 @@ import sys
 import tunables
 from entry import write
 
-DEFAULT_BUDGET = 5
-DEFAULT_ISSUE_BUDGET = 10
 USAGE = "usage: refactor-budget.sh [--issue] <count>"
 
 
@@ -24,11 +22,11 @@ def _arithmetic(value):
 
 
 def main(argv):
-    budget_var, default = "VERI_REFACTOR_BUDGET", DEFAULT_BUDGET
+    budget_var = "VERI_REFACTOR_BUDGET"
     if argv[:1] == ["--issue"]:
         argv = argv[1:]
-        budget_var, default = "VERI_ISSUE_REFACTOR_BUDGET", DEFAULT_ISSUE_BUDGET
-    budget = tunables.read(budget_var) or str(default)
+        budget_var = "VERI_ISSUE_REFACTOR_BUDGET"
+    budget = tunables.get(budget_var, unless_empty=True)
     count = argv[0] if argv else ""
     if _refused(budget_var, budget):
         return 2
