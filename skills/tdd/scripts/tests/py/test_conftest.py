@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import shlex
+import signal
 import subprocess
 import sys
 from sys import path as search_path
@@ -50,7 +51,7 @@ def test_fake_processes_given_an_answer_hands_run_the_line_and_its_keyword_argum
 
     assert asked == [("touch %s" % (tmp_path / "run"), {"capture_output": True, "text": True})]
     assert (ran.returncode, ran.stdout, ran.stderr) == (3, "out", "err")
-    for entry in ("Popen",):
+    for entry in ("Popen", "call", "check_call", "check_output"):
         line = "touch %s" % (tmp_path / entry)
         try:
             getattr(subprocess, entry)(["/usr/bin/touch", str(tmp_path / entry)])
@@ -235,14 +236,83 @@ def test_fake_processes_answers_raises_an_exception_class_or_instance_from_every
     assert fake.calls == ["gone", "slow"] * 4 + ["seq", "seq"]
 
 
-def test_fake_processes_answers_hands_output_back_in_the_calls_mode_and_refuses_the_other_entry_points(fake_processes):
+def test_fake_processes_answers_hands_output_back_in_the_calls_mode(fake_processes):
     fake_processes.answers({"tool": (0, "out", "err")})
 
     assert subprocess.run(["tool"], capture_output=True).stdout == b"out"
     assert subprocess.run(["tool"], capture_output=True, text=True).stdout == "out"
-    for entry in ("Popen",):
-        with pytest.raises(AssertionError, match="unexpected process: tool"):
-            getattr(subprocess, entry)(["tool"])
+
+
+def test_fake_processes_answers_popen_is_answered_and_recorded_like_run_and_an_unexpected_command_fails_loudly(fake_processes, tmp_path):
+    fake = fake_processes.answers({"tool": (3, "out", "err")})
+
+    child = subprocess.Popen(["/usr/bin/tool", "x"], cwd=tmp_path, env={"A": "1"}, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    assert fake.calls == ["tool x"]
+    assert fake.seen == [(["/usr/bin/tool", "x"], {"cwd": tmp_path, "env": {"A": "1"}, "stdout": subprocess.PIPE, "stderr": subprocess.PIPE})]
+    assert fake.popens == [child]
+    assert child.pid == fake.popens[0].pid and isinstance(child.pid, int)
+    assert child.returncode is None
+    assert child.communicate() == (b"out", b"err")
+    assert child.returncode == 3
+    assert child.wait(timeout=1) == 3
+    assert child.poll() == 3
+    with pytest.raises(AssertionError, match="unexpected process: other"):
+        subprocess.Popen(["other"])
+
+
+def test_fake_processes_answers_popen_poll_and_wait_report_the_code_and_a_raising_answer_raises_from_the_constructor(fake_processes):
+    fake_processes.answers({"tool": (5, "", ""), "gone": FileNotFoundError(2, "no gone")})
+
+    waiting = subprocess.Popen(["tool"])
+    polled = subprocess.Popen(["tool"])
+
+    assert waiting.wait() == 5 and waiting.returncode == 5
+    assert polled.poll() == 5 and polled.returncode == 5
+    with pytest.raises(FileNotFoundError):
+        subprocess.Popen(["gone"])
+
+
+def test_fake_processes_answers_popen_communicate_returns_none_for_a_stream_not_piped_and_text_for_text_mode(fake_processes):
+    fake_processes.answers({"tool": (0, "out", "err")})
+
+    assert subprocess.Popen(["tool"]).communicate() == (None, None)
+    assert subprocess.Popen(["tool"], stdout=subprocess.PIPE, text=True).communicate() == ("out", None)
+    assert subprocess.Popen(["tool"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate() == (b"outerr", None)
+
+
+def test_fake_processes_answers_popen_streams_are_readable_by_line_and_stdin_collects_what_is_written(fake_processes):
+    fake_processes.answers({"tool": (0, "a\nb\n", "oops")})
+
+    child = subprocess.Popen(["tool"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    child.stdin.write("fed")
+    child.stdin.close()
+
+    assert list(child.stdout) == ["a\n", "b\n"]
+    assert child.stderr.read() == "oops"
+    assert child.stdin.written == "fed"
+    assert subprocess.Popen(["tool"]).stdout is None
+    assert subprocess.Popen(["tool"]).stdin is None
+
+
+def test_fake_processes_answers_popen_communicate_records_its_input(fake_processes):
+    fake_processes.answers({"tool": (0, "", "")})
+    child = subprocess.Popen(["tool"], stdin=subprocess.PIPE)
+
+    child.communicate(input=b"prompt", timeout=3)
+
+    assert child.stdin.written == b"prompt"
+
+
+def test_fake_processes_answers_popen_records_signals_and_works_as_a_context_manager_that_waits(fake_processes):
+    fake_processes.answers({"tool": (9, "", "")})
+
+    with subprocess.Popen(["tool"]) as child:
+        child.terminate()
+        child.kill()
+        child.send_signal(signal.SIGHUP)
+        assert child.signals == [signal.SIGTERM, signal.SIGKILL, signal.SIGHUP]
+    assert child.returncode == 9
 
 
 def child_pytest(tmp_path, probe, env, select=(), plugins=()):

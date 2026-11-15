@@ -342,11 +342,78 @@ def run_cli(monkeypatch, capfd):
     return run
 
 
+class _Written:
+    """A stdin stand-in: what was written stays readable as .written after the caller closes it."""
+
+    def __init__(self, text):
+        self._stream = io.StringIO() if text else io.BytesIO()
+        self.written = self._stream.getvalue()
+
+    def write(self, data):
+        count = self._stream.write(data)
+        self.written = self._stream.getvalue()
+        return count
+
+    def flush(self):
+        pass
+
+    def close(self):
+        self._stream.close()
+
+
+class FakePopen:
+    """The Popen object fake_processes.answers hands back: already finished, see the fixture's docstring."""
+    pid = 4242
+
+    def __init__(self, args, kwargs, code, out, err):
+        self.args, self.returncode, self.signals = args, None, []
+        self._code = code
+        text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
+        stream = io.StringIO if text else io.BytesIO
+        piped = {name: kwargs.get(name) == subprocess.PIPE for name in ("stdin", "stdout", "stderr")}
+        self._out = out if piped["stdout"] else None
+        self._err = err if piped["stderr"] and err is not None else None
+        self.stdin = _Written(text) if piped["stdin"] else None
+        self.stdout = stream(self._out) if self._out is not None else None
+        self.stderr = stream(self._err) if self._err is not None else None
+
+    def _finish(self):
+        self.returncode = self._code
+        return self._code
+
+    def communicate(self, input=None, timeout=None):
+        if input is not None and self.stdin is not None:
+            self.stdin.write(input)
+        self._finish()
+        return self._out, self._err
+
+    def wait(self, timeout=None):
+        return self._finish()
+
+    def poll(self):
+        return self._finish()
+
+    def send_signal(self, signum):
+        self.signals.append(signum)
+
+    def terminate(self):
+        self.send_signal(signal.SIGTERM)
+
+    def kill(self):
+        self.send_signal(signal.SIGKILL)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self._finish()
+
+
 class FakeProcesses:
     """What fake_processes.answers hands back: the command lines run, and (argv, kwargs) per call."""
 
-    def __init__(self, calls, seen):
-        self.calls, self.seen = calls, seen
+    def __init__(self, calls, seen, popens=()):
+        self.calls, self.seen, self.popens = calls, seen, popens
 
     @property
     def argvs(self):
@@ -360,7 +427,7 @@ def fake_processes(monkeypatch):
     fake_processes(answer=None) -> calls
         <answer>(line, **kwargs) -> (returncode, stdout, stderr) answers subprocess.run, <line> being the
         command line ("git rev-parse HEAD": argv[0] by basename, the rest as str) and <kwargs> what the caller
-        passed. Popen, call, check_call and check_output refuse, naming the command. With no <answer>, every
+        passed. Popen, call, check_call and check_output refuse, naming the command (use .answers for them). With no <answer>, every
         entry point records and answers 0 with empty output. Returns the list of command lines run.
 
     fake_processes.answers(table, default=None, exact=False) -> fake    (the table-driven form: prefer it)
@@ -376,11 +443,33 @@ def fake_processes(monkeypatch):
         fake.calls: the command lines, in order. fake.argvs: the same calls as argv lists. fake.seen: one (argv, kwargs) per call, argv as the caller
         passed it (full path kept) and kwargs as passed (cwd, env, input, capture_output, check ...).
         Output is handed back in the caller's mode (str under text=True, bytes otherwise), stderr=STDOUT
-        merges, check=True raises CalledProcessError; Popen, call, check_call and check_output refuse.
+        merges, check=True raises CalledProcessError.
+        One table serves every entry point, each recorded alike (calls, argvs, seen):
+            run                  CompletedProcess(argv, code, stdout, stderr)
+            call                 the return code (an int)
+            check_call           0, or CalledProcessError(code, argv) on a non-zero code
+            check_output         stdout (bytes; str under text=/universal_newlines=/encoding=), or
+                                 CalledProcessError(code, argv, output, stderr) on a non-zero code
+            Popen                a finished FakePopen, also listed in fake.popens
+        An exception answer, instance or class (OSError, subprocess.TimeoutExpired(argv, 5)), is raised by
+        whichever entry point was called, Popen's constructor included: the command was still recorded.
+        A list of answers is consumed call by call across entry points ("fails first, then succeeds").
+        FakePopen models: pid (fixed, 4242); returncode (None until poll/wait/communicate/__exit__, then the
+        answered code: it never runs); communicate(input=None, timeout=None) -> (stdout, stderr), None for a
+        stream not asked as PIPE, stderr=STDOUT merged into stdout; wait(timeout=None); poll();
+        stdout/stderr readable streams (read, readline, iteration by line; str under text mode) when asked as PIPE,
+        else None; stdin a writer when asked as PIPE, whose text stays on .stdin.written after close (and
+        communicate(input=) appends to it); kill/terminate/send_signal appended to .signals, nothing else
+        happens; a with-block waits on exit. NOT modelled: a running or hanging child, timeouts (the timeout
+        argument is ignored), a signal changing returncode, fileno() on the streams (a caller using os.read on
+        them needs a process case), preexec_fn/start_new_session effects, pass_fds, a real pid.
+        The legacy fake_processes(answer) form above still refuses all but run. There is no real-process
+        passthrough: a case needing one is a `process` case with its own setup.
     """
-    def install(answer=None, seen=None):
+    def install(answer=None, seen=None, popens=None, every_entry=False):
         calls = []
         seen = [] if seen is None else seen
+        popens = [] if popens is None else popens
 
         def line_of(args, kwargs=None):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
@@ -419,6 +508,11 @@ def fake_processes(monkeypatch):
         def call(args, *_, **kwargs):
             return answered(args, kwargs)[0]
 
+        def popen(args, *_, **kwargs):
+            child = FakePopen(args, kwargs, *answered(args, kwargs))
+            popens.append(child)
+            return child
+
         def check_call(args, *_, **kwargs):
             code = answered(args, kwargs)[0]
             if code:
@@ -434,8 +528,11 @@ def fake_processes(monkeypatch):
         def refuse(args, *_, **__):
             raise AssertionError("unexpected process: %s" % line_of(args))
 
+        answering = {"run": run}
+        if every_entry:
+            answering.update(call=call, check_call=check_call, check_output=check_output, Popen=popen)
         for name in ("run", "Popen", "call", "check_call", "check_output"):
-            entry = record if answer is None else {"run": run, "call": call, "check_call": check_call, "check_output": check_output}.get(name, refuse)
+            entry = record if answer is None else answering.get(name, refuse)
             monkeypatch.setattr(subprocess, name, entry)
         return calls
 
@@ -456,9 +553,9 @@ def fake_processes(monkeypatch):
                 raise what
             return what(line, **kwargs) if callable(what) else what
 
-        seen = []
-        calls = install(answer, seen)
-        return FakeProcesses(calls, seen)
+        seen, popens = [], []
+        calls = install(answer, seen, popens, every_entry=True)
+        return FakeProcesses(calls, seen, popens)
 
     install.answers = answers
     return install
