@@ -197,8 +197,11 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     Returns 0 inserted; 1 clean negative (growth budget spent, the texts parked under "## Owed steps"; an
     unreadable replaces-case step; a second suite-repair step this run); 2 refused (stderr says why) or no answer.
     Writes the ledger, its added-steps record and events.jsonl (step-added, plan); commits the amendment when a
-    conductor is live. Prints refusals and notes to stderr, as the script does.
+    conductor is live. Prints refusals and notes to stderr, as the script does; an empty path, position or anchor
+    is refused with the usage line (exit 2), as on the command line.
     """
+    if "" in (path, where, anchor):
+        return entry.refuse(USAGE)
     if where not in ("after", "before", "instead-of"):
         return entry.refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     for text in texts:
