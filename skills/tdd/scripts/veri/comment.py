@@ -13,6 +13,7 @@ import event_log
 import github
 import metrics as metrics_module
 import paths
+import restart_marker
 import run_dir
 from ledger import handed_out, ledger_path, ledger_steps
 
@@ -234,12 +235,8 @@ def post_bailed(issue, note_file, pr=False):
 
 
 def restart_pending():
-    try:
-        with open(run_dir.run_file(".", "restart-pending")) as f:
-            os.kill(int(f.read().strip()), 0)
-    except (OSError, ValueError):
-        return False
-    return True
+    # An empty, non-digit or unreadable marker counts as dead: SCRIPTS.md's comment entry.
+    return restart_marker.in_flight(".", unreadable=False)
 
 
 def post_stopped(issue, note_file=None):
