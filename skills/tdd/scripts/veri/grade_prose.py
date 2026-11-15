@@ -141,12 +141,22 @@ def graded_path(unit):
     return os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
 
 
+def graded_fields(line):
+    """A GRADED line's fields, split on each single space: unit, signature, date, grading id, grader-template prefix."""
+    return line.split(" ")
+
+
+def graded_line(fields):
+    """The GRADED line holding `fields`, without its newline: the inverse of graded_fields."""
+    return " ".join(fields)
+
+
 def graded_lines(graded):
     if not os.path.exists(graded):
         return
     with open(graded, encoding="utf-8") as f:
         for line in f.read().splitlines():
-            yield line.split(" ")
+            yield graded_fields(line)
 
 
 def graded_signature(unit):
@@ -179,11 +189,11 @@ def record_graded(unit, sig, grading_id):
     graded = graded_path(unit)
     kept = []
     if os.path.exists(graded):
-        kept = [l for l in read_graded(graded) if l.partition(" ")[0] != unit]
+        kept = [l for l in read_graded(graded) if graded_fields(l)[0] != unit]
     with open(graded, "w", encoding="utf-8") as f:
         f.write("".join(l + "\n" for l in kept))
         template = hashlib.sha256(GRADER_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
-        f.write("%s %s %s %s %s\n" % (unit, sig, time.strftime("%Y-%m-%d"), grading_id, template))
+        f.write(graded_line([unit, sig, time.strftime("%Y-%m-%d"), grading_id, template]) + "\n")
 
 
 def graded_ids(text):
@@ -220,10 +230,10 @@ def resign(unit, own, tree):
     graded = graded_path(unit)
     lines = read_graded(graded)
     for i, line in enumerate(lines):
-        fields = line.split(" ")
+        fields = graded_fields(line)
         if fields[:2] == [unit, own]:
             fields[1] = tree
-            lines[i] = " ".join(fields)
+            lines[i] = graded_line(fields)
     with open(graded, "w", encoding="utf-8") as f:
         f.write("".join(l + "\n" for l in lines))
 
