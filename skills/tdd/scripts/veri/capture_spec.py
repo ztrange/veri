@@ -2,10 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-try:
-    from github import NoAnswer, gh_issue_view
-except ImportError:
-    from .github import NoAnswer, gh_issue_view
+from github import NoAnswer, gh_issue_view
 
 USAGE = "capture-spec: usage: capture-spec.sh <issue-number>"
 BUG_HEADINGS = ("What happened", "Expected", "Steps to reproduce", "Environment")

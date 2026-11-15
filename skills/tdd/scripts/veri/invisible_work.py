@@ -4,14 +4,9 @@ import re
 import subprocess
 import sys
 
-try:
-    from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
-    from github import NoAnswer, gh_json
-    from json_documents import items
-except ImportError:
-    from .git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
-    from .github import NoAnswer, gh_json
-    from .json_documents import items
+from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
+from github import NoAnswer, gh_json
+from json_documents import items
 
 
 def git_out(*args):

@@ -5,18 +5,11 @@ import os
 import sys
 import tempfile
 
-try:
-    from blocked_by import add as block, blockers
-    from detect_test_command import resolved
-    from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
-    from json_documents import documents
-    import tunables
-except ImportError:
-    from .blocked_by import add as block, blockers
-    from .detect_test_command import resolved
-    from .github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
-    from .json_documents import documents
-    from . import tunables
+from blocked_by import add as block, blockers
+from detect_test_command import resolved
+from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
+from json_documents import documents
+import tunables
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"

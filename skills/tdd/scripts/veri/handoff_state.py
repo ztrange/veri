@@ -10,10 +10,7 @@ import github
 import json_documents
 import tunables
 
-try:
-    from . import status
-except ImportError:
-    import status
+import status
 
 
 def out(*args):
