@@ -2014,3 +2014,65 @@ def test_blocked_by_reads_an_issue_url_as_solvable_issues_does_and_a_heading_wit
 
     assert (report_cache.blocked_by(url), report_cache.blocked_by("## Blocked by  \n\n- #5\n"),
             report_cache.blocked_by(None), report_cache.blocked_by("no section #4")) == ([3, 34], [5], [], [])
+
+
+def refresh_from(run_cli, monkeypatch, cwd):
+    """Runs `refresh` from `cwd` with gh answering one open issue; returns the exit code."""
+    import json
+    import subprocess
+
+    report_cache = importlib.import_module("veri.report_cache")
+    issues = [{"number": 7, "title": "open one", "state": "OPEN", "labels": [],
+               "closedAt": None, "updatedAt": "2026-10-20T10:00:00Z"}]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[0] == "git":
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:3] != ["gh", "issue", "list"]:
+            raise AssertionError("unexpected call: %s" % " ".join(args))
+        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    return run_cli(report_cache, ["refresh"], cwd=cwd)[0]
+
+
+def linked_checkout(tmp_path, pointer, admin="main/.git/worktrees/linked", commondir="../.."):
+    """A main tree and a linked tree laid out by hand (no git): the linked tree's `.git` file says
+    `gitdir: <pointer>` and the admin directory holds a `commondir` file."""
+    (tmp_path / "main" / ".git").mkdir(parents=True)
+    (tmp_path / admin).mkdir(parents=True)
+    (tmp_path / admin / "commondir").write_text(commondir + "\n")
+    (tmp_path / "linked").mkdir()
+    (tmp_path / "linked" / ".git").write_text("gitdir: %s\n" % pointer)
+    return tmp_path / "main", tmp_path / "linked"
+
+
+def test_refresh_from_a_subdirectory_of_a_linked_worktree_writes_the_cache_under_the_main_working_tree(
+        run_cli, monkeypatch, tmp_path):
+    main, linked = linked_checkout(tmp_path, str(tmp_path / "main/.git/worktrees/linked"))
+    (linked / "src" / "deep").mkdir(parents=True)
+
+    code = refresh_from(run_cli, monkeypatch, linked / "src" / "deep")
+
+    assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / "src" / "deep" / ".tdd").exists()) == (
+        0, True, False)
+
+
+def test_refresh_from_a_worktree_whose_git_file_holds_a_relative_gitdir_writes_the_cache_under_the_main_working_tree(
+        run_cli, monkeypatch, tmp_path):
+    main, linked = linked_checkout(tmp_path, "../main/.git/worktrees/linked")
+
+    code = refresh_from(run_cli, monkeypatch, linked)
+
+    assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / ".tdd").exists()) == (0, True, False)
+
+
+def test_refresh_from_a_worktree_whose_gitdir_is_not_three_levels_under_the_main_tree_follows_its_commondir(
+        run_cli, monkeypatch, tmp_path):
+    main, linked = linked_checkout(tmp_path, str(tmp_path / "admin/linked"), admin="admin/linked",
+                                   commondir=str(tmp_path / "main/.git"))
+
+    code = refresh_from(run_cli, monkeypatch, linked)
+
+    assert (code, (main / ".tdd" / "report-cache.json").is_file(), (tmp_path / ".tdd").exists()) == (0, True, False)
