@@ -1650,7 +1650,7 @@ def test_clone_with_the_issues_worktree_registered_while_origin_holds_the_branch
     assert resumed_on(mine, code, out, local_tip, remote_tip) == (True, 0, mine, "tdd/66-registered", local_tip)
 
 
-def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, issue_worktree):
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, monkeypatch, issue_worktree, capsys):
     import importlib.util
     real = pathlib.Path(issue_worktree.__file__).resolve()
     farm = tmp_path.resolve() / "farm" / "veri"
@@ -1661,7 +1661,7 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     spec.loader.exec_module(loaded)
     monkeypatch.chdir(real.parent.parent)
 
-    assert loaded.inside_own_scripts() is True
+    assert (loaded.main(["7", "slug"]), capsys.readouterr()) == (2, ("", "issue-worktree: type this from the repository the issue belongs to, not from the skill's own scripts directory\n"))
 
 
 @pytest.mark.process("git clone, push and worktree add against a local bare repository as origin")

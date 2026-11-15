@@ -8,9 +8,11 @@ import subprocess
 import sys
 import tempfile
 
+import entry
 import event_log
 import paths
 import pinned_scripts
+import run_dir
 import tunables
 from git import git, symref_default
 import github
@@ -19,10 +21,7 @@ from json_documents import items
 from pid_file import live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
-
-
-def to_contract(code):
-    return code if 0 <= code <= 3 else 2
+PREFIX = "issue-worktree: "
 
 
 def positive_whole(n):
@@ -98,16 +97,6 @@ def worktree_add(*args):
     return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
 
 
-def wt_path(main_tree, n):
-    return main_tree + "/.tdd/wt/" + n
-
-
-def inside_own_scripts():
-    scripts = paths.resolved_scripts_of(__file__)
-    here = os.path.realpath(os.getcwd())
-    return here == scripts or here.startswith(scripts + os.sep)
-
-
 def ps_field(pid, field):
     ps = subprocess.Popen(["ps", "-p", str(pid), "-o", field + "="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     out = ps.communicate()[0].strip()
@@ -126,25 +115,23 @@ def ancestors():
 
 def main(argv):
     if len(argv) < 2 or not argv[0] or not argv[1] or not positive_whole(argv[1] if argv[0] == "--remove" else argv[0]):
-        sys.stderr.write(USAGE + "\n")
-        return 2
-    if inside_own_scripts():
-        sys.stderr.write("issue-worktree: type this from the repository the issue belongs to,"
-                         " not from the skill's own scripts directory\n")
-        return 2
+        return entry.refuse(usage=USAGE)
+    if paths.inside_scripts(__file__):
+        return entry.refuse("type this from the repository the issue belongs to,"
+                            " not from the skill's own scripts directory", prefix=PREFIX)
     registry = subprocess.run(["git", "worktree", "list", "--porcelain"], stdout=subprocess.PIPE, text=True)
     if registry.returncode != 0:
-        return to_contract(registry.returncode)
+        return entry.to_contract(registry.returncode)
     main_tree = registry.stdout.split("\n", 1)[0].removeprefix("worktree ")
     if argv[0] == "--remove":
-        path = wt_path(main_tree, argv[1])
+        path = run_dir.worktree(main_tree, argv[1])
         status = subprocess.run(["git", "-C", path, "status", "--porcelain"],
                                 stdout=subprocess.PIPE, stderr=sys.stderr, text=True)
         if status.stdout:
             sys.stderr.write("issue-worktree: %s has uncommitted changes — refusing to remove it\n" % path)
             return 2
         try:
-            with open(path + "/.tdd/pinned-scripts/.snapshot-dir") as where:
+            with open(run_dir.run_file(path, "pinned-scripts/.snapshot-dir")) as where:
                 snapshot = where.read()
         except OSError:
             snapshot = ""
@@ -154,8 +141,8 @@ def main(argv):
             shutil.rmtree(snapshot, ignore_errors=True)
         elif removed.returncode == 0 and snapshot and not pinned_scripts.snapshot_gone(snapshot):
             sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (snapshot, path))
-        return to_contract(removed.returncode)
-    path = wt_path(main_tree, argv[0])
+        return entry.to_contract(removed.returncode)
+    path = run_dir.worktree(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):
         pid = live_conductor(path)
         if pid is not None and int(pid) not in ancestors():
@@ -163,7 +150,7 @@ def main(argv):
                              " — refusing to hand back a run in flight\n" % (path, pid))
             return 2
         if os.path.isdir(path + "/.tdd"):
-            open(path + "/.tdd/handed-back", "w").close()
+            open(run_dir.run_file(path, "handed-back"), "w").close()
         sys.stdout.write(path + "\n")
         return 0
     branch = "tdd/%s-%s" % (argv[0], argv[1])
@@ -202,11 +189,6 @@ def seeded_log_set_aside(path):
                 else:
                     shutil.move(aside + "/" + name + ".kept", tdd + "/" + name)
             shutil.rmtree(aside)
-
-
-def refuse(message):
-    sys.stderr.write("issue-worktree: %s\n" % message)
-    return 2
 
 
 def issue_of(branch):
@@ -248,8 +230,8 @@ def cut(path, branch):
         code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
     else:
         if len(names) > 1:
-            return refuse("%s exist for the issue — cannot pick one for the requested %s"
-                          % (", ".join(names), branch))
+            return entry.refuse("%s exist for the issue — cannot pick one for the requested %s"
+                                % (", ".join(names), branch), prefix=PREFIX)
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
@@ -260,17 +242,17 @@ def cut(path, branch):
             issue = issue_of(branch)
             claimed = remote_issue_branch("tdd/" + issue)
             if claimed is None:
-                return refuse("git ls-remote origin got no answer"
-                              " — cannot tell whether another run claimed the issue")
+                return entry.refuse("git ls-remote origin got no answer"
+                                    " — cannot tell whether another run claimed the issue", prefix=PREFIX)
             if claimed:
-                return refuse("%s is already on origin"
-                              " — another run claimed the issue" % claimed)
+                return entry.refuse("%s is already on origin"
+                                    " — another run claimed the issue" % claimed, prefix=PREFIX)
             pr = claiming_pr(issue, url)
             if pr is None:
-                return refuse("the open-PR lookup got no answer"
-                              " — cannot tell whether another run claimed the issue")
+                return entry.refuse("the open-PR lookup got no answer"
+                                    " — cannot tell whether another run claimed the issue", prefix=PREFIX)
             if pr:
-                return refuse("%s claims the issue (Closes #%s)" % (pr, issue))
+                return entry.refuse("%s claims the issue (Closes #%s)" % (pr, issue), prefix=PREFIX)
         name, refusal = default_branch_name(origin)
         if not name:
             if refusal:
@@ -284,7 +266,7 @@ def cut(path, branch):
             name = "origin/" + name
         code = worktree_add("--no-track", "-b", branch, path, name)
     if code != 0:
-        return to_contract(code)
+        return entry.to_contract(code)
     sys.stdout.write(path + "\n")
     return 0
 
