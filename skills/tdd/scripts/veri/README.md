@@ -22,8 +22,6 @@ names other modules use. Related names share a line where the list would otherwi
 ## build_verify_prompt
 - `build(step_arg, fast_cmd, phase, spec_arg, test_path, …)`: the rendered verifier prompt; a refusal (usage on stderr, exit 2) for bad arguments.
 - `INTERFACE_PHASES`: the phases of an interface change (`expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
-- `expand_includes(text, prompts, chain=())`: `text` with every `{{INCLUDE:x}}` partial inlined; raises `IncludeRefused` for a missing or self-including partial.
-- `spec_text_of(path)`: the spec file's bytes, `b""` when unreadable. `has_heading(text, heading)`: whether `## <heading>` is a line of the bytes.
 - `refuse(message=None)`: writes the message and the usage to stderr, returns 2.
 
 ## candidates
@@ -188,6 +186,12 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 
 ## preserve_attempt
 - `preserve(repo, issue, step, phase, attempt, mark="", env=None)`: saves the work tree as a commit under `refs/veri/attempts/…` without touching the branch; returns 0, 1 (stderr message) when the ref or leaf files cannot be written, or a failed git step's code.
+
+## prompt_template
+- `read(path)`: the file's bytes without trailing newlines; raises OSError. `spec_text_of(path)`: the same, `b""` when unreadable.
+- `has_heading(text, heading)`: whether `## <heading>` is a line of the bytes.
+- `expand_includes(text, prompts, chain=())`: `text` with every `{{INCLUDE:x}}` partial inlined; raises `IncludeRefused` for a missing or self-including partial.
+- `fill(text, pairs)`: `text` with each `{{NAME}}` replaced in order from `(name, value)` pairs; a callable value runs only while its placeholder is still in the text.
 
 ## prose_owed
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale.

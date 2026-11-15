@@ -9,6 +9,7 @@ import sys
 import event_log
 import tunables
 from entry import write
+from prompt_template import IncludeRefused, expand_includes, fill, has_heading, read as _read, spec_text_of
 from ledger import carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
@@ -39,45 +40,6 @@ def refuse(message=None):
         write(sys.stderr, message, before=False, after=False)
     write(sys.stderr, USAGE, before=False, after=False)
     return 2
-
-
-def _read(path):
-    with open(path, "rb") as f:
-        return f.read().rstrip(b"\n")
-
-
-def spec_text_of(path):
-    try:
-        return _read(path)
-    except OSError:
-        return b""
-
-
-def has_heading(text, heading):
-    return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
-
-
-class IncludeRefused(Exception):
-    pass
-
-
-def expand_includes(text, prompts, chain=()):
-    out = b""
-    while (match := re.search(rb"\{\{INCLUDE:([^}]*)\}\}", text)):
-        part = prompts + b"/" + match[1]
-        out += text[:match.start()]
-        text = text[match.end():]
-        if not os.access(part, os.R_OK):
-            raise IncludeRefused(b"missing partial: " + part)
-        if part in chain:
-            raise IncludeRefused(b"partial includes itself: " + part)
-        try:
-            content = _read(part)
-        except IsADirectoryError:
-            sys.stderr.buffer.write(b"cat: " + part + b": Is a directory\n")
-            content = b""
-        out += expand_includes(content, prompts, chain + (part,))
-    return out + text
 
 
 def _later_steps(ledger, step_arg):
@@ -210,7 +172,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if phase == "red" and is_replaces_case_step(step_arg):
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
-    for placeholder, value in ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
+    out = fill(out, ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
                                (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
@@ -222,8 +184,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
-                               (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))):
-        out = out.replace(b"{{" + placeholder + b"}}", value)
+                               (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh"))))
     if phase == "diff":
         out += _author_less_block(tunables.read("VERI_ISSUE"))
     return 0, out + b"\n\n" + _read(f"{prompts}/_verify-output-contract.md") + b"\n"
