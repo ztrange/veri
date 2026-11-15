@@ -36,7 +36,7 @@ def test_main_refuses_missing_or_empty_arguments_with_its_usage_line_and_no_git_
 
 
 def test_main_returns_2_when_commit_tree_exits_128_with_the_scratch_directory_gone_and_no_update_ref(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     repo.mkdir()
     scratch_parent = tmp_path / "tmp"
@@ -44,20 +44,16 @@ def test_main_returns_2_when_commit_tree_exits_128_with_the_scratch_directory_go
     monkeypatch.chdir(repo)
     monkeypatch.setenv("TMPDIR", str(scratch_parent))
     monkeypatch.setattr(tempfile, "tempdir", None)
-    calls = []
-
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        calls.append(line)
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 128, "", "")
-        return subprocess.CompletedProcess(args, 0, "", "")
+            return (128, "", "")
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    calls = fake_processes(answer)
 
     code = preserve_attempt.main(["409", "3", "develop-green", "1"])
 
@@ -66,26 +62,25 @@ def test_main_returns_2_when_commit_tree_exits_128_with_the_scratch_directory_go
 
 
 def test_main_returns_1_with_its_could_not_preserve_line_and_no_copy_when_update_ref_exits_128(
-        monkeypatch, tmp_path, capsys, preserve_attempt):
+        monkeypatch, tmp_path, capsys, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     (repo / ".tdd").mkdir(parents=True)
     (repo / ".tdd" / "develop-green.log").write_text("log\n")
     (repo / ".tdd" / "develop-green.out").write_text("out\n")
     monkeypatch.chdir(repo)
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
         if line.startswith("git update-ref"):
-            return subprocess.CompletedProcess(args, 128, None, None)
-        return subprocess.CompletedProcess(args, 0, "", "")
+            return (128, None, None)
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", "3", "develop-green", "1", "reject"])
     captured = capsys.readouterr()
@@ -97,7 +92,7 @@ def test_main_returns_1_with_its_could_not_preserve_line_and_no_copy_when_update
 
 
 def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past_prose_and_star_lines(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     from veri.ledger import ledger_steps
 
     repo = tmp_path / "repo"
@@ -114,19 +109,18 @@ def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past
     monkeypatch.chdir(repo)
     update_refs = []
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
         if line.startswith("git update-ref"):
-            update_refs.append(str(args[2]))
-        return subprocess.CompletedProcess(args, 0, "", "")
+            update_refs.append(str(processes.argvs[-1][2]))
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", step, "develop-green", "1"])
 
@@ -135,7 +129,7 @@ def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past
 
 
 def test_main_keeps_the_argument_for_a_step_only_a_substring_of_ledger_steps_or_when_the_ledger_gives_none_issue_1031(
-        monkeypatch, tmp_path, capsys, preserve_attempt):
+        monkeypatch, tmp_path, capsys, preserve_attempt, fake_processes):
     import builtins
     import io
 
@@ -154,19 +148,18 @@ def test_main_keeps_the_argument_for_a_step_only_a_substring_of_ledger_steps_or_
         monkeypatch.chdir(repo)
         update_refs = []
 
-        def fake_run(args, *_, **__):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        def answer(line, **_):
             if line.startswith("git rev-parse --show-toplevel"):
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if line.startswith("git write-tree"):
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if line.startswith("git commit-tree"):
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
             if line.startswith("git update-ref"):
-                update_refs.append(str(args[2]))
-            return subprocess.CompletedProcess(args, 0, "", "")
+                update_refs.append(str(processes.argvs[-1][2]))
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         code = preserve_attempt.main(["409", step, "develop-green", "1"])
         return name, code, update_refs, capsys.readouterr().err
 
@@ -195,7 +188,7 @@ def test_main_keeps_the_argument_for_a_step_only_a_substring_of_ledger_steps_or_
 
 
 def test_main_reads_a_digits_only_step_as_the_ledger_index_past_an_earlier_step_containing_the_digit_issue_1031(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     (repo / ".tdd").mkdir(parents=True)
     (repo / ".tdd" / "issue-409.md").write_text(
@@ -206,19 +199,18 @@ def test_main_reads_a_digits_only_step_as_the_ledger_index_past_an_earlier_step_
     monkeypatch.chdir(repo)
     update_refs = []
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
         if line.startswith("git update-ref"):
-            update_refs.append(str(args[2]))
-        return subprocess.CompletedProcess(args, 0, "", "")
+            update_refs.append(str(processes.argvs[-1][2]))
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", "2", "develop-green", "1"])
 
@@ -226,7 +218,7 @@ def test_main_reads_a_digits_only_step_as_the_ledger_index_past_an_earlier_step_
 
 
 def test_main_reads_a_step_equal_to_a_later_steps_full_text_as_that_index_past_an_earlier_step_containing_it_issue_1031(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     (repo / ".tdd").mkdir(parents=True)
     (repo / ".tdd" / "issue-409.md").write_text(
@@ -237,19 +229,18 @@ def test_main_reads_a_step_equal_to_a_later_steps_full_text_as_that_index_past_a
     monkeypatch.chdir(repo)
     update_refs = []
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
         if line.startswith("git update-ref"):
-            update_refs.append(str(args[2]))
-        return subprocess.CompletedProcess(args, 0, "", "")
+            update_refs.append(str(processes.argvs[-1][2]))
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", "keep the leaf's output", "develop-green", "1"])
 
@@ -257,7 +248,7 @@ def test_main_reads_a_step_equal_to_a_later_steps_full_text_as_that_index_past_a
 
 
 def test_main_reads_a_step_equal_to_a_later_steps_text_without_its_trailing_marks_as_that_index_issue_1031(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     (repo / ".tdd").mkdir(parents=True)
     (repo / ".tdd" / "issue-409.md").write_text(
@@ -268,19 +259,18 @@ def test_main_reads_a_step_equal_to_a_later_steps_text_without_its_trailing_mark
     monkeypatch.chdir(repo)
     update_refs = []
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+    def answer(line, **_):
         if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
         if line.startswith("git update-ref"):
-            update_refs.append(str(args[2]))
-        return subprocess.CompletedProcess(args, 0, "", "")
+            update_refs.append(str(processes.argvs[-1][2]))
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", "keep the leaf's output", "refactor", "1"])
 
@@ -288,7 +278,7 @@ def test_main_reads_a_step_equal_to_a_later_steps_text_without_its_trailing_mark
 
 
 def test_main_names_the_step_ref_and_its_attempts_files_the_same_under_every_locale_issue_1032(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     update_refs = []
 
     def scenario(name, lc_all):
@@ -302,18 +292,19 @@ def test_main_names_the_step_ref_and_its_attempts_files_the_same_under_every_loc
         (tdd / "develop-green.log").write_text("log\n")
         monkeypatch.chdir(repo)
 
-        def fake_run(args, *_, **__):
+        def answer(line, **_):
+            args = processes.argvs[-1]
             if args[1] == "rev-parse":
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if args[1] == "write-tree":
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if args[1] == "commit-tree":
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
             if args[1] == "update-ref":
                 update_refs.append(str(args[2]))
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         del update_refs[:]
         code = preserve_attempt.main(["409", "a—b ⟦x⟧/c'd", "develop-green", "1", "stuck"])
         attempts = tdd / "attempts"
@@ -332,7 +323,7 @@ def test_main_names_the_step_ref_and_its_attempts_files_the_same_under_every_loc
 
 
 def test_main_names_the_step_ref_and_its_attempts_files_by_the_steps_bytes_under_a_non_utf8_locale_issue_1047(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     update_refs = []
     real_fsencode = os.fsencode
 
@@ -355,18 +346,19 @@ def test_main_names_the_step_ref_and_its_attempts_files_by_the_steps_bytes_under
         (tdd / "develop-green.log").write_text("log\n")
         monkeypatch.chdir(repo)
 
-        def fake_run(args, *_, **__):
+        def answer(line, **_):
+            args = processes.argvs[-1]
             if args[1] == "rev-parse":
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if args[1] == "write-tree":
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if args[1] == "commit-tree":
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
             if args[1] == "update-ref":
                 update_refs.append(str(args[2]))
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         del update_refs[:]
         code = preserve_attempt.main(["409", step, "develop-green", "1", "stuck"])
         attempts = tdd / "attempts"
@@ -384,7 +376,7 @@ def test_main_names_the_step_ref_and_its_attempts_files_by_the_steps_bytes_under
 
 
 def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_and_the_raw_step_in_the_message(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     (repo / ".tdd").mkdir(parents=True)
     (repo / "sub" / "dir").mkdir(parents=True)
@@ -399,7 +391,8 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
     monkeypatch.chdir(repo / "sub" / "dir")
     calls = []
 
-    def fake_run(args, *_, env=None, **__):
+    def answer(line, env=None, **_):
+        args = processes.argvs[-1]
         effective = dict(os.environ if env is None else env)
         index = effective.get("GIT_INDEX_FILE")
         calls.append({
@@ -410,14 +403,14 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
             "index_dir_existed": index is not None and os.path.isdir(os.path.dirname(index)),
         })
         if args[1] == "rev-parse":
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            return (0, f"{repo}\n", "")
         if args[1] == "write-tree":
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
         if args[1] == "commit-tree":
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
-        return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "1111111111111111111111111111111111111111\n", "")
+        return (0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
     inherited = dict(os.environ)
 
     code = preserve_attempt.main(["409", step, "develop-green", "1"])
@@ -444,7 +437,7 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
 
 
 def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree_with_the_scratch_gone_issue_1030(
-        monkeypatch, tmp_path, capsys, preserve_attempt):
+        monkeypatch, tmp_path, capsys, preserve_attempt, fake_processes):
     repo = tmp_path / "repo"
     repo.mkdir()
     scratch_parent = tmp_path / "tmp"
@@ -456,22 +449,23 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
         monkeypatch.chdir(repo)
         verbs = []
 
-        def fake_run(args, *_, **kwargs):
+        def answer(line, **kwargs):
+            args = processes.argvs[-1]
             verbs.append(str(args[1]))
             if args[1] == failing_verb:
                 if args[1] == "rev-parse" and kwargs.get("stderr") is None:
                     print("fatal: not a git repository (or any of the parent directories): .git",
                           file=sys.stderr)
-                return subprocess.CompletedProcess(args, status, "", None)
+                return (status, "", None)
             if args[1] == "rev-parse":
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if args[1] == "write-tree":
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if args[1] == "commit-tree":
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
-            return subprocess.CompletedProcess(args, 0, "", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         code = preserve_attempt.main(["409", "3", "develop-green", "1"])
         captured = capsys.readouterr()
         return (failing_verb, status, code, verbs, captured.out, captured.err.splitlines(),
@@ -496,7 +490,7 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
 
 
 def test_main_copies_each_regular_leaf_file_under_its_mark_and_returns_1_when_a_copy_fails(
-        monkeypatch, tmp_path, preserve_attempt):
+        monkeypatch, tmp_path, preserve_attempt, fake_processes):
     def scenario(name, argv, plant):
         repo = tmp_path / name
         tdd = repo / ".tdd"
@@ -504,16 +498,17 @@ def test_main_copies_each_regular_leaf_file_under_its_mark_and_returns_1_when_a_
         plant(tdd)
         monkeypatch.chdir(repo)
 
-        def fake_run(args, *_, **__):
+        def answer(line, **_):
+            args = processes.argvs[-1]
             if args[1] == "rev-parse":
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if args[1] == "write-tree":
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if args[1] == "commit-tree":
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
-            return subprocess.CompletedProcess(args, 0, "", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         code = preserve_attempt.main(argv)
         attempts = tdd / "attempts"
         listing = None
@@ -564,7 +559,7 @@ def test_main_copies_each_regular_leaf_file_under_its_mark_and_returns_1_when_a_
 
 
 def test_main_writes_nothing_on_stdout_preserved_refused_arguments_update_ref_refused_or_git_failure(
-        monkeypatch, tmp_path, capfd, preserve_attempt):
+        monkeypatch, tmp_path, capfd, preserve_attempt, fake_processes):
     def scenario(name, argv, failing_verb):
         repo = tmp_path / name
         (repo / ".tdd").mkdir(parents=True)
@@ -572,18 +567,19 @@ def test_main_writes_nothing_on_stdout_preserved_refused_arguments_update_ref_re
         (repo / ".tdd" / "develop-green.out").write_text("out\n")
         monkeypatch.chdir(repo)
 
-        def fake_run(args, *_, **__):
+        def answer(line, **_):
+            args = processes.argvs[-1]
             if args[1] == failing_verb:
-                return subprocess.CompletedProcess(args, 128, "", None)
+                return (128, "", None)
             if args[1] == "rev-parse":
-                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+                return (0, f"{repo}\n", "")
             if args[1] == "write-tree":
-                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+                return (0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
             if args[1] == "commit-tree":
-                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
-            return subprocess.CompletedProcess(args, 0, "", "")
+                return (0, "1111111111111111111111111111111111111111\n", "")
+            return (0, "", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        processes = fake_processes.answers({"": answer})
         code = preserve_attempt.main(argv)
         return name, code, capfd.readouterr().out
 
