@@ -4,7 +4,7 @@ import re
 import sys
 
 import tunables
-from entry import write
+from entry import no_arguments, write
 
 NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
@@ -26,6 +26,9 @@ USAGE = "usage: time-budget.sh"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     code, budget, ratio = limits()
     if code == 0:
         write(sys.stdout, budget + b"\n" + ratio + b"\n", before=False, end="")

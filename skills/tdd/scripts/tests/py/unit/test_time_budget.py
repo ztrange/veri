@@ -18,19 +18,26 @@ def time_budget():
     return importlib.import_module("veri.time_budget")
 
 
-def test_main_prints_the_defaults_with_or_without_an_argument_and_returns_2_on_a_non_numeric_budget(capfd, monkeypatch, time_budget):
+def test_main_prints_the_defaults_and_returns_2_on_a_non_numeric_budget(capfd, monkeypatch, time_budget):
     answers = []
-    for argv in ([], ["--bogus"]):
-        code = time_budget.main(argv)
-        answers.append((code,) + capfd.readouterr())
+    code = time_budget.main([])
+    answers.append((code,) + capfd.readouterr())
     monkeypatch.setenv("VERI_UNIT_BUDGET", "ten")
     code = time_budget.main([])
     answers.append((code,) + capfd.readouterr())
     assert answers == [
         (0, "10\n1.5\n", ""),
-        (0, "10\n1.5\n", ""),
         (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),
     ]
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_no_limit_read(capfd, monkeypatch, time_budget):
+    monkeypatch.setenv("VERI_UNIT_BUDGET", "ten")
+
+    code = time_budget.main(["--bogus"])
+
+    assert (code,) + capfd.readouterr() == (
+        2, "", f"time-budget.sh: unexpected argument '--bogus'\n{time_budget.USAGE}\n")
 
 
 def test_main_returns_2_on_a_non_numeric_ratio_and_names_only_the_budget_when_both_are_bad(capfd, monkeypatch, time_budget):
