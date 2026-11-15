@@ -5,6 +5,8 @@ import re
 import subprocess
 import sys
 
+import requirements
+
 LEDGER = re.compile(r"\.tdd/issue-\d+(-added|-mutations|-pr-body)?\.md")
 USAGE = "usage: skill-edit-guard.sh <unit-file> <base-sha> [<pin-file>...]"
 
@@ -15,10 +17,6 @@ def _git_lines(*args):
 
 def _git_ok(*args):
     return subprocess.run(["git", *args], capture_output=True).returncode == 0
-
-
-def list_path(unit):
-    return os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
 
 
 def main(argv):
@@ -33,7 +31,7 @@ def main(argv):
     if not at_base and not os.path.exists(unit):
         print(f"skill-edit-guard.sh: {unit} exists neither at {base} nor in the working tree", file=sys.stderr)
         return 2
-    allowed = {unit, list_path(unit), *pins}
+    allowed = {unit, requirements.list_path(unit), *pins}
     changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
     others = [path for path in changed if path and path not in allowed and not LEDGER.fullmatch(path)]
     for path in others:

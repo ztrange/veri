@@ -12,7 +12,6 @@ import event
 import issue_body
 import replaces_case
 import requirements
-import skill_edit_guard
 import tunables
 
 from event_log import read_events
@@ -116,7 +115,7 @@ def restates_list(path, unit):
     rows = [requirements.table_cells(line)[:2] for heading, line in requirements.requirements_lines(lines)
             if heading == unit and line.startswith("|")][2:]
     try:
-        current = requirements.claims(skill_edit_guard.list_path(unit), unit)
+        current = requirements.claims(requirements.list_path(unit), unit)
     except FileNotFoundError:
         raise MissingUnit(unit)
     return sorted(current.splitlines()) == sorted("\t".join(row) for row in rows)

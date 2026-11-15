@@ -70,3 +70,9 @@ def test_claims_does_not_refuse_a_four_space_example_table_after_the_real_one_as
 def test_well_formed_row_id_accepts_the_reword_suffix_after_a_numbered_id_3320():
     requirements = importlib.import_module("veri.requirements")
     assert requirements.well_formed_row_id("SC85<reword>")
+
+
+def test_list_path_is_the_requirements_file_beside_the_unit():
+    requirements = importlib.import_module("veri.requirements")
+    assert requirements.list_path("skills/tdd/SKILL.md") == "skills/tdd/REQUIREMENTS.md"
+    assert requirements.list_path("PRINCIPLES.md") == "REQUIREMENTS.md"

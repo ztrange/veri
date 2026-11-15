@@ -5,7 +5,7 @@ import sys
 
 import entry
 import ledger
-import skill_edit_guard
+import requirements
 import skill_edit_step
 
 USAGE = "usage: requirements-preflight.sh <issue-body-file> [<ledger>]\n"
@@ -22,7 +22,7 @@ def main(argv):
             units.append(heading)
     clashing = []
     for unit in units:
-        texts = skill_edit_step.listed_texts(skill_edit_guard.list_path(unit), unit)
+        texts = skill_edit_step.listed_texts(requirements.list_path(unit), unit)
         clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(skill_edit_step.unit_rows(issue, unit), texts)]
     missing = []
     unitless = []
