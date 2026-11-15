@@ -473,3 +473,15 @@ def test_an_extra_argument_after_lane_and_its_value_prints_usage_on_stderr_and_e
     code, out, err = run_cli(role_growth, ["dev", "--lane", "x", "extra"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
     assert (code, out, err) == (2, "", "usage: role-growth.sh <coord|dev> [--lane <lane>]\n")
+
+
+def test_a_missing_or_empty_session_id_is_a_refusal_in_the_scripts_own_words_not_an_escaped_keyerror(tmp_path, monkeypatch, run_cli):
+    role_growth = importlib.import_module("veri.role_growth")
+    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+
+    answers = [run_cli(role_growth, ["coord"], env={"HOME": str(tmp_path / "home")}),
+               run_cli(role_growth, ["coord"], env={"HOME": str(tmp_path / "home"), "CLAUDE_CODE_SESSION_ID": ""})]
+
+    assert [(code, len(err.splitlines()), "KeyError" in err, "CLAUDE_CODE_SESSION_ID is not set" in err)
+            for code, _, err in answers] == [(2, 1, False, True)] * 2
