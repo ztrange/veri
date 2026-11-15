@@ -12,6 +12,7 @@ import time
 
 import github
 import issue_body
+import run_dir
 import tunables
 
 USAGE = "usage: report-cache.sh refresh\n"
@@ -22,15 +23,6 @@ FIELDS = "number,title,state,labels,closedAt,updatedAt,body"
 
 class CapReached(github.NoAnswer):
     """A listing filled the search cap: a truncated snapshot, never to be retried in windows."""
-
-
-def main_tree():
-    dot_git = os.path.join(os.getcwd(), ".git")
-    if not os.path.isfile(dot_git):
-        return os.getcwd()
-    with open(dot_git) as pointer:
-        gitdir = pointer.read().strip().split("gitdir:", 1)[1].strip()
-    return os.path.dirname(os.path.dirname(os.path.dirname(gitdir)))
 
 
 def blocked_by(body):
@@ -159,7 +151,7 @@ def refresh():
     if bad:
         sys.stderr.write("report-cache.sh: VERI_COMMENT_CHUNK '%s' is not %s\n" % bad)
         return 2
-    tdd = os.path.join(main_tree(), ".tdd")
+    tdd = os.path.join(run_dir.main_tree_from_files(), ".tdd")
     path = os.path.join(tdd, "report-cache.json")
     kept = {}
     since = None
