@@ -224,7 +224,7 @@ RUNS_GIT_WITH_NO_CWD = "the module under test runs git with no cwd while the pro
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
     "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
-    "test_rebase_onto_default.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
+    "test_rebase_onto_default_process.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
         "the skills repository's own HEAD is read to prove it was never rebased",
     "test_no_tracked_artifacts.py::test_no_file_under_a_nested_tdd_directory_is_tracked_598":
         "the repository's own tracked files are the subject",

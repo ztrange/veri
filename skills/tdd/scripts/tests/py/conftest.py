@@ -189,6 +189,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_parallel_conductors.py",
     "test_push_branch.py",
     "test_rebase_onto_default.py",
+    "test_rebase_onto_default_process.py",
     "test_refactor_touched.py",
     "test_refactor_touched_process.py",
     "test_solvable_issues.py",
