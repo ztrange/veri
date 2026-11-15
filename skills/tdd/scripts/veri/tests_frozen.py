@@ -91,32 +91,14 @@ def _accepted_per_digest(digests, nows, olds):
     return [accepted(*nows, *olds)] * len(digests)
 
 
-def _cases_at(rev, name):
-    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if shown.returncode != 0:
-        # A file absent from a readable revision has no cases there; any other failure is no answer.
-        listed = subprocess.run(["git", "ls-tree", "--name-only", rev, "--", name], stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
-        if listed.returncode == 0 and not listed.stdout.strip():
-            return {}
-        raise OSError("git show %s:%s failed: %s" % (rev, name, " ".join(os.fsdecode(shown.stderr).split())))
-    return dict(cut_cases(shown.stdout.decode("utf-8", "replace")))
-
-
-def _text_at(rev, name, stderr=None):
-    shown = subprocess.run(["git", "show", "%s:%s" % (rev, name)], stdout=subprocess.PIPE, stderr=stderr)
-    return shown.stdout.decode("utf-8", "replace")
-
-
 def _head_cases_all(name):
-    shown = subprocess.run(["git", "show", "HEAD:%s" % name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return cut_cases(shown.stdout.decode("utf-8", "replace"))
+    return cut_cases(case_history.text_at("HEAD", name, quiet=True))
 
 
 def _head_and_new_cases(name):
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    return _cases_at("HEAD", name), cut_cases(new)
+    return case_history.cases_at("HEAD", name), cut_cases(new)
 
 
 def _added_cases(name):
@@ -206,8 +188,8 @@ def _introduced_by(name, own):
     mine = [at for at, rev in enumerate(revs) if rev in own]
     if not mine:
         return set()
-    before = _cases_at(revs[mine[-1] + 1], name) if mine[-1] + 1 < len(revs) else {}
-    return set(_cases_at(revs[mine[0]], name)) - set(before)
+    before = case_history.cases_at(revs[mine[-1] + 1], name) if mine[-1] + 1 < len(revs) else {}
+    return set(case_history.cases_at(revs[mine[0]], name)) - set(before)
 
 
 def _kept_cases(record, name, step=None, skip=()):
@@ -302,9 +284,9 @@ def _moved_path(name, case, digests):
 
 def _renamed_to(name, case, digest, text, consumed):
     for rev in _revisions(name):
-        held = _cases_at(rev, name)
+        held = case_history.cases_at(rev, name)
         if case in held and body_digest(held[case]) == digest:
-            other = renamed_case.renamed_to(case, _text_at(rev, name), text, set(held) | consumed)
+            other = renamed_case.renamed_to(case, case_history.text_at(rev, name), text, set(held) | consumed)
             if other:
                 consumed.add(other)
             return other
@@ -313,10 +295,10 @@ def _renamed_to(name, case, digest, text, consumed):
 
 def _changed_by_refactor(name, case):
     try:
-        if case not in _cases_at("HEAD", name):
+        if case not in case_history.cases_at("HEAD", name):
             return False
         revs = _revisions(name)
-        history = [_cases_at(rev, name).get(case) for rev in revs]
+        history = [case_history.cases_at(rev, name).get(case) for rev in revs]
     except OSError:
         return False
     for rev, now, before in zip(revs, history, history[1:]):
@@ -386,7 +368,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
                     nows = olds = [dict(cut_cases(text))[other].replace(other, case, 1)]
-                elif not any(case in _cases_at(rev, name) for rev in _revisions(name)):
+                elif not any(case in case_history.cases_at(rev, name) for rev in _revisions(name)):
                     write(sys.stderr, "tests-frozen.sh: %s (%s, %s) is in no revision of this branch: skipped"
                           % (case, owner, record_path(owner)))
                     continue
@@ -465,17 +447,17 @@ def rerecord_earlier(ledger, step):
         revs = subprocess.run(["git", "log", "--format=%H", base + "..HEAD", "--", name], stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL).stdout.decode().split()
         for rev in revs:
-            if body_digest(_cases_at(rev, name).get(case, "")) == digest:
+            if body_digest(case_history.cases_at(rev, name).get(case, "")) == digest:
                 return rev
         return base
 
     def rewrite(_, record, name, case, digest):
         if name not in after:
-            after[name] = _cases_at("HEAD", name)
-        before = _cases_at(recorded_base(name, case, digest), name)
+            after[name] = case_history.cases_at("HEAD", name)
+        before = case_history.cases_at(recorded_base(name, case, digest), name)
         now = after[name].get(case)
         if now is not None and now != before.get(case):
-            head_text = _text_at("HEAD", name, subprocess.DEVNULL)
+            head_text = case_history.text_at("HEAD", name, quiet=True)
             body = "\n".join(_bodies_of(head_text, case))
             if not _helpers_in(head_text, body):
                 return body_line(name, case, now)
@@ -512,12 +494,12 @@ def _rerecord_committed(step):
         if parsed:
             name, case = parsed[0], parsed[1]
             if name not in held:
-                at_head = _cases_at("HEAD", name)
-                before = _cases_at("HEAD~1", name) if case_history.has_rev("HEAD~1") else {}
+                at_head = case_history.cases_at("HEAD", name)
+                before = case_history.cases_at("HEAD~1", name) if case_history.has_rev("HEAD~1") else {}
                 if os.path.exists(name):
                     tree = dict(_head_and_new_cases(name)[1])
                     if tree != at_head:
-                        at_head, before = tree, _cases_at("HEAD", name)
+                        at_head, before = tree, case_history.cases_at("HEAD", name)
                 recorded = {r[1] for r in map(body_record, records) if r and r[0] == name}
                 held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
             at_head, fresh = held[name]
@@ -551,7 +533,7 @@ def _bodies_of(text, case):
 
 
 def _called_helpers(rev, name, body):
-    return _helpers_in(_text_at(rev, name, subprocess.DEVNULL), body)
+    return _helpers_in(case_history.text_at(rev, name, quiet=True), body)
 
 
 _HELPER_NAME = r"^(?:(?:function|func|def)\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
@@ -620,7 +602,7 @@ def rerecord_refactored(ledger, green):
     repaired = _is_suite_repair_green(lines, green)
 
     def nth(rev, name, case, k):
-        found = _bodies_of(_text_at(rev, name, subprocess.DEVNULL), case)
+        found = _bodies_of(case_history.text_at(rev, name, quiet=True), case)
         return found[k] if k < len(found) else None
 
     def rewrite(_, record, name, case, digest):
@@ -629,7 +611,7 @@ def rerecord_refactored(ledger, green):
         k = seen[(name, case)] = seen.get((name, case), -1) + 1
         verified = nth(green, name, case, k)
         head = nth("HEAD", name, case, k)
-        green_text = _text_at(green, name, subprocess.DEVNULL)
+        green_text = case_history.text_at(green, name, quiet=True)
         before = nth(green + "^", name, case, k) if repaired else None
         if verified is None or head is None or digest not in {body_digest(verified), body_digest(head), *map(
                 body_digest, (b for c, b in old_cut_cases_all(green_text) if c == case)),
@@ -652,7 +634,7 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "helper assertion count differs from green's")
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
-        head_text = _text_at("HEAD", name, subprocess.DEVNULL)
+        head_text = case_history.text_at("HEAD", name, quiet=True)
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
@@ -687,8 +669,8 @@ def rerecord_rebased(ledger, pre):
         nonlocal stale
         if latest_owner.get((name, case), owner) != owner:
             return record
-        head = _cases_at("HEAD", name).get(case)
-        if head is None and not _cases_at(pre, name).get(case):
+        head = case_history.cases_at("HEAD", name).get(case)
+        if head is None and not case_history.cases_at(pre, name).get(case):
             return None
         if head is None:
             paths = [path for who, path, _ in earlier if who == owner]
@@ -697,8 +679,8 @@ def rerecord_rebased(ledger, pre):
             return record
         if body_digest(head) == digest:
             return record
-        if (body_digest(_cases_at(pre, name).get(case, "")) != digest
-                or head != _cases_at(upstream, name).get(case)):
+        if (body_digest(case_history.cases_at(pre, name).get(case, "")) != digest
+                or head != case_history.cases_at(upstream, name).get(case)):
             refused.append("%s (%s)" % (case, owner))
             return record
         stale = True

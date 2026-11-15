@@ -67,3 +67,46 @@ def test_current_branch_is_the_abbreviated_head(case_history, runs):
 def test_current_branch_is_empty_when_git_cannot_say(case_history, runs):
     runs({})
     assert case_history.current_branch() == ""
+
+
+SUITE = "def test_a():\n    assert 1\n\n\ndef test_b():\n    assert 2\n"
+
+
+def test_text_at_is_the_file_as_it_was_at_the_revision(case_history, runs):
+    runs({("show", "abc:t_x.py"): (0, SUITE.encode(), b"")})
+    assert case_history.text_at("abc", "t_x.py") == SUITE
+
+
+def test_text_at_replaces_bytes_that_are_not_utf8(case_history, runs):
+    runs({("show", "abc:t_x.py"): (0, b"assert '\xff'\n", b"")})
+    assert case_history.text_at("abc", "t_x.py") == "assert '�'\n"
+
+
+def test_text_at_is_empty_when_the_file_cannot_be_shown(case_history, runs):
+    runs({})
+    assert case_history.text_at("abc", "t_x.py") == ""
+
+
+def test_text_at_lets_stderr_through_unless_asked_to_be_quiet(case_history, runs):
+    fake = runs({("show", "abc:t_x.py"): (0, b"", b"")})
+    case_history.text_at("abc", "t_x.py")
+    case_history.text_at("abc", "t_x.py", quiet=True)
+    assert [kwargs["stderr"] for _, kwargs in fake.calls] == [None, subprocess.DEVNULL]
+
+
+def test_cases_at_names_each_case_with_its_body(case_history, runs):
+    runs({("show", "abc:t_x.py"): (0, SUITE.encode(), b"")})
+    assert case_history.cases_at("abc", "t_x.py") == {
+        "test_a": "def test_a():\n    assert 1", "test_b": "def test_b():\n    assert 2"}
+
+
+def test_cases_at_is_empty_for_a_file_absent_from_a_readable_revision(case_history, runs):
+    runs({("show", "abc:t_x.py"): (128, b"", b"fatal: path does not exist\n"),
+          ("ls-tree", "--name-only", "abc", "--", "t_x.py"): (0, b"", b"")})
+    assert case_history.cases_at("abc", "t_x.py") == {}
+
+
+def test_cases_at_raises_oserror_naming_the_command_when_the_revision_cannot_be_read(case_history, runs):
+    runs({("show", "nope:t_x.py"): (128, b"", b"fatal: bad object\n  nope\n")})
+    with pytest.raises(OSError, match=r"^git show nope:t_x\.py failed: fatal: bad object nope$"):
+        case_history.cases_at("nope", "t_x.py")
