@@ -10,11 +10,10 @@ import event_log
 import tunables
 from entry import write
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, read as _read, spec_text_of
-from ledger import carries_mark, ledger_steps, trailing_markers
+from ledger import INTERFACE_PHASES, carries_mark, ledger_steps, trailing_markers
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
-INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")
 VERIFY_ONLY_PHASES = ("beside", "dual-stub")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
