@@ -297,6 +297,8 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 - `result_text(line)`: the result string of the result record on one line (str or bytes), else `None`. `last_result_text(lines)`: the final one, else `None`.
 - `cost(lines)`: dollars, `total_cost_usd` (missing or null counts 0) summed over the result records that carry a `result` field.
 
+## leaf_timeout
+- `settled(root, issue)`: the run's pinned hard timeout (`<root>/.tdd/issue-<issue>-timeout`) as the digits written, `None` when unpinned; raises `Malformed` (`path`, `text`, `not_a_number`) for a pin that is not a whole number of seconds >= 1.
 ## leaf_model
 - `resolve(name)`: the model for a leaf, `None` when the name is invalid or the model has whitespace (message on stderr).
 - `leaf_model(name)`: the same as a string; `""` where `resolve` gives `None`.

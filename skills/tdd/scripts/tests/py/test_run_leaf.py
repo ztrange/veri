@@ -306,6 +306,26 @@ def test_main_launches_claude_with_the_bash_tool_timeouts_at_veri_timeout_over_t
     assert seen == [("120000", "120000")]
 
 
+def test_main_reports_a_malformed_timeout_pin_by_its_file_not_as_veri_timeout_and_exits_2_before_claude(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, _ = _workspace(tmp_path, monkeypatch, ".tdd")
+    _write_prompt(work, "do the step\n")
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen", lambda argv, *a, **kw: _FakeLeaf(launches, argv, **kw))
+    seen = []
+    for text in ("abc\n", "0\n"):
+        (work / ".tdd" / "issue-7-timeout").write_text(text)
+        seen.append((run_leaf.main(["prompt.txt"]), capfd.readouterr().err))
+
+    assert (seen, launches) == ([
+        (2, "run-leaf.sh: .tdd/issue-7-timeout must hold a whole number of seconds >= 1: 'abc'\n"),
+        (2, "run-leaf.sh: .tdd/issue-7-timeout must hold a whole number of seconds >= 1: '0'\n"),
+    ], [])
+
+
 def test_main_launches_claude_with_the_bash_tool_timeouts_at_the_default_hard_cap_when_the_run_wrote_no_timeout_file_1939(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
