@@ -26,7 +26,7 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_detach_leaf.py": "not inventoried",
     "test_ensure_run_state_ignored.py": "not inventoried",
     "test_event.py": "not inventoried",
-    "test_issue_worktree.py": "exact argv tuples, records calls; 6 real-run uses to keep",
+    "test_issue_worktree.py": "8 cases put a fake in front of a real git (routed = subprocess.run / real_run passthrough)",
     "test_launch_floor.py": "one answer(args, kwargs) callback",
     "test_leaf_launchable.py": "checks argv, fixed returncode",
     "test_over_budget.py": "not inventoried",

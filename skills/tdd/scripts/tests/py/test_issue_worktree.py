@@ -1,4 +1,5 @@
 """In-process cases for veri/issue_worktree.py, the module issue-worktree.sh is a shim over."""
+import collections.abc
 import importlib
 import json
 import os
@@ -25,46 +26,45 @@ def issue_worktree():
     return importlib.import_module("veri.issue_worktree")
 
 
-def fake_git(monkeypatch, answers):
-    """subprocess.run answering each git argv tuple in <answers> with (exit code, stdout); every call recorded."""
-    calls = []
+class Argvs(collections.abc.Sequence):
+    """The argv lists a fake_processes fake has recorded so far, read live: a helper hands one back before the code runs."""
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        code, stdout = answers.get(tuple(args), (None, None))
-        if code is None:
-            raise AssertionError("unexpected command: %r" % (args,))
-        if kwargs.get("check") and code != 0:
-            raise subprocess.CalledProcessError(code, args, stdout, "")
-        return subprocess.CompletedProcess(args, code, stdout, "")
+    def __init__(self, fake):
+        self.fake = fake
 
-    def refused(*args, **kwargs):
-        calls.append(list(args[0]) if args else kwargs)
-        raise AssertionError("unexpected process: %r" % (args,))
+    def __len__(self):
+        return len(self.fake.seen)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    for name in ("Popen", "call", "check_call", "check_output", "getoutput", "getstatusoutput"):
-        monkeypatch.setattr(subprocess, name, refused)
-    return calls
+    def __getitem__(self, index):
+        return self.fake.argvs[index]
+
+    def __eq__(self, other):
+        return self.fake.argvs == other
 
 
-def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and_maps_a_dying_git_to_2(
+def fake_git(fake_processes, answers):
+    """fake_processes answering each git argv tuple in <answers> with (exit code, stdout); every call recorded."""
+    table = {" ".join(argv): (code, stdout, "") for argv, (code, stdout) in answers.items()}
+    return Argvs(fake_processes.answers(table, exact=True))
+
+
+def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and_maps_a_dying_git_to_2(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     for argv in ([], ["270"], ["--remove"], ["", "x"], ["7", ""]):
-        calls = fake_git(monkeypatch, {})
+        calls = fake_git(fake_processes, {})
 
         code = issue_worktree.main(argv)
 
         assert (argv, code, calls, capsys.readouterr()[:]) == (argv, 2, [], ("", USAGE))
 
-    calls = fake_git(monkeypatch, {("git", "worktree", "list", "--porcelain"): (128, "")})
+    calls = fake_git(fake_processes, {("git", "worktree", "list", "--porcelain"): (128, "")})
 
     code = issue_worktree.main(["7", "slug"])
 
     assert (code, capsys.readouterr().out, calls[:1]) == (2, "", [["git", "worktree", "list", "--porcelain"]])
 
 
-def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_bytes_with_nothing_on_stderr_issue_965(
+def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_bytes_with_nothing_on_stderr_issue_965(fake_processes, 
         monkeypatch, tmp_path, issue_worktree, run_cli):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/965"
@@ -75,14 +75,14 @@ def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_byte
     pid_file = pathlib.Path(path) / ".tdd" / "conductor.pid"
     pid_file.parent.mkdir(parents=True)
     pid_file.write_bytes(b"\xff\xfe\n")
-    routing_git(monkeypatch, {listing: (0, registry, "")})
+    routing_git(fake_processes, {listing: (0, registry, "")})
 
     code, out, err = run_cli(issue_worktree, ["965", "non-utf8"], cwd=tmp_path)
 
     assert (code, out, err) == (0, path + "\n", "")
 
 
-def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_alone_on_stdout_issue_2460(
+def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_alone_on_stdout_issue_2460(fake_processes, 
         monkeypatch, tmp_path, issue_worktree, run_cli):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/2460"
@@ -93,7 +93,7 @@ def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_al
     tdd = pathlib.Path(path) / ".tdd"
     tdd.mkdir(parents=True)
     (tdd / "events.jsonl").write_text("")
-    routing_git(monkeypatch, {listing: (0, registry, "")})
+    routing_git(fake_processes, {listing: (0, registry, "")})
 
     code, out, err = run_cli(issue_worktree, ["2460", "marker"], cwd=tmp_path)
 
@@ -101,31 +101,31 @@ def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_al
     assert (code, out, err, len(marker)) == (0, path + "\n", "", 1)
 
 
-def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(
+def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes, 
         monkeypatch, tmp_path, issue_worktree, run_cli):
     for n in ("abc", "0", "-3", "7a", "../escape"):
-        calls = fake_git(monkeypatch, {})
+        calls = fake_git(fake_processes, {})
 
         code, out, err = run_cli(issue_worktree, [n, "slug"], cwd=tmp_path)
 
         assert (n, code, out, err, calls, sorted(tmp_path.rglob("*"))) == (n, 2, "", USAGE, [], [])
 
 
-def test_cli_remove_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(
+def test_cli_remove_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes, 
         monkeypatch, tmp_path, issue_worktree, run_cli):
     victim = tmp_path / ".claude" / "worktrees" / "victim"
     victim.mkdir(parents=True)
     for n in ("abc", "0", "-3", "../../.claude/worktrees/victim"):
-        calls = fake_git(monkeypatch, {})
+        calls = fake_git(fake_processes, {})
 
         code, out, err = run_cli(issue_worktree, ["--remove", n], cwd=tmp_path)
 
         assert (n, code, out, err, calls, victim.is_dir()) == (n, 2, "", USAGE, [], True)
 
 
-def routing_git(monkeypatch, answers):
-    """subprocess.run answering each git argv tuple in <answers> with (exit code, stdout, stderr), each stream sent where the call routes it."""
-    calls = []
+def routing_git(fake_processes, answers):
+    """fake_processes answering each git argv tuple in <answers> with (exit code, stdout, stderr), each stream sent where the call routes it."""
+    table = {" ".join(argv): answer for argv, answer in answers.items()}
 
     def deliver(text, target):
         if target in (subprocess.PIPE, subprocess.DEVNULL):
@@ -139,33 +139,23 @@ def routing_git(monkeypatch, answers):
         else:
             target.write(text)
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers and list(args[:2]) == ["git", "for-each-ref"]:
-            return subprocess.CompletedProcess(args, 0, "", "")
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        code, stdout, stderr = answers[tuple(args)]
+    def answer(line, **kwargs):
+        if line not in table and line.startswith("git for-each-ref "):
+            return (0, "", "")
+        if line not in table:
+            raise AssertionError("unexpected command: %r" % (line,))
+        code, stdout, stderr = table[line]
         captured = kwargs.get("capture_output")
         out_to = subprocess.PIPE if captured else kwargs.get("stdout")
         err_to = subprocess.PIPE if captured else kwargs.get("stderr")
         deliver(stdout, out_to)
         deliver(stderr, 2 if err_to is None else err_to)
-        if kwargs.get("check") and code != 0:
-            raise subprocess.CalledProcessError(code, args, stdout, stderr)
-        return subprocess.CompletedProcess(
-            args, code, stdout if out_to == subprocess.PIPE else None, stderr if err_to == subprocess.PIPE else None)
+        return (code, stdout if out_to == subprocess.PIPE else None, stderr if err_to == subprocess.PIPE else None)
 
-    def refused(*args, **kwargs):
-        raise AssertionError("unexpected process: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    for name in ("Popen", "call", "check_call", "check_output", "getoutput", "getstatusoutput"):
-        monkeypatch.setattr(subprocess, name, refused)
-    return calls
+    return Argvs(fake_processes.answers({}, default=answer))
 
 
-def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_force_at_the_unnormalised_registry_path(
+def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_force_at_the_unnormalised_registry_path(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/a/../repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -175,26 +165,26 @@ def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_fo
     status = ("git", "-C", path, "status", "--porcelain")
     remove = ("git", "worktree", "remove", path)
 
-    calls = routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "?? stray\n", "")})
+    calls = routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "?? stray\n", "")})
     code = issue_worktree.main(["--remove", "7"])
     assert (code, capsys.readouterr()[:], [c for c in calls if c[:3] == list(remove[:3])]) == (
         2, ("", "issue-worktree: %s has uncommitted changes — refusing to remove it\n" % path), [])
 
     for argv in (["--remove", "7"], ["--remove", "7", "extra"]):
-        calls = routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""),
+        calls = routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "", ""),
                                           remove: (0, "removed it\n", "")})
         code = issue_worktree.main(argv)
         assert (argv, code, capsys.readouterr()[:], calls) == (
             argv, 0, ("", "removed it\n"), [list(listing), list(status), list(remove)])
 
-    calls = routing_git(monkeypatch, {listing: (0, registry, ""),
+    calls = routing_git(fake_processes, {listing: (0, registry, ""),
                                       status: (128, "", "fatal: cannot change to '%s'\n" % path),
                                       remove: (128, "", "fatal: '%s' is not a working tree\n" % path)})
     code = issue_worktree.main(["--remove", "7"])
     assert (code, capsys.readouterr().out, calls) == (2, "", [list(listing), list(status), list(remove)])
 
 
-def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(
+def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -203,19 +193,19 @@ def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps
     status = ("git", "-C", path, "status", "--porcelain")
     remove = ("git", "worktree", "remove", path)
 
-    calls = routing_git(monkeypatch, {listing: (1, "", "error: listing failed\n")})
+    calls = routing_git(fake_processes, {listing: (1, "", "error: listing failed\n")})
     code = issue_worktree.main(["--remove", "7"])
     assert (code, capsys.readouterr().out, calls) == (1, "", [list(listing)])
 
     for remove_code, want in ((1, 1), (128, 2)):
-        calls = routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""),
+        calls = routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "", ""),
                                           remove: (remove_code, "", "error: remove failed\n")})
         code = issue_worktree.main(["--remove", "7"])
         assert (remove_code, code, capsys.readouterr().out, calls) == (
             remove_code, want, "", [list(listing), list(status), list(remove)])
 
 
-def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place_when_git_worktree_remove_fails_issue_2627(
+def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place_when_git_worktree_remove_fails_issue_2627(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
@@ -229,7 +219,7 @@ def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place
     listing = ("git", "worktree", "list", "--porcelain")
     status = ("git", "-C", path, "status", "--porcelain")
     remove = ("git", "worktree", "remove", path)
-    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""),
+    routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "", ""),
                               remove: (128, "", "fatal: remove failed\n")})
 
     code = issue_worktree.main(["--remove", "7"])
@@ -249,7 +239,7 @@ def made_snapshot(directory, serving):
     return directory
 
 
-def remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, recorded, remove_code=0):
+def remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, recorded, remove_code=0):
     """`--remove 7` of a clean worktree whose .snapshot-dir holds <recorded>; answers (exit code, stderr)."""
     main_tree = str(tmp_path / "repo")
     path = run_worktree_of(tmp_path)
@@ -260,17 +250,17 @@ def remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, recorded
     listing = ("git", "worktree", "list", "--porcelain")
     status = ("git", "-C", path, "status", "--porcelain")
     remove = ("git", "worktree", "remove", path)
-    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""), remove: (remove_code, "", "")})
+    routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "", ""), remove: (remove_code, "", "")})
     capsys.readouterr()
     code = issue_worktree.main(["--remove", "7"])
     return code, capsys.readouterr().err
 
 
-def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_worktree_is_removed(
+def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_worktree_is_removed(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
 
     assert (code, err, snapshot.exists()) == (0, "", False)
 
@@ -280,89 +270,89 @@ def refusal_of(tmp_path, snapshot):
         snapshot, run_worktree_of(tmp_path))
 
 
-def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_place_and_says_so(
+def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_place_and_says_so(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", str(tmp_path / "repo" / ".tdd" / "wt" / "8"))
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
 
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
-def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names_a_conforming_directory_from_the_cwd(
+def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names_a_conforming_directory_from_the_cwd(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, "veri-snapshot-abc123")
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, "veri-snapshot-abc123")
 
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, "veri-snapshot-abc123"), True)
 
 
-def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says_so(
+def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says_so(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
     link = tmp_path / "veri-snapshot-link"
     link.symlink_to(snapshot)
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(link))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(link))
 
     assert (code, err, (snapshot / "status.sh").exists(), link.is_symlink()) == (
         0, refusal_of(tmp_path, link), True, True)
 
 
-def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_conforming_snapshot(
+def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_conforming_snapshot(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     first = made_snapshot(tmp_path / "veri-snapshot-first", run_worktree_of(tmp_path))
     second = made_snapshot(tmp_path / "veri-snapshot-second", run_worktree_of(tmp_path))
     recorded = "%s\n%s" % (first, second)
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, recorded)
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, recorded)
 
     assert (code, err, (first / "status.sh").exists(), (second / "status.sh").exists()) == (
         0, refusal_of(tmp_path, recorded), True, True)
 
 
-def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_prints_nothing(
+def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_prints_nothing(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     stray = made_snapshot(tmp_path / "veri-snapshot-stray", run_worktree_of(tmp_path))
     (tmp_path / ".veri-snapshot").write_text(run_worktree_of(tmp_path) + "\n")
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, "")
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, "")
 
     assert (code, err, (stray / "status.sh").exists(), (tmp_path / ".veri-snapshot").exists()) == (0, "", True, True)
 
 
-def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapshot_prefix_in_place_and_says_so(
+def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapshot_prefix_in_place_and_says_so(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "work-dir", run_worktree_of(tmp_path))
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
 
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
-def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(
+def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     gone = tmp_path / "veri-snapshot-gone"
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(gone))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(gone))
 
     assert (code, err) == (0, "")
 
 
-def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(
+def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
     snapshot.mkdir()
     (snapshot / "precious.txt").write_text("not veri's\n")
 
-    code, err = remove_run_recording(tmp_path, monkeypatch, capsys, issue_worktree, str(snapshot))
+    code, err = remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, str(snapshot))
 
     assert (code, err, (snapshot / "precious.txt").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
-def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
+def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(fake_processes, 
         monkeypatch, capfd, tmp_path, issue_worktree, run_cli):
     import os
 
@@ -385,7 +375,7 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     monkeypatch.setattr(os, "kill", fake_kill)
 
     for slug in ("slug", "other"):
-        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        calls = routing_git(fake_processes, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", slug])
         assert (slug, code, capfd.readouterr()[:], calls) == (slug, 0, (path + "\n", ""), [list(listing)])
 
@@ -393,7 +383,7 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     pid_file.parent.mkdir(parents=True)
     for content in ("4242\r\n", "pid 4242\n", "-4242\n", "1\n", "999\n", "99999999999999999999\n", "", "\n", "0\n"):
         pid_file.write_text(content)
-        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        calls = routing_git(fake_processes, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", "slug"])
         assert (content, code, capfd.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
 
@@ -434,7 +424,7 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     assert (own[0], own[1].strip(), other[0], other[1], holder in other[2]) == (0, want, 2, "", True)
 
 
-def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issue_819(
+def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issue_819(fake_processes, 
         capsys, tmp_path, issue_worktree, monkeypatch):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
@@ -446,12 +436,12 @@ def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issu
     pid_file.parent.mkdir(parents=True)
     for content in ("0\n", "00\n"):
         pid_file.write_text(content)
-        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        calls = routing_git(fake_processes, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", "slug"])
         assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
 
 
-def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_issue_965(
+def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_issue_965(fake_processes, 
         capsys, tmp_path, issue_worktree, monkeypatch):
     import builtins
 
@@ -472,12 +462,12 @@ def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_i
         return real_open(file, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "open", fake_open)
-    calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+    calls = routing_git(fake_processes, {listing: (0, registry, "")})
     code = issue_worktree.main(["7", "slug"])
     assert (code, capsys.readouterr()[:], calls) == (0, (path + "\n", ""), [list(listing)])
 
 
-def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(
+def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     elsewhere = "/srv/elsewhere"
@@ -492,12 +482,12 @@ def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_worki
     )
 
     for registry, holder in registries:
-        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        calls = routing_git(fake_processes, {listing: (0, registry, "")})
         code = issue_worktree.main(["5", "x"])
         assert (holder, code, capsys.readouterr()[:], calls) == (holder, 2, ("", owned % holder), [list(listing)])
 
 
-def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(
+def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -507,14 +497,14 @@ def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(
     checkout = ("git", "worktree", "add", "-q", path, "tdd/7-slug")
 
     for add_code, want, out in ((0, 0, path + "\n"), (128, 2, "")):
-        calls = routing_git(monkeypatch, {listing: (0, registry, ""), local: (0, "", ""),
+        calls = routing_git(fake_processes, {listing: (0, registry, ""), local: (0, "", ""),
                                           checkout: (add_code, "Preparing worktree\n", "")})
         code = issue_worktree.main(["7", "slug"])
         assert (add_code, code, capsys.readouterr()[:], calls) == (
             add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(checkout)])
 
 
-def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(
+def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
@@ -524,7 +514,7 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
     remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
     claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
 
-    calls = routing_git(monkeypatch, {
+    calls = routing_git(fake_processes, {
         listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""),
         claims: (0, "1111111111111111111111111111111111111111\trefs/heads/tdd/7-slug\n", "")})
     code = issue_worktree.main(["7", "slug"])
@@ -534,7 +524,7 @@ def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_ad
                 " to take it over run: git branch tdd/7-slug origin/tdd/7-slug\n"), [])
 
 
-def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(
+def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_tracking_ref_names_the_issue_issue_1734(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
@@ -550,7 +540,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
     fresh = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk")
     stale = ("git", "worktree", "add", "-q", "-b", "tdd/7-slug", path, "refs/remotes/origin/tdd/7-slug")
 
-    calls = routing_git(monkeypatch, {
+    calls = routing_git(fake_processes, {
         listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""), claims: (0, "", ""),
         symref: (0, "origin/trunk\n", ""), get_url: (0, "/srv/origin.git\n", ""),
         fetch: (0, "", ""), fresh: (0, "", ""), stale: (0, "", "")})
@@ -560,7 +550,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
         0, (path + "\n", ""), [list(fresh)])
 
 
-def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
+def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
@@ -579,7 +569,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     sha = "2222222222222222222222222222222222222222"
 
     def run(answers):
-        recorded = routing_git(monkeypatch, answers)
+        recorded = routing_git(fake_processes, answers)
         code = issue_worktree.main(["7", "slug"])
         calls = [tuple(c) for c in recorded]
         return code, capsys.readouterr()[:], calls
@@ -617,7 +607,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
             label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, claims, own_refs, origin_refs, ls_remote]))
 
 
-def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(
+def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -644,7 +634,7 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
             ("main", 0, 0, (0, (path + "\n", ""), cut("main"))),
             ("master", 1, 0, (0, (path + "\n", ""), cut("master"))),
             ("neither", 1, 1, (2, ("", refusal), None))):
-        recorded = routing_git(monkeypatch, {**base, main: (main_code, "", ""), master: (master_code, "", "")})
+        recorded = routing_git(fake_processes, {**base, main: (main_code, "", ""), master: (master_code, "", "")})
         code = issue_worktree.main(["7", "slug"])
         calls = [tuple(c) for c in recorded]
         adds = [c for c in calls if c[1:3] == ("worktree", "add")]
@@ -652,7 +642,7 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
                 [c for c in calls if c[1] in ("fetch", "ls-remote")]) == (label, *want, [])
 
 
-def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(
+def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -671,18 +661,18 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
             ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "", ""),
             add: (0, "", "")}
 
-    recorded = routing_git(monkeypatch, {**base, fetch: (0, "fetched\n", "")})
+    recorded = routing_git(fake_processes, {**base, fetch: (0, "fetched\n", "")})
     code = issue_worktree.main(["7", "slug"])
     assert (code, capsys.readouterr()[:], [tuple(c) for c in recorded][-2:]) == (0, (path + "\n", "fetched\n"), [fetch, add])
 
-    recorded = routing_git(monkeypatch, {**base, fetch: (1, "", "fatal: couldn't find remote ref trunk\n")})
+    recorded = routing_git(fake_processes, {**base, fetch: (1, "", "fatal: couldn't find remote ref trunk\n")})
     code = issue_worktree.main(["7", "slug"])
     out, err = capsys.readouterr()
     assert (code, out, err[-len(refusal):], [tuple(c) for c in recorded if c[1:3] == ["worktree", "add"]]) == (
         2, "", refusal, [])
 
 
-def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(
+def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(fake_processes, 
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -694,7 +684,7 @@ def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_
     monkeypatch.setenv("TMPDIR", str(tmpdir))
     monkeypatch.setattr(tempfile, "tempdir", None)
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
-    routing_git(monkeypatch, {
+    routing_git(fake_processes, {
         ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
@@ -721,7 +711,7 @@ def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_
 
 
 @pytest.mark.parametrize("extra", ["notes.txt", ".tdd/.lock"])
-def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(
+def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(fake_processes, 
         monkeypatch, capsys, tmp_path, issue_worktree, extra):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -734,7 +724,7 @@ def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git
     monkeypatch.setenv("TMPDIR", str(tmpdir))
     monkeypatch.setattr(tempfile, "tempdir", None)
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
-    routing_git(monkeypatch, {
+    routing_git(fake_processes, {
         ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
@@ -760,7 +750,7 @@ def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git
         2, "", [sorted([".tdd", ".tdd/events.jsonl", extra])], b'{"event":"seeded"}\n', [])
 
 
-def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(
+def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(fake_processes, 
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -772,7 +762,7 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
     monkeypatch.setenv("TMPDIR", str(tmpdir))
     monkeypatch.setattr(tempfile, "tempdir", None)
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
-    routing_git(monkeypatch, {
+    routing_git(fake_processes, {
         ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (0, "", ""),
         ("git", "worktree", "add", "-q", path, "tdd/63-own-trap"): (0, "", ""),
@@ -793,7 +783,7 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
         0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])
 
 
-def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktree_opening_events_jsonl_itself(
+def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktree_opening_events_jsonl_itself(fake_processes, 
         monkeypatch, capsys, tmp_path, issue_worktree):
     import builtins
 
@@ -807,7 +797,7 @@ def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktre
     monkeypatch.setenv("TMPDIR", str(tmpdir))
     monkeypatch.setattr(tempfile, "tempdir", None)
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
-    routing_git(monkeypatch, {
+    routing_git(fake_processes, {
         ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
         ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (0, "", ""),
         ("git", "worktree", "add", "-q", path, "tdd/63-own-trap"): (0, "", ""),
@@ -836,7 +826,7 @@ def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktre
     assert [p for p in opened if p.endswith("events.jsonl")] == []
 
 
-def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(
+def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(fake_processes, 
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -874,7 +864,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
     for label, refusing, answers, refusal in refusals:
         seeded.parent.mkdir(parents=True)
         seeded.write_bytes(b'{"event":"seeded"}\n{"event":"second"}\n')
-        routing_git(monkeypatch, {**base, **answers})
+        routing_git(fake_processes, {**base, **answers})
         routed = subprocess.run
         path_at_refusal = []
 
@@ -896,7 +886,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
         pathlib.Path(path).rmdir()
 
 
-def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_unset(
+def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_unset(fake_processes, 
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -917,7 +907,7 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
     claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
 
     def run(answer):
-        routing_git(monkeypatch, {**base, ls_remote: answer})
+        routing_git(fake_processes, {**base, ls_remote: answer})
         code = issue_worktree.main(["7", "slug"])
         out, err = capsys.readouterr()
         return code, out, err
@@ -1086,7 +1076,7 @@ def test_remove_removes_a_clean_worktree_and_refuses_one_with_uncommitted_change
     assert (dirty_code, os.path.exists(os.path.join(held, "notes.txt")), scratch_registry(dirty)) == (2, True, before)
 
 
-def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_already_gone_issue_2627(
+def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_already_gone_issue_2627(fake_processes, 
         tmp_path, monkeypatch, capsys, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
@@ -1097,7 +1087,7 @@ def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_alre
     listing = ("git", "worktree", "list", "--porcelain")
     status = ("git", "-C", path, "status", "--porcelain")
     remove = ("git", "worktree", "remove", path)
-    routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""), remove: (0, "", "")})
+    routing_git(fake_processes, {listing: (0, registry, ""), status: (0, "", ""), remove: (0, "", "")})
 
     code = issue_worktree.main(["--remove", "7"])
 
