@@ -21,7 +21,6 @@ names other modules use. Related names share a line where the list would otherwi
 
 ## build_verify_prompt
 - `build(step_arg, fast_cmd, phase, spec_arg, test_path, …)`: the rendered verifier prompt; a refusal (usage on stderr, exit 2) for bad arguments.
-- `INTERFACE_PHASES`: the phases of an interface change (`expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 - `refuse(message=None)`: writes the message and the usage to stderr, returns 2.
 
 ## candidates
@@ -159,10 +158,10 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
 - Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (records of `(index, state, kind, pending, added, criterion, text)`), `items_at(rev, path)` (OSError when git cannot show it).
-- Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_clear_pending(text, matcher)`: the last three return `(changed, text)`.
-- A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `is_added`, `is_human_owed`, `is_skill_edit`, `handed_out(record)`: predicates and parts of its text.
-- Building and checking: `new_step(text, criterion)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`.
-- Constants: `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`.
+- Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_clear_pending(text, matcher)`, `tick_line(match)` (a `STEP_RE` match with its box ticked): the first three return `(changed, text)`.
+- A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `is_skill_edit`, `is_retired(text)`, `handed_out(record)`: predicates and parts of its text.
+- Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `mark(phase, state)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`.
+- Constants: `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
 ## markdown_sections
 - `fenced_lines(text)`: a list of bools, True for each line inside a code fence (fence lines included).
