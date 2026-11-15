@@ -24,12 +24,15 @@ def new_repo(path, branch="main"):
     return path
 
 
-def commit_all(repo, message, **files):
-    """Write each keyword as a file (the name's `__` is a `/`), commit everything in the tree; returns the new HEAD."""
+def commit_all(repo, message, *, allow_empty=False, **files):
+    """Write each keyword as a file (the name's `__` is a `/`), commit everything in the tree; returns the new HEAD.
+
+    A tree with nothing to commit fails, unless <allow_empty> asks for the empty commit (`allow_empty` is not a file name).
+    """
     for name, text in files.items():
         target = repo / name.replace("__", "/")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text)
     git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", message)
+    git(repo, "commit", "-q", *(["--allow-empty"] if allow_empty else []), "-m", message)
     return git(repo, "rev-parse", "HEAD")
