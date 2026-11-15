@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from repo_builder import commit_all, new_repo
+
 USAGE = "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]\n"
 SKILL_DIR = Path(__file__).resolve().parents[3]
 
@@ -15,22 +17,6 @@ def git(repo, *args):
                            *args], capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     return done.stdout.strip()
-
-
-def new_repo(path):
-    path.mkdir()
-    git(path, "init", "-q", "-b", "main")
-    return path
-
-
-def commit_all(repo, message, **files):
-    for name, text in files.items():
-        target = repo / name.replace("__", "/")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(text)
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", message)
-    return git(repo, "rev-parse", "HEAD")
 
 
 def widget_repo(path):
