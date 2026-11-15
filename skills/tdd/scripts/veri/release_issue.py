@@ -27,7 +27,7 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     number = argv[0]
-    opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
+    opt_in = tunables.get("VERI_LABEL")
     taken = tunables.taken_label(opt_in)
     try:
         labels = github.gh_issue_view(number, "labels").split("\n")

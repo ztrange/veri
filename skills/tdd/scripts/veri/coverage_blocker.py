@@ -57,7 +57,7 @@ def main(argv):
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
-        label = tunables.read("VERI_LABEL", "ready-for-agent")
+        label = tunables.get("VERI_LABEL")
         lane = label.rsplit(":", 1)[1] if ":" in label else "main"
         try:
             labels = (label, "filed-by:" + lane) if mutations else ("filed-by:" + lane,)

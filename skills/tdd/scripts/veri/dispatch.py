@@ -307,7 +307,7 @@ def prioritize(free, lines):
 
 
 def lane():
-    return tunables.lane_of(tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent"))
+    return tunables.lane_of(tunables.get("VERI_LABEL", unless_empty=True))
 
 
 def state_file():
