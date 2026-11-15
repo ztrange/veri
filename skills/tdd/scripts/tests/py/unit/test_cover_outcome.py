@@ -21,11 +21,10 @@ def run(monkeypatch, capsys, cover_outcome, report, argv):
     return (code, *capsys.readouterr())
 
 
-def test_main_returns_each_exit_code_inside_0_to_3_with_its_stdout_and_stderr_ignoring_arguments(monkeypatch, capsys, cover_outcome):
+def test_main_returns_each_exit_code_inside_0_to_3_with_its_stdout_and_stderr(monkeypatch, capsys, cover_outcome):
     caught = "COVERED: yes\nCAUGHT_BY: widget.test.sh: a stubbed widget stays blue"
     results = {
         "yes": run(monkeypatch, capsys, cover_outcome, caught, []),
-        "yes --bogus": run(monkeypatch, capsys, cover_outcome, caught, ["--bogus"]),
         "no": run(monkeypatch, capsys, cover_outcome, "COVERED: no\n", []),
         "none": run(monkeypatch, capsys, cover_outcome, "MUTATION: flip the colour\n", []),
         "type-only": run(monkeypatch, capsys, cover_outcome, "COVERED: type-only\nPROOF: npx tsc --noEmit\n", []),
@@ -33,12 +32,18 @@ def test_main_returns_each_exit_code_inside_0_to_3_with_its_stdout_and_stderr_ig
 
     assert results == {
         "yes": (0, "widget.test.sh: a stubbed widget stays blue\n", ""),
-        "yes --bogus": (0, "widget.test.sh: a stubbed widget stays blue\n", ""),
         "no": (1, "", ""),
         "none": (2, "", "cover-outcome: no COVERED: line found\n"),
         "type-only": (3, "type-only: npx tsc --noEmit\n", ""),
     }
     assert all(code in range(4) for code, _, _ in results.values())
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_report_unread(monkeypatch, capsys, cover_outcome):
+    report = "COVERED: yes\nCAUGHT_BY: widget.test.sh: a stubbed widget stays blue"
+
+    assert run(monkeypatch, capsys, cover_outcome, report, ["--bogus"]) == (
+        2, "", f"cover-outcome.sh: unexpected argument '--bogus'\n{cover_outcome.USAGE}\n")
 
 
 def test_main_reads_its_report_through_report_read_and_answers_each_covered_branch_the_contract_cases_leave_open(monkeypatch, capsys, cover_outcome):
