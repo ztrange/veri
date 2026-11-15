@@ -3,10 +3,14 @@ import importlib
 import json
 import os
 import re
-import subprocess
 
 
 HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages"]
+
+
+def _serve(fake_processes, run):
+    fake = fake_processes.answers({}, default=lambda line, **k: run(fake.argvs[-1]))
+    return fake
 
 
 def _fake_gh_serving(pulls, states):
@@ -16,11 +20,11 @@ def _fake_gh_serving(pulls, states):
             singles = {str(pr["number"]): dict(pr, mergeable_state=states[pr["number"]]) for pr in pulls}
             single = singles.get(args[-1].rsplit("pulls/", 1)[-1]) if "pulls/" in args[-1] else None
             out = json.dumps(single if single is not None else pulls)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
+        return 0, out, ""
     return run
 
 
-def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -28,8 +32,8 @@ def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -40,7 +44,7 @@ def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with
     assert (code, lines) == (0, expected)
 
 
-def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with_its_issue_title_and_pid(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with_its_issue_title_and_pid(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3300" / ".tdd"
@@ -50,8 +54,8 @@ def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -61,7 +65,7 @@ def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with
     assert all(word in runs[0] for word in ("3300", "Teach the widget to sing", str(os.getpid()))), runs
 
 
-def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_heading_prefix(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_heading_prefix(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3301" / ".tdd"
@@ -71,8 +75,8 @@ def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_headi
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -82,7 +86,7 @@ def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_headi
     assert "Plan for" not in runs[0] and "—" not in runs[0] and "Teach the widget to sing" in runs[0], runs
 
 
-def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_issue_title_and_dead_in_place_of_a_pid(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_issue_title_and_dead_in_place_of_a_pid(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3302" / ".tdd"
@@ -91,8 +95,8 @@ def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -102,7 +106,7 @@ def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_
     assert all(word in runs[0] for word in ("3302", "Teach the widget to dance", "dead")), runs
 
 
-def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_bail_class(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_bail_class(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -121,8 +125,8 @@ def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -132,7 +136,7 @@ def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_
     assert [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed] == [["3400", "system"], ["3401", "process"]], bailed
 
 
-def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -151,8 +155,8 @@ def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_a
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -163,7 +167,7 @@ def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_a
     assert bailed[0].split()[-1] == "moon-phase-wrong", bailed
 
 
-def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue_it_closes_draft_and_its_mergeable_state(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue_it_closes_draft_and_its_mergeable_state(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -171,7 +175,7 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
               "title": "Teach the widget to sing", "body": "Closes #3600\n",
               "head": {"ref": "tdd/3600-teach-the-widget"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4721: "blocked"}))
+    fake = _serve(fake_processes, _fake_gh_serving(pulls, {4721: "blocked"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -181,7 +185,7 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
     assert code == 0 and all(w in words for w in ("4721", "3600", "draft", "blocked")), (code, prs)
 
 
-def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -189,7 +193,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
               "title": "Teach the widget to dance", "body": "Closes #3601\n",
               "head": {"ref": "tdd/3601-teach-the-widget"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4722: "clean"}))
+    fake = _serve(fake_processes, _fake_gh_serving(pulls, {4722: "clean"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -199,7 +203,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
     assert code == 0 and "ready" in words and "draft" not in words and all(w in words for w in ("4722", "3601", "clean")), (code, prs)
 
 
-def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the_single_pr_read_when_the_list_carries_none(tmp_path, monkeypatch, run_cli):
+def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the_single_pr_read_when_the_list_carries_none(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -211,8 +215,8 @@ def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the
         out = ""
         if args and args[0] == "gh":
             out = json.dumps(single if args[-1].endswith("pulls/4730") else listed)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord"])
 
@@ -223,17 +227,17 @@ def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the
     assert len(prs) == 1 and all(w in words for w in ("4730", "3602", "ready", "behind")), (code, prs)
 
 
-def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lock_holder_names_one(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lock_holder_names_one(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
         if args and os.path.basename(args[0]) == "merge-lock.sh" and "holder" in args:
-            return subprocess.CompletedProcess(args, 0, stdout="48213", stderr="")
+            return 0, "48213", ""
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -242,7 +246,7 @@ def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lo
     assert code == 0 and lock == ["48213"], (code, lock)
 
 
-def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_issue_and_exits_0(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_issue_and_exits_0(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -251,7 +255,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
              {"number": 4724, "draft": False, "state": "open",
               "title": "No issue", "body": "Just a tidy-up.\n", "head": {"ref": "feature/tidy"}}]
 
-    monkeypatch.setattr(status.subprocess, "run", _fake_gh_serving(pulls, {4723: "unstable", 4724: "clean"}))
+    fake = _serve(fake_processes, _fake_gh_serving(pulls, {4723: "unstable", 4724: "clean"}))
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -264,17 +268,17 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
     assert all(w in words[1].split() for w in ("4724", "ready", "clean")), prs
 
 
-def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answers_stale(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answers_stale(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
         if args and os.path.basename(args[0]) == "merge-lock.sh" and "holder" in args:
-            return subprocess.CompletedProcess(args, 1, stdout="stale lock: 48213 1700000000 issue-9", stderr="")
+            return 1, "stale lock: 48213 1700000000 issue-9", ""
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -283,7 +287,7 @@ def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answe
     assert code == 0 and lock == ["stale"], (code, lock)
 
 
-def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_state_file(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_state_file(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -291,8 +295,8 @@ def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_stat
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -302,7 +306,7 @@ def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_stat
     assert code == 0 and "7" in words and "default" in words, (code, state)
 
 
-def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -311,8 +315,8 @@ def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_stat
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -325,7 +329,7 @@ def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_stat
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
 
 
-def test_3224_recover_prints_under_state_each_order_override_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_state_each_order_override_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -334,8 +338,8 @@ def test_3224_recover_prints_under_state_each_order_override_from_the_roles_stat
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -348,7 +352,7 @@ def test_3224_recover_prints_under_state_each_order_override_from_the_roles_stat
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
 
 
-def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default_lanes(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default_lanes(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -359,8 +363,8 @@ def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord", "--lane", "mu"])
 
@@ -371,7 +375,7 @@ def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default
     assert "default-lane-order" not in text, state
 
 
-def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -381,8 +385,8 @@ def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_role
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -395,7 +399,7 @@ def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_role
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
 
 
-def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -408,8 +412,8 @@ def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -419,7 +423,7 @@ def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_
     assert "hold the release for review?" in pending[0], pending
 
 
-def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -429,8 +433,8 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "coord"])
 
@@ -443,7 +447,7 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
 
 
-def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_when_github_refuses_it(tmp_path, monkeypatch, run_cli):
+def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_when_github_refuses_it(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -452,10 +456,10 @@ def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_whe
 
     def run(args, *a, **k):
         if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
-            return subprocess.CompletedProcess(args, 1, stdout="", stderr="gh: HTTP 502: bad gateway")
+            return 1, "", "gh: HTTP 502: bad gateway"
         out = json.dumps(listed) if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, _out, err = run_cli(status, ["--recover", "coord"])
 
@@ -463,7 +467,7 @@ def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_whe
     assert err.startswith("status.sh --recover:") and "4730" in err and "Traceback" not in err, err
 
 
-def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits_0_with_empty_stdout(tmp_path, monkeypatch, run_cli):
+def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits_0_with_empty_stdout(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -472,10 +476,10 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits
 
     def run(args, *a, **k):
         if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
-            return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            return 0, "", ""
         out = json.dumps(listed) if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, _out, err = run_cli(status, ["--recover", "coord"])
 
@@ -483,7 +487,7 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits
     assert err.startswith("status.sh --recover:") and "4730" in err and "Traceback" not in err, err
 
 
-def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_mergeable_state_and_exits_0(tmp_path, monkeypatch, run_cli):
+def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_mergeable_state_and_exits_0(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -495,8 +499,8 @@ def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_merge
         out = ""
         if args and args[0] == "gh":
             out = json.dumps(single if args[-1].endswith("pulls/4730") else listed)
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord"])
 
@@ -507,7 +511,7 @@ def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_merge
     assert len(prs) == 1 and all(w in words for w in ("4730", "3602", "ready", "unknown")) and "clean" not in words, (code, prs)
 
 
-def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an_object_with_no_mergeable_state(tmp_path, monkeypatch, run_cli):
+def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an_object_with_no_mergeable_state(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -516,10 +520,10 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an
 
     def run(args, *a, **k):
         if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
-            return subprocess.CompletedProcess(args, 0, stdout=json.dumps({"number": 4730}), stderr="")
+            return 0, json.dumps({"number": 4730}), ""
         out = json.dumps(listed) if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, _out, err = run_cli(status, ["--recover", "coord"])
 
@@ -527,16 +531,16 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an
     assert err.startswith("status.sh --recover:") and "Traceback" not in err, err
 
 
-def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_naming_that_read(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_naming_that_read(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
         if args and args[0] == "gh":
-            return subprocess.CompletedProcess(args, 1, stdout="", stderr="gh: HTTP 403: rate limit exceeded")
-        return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+            return 1, "", "gh: HTTP 403: rate limit exceeded"
+        return 0, "", ""
+    fake = _serve(fake_processes, run)
 
     code, _out, err = run_cli(status, ["--recover", "coord"])
 
@@ -544,22 +548,22 @@ def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_n
     assert "pull" in err.lower() or "PR" in err, err
 
 
-def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no_report(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no_report(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "ops"])
 
     assert (code, out) == (2, ""), (code, out, err)
 
 
-def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_and_a_second_report_from_the_files_alone_is_identical(tmp_path, monkeypatch, run_cli):
+def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_and_a_second_report_from_the_files_alone_is_identical(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -568,8 +572,8 @@ def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_a
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     values = {"n": "9", "lane": "roundtrip-lane"}
     items = {"decision": "hold the roundtrip release?", "message": "told the roundtrip dev to rebase",
@@ -597,15 +601,15 @@ def test_3224_usage_strings_name_every_verb_and_flag(run_cli):
     assert "--recover <coord|dev> [--lane <lane>]" in status.USAGE
 
 
-def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_seven_sections_with_exit_0(tmp_path, monkeypatch, run_cli):
+def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_seven_sections_with_exit_0(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd" / "wt" / "fix-2898-pin").mkdir(parents=True)
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord"])
 
@@ -615,15 +619,15 @@ def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_
     assert lines[lines.index("Runs") + 1:lines.index("Bailed")] == ["none"], lines
 
 
-def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_the_none_of_an_empty_state_file(tmp_path, monkeypatch, run_cli):
+def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_the_none_of_an_empty_state_file(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord", "--lane", "main"])
 
@@ -633,7 +637,7 @@ def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_
     assert state and state != ["none"], state
 
 
-def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_holds_a_torn_line(tmp_path, monkeypatch, run_cli):
+def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_holds_a_torn_line(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -652,8 +656,8 @@ def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord"])
 
@@ -662,7 +666,7 @@ def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_
     assert (code, [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed]) == (0, [["3600", "system"], ["3601", "process"]]), (err, bailed)
 
 
-def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_stderr(tmp_path, monkeypatch, run_cli):
+def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_stderr(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -678,8 +682,8 @@ def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_s
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, err = run_cli(status, ["--recover", "coord"])
 
@@ -687,7 +691,7 @@ def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_s
     assert (code, len(named)) == (0, 1), (code, err)
 
 
-def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_file_records(tmp_path, monkeypatch, run_cli):
+def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_file_records(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
@@ -695,8 +699,8 @@ def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_fi
 
     def run(args, *a, **k):
         out = "[]" if args and args[0] == "gh" else ""
-        return subprocess.CompletedProcess(args, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = _serve(fake_processes, run)
 
     code, out, _ = run_cli(status, ["--recover", "dev"])
 
@@ -705,16 +709,16 @@ def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_fi
     assert (code, [l for l in state if l.startswith("coordinator")]) == (0, ["coordinator sess-new"]), state
 
 
-def test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_single_read_fails(monkeypatch):
+def test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_single_read_fails(monkeypatch, fake_processes):
     import pytest
     status = importlib.import_module("veri.status")
     listed = [{"number": 4730, "draft": False, "body": "Closes #3602\n"}]
 
     def run(args, *a, **k):
         if args and args[0] == "gh" and args[-1].endswith("pulls/4730"):
-            return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom\n")
-        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(listed), stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+            return 1, "", "boom\n"
+        return 0, json.dumps(listed), ""
+    fake = _serve(fake_processes, run)
 
     with pytest.raises(OSError) as raised:
         status.recover_prs()
@@ -722,13 +726,13 @@ def test_recover_prs_raises_the_single_pr_refusal_with_its_stderr_when_the_singl
     assert str(raised.value) == "status.sh --recover: GitHub refused the single pull request read for #4730: boom"
 
 
-def test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_read_fails(monkeypatch):
+def test_recover_prs_raises_the_open_pr_refusal_with_its_stderr_when_the_list_read_fails(monkeypatch, fake_processes):
     import pytest
     status = importlib.import_module("veri.status")
 
     def run(args, *a, **k):
-        return subprocess.CompletedProcess(args, 1, stdout="", stderr="boom\n")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 1, "", "boom\n"
+    fake = _serve(fake_processes, run)
 
     with pytest.raises(OSError) as raised:
         status.recover_prs()
