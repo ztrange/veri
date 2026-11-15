@@ -11,7 +11,7 @@ import sys
 
 import blocked_by
 import tunables
-from github import NoAnswer, gh_json, gh_json_page
+from github import NoAnswer, closed_issues, gh_json, gh_json_page, pulls_in
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]"
@@ -71,8 +71,7 @@ def open_listing(fixture, path, *args):
 
 def own_run_branch(pr, number):
     """Whether <pr> is issue <number>'s own run branch, tdd/<number>-…: a released run's PR, which claims nothing while a draft (its resume continues it) and claims again once readied."""
-    head = pr.get("headRefName") or (pr.get("head") or {}).get("ref") or ""
-    return head.startswith("tdd/%s-" % number)
+    return pr.head_ref.startswith("tdd/%s-" % number)
 
 
 def taken(issue):
@@ -131,8 +130,8 @@ def select(label, priority="priority", repo=None):
     except NoAnswer:
         return 2, []
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
-    claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")
-               if not own_run_branch(pr, n) or not pr.get("isDraft", pr.get("draft", True))}
+    claimed = {int(n) for pr in pulls_in(prs) if pr.state == "OPEN" for n in closed_issues(pr.body)
+               if not own_run_branch(pr, n) or pr.draft is False}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
     bands = {issue["number"]: band(issue, priority) for issue in issues}

@@ -505,7 +505,7 @@ def recover_prs():
     refused_read_check(answer, "open pull request read")
     lines = []
     for pr in json.loads(answer.stdout):
-        closes = re.search(r"[Cc]loses #(\d+)", pr["body"] or "")
+        closes = github.closed_issues(pr["body"], loose=True)
         state = "draft" if pr["draft"] else "ready"
         single = github.gh_probe("api", "repos/{owner}/{repo}/pulls/%d" % pr["number"])
         refused_read_check(single, "single pull request read for #%d" % pr["number"])
@@ -514,7 +514,7 @@ def recover_prs():
         except (ValueError, KeyError):
             raise OSError("status.sh --recover: GitHub returned an unreadable single pull request read for #%d"
                           % pr["number"])
-        lines.append("#%d %s %s %s" % (pr["number"], "#" + closes.group(1) if closes else "-", state, mergeable))
+        lines.append("#%d %s %s %s" % (pr["number"], "#" + closes[0] if closes else "-", state, mergeable))
     return lines
 
 
