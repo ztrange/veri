@@ -26,7 +26,6 @@ from js_tests import CALL
 from leaf_model import env_value, resolve
 from entry import write
 from leaf_role import leaf_role
-from ledger import ledger_path
 from paths import SCRIPTS
 from run_verdict import takes_a_value
 
@@ -240,7 +239,7 @@ def main(argv):
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a pin needs the real before-state")
             return 2
     issue = tunables.read("VERI_ISSUE")
-    ledger = ledger_path(".", issue) if issue else ""
+    ledger = run_dir.ledger(".", issue) if issue else ""
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
                                             ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
