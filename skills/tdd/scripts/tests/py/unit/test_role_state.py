@@ -368,3 +368,15 @@ def test_issue_3241_dev_request_reset_with_no_recovered_at_still_refuses_at_the_
 
     assert (code, bool(err.strip()), state.read_text(), sorted(p.name for p in tdd.glob("reset-request-*"))) == (
         1, True, before, [])
+
+
+def test_read_lines_returns_the_role_files_lines_or_none_when_missing_for_the_main_trees_lane_file(tmp_path, monkeypatch):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree", lambda **_: str(tmp_path))
+    assert role_state.read_lines("dev", "mu") is None
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev-mu.state").write_text("n=2\nlane=mu\n")
+    (tmp_path / ".tdd" / "role-dev.state").write_text("n=9\n")
+
+    assert role_state.read_lines("dev", "mu") == ["n=2", "lane=mu"]
+    assert role_state.read_lines("dev") == ["n=9"]
