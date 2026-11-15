@@ -1040,12 +1040,10 @@ def test_main_marks_a_text_that_only_quotes_a_repair_mark_in_its_prose_added_and
     assert ledger.read_bytes() == before + b"\n## Owed steps\n\n- explain why \xe2\x9f\xa6ci-repair\xe2\x9f\xa7 and \xe2\x9f\xa6suite-repair\xe2\x9f\xa7 end a repair step\n"
 
 
-def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613_and_3618_says_durable_on_stderr_not_stdout(tmp_path, monkeypatch, run_cli, add_ledger_step):
-    from types import SimpleNamespace
-
+def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_quotes_the_mark_in_its_prose_1613_and_3618_says_durable_on_stderr_not_stdout(tmp_path, monkeypatch, run_cli, add_ledger_step, fake_processes):
     monkeypatch.setattr(add_ledger_step.pid_file, "recorded_started", lambda tree: "1")
     monkeypatch.setattr(add_ledger_step.pid_file, "ancestors", lambda: set())
-    monkeypatch.setattr(add_ledger_step.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout="abc1234\n"))
+    fake_processes.answers({"git": (0, "abc1234\n", "")})
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(
         (
