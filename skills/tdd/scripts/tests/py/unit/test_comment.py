@@ -1858,3 +1858,25 @@ def test_3650_bailed_pr_from_a_main_working_tree_posts_on_the_pr_of_the_branch_i
     assert code == 0
     assert looked_up == ["repos/{owner}/{repo}/pulls?head={owner}:tdd/7-the-branch"]
     assert [number for number, _ in posted] == ["12"]
+
+
+def test_done_bailed_and_stopped_in_a_run_with_no_journal_exit_2_naming_the_missing_event_and_post_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-9")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    note = tmp_path / "note.md"
+    note.write_text("n\n")
+
+    answers = [run_cli(comment, argv, cwd=tmp_path)
+               for argv in (["7", "done"], ["7", "bailed", "--note-file", str(note)], ["7", "stopped"])]
+
+    assert ([(code, out) for code, out, _ in answers], [err for _, _, err in answers], posted) == (
+        [(2, ""), (2, ""), (2, "")],
+        ["comment.sh: no done event in .tdd/events.jsonl, so there is no pr-url to post\n",
+         "comment.sh: no bail event in .tdd/events.jsonl\n",
+         "comment.sh: no stop event in .tdd/events.jsonl\n"],
+        [])

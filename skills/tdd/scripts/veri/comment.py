@@ -13,6 +13,7 @@ import event_log
 import github
 import metrics as metrics_module
 import paths
+import run_dir
 from ledger import handed_out, ledger_path, ledger_steps
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
@@ -53,22 +54,20 @@ def render_metrics(issue):
 
 
 def post_done(issue):
-    pr = None
-    for e in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True):
-        if e.get("event") == "done":
-            pr = e["pr"]
+    done = event_log.last(".", "done", skip_unreadable=True)
+    pr = done["pr"] if done is not None else None
     if pr is None:
         print("comment.sh: no done event in .tdd/events.jsonl, so there is no pr-url to post", file=sys.stderr)
         return 2
-    metrics = read_or_empty(f".tdd/issue-{issue}-metrics.md")
+    metrics = read_or_empty(run_dir.issue_file(".", issue, "-metrics.md"))
     if not metrics.startswith("### 📊 Metrics"):
         code, metrics = render_metrics(issue)
         if code != 0 or not metrics.startswith("### 📊 Metrics"):
             metrics = f"metrics could not be rendered: metrics.sh exited {code}"
-    pinned = read_or_empty(f".tdd/issue-{issue}-skip-verify").strip()
+    pinned = read_or_empty(run_dir.issue_file(".", issue, "-skip-verify")).strip()
     if pinned:
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
-    if os.path.isfile(".tdd/stop"):
+    if os.path.isfile(run_dir.run_file(".", "stop")):
         metrics = f"{metrics.rstrip()}\nA stop arrived after the last step, so the run finished rather than pausing.\n"
     return post_and_record(issue, "done", f"### ✅ Done — {pr}\n\n{metrics}")
 
@@ -122,12 +121,12 @@ def post_red(issue, note_file=None):
 
 
 def verdict_word(phase):
-    return "REJECT" if read_or_empty(f".tdd/verdict-{phase}.exit").strip() == "1" else "PASS"
+    return "REJECT" if read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip() == "1" else "PASS"
 
 
 def post_verify(issue, kind):
     phase = kind.removeprefix("verify-")
-    reason = read_or_empty(f".tdd/{kind}.reason")
+    reason = read_or_empty(run_dir.run_file(".", f"{kind}.reason"))
     verdict = verdict_word(phase)
     return post_and_record(issue, kind, f"### 🔎 {kind} — {verdict}\n\n{reason}")
 
@@ -157,7 +156,7 @@ def post_refactor(issue, note_file=None):
 
 
 def post_revised(issue, phase):
-    reason = read_or_empty(f".tdd/verify-{phase}.reason")
+    reason = read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason"))
     return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — PASS\n\n{reason}")
 
 
@@ -177,7 +176,7 @@ def post_plan(issue):
 
 
 def post_verify_plan(issue):
-    reason = read_or_empty(".tdd/verify-plan.reason")
+    reason = read_or_empty(run_dir.run_file(".", "verify-plan.reason"))
     verdict = verdict_word("plan")
     return post_and_record(issue, "verify-plan", f"### 🗺️ verify-plan — {verdict}\n\n{reason}")
 
@@ -209,11 +208,7 @@ def run_pr_number():
 
 
 def last_event(name):
-    found = None
-    for e in event_log.read_events(".tdd/events.jsonl"):
-        if e.get("event") == name:
-            found = e
-    return found
+    return event_log.last(".", name)
 
 
 def event_before_last(name):
@@ -240,7 +235,7 @@ def post_bailed(issue, note_file, pr=False):
 
 def restart_pending():
     try:
-        with open(".tdd/restart-pending") as f:
+        with open(run_dir.run_file(".", "restart-pending")) as f:
             os.kill(int(f.read().strip()), 0)
     except (OSError, ValueError):
         return False
