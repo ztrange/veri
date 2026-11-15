@@ -6,10 +6,7 @@ import pytest
 
 # "caller -> callee": why the site stays. Entries may be removed, never added; the audit also fails when a listed
 # site no longer exists, so the entry goes with the call.
-SIBLING_MAIN_CALLS = {
-    "skill_edit_step -> skill_edit_guard": "its single trivial caller (_captured around skill_edit_guard.main in "
-                                           "skill_edit_step.py); skill_edit_guard is edited by another round",
-}
+SIBLING_MAIN_CALLS = {}
 
 
 def sibling_main_sites(tree, names):

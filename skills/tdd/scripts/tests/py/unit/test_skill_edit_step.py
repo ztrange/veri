@@ -175,7 +175,7 @@ def test_a_veri_skill_edit_budget_that_is_not_a_whole_number_of_at_least_one_exi
     calls = []
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: calls.append("grade") or (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: calls.append("author") or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: calls.append("guard") or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: calls.append("guard") or [])
     fake = types.SimpleNamespace(
         run=lambda cmd, **kw: calls.append(" ".join(cmd[:2])) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
         PIPE=subprocess.PIPE)
@@ -204,7 +204,11 @@ def test_a_guard_exit_2_exits_the_step_2_signing_nothing_and_committing_nothing(
     gits = []
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 2)
+
+    def refuse_the_base(unit, base, pins):
+        raise skill_edit_step.skill_edit_guard.Refusal("skill-edit-guard.sh: %s is not a commit" % base)
+
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", refuse_the_base)
     fake = types.SimpleNamespace(
         run=lambda cmd, **kw: gits.append(cmd[:2]) or subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
         PIPE=subprocess.PIPE)
@@ -227,7 +231,7 @@ def test_the_author_attempts_follow_veri_skill_edit_budget_alone_whatever_the_ot
     authors = []
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     fake = types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
         PIPE=subprocess.PIPE)
@@ -419,13 +423,12 @@ def test_a_guard_rejected_attempts_edits_to_the_unit_are_reset_before_the_next_a
         unit.write_text("Edited by attempt %d.\n" % len(seen))
         return 0
 
-    def guard(argv):
-        print("stray.md")
-        return 0
+    def guard(unit, base, pins):
+        return ["stray.md"]
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     fake = types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""),
         PIPE=subprocess.PIPE)
@@ -657,7 +660,7 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -799,7 +802,7 @@ def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -826,7 +829,7 @@ def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_check
             prompts.append(open(cmd[3]).read())
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -865,7 +868,7 @@ def test_a_rejected_attempts_edits_to_a_pin_file_are_reset_with_the_unit_so_the_
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -1120,7 +1123,7 @@ def test_a_well_formed_unit_heading_under_requirements_keeps_the_step_exiting_0_
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -1151,7 +1154,7 @@ def test_a_change_only_step_on_an_issue_with_no_requirements_section_keeps_exiti
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -1279,15 +1282,13 @@ def test_a_refused_attempts_edit_to_a_file_the_guard_names_is_restored_so_the_ne
     ])
     guarded = []
 
-    def guard(argv):
-        guarded.append(argv)
-        if len(guarded) == 1:
-            print("stray_test.py")
-        return 0
+    def guard(unit, base, pins):
+        guarded.append([unit, base, *pins])
+        return ["stray_test.py"] if len(guarded) == 1 else []
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: next(attempts)() and 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -1315,13 +1316,12 @@ def test_exhausted_author_attempts_exit_1_with_the_tree_as_before_the_run_requir
         (tmp_path / "stray_test.py").write_text("EDITED = 1\n")
         return 0
 
-    def guard(argv):
-        print("stray_test.py")
-        return 0
+    def guard(unit, base, pins):
+        return ["stray_test.py"]
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - dark\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -1345,14 +1345,12 @@ def test_a_guard_refusal_never_deletes_a_tdd_file_the_guard_names_that_it_holds_
     (tmp_path / ".tdd" / "issue-9.md").write_text("a dirty ledger\n")
     before = {p.name: p.read_bytes() for p in (tmp_path / ".tdd").iterdir()}
 
-    def guard(argv):
-        print(".tdd/issue-9-added.md")
-        print(".tdd/issue-9.md")
-        return 0
+    def guard(unit, base, pins):
+        return [".tdd/issue-9-added.md", ".tdd/issue-9.md"]
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -1374,14 +1372,12 @@ def test_a_guard_refusal_removes_a_new_file_the_author_created_and_the_guard_nam
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-9.md").write_text("a dirty ledger\n")
 
-    def guard(argv):
-        print("stray.py")
-        print(".tdd/issue-9.md")
-        return 0
+    def guard(unit, base, pins):
+        return ["stray.py", ".tdd/issue-9.md"]
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: (tmp_path / "stray.py").write_text("NEW = 1\n") and 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -1402,14 +1398,12 @@ def test_a_guard_refusal_leaves_a_pre_existing_untracked_symlink_the_guard_names
     (tmp_path / "target").mkdir()
     (tmp_path / "link").symlink_to("target", target_is_directory=True)
 
-    def guard(argv):
-        print("link")
-        print("stray.py")
-        return 0
+    def guard(unit, base, pins):
+        return ["link", "stray.py"]
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - silent\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: (tmp_path / "stray.py").write_text("NEW = 1\n") and 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", guard)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", guard)
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
         run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
 
@@ -1446,7 +1440,7 @@ def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_not
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(subprocess, "run", run)
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"],
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
@@ -1474,7 +1468,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_pr
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -1503,7 +1497,7 @@ def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -1533,7 +1527,7 @@ def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spe
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -1566,7 +1560,7 @@ def test_an_added_step_given_a_change_on_a_unit_graded_pass_before_any_author_ra
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -1760,7 +1754,7 @@ def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_ord
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(subprocess, "run", run)
@@ -1802,7 +1796,7 @@ def test_a_change_step_whose_author_edits_only_a_pin_file_leaves_the_unit_byte_i
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -1837,7 +1831,7 @@ def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_unt
         return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
     monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -2209,7 +2203,7 @@ def test_a_requirements_table_with_the_header_line_but_a_missing_or_wrong_separa
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 1)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
@@ -2238,7 +2232,7 @@ def test_a_requirements_table_with_the_separator_line_but_a_wrong_header_line_ex
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A2: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: launched.append(a) or 1)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step, "subprocess",
                         types.SimpleNamespace(run=run, PIPE=subprocess.PIPE))
