@@ -14,7 +14,8 @@ from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
 from pin_reject_route import BEFORE_STATE_GREEN
-from build_verify_prompt import INTERFACE_PHASES, IncludeRefused, expand_includes, has_heading, spec_text_of
+from build_verify_prompt import INTERFACE_PHASES
+from prompt_template import IncludeRefused, expand_includes, fill, has_heading, spec_text_of
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -224,15 +225,11 @@ def main(argv):
             lazy["TEST_REWRITE"] = lambda: lazy["FREEZE_RULE"]().lstrip(b"\n")
     if phase == "revise" and revised_phase == "green" and repair:
         lazy["TEST_REWRITE"] = lambda: b""
-    for name, value in values.items():
-        placeholder = b"{{" + name.encode() + b"}}"
-        if name in lazy and placeholder in text:
-            try:
-                value = lazy[name]()
-            except IncludeRefused as refusal:
-                sys.stderr.buffer.write(refusal.args[0] + b"\n")
-                return 2
-        text = text.replace(placeholder, value)
+    try:
+        text = fill(text, ((name.encode(), lazy.get(name, value)) for name, value in values.items()))
+    except IncludeRefused as refusal:
+        sys.stderr.buffer.write(refusal.args[0] + b"\n")
+        return 2
     run_state = os.fsencode(os.path.join(event.toplevel() or os.getcwd(), ".tdd"))
     for name in (b"red-prediction.md", b"red-run-output.txt"):
         text = text.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
