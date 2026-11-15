@@ -140,3 +140,75 @@ def test_as_recorded_returns_the_variant_whose_digest_was_recorded_else_the_body
 
     assert case_identity.as_recorded(body, recorded) == "root = Path(__file__).parents[4]"
     assert case_identity.as_recorded(body, {digest("something else")}) == body
+
+
+MOVED = "def test_moved_3284():\n    assert 1 == 1\n"
+
+
+def _recorded(digest, text, case="test_moved_3284"):
+    return {digest(body) for body in importlib.import_module("veri.case_identity").bodies_of(text, case)}
+
+
+def _write(tmp_path, relative, text):
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def test_moved_path_is_the_name_itself_while_that_file_exists_even_when_a_copy_elsewhere_holds_the_case(
+        case_identity, digest, tmp_path):
+    _write(tmp_path, "tests/test_moved.py", "def test_other():\n    assert True\n")
+    _write(tmp_path, "tests/unit/test_moved.py", MOVED)
+
+    assert case_identity.moved_path("tests/test_moved.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "tests/test_moved.py")
+
+
+def test_moved_path_finds_a_file_of_the_same_basename_in_another_directory_that_holds_the_recorded_case(
+        case_identity, digest, tmp_path):
+    _write(tmp_path, "tests/unit/test_moved.py", MOVED)
+
+    assert case_identity.moved_path("tests/test_moved.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "./tests/unit/test_moved.py")
+
+
+def test_moved_path_finds_a_file_of_another_basename_when_none_of_the_same_basename_holds_the_case(
+        case_identity, digest, tmp_path):
+    _write(tmp_path, "test_moved.py", "def test_unrelated():\n    assert True\n")
+    _write(tmp_path, "tests/unit/test_renamed.py", MOVED)
+
+    assert case_identity.moved_path("tests/test_moved.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "./tests/unit/test_renamed.py")
+
+
+def test_moved_path_ignores_a_copy_in_a_hidden_directory_and_answers_the_name(case_identity, digest, tmp_path):
+    _write(tmp_path, ".hidden/test_gone.py", MOVED)
+
+    assert case_identity.moved_path("tests/test_gone.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "tests/test_gone.py")
+
+
+def test_moved_path_answers_the_name_when_the_moved_case_body_changed_since_the_record(case_identity, digest, tmp_path):
+    _write(tmp_path, "tests/unit/test_moved.py", MOVED.replace("1 == 1", "1 == 2"))
+
+    assert case_identity.moved_path("tests/test_moved.py", "test_moved_3284", _recorded(digest, MOVED)) == (
+        "tests/test_moved.py")
+
+
+def test_moved_path_matches_a_case_whose_only_change_is_its_parents_root_lookup_depth(case_identity, digest, tmp_path):
+    case = "def test_roots_3284():\n    root = Path(__file__).parents[4]\n    assert root.name\n"
+    _write(tmp_path, "tests/unit/test_suite.py", case.replace("parents[4]", "parents[5]"))
+
+    assert case_identity.moved_path("tests/test_suite.py", "test_roots_3284", _recorded(digest, case, "test_roots_3284")) == (
+        "./tests/unit/test_suite.py")
+
+
+def test_path_holding_restricts_itself_to_the_given_basename_and_answers_none_when_nothing_holds_the_case(
+        case_identity, digest, tmp_path):
+    _write(tmp_path, "a/test_x.py", "def test_other():\n    assert True\n")
+    _write(tmp_path, "b/test_y.py", MOVED)
+    held = _recorded(digest, MOVED)
+
+    assert (case_identity.path_holding("test_moved_3284", held, only="test_x.py"),
+            case_identity.path_holding("test_moved_3284", held, only="test_y.py"),
+            case_identity.path_holding("test_moved_3284", held)) == (None, "./b/test_y.py", "./b/test_y.py")

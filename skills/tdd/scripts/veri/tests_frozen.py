@@ -185,30 +185,6 @@ def _earlier_records(lines, step, strict=False):
         yield match.group(2), path, records
 
 
-def _path_holding(case, digests, only=None):
-    for top, dirs, files in os.walk("."):
-        dirs[:] = [d for d in dirs if not d.startswith(".")]
-        for file in files:
-            if only is not None and file != only:
-                continue
-            path = os.path.join(top, file)
-            with open(path, encoding="utf-8", errors="replace") as handle:
-                if any(body_digest(v) in digests for body in case_identity.bodies_of(handle.read(), case)
-                       for v in case_identity.root_variants(body)):
-                    return path
-    return None
-
-
-def _moved_path(name, case, digests):
-    if os.path.exists(name):
-        return name
-    return (
-        _path_holding(case, digests, only=os.path.basename(name))
-        or _path_holding(case, digests)
-        or name
-    )
-
-
 def _renamed_to(name, case, digest, text, consumed):
     for rev in case_history.revisions(name):
         held = case_history.cases_at(rev, name)
@@ -280,7 +256,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
     releg = {}
     for (name, case), (digests, owner, marked) in latest.items():
         try:
-            moved = _moved_path(name, case, digests)
+            moved = case_identity.moved_path(name, case, digests)
             with open(moved, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             nows = case_identity.bodies_of(text, case)
