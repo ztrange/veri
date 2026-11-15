@@ -4,24 +4,19 @@ import subprocess
 import sys
 import time
 
+import entry
 import event
 import tunables
 
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 
 
-def _refuse(message):
-    sys.stderr.write(message)
-    sys.stderr.flush()
-    return 2
-
-
 def main(argv):
     if len(argv) < 3 or not argv[0] or not argv[2]:
-        return _refuse(USAGE)
+        return entry.refuse(usage=USAGE)
     tier, suites, command = argv[0], argv[1], argv[2:]
     if tier == "affected" and command[:2] == ["make", "test"] and not any(a.startswith("TESTS=") for a in command[2:]):
-        return _refuse("timed-test-run.sh: affected tier refuses 'make test' naming no TESTS= suites\n")
+        return entry.refuse("timed-test-run.sh: affected tier refuses 'make test' naming no TESTS= suites")
     started = int(time.time())
     try:
         code = subprocess.call(command)

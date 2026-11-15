@@ -25,7 +25,7 @@ def main(argv):
         return 0
     if len(argv) == 2 and argv[0] == "left":
         spent = 0
-        for e in event_log.read_events(".tdd/events.jsonl"):
+        for e in event_log.read_events(event_log.path(".")):
             if str(e.get("issue")) != argv[1]:
                 continue
             if e.get("event") == "conductor-start":

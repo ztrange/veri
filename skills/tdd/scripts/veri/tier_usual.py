@@ -2,7 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-from event_log import read_events
+from event_log import path, read_events
 
 WINDOW = 10
 
@@ -12,7 +12,7 @@ def main(argv):
         print("usage: tier-usual.sh <tier>", file=sys.stderr)
         return 2
     tier = argv[0]
-    seconds = [float(line["seconds"]) for line in read_events(".tdd/events.jsonl")
+    seconds = [float(line["seconds"]) for line in read_events(path("."))
                if line.get("event") == "test-run" and line.get("tier") == tier]
     window = sorted(seconds[-WINDOW:])
     middle = len(window) // 2

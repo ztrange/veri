@@ -6,6 +6,7 @@ import re
 import shlex
 import sys
 
+import entry
 import event
 import event_log
 import tunables
@@ -51,30 +52,23 @@ def _bullets(cases):
     return "".join(f"\n- {case}" for case in cases)
 
 
-def _refuse(message=None):
-    if message is not None:
-        write(sys.stderr, message, before=False, after=False)
-    write(sys.stderr, USAGE, before=False, after=False)
-    return 2
-
-
 def main(argv):
     if not argv:
-        return _refuse()
+        return entry.refuse(usage=USAGE)
     phase = argv[0]
     if phase not in ACCEPTED_WANT:
-        return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
+        return entry.refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})", usage=USAGE)
     if len(argv) < ACCEPTED_WANT[phase]:
-        return _refuse(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}")
+        return entry.refuse(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}", usage=USAGE)
     args = argv[1:]
     revised_phase = ""
     if phase == "revise":
         revised_phase = args.pop(0)
         if not revised_phase:
-            return _refuse("build-develop-prompt: missing <phase> being revised")
+            return entry.refuse("build-develop-prompt: missing <phase> being revised", usage=USAGE)
         if revised_phase not in REVISABLE_PHASES:
-            return _refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
-                           f"(want {WANT_REVISE_PHASES})")
+            return entry.refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
+                                f"(want {WANT_REVISE_PHASES})", usage=USAGE)
     names = ["<issue-spec-file>", "<step-text>", "<test-cmd>"] + {
         "diff": ["<fast-cmd>"],
         "green": ["<test-path>", "<target-test>", "<fast-cmd>"],
@@ -94,17 +88,17 @@ def main(argv):
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
-            return _refuse(f"build-develop-prompt: missing {name}")
+            return entry.refuse(f"build-develop-prompt: missing {name}", usage=USAGE)
     if phase == "over-budget":
         for name, value in zip(names[3:], args[3:]):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
-                return _refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
+                return entry.refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number", usage=USAGE)
     if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
             and any(BEFORE_STATE_GREEN.search(line)
                     for line in _read(args[3]).decode("utf-8", "replace").splitlines()
                     if line.startswith("REASON:"))):
-        return _refuse("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
-                       "by pin-reject-route.sh, not revised")
+        return entry.refuse("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
+                            "by pin-reject-route.sh, not revised", usage=USAGE)
     prompts = f"{HERE}/prompts"
     template = "revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
@@ -179,8 +173,8 @@ def main(argv):
                 return 2
             values["ISSUE_NUMBER"] = issue.encode()
             try:
-                rerouted = [e.get("case") for e in event_log.read_events(".tdd/events.jsonl")
-                            if e.get("event") == "reroute" and e.get("step") == step
+                rerouted = [e.get("case") for e in event_log.events(".", "reroute")
+                            if e.get("step") == step
                             and e.get("kind") in ("red", "repair", "supersede") and e.get("case")]
             except OSError:
                 rerouted = []

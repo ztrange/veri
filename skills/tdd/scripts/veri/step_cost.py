@@ -8,23 +8,19 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import entry
 import event_log
 
 USAGE = "usage: step-cost.sh <step-text> | --run | --steps"
-LOG = ".tdd/events.jsonl"
-
-
-def refuse(message):
-    sys.stderr.write("%s\n%s\n" % (message, USAGE))
-    return 2
+LOG = event_log.path("")
 
 
 def main(argv):
     if len(argv) != 1:
-        return refuse("step-cost.sh: expected exactly one argument, got %d" % len(argv))
+        return entry.refuse("step-cost.sh: expected exactly one argument, got %d" % len(argv), usage=USAGE)
     step = argv[0]
     if step.startswith("-") and step not in ("--run", "--steps"):
-        return refuse("step-cost.sh: unknown option '%s'" % step)
+        return entry.refuse("step-cost.sh: unknown option '%s'" % step, usage=USAGE)
     code, out = step_costs(step, logical_cwd())
     sys.stdout.write(out)
     return code
@@ -48,12 +44,11 @@ def logical_cwd():
 
 
 def step_costs(step, cwd):
-    log_path = os.path.join(cwd, LOG)
+    log_path = event_log.path(cwd)
     if not os.access(log_path, os.R_OK):
         sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n" % (LOG, cwd))
         return 2, ""
-    events = event_log.read_events(log_path, skip_unreadable=True, errors="strict")
-    usage = [e for e in events if e.get("event") == "usage"]
+    usage = event_log.events(cwd, "usage", skip_unreadable=True, errors="strict")
     if step not in ("--run", "--steps"):
         usage = [e for e in usage if e.get("step", "") == step]
     if not usage:
