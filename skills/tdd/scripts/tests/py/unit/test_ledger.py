@@ -233,3 +233,36 @@ def test_is_skill_edit_equals_the_inline_marker_expression_for_leading_trailing_
     ):
         assert inline(step) is expected
         assert ledger.is_skill_edit(step) is expected
+
+
+def test_body_is_the_step_text_before_the_first_mark():
+    ledger = importlib.import_module("veri.ledger")
+    assert ledger.body("a step ⟦added⟧ ⟂ refactor pending") == "a step ⟦added⟧"
+    assert ledger.body("a step ⟂ red done ⟂ green done") == "a step"
+    assert ledger.body("a step") == "a step"
+    assert ledger.body("⟂ not a delimiter: no leading space") == "⟂ not a delimiter: no leading space"
+
+
+def test_open_step_line_is_the_unticked_checkbox_line_new_step_builds_on():
+    ledger = importlib.import_module("veri.ledger")
+    assert ledger.open_step_line("do it") == "- [ ] do it"
+    assert ledger.new_step("do it", 3) == ledger.open_step_line("do it ⟦added⟧ ⟦criterion 3⟧")
+
+
+def test_tick_line_ticks_the_box_of_a_matched_step_line_and_keeps_the_rest():
+    ledger = importlib.import_module("veri.ledger")
+    for line in ("- [ ] do it ⟂ red done", "  - [ ]", "- [ ] "):
+        assert ledger.tick_line(ledger.STEP_RE.fullmatch(line)) == line.replace("[ ]", "[x]", 1)
+
+
+def test_retire_mark_and_is_retired_agree_on_the_marks_a_retired_step_carries():
+    ledger = importlib.import_module("veri.ledger")
+    assert ledger.retire_mark("unpinnable") == " ⟂ retired unpinnable"
+    assert ledger.retire_mark("already holds") == " ⟂ retired already holds"
+    assert ledger.is_retired("- [x] a step" + ledger.retire_mark("unpinnable"))
+    assert not ledger.is_retired("- [x] a step ⟂ red done")
+
+
+def test_interface_phases_are_the_phases_of_an_interface_change():
+    ledger = importlib.import_module("veri.ledger")
+    assert ledger.INTERFACE_PHASES == ("expand", "cover-new", "migrate", "contract-a", "contract-b")
