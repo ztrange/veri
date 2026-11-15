@@ -43,7 +43,10 @@ def _opens_held_or_named(scope):
 
 
 def opens_events_jsonl(source):
-    tree = ast.parse(source)
+    return tree_opens_events_jsonl(ast.parse(source))
+
+
+def tree_opens_events_jsonl(tree):
     return any(
         _opens_held_or_named(scope)
         for scope in [tree, *(node for node in ast.walk(tree)
@@ -52,14 +55,12 @@ def opens_events_jsonl(source):
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_no_module_but_event_and_event_log_opens_events_jsonl():
-    from conftest import SCRIPTS
-
+def test_no_module_but_event_and_event_log_opens_events_jsonl(veri_modules_index):
     openers = [
-        source.name
-        for source in sorted((SCRIPTS / "veri").glob("*.py"))
-        if source.name not in ("event.py", "event_log.py")
-        and opens_events_jsonl(source.read_text(encoding="utf-8"))
+        veri_modules_index.path(name).name
+        for name in veri_modules_index.names
+        if name not in ("event", "event_log")
+        and tree_opens_events_jsonl(veri_modules_index.tree(name))
     ]
 
     assert openers == []
