@@ -56,7 +56,12 @@ def test_every_shim_fronted_module_declares_a_usage_that_opens_with_its_shims_na
 
 @pytest.fixture
 def no_work(monkeypatch):
-    """Any process launch or network access during the case is recorded, and the case fails on it."""
+    """Any process launch or network access during the case is recorded, and the case fails on it.
+
+    The tier's own guards are not enough to rely on: small_case_guard refuses only git and a python3 outside veri/, and
+    network_guard only gh, curl and a non-loopback connect, so `claude`, `sh` or a loopback socket would pass them. This
+    refuses every Popen (subprocess.run and call go through it), os.system, fork, exec and spawn, and every connect.
+    """
     attempts = []
 
     def forbid(what):
@@ -80,16 +85,16 @@ def test_help_prints_the_usage_on_stdout_exits_0_and_starts_no_process_and_no_co
     imported = importlib.import_module("veri." + module)
     code, out, err = run_cli(imported, ["--help"])
 
-    declared = imported.USAGE.decode() if isinstance(imported.USAGE, bytes) else imported.USAGE
     assert (code, err, no_work) == (0, "", [])
+    declared = imported.USAGE.decode() if isinstance(imported.USAGE, bytes) else imported.USAGE
     assert out.startswith("usage: ") and (shim in UNNAMED or out.startswith(f"usage: {shim}"))
     assert out.rstrip("\n") == declared[declared.index("usage: "):].rstrip("\n")
 
 
-# Scripts that take no arguments and refuse one. Not listed, on purpose: invisible-work, cover-outcome, exhausted-outcome,
+# Scripts that take no arguments and refuse one. Not listed, on purpose: invisible-work, leaf-launchable, cover-outcome, exhausted-outcome,
 # extract-result, next-pending-refactor, next-unchecked, parse-verdict, refactor-triage and time-budget also take none, but their
 # own suites pin that an argument is ignored (and invisible-work's calls main(["--help"]) to sweep), so refusing would change them.
-NO_ARGUMENTS = ["branch_suite", "handoff_state", "leaf_launchable", "orchestrate", "rebased_tip_suite", "resume_clean", "skill_drift"]
+NO_ARGUMENTS = ["branch_suite", "handoff_state", "orchestrate", "rebased_tip_suite", "resume_clean", "skill_drift"]
 
 
 @pytest.mark.parametrize("module", NO_ARGUMENTS)

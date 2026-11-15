@@ -7,16 +7,12 @@ import sys
 import tempfile
 
 import launch_floor
-import entry
 
 
 USAGE = "usage: leaf-launchable.sh"
 
 
 def main(argv):
-    refused = entry.no_arguments(argv, USAGE)
-    if refused is not None:
-        return refused
     if launch_floor.bash_refusal("leaf-launchable") or launch_floor.python_refusal("leaf-launchable"):
         return 2
     leaf_bin = os.environ.get("CLAUDE_BIN") or "claude"
@@ -52,4 +48,5 @@ def diagnostic(leaf_bin, said):
 
 
 if __name__ == "__main__":
+    import entry
     entry.run(main, sys.argv[1:])
