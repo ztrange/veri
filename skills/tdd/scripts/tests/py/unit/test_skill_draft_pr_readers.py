@@ -1,10 +1,9 @@
 """Cases for which suites still read DRAFT-PR.md's `## 4. Draft PR` section by its content."""
 import pathlib
-import re
 
 import pytest
 
-from conftest import mentioned_names
+import subsection_readers
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent.parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
@@ -26,65 +25,16 @@ ALLOWED = {
 }
 
 
-def _flat(text):
-    return " ".join(text.split())
+SPEC = subsection_readers.Subsection(
+    HEADING, MARKERS, PREFIX, source_names=subsection_readers.SKILL_NAMES + r"|DRAFT_PR(?:_MD)?", gate=("SKILL", "DRAFT_PR_MD"))
 
 
 def _section_and_rest():
-    section = DRAFT_PR_MD.read_text(encoding="utf-8")
-    return _flat(section), _flat(SKILL_MD.read_text(encoding="utf-8"))
-
-
-def _names_the_heading(literal):
-    return literal.startswith(PREFIX) and HEADING.startswith(literal)
-
-
-def _only_in_section(literal, section, rest):
-    flat = _flat(literal)
-    return len(flat.split(" ")) >= 3 and flat in section and flat not in rest
-
-
-def _readers(entry, section, rest):
-    text = entry.text
-    if "SKILL" not in text and "DRAFT_PR_MD" not in text:
-        return []
-    definitions = entry.walk.definitions
-    segments = {d.name: d.segment for d in definitions}
-    literals = {d.name: d.strings for d in definitions}
-    reads = {d.name: set(d.names) for d in definitions}
-    calls = mentioned_names(segments)
-
-    def reach(name):
-        seen, todo = {name}, [name]
-        while todo:
-            for other in calls[todo.pop()] - seen:
-                seen.add(other)
-                todo.append(other)
-        return seen
-
-    def reads_the_section(names):
-        source = "\n".join(segments[n] for n in names)
-        return any(m in source for m in MARKERS) or any(
-            _names_the_heading(s) or _only_in_section(s, section, rest) for n in names for s in literals[n])
-
-    return sorted(
-        name for name in segments
-        if name.startswith("test_")
-        and reads_the_section(reach(name))
-        and any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines|DRAFT_PR(?:_MD)?", i) for n in reach(name) for i in reads[n])
-    )
+    return subsection_readers.flat(DRAFT_PR_MD.read_text(encoding="utf-8")), subsection_readers.flat(SKILL_MD.read_text(encoding="utf-8"))
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
 def test_every_remaining_case_reading_the_draft_pr_section_by_its_content_is_a_kept_mechanical_case(tests_py_index):
     section, rest = _section_and_rest()
-    stray = []
-    for entry in tests_py_index:
-        path = entry.path
-        if path == pathlib.Path(__file__).resolve():
-            continue
-        rel = str(path.relative_to(TESTS_PY))
-        if rel in ALLOWED:
-            continue
-        stray += [f"{rel}::{name}" for name in _readers(entry, section, rest) if f"{rel}::{name}" not in ALLOWED]
+    stray = subsection_readers.stray_cases(tests_py_index, ALLOWED, SPEC, section, rest, TESTS_PY, __file__)
     assert stray == [], "cases read the Draft PR section by content and are neither kept nor allow-listed:\n" + "\n".join(stray)

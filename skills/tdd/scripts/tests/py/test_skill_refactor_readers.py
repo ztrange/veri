@@ -1,12 +1,11 @@
 """Cases for which suites still read SKILL.md's `#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)` subsection by its content."""
-import functools
 import pathlib
 import re
 import sys
 
 import pytest
 
-from conftest import mentioned_names
+import subsection_readers
 
 TESTS_PY = pathlib.Path(__file__).resolve().parent
 SKILL_MD = TESTS_PY.parents[2] / "SKILL.md"
@@ -33,94 +32,26 @@ HEADING_IN_ANY_CASE = re.compile(
     r"refactor(?:\s|\\s|[+*.]|\[ \])+loop",
     re.I)
 
-# SKILL.md reached through a path literal, whatever the variable is called: `SCRIPTS.parent / "SKILL.md"`.
-SKILL_PATH_LITERAL = re.compile(r"(?:.*/)?SKILL\.md")
 
-
-def _flat(text):
-    return " ".join(text.split())
+SPEC = subsection_readers.Subsection(
+    HEADING, MARKERS, PREFIX, heading_in_any_case=HEADING_IN_ANY_CASE, path_literal=subsection_readers.SKILL_PATH_LITERAL)
 
 
 def _subsection_and_rest():
-    text = SKILL_MD.read_text(encoding="utf-8")
-    start = text.index(HEADING)
-    following = re.search(r"^#{1,4} ", text[start + len(HEADING):], re.M)
-    stop = start + len(HEADING) + following.start() if following else len(text)
-    return _flat(text[start:stop]), _flat(text[:start] + "\n" + text[stop:])
-
-
-def _names_the_heading(literal):
-    """The subsection's heading, or a prefix of it from `#### Refactor loop` on, in any case and as a regex too: a
-    case slicing SKILL.md by it reads the subsection whatever it asserts, however short."""
-    return (literal.startswith(PREFIX) and HEADING.startswith(literal)) or bool(HEADING_IN_ANY_CASE.match(literal))
-
-
-def _only_in_subsection(literal, subsection, rest):
-    """A phrase a case could only have copied from the Refactor loop subsection: three or more words no
-    other part of SKILL.md, nor another skill document the case names, carries.
-    One or two words read as script vocabulary or a case's own message, so neither counts."""
-    flat = _flat(literal)
-    return len(flat.split(" ")) >= 3 and flat in subsection and flat not in rest
+    return subsection_readers.cut_subsection(SKILL_MD.read_text(encoding="utf-8"), HEADING)
 
 
 def _other_docs():
-    return {d.name: d.read_text(encoding="utf-8") for d in SKILL_MD.parent.glob("*.md") if d != SKILL_MD}
-
-
-@functools.cache
-def _held(rest, *also_read):
-    return _flat("\n".join([rest, *also_read]))
+    return subsection_readers.other_docs(SKILL_MD)
 
 
 def _readers(entry, subsection, rest, docs):
-    text = entry.text
-    if "SKILL" not in text:
-        return []
-    definitions = entry.walk.definitions
-    segments = {d.name: d.segment for d in definitions}
-    literals = {d.name: d.strings + d.byte_strings for d in definitions}
-    reads = {d.name: set(d.names) for d in definitions}
-    calls = mentioned_names(segments)
-
-    def reach(name):
-        seen, todo = {name}, [name]
-        while todo:
-            for other in calls[todo.pop()] - seen:
-                seen.add(other)
-                todo.append(other)
-        return seen
-
-    def reads_the_subsection(names):
-        source = "\n".join(segments[n] for n in names)
-        also_read = [text for doc, text in docs.items() if doc in source]
-        markers = [m for m in MARKERS if not any(m in text for text in also_read)]
-        held_elsewhere = _held(rest, *also_read)
-        return any(m in source for m in markers) or any(
-            _names_the_heading(s) or _only_in_subsection(s, subsection, held_elsewhere) for n in names for s in literals[n])
-
-    return sorted(
-        name for name in segments
-        if name.startswith("test_")
-        and reads_the_subsection(reach(name))
-        and (any(re.fullmatch(r"SKILL(?:_MD)?|skill_lines", i) for n in reach(name) for i in reads[n])
-             or any(SKILL_PATH_LITERAL.fullmatch(s) for n in reach(name) for s in literals[n]))
-    )
+    return subsection_readers.readers(entry, subsection, rest, SPEC, docs)
 
 
 def stray_cases(entries, allowed):
     subsection, rest = _subsection_and_rest()
-    docs = _other_docs()
-    stray = []
-    for entry in entries:
-        path = entry.path
-        if path == pathlib.Path(__file__).resolve():
-            continue
-        rel = str(path.relative_to(TESTS_PY))
-        if rel in allowed:  # a whole-file entry: keyed by the path under tests/py, never a bare file name
-            continue
-        stray += [f"{rel}::{name}" for name in _readers(entry, subsection, rest, docs) if f"{rel}::{name}" not in allowed
-                  and f"{path.name}::{name}" not in allowed]
-    return stray
+    return subsection_readers.stray_cases(entries, allowed, SPEC, subsection, rest, TESTS_PY, __file__, _other_docs())
 
 
 @pytest.mark.tree_audit("every test file under skills/tdd/scripts/tests/py")
