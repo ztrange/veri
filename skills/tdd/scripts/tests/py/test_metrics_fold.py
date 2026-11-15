@@ -88,3 +88,31 @@ def test_the_requested_model_knobs_are_read_off_the_environment_in_report_order(
     assert list(folded.model_knobs) == ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]
     assert (folded.model_knobs["VERI_MODEL"], folded.model_knobs["VERI_MODEL_DEVELOPER"]) == ("opus", "sonnet")
     assert not folded.model_knobs["VERI_MODEL_VERIFIER"]
+
+
+def test_the_conductor_is_its_sessions_turns_dollars_model_and_whether_any_of_it_is_estimated(folded):
+    assert len(folded.sessions) == 2
+    assert folded.conductor_turns == 6
+    assert folded.conductor_spend == pytest.approx(2.68, abs=0.01)
+    assert (folded.conductor_model, folded.conductor_estimated) == ("opus", True)
+    assert (folded.conductor_priced, folded.conductor_some_priced) == (True, True)
+    assert folded.turn_rows.session_contexts == [[100060] * 4, [400060, 900060]]
+
+
+def test_the_conductor_turn_rows_and_comment_families_are_rows_of_text_and_counts(folded):
+    assert folded.turn_rows[3] == ["4", "unpriced", "100060"]
+    assert folded.turn_rows.families["🟢 Green"][:2] == [1, 44250]
+    assert folded.turn_rows.families["Total"][:2] == [5, 203750]
+
+
+def test_the_total_row_is_the_leaves_plus_the_conductors_own_spending(folded):
+    leaves = sum(row["$"] for row in folded.phases.values())
+
+    assert folded.total["$"] == pytest.approx(leaves + folded.conductor_spend)
+    assert folded.total["turns"] == 50
+
+
+def test_each_operator_session_in_the_transcripts_is_a_label_turns_cache_tokens_and_dollars(folded):
+    assert [(label, turns, cache) for label, turns, cache, _ in folded.operator_sessions] == [
+        ("Coordinator", 2, 250000), ("Dev", 2, 250000)]
+    assert folded.operator_sessions[0][3] == pytest.approx(0.48, abs=0.01)
