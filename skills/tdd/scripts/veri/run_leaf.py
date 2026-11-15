@@ -2,9 +2,9 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import entry
+import leaf_timeout
 import os
 import paths
-import run_dir
 import shutil
 import signal
 import subprocess
@@ -42,13 +42,14 @@ def read_prompt(path):
 
 
 def effective_timeout():
+    """The hard cap in seconds as text: VERI_TIMEOUT, else the run's timeout pin (relative to the
+    current directory), else the tunable's default. Raises leaf_timeout.Malformed for a bad pin."""
     seconds = tunables.read("VERI_TIMEOUT")
     issue = tunables.read("VERI_ISSUE")
     if not seconds and issue:
         with contextlib.suppress(OSError):
-            with open(run_dir.issue_file("", issue, "-timeout")) as f:
-                seconds = f.read().strip()
-    return seconds or "900"
+            seconds = leaf_timeout.settled("", issue)
+    return seconds or tunables.default("VERI_TIMEOUT")
 
 
 def complain(name, error):
@@ -92,7 +93,12 @@ def main(argv):
         env["FORCE_PROMPT_CACHING_5M"] = "1"
         env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
         env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
-        seconds = effective_timeout()
+        try:
+            seconds = effective_timeout()
+        except leaf_timeout.Malformed as bad:
+            print(f"run-leaf.sh: {bad.path} must hold a whole number of seconds >= 1: '{bad.text}'",
+                  file=sys.stderr)
+            return 2
         try:
             cap_ms = str(int(seconds) * 1000)
         except ValueError:
