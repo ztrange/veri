@@ -36,3 +36,16 @@ def test_a_digit_string_past_the_interpreters_int_conversion_limit_is_none_not_a
 
     assert answers[:2] == [None, None]
     assert answers[2] == int("9" * 4300)
+
+
+def test_tokens_still_refuses_with_value_error_for_digits_past_the_limit():
+    import sys
+
+    tunables = importlib.import_module("veri.tunables")
+    limit = sys.get_int_max_str_digits()
+    sys.set_int_max_str_digits(4300)
+    try:
+        with pytest.raises(ValueError):
+            tunables.tokens("9" * 5000)
+    finally:
+        sys.set_int_max_str_digits(limit)
