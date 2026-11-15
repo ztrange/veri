@@ -1,7 +1,5 @@
 """skill-edit-step.sh's entry point, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import contextlib
-import io
 import os
 import subprocess
 import tempfile
@@ -230,15 +228,9 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
-def _captured(call, *args):
-    out = io.StringIO()
-    with contextlib.redirect_stdout(out):
-        code = call(*args)
-    return code, out.getvalue()
-
-
 def _grade(path, unit):
-    return _captured(grade_prose.grade_unit, path, unit)
+    grading = grade_prose.grade_unit(path, unit)
+    return grading.code, grading.out
 
 
 def _guard(unit, base, issue, pins, own=()):

@@ -1783,7 +1783,7 @@ def test_grade_unit_answers_like_main_for_the_same_path_and_unit_a_versionless_g
     fake = fake_processes.answers({})
     monkeypatch.chdir(tmp_path)
 
-    code = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
+    code = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md").code
     captured = capfd.readouterr()
     via_main = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1791,3 +1791,52 @@ def test_grade_unit_answers_like_main_for_the_same_path_and_unit_a_versionless_g
     assert (captured.out, captured.err) == (via_main[1], via_main[2])
     assert "names no version" in captured.err
     assert fake.calls == []
+
+
+def _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes, reply):
+    """A tree with one unit and its one-row list, whose grader leaf answers `reply`; returns the prompts it read."""
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "unit.md").write_text("The working tree says green.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / ".tdd").mkdir()
+    prompts = []
+
+    def launch(line, **kwargs):
+        with open(line.split()[3], encoding="utf-8") as f:
+            prompts.append(f.read())
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(json.dumps({"type": "result", "result": reply}) + "\n")
+        return (0, "", "")
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    fake_processes.answers({"supervise.sh": launch})
+    monkeypatch.chdir(tmp_path)
+    return prompts
+
+
+def test_grade_unit_grades_the_text_its_reader_answers_and_returns_the_failing_rows_without_printing_them(
+        tmp_path, monkeypatch, capsys, grade_prose, fake_processes):
+    prompts = _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes,
+                           "BEGIN GRADES\nA1: FAIL - says teal\nVERDICT: REJECT\nEND GRADES\n")
+
+    grading = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md", read=lambda file: "The reader says teal.\n")
+
+    first = prompts[0] if prompts else ""
+    assert (grading.code, grading.verdict, grading.failing, grading.lines, grading.out) == (
+        1, "REJECT", ("A1",), ("A1: FAIL - says teal",), "A1: FAIL - says teal\n")
+    assert ("The reader says teal." in first, "The working tree says green." in first) == (True, False)
+    assert capsys.readouterr().out == ""
+
+
+def test_main_renders_grade_units_record_to_the_bytes_grade_prose_printed_a_pass_as_one_empty_line(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    _grader_tree(tmp_path, monkeypatch, grade_prose, fake_processes,
+                 "BEGIN GRADES\nA1: PASS - blue\nVERDICT: PASS\nEND GRADES\n")
+
+    grading = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (grading.code, grading.verdict, grading.failing, grading.lines, grading.out) == (0, "PASS", (), (), "\n")
+    assert (code, out) == (0, grading.out), err
