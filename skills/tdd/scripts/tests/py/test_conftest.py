@@ -101,8 +101,7 @@ def test_fake_processes_answers_picks_the_longest_matching_prefix_and_records_co
         (0, "sha\n", ""), (1, "", "plain"), (1, "", "boom")]
     assert fake.calls == ["vcs rev-parse HEAD", "vcs status", "hub issue list"]
     assert fake.seen[0] == (["/usr/bin/vcs", "rev-parse", "HEAD"], {"capture_output": True, "text": True, "cwd": "/x"})
-    assert [argv for argv, _ in fake.seen] == [["/usr/bin/vcs", "rev-parse", "HEAD"], ["vcs", "status"],
-                                               ["hub", "issue", "list"]]
+    assert fake.argvs == [["/usr/bin/vcs", "rev-parse", "HEAD"], ["vcs", "status"], ["hub", "issue", "list"]]
 
 
 def test_fake_processes_answers_hands_a_list_of_answers_out_in_turn_and_fails_naming_the_command_once_it_is_spent(

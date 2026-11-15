@@ -17,7 +17,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import types
 from time import time_ns
 
 import pytest
@@ -933,6 +932,17 @@ def run_cli(monkeypatch, capfd):
     return run
 
 
+class FakeProcesses:
+    """What fake_processes.answers hands back: the command lines run, and (argv, kwargs) per call."""
+
+    def __init__(self, calls, seen):
+        self.calls, self.seen = calls, seen
+
+    @property
+    def argvs(self):
+        return [argv for argv, _ in self.seen]
+
+
 @pytest.fixture
 def fake_processes(monkeypatch):
     """Fakes every way subprocess starts a process, so a unit case starts none. Two entry points.
@@ -952,7 +962,7 @@ def fake_processes(monkeypatch):
             "git": lambda line, **kwargs: (0, "", "")    a callable is handed the line and the kwargs
         A list may mix tuples, exception instances and callables. A call no prefix matches fails the case with
         AssertionError("unexpected process: <line>") unless <default> (any of the above) answers it.
-        fake.calls: the command lines, in order. fake.seen: one (argv, kwargs) per call, argv as the caller
+        fake.calls: the command lines, in order. fake.argvs: the same calls as argv lists. fake.seen: one (argv, kwargs) per call, argv as the caller
         passed it (full path kept) and kwargs as passed (cwd, env, input, capture_output, check ...).
         Output is handed back in the caller's mode (str under text=True, bytes otherwise), stderr=STDOUT
         merges, check=True raises CalledProcessError; Popen, call, check_call and check_output refuse.
@@ -1017,7 +1027,7 @@ def fake_processes(monkeypatch):
 
         seen = []
         calls = install(answer, seen)
-        return types.SimpleNamespace(calls=calls, seen=seen)
+        return FakeProcesses(calls, seen)
 
     install.answers = answers
     return install
