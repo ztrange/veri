@@ -1,7 +1,5 @@
 """adjudicate.sh's budget and record commands, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import contextlib
-import io
 import re
 import sys
 
@@ -34,13 +32,9 @@ def main(argv):
                 spent += 1
         return 0 if spent < int(budget()) else 3
     if len(argv) == 4 and argv[0] == "record":
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            code = parse_adjudication.main([argv[3]])
-        if code:
-            outcome, reason = "unparsed", "no ADJUDICATION line"
-        else:
-            outcome, reason = out.getvalue().splitlines()
+        parsed = parse_adjudication.parse(argv[3])
+        code = 2 if parsed is None else 0
+        outcome, reason = ("unparsed", "no ADJUDICATION line") if parsed is None else parsed
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",
                    ["cause=" + argv[2], "outcome=" + outcome.split()[0], "reason=" + reason])
         print(outcome)

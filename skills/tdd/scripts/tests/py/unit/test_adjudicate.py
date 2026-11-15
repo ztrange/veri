@@ -119,12 +119,7 @@ def test_record_on_a_route_answer_writes_one_adjudicated_event_prints_the_route_
 ):
     import json
 
-    def parsed_route(argv):
-        print("route some-token")
-        print("the route fits")
-        return 0
-
-    monkeypatch.setattr(adjudicate.parse_adjudication, "main", parsed_route)
+    monkeypatch.setattr(adjudicate.parse_adjudication, "parse", lambda path: ("route some-token", "the route fits"))
     (tmp_path / ".tdd").mkdir()
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "leaf.out")], cwd=tmp_path)
     assert (code, out) == (1, "route some-token\n")
