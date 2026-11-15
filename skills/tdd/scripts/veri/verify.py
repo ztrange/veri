@@ -1,6 +1,5 @@
 """verify.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import contextlib
 import glob
 import io
 import os
@@ -13,6 +12,7 @@ import tempfile
 import build_verify_prompt
 import entry
 import event
+import leaf_tree_guard
 import mutation_record
 import parse_verdict
 import preserve_attempt
@@ -67,118 +67,8 @@ def git(*args, env=None):
     return start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
 
-@contextlib.contextmanager
-def temp_index_env():
-    folder = tempfile.mkdtemp()
-    try:
-        yield {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
-    finally:
-        shutil.rmtree(folder, ignore_errors=True)
-
-
-def in_temp_index(*args):
-    with temp_index_env() as env:
-        if git("add", "-A", env=env).returncode:
-            return ""
-        out = git(*args, env=env)
-        return out.stdout.decode().rstrip("\n") if out.returncode == 0 else ""
-
-
-def unreadable_file_in_tree():
-    with temp_index_env() as env:
-        env = {**env, "LC_ALL": "C"}
-        added = start(["git", "add", "-A"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        if added.returncode == 0 or b"Permission denied" not in (added.stderr or b""):
-            return ""
-        return (added.stderr or b"").decode("utf-8", "replace").strip()
-
-
-def restore_tree(tree):
-    with temp_index_env() as env:
-        git("read-tree", tree, env=env)
-        git("checkout-index", "-a", "-f", env=env)
-
-
-def untracked_paths():
-    out = git("ls-files", "--others", "--exclude-standard", "-z")
-    return set(out.stdout.decode("utf-8", "surrogateescape").split("\0")) - {""}
-
-
-def head_snapshot():
-    return git("rev-parse", "--verify", "HEAD").stdout.decode().rstrip("\n")
-
-
-def changed_paths(tree_before, head_before):
-    if not tree_before:
-        return [], head_before, ""
-    tree_after = in_temp_index("write-tree")
-    head_after = head_snapshot()
-    diff = git("diff-tree", "-r", "-z", "--name-only", "--no-commit-id", tree_before, tree_after)
-    paths = [p for p in diff.stdout.decode("utf-8", "surrogateescape").split("\0") if p] if diff.returncode == 0 else []
-    if paths:
-        # -z: git quotes a non-ASCII or odd name otherwise, and os.chmod would get the quoted text (#3087).
-        raw = git("diff", "--raw", "-z", "--no-renames", tree_before, tree_after)
-        fields_and_paths = raw.stdout.decode("utf-8", "surrogateescape").split("\0") if raw.returncode == 0 else []
-        for meta, path in zip(fields_and_paths[0::2], fields_and_paths[1::2]):
-            fields = meta[1:].split()
-            if len(fields) == 5 and fields[4] == "M" and fields[2] == fields[3] and path in paths \
-                    and {fields[0], fields[1]} == {"100755", "100644"}:
-                os.chmod(path, 0o755 if fields[0] == "100755" else 0o644)
-                paths.remove(path)
-    if head_after != head_before:
-        paths.append("HEAD")
-    return paths, head_after, tree_after
-
-
-def file_bytes(path):
-    """A regular file's bytes; None for anything else — absent, a symlink, a directory, unreadable."""
-    if os.path.islink(path) or not os.path.isfile(path):
-        return None
-    try:
-        with open(path, "rb") as f:
-            return f.read()
-    except OSError:
-        return None
-
-
-def appended(before, after):
-    return after is not None and after.startswith(before or b"")
-
-
-SYSTEM_PREFIXES = ("/bin/", "/usr/", "/dev/")
-
-
-def outside_commands(added, root):
-    lines = added.decode("utf-8", "replace").split("\n")
-    root = os.path.realpath(root)
-
-    def escapes(word):
-        word = re.sub(r"^\d*[<>]+&?", "", word).strip("\"'")
-        if "=" in word and not word.startswith(("/", "~")) and escapes(word.split("=", 1)[1]):
-            return True
-        if word.startswith("~"):
-            return True
-        if "/" not in word:
-            return False
-        if os.path.isabs(word) and os.path.normpath(word).startswith(SYSTEM_PREFIXES):
-            return False  # /bin/sh, /usr/bin/env, /dev/null replay on every machine
-        resolved = os.path.realpath(os.path.join(root, word))
-        return os.path.commonpath([root, resolved]) != root
-
-    return [lines[i + 1] for i, line in enumerate(lines[:-1]) if re.fullmatch(r"command \d+", line)
-            and any(escapes(word) for word in lines[i + 1].split())]
-
-
-def gitconfig_snapshot(path):
-    try:
-        with open(path, "rb") as config:
-            return config.read()
-    except FileNotFoundError:
-        return None
-
-
-def unreadable_gitconfig(path, error):
-    write(sys.stderr, "verify: cannot read the global git config %s: %s" % (path, error.strerror))
+def unreadable_gitconfig(unreadable):
+    write(sys.stderr, "verify: cannot read the global git config %s: %s" % (unreadable.path, unreadable.strerror))
     return 2
 
 
@@ -373,7 +263,7 @@ def main(argv):
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
         tip = "HEAD"
         if options["--supersede-base"]:
-            tip = in_temp_index("write-tree")
+            tip = leaf_tree_guard.in_temp_index("write-tree")
         deleted = deleted_cases(words[2], words[3], tip)
         if deleted is None:
             return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]), usage=USAGE)
@@ -409,17 +299,13 @@ def main(argv):
     os.makedirs(run_state, exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.rstrip(b"\n"))
-    tree_before = in_temp_index("write-tree")
-    if not tree_before and unreadable_file_in_tree():
+    record = os.path.abspath(mutation_record.path(run, tunables.read("VERI_ISSUE"))) if words[0] == "pin" else None
+    guard = leaf_tree_guard.snapshot(record, (top or os.getcwd()) if record else None)
+    if isinstance(guard, leaf_tree_guard.Unreadable):
         write(sys.stderr, "verify: could not read the tree before the %s leaf; its verdict is not accepted" % leaf)
         return 2
-    head_before = head_snapshot()
-    untracked_before = untracked_paths()
-    gitconfig = os.environ["HOME"] + "/.gitconfig"
-    try:
-        gitconfig_before = gitconfig_snapshot(gitconfig)
-    except OSError as error:
-        return unreadable_gitconfig(gitconfig, error)
+    if isinstance(guard, leaf_tree_guard.ConfigUnreadable):
+        return unreadable_gitconfig(guard)
     retries = tunables.read("VERI_NO_VERDICT_RETRIES", unless_empty="1")
     try:
         tunables.tokens(retries)
@@ -430,13 +316,8 @@ def main(argv):
     retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
-    own_record = None
-    if words[0] == "pin":
-        record = os.path.abspath(mutation_record.path(run, tunables.read("VERI_ISSUE")))
+    if record:
         launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
-        own_record = os.path.relpath(record, top or os.getcwd())
-        record_before = file_bytes(record)
-        record_irregular = record_before is None and os.path.lexists(record)
     else:
         launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
@@ -454,39 +335,24 @@ def main(argv):
                 return 2
             write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
-        changed, head_after, tree_after = changed_paths(tree_before, head_before)
-        if tree_before and not tree_after:
-            restore_tree(tree_before)
-            unreadable = unreadable_file_in_tree()
-            for added in untracked_paths() - untracked_before:
-                os.remove(added)
+        found = guard.changes()
+        if isinstance(found, leaf_tree_guard.Unreadable):
             write(sys.stderr, "verify: could not read the tree after the %s leaf; its verdict is not accepted\n%s"
-                  % (leaf, unreadable))
+                  % (leaf, guard.restore_unreadable()))
             return 2
-        # A pin's verifier records the mutations it watched fail; appending to that record alone is not a
-        # tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses.
-        if changed == [own_record] and not record_irregular and appended(record_before, file_bytes(record)):
-            added = file_bytes(record)[len(record_before or b""):]
-            changed = changed + ["command " + c for c in outside_commands(added, top or os.getcwd())]
-        if changed and not (changed == [own_record] and not record_irregular
-                                                   and appended(record_before, file_bytes(record))):
-            diff = save_diff(leaf, tree_before, tree_after)
-            in_temp_index("read-tree", "-u", "--reset", tree_before)
-            if head_before and head_before != head_after:
-                restored = start(["git", "update-ref", "HEAD", head_before])
-                if restored.returncode != 0:
-                    return 2
+        if isinstance(found, leaf_tree_guard.Changed):
+            diff = save_diff(leaf, found.before, found.after)
+            if not guard.restore(found):
+                return 2
             if relaunches >= retries:
-                return refuse_modified("the repository", leaf, changed, diff)
+                return refuse_modified("the repository", leaf, found.paths, diff)
             relaunches += 1
             mark(role, "relaunch", "cause=tree-change")
             continue
-        try:
-            gitconfig_after = gitconfig_snapshot(gitconfig)
-        except OSError as error:
-            return unreadable_gitconfig(gitconfig, error)
-        if gitconfig_after != gitconfig_before:
-            return refuse_modified("the operator's global git config", leaf, [gitconfig])
+        if isinstance(found, leaf_tree_guard.ConfigUnreadable):
+            return unreadable_gitconfig(found)
+        if isinstance(found, leaf_tree_guard.ConfigChanged):
+            return refuse_modified("the operator's global git config", leaf, [found.path])
         code, reason, err = parse(launched.stdout)
         if err:
             write(sys.stderr, err.removesuffix("\n"))
@@ -507,7 +373,7 @@ def main(argv):
     if marked:
         return marked
     issue, step = tunables.read("VERI_ISSUE") or None, tunables.read("VERI_STEP") or None
-    if word != "PASS" and tree_before and issue and step:
+    if word != "PASS" and guard.tree and issue and step:
         preserve(issue, step, leaf, role["VERI_ATTEMPT"],
                  "no-verdict" if no_verdict else word.lower())
     write(sys.stdout, reason)
