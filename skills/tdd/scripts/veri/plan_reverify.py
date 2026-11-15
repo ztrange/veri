@@ -4,12 +4,8 @@ import os
 import re
 import sys
 
-try:
-    from event_log import read_events
-    from git import git
-except ImportError:
-    from .event_log import read_events
-    from .git import git
+from event_log import read_events
+from git import git
 
 USAGE = "usage: plan-reverify.sh <ledger-file>"
 

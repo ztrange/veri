@@ -6,10 +6,7 @@ import re
 import sys
 import tempfile
 
-try:
-    from veri import github
-except ImportError:
-    import github
+import github
 
 USAGE = "usage: refactor-candidates.sh <issue> <owed-file>\n"
 LABELS = ("refactor", "refactor-owed")

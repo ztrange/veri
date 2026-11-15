@@ -9,12 +9,8 @@ import sys
 import entry
 import tunables
 
-try:
-    from context_budget import START, watch
-    from solvable_issues import solvable_in_scope
-except ImportError:
-    from .context_budget import START, watch
-    from .solvable_issues import solvable_in_scope
+from context_budget import START, watch
+from solvable_issues import solvable_in_scope
 
 SCRIPTS = paths.scripts_of(__file__)
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")

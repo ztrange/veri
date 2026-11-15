@@ -6,12 +6,8 @@ import re
 import subprocess
 import sys
 
-try:
-    import entry
-    from git import default_branch, git
-except ImportError:
-    from . import entry
-    from .git import default_branch, git
+import entry
+from git import default_branch, git
 
 USAGE = "usage: rebase-onto-default.sh [--graded-only]"
 refuse = functools.partial(entry.refuse, prefix="rebase-onto-default: ")

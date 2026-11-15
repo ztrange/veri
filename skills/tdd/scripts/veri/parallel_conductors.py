@@ -13,22 +13,13 @@ import time
 import tunables
 import traceback
 
-try:
-    import run_dir
-    from context_budget import START, watch
-    from event import toplevel
-    from github import NoAnswer, gh_json
-    from json_documents import items
-    from run_end import run_end
-    from solvable_issues import solvable_in_scope
-except ImportError:
-    from . import run_dir
-    from .context_budget import START, watch
-    from .event import toplevel
-    from .github import NoAnswer, gh_json
-    from .json_documents import items
-    from .run_end import run_end
-    from .solvable_issues import solvable_in_scope
+import run_dir
+from context_budget import START, watch
+from event import toplevel
+from github import NoAnswer, gh_json
+from json_documents import items
+from run_end import run_end
+from solvable_issues import solvable_in_scope
 
 SCRIPTS = paths.scripts_of(__file__)
 
