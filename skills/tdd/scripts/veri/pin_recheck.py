@@ -1,6 +1,8 @@
 """pin-recheck.sh's re-run of the recorded pin mutations a range touches."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import dataclasses
+import enum
 import hashlib
 import os
 import shutil
@@ -157,6 +159,146 @@ def mutated_file_of(record):
     return record.get("file", record.get("keep"))
 
 
+def declared_retirements(diff_text):
+    """The `retire-pin: <ledger> <file> -- <reason>` lines a `.tdd` diff adds, as ({(ledger, file): reason}, refusal).
+    The first declaration with an empty reason ends the read: its refusal message is returned with what was read
+    before it dropped (the caller discards it)."""
+    declared = {}
+    for line in diff_text.splitlines():
+        m = re.match(r"\+\s*retire-pin: (\S+) (\S+) --(.*)$", line)
+        if m:
+            if not m[3].strip():
+                return {}, f"retire-pin for {m[1]} {m[2]} has an empty reason"
+            declared[(m[1], m[2])] = m[3].strip()
+    return declared, None
+
+
+class Kind(enum.Enum):
+    SKIP = "skip"
+    RETIRE_DECLARED = "retire-declared"
+    RETIRE_TESTS_GONE = "retire-tests-gone"
+    RETIRE_FILE_DELETED = "retire-file-deleted"
+    REPLAY_BEFORE = "replay-before"
+    REPLAY_MUTATION = "replay-mutation"
+
+
+@dataclasses.dataclass(frozen=True)
+class Outcome:
+    """How one pin sorts: `named` the test files its command still names, `gone` the ones the range deleted,
+    `reason` a declaration's, `command` the pin's command without the deleted tests (None for SKIP and
+    RETIRE_DECLARED, which never run it)."""
+    kind: Kind
+    named: tuple = ()
+    gone: tuple = ()
+    reason: str = ""
+    command: str | None = None
+
+
+def classify(ledger, pin, deleted, declared):
+    """Sort one pin, from the files the range deleted and the declarations, before any file or git is consulted."""
+    if "retired" in pin:
+        return Outcome(Kind.SKIP)
+    reason = declared.get((ledger, mutated_file_of(pin)))
+    if reason:
+        return Outcome(Kind.RETIRE_DECLARED, reason=reason)
+    named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
+    gone = tuple(n for n in named if n.split("::")[0] in deleted)
+    named = tuple(n for n in named if n.split("::")[0] not in deleted)
+    if gone and not named:
+        return Outcome(Kind.RETIRE_TESTS_GONE, gone=gone, command=pin["command"])
+    command = pin["command"]
+    for n in gone:
+        command = re.sub(r"TESTS=[\"']?" + re.escape(n) + r"[\"']*(?=\s|$)", "", command)
+    if "before" in pin:
+        kind = Kind.REPLAY_BEFORE
+    elif pin["file"] in deleted:
+        kind = Kind.RETIRE_FILE_DELETED
+    else:
+        kind = Kind.REPLAY_MUTATION
+    return Outcome(kind, named, gone, command=command)
+
+
+def replay_before_state(pin, ledger, named, base):
+    """Replay a before-pin on the range, then on the base; 0 nothing to count, 1 a red status, 2 no answer."""
+    green, names = replay_names(pin, ledger)
+    span = (green, present_in_range(names, base))
+    replayed = replay_before(pin, ledger, span=span)
+    if replayed is None:
+        return 2
+    if replayed == 0:
+        on_base = replay_on_base(pin, ledger, span)
+        if on_base is None:
+            return 2
+        if on_base == 0:
+            sys.stdout.write(f"stale: {ledger} {(named[0].split('::')[0] if named else pin['keep'])}\n")
+        else:
+            sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
+            return 1
+    return 0
+
+
+def replay(pin, ledger, looks):
+    """Replay a mutation pin: the mutation, then a control run; 0 nothing to count, 1 a red status, 2 no answer."""
+    path = Path(pin["file"])
+    if not path.exists():
+        sys.stdout.write(f"stale: {ledger} {mutated_file_of(pin)}\n")
+        return 0
+    pin["command"] = current_wrapper(pin["command"])
+    original = path.read_bytes()
+    if pin["old"].encode() not in original:
+        needs_a_look(looks, pin["file"], "old text gone")
+        return 0
+    if original.count(pin["old"].encode()) > 1:
+        needs_a_look(looks, pin["file"], "old text occurs more than once")
+        return 0
+    if "context" in pin and pin["context"] not in original.decode().splitlines():
+        needs_a_look(looks, pin["file"], "old text moved off its recorded line")
+        return 0
+    seen = Path(".tdd/pin-recheck-red") / hashlib.sha256(
+        b"\0".join([git_out("rev-parse", "HEAD").encode(), original, pin["old"].encode(), pin["new"].encode(),
+                    pin["command"].encode()])).hexdigest()
+    if seen.exists():
+        return 0
+    base = run_captured(pin["command"])
+    if base.returncode == 127 or "no makefile found" in base.stderr.lower():
+        sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
+        return 2
+    if base.returncode == 2 and ("invalid option" in base.stderr or "Usage: make" in base.stderr):
+        sys.stderr.write(f"command rejected by make: {pin['command']} (pin file {ledger})\n")
+        return 2
+    if base.returncode != 0:
+        needs_a_look(looks, pin["file"], "base run failed")
+        write_tail(base)
+        return 0
+    path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
+    try:
+        mutated = run_keeping_journal(lambda: run_captured(pin["command"]))
+    finally:
+        path.write_bytes(original)
+    green = mutated.returncode == 0
+    base_lines = output_lines(base)
+    if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated) and not is_pytest_failure(mutated):
+        needs_a_look(looks, pin["file"], "mutation did not build")
+        write_tail(mutated)
+        return 1
+    if green:
+        control = control_run(path, original, pin["command"])
+        if control.returncode == 0:
+            needs_a_look(looks, pin["file"], "mutation and control green")
+            return 0
+        on_base = mutation_green_on_base(pin)
+        if on_base is None:
+            return 2
+        if on_base:
+            sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
+            return 0
+        sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
+        return 1
+    seen.parent.mkdir(parents=True, exist_ok=True)
+    seen.touch()
+    return 0
+
+
 def recheck(argv, looks):
     if not argv or argv[1:] and (argv[1] != "--ledger" or len(argv) != 3):
         return entry.refuse(usage=USAGE)
@@ -171,14 +313,10 @@ def recheck(argv, looks):
     if not pins:
         return 3
     deleted = set(git_out("diff", "--name-only", "--diff-filter=D", f"{argv[0]}..HEAD").split())
-    declared = {}
-    for line in git_out("diff", "-U0", f"{argv[0]}..HEAD", "--", ".tdd").splitlines():
-        m = re.match(r"\+\s*retire-pin: (\S+) (\S+) --(.*)$", line)
-        if m:
-            if not m[3].strip():
-                sys.stderr.write(f"retire-pin for {m[1]} {m[2]} has an empty reason\n")
-                return 2
-            declared[(m[1], m[2])] = m[3].strip()
+    declared, refusal = declared_retirements(git_out("diff", "-U0", f"{argv[0]}..HEAD", "--", ".tdd"))
+    if refusal:
+        sys.stderr.write(refusal + "\n")
+        return 2
     held = {(f, mutated_file_of(r)) for f, r in found}
     for key in declared:
         if key not in held:
@@ -188,28 +326,24 @@ def recheck(argv, looks):
     retired = 0
     for ledger, pin in pins:
         mutated_file = mutated_file_of(pin)
-        if "retired" in pin:
+        outcome = classify(ledger, pin, deleted, declared)
+        if outcome.kind is Kind.SKIP:
             retired += 1
             continue
-        reason = declared.get((ledger, mutated_file))
-        if reason:
-            sys.stdout.write(f"retired: {ledger} {mutated_file} {reason}\n")
+        if outcome.kind is Kind.RETIRE_DECLARED:
+            sys.stdout.write(f"retired: {ledger} {mutated_file} {outcome.reason}\n")
             retired += 1
-            event.append("", {}, "pin-retired", [f"reason={reason}"])
-            pin["retired"] = reason
+            event.append("", {}, "pin-retired", [f"reason={outcome.reason}"])
+            pin["retired"] = outcome.reason
             Path(ledger).write_text("".join(mutation_record.format_record(r.items()) for f, r in found if f == ledger))
             continue
-        named = [n.strip("\"'") for n in re.findall(r"TESTS=(\S+)", pin["command"])]
-        gone = [n for n in named if n.split("::")[0] in deleted]
-        named = [n for n in named if n.split("::")[0] not in deleted]
-        if gone and not named:
-            for n in gone:
+        if outcome.kind is Kind.RETIRE_TESTS_GONE:
+            for n in outcome.gone:
                 sys.stdout.write(f"retired: {ledger} {mutated_file} {n}\n")
             retired += 1
             continue
-        for n in gone:
-            pin["command"] = re.sub(r"TESTS=[\"']?" + re.escape(n) + r"[\"']*(?=\s|$)", "", pin["command"])
-        missing = [n for n in named if not Path(n.split("::")[0]).exists()]
+        pin["command"] = outcome.command
+        missing = [n for n in outcome.named if not Path(n.split("::")[0]).exists()]
         if missing:
             for n in missing:
                 if subprocess.run(["git", "cat-file", "-e", f"origin/main:{n.split('::')[0]}"],
@@ -218,85 +352,17 @@ def recheck(argv, looks):
                     return 2
             sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
             continue
-        if "before" in pin:
-            green, names = replay_names(pin, ledger)
-            span = (green, present_in_range(names, argv[0]))
-            replayed = replay_before(pin, ledger, span=span)
-            if replayed is None:
-                return 2
-            if replayed == 0:
-                on_base = replay_on_base(pin, ledger, span)
-                if on_base is None:
-                    return 2
-                if on_base == 0:
-                    sys.stdout.write(f"stale: {ledger} {(named[0].split('::')[0] if named else pin['keep'])}\n")
-                else:
-                    sys.stderr.write(f"pin stayed green on the before-state: {pin['keep']}\n")
-                    status = 1
-            continue
-        if pin["file"] in deleted:
+        if outcome.kind is Kind.RETIRE_FILE_DELETED:
             sys.stdout.write(f"retired: {ledger} {pin['file']} {pin['file']}\n")
             retired += 1
             continue
-        path = Path(pin["file"])
-        if not path.exists():
-            sys.stdout.write(f"stale: {ledger} {mutated_file}\n")
-            continue
-        pin["command"] = current_wrapper(pin["command"])
-        original = path.read_bytes()
-        if pin["old"].encode() not in original:
-            needs_a_look(looks, pin["file"], "old text gone")
-            continue
-        if original.count(pin["old"].encode()) > 1:
-            needs_a_look(looks, pin["file"], "old text occurs more than once")
-            continue
-        if "context" in pin and pin["context"] not in original.decode().splitlines():
-            needs_a_look(looks, pin["file"], "old text moved off its recorded line")
-            continue
-        seen = Path(".tdd/pin-recheck-red") / hashlib.sha256(
-            b"\0".join([git_out("rev-parse", "HEAD").encode(), original, pin["old"].encode(), pin["new"].encode(),
-                        pin["command"].encode()])).hexdigest()
-        if seen.exists():
-            continue
-        base = run_captured(pin["command"])
-        if base.returncode == 127 or "no makefile found" in base.stderr.lower():
-            sys.stderr.write(f"command not found: {pin['command']} (pin file {ledger})\n")
+        if outcome.kind is Kind.REPLAY_BEFORE:
+            code = replay_before_state(pin, ledger, outcome.named, argv[0])
+        else:
+            code = replay(pin, ledger, looks)
+        if code == 2:
             return 2
-        if base.returncode == 2 and ("invalid option" in base.stderr or "Usage: make" in base.stderr):
-            sys.stderr.write(f"command rejected by make: {pin['command']} (pin file {ledger})\n")
-            return 2
-        if base.returncode != 0:
-            needs_a_look(looks, pin["file"], "base run failed")
-            write_tail(base)
-            continue
-        path.write_bytes(original.replace(pin["old"].encode(), pin["new"].encode()))
-        try:
-            mutated = run_keeping_journal(lambda: run_captured(pin["command"]))
-        finally:
-            path.write_bytes(original)
-        green = mutated.returncode == 0
-        base_lines = output_lines(base)
-        if not green and not base_lines & output_lines(mutated) and not is_go_test_failure(mutated) and not is_pytest_failure(mutated):
-            needs_a_look(looks, pin["file"], "mutation did not build")
-            write_tail(mutated)
-            status = 1
-            continue
-        if green:
-            control = control_run(path, original, pin["command"])
-            if control.returncode == 0:
-                needs_a_look(looks, pin["file"], "mutation and control green")
-                continue
-            on_base = mutation_green_on_base(pin)
-            if on_base is None:
-                return 2
-            if on_base:
-                sys.stdout.write(f"stale: {ledger} {pin['file']}\n")
-                continue
-            sys.stderr.write(f"pin stayed green under its mutation: {pin['file']}\n")
-            status = 1
-            continue
-        seen.parent.mkdir(parents=True, exist_ok=True)
-        seen.touch()
+        status = status or code
     if retired == len(pins):
         return 3
     return status
