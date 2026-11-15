@@ -5,15 +5,14 @@ from collections import defaultdict
 import pytest
 
 
-def _modules():
-    from conftest import SCRIPTS
+def _modules(index):
+    """{module name: its parsed tree}, from the session's one index of veri/."""
+    return {name: index.tree(name) for name in index.names}
 
-    return {source.stem: source for source in sorted((SCRIPTS / "veri").glob("*.py"))}
 
-
-def _sibling_imports(source, modules):
+def _sibling_imports(tree, modules):
     """Yield (sibling module, names imported from it or None, alias bound to it or None) for each import."""
-    for node in ast.walk(ast.parse(source.read_text())):
+    for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 parts = alias.name.split(".")
@@ -33,18 +32,18 @@ def _sibling_imports(source, modules):
                 yield parts[1], [alias.name for alias in node.names], None
 
 
-def _importers():
-    modules = _modules()
+def _importers(index):
+    modules = _modules(index)
     importers = defaultdict(set)
-    for name, source in modules.items():
-        for target, _, _ in _sibling_imports(source, modules):
+    for name, tree in modules.items():
+        for target, _, _ in _sibling_imports(tree, modules):
             if target != name:
                 importers[target].add(name)
     return importers
 
 
-def _shared_modules():
-    return {name for name, users in _importers().items() if len(users) >= 2}
+def _shared_modules(index):
+    return {name for name, users in _importers(index).items() if len(users) >= 2}
 
 
 def _index_sections():
@@ -70,32 +69,32 @@ def _private(name):
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_every_shared_module_has_a_section_in_the_index():
-    missing = sorted(_shared_modules() - _index_sections())
+def test_every_shared_module_has_a_section_in_the_index(veri_modules_index):
+    missing = sorted(_shared_modules(veri_modules_index) - _index_sections())
 
     assert not missing, f"veri/README.md has no `## <module>` section for: {missing}"
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_every_section_of_the_index_names_a_shared_module():
-    stray = sorted(_index_sections() - _shared_modules())
+def test_every_section_of_the_index_names_a_shared_module(veri_modules_index):
+    stray = sorted(_index_sections() - _shared_modules(veri_modules_index))
 
     assert not stray, f"veri/README.md has sections for modules that do not exist or are not shared: {stray}"
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_no_module_reaches_into_the_private_names_of_a_sibling():
-    modules = _modules()
+def test_no_module_reaches_into_the_private_names_of_a_sibling(veri_modules_index):
+    modules = _modules(veri_modules_index)
     reaches = []
-    for name, source in modules.items():
+    for name, tree in modules.items():
         aliases = {}
-        for target, imported, alias in _sibling_imports(source, modules):
+        for target, imported, alias in _sibling_imports(tree, modules):
             if target == name:
                 continue
             reaches += [f"{name}: from {target} import {x}" for x in imported or [] if _private(x)]
             if alias:
                 aliases[alias] = target
-        for node in ast.walk(ast.parse(source.read_text())):
+        for node in ast.walk(tree):
             if (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
                     and node.value.id in aliases and _private(node.attr)):
                 reaches.append(f"{name}: {node.value.id}.{node.attr}")
@@ -106,9 +105,9 @@ def test_no_module_reaches_into_the_private_names_of_a_sibling():
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_every_module_has_a_docstring():
-    bare = [name for name, source in _modules().items()
-            if not ast.get_docstring(ast.parse(source.read_text()))]
+def test_every_module_has_a_docstring(veri_modules_index):
+    bare = [name for name, tree in _modules(veri_modules_index).items()
+            if not ast.get_docstring(tree)]
 
     assert not bare, f"modules of veri/ without a module docstring: {bare}"
 
@@ -174,13 +173,13 @@ def _stated_directions():
     return only, closed
 
 
-def _group_import_breaks():
+def _group_import_breaks(index):
     group_of = _group_of()
-    modules = _modules()
+    modules = _modules(index)
     only, closed = _stated_directions()
     breaks = set()
-    for name, source in modules.items():
-        for target, _, _ in _sibling_imports(source, modules):
+    for name, tree in modules.items():
+        for target, _, _ in _sibling_imports(tree, modules):
             mine, theirs = group_of.get(name, [None])[0], group_of.get(target, [None])[0]
             if mine == theirs or name == target:
                 continue
@@ -190,19 +189,19 @@ def _group_import_breaks():
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_every_module_is_in_exactly_one_group_of_the_index():
+def test_every_module_is_in_exactly_one_group_of_the_index(veri_modules_index):
     named = _group_of()
-    modules = set(_modules())
+    modules = set(_modules(veri_modules_index))
 
     assert sorted(modules - set(named)) == [], "modules in no group of veri/README.md"
     assert {name: groups for name, groups in named.items() if len(set(groups)) > 1} == {}, "modules in two groups"
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_every_name_a_group_lists_is_a_module():
+def test_every_name_a_group_lists_is_a_module(veri_modules_index):
     named = set(_group_of())
 
-    assert sorted(named - set(_modules())) == [], "veri/README.md names modules that do not exist"
+    assert sorted(named - set(_modules(veri_modules_index))) == [], "veri/README.md names modules that do not exist"
 
 
 @pytest.mark.tree_audit("every module of veri/")
@@ -227,17 +226,17 @@ def test_the_directions_the_index_states_name_real_groups():
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_no_group_imports_against_the_directions_the_index_states():
-    breaks = _group_import_breaks()
+def test_no_group_imports_against_the_directions_the_index_states(veri_modules_index):
+    breaks = _group_import_breaks(veri_modules_index)
 
     assert not breaks - EXEMPT_DIRECTION_BREAKS, f"imports against veri/README.md's directions: {sorted(breaks - EXEMPT_DIRECTION_BREAKS)}"
     assert not EXEMPT_DIRECTION_BREAKS - breaks, f"exemptions no longer needed, remove them: {sorted(EXEMPT_DIRECTION_BREAKS - breaks)}"
 
 
 @pytest.mark.tree_audit("every module of veri/")
-def test_the_only_import_cycles_are_the_known_ones():
-    modules = _modules()
-    reaches = {name: {t for t, _, _ in _sibling_imports(source, modules) if t != name} for name, source in modules.items()}
+def test_the_only_import_cycles_are_the_known_ones(veri_modules_index):
+    modules = _modules(veri_modules_index)
+    reaches = {name: {t for t, _, _ in _sibling_imports(tree, modules) if t != name} for name, tree in modules.items()}
 
     def closure(start):
         seen, todo = set(), [start]
