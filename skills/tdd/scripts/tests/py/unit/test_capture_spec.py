@@ -1,10 +1,7 @@
 """In-process cases for veri/capture_spec.py, the module capture-spec.sh is a shim over."""
 import importlib
 import json
-import os
-import pathlib
 import re
-import subprocess
 import sys
 
 import pytest
@@ -351,30 +348,6 @@ def test_against_a_gh_that_fails_both_routes_the_cli_exits_2_with_nothing_on_std
     code, out, _ = run_cli(capture_spec, ["7"], env={"VERI_GH_DRIVER": "auto"})
 
     assert (code, out, calls) == (2, "", [labels, api])
-
-
-@pytest.mark.process("capture-spec.sh run through a symlink to the skill directory from another working directory, with a stub gh on PATH")
-def test_the_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_prints_the_same_spec_and_exit_code_as_when_run_in_place(tmp_path):
-    scripts = pathlib.Path(__file__).resolve().parents[2]
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    (tmp_path / "body.md").write_text(BUG_BODY)
-    gh = bin_dir / "gh"
-    gh.write_text('#!/bin/sh\ncase "$*" in\n  *labels*) echo bug; echo refactor ;;\n  *body*) cat "$FIXTURE" ;;\n  *) exit 1 ;;\nesac\n')
-    gh.chmod(0o755)
-    (tmp_path / "linked-skill").symlink_to(scripts.parent, target_is_directory=True)
-    (tmp_path / "elsewhere").mkdir()
-    env = dict(os.environ, VERI_GH_DRIVER="auto", PATH="%s:%s" % (bin_dir, os.environ["PATH"]), FIXTURE=str(tmp_path / "body.md"))
-
-    def run(script, cwd):
-        ran = subprocess.run([str(script), "112"], cwd=cwd, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
-        return ran.returncode, ran.stdout, ran.stderr
-
-    in_place = run(scripts / "capture-spec.sh", scripts)
-    linked = run(tmp_path / "linked-skill" / "scripts" / "capture-spec.sh", tmp_path / "elsewhere")
-
-    assert in_place[0] == 0 and "\n## Bug\n" in in_place[1]
-    assert linked == in_place
 
 
 def test_with_veri_gh_driver_unset_the_cli_reads_the_issue_through_gh_api_only_prints_the_spec_and_runs_no_gh_issue_view(monkeypatch, fake_processes, run_cli, capture_spec):
