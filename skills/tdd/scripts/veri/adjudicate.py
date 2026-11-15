@@ -1,8 +1,8 @@
 """adjudicate.sh's budget and record commands, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import re
 import sys
 
+import entry
 import event
 import event_log
 import parse_adjudication
@@ -17,7 +17,7 @@ def budget():
 
 def main(argv):
     if argv == ["--check-budget"]:
-        if not re.fullmatch(r"[0-9]+", budget()):
+        if entry.whole_number(budget(), minimum=0) is None:
             print(f"VERI_ADJUDICATE_BUDGET must be a non-negative whole number, got {budget()!r}", file=sys.stderr)
             return 2
         return 0
@@ -46,5 +46,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
