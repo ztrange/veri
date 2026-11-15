@@ -19,10 +19,6 @@ names other modules use. Related names share a line where the list would otherwi
 - `blockers(body, repo)`: the issue numbers under `## Blocked by`, as `#<n>` or `repo`'s issue URL.
 - `add(body, new)`: `body` with `- #<new>` listed under that heading.
 
-## build_verify_prompt
-- `build(step_arg, fast_cmd, phase, spec_arg, test_path, …)`: the rendered verifier prompt; a refusal (usage on stderr, exit 2) for bad arguments.
-- `refuse(message=None)`: writes the message and the usage to stderr, returns 2.
-
 ## candidates
 - `KEY`, `LINE`: the `CANDIDATES:` marker and the compiled pattern for the whole line.
 - `CLASSES`: the four classes a candidate may name (`structural`, `cosmetic`, `test-only`, `out-of-scope`).
