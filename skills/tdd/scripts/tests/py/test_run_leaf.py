@@ -886,9 +886,8 @@ def test_main_strips_the_launched_environment_through_veri_session_env_so_a_name
     monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
     monkeypatch.setenv("VERI_PLANTED_621", "from-the-conductor")
     monkeypatch.setenv("VERI_KEPT_621", "kept")
-    for name in ("veri.session_env", "session_env"):
-        session_env = importlib.import_module(name)
-        monkeypatch.setattr(session_env, "SESSION_VARS", (*session_env.SESSION_VARS, "VERI_PLANTED_621"))
+    session_env = importlib.import_module("session_env")
+    monkeypatch.setattr(session_env, "SESSION_VARS", (*session_env.SESSION_VARS, "VERI_PLANTED_621"))
     seen = []
 
     def launch(argv, *args, **kwargs):

@@ -35,6 +35,47 @@ for path in (SCRIPTS / "veri", SCRIPTS):
         sys.path.remove(str(path))
     sys.path.insert(0, str(path))
 
+
+# One module object per file of scripts/veri/. Production runs a module as `python3 veri/x.py`, so siblings import
+# flat (`import git`); tests name them `veri.git`. Left alone, both names load the file twice, and a monkeypatch on
+# one copy misses the copy the code under test runs. This finder answers every `veri.<name>` (<name>.py in veri/)
+# with the flat `<name>` module itself, so `sys.modules["veri.<name>"] is sys.modules["<name>"]`, whichever name is
+# imported first, and `importlib.reload` (which finds the module by its flat `__name__`) keeps it one object.
+# Guarantees: that identity for imports made after this point; a module bound earlier under both names is
+# collapsed in sys.modules, though references already held to the other copy stay as they were.
+# Does not: change `__name__` (always the flat name; `__package__` is empty, so a relative import inside a module
+# still falls to its flat `try`), touch `spec_from_file_location` loads (deliberate separate copies), or make
+# `veri.<name>` of a file outside veri/ (a package, a missing module) anything but the usual lookup. Each
+# pytest-xdist worker imports this conftest and installs its own finder.
+import importlib.abc
+import importlib.util
+
+
+class _FlatAlias(importlib.abc.Loader):
+    def create_module(self, spec):
+        module = importlib.import_module(spec.name.removeprefix("veri."))
+        self.flat_spec = module.__spec__
+        return module
+
+    def exec_module(self, module):
+        module.__spec__ = self.flat_spec  # the import machinery just stamped the alias spec; reload needs the real one
+
+
+class _OneModuleObject(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        head, _, name = fullname.partition(".")
+        if head == "veri" and name.isidentifier() and (SCRIPTS / "veri" / (name + ".py")).is_file():
+            return importlib.util.spec_from_loader(fullname, _FlatAlias())
+        return None
+
+
+sys.meta_path[:] = [f for f in sys.meta_path if not isinstance(f, _OneModuleObject)]
+sys.meta_path.insert(0, _OneModuleObject())
+for _name in [n for n in sys.modules if n.startswith("veri.") and n.count(".") == 1]:
+    _flat = _name.removeprefix("veri.")
+    if (SCRIPTS / "veri" / (_flat + ".py")).is_file():
+        sys.modules[_name] = sys.modules.setdefault(_flat, sys.modules[_name])
+
 from veri import entry
 
 
@@ -49,8 +90,7 @@ def fake_pid_file_ps(monkeypatch, conductor=True):
             return "vim notes.txt"
         return "python3 run_conductor.py 1" if str(pid) == "1" else "claude -p"
 
-    for name in ("pid_file", "veri.pid_file"):
-        monkeypatch.setattr(importlib.import_module(name), "ps_field", ps, raising=True)
+    monkeypatch.setattr(importlib.import_module("pid_file"), "ps_field", ps, raising=True)
 
 
 def live_conductor(monkeypatch, run_tdd, issue):
@@ -485,15 +525,14 @@ def pytest_runtest_call(item):
 def case_waits_no_default_push_backoff(request, monkeypatch):
     import importlib
 
-    for name in ("veri.push_branch", "push_branch"):
-        module = importlib.import_module(name)
+    module = importlib.import_module("push_branch")
 
-        def guarded(args, *rest, _run=module.run, **kwargs):
-            if args[0] == "sleep" and "VERI_PUSH_BACKOFF" not in os.environ:
-                fail_unbacked_push(request)
-            return _run(args, *rest, **kwargs)
+    def guarded(args, *rest, _run=module.run, **kwargs):
+        if args[0] == "sleep" and "VERI_PUSH_BACKOFF" not in os.environ:
+            fail_unbacked_push(request)
+        return _run(args, *rest, **kwargs)
 
-        monkeypatch.setattr(module, "run", guarded)
+    monkeypatch.setattr(module, "run", guarded)
 
 
 SLEEP_SHIM = """#!/bin/sh
@@ -582,16 +621,15 @@ def unmarked_case_reads_no_real_process_listing(request, monkeypatch):
         return
     import importlib
 
-    for name in ("pid_file", "veri.pid_file"):
-        module = importlib.import_module(name)
-        real, run = module.conductors, module.subprocess.run
+    module = importlib.import_module("pid_file")
+    real, run = module.conductors, module.subprocess.run
 
-        def checked(module=module, real=real, run=run):
-            if module.subprocess.run is run:
-                raise AssertionError("%s reads the real process listing: fake pid_file.conductors or mark it process" % request.node.nodeid)
-            return real()
+    def checked():
+        if module.subprocess.run is run:
+            raise AssertionError("%s reads the real process listing: fake pid_file.conductors or mark it process" % request.node.nodeid)
+        return real()
 
-        monkeypatch.setattr(module, "conductors", checked)
+    monkeypatch.setattr(module, "conductors", checked)
 
 
 STARTS_PYTEST_EXEMPT = {
@@ -1158,7 +1196,7 @@ def _receipt_git(*args, **kwargs):
     runs git like git.git once the case is undone: else such a module, `ledger` imported by an entry point under
     the receipt, kept an empty `git show` for every later case in the process (#3053). One function for the whole
     session, so the next receipt revives a binding an earlier case left."""
-    if all(importlib.import_module(name).git is not _receipt_git for name in ("veri.git", "git")):
+    if importlib.import_module("git").git is not _receipt_git:
         return subprocess.run(["git", *args], **kwargs)
     text = kwargs.get("text") or kwargs.get("universal_newlines")
     out = RECEIPT_SHA + "\n" if args[:1] == ("rev-parse",) else ""
@@ -1172,7 +1210,7 @@ def receipt_leaver(monkeypatch):
         if repo is not None:
             sha = REAL_RUN(["git", "rev-parse", "HEAD"], cwd=repo, capture_output=True, text=True).stdout.strip()
         else:
-            reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+            reals = {importlib.import_module("git").git}
             for module in list(sys.modules.values()):
                 if getattr(module, "git", None) in reals:
                     monkeypatch.setattr(module, "git", _receipt_git)

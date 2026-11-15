@@ -849,7 +849,7 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
     import subprocess
     monkeypatch.setattr(sys.modules["tests_frozen"], "rerecord_earlier", lambda *args: 0)
     unresolved = lambda *args, **kwargs: subprocess.CompletedProcess(args, 128, "", "fatal: bad object")
-    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    reals = {importlib.import_module("git").git}
     for module in list(sys.modules.values()):
         if getattr(module, "git", None) in reals:
             monkeypatch.setattr(module, "git", unresolved)
@@ -884,7 +884,7 @@ def test_main_ticks_a_diff_checked_step_whose_receipt_matches_head_resolving_it_
         return subprocess.CompletedProcess(args, 0 if inside else 128,
                                            out if text else out.encode(), err if text else err.encode())
 
-    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    reals = {importlib.import_module("git").git}
     for module in list(sys.modules.values()):
         if getattr(module, "git", None) in reals:
             monkeypatch.setattr(module, "git", faked_git)
@@ -909,7 +909,7 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
         out = "b" * 40 + "\n" if args[:1] == ("rev-parse",) else "src/changed.py\n"
         return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
 
-    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    reals = {importlib.import_module("git").git}
     for module in list(sys.modules.values()):
         if getattr(module, "git", None) in reals:
             monkeypatch.setattr(module, "git", faked_git)
