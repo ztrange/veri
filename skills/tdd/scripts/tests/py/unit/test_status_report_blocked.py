@@ -23,7 +23,7 @@ def fake_tags(monkeypatch, status, tags=TAGS):
 
 def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_blocker(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
@@ -48,7 +48,7 @@ def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_block
 
 def test_2750_report_queue_omits_blocked_issues_that_are_closed_or_not_opted_in(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)

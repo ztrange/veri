@@ -31,7 +31,7 @@ def every_issue_open(monkeypatch, dispatch):
 def test_main_with_no_target_prints_the_usage_line_on_stderr_and_exits_2(run_cli, dispatch, monkeypatch, tmp_path):
     (tmp_path / ".tdd").mkdir()
     launches = []
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "launch", launches.append)
     code, out, err = run_cli(dispatch, [])
     assert (code, out, launches) == (2, "", [])
@@ -42,7 +42,7 @@ def test_main_with_no_target_and_an_unreadable_role_dev_state_exits_2_naming_the
         run_cli, dispatch, monkeypatch, tmp_path):
     (tmp_path / ".tdd" / "role-dev.state").mkdir(parents=True)
     launches = []
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "launch", launches.append)
     code, out, err = run_cli(dispatch, [])
     assert (code, out, launches) == (2, "", [])
@@ -54,7 +54,7 @@ def test_main_with_no_target_exits_2_on_no_n_line_when_the_role_dev_state_file_v
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\n")
     launches = []
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.status, "read_role_state", lambda role, lane=None: None)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -79,7 +79,7 @@ def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_i
         waits.append(1)
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -109,7 +109,7 @@ def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_t
             raise _StopWaiting
         state.write_text("n=1\nn=2\n")
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -135,7 +135,7 @@ def test_main_with_no_target_applies_the_n_of_a_role_dev_state_timed_n_change_wh
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 10, 30).timestamp())
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
@@ -164,7 +164,7 @@ def test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_tim
         def wait():
             raise _StopWaiting
 
-        monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+        monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
         monkeypatch.setattr(dispatch, "clock", lambda: at.timestamp())
         monkeypatch.setattr(dispatch, "now", lambda: at.isoformat(), raising=False)
         monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
@@ -191,7 +191,7 @@ def test_main_with_no_target_does_not_apply_an_expired_role_dev_state_timed_n_ch
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 11, 30).timestamp())
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T11:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
@@ -217,7 +217,7 @@ def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -245,7 +245,7 @@ def test_main_with_no_target_ignores_a_role_dev_state_override_naming_an_issue_n
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -264,7 +264,7 @@ def test_main_with_no_target_ignores_a_role_dev_state_override_naming_an_issue_n
 def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3435(
         monkeypatch, tmp_path, dispatch):
     (tmp_path / ".tdd").mkdir()
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
@@ -283,7 +283,7 @@ def test_main_with_a_queued_merges_fake_runs_under_the_guard_and_reaches_the_fak
         waits.append(1)
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -311,7 +311,7 @@ def test_launch_runs_run_conductor_through_detach_leaf_appending_its_output_to_t
         stdout.write(b"conductor output\n")
         stdout.flush()
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.subprocess, "Popen", popen)
 
     dispatch.launch("12")
@@ -338,7 +338,7 @@ def test_launch_also_starts_restart_conductor_through_detach_leaf_appending_to_r
             stdout.write(b"watcher output\n")
             stdout.flush()
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.subprocess, "Popen", popen)
 
     dispatch.launch("12")
@@ -358,7 +358,7 @@ def test_launch_raises_and_starts_no_restart_conductor_when_the_run_conductor_la
         scripts_called.append(argv[1].rsplit("/", 1)[-1])
         raise OSError("exec failed")
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.subprocess, "Popen", popen)
 
     with pytest.raises(OSError):
@@ -407,7 +407,7 @@ def test_main_launches_the_next_issue_only_once_the_previous_launch_has_its_ledg
         if len(seen_at_wait) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues",
@@ -432,7 +432,7 @@ def test_main_appends_one_launched_line_with_the_local_iso_time_to_dispatch_log_
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -460,7 +460,7 @@ def test_main_prints_done_with_the_pr_url_from_the_last_comment_heading_and_exit
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -488,7 +488,7 @@ def test_main_prints_bail_and_exits_0_when_a_live_conductor_exits_and_its_last_c
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -518,7 +518,7 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
         if len(waits) > 6:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -550,7 +550,7 @@ def test_main_prints_no_exit_line_and_keeps_looping_when_a_seen_run_with_a_workt
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -582,7 +582,7 @@ def test_main_prints_no_exit_line_when_a_seen_run_is_absent_for_several_passes_s
         if len(waits) == 7:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -614,7 +614,7 @@ def test_main_prints_no_exit_line_on_the_first_pass_of_a_new_absence_when_the_ru
         if len(waits) == 4:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -645,7 +645,7 @@ def test_main_prints_no_exit_line_and_keeps_looping_when_an_absent_run_has_a_res
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -676,7 +676,7 @@ def test_main_launches_nothing_on_any_tick_across_a_restart_of_one_of_two_slot_h
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives[len(waits)], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -704,7 +704,7 @@ def test_main_launches_nothing_on_the_tick_where_a_run_seen_live_is_restarting_b
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives[len(waits)], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -738,7 +738,7 @@ def test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"] + launches, raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -772,7 +772,7 @@ def test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover
         if len(contrast_waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(root))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(root))
     monkeypatch.setattr(dispatch, "live_conductors",
                         lambda: ["5", "7", "8"] if not contrast_waits else ["5"] + contrast_launches,
                         raising=False)
@@ -800,7 +800,7 @@ def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker
 
     monkeypatch.setattr(dispatch.os, "kill", dead)
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -849,7 +849,7 @@ def test_main_reports_a_deferred_run_once_its_restart_marker_goes_stale_after_se
 
     monkeypatch.setattr(dispatch.os, "kill", kill)
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -888,7 +888,7 @@ def test_main_prints_stalled_for_a_deferred_run_whose_restart_marker_never_clear
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -925,7 +925,7 @@ def test_main_prints_no_stalled_line_for_a_stall_window_old_run_dir_with_a_dead_
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "issue_states", lambda issues: {issue: "CLOSED" for issue in issues}, raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -964,7 +964,7 @@ def test_main_still_prints_stalled_for_a_stall_window_old_dead_conductor_run_dir
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "issue_states",
                         lambda issues: {issue: "CLOSED" if issue == "9" else "OPEN" for issue in issues}, raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -1006,7 +1006,7 @@ def test_main_exits_2_naming_the_failure_on_stderr_when_the_stall_check_issue_re
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "issue_states", unreadable, raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -1048,7 +1048,7 @@ def test_main_exits_2_naming_the_issue_states_read_when_it_is_rate_limited_witho
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "issue_states", unreadable, raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -1082,7 +1082,7 @@ def test_main_prints_silent_exit_and_exits_0_when_a_live_conductor_exits_and_its
         if len(waits) > 6:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: elapsed[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1112,7 +1112,7 @@ def test_main_exits_2_naming_the_vanished_run_and_prints_no_closing_line_when_a_
         if len(waits) == 6:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1150,7 +1150,7 @@ def test_main_does_not_exit_2_vanished_and_keeps_watching_when_the_worktree_and_
         if len(waits) == 6:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1194,7 +1194,7 @@ def test_main_exits_2_vanished_after_the_grace_wait_only_while_the_worktree_stay
         if len(waits) == 7:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1223,7 +1223,7 @@ def test_main_still_exits_2_vanished_when_the_worktree_is_still_absent_at_the_re
         if len(waits) == 6:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1252,7 +1252,7 @@ def test_main_does_not_exit_2_vanished_and_keeps_watching_across_polls_while_the
         if len(waits) == 8:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1283,7 +1283,7 @@ def test_main_launches_nothing_at_target_1_while_a_seen_run_is_in_preflight_with
         if len(waits) == 4:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1314,7 +1314,7 @@ def test_main_counts_a_preflight_run_as_one_held_slot_across_five_polls_so_every
         if len(waits) == 5:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["7"])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -1342,7 +1342,7 @@ def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_e
         if len(waits) == 8:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: [])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1372,7 +1372,7 @@ def test_main_still_exits_2_vanished_across_consecutive_polls_when_no_worktree_e
         if len(waits) == 8:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes", lambda: ["9"])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1405,7 +1405,7 @@ def test_main_exits_2_vanished_only_after_two_fresh_absent_polls_when_the_run_co
         if len(polls) > 12:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs.pid_file, "conductor_processes",
                         lambda: ["7"] if len(polls) in alive_in_preflight else [])
     monkeypatch.setattr(dispatch, "live_conductors", live_conductors, raising=False)
@@ -1437,7 +1437,7 @@ def test_main_does_not_exit_or_report_vanished_and_keeps_looping_when_a_run_with
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1466,7 +1466,7 @@ def test_main_does_not_exit_or_report_vanished_when_a_run_with_no_worktree_is_ab
         if len(waits) == 4:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -1496,7 +1496,7 @@ def test_main_prints_merge_failed_with_the_pr_url_and_exits_0_when_a_running_que
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
                         lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
@@ -1524,7 +1524,7 @@ def test_main_prints_nothing_while_a_queued_merge_is_still_listed_on_the_next_pa
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [url], raising=False)
     monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "CLOSED", raising=False)
@@ -1554,7 +1554,7 @@ def test_main_prints_nothing_and_takes_the_slot_decision_again_when_a_running_qu
         if len(waits) == 2:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
@@ -1589,7 +1589,7 @@ def test_main_prints_stalled_and_exits_0_when_a_live_conductors_event_log_record
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1623,7 +1623,7 @@ def test_main_prints_no_stalled_line_for_a_conductor_started_within_the_stall_wi
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 2000, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1657,7 +1657,7 @@ def test_main_prints_stalled_for_a_conductor_whose_pid_file_and_every_activity_f
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 2000, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1689,7 +1689,7 @@ def test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_se
             raise _StopWaiting
 
     monkeypatch.delenv("VERI_DISPATCH_STALL", raising=False)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1711,7 +1711,7 @@ def test_main_with_a_non_integer_stall_window_prints_the_usage_on_stderr_and_exi
     launches = []
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "abc")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -1731,7 +1731,7 @@ def test_main_prints_queue_empty_and_exits_3_when_solvable_issues_exits_3_and_no
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
@@ -1758,7 +1758,7 @@ def test_main_prints_nothing_and_keeps_waiting_when_solvable_issues_exits_3_whil
         waits.append(1)
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
@@ -1780,7 +1780,7 @@ def test_main_writes_the_stderr_of_an_unreadable_queue_and_exits_2_when_solvable
     (tmp_path / ".tdd").mkdir()
     launches = []
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
@@ -1812,7 +1812,7 @@ def test_main_with_a_rate_limited_queue_read_waits_for_the_reported_reset_making
             raise _StopWaiting
         now[0] += 10
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: now[0])
     monkeypatch.setattr(dispatch.watch_runs.time, "time", lambda: now[0])
@@ -1836,7 +1836,7 @@ def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_e
     (tmp_path / ".tdd").mkdir()
     launches = []
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -1853,7 +1853,7 @@ def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_a
     (tmp_path / ".tdd").mkdir()
     launches = []
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -1875,7 +1875,7 @@ def test_main_with_target_0_is_accepted_and_launches_nothing_appending_no_launch
         waits.append(1)
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -1903,7 +1903,7 @@ def test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty
         waits.append(1)
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
@@ -1927,7 +1927,7 @@ def test_main_with_target_0_and_a_live_run_that_exits_prints_its_done_line_and_e
         lives = [[], ["7"], []]
         launches = []
 
-        monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+        monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
         monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
         monkeypatch.setattr(dispatch, "live_conductors",
                             lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -1950,7 +1950,7 @@ def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launch
     (tmp_path / ".tdd").mkdir()
     launches = []
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -1966,7 +1966,7 @@ def test_main_with_an_unknown_flag_in_the_first_position_prints_the_usage_on_std
     (tmp_path / ".tdd").mkdir()
     launches = []
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -1987,7 +1987,7 @@ def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing
         reads.append(1)
         return ["12"]
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
     monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
@@ -2057,7 +2057,7 @@ def test_main_does_not_raise_or_exit_2_and_keeps_looping_when_a_vanished_queued_
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
                         lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
@@ -2092,7 +2092,7 @@ def test_main_prints_nothing_and_keeps_looping_when_a_vanished_queued_merge_url_
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
                         lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
@@ -2126,7 +2126,7 @@ def test_main_prints_merge_failed_and_exits_0_when_a_vanished_queued_merge_url_a
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
                         lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
@@ -2281,7 +2281,7 @@ def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_windo
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2316,7 +2316,7 @@ def test_main_does_not_report_stalled_when_events_are_older_than_the_stall_windo
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2348,7 +2348,7 @@ def test_main_prints_stalled_and_exits_0_when_the_events_conductor_log_and_detac
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2380,7 +2380,7 @@ def test_main_prints_stalled_and_exits_0_when_a_leaf_log_and_every_other_livenes
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2413,7 +2413,7 @@ def test_main_prints_stalled_and_exits_0_when_the_newest_liveness_source_is_exac
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1002, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2450,7 +2450,7 @@ def test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_agai
         if len(waits) == 3:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7", "8"] + launches, raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2481,7 +2481,7 @@ def test_main_launches_the_next_issue_at_target_2_beside_one_live_run_and_a_work
         raise _StopWaiting
 
     monkeypatch.setattr(dispatch.os, "kill", dead)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -2514,7 +2514,7 @@ def _overlap_case(monkeypatch, tmp_path, dispatch, solvable, named, prs, waits_b
         if len(waits) == waits_before_stop:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-09T10:00:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2608,7 +2608,7 @@ def test_main_has_the_merge_failed_line_in_a_block_buffered_redirected_stdout_fi
     def wait():
         pass
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges",
                         lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
@@ -2633,7 +2633,7 @@ def test_main_has_the_exit_line_in_a_block_buffered_redirected_stdout_file_when_
     def wait():
         pass
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -2663,7 +2663,7 @@ def test_main_has_the_stalled_line_in_a_block_buffered_redirected_stdout_file_wh
         pass
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -2687,7 +2687,7 @@ def test_main_has_the_queue_empty_line_in_a_block_buffered_redirected_stdout_fil
     def wait():
         pass
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch.watch_runs.subprocess, "run",
@@ -3001,7 +3001,7 @@ def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exit
     launches = []
 
     monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", poll)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
@@ -3021,7 +3021,7 @@ def test_main_with_a_bad_retry_sleep_names_the_variable_on_stderr_and_exits_2_be
     reads = []
 
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", sleep)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: reads.append("live") or [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: reads.append("merges") or [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: reads.append("solvable") or ["12"], raising=False)
@@ -3275,7 +3275,7 @@ def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_la
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
     monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(pid_file, "ps_field", ps)
@@ -3309,7 +3309,7 @@ def test_main_at_target_1_launches_nothing_with_a_live_pid_file_whose_ledger_and
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
     monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(pid_file, "ps_field", ps)
@@ -3333,7 +3333,7 @@ def _fake_one_pass(monkeypatch, dispatch, tmp_path, state, solvable, launches):
     def wait():
         raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -3362,7 +3362,7 @@ def test_main_with_no_target_and_a_role_dev_state_file_that_exists_but_is_unread
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\n")
     launches = []
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.os, "access", lambda path, mode: False)
     monkeypatch.setattr(dispatch, "launch", launches.append)
     code, out, err = run_cli(dispatch, [])
@@ -3482,7 +3482,7 @@ def test_main_reads_issue_states_at_most_once_per_poll_with_several_stall_window
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "issue_states", spy, raising=False)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: lives.pop(0) if len(lives) > 1 else lives[0], raising=False)
@@ -3558,7 +3558,7 @@ def test_main_reads_the_queue_and_proceeds_when_the_graphql_adapters_first_gh_ca
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -3623,7 +3623,7 @@ def test_main_reads_the_queue_and_proceeds_when_the_graphql_adapters_gh_calls_fa
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -3654,7 +3654,7 @@ def test_main_exits_2_naming_the_http_status_when_every_gh_call_fails_with_an_ht
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -3690,7 +3690,7 @@ def test_main_retries_a_gh_read_failing_with_an_http_503_twelve_times_and_gives_
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -3724,7 +3724,7 @@ def test_main_does_not_report_stalled_when_events_conductor_log_and_outputs_are_
             raise _StopWaiting
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: 1003, raising=False)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -3804,7 +3804,7 @@ def test_main_reads_an_empty_queue_once_per_overlap_poll_interval_with_a_free_sl
         now[0] += 10
 
     monkeypatch.delenv("VERI_DISPATCH_OVERLAP_POLL", raising=False)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: now[0])
     monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
@@ -3843,7 +3843,7 @@ def test_main_waits_for_the_reset_and_reads_the_exit_comments_again_when_the_rea
         if len(waits) > 20:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: now[0])
     monkeypatch.setattr(dispatch.time, "time", lambda: now[0])
     monkeypatch.setattr(dispatch.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
@@ -3905,7 +3905,7 @@ def test_main_waits_for_the_reset_and_reads_the_pull_again_when_the_pr_state_rea
         if len(waits) > 20:
             raise _StopWaiting
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch, "clock", lambda: now[0])
     monkeypatch.setattr(dispatch.time, "time", lambda: now[0])
     monkeypatch.setattr(dispatch.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))

@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dead_though_an_earlier_one_is_alive(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -34,7 +34,7 @@ def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dea
 
 def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_by_other_events_and_a_blank_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

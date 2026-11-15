@@ -8,10 +8,11 @@ import sys
 import time
 
 import blocked_by
+import entry
+import run_dir
 import tunables
 from github import NoAnswer, gh_json
 from json_documents import items
-from status import main_working_tree
 
 USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
                      workqueue.sh next <worker>
@@ -22,19 +23,15 @@ USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
 """
 
 
-def refuse(message=None):
-    if message is not None:
-        sys.stderr.write(message + "\n")
-    sys.stderr.write(USAGE)
-    return 2
-
-
 def queue_path():
-    tree = main_working_tree()
+    try:
+        tree = run_dir.main_tree()
+    except run_dir.NoMainTree:
+        tree = ""
     if not tree:
         sys.stderr.write("workqueue.sh: outside a repository\n")
         raise SystemExit(2)
-    return tree + "/.tdd/workqueue"
+    return run_dir.main_file(tree, "workqueue")
 
 
 def lock_tries():
@@ -171,7 +168,7 @@ def move(queue, argv, fourth, source, target):
         sys.stderr.write("workqueue.sh: %s holds no %s item for issue %s\n" % (argv[1], source, argv[2]))
         return 1
     status = subprocess.run(["mv", tmp, queue]).returncode
-    return status if 0 <= status <= 3 else 2
+    return entry.to_contract(status)
 
 
 def held_issue(queue, issues):
@@ -198,25 +195,25 @@ def locked_main(argv):
     if command == "next":
         return next_item(argv)
     if (command in MOVES or command == "assign") and len(argv) < 3:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     fourth = "".join(argv[3:4])
     if command == "done" and not fourth:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     if command == "park":
         if "\t" in fourth or "\n" in fourth:
-            return refuse("workqueue.sh: a park reason may not hold a tab or a newline")
+            return entry.refuse("workqueue.sh: a park reason may not hold a tab or a newline", usage=USAGE)
         if len(argv) < 4:
-            return refuse()
+            return entry.refuse(usage=USAGE)
     if command == "assign":
         named = set()
         for issue in argv[2:]:
             if not issue:
-                return refuse("workqueue.sh: an issue argument is empty")
+                return entry.refuse("workqueue.sh: an issue argument is empty", usage=USAGE)
             if issue in named:
-                return refuse("workqueue.sh: issue %s is named twice" % issue)
+                return entry.refuse("workqueue.sh: issue %s is named twice" % issue, usage=USAGE)
             named.add(issue)
     if command not in MOVES and command not in ("assign", "show"):
-        return refuse("workqueue.sh: unknown subcommand: " + command)
+        return entry.refuse("workqueue.sh: unknown subcommand: " + command, usage=USAGE)
     queue = queue_path()
     if command == "show":
         return show(queue, argv)
@@ -244,5 +241,4 @@ def locked_main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

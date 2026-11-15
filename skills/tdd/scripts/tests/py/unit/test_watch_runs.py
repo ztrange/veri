@@ -40,7 +40,7 @@ def test_main_prints_exited_with_the_first_word_of_the_state_when_a_conductor_li
 
 def test_main_reports_at_its_start_a_run_seen_live_by_an_earlier_watch_whose_conductor_exited_between_watches_2995(
         monkeypatch, capsys, tmp_path, watch_runs):
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     listings = iter([["5", "7"], ["7"]])
@@ -55,7 +55,7 @@ def test_main_reports_at_its_start_a_run_seen_live_by_an_earlier_watch_whose_con
 
 def test_main_does_not_report_again_at_its_start_a_run_whose_exit_the_watch_running_at_the_time_reported_2995(
         monkeypatch, capsys, tmp_path, watch_runs):
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     listings = iter([["5", "7"], ["7"], [], []])
@@ -71,7 +71,7 @@ def test_main_does_not_report_again_at_its_start_a_run_whose_exit_the_watch_runn
 
 def test_main_reports_at_its_start_only_the_run_that_exited_between_watches_and_keeps_watching_the_run_still_live_2995(
         monkeypatch, capsys, tmp_path, watch_runs):
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     clock = iter([0, 10])
@@ -92,7 +92,7 @@ def test_main_reports_at_its_start_only_the_run_that_exited_between_watches_and_
 
 def test_main_remembers_at_its_start_the_runs_it_saw_live_when_it_reports_an_exit_so_the_next_watch_reports_their_exit_2995(
         monkeypatch, capsys, tmp_path, watch_runs):
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     watch_runs._remember(["5"])
@@ -288,7 +288,7 @@ def test_main_keeps_watching_a_conductor_live_at_start_that_vanished_from_the_ru
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
     listings = iter([["5", "7"]])
     ticks = iter([0])
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["7"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -336,7 +336,7 @@ def test_main_keeps_watching_when_a_conductor_live_at_start_drops_out_of_the_run
         if len(waits) > 3:
             raise RuntimeError("never timed out")
 
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs.status, "json_document",
                         lambda scope=None, read_states=True: (0, json.dumps(next(documents, only_7))))
     monkeypatch.setattr(watch_runs, "_starting", lambda: [])
@@ -387,7 +387,7 @@ def test_2545_main_keeps_watching_when_a_run_not_live_at_start_has_its_worktree_
         return real_read_events(path, *args, **kwargs)
 
     ticks = iter([0, 1])
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", lambda: {})
     monkeypatch.setattr(status, "read_events", read_after_removal)
@@ -416,7 +416,7 @@ def test_2547_main_reports_a_conductor_exit_without_reading_any_issue_state_from
         github_reads.append(1)
         return {}
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", issue_states)
     monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
@@ -450,7 +450,7 @@ def test_2547_main_with_max_wait_shorter_than_one_poll_returns_timeout_within_a_
 
 def test_2597_main_with_no_run_directory_and_no_arguments_prints_nothing_to_watch_and_returns_3_not_2(
         monkeypatch, capsys, tmp_path, watch_runs):
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "wait", lambda: pytest.fail("blocked with nothing to watch"))
 
     code = watch_runs.main([])
@@ -469,7 +469,7 @@ def test_2597_main_with_max_wait_and_no_run_directory_prints_timeout_and_returns
         if len(waits) > 10:
             raise RuntimeError("never printed timeout")
 
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "clock", lambda: now[0])
     monkeypatch.setattr(watch_runs, "wait", wait)
 
@@ -485,7 +485,7 @@ def test_2588_main_keeps_watching_a_run_whose_conductor_pid_answers_kill_0_thoug
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("%d\n" % os.getpid())
     listings = iter([["5"]])
     ticks = iter([0, 1])
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -508,7 +508,7 @@ def test_2588_main_still_reports_vanished_when_the_conductor_pid_file_holds_no_p
         raise ProcessLookupError(pid)
 
     monkeypatch.setattr(os, "kill", no_such_process)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -525,7 +525,7 @@ def test_2740_main_reports_vanished_and_returns_2_for_a_run_with_no_state_whose_
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text("")
     listings = iter([["5"]])
     ticks = itertools.count(0, 1000)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -543,7 +543,7 @@ def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart, clock=Non
     listings = iter([["5"]])
     ticks = iter([0, 1])
     monkeypatch.setattr(watch_runs.pid_file, "ps_field", lambda field, pid: lstart)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -597,7 +597,7 @@ def test_2635_main_reports_a_conductor_exit_when_the_newest_leaf_log_holds_blank
     os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
     starting = iter([["9"]])
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", lambda: {})
     monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
@@ -626,7 +626,7 @@ def test_2635_main_reports_a_conductor_exit_when_the_newest_leaf_log_holds_only_
     os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
     starting = iter([["9"]])
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", lambda: {})
     monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
@@ -656,7 +656,7 @@ def test_2635_main_reports_a_conductor_exit_when_the_conductor_log_holds_a_resul
     os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
     starting = iter([["9"]])
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", lambda: {})
     monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
@@ -683,7 +683,7 @@ def test_2635_main_reports_a_conductor_exit_when_the_conductor_log_holds_a_parti
     os.utime(leaf_log, (2_000_000_000, 2_000_000_000))
     starting = iter([["9"]])
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "issue_states", lambda: {})
     monkeypatch.setattr(watch_runs, "_starting", lambda: next(starting, []))
@@ -702,7 +702,7 @@ def test_2740_main_keeps_watching_a_run_in_setup_that_leaves_the_live_listing_fo
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
     listings = iter([["5"], [], ["5"]])
     ticks = itertools.count(0, 1)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -718,7 +718,7 @@ def test_2740_main_does_not_report_vanished_for_a_run_that_leaves_the_live_listi
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd").mkdir(parents=True)
     listings = iter([["5"], [], ["5"], [], ["5"]])
     ticks = itertools.count(0, 1)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -732,7 +732,7 @@ def test_2740_main_does_not_report_vanished_for_a_run_that_leaves_the_live_listi
 def test_2768_main_reports_vanished_and_returns_2_for_a_started_run_whose_worktree_is_absent_and_whose_conductor_process_is_not_alive(
         monkeypatch, capsys, tmp_path, watch_runs):
     listings = iter([[("5", "running")]])
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "_starting", lambda: [])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -756,7 +756,7 @@ def test_2768_main_keeps_watching_a_started_run_whose_worktree_is_absent_for_sev
 
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
@@ -779,7 +779,7 @@ def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_p
 
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
@@ -802,7 +802,7 @@ def test_2832_main_reports_vanished_for_a_started_run_whose_only_run_conductor_p
 
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
@@ -825,7 +825,7 @@ def test_2832_main_keeps_watching_a_started_run_whose_run_conductor_process_work
 
     monkeypatch.setattr(watch_runs.pid_file, "conductor_processes", real_conductor_processes)
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [{"issue": i, "state": s} for i, s in next(listings, [])])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
     monkeypatch.setattr(watch_runs, "clock", lambda: next(ticks))
@@ -1085,7 +1085,7 @@ def test_3186_main_reports_exited_for_a_conductor_first_seen_live_after_the_watc
         monkeypatch, capsys, tmp_path, watch_runs):
     listings = iter([["5"], ["5", "7"]])
     ticks = iter([0, 1])
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: {"5": "running", "7": "bailed red tests-pass"}[issue])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -1100,7 +1100,7 @@ def test_3186_main_reports_at_its_start_a_conductor_first_seen_live_during_an_ea
         monkeypatch, capsys, tmp_path, watch_runs):
     listings = iter([["5"], ["5", "7"]])
     ticks = itertools.count(0, 10)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, ["5"]))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: {"5": "running", "7": "bailed red tests-pass"}[issue])
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -1120,7 +1120,7 @@ def test_main_reports_no_exited_line_for_a_run_whose_restart_pending_names_a_pid
     (pending / "restart-pending").write_text("%d\n" % os.getpid())
     listings = iter([["5"]])
     ticks = itertools.count(0, 10)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "stopped")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -1143,7 +1143,7 @@ def test_main_reports_the_exited_line_for_a_run_whose_restart_pending_names_a_de
         raise ProcessLookupError(pid)
 
     monkeypatch.setattr(watch_runs.os, "kill", kill)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "stopped")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -1171,7 +1171,7 @@ def test_3247_main_never_prints_an_exited_line_whose_state_is_running_for_a_run_
         monkeypatch, capsys, tmp_path, watch_runs):
     listings = iter([["5"]])
     ticks = itertools.count(0, 10)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "running")
     monkeypatch.setattr(watch_runs, "wait", lambda: None)
@@ -1194,7 +1194,7 @@ def test_3448_live_conductors_names_no_run_for_a_process_that_only_mentions_run_
             argv, 0, stdout="  500 claude -p review run_conductor.py 103 now\n", stderr="")
 
     monkeypatch.setattr(watch_runs.pid_file.subprocess, "run", ps)
-    monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(watch_runs, "_runs", lambda: [])
     monkeypatch.setattr(watch_runs, "_starting", lambda: watch_runs.pid_file.starting_runs(str(tmp_path)))
 

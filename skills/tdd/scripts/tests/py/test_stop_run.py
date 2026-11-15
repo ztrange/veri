@@ -232,10 +232,10 @@ def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_
 
     def git_answering(answer):
         def fake_run(args, **kwargs):
-            calls.append((list(args), kwargs.get("cwd"), kwargs.get("stderr"), os.getcwd()))
+            calls.append((list(args), kwargs.get("cwd"), kwargs.get("capture_output"), os.getcwd()))
             if isinstance(answer, BaseException):
                 raise answer
-            return subprocess.CompletedProcess(args, answer[0], answer[1], None)
+            return subprocess.CompletedProcess(args, answer[0], answer[1].decode(), None)
         return fake_run
 
     for answer in ((0, b""), (128, b""), FileNotFoundError(2, "No such file or directory", "git")):
@@ -245,7 +245,7 @@ def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_
         assert (answer, stop_run.main(["5"])) == (answer, 2)
         assert capsysbinary.readouterr() == (
             b"", "stop-run: no main working tree here — type this inside the repository\n".encode() + USAGE)
-        assert calls == [(["git", "worktree", "list", "--porcelain"], None, subprocess.DEVNULL, str(caller))]
+        assert calls == [(["git", "worktree", "list", "--porcelain"], None, True, str(caller))]
         assert list(tmp_path.rglob("stop")) == []
         assert signalled == []
 
@@ -387,7 +387,7 @@ def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_
             return subprocess.CompletedProcess(args, 1, "", None)
         if list(args) != ["git", "worktree", "list", "--porcelain"]:
             raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0 if trees[os.getcwd()] else 128, trees[os.getcwd()], None)
+        return subprocess.CompletedProcess(args, 0 if trees[os.getcwd()] else 128, trees[os.getcwd()].decode(), None)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     live = {4242, 7007}
@@ -468,7 +468,7 @@ def test_main_that_resolves_a_main_working_tree_outside_the_fixture_tree_fails_w
     monkeypatch.chdir(repo)
     answers = {("ps", "-p", "4343", "-o", "args="): (0, b"bash supervise.sh develop-red 5\n")}
     fake_processes(answering(answers))
-    monkeypatch.setattr(stop_run, "main_working_tree", lambda: os.fsencode(decoy))
+    monkeypatch.setattr(stop_run.run_dir, "main_tree", lambda **_: str(decoy))
     terms = []
 
     def fake_kill(pid, sig):

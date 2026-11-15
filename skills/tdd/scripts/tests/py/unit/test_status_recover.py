@@ -22,7 +22,7 @@ def _fake_gh_serving(pulls, states):
 
 def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with_none_under_each_empty_one_and_free_for_the_lock(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text("")
 
@@ -42,7 +42,7 @@ def test_3224_recover_with_nothing_taken_prints_the_seven_headings_in_order_with
 
 def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with_its_issue_title_and_pid(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3300" / ".tdd"
     state.mkdir(parents=True)
     (state / "issue-3300.md").write_text("# Plan for #3300 — Teach the widget to sing\n\n- [ ] one\n")
@@ -63,7 +63,7 @@ def test_3224_recover_lists_under_runs_a_taken_run_held_by_a_live_conductor_with
 
 def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_heading_prefix(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3301" / ".tdd"
     state.mkdir(parents=True)
     (state / "issue-3301.md").write_text("# Plan for #3301 — Teach the widget to sing\n\n- [ ] one\n")
@@ -84,7 +84,7 @@ def test_3224_recover_runs_line_carries_the_issue_title_without_the_ledger_headi
 
 def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_issue_title_and_dead_in_place_of_a_pid(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     state = tmp_path / ".tdd" / "wt" / "3302" / ".tdd"
     state.mkdir(parents=True)
     (state / "issue-3302.md").write_text("# Plan for #3302 — Teach the widget to dance\n\n- [ ] one\n")
@@ -104,7 +104,7 @@ def test_3224_recover_lists_under_runs_a_taken_run_no_live_conductor_holds_with_
 
 def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_bail_class(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -134,7 +134,7 @@ def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_
 
 def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -165,7 +165,7 @@ def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_a
 
 def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue_it_closes_draft_and_its_mergeable_state(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     pulls = [{"number": 4721, "draft": True, "state": "open",
               "title": "Teach the widget to sing", "body": "Closes #3600\n",
@@ -183,7 +183,7 @@ def test_3224_recover_lists_under_prs_an_open_draft_pr_with_its_number_the_issue
 
 def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     pulls = [{"number": 4722, "draft": False, "state": "open",
               "title": "Teach the widget to dance", "body": "Closes #3601\n",
@@ -201,7 +201,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_that_is_not_a_draft_as_ready(tm
 
 def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the_single_pr_read_when_the_list_carries_none(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
                "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
@@ -225,7 +225,7 @@ def test_3577_recover_prints_each_open_pr_line_with_the_mergeable_state_from_the
 
 def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lock_holder_names_one(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
@@ -244,7 +244,7 @@ def test_3224_recover_prints_under_merge_lock_the_live_holders_pid_when_merge_lo
 
 def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_issue_and_exits_0(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     pulls = [{"number": 4723, "draft": True, "state": "open",
               "title": "No body", "body": None, "head": {"ref": "feature/no-body"}},
@@ -266,7 +266,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
 
 def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answers_stale(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
@@ -285,7 +285,7 @@ def test_3224_recover_prints_stale_under_merge_lock_when_merge_lock_holder_answe
 
 def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_state_file(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text("n=7\nlane=default\n")
 
@@ -304,7 +304,7 @@ def test_3224_recover_prints_under_state_the_roles_n_and_lane_read_from_its_stat
 
 def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=2\ntimed-n 1 2026-11-08T14:30:00 raise N to 4\ntimed-n 2 2026-11-08T18:45:10 drop N to 1\n")
@@ -327,7 +327,7 @@ def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_stat
 
 def test_3224_recover_prints_under_state_each_order_override_from_the_roles_state_file_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=2\noverride 1 2026-11-08T14:30:00 take 12 before 9\noverride 2 2026-11-08T18:45:10 skip 7\n")
@@ -350,7 +350,7 @@ def test_3224_recover_prints_under_state_each_order_override_from_the_roles_stat
 
 def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default_lanes(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=3\noverride 1 2026-11-08T14:30:00 default-lane-order\n")
@@ -373,7 +373,7 @@ def test_3224_recover_with_lane_reads_the_named_lanes_state_file_not_the_default
 
 def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=2\ndecision 1 2026-11-08T14:30:00 merge 4721 before 4722 or hold both for review?\n"
@@ -397,7 +397,7 @@ def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_role
 
 def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_the_other_state_lines(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=6\nlane=mu\n"
@@ -421,7 +421,7 @@ def test_3224_recover_pending_decisions_holds_exactly_the_decisions_and_none_of_
 
 def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_state_file_in_full_with_its_id_and_time(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-coord.state").write_text(
         "n=2\nmessage 1 2026-11-08T14:30:00 told the dev of 4721 to rebase; confirmed by a force-push\n"
@@ -445,7 +445,7 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
 
 def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_when_github_refuses_it(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
                "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
@@ -465,7 +465,7 @@ def test_3577_recover_exits_2_with_a_clean_refusal_naming_the_single_pr_read_whe
 
 def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits_0_with_empty_stdout(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
                "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
@@ -485,7 +485,7 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_exits
 
 def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_mergeable_state_and_exits_0(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
                "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
@@ -509,7 +509,7 @@ def test_3577_recover_prints_unknown_for_a_pr_whose_single_read_has_a_null_merge
 
 def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an_object_with_no_mergeable_state(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     listed = [{"number": 4730, "draft": False, "state": "open", "title": "Teach the widget to hum",
                "body": "Closes #3602\n", "head": {"ref": "tdd/3602-teach-the-widget"}}]
@@ -529,7 +529,7 @@ def test_3577_recover_exits_2_with_a_clean_refusal_when_the_single_pr_read_is_an
 
 def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_naming_that_read(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
@@ -546,7 +546,7 @@ def test_3224_recover_exits_2_when_github_refuses_the_open_pr_read_with_stderr_n
 
 def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no_report(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
@@ -562,7 +562,7 @@ def test_3224_recover_given_a_role_other_than_coord_or_dev_exits_2_and_prints_no
 def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_and_a_second_report_from_the_files_alone_is_identical(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(role_state, "main_tree", lambda _cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
@@ -599,7 +599,7 @@ def test_3224_usage_strings_name_every_verb_and_flag(run_cli):
 
 def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_seven_sections_with_exit_0(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd" / "wt" / "fix-2898-pin").mkdir(parents=True)
 
     def run(args, *a, **k):
@@ -617,7 +617,7 @@ def test_3578_recover_skips_a_wt_directory_with_no_ledger_and_still_renders_all_
 
 def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_the_none_of_an_empty_state_file(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):
@@ -635,7 +635,7 @@ def test_3578_recover_with_no_role_state_file_prints_a_state_line_distinct_from_
 
 def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_holds_a_torn_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -664,7 +664,7 @@ def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_
 
 def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_stderr(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -689,7 +689,7 @@ def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_s
 
 def test_recover_dev_lists_under_state_the_last_coordinator_session_its_state_file_records(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-dev.state").write_text("n=2\ncoordinator=sess-old\ncoordinator=sess-new\n")
 

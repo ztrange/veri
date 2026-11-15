@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_summed_from_usage_events(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -35,7 +35,7 @@ def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_
 
 def test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_label(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

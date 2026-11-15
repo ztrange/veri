@@ -7,8 +7,8 @@ import sys
 
 import github
 from ledger import OPEN_STEP, is_human_owed, ledger_path, ledger_steps
+import run_dir as layout
 import status
-from status import main_working_tree
 
 json_document = functools.partial(status.json_document, read_states=False)
 
@@ -30,7 +30,7 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     issue = argv[0]
-    run_dir = os.path.join(main_working_tree(), ".tdd", "wt", issue)
+    run_dir = layout.worktree(layout.main_tree(missing=""), issue)
     if not os.path.isdir(run_dir):
         sys.stderr.write("run-finished.sh: no run for issue %s\n" % issue)
         return 2

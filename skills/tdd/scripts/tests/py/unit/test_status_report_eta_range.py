@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_queue_etas_are_ranges_from_the_fastest_to_the_slowest_quartile_of_finished_runs(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -40,7 +40,7 @@ def test_2750_report_queue_etas_are_ranges_from_the_fastest_to_the_slowest_quart
 
 def test_2750_report_queue_eta_range_scales_each_quartile_by_the_number_of_queued_issues(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -74,7 +74,7 @@ def test_2750_report_queue_eta_range_scales_each_quartile_by_the_number_of_queue
 
 def test_2750_report_queue_eta_skips_journals_without_a_done_event_and_an_empty_queue_prints_no_eta(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

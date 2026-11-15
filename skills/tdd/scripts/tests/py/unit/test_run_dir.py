@@ -69,6 +69,13 @@ def test_main_tree_is_the_first_worktree_git_lists_as_a_str(monkeypatch, tmp_pat
     assert seen[0][0] == ["git", "worktree", "list", "--porcelain"]
 
 
+def test_main_tree_takes_a_first_line_without_the_worktree_prefix_as_the_tree(monkeypatch, tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    git_says(monkeypatch, tmp_path, out="/repo\n")
+
+    assert run_dir.main_tree() == "/repo"
+
+
 def test_main_tree_asks_git_from_the_given_directory(monkeypatch, tmp_path):
     run_dir = importlib.import_module("veri.run_dir")
     seen = git_says(monkeypatch, tmp_path, out=PORCELAIN)
@@ -84,11 +91,30 @@ def test_main_tree_asks_git_from_the_given_directory(monkeypatch, tmp_path):
     {"code": 128, "out": ""},
     {"code": 1, "out": PORCELAIN},
     {"code": 0, "out": ""},
-    {"code": 0, "out": "something else\n"},
-], ids=["no-git", "bad-cwd", "not-a-repo", "failed-with-output", "empty", "unrecognised"])
+], ids=["no-git", "bad-cwd", "not-a-repo", "failed-with-output", "empty"])
 def test_main_tree_raises_no_main_tree_when_git_gives_no_answer(monkeypatch, tmp_path, answer):
     run_dir = importlib.import_module("veri.run_dir")
     git_says(monkeypatch, tmp_path, **answer)
 
     with pytest.raises(run_dir.NoMainTree):
         run_dir.main_tree()
+
+
+@pytest.mark.parametrize("missing", ["", None, "/nowhere"], ids=["empty", "none", "path"])
+@pytest.mark.parametrize("answer", [
+    {"error": FileNotFoundError("git")},
+    {"code": 128, "out": ""},
+    {"code": 0, "out": ""},
+], ids=["no-git", "not-a-repo", "empty"])
+def test_main_tree_returns_the_missing_value_the_caller_gave_instead_of_raising(monkeypatch, tmp_path, answer, missing):
+    run_dir = importlib.import_module("veri.run_dir")
+    git_says(monkeypatch, tmp_path, **answer)
+
+    assert run_dir.main_tree(missing=missing) is missing
+
+
+def test_main_tree_ignores_missing_when_git_names_a_tree(monkeypatch, tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    git_says(monkeypatch, tmp_path, code=0, out=PORCELAIN)
+
+    assert run_dir.main_tree(missing="") == "/repo"

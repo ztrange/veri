@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -29,7 +29,7 @@ def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, mo
 
 def test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))

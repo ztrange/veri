@@ -5,6 +5,7 @@ import os
 import paths
 import pid_file
 import re
+import run_dir
 import subprocess
 import sys
 
@@ -19,19 +20,10 @@ OLDEST_FIRST = "?state=all&sort=created&direction=asc&per_page=%d" % PAGE_SIZE
 OPEN_PAGE = "?state=open&per_page=%d" % PAGE_SIZE
 
 
-def main_working_tree():
-    try:
-        answer = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
-    except OSError:
-        return ""
-    return answer.split("\n", 1)[0].removeprefix("worktree ")
-
-
 def in_flight(main_tree, number):
     if not main_tree:
         return False
-    return bool(pid_file.live_conductor(os.path.join(main_tree, ".tdd", "wt", str(number))))
+    return bool(pid_file.live_conductor(run_dir.worktree(main_tree, number)))
 
 
 def refused_if_empty(name):
@@ -145,7 +137,7 @@ def select(label, priority="priority", repo=None):
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
     bands = {issue["number"]: band(issue, priority) for issue in issues}
     origin = inherit_bands(issues, blockers, bands)
-    main_tree = main_working_tree()
+    main_tree = run_dir.main_tree(missing="")
     survivors = [issue for issue in issues
                  if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
@@ -176,7 +168,7 @@ def main(argv):
         return 2
     repo = rest[1] if rest else None
     if len(rest) != len(argv):
-        main_tree = main_working_tree()
+        main_tree = run_dir.main_tree(missing="")
         starting = pid_file.runs_with_directory(main_tree)
         skip = running_numbers() | {int(number) for number in starting}
     label = scope_label()
