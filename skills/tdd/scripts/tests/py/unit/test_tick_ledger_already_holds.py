@@ -241,43 +241,25 @@ def test_main_already_holds_with_no_case_exits_1_leaves_ledger_and_events_and_sa
 
 
 def test_run_case_in_a_repo_declaring_no_one_test_file_command_runs_make_test_tests_case_3425(
-    tick_ledger, monkeypatch, tmp_path
+    tick_ledger, monkeypatch, tmp_path, fake_processes
 ):
-    import subprocess
-
     (tmp_path / "CLAUDE.md").write_text("veri: all tests: make test\n")
     monkeypatch.chdir(tmp_path)
-    launched = []
-
-    def fake_run(argv, *args, **kwargs):
-        launched.append(list(argv))
-        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake = fake_processes.answers({"": (0, b"", b"")})
 
     assert tick_ledger.run_case("TestIssue99CheckExitsZero") == 0
-    assert ["make", "test", "TESTS=TestIssue99CheckExitsZero"] in launched
+    assert ["make", "test", "TESTS=TestIssue99CheckExitsZero"] in fake.argvs
 
 
 def test_run_case_in_a_repo_declaring_a_one_test_file_command_runs_it_with_the_case_file_as_dollar_1_3425(
-    tick_ledger, monkeypatch, tmp_path
+    tick_ledger, monkeypatch, tmp_path, fake_processes
 ):
-    import subprocess
-
     (tmp_path / "CLAUDE.md").write_text('veri: one test file: ./run-one "$1"\n')
     monkeypatch.chdir(tmp_path)
-    launched = []
-
-    def fake_run(argv, *args, **kwargs):
-        launched.append(list(argv))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = './run-one "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if kwargs.get("text") else out.encode(), stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout=b"", stderr=b"")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake = fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (0, b"", b"")})
 
     assert tick_ledger.run_case("pkg/check_test.go::TestIssue99CheckExitsZero") == 0
+    launched = fake.argvs
     case_runs = [argv for argv in launched if not str(argv[0]).endswith("detect-test-command.sh")]
     assert len(case_runs) == 1
     assert "./run-one" in " ".join(case_runs[0]) and case_runs[0][-1] == "pkg/check_test.go"
@@ -285,24 +267,15 @@ def test_run_case_in_a_repo_declaring_a_one_test_file_command_runs_it_with_the_c
 
 
 def test_main_already_holds_exits_2_naming_the_case_never_run_when_its_file_path_does_not_exist_3425(
-    tmp_path, run_cli, tick_ledger, monkeypatch
+    tmp_path, run_cli, tick_ledger, fake_processes
 ):
-    import subprocess
-
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
     ledger.write_text(original)
     reason = tmp_path / "reason.txt"
     reason.write_text("REASON: already holds\n")
-
-    def fake_run(argv, *args, **kwargs):
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = './run-one "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if kwargs.get("text") else out.encode(), stderr="")
-        return subprocess.CompletedProcess(argv, 1, stdout=b"", stderr=b"")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (1, b"", b"")})
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "TestIssue99CheckExitsZero",
                               str(ledger), "a one"],
@@ -313,10 +286,8 @@ def test_main_already_holds_exits_2_naming_the_case_never_run_when_its_file_path
 
 
 def test_main_already_holds_exits_2_naming_the_case_never_run_when_the_command_reports_no_tests_ran_3425(
-    tmp_path, run_cli, tick_ledger, monkeypatch
+    tmp_path, run_cli, tick_ledger, fake_processes
 ):
-    import subprocess
-
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -326,15 +297,7 @@ def test_main_already_holds_exits_2_naming_the_case_never_run_when_the_command_r
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    pass\n")
     report = "collected 0 items\n\nno tests ran in 0.01s\n"
-
-    def fake_run(argv, *args, **kwargs):
-        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = './run-one "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
-        return subprocess.CompletedProcess(argv, 5, stdout=report if text else report.encode(), stderr="" if text else b"")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": (5, report, "")})
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/test_x.py::test_holds",
                               str(ledger), "a one"],
@@ -345,10 +308,8 @@ def test_main_already_holds_exits_2_naming_the_case_never_run_when_the_command_r
 
 
 def test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_3425(
-    tmp_path, run_cli, tick_ledger, monkeypatch
+    tmp_path, run_cli, tick_ledger, fake_processes
 ):
-    import subprocess
-
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -357,16 +318,8 @@ def test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_34
     (tmp_path / "tests").mkdir()
     (tmp_path / "tests" / "test_x.py").write_text("def test_holds():\n    pass\n")
     report = {}
-
-    def fake_run(argv, *args, **kwargs):
-        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = './run-one "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
-        out = report["text"]
-        return subprocess.CompletedProcess(argv, 5, stdout=out if text else out.encode(), stderr="" if text else b"")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""),
+                            "": lambda line, **kwargs: (5, report["text"], "")})
 
     seen = {}
     for phrasing in ("no tests were collected", "no tests ran", "collected 0 items"):
@@ -381,10 +334,8 @@ def test_main_already_holds_exits_2_for_each_no_tests_ran_phrasing_on_its_own_34
 
 
 def test_main_already_holds_exits_1_naming_the_case_fails_when_the_command_ran_it_and_it_failed_3425(
-    tmp_path, run_cli, tick_ledger, monkeypatch
+    tmp_path, run_cli, tick_ledger, fake_processes
 ):
-    import subprocess
-
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
     original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
@@ -396,16 +347,12 @@ def test_main_already_holds_exits_1_naming_the_case_fails_when_the_command_ran_i
     failed = "collected 1 item\n\ntests/test_x.py F\n\n1 failed in 0.01s\n"
     passed = "collected 1 item\n\ntests/test_x.py .\n\n1 passed in 0.01s\n"
 
-    def fake_run(argv, *args, **kwargs):
-        text = bool(kwargs.get("text") or kwargs.get("universal_newlines"))
-        if str(argv[0]).endswith("detect-test-command.sh"):
-            out = './run-one "$1"\n'
-            return subprocess.CompletedProcess(argv, 0, stdout=out if text else out.encode(), stderr="" if text else b"")
+    def run_case(line, **kwargs):
+        argv = fake.argvs[-1]
         ran_one_file = './run-one "$1"' in argv and "tests/test_x.py" in argv
-        code, report = (1, failed) if ran_one_file else (0, passed)
-        return subprocess.CompletedProcess(argv, code, stdout=report if text else report.encode(), stderr="" if text else b"")
+        return (1, failed, "") if ran_one_file else (0, passed, "")
 
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake = fake_processes.answers({"detect-test-command.sh": (0, './run-one "$1"\n', ""), "": run_case})
 
     code, out, err = run_cli(tick_ledger, ["--already-holds", str(reason), "--case", "tests/test_x.py::test_holds",
                               str(ledger), "a one"],
