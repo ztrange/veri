@@ -110,3 +110,38 @@ def test_cases_at_raises_oserror_naming_the_command_when_the_revision_cannot_be_
     runs({("show", "nope:t_x.py"): (128, b"", b"fatal: bad object\n  nope\n")})
     with pytest.raises(OSError, match=r"^git show nope:t_x\.py failed: fatal: bad object nope$"):
         case_history.cases_at("nope", "t_x.py")
+
+
+def test_revisions_lists_the_commits_that_touched_the_path_newest_first(case_history, runs):
+    runs({("log", "--format=%H", "--", "t_x.py"): (0, b"bbb\naaa\n", b"")})
+    assert case_history.revisions("t_x.py") == ["bbb", "aaa"]
+
+
+def test_revisions_is_empty_when_git_cannot_log(case_history, runs):
+    runs({})
+    assert case_history.revisions("t_x.py") == []
+
+
+def test_revisions_since_a_base_lists_only_the_commits_after_it(case_history, runs):
+    runs({("log", "--format=%H", "base..HEAD", "--", "t_x.py"): (0, b"bbb\n", b"")})
+    assert case_history.revisions("t_x.py", since="base") == ["bbb"]
+
+
+def test_subject_is_the_first_line_of_the_commit_message(case_history, runs):
+    runs({("log", "-1", "--format=%s", "abc"): (0, b"refactor: tidy\n", b"")})
+    assert case_history.subject("abc") == "refactor: tidy\n"
+
+
+def test_subject_is_empty_when_git_cannot_log(case_history, runs):
+    runs({})
+    assert case_history.subject("abc") == ""
+
+
+def test_first_revision_with_is_the_oldest_commit_changing_the_occurrences_of_the_text(case_history, runs):
+    runs({("log", "--reverse", "--format=%H", "-Sstep one", "--", "ledger.md"): (0, b"aaa\nbbb\n", b"")})
+    assert case_history.first_revision_with("step one", "ledger.md") == "aaa"
+
+
+def test_first_revision_with_is_empty_when_no_commit_changes_it(case_history, runs):
+    runs({("log", "--reverse", "--format=%H", "-Sstep one", "--", "ledger.md"): (0, b"", b"")})
+    assert case_history.first_revision_with("step one", "ledger.md") == ""

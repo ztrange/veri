@@ -300,7 +300,7 @@ def test_check_earlier_skips_a_recorded_case_in_no_revision_of_its_file_naming_i
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
-    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name: ["0" * 40])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
@@ -328,7 +328,7 @@ def test_check_earlier_still_flags_a_recorded_case_a_reachable_revision_held_and
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {"test_real": "def test_real():\n    pass\n"})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
-    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name: ["0" * 40])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
@@ -353,7 +353,7 @@ def test_check_earlier_reports_the_changed_case_alone_on_stdout_and_names_the_gh
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
-    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name: ["0" * 40])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
@@ -908,7 +908,7 @@ def _rerecord_fixture(tmp_path, tests_frozen, monkeypatch):
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: [])
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name: [])
     return tmp_path / "test_suite.py"
 
 
@@ -1367,7 +1367,7 @@ def test_check_earlier_refuses_a_case_whose_test_file_is_deleted_with_no_counter
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {"test_real": "def test_real():\n    pass\n"})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
-    monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name: ["0" * 40])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
@@ -1393,8 +1393,8 @@ def test_rerecord_earlier_exits_2_naming_the_case_and_the_base_when_base_to_head
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
     kept = (tmp_path / tests_frozen.record_path(earlier)).read_text()
-    monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
-        PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
+    monkeypatch.setattr(tests_frozen.case_history, "first_revision_with", lambda needle, path: base)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name, since=None: [base])
     monkeypatch.setattr(tests_frozen.case_history, "text_at", lambda rev, name, quiet=False: new)
     old_cases, new_cases = dict(tests_frozen.cut_cases(old)), dict(tests_frozen.cut_cases(new))
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: old_cases)
@@ -1421,8 +1421,8 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
     for step, case in ((first, "test_edited_3440"), (second, "test_untouched_3440")):
         suite.write_text("".join(c for n, c in tests_frozen.cut_cases(old) if n == case))
         run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
-        PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
+    monkeypatch.setattr(tests_frozen.case_history, "first_revision_with", lambda needle, path: base)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name, since=None: [base])
     monkeypatch.setattr(tests_frozen.case_history, "text_at", lambda rev, name, quiet=False: new)
     old_cases, new_cases = dict(tests_frozen.cut_cases(old)), dict(tests_frozen.cut_cases(new))
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: old_cases)
@@ -1450,8 +1450,8 @@ def test_rerecord_earlier_exits_0_not_2_and_keeps_the_record_when_every_earlier_
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
     kept = (tmp_path / tests_frozen.record_path(earlier)).read_text()
-    monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
-        PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
+    monkeypatch.setattr(tests_frozen.case_history, "first_revision_with", lambda needle, path: base)
+    monkeypatch.setattr(tests_frozen.case_history, "revisions", lambda name, since=None: [base])
     monkeypatch.setattr(tests_frozen.case_history, "text_at", lambda rev, name, quiet=False: text)
     cases = dict(tests_frozen.cut_cases(text))
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: cases)

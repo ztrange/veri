@@ -10,8 +10,14 @@ Interface:
   cases_at(rev, path)           {case name: body} of the file at `rev`; {} when the file is absent from a
                                 readable `rev`; OSError ("git show <rev>:<path> failed: ...") when git
                                 cannot read `rev` at all. Twin names keep the last body.
+  revisions(path, since=None)   the shas of the commits that touched `path`, newest first; with `since`,
+                                only those in since..HEAD. [] when git cannot log.
+  subject(rev)                  `rev`'s commit subject plus its newline; "" when git cannot log.
+  first_revision_with(needle, path)
+                                the oldest commit whose change to `path` adds or removes an occurrence of
+                                `needle` (git log -S); "" when none does or git cannot log.
 
-Error modes: toplevel, has_rev and current_branch turn a git failure into None / False / "" and
+Error modes: toplevel, has_rev, current_branch, revisions, subject and first_revision_with turn a git failure into None / False / "" and
 raise only OSError when git cannot start. Every query runs in the current directory and
 runs git through git.git, the runner veri shares, untouched: the caller owns the working directory.
 """
@@ -53,3 +59,20 @@ def cases_at(rev, path):
             return {}
         raise OSError("git show %s:%s failed: %s" % (rev, path, " ".join(os.fsdecode(shown.stderr).split())))
     return dict(cut_cases(shown.stdout.decode("utf-8", "replace")))
+
+
+def revisions(path, since=None):
+    listed = git.git("log", "--format=%H", *(["%s..HEAD" % since] if since else []), "--", path,
+                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return os.fsdecode(listed.stdout).split()
+
+
+def subject(rev):
+    shown = git.git("log", "-1", "--format=%s", rev, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return os.fsdecode(shown.stdout)
+
+
+def first_revision_with(needle, path):
+    listed = git.git("log", "--reverse", "--format=%H", "-S" + needle, "--", path,
+                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return next(iter(listed.stdout.decode().split()), "")

@@ -184,7 +184,7 @@ def _step_commits(step):
 def _introduced_by(name, own):
     """The cases of `name` that the commits `own` introduced: in the file at the last of them that touched it,
     absent at the revision just before the first of them."""
-    revs = _revisions(name)
+    revs = case_history.revisions(name)
     mine = [at for at, rev in enumerate(revs) if rev in own]
     if not mine:
         return set()
@@ -242,12 +242,6 @@ def _earlier_records(lines, step, strict=False):
         yield match.group(2), path, records
 
 
-def _revisions(name):
-    listed = subprocess.run(["git", "log", "--format=%H", "--", name], stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL)
-    return os.fsdecode(listed.stdout).split()
-
-
 def _root_variants(body):
     yield body
     for k in range(10):
@@ -283,7 +277,7 @@ def _moved_path(name, case, digests):
 
 
 def _renamed_to(name, case, digest, text, consumed):
-    for rev in _revisions(name):
+    for rev in case_history.revisions(name):
         held = case_history.cases_at(rev, name)
         if case in held and body_digest(held[case]) == digest:
             other = renamed_case.renamed_to(case, case_history.text_at(rev, name), text, set(held) | consumed)
@@ -297,15 +291,13 @@ def _changed_by_refactor(name, case):
     try:
         if case not in case_history.cases_at("HEAD", name):
             return False
-        revs = _revisions(name)
+        revs = case_history.revisions(name)
         history = [case_history.cases_at(rev, name).get(case) for rev in revs]
     except OSError:
         return False
     for rev, now, before in zip(revs, history, history[1:]):
         if now != before:
-            subject = subprocess.run(["git", "log", "-1", "--format=%s", rev], stdout=subprocess.PIPE,
-                                     stderr=subprocess.DEVNULL)
-            return os.fsdecode(subject.stdout).startswith("refactor:")
+            return case_history.subject(rev).startswith("refactor:")
     return False
 
 
@@ -368,7 +360,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
                     nows = olds = [dict(cut_cases(text))[other].replace(other, case, 1)]
-                elif not any(case in case_history.cases_at(rev, name) for rev in _revisions(name)):
+                elif not any(case in case_history.cases_at(rev, name) for rev in case_history.revisions(name)):
                     write(sys.stderr, "tests-frozen.sh: %s (%s, %s) is in no revision of this branch: skipped"
                           % (case, owner, record_path(owner)))
                     continue
@@ -435,17 +427,14 @@ def rerecord_earlier(ledger, step):
         return 2
     ledger = os.path.abspath(ledger)
     os.chdir(root)
-    base = subprocess.run(["git", "log", "--reverse", "--format=%H", "-S" + step, "--", ledger],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.decode().split()[:1]
-    base = base[0] if base else ""
+    base = case_history.first_revision_with(step, ledger)
     if not base:
         write(sys.stderr, "tests-frozen.sh: no commit touches the ledger %s, so the step base is unknown" % ledger)
         return 2
     after = {}
 
     def recorded_base(name, case, digest):
-        revs = subprocess.run(["git", "log", "--format=%H", base + "..HEAD", "--", name], stdout=subprocess.PIPE,
-                              stderr=subprocess.DEVNULL).stdout.decode().split()
+        revs = case_history.revisions(name, since=base)
         for rev in revs:
             if body_digest(case_history.cases_at(rev, name).get(case, "")) == digest:
                 return rev
