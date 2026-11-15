@@ -119,7 +119,7 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
     cli.readouterr()
     assert symref not in calls
 
-    code, out, calls, stderrs = run((0, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
+    code, out, calls, stderrs = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
                                     **{"git ls-remote origin refs/heads/trunk":
                                        (0, f"{ONTO}\trefs/heads/trunk\n"),
                                        "git rev-parse origin/trunk": (0, f"{ONTO}\n")})
