@@ -20,7 +20,7 @@ ALLOWED = {
     "test_skill_leaf_env.py": "runs every launch line against a stub claude and checks what the leaf saw",
     "test_suite_reported_process.py": "runs suite-reported.sh, which the subsection calls",
     "test_build_develop_prompt_process.py": "runs build-develop-prompt.sh, which the subsection calls",
-    "test_verify.py": "runs the verifier script the subsection calls",
+    "test_verify_process.py": "runs the verifier script the subsection calls",
     "test_prompt_test_tiers.py": "checks the tiers a rendered prompt names",
     "unit/test_build_develop_prompt.py": "unit cases of build-develop-prompt.sh",
     "unit/test_build_verify_prompt.py": "unit cases of build-verify-prompt.sh",

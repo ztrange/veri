@@ -33,7 +33,7 @@ ALLOWED = {
     "test_skill_leaf_launch.py": "launch lines are Launching a leaf instances",
     "test_skill_leaf_env.py": "launch lines are Launching a leaf instances",
     "test_ledger_steps.py": "script suite", "test_tick_ledger.py": "script suite", "test_next_unchecked.py": "script suite",
-    "test_transform_touches_tests.py": "script suite", "test_production_frozen_process.py": "script suite",
+    "test_transform_touches_tests_process.py": "script suite", "test_production_frozen_process.py": "script suite",
     "test_no_product_caller_process.py": "script suite", "test_tests_frozen_process.py": "script suite",
     "test_suite_reported_process.py": "script suite", "test_prompt_test_tiers.py": "script suite",
     "test_build_develop_prompt.py": "script suite", "test_build_verify_prompt.py": "script suite",

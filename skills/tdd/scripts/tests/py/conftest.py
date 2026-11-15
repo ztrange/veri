@@ -197,6 +197,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_transform_touches_tests.py",
     "test_transform_touches_tests_process.py",
     "test_verify.py",
+    "test_verify_process.py",
     "test_workqueue.py",
     "test_workqueue_process.py",
 }
