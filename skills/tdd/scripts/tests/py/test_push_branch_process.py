@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import commit_all, git, new_repo
 
 BRANCH = "tdd/191-run-commits-live-on-one-disk"
 SHA = "a" * 40
@@ -16,22 +17,12 @@ def push_branch():
     return importlib.import_module("veri.push_branch")
 
 
-def git(repo, *args):
-    done = subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
-                          capture_output=True, text=True)
-    assert done.returncode == 0, done.stderr
-    return done.stdout.strip()
-
-
-def fixture_repo(path, remote=None, branch=BRANCH):
-    path.mkdir()
-    git(path, "init", "-q", "-b", "main")
-    git(path, "commit", "-q", "--allow-empty", "-m", "initial")
+def run_repo(path, remote=None, branch=BRANCH):
+    new_repo(path)
+    commit_all(path, "initial", allow_empty=True)
     git(path, "checkout", "-q", "-b", branch)
-    (path / ".tdd").mkdir()
-    (path / ".tdd" / "issue-191.md").write_text("\n- [x] a step ⟂ refactor pending\n- [ ] the next step\n")
-    git(path, "add", "-A")
-    git(path, "commit", "-q", "-m", "feat: a step's green commit (#191)")
+    commit_all(path, "feat: a step's green commit (#191)",
+               **{".tdd__issue-191.md": "\n- [x] a step ⟂ refactor pending\n- [ ] the next step\n"})
     if remote is not None:
         git(path, "remote", "add", "origin", str(remote))
     return path
@@ -52,7 +43,7 @@ def remote_at(remote, branch=BRANCH):
 @pytest.mark.process("git push to an origin that cannot be reached")
 def test_a_failing_push_exits_0_leaving_head_the_commit_count_and_the_ledger_unchanged_and_records_push_failed(
         tmp_path, run_cli, push_branch, events):
-    repo = fixture_repo(tmp_path / "run", tmp_path / "no-such-remote.git")
+    repo = run_repo(tmp_path / "run", tmp_path / "no-such-remote.git")
     ledger = repo / ".tdd" / "issue-191.md"
     before = (git(repo, "rev-parse", "HEAD"), git(repo, "rev-list", "--count", "HEAD"), ledger.read_text())
 
@@ -66,7 +57,7 @@ def test_a_failing_push_exits_0_leaving_head_the_commit_count_and_the_ledger_unc
 @pytest.mark.process("git push to a bare repository")
 def test_a_push_that_lands_leaves_the_branch_on_the_remote_at_the_commit_head_is_on(tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "landed", remote)
+    repo = run_repo(tmp_path / "landed", remote)
 
     code, out, err = run_cli(push_branch, [], env=LANDED_ENV, cwd=repo)
 
@@ -102,7 +93,7 @@ def test_a_non_fast_forward_rejection_exits_1_after_one_attempt_naming_the_remot
 def test_a_push_that_lands_exits_0_writes_nothing_to_stderr_and_appends_no_event(
         tmp_path, run_cli, push_branch, events):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "quiet", remote)
+    repo = run_repo(tmp_path / "quiet", remote)
 
     code, out, err = run_cli(push_branch, [], env=LANDED_ENV, cwd=repo)
 
@@ -133,7 +124,7 @@ def test_force_with_lease_replaces_a_remote_still_at_the_sha_refuses_one_that_ha
 
     def fixture(name):
         remote = bare(tmp_path / ("origin-%s.git" % name))
-        repo = fixture_repo(tmp_path / name, remote, branch)
+        repo = run_repo(tmp_path / name, remote, branch)
         git(repo, "push", "-q", "origin", branch)
         return remote, repo, git(repo, "rev-parse", "HEAD")
 
@@ -166,8 +157,8 @@ def test_cli_run_through_a_symlink_from_another_directory_answers_as_in_place_re
         tmp_path, run_cli, push_branch, events, monkeypatch):
     (tmp_path / "linked-skill").symlink_to(SCRIPTS.parent, target_is_directory=True)
     env = {**LANDED_ENV, "VERI_ISSUE": "720", "VERI_PUSH_RETRIES": "0"}
-    in_place = fixture_repo(tmp_path / "in-place", tmp_path / "no-such-remote.git")
-    linked = fixture_repo(tmp_path / "linked", tmp_path / "no-such-remote.git")
+    in_place = run_repo(tmp_path / "in-place", tmp_path / "no-such-remote.git")
+    linked = run_repo(tmp_path / "linked", tmp_path / "no-such-remote.git")
 
     expected = run_cli(push_branch, [], env=env, cwd=in_place)
     for name, value in env.items():
@@ -197,7 +188,7 @@ def test_a_bad_argument_and_a_bad_push_retries_each_exit_2_with_nothing_on_stdou
 def test_no_argument_with_a_rebase_lease_file_pushes_a_rewritten_history_over_a_remote_still_at_the_leased_sha(
         tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     git(repo, "push", "-q", "origin", BRANCH)
     (repo / ".tdd" / "rebase-lease").write_text(git(repo, "rev-parse", "HEAD") + "\n")
     git(repo, "commit", "-q", "--amend", "-m", "rebased")
@@ -211,7 +202,7 @@ def test_no_argument_with_a_rebase_lease_file_pushes_a_rewritten_history_over_a_
 def test_a_push_under_the_rebase_lease_that_lands_removes_the_lease_file_so_the_next_push_is_plain(
         tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     git(repo, "push", "-q", "origin", BRANCH)
     lease = repo / ".tdd" / "rebase-lease"
     lease.write_text(git(repo, "rev-parse", "HEAD") + "\n")
@@ -226,7 +217,7 @@ def test_a_push_under_the_rebase_lease_that_lands_removes_the_lease_file_so_the_
 def test_force_with_lease_naming_a_sha_the_remote_never_had_pushes_under_the_sha_the_rebase_lease_records(
         tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     git(repo, "push", "-q", "origin", BRANCH)
     (repo / ".tdd" / "rebase-lease").write_text(git(repo, "rev-parse", "HEAD") + "\n")
     git(repo, "commit", "-q", "--amend", "-m", "rebased")
@@ -243,7 +234,7 @@ def test_rebase_exiting_3_after_a_repair_step_leaves_the_lease_naming_the_pre_re
         tmp_path, run_cli, push_branch):
     rebase = importlib.import_module("veri.rebase_onto_default")
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     git(repo, "push", "-q", "origin", "main", BRANCH)
     git(repo, "fetch", "-q", "origin")
     git(repo, "remote", "set-head", "origin", "main")
@@ -268,7 +259,7 @@ def test_a_resume_between_the_rebase_and_the_push_keeps_the_lease_and_the_push_r
         tmp_path, run_cli, push_branch):
     clean = importlib.import_module("veri.resume_clean")
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     (repo / "tracked.txt").write_text("committed\n")
     git(repo, "add", "tracked.txt")
     git(repo, "commit", "-q", "-m", "feat: a tracked file (#191)")
@@ -291,7 +282,7 @@ def test_a_resume_between_the_rebase_and_the_push_keeps_the_lease_and_the_push_r
 def test_a_failed_push_leaves_the_lease_so_the_next_push_with_origin_back_replaces_the_remote_at_the_leased_sha(
         tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
-    repo = fixture_repo(tmp_path / "work", remote)
+    repo = run_repo(tmp_path / "work", remote)
     git(repo, "push", "-q", "origin", BRANCH)
     pre = git(repo, "rev-parse", "HEAD")
     lease = repo / ".tdd" / "rebase-lease"
