@@ -42,7 +42,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_dispatch_issue_states.py": "not inventoried",
     "unit/test_event_journal.py": "not inventoried",
     "unit/test_orchestrate.py": "not inventoried",
-    "unit/test_prose_owed_gate.py": "not inventoried",
     "unit/test_report_cache.py": "3 cases answer gh and pass git through to a real process (real_run)",
     "unit/test_restart_conductor.py": "not inventoried",
     "unit/test_skill_edit_step.py": "not inventoried",
@@ -70,7 +69,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_status_report_running_verdicts.py": "not inventoried",
     "unit/test_status_report_waiting.py": "not inventoried",
     "unit/test_status_report_zone.py": "not inventoried",
-    "unit/test_supervise_launch_failure.py": "not inventoried",
     "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
     "unit/test_watch_runs.py": "not inventoried",
 }
