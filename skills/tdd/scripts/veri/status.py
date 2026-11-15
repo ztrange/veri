@@ -7,7 +7,6 @@ import io
 import json
 import os
 import re
-import statistics
 import subprocess
 import sys
 import time
@@ -248,6 +247,7 @@ def eta_range(count):
             walls.append(int(done[-1]["awake"]) - int(events[0]["awake"]))
     if len(walls) < 3:
         return "no rate yet"
+    import statistics
     low, _mid, high = statistics.quantiles(walls, n=4, method="inclusive")
     return "%s–%s" % tuple("%dh %dm" % divmod(int(w * count) // 60, 60) for w in (low, high))
 
