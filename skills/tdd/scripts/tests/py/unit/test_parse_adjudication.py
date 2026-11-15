@@ -120,3 +120,18 @@ def test_main_on_a_bare_route_line_with_no_token_exits_2_with_nothing_on_stdout(
     leaf.write_text("ADJUDICATION: route — known flake\n")
     code, out, err = run_cli(parse_adjudication, [str(leaf)])
     assert (code, out) == (2, "")
+
+
+def test_parse_answers_outcome_and_reason_of_the_last_adjudication_line_or_none_without_printing(capsys, parse_adjudication, tmp_path):
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: bail — first guess\nADJUDICATION: retry — CI is queued\n")
+    unlisted = tmp_path / "unlisted.out"
+    unlisted.write_text("ADJUDICATION: shrug — no idea\n")
+    bare = tmp_path / "bare.out"
+    bare.write_text("thinking\n")
+
+    assert parse_adjudication.parse(str(leaf)) == ("retry", "CI is queued")
+    assert parse_adjudication.parse(str(unlisted)) is None
+    assert parse_adjudication.parse(str(bare)) is None
+    assert parse_adjudication.parse(str(tmp_path / "missing.out")) is None
+    assert capsys.readouterr() == ("", "")
