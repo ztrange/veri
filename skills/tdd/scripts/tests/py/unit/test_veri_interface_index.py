@@ -233,6 +233,25 @@ def test_no_group_imports_against_the_directions_the_index_states(veri_modules_i
     assert not EXEMPT_DIRECTION_BREAKS - breaks, f"exemptions no longer needed, remove them: {sorted(EXEMPT_DIRECTION_BREAKS - breaks)}"
 
 
+def _adding_a_script_section():
+    """The lines of README's `### Adding a script`, up to the next heading."""
+    lines = _readme_lines()
+    start = lines.index("### Adding a script")
+    end = next((n for n in range(start + 1, len(lines)) if lines[n].startswith("#")), len(lines))
+    return lines[start:end]
+
+
+def test_every_test_file_the_adding_a_script_checklist_names_exists():
+    import re
+    from conftest import SCRIPTS
+
+    named = {token for line in _adding_a_script_section() for token in re.findall(r"`(tests/py/[\w/]*test_\w+\.py)`", line)}
+    missing = sorted(token for token in named if not (SCRIPTS / token).is_file())
+
+    assert len(named) >= 8, f"the checklist names {sorted(named)}: fewer test files than it had"
+    assert not missing, f"veri/README.md's `Adding a script` names test files that do not exist: {missing}"
+
+
 @pytest.mark.tree_audit("every module of veri/")
 def test_the_only_import_cycles_are_the_known_ones(veri_modules_index):
     modules = _modules(veri_modules_index)
