@@ -5,40 +5,12 @@ import sys
 import tempfile
 
 import event
+import issue_body
 import ledger
 import tunables
 from github import NoAnswer, gh_issue_edit, gh_issue_view
 
-HEADING = "## Acceptance criteria"
 USAGE = "usage: tick-issue-criterion.sh <issue-number> <matcher>"
-
-
-def _unfenced(lines, start=0):
-    fence = ""
-    for i in range(start, len(lines)):
-        s = lines[i].strip()
-        if fence:
-            if s.startswith(fence) and not s.strip(fence[0]):
-                fence = ""
-        elif s[:3] in ("```", "~~~"):
-            fence = s[0] * (len(s) - len(s.lstrip(s[0])))
-        else:
-            yield i, lines[i]
-
-
-def find_section_start(lines):
-    start = 0
-    for i, line in _unfenced(lines):
-        if line.strip() == HEADING:
-            start = i + 1
-    return start
-
-
-def find_section_end(lines, start):
-    for i, line in _unfenced(lines, start):
-        if line.startswith(("# ", "## ")):
-            return i
-    return len(lines)
 
 
 def _tick_wrapped(text, matcher):
@@ -66,10 +38,11 @@ def main(argv):
         body = gh_issue_view(n, "body").rstrip("\n")
     except NoAnswer:
         return 2
-    lines = body.replace("\0", "").split("\n")
-    start = find_section_start(lines)
-    end = find_section_end(lines, start) if start else len(lines)
-    ticked, section = _tick_wrapped("\n".join(lines[start:end]), matcher) if start else (False, "")
+    text = body.replace("\0", "")
+    lines = text.split("\n")
+    found = issue_body.spans(text, issue_body.CRITERIA)
+    start, end = found[-1] if found else (0, len(lines))
+    ticked, section = _tick_wrapped("\n".join(lines[start:end]), matcher) if found else (False, "")
     if not ticked:
         print("tick-issue-criterion: no unchecked criterion matched '%s' on #%s" % (matcher, n),
               file=sys.stderr)
