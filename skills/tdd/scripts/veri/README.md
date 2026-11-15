@@ -62,6 +62,7 @@ An ungraded checklist; each step names the audit that fails when it is skipped (
 6. This file: the script's line in its group, a `## <module>` section once two other modules import it, and the group's direction still obeyed. Audit: `tests/py/unit/test_veri_interface_index.py`.
 7. A `VERI_*` read goes through `tunables.get(name)` with no literal default. Audits: `tests/py/unit/test_tunable_defaults_audit.py`, `tests/py/unit/test_tunable_reads.py`.
 8. Tests in `tests/py/unit/test_<name>.py`: no process, no repo listing; a case that starts a process carries `@pytest.mark.process("<boundary>")`, one that lists a repo directory `@pytest.mark.tree_audit("<sweep>")`. Audits: `tests/py/test_fast_tier_guard.py` (placement), `tests/py/unit/test_process_mark.py` with conftest's collection check (marks).
+9. The test side's map: which tier and marks, which helper module or fixture fakes a process, a repository, the dispatch world or GitHub, and which audits check a test file. See `tests/py/README.md`; its index audit is `tests/py/unit/test_tests_py_readme.py`.
 
 # Foundations
 
