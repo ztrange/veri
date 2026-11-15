@@ -21,38 +21,26 @@ def fake_stdin(monkeypatch, data):
     return stdin
 
 
-def spy_subprocess(monkeypatch):
-    started = []
-
-    def refuse(*args, **kwargs):
-        started.append(args)
-        raise AssertionError("started a subprocess: %r" % (args,))
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, refuse)
-    return started
-
-
 def test_main_refuses_a_missing_or_empty_record_with_its_usage_reading_no_stdin_and_starting_no_subprocess(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    started = spy_subprocess(monkeypatch)
+    fake = fake_processes.answers({})
     report = b"PREDICATE: false\n"
     for argv in ([], [""], ["", "record"]):
         stdin = fake_stdin(monkeypatch, report)
         code = structural_predicate.main(argv)
         assert (argv, code, capsys.readouterr()) == (argv, 2, ("", USAGE))
         assert stdin.buffer.read() == report
-    assert started == []
+    assert fake.calls == []
     assert list(tmp_path.iterdir()) == []
 
 
 def test_main_reads_the_last_terminated_predicate_line_and_refuses_a_report_without_one(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    started = spy_subprocess(monkeypatch)
+    fake = fake_processes.answers({})
     monkeypatch.setenv("predicate", "false")
     missing = "structural-predicate.sh: the report carries no PREDICATE: line\n"
     for report in (
@@ -64,49 +52,37 @@ def test_main_reads_the_last_terminated_predicate_line_and_refuses_a_report_with
         fake_stdin(monkeypatch, report)
         code = structural_predicate.main(["record"])
         assert (report, code, capsys.readouterr()) == (report, 2, ("", missing))
-    assert started == []
+    assert fake.calls == []
     assert list(tmp_path.iterdir()) == []
 
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 0)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (0, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: first\nPREDICATE: tr\0ue\r\n")
     code = structural_predicate.main(["record"])
-    assert (code, capsys.readouterr().out, ran) == (1, "", [["bash", "-c", "true\r"]])
+    assert (code, capsys.readouterr().out, fake.argvs) == (1, "", [["bash", "-c", "true\r"]])
     assert list(tmp_path.iterdir()) == []
 
 
 def test_main_skips_a_none_value_and_runs_its_near_misses_as_commands(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 0)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (0, "", "")})
     for value in ("NONE", "NONE no structural change", "NONE—why", "NONE: why"):
         fake_stdin(monkeypatch, ("PREDICATE: %s\n" % value).encode())
         code = structural_predicate.main(["record"])
-        assert (value, code, capsys.readouterr(), ran) == (value, 3, ("", ""), [])
+        assert (value, code, capsys.readouterr(), fake.argvs) == (value, 3, ("", ""), [])
     assert list(tmp_path.iterdir()) == []
 
     for value in ("NONE-x", "NONE\tx", "none", "NONEX"):
-        ran.clear()
+        fake.seen.clear()
         fake_stdin(monkeypatch, ("PREDICATE: %s\n" % value).encode())
         code = structural_predicate.main(["record"])
-        assert (value, code, ran) == (value, 1, [["bash", "-c", value]])
+        assert (value, code, fake.argvs) == (value, 1, [["bash", "-c", value]])
     assert list(tmp_path.iterdir()) == []
 
 
 def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_non_zero_run(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("predicate", "leaked")
@@ -115,13 +91,11 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
     runs = []
     answer = []
 
-    def run(args, *rest, **kwargs):
+    def observe(line, **kwargs):
         env = kwargs.get("env")
         env = dict(os.environ if env is None else env)
         runs.append(
             (
-                args,
-                rest,
                 kwargs.get("stdin"),
                 kwargs.get("stdout"),
                 kwargs.get("stderr"),
@@ -134,7 +108,12 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
         )
         if isinstance(answer[0], BaseException):
             raise answer[0]
-        return subprocess.CompletedProcess(args, answer[0])
+        return (answer[0], "", "")
+
+    fake = fake_processes.answers({"bash": observe})
+
+    def observed():
+        return [(argv, rest) + seen for argv, rest, seen in zip(fake.argvs, fake.rests, runs)]
 
     def call(value):
         return (
@@ -150,28 +129,31 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
             None,
         )
 
-    monkeypatch.setattr(subprocess, "run", run)
     for report, value in (
         (b"PREDICATE: true\n", "true"),
         (b"PREDICATE:\n", ""),
         (b"PREDICATE: \n", ""),
     ):
         runs.clear()
+        fake.seen.clear()
+        fake.rests.clear()
         answer[:] = [0]
         fake_stdin(monkeypatch, report)
         code = structural_predicate.main(["record"])
-        assert (report, code, capsys.readouterr().out, runs, record.exists()) == (
+        assert (report, code, capsys.readouterr().out, observed(), record.exists()) == (
             report, 1, "", [call(value)], False
         )
 
     for status in (1, 127, FileNotFoundError("bash"), PermissionError("bash")):
         runs.clear()
+        fake.seen.clear()
+        fake.rests.clear()
         answer[:] = [status]
         record.write_bytes(b"an older and much longer record\n")
         fake_stdin(monkeypatch, b"PREDICATE: test -e caf\xc3\xa9\n")
         code = structural_predicate.main(["record"])
         value = b"test -e caf\xc3\xa9".decode("utf-8", "surrogateescape")
-        assert (repr(status), code, capsys.readouterr().out, runs, record.read_bytes()) == (
+        assert (repr(status), code, capsys.readouterr().out, observed(), record.read_bytes()) == (
             repr(status), 0, "", [call(value)], b"test -e caf\xc3\xa9\n"
         )
 
@@ -184,90 +166,60 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
 
 
 def test_main_2881_blank_lines_after_a_single_line_predicate_do_not_make_it_multi_line(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 1)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (1, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: false\n\n\n\n")
     code = structural_predicate.main(["record"])
-    assert (code, capsys.readouterr(), ran) == (0, ("", ""), [["bash", "-c", "false"]])
+    assert (code, capsys.readouterr(), fake.argvs) == (0, ("", ""), [["bash", "-c", "false"]])
     assert (tmp_path / "record").read_bytes() == b"false\n"
 
 
 def test_main_2881_a_whitespace_only_line_after_the_predicate_line_is_judged_like_a_single_line_reply(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 1)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (1, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: false\n   \t\n")
     code = structural_predicate.main(["record"])
-    assert (code, capsys.readouterr(), ran) == (0, ("", ""), [["bash", "-c", "false"]])
+    assert (code, capsys.readouterr(), fake.argvs) == (0, ("", ""), [["bash", "-c", "false"]])
     assert (tmp_path / "record").read_bytes() == b"false\n"
 
 
 def test_main_2881_a_heredoc_predicate_exits_2_naming_the_multi_line_predicate_running_nothing_and_writing_no_record(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 0)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (0, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: python3 - <<'PY'\nimport sys\nsys.exit(1)\nPY\n")
     code = structural_predicate.main(["record"])
     captured = capsys.readouterr()
-    assert (code, captured.out, "multi-line" in captured.err.lower(), ran) == (2, "", True, [])
+    assert (code, captured.out, "multi-line" in captured.err.lower(), fake.argvs) == (2, "", True, [])
     assert list(tmp_path.iterdir()) == []
 
 
 def test_main_2881_a_trailing_backslash_continuation_predicate_exits_2_naming_the_multi_line_predicate_running_nothing_and_writing_no_record(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 0)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (0, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: grep -q foo \\\nfile.txt\n")
     code = structural_predicate.main(["record"])
     captured = capsys.readouterr()
-    assert (code, captured.out, "multi-line" in captured.err.lower(), ran) == (2, "", True, [])
+    assert (code, captured.out, "multi-line" in captured.err.lower(), fake.argvs) == (2, "", True, [])
     assert list(tmp_path.iterdir()) == []
 
 
 def test_main_2881_plain_prose_after_the_predicate_line_exits_2_naming_the_multi_line_predicate_running_nothing_and_writing_no_record(
-    monkeypatch, capsys, tmp_path, structural_predicate
+    monkeypatch, capsys, tmp_path, structural_predicate, fake_processes
 ):
     monkeypatch.chdir(tmp_path)
-    ran = []
-
-    def run(args, *rest, **kwargs):
-        ran.append(args)
-        return subprocess.CompletedProcess(args, 0)
-
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"bash": (0, "", "")})
     fake_stdin(monkeypatch, b"PREDICATE: test -e marker\nThis is why I chose it.\n")
     code = structural_predicate.main(["record"])
     captured = capsys.readouterr()
-    assert (code, captured.out, "multi-line" in captured.err.lower(), ran) == (2, "", True, [])
+    assert (code, captured.out, "multi-line" in captured.err.lower(), fake.argvs) == (2, "", True, [])
     assert list(tmp_path.iterdir()) == []
 
 
