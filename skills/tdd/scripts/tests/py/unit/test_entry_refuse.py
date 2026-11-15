@@ -9,14 +9,11 @@ def stderr_of(capfdbinary, *args, **kwargs):
     return code, capfdbinary.readouterr().err
 
 
-def test_refuse_a_bare_message_writes_it_and_a_newline_to_stderr_and_returns_2_as_add_ledger_step_does(capfdbinary):
-    from veri import add_ledger_step
-
+def test_refuse_a_bare_message_writes_it_and_a_newline_to_stderr_and_returns_2_as_add_ledger_step_uses_it(
+        capfdbinary):
     code, err = stderr_of(capfdbinary, "add-ledger-step.sh: no such ledger")
-    assert add_ledger_step.refuse("add-ledger-step.sh: no such ledger") == 2
 
     assert (code, err) == (2, b"add-ledger-step.sh: no such ledger\n")
-    assert capfdbinary.readouterr().err == err
 
 
 def test_refuse_with_usage_writes_the_message_then_usage_with_a_newline_added_as_leaf_timeout_does(capfdbinary):

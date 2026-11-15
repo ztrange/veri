@@ -1,11 +1,13 @@
 """unlabel-issue.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import functools
 import json
 import os
 import subprocess
 import sys
 import urllib.parse
 
+import entry
 import tunables
 
 try:
@@ -15,15 +17,12 @@ except ImportError:
     import ledger
 
 
-def _refuse(message):
-    print("unlabel-issue.sh: " + message, file=sys.stderr)
-    return 2
+_refuse = functools.partial(entry.refuse, prefix="unlabel-issue.sh: ")
 
 
 def main(argv):
     if len(argv) != 1:
-        print("usage: unlabel-issue.sh <issue-number>", file=sys.stderr)
-        return 2
+        return entry.refuse(usage="usage: unlabel-issue.sh <issue-number>")
     if not argv[0].isdecimal():
         return _refuse("issue number must be numeric, got '%s'" % argv[0])
     opt_in = tunables.read("VERI_LABEL", "ready-for-agent")
@@ -65,5 +64,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

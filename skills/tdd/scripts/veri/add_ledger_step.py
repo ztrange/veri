@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 
+import entry
 import event
 import issue_worktree
 import replaces_case
@@ -29,11 +30,6 @@ USAGE = "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|
 
 def warn(message):
     sys.stderr.write(message + "\n")
-
-
-def refuse(message):
-    warn(message)
-    return 2
 
 
 def criterion_of(line):
@@ -193,19 +189,19 @@ def main(argv):
     if not planned and criterion is not None and argv[:1] == ["--planned"]:
         planned, argv = True, argv[1:]
     if len(argv) < 4 or "" in argv[:3]:
-        return refuse(USAGE)
+        return entry.refuse(USAGE)
     if criterion is not None and not re.fullmatch("[1-9][0-9]*", criterion):
-        return refuse("add-ledger-step.sh: --criterion must be a whole number >= 1: " + criterion)
+        return entry.refuse("add-ledger-step.sh: --criterion must be a whole number >= 1: " + criterion)
     if planned and not criterion:
-        return refuse("add-ledger-step.sh: --planned requires --criterion")
+        return entry.refuse("add-ledger-step.sh: --planned requires --criterion")
     path, where, anchor, *texts = argv
     if where not in ("after", "before", "instead-of"):
-        return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
+        return entry.refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     for text in texts:
         if CRITERION_TAG in text:
-            return refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
+            return entry.refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
         if " ⟂ " in text:
-            return refuse("add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text)
+            return entry.refuse("add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text)
     try:
         lines = read_ledger(path).split("\n")
     except OSError as error:
@@ -217,18 +213,18 @@ def main(argv):
     records = ledger_steps("\n".join(lines))
     refusal = multi_tag_refusal(records)
     if refusal:
-        return refuse("add-ledger-step.sh: " + refusal)
+        return entry.refuse("add-ledger-step.sh: " + refusal)
     known, ticked = spec_criteria(path) if planned else (None, set())
     if planned and known is None:
-        return refuse("add-ledger-step.sh: --planned: cannot read the spec file " + spec_path(path))
+        return entry.refuse("add-ledger-step.sh: --planned: cannot read the spec file " + spec_path(path))
     if criterion in ticked:
-        return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
+        return entry.refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
     if known is not None and int(criterion) > known:
-        return refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)")
+        return entry.refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)")
     if planned and any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
-        return refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
+        return entry.refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
-        return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
+        return entry.refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     for text in texts:
         if has_mark(text, ("replaces-case",)) and replaces_case.parse(text) is None:
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
@@ -238,27 +234,27 @@ def main(argv):
             continue
         unit = unit_of(text)
         if unit is None and "`" in text:
-            return refuse("add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " "))
+            return entry.refuse("add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " "))
         if unit is None:
-            return refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
+            return entry.refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
         try:
             restated = restates_list(path, unit)
         except MissingUnit:
-            return refuse(f"add-ledger-step.sh: {unit}: the unit file does not exist")
+            return entry.refuse(f"add-ledger-step.sh: {unit}: the unit file does not exist")
         if restated:
-            return refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
+            return entry.refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
     earlier = [line for line in steps if is_suite_repair(line) and "⟂ retired" not in line]
     try:
         this_run = added_since_last_resume(path, steps) if earlier else False
     except UnreadableLog as unreadable:
-        return refuse(str(unreadable))
+        return entry.refuse(str(unreadable))
     if this_run and any(is_suite_repair(text) for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
     budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
-        return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
+        return entry.refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     out = []
     inserted_lines = []
     for line in lines:
@@ -287,7 +283,7 @@ def main(argv):
         return 1
     bare = next((line for line in inserted_lines if carries_mark(line, "diff-checked") and CRITERION_TAG not in line), None)
     if bare:
-        return refuse("add-ledger-step.sh: a diff-checked step needs a ⟦criterion k⟧ tag: " + bare)
+        return entry.refuse("add-ledger-step.sh: a diff-checked step needs a ⟦criterion k⟧ tag: " + bare)
     awake = event.awake_reading()
     if isinstance(awake, int):
         return 2
@@ -304,5 +300,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

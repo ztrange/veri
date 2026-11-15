@@ -5,14 +5,9 @@ import re
 import subprocess
 import sys
 
+import entry
+
 USAGE = "usage: refactor-touched.sh <commit> | --issue <base>"
-
-
-def refuse(message=None):
-    if message:
-        print(message, file=sys.stderr)
-    print(USAGE, file=sys.stderr)
-    return 2
 
 
 def named_files(candidate):
@@ -38,18 +33,18 @@ def main(argv):
         candidate = argv[i + 1] if i + 1 < len(argv) else ""
         argv = argv[:i] + argv[i + 2:]
     if check_only and candidate is None:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     rev = argv[0] if argv else ""
     span = [f"{rev}^", rev]
     if rev == "--issue":
         rev = argv[1] if len(argv) > 1 else ""
         span = [rev, "HEAD"]
     if not rev:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
-        return refuse(f"refactor-touched: cannot resolve commit '{rev}'")
+        return entry.refuse(f"refactor-touched: cannot resolve commit '{rev}'", usage=USAGE)
     diff = subprocess.run(["git", "diff", "--name-only", *span],
                           stdout=subprocess.PIPE, text=True)
     touched = [p for p in diff.stdout.splitlines() if not p.startswith(".tdd/")]
@@ -66,5 +61,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

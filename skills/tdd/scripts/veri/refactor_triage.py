@@ -1,9 +1,11 @@
 """refactor-triage.sh's reading of a refactor leaf's report, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import functools
 import re
 import sys
 
 import candidates
+import entry
 
 
 def _encoded(pattern):
@@ -17,10 +19,7 @@ CLASS_LIST = ", ".join(ACCEPTED[:-1]).encode() + b" or " + ACCEPTED[-1].encode()
 NONE = re.compile(rb"^none\s*$")
 
 
-def _refuse(text):
-    sys.stderr.buffer.write(b"refactor-triage: " + text + b"\n")
-    sys.stderr.buffer.flush()
-    return 2
+_refuse = functools.partial(entry.refuse, prefix="refactor-triage: ")
 
 
 def main(argv):
@@ -52,5 +51,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

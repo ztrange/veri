@@ -8,8 +8,10 @@ import subprocess
 import sys
 
 try:
+    import entry
     from git import git
 except ImportError:
+    from . import entry
     from .git import git
 
 try:
@@ -31,13 +33,6 @@ SPACE = rb"[ \t\n\v\f\r]"
 
 class Unplaced(Exception):
     pass
-
-
-def refuse(message=None):
-    if message is not None:
-        print(message, file=sys.stderr)
-    print(USAGE, file=sys.stderr)
-    return 2
 
 
 def read(path):
@@ -243,18 +238,18 @@ def untracked(*args):
 
 def main(argv):
     if not argv or not argv[0]:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     revisions = argv[0]
     for rev in revisions.split("..", 1):
         if git("rev-parse", "--verify", "--quiet", rev + "^{commit}", stdout=subprocess.DEVNULL).returncode != 0:
-            return refuse("affected-suites: cannot resolve revision '%s'" % rev)
+            return entry.refuse("affected-suites: cannot resolve revision '%s'" % rev, usage=USAGE)
 
     working_tree = ".." not in revisions
     if not working_tree:
         revisions = revisions.replace("..", "...", 1)
     code, files = changed(revisions)
     if code != 0:
-        return code if code in (1, 2, 3) else 2
+        return entry.to_contract(code)
     if working_tree:
         _, new = untracked()
         files = "\n".join(f for f in [files, new] if f)
@@ -278,5 +273,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

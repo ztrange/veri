@@ -4,6 +4,7 @@ import os
 import sys
 from collections import Counter
 
+import entry
 from case_reader import is_test_path
 from candidates import CLASSES, LINE, candidate
 from report import report_read
@@ -44,11 +45,6 @@ def joined(lines):
 
 def bullets(transforms):
     return joined(f"- {t}" for t in transforms)
-
-
-def refuse():
-    print(USAGE, file=sys.stderr)
-    return 2
 
 
 def write(file, text):
@@ -92,7 +88,7 @@ def applied(file, transform, sha, subject=""):
 
 def not_done(file, candidate, reason):
     if reason not in NOT_DONE_REASONS:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     return write(file, f"{NOT_DONE_MARK}{reason} | {candidate}\n")
 
 
@@ -187,7 +183,7 @@ def list_owed(file):
 def main(argv):
     verb, file, *args = (list(argv) + ["", "", "", "", ""])[:5]
     if not verb or not file:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     if verb == "append":
         step, bounds = args[:2]
         return append(file, step, bounds)
@@ -202,9 +198,8 @@ def main(argv):
         return render(file)
     if verb == "list":
         return list_owed(file)
-    return refuse()
+    return entry.refuse(usage=USAGE)
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

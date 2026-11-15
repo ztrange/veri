@@ -1,17 +1,17 @@
 """restore-production.sh's restore, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import functools
 import os
 import sys
 
+import entry
 import git
 import tests_frozen
 
 USAGE = "usage: restore-production.sh <test-path>..."
 
 
-def refuse(message):
-    print(f"restore-production.sh: {message}", file=sys.stderr)
-    return 2
+refuse = functools.partial(entry.refuse, prefix="restore-production.sh: ")
 
 
 def spared_tests():
@@ -69,5 +69,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

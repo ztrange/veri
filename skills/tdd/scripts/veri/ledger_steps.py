@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
+import entry
 from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
 
 VERBS = {
@@ -14,11 +15,6 @@ VERBS = {
     "has-mark": "has-mark <name>",
 }
 USAGE = "usage: ledger-steps.sh [" + "|".join(VERBS.values()) + "]"
-
-
-def refuse():
-    sys.stderr.buffer.write((USAGE + "\n").encode())
-    return 2
 
 
 def write_lines(lines):
@@ -75,11 +71,11 @@ def criterion(text, k):
 def main(argv):
     verb = argv[0] if argv else ""
     if verb and verb not in VERBS:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
-        return refuse()
+        return entry.refuse(usage=USAGE)
     if verb == "has-mark" and (len(argv) < 2 or not argv[1]):
-        return refuse()
+        return entry.refuse(usage=USAGE)
     text = read_ledger_stdin()
     if verb == "criterion":
         return criterion(text, int(argv[1]) % 2**64)
@@ -99,5 +95,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

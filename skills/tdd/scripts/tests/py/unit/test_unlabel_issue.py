@@ -504,3 +504,16 @@ def test_main_2966_exits_2_and_changes_no_label_when_another_lanes_taken_label_i
     code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:mu"}, ledger=False)
 
     assert (code, changes) == (2, [])
+
+
+def test_main_refuses_a_missing_or_non_numeric_issue_number_with_exit_2_and_the_exact_stderr_line(capsys):
+    unlabel_issue = importlib.import_module("veri.unlabel_issue")
+
+    usage = unlabel_issue.main([])
+    usage_err = capsys.readouterr().err
+    non_numeric = unlabel_issue.main(["x7"])
+    non_numeric_err = capsys.readouterr().err
+
+    assert (usage, usage_err, non_numeric, non_numeric_err) == (
+        2, "usage: unlabel-issue.sh <issue-number>\n",
+        2, "unlabel-issue.sh: issue number must be numeric, got 'x7'\n")
