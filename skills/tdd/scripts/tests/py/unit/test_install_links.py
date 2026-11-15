@@ -2,7 +2,7 @@
 import shutil
 from pathlib import Path
 
-from conftest import shim_problems
+from shim_audit import shim_problems
 
 SCRIPTS = Path(__file__).resolve().parents[3]
 

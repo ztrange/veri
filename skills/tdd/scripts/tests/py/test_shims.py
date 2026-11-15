@@ -9,7 +9,8 @@ import sys
 
 import pytest
 
-from conftest import FLOOR_SOURCE, INTERPRETER_VENV, SCRIPTS, VENV_PREFIX, shim_problems
+from conftest import INTERPRETER_VENV, SCRIPTS
+from shim_audit import FLOOR_SOURCE, VENV_PREFIX, shim_problems
 
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
@@ -105,7 +106,7 @@ def test_a_shim_run_through_a_symlink_to_the_skills_directory_from_another_cwd_g
 
 def test_entry_bypass_problems_names_the_module_whose_main_block_exits_bare_as_module_and_line_and_passes_one_calling_entry_run(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "bare.sh", 'exec python3 "$(dirname "$0")/veri/bare.py" "$@"')
@@ -122,7 +123,7 @@ def test_entry_bypass_problems_names_the_module_whose_main_block_exits_bare_as_m
 
 def test_entry_bypass_problems_ignores_the_one_line_pycache_prefix_main_guard_and_still_names_the_bare_block_after_it_2405(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     prefix = 'if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")\n'
     (tmp_path / "veri").mkdir()
@@ -140,7 +141,7 @@ def test_entry_bypass_problems_ignores_the_one_line_pycache_prefix_main_guard_an
 
 def test_entry_bypass_problems_names_the_module_whose_single_quoted_main_test_block_exits_bare_as_module_and_line(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "quoted.sh", 'exec python3 "$(dirname "$0")/veri/quoted.py" "$@"')
@@ -154,7 +155,7 @@ def test_entry_bypass_problems_names_the_module_whose_single_quoted_main_test_bl
 
 def test_entry_bypass_problems_names_the_module_whose_only_entry_run_in_its_main_block_is_a_comment_as_module_and_line(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "commented.sh", 'exec python3 "$(dirname "$0")/veri/commented.py" "$@"')
@@ -168,7 +169,7 @@ def test_entry_bypass_problems_names_the_module_whose_only_entry_run_in_its_main
 
 def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_in_a_function_defined_after_its_main_block_as_module_and_line(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "late.sh", 'exec python3 "$(dirname "$0")/veri/late.py" "$@"')
@@ -182,7 +183,7 @@ def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_in_a_fun
 
 def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_a_trailing_comment_on_its_bare_exit_as_module_and_line(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "trailing.sh", 'exec python3 "$(dirname "$0")/veri/trailing.py" "$@"')
@@ -196,7 +197,7 @@ def test_entry_bypass_problems_names_the_module_whose_only_entry_run_is_a_traili
 
 def test_entry_bypass_problems_reports_a_problem_for_a_scripts_tree_holding_no_shim(tmp_path):
     """Its subject is source text: a planted scripts tree with no shim in it, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     (tmp_path / "plain.txt").write_text("not a shim\n")
@@ -208,7 +209,7 @@ def test_entry_bypass_problems_reports_a_problem_for_a_scripts_tree_holding_no_s
 
 def test_entry_bypass_problems_names_the_planted_bare_module_as_module_and_line_leaves_the_entry_run_one_alone_and_passes_once_the_offender_is_removed(tmp_path):
     """Its subject is source text: planted shims and module files, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     (tmp_path / "veri").mkdir()
     shim(tmp_path / "probe-bare.sh", 'exec python3 "$(dirname "$0")/veri/probe_bare.py" "$@"')
@@ -229,13 +230,13 @@ def test_entry_bypass_problems_names_the_planted_bare_module_as_module_and_line_
 @pytest.mark.tree_audit("every scripts/*.sh and the module each execs, read as text")
 def test_every_module_a_shim_execs_goes_through_the_shared_entry_point():
     """Its subject is source text: the real scripts tree, read as text and never run."""
-    from conftest import entry_bypass_problems
+    from shim_audit import entry_bypass_problems
 
     assert entry_bypass_problems(SCRIPTS) == []
 
 
 def plant_into_stop_run_copy(tmp_path, planted):
-    from conftest import shim_source_problems
+    from shim_audit import shim_source_problems
 
     original = (SCRIPTS / "stop-run.sh").read_text()
     (tmp_path / "stop-run.sh").write_text(original)
@@ -298,7 +299,7 @@ def test_shim_source_problems_names_the_python3_call_handed_a_fixture_sourced_or
 
 def test_shim_source_problems_names_a_lib_script_handing_python3_a_gh_json_document_planted_into_a_copy(tmp_path):
     """Its subject is source text: a copy of the real lib/watch.sh with a gh JSON document handed to python3 as an argument, read as text and never run."""
-    from conftest import shim_source_problems
+    from shim_audit import shim_source_problems
 
     original = (SCRIPTS / "lib" / "watch.sh").read_text()
     (tmp_path / "lib").mkdir()
@@ -314,7 +315,7 @@ def test_shim_source_problems_names_a_lib_script_handing_python3_a_gh_json_docum
 @pytest.mark.tree_audit("every scripts/*.sh, the six exempt shims included, read as text")
 def test_the_every_shim_guard_finds_no_offender_among_the_real_scripts_including_the_exempt_ones():
     """Its subject is source text: the real scripts tree, read as text and never run."""
-    from conftest import shim_source_problems
+    from shim_audit import shim_source_problems
 
     assert (SCRIPTS / "stop-run.sh").is_file()
     assert shim_source_problems(SCRIPTS) == []
