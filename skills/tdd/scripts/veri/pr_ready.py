@@ -2,11 +2,8 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-try:
-    from veri import github, tunables
-except ImportError:
-    import github
-    import tunables
+import github
+import tunables
 
 
 def main(argv):

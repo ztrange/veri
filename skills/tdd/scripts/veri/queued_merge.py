@@ -10,18 +10,11 @@ import sys
 import tempfile
 import time
 
-try:
-    import event
-    import paths
-    import tunables
-    from github import gh_api, gh_probe
-    from ledger import ledger_path
-except ImportError:
-    from . import event
-    from . import paths
-    from . import tunables
-    from .github import gh_api, gh_probe
-    from .ledger import ledger_path
+import event
+import paths
+import tunables
+from github import gh_api, gh_probe
+from ledger import ledger_path
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5

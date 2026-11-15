@@ -2,12 +2,8 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-try:
-    from capture_spec import capture, part
-    from github import NoAnswer
-except ImportError:
-    from .capture_spec import capture, part
-    from .github import NoAnswer
+from capture_spec import capture, part
+from github import NoAnswer
 
 
 def boxes(spec):

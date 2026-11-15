@@ -4,10 +4,7 @@ import json
 import re
 import sys
 
-try:
-    from veri import github
-except ImportError:
-    import github
+import github
 
 BEGIN, END = "<!-- veri:run-body -->", "<!-- /veri:run-body -->"
 USAGE = "usage: pr-body.sh <pr-number> <body-file>"
