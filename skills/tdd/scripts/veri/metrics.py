@@ -28,11 +28,12 @@ import json
 import os
 import re
 import sys
+import run_dir
 import run_end
 import tunables
 
 from event_log import read_events
-from ledger import decode_ledger, ledger_path, ledger_steps
+from ledger import decode_ledger, ledger_steps
 from prices import PRICES, cache_write_tokens, family
 
 FAMILIES_TOTAL = "Total"
@@ -887,7 +888,7 @@ def rendered(issue):
     """
     if not issue:
         return 2, "", USAGE + "\n"
-    return 0, report(issue, ".tdd/events.jsonl", ledger_path(".", issue)), ""
+    return 0, report(issue, ".tdd/events.jsonl", run_dir.ledger(".", issue)), ""
 
 
 def main(argv):
@@ -895,7 +896,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     issue = argv[0]
-    report(issue, ".tdd/events.jsonl", ledger_path(".", issue), stream=sys.stdout)
+    report(issue, ".tdd/events.jsonl", run_dir.ledger(".", issue), stream=sys.stdout)
     return 0
 
 
