@@ -412,8 +412,8 @@ class FakePopen:
 class FakeProcesses:
     """What fake_processes.answers hands back: the command lines run, and (argv, kwargs) per call."""
 
-    def __init__(self, calls, seen, popens=()):
-        self.calls, self.seen, self.popens = calls, seen, popens
+    def __init__(self, calls, seen, popens=(), rests=()):
+        self.calls, self.seen, self.popens, self.rests = calls, seen, popens, rests
 
     @property
     def argvs(self):
@@ -442,6 +442,7 @@ def fake_processes(monkeypatch):
         AssertionError("unexpected process: <line>") unless <default> (any of the above) answers it.
         fake.calls: the command lines, in order. fake.argvs: the same calls as argv lists. fake.seen: one (argv, kwargs) per call, argv as the caller
         passed it (full path kept) and kwargs as passed (cwd, env, input, capture_output, check ...).
+        fake.rests: one tuple per call, the extra positional arguments after the command (subprocess.run(argv, *rest)), () for none.
         Output is handed back in the caller's mode (str under text=True, bytes otherwise), stderr=STDOUT
         merges, check=True raises CalledProcessError.
         One table serves every entry point, each recorded alike (calls, argvs, seen):
@@ -466,24 +467,26 @@ def fake_processes(monkeypatch):
         The legacy fake_processes(answer) form above still refuses all but run. There is no real-process
         passthrough: a case needing one is a `process` case with its own setup.
     """
-    def install(answer=None, seen=None, popens=None, every_entry=False):
+    def install(answer=None, seen=None, popens=None, every_entry=False, rests=None):
         calls = []
+        rests = [] if rests is None else rests
         seen = [] if seen is None else seen
         popens = [] if popens is None else popens
 
-        def line_of(args, kwargs=None):
+        def line_of(args, kwargs=None, rest=()):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
             seen.append((list(args), dict(kwargs or {})))
+            rests.append(tuple(rest))
             return line
 
-        def record(args, *_, **kwargs):
-            line_of(args, kwargs)
+        def record(args, *rest, **kwargs):
+            line_of(args, kwargs, rest)
             return subprocess.CompletedProcess(args, 0, "", "")
 
-        def answered(args, kwargs):
+        def answered(args, kwargs, rest=()):
             """What the answer table says <args> did: (returncode, stdout, stderr) in the caller's mode."""
-            code, out, err = answer(line_of(args, kwargs), **kwargs)
+            code, out, err = answer(line_of(args, kwargs, rest), **kwargs)
             encoding = kwargs.get("encoding") or "utf-8"
             text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
 
@@ -499,34 +502,34 @@ def fake_processes(monkeypatch):
                 out, err = out + err, None
             return code, out, err
 
-        def run(args, *_, **kwargs):
-            code, out, err = answered(args, kwargs)
+        def run(args, *rest, **kwargs):
+            code, out, err = answered(args, kwargs, rest)
             if kwargs.get("check") and code:
                 raise subprocess.CalledProcessError(code, args, out, err)
             return subprocess.CompletedProcess(args, code, out, err)
 
-        def call(args, *_, **kwargs):
-            return answered(args, kwargs)[0]
+        def call(args, *rest, **kwargs):
+            return answered(args, kwargs, rest)[0]
 
-        def popen(args, *_, **kwargs):
-            child = FakePopen(args, kwargs, *answered(args, kwargs))
+        def popen(args, *rest, **kwargs):
+            child = FakePopen(args, kwargs, *answered(args, kwargs, rest))
             popens.append(child)
             return child
 
-        def check_call(args, *_, **kwargs):
-            code = answered(args, kwargs)[0]
+        def check_call(args, *rest, **kwargs):
+            code = answered(args, kwargs, rest)[0]
             if code:
                 raise subprocess.CalledProcessError(code, args)
             return 0
 
-        def check_output(args, *_, **kwargs):
-            code, out, err = answered(args, kwargs)
+        def check_output(args, *rest, **kwargs):
+            code, out, err = answered(args, kwargs, rest)
             if code:
                 raise subprocess.CalledProcessError(code, args, out, err)
             return out
 
-        def refuse(args, *_, **__):
-            raise AssertionError("unexpected process: %s" % line_of(args))
+        def refuse(args, *rest, **__):
+            raise AssertionError("unexpected process: %s" % line_of(args, None, rest))
 
         answering = {"run": run}
         if every_entry:
@@ -554,8 +557,9 @@ def fake_processes(monkeypatch):
             return what(line, **kwargs) if callable(what) else what
 
         seen, popens = [], []
-        calls = install(answer, seen, popens, every_entry=True)
-        return FakeProcesses(calls, seen, popens)
+        rests = []
+        calls = install(answer, seen, popens, every_entry=True, rests=rests)
+        return FakeProcesses(calls, seen, popens, rests)
 
     install.answers = answers
     return install

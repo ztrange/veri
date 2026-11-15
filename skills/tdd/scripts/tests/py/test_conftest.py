@@ -105,6 +105,18 @@ def test_fake_processes_answers_picks_the_longest_matching_prefix_and_records_co
     assert fake.argvs == [["/usr/bin/vcs", "rev-parse", "HEAD"], ["vcs", "status"], ["hub", "issue", "list"]]
 
 
+def test_fake_processes_answers_records_the_extra_positional_arguments_each_entry_point_received_after_the_command(
+        fake_processes):
+    fake = fake_processes.answers({"tool": (0, "", "")})
+
+    subprocess.run(["tool", "a"], 4096, cwd="/x")
+    subprocess.call(["tool", "b"])
+    subprocess.check_output(["tool", "c"], 1, 2)
+
+    assert fake.rests == [(4096,), (), (1, 2)]
+    assert fake.seen[0] == (["tool", "a"], {"cwd": "/x"})
+
+
 def test_fake_processes_answers_hands_a_list_of_answers_out_in_turn_and_fails_naming_the_command_once_it_is_spent(
         fake_processes):
     fake_processes.answers({"vcs log": [(0, "first", ""), (0, "second", "")]})
