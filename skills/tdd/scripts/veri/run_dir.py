@@ -86,6 +86,16 @@ def worktree(main, issue):
     return os.path.join(worktrees(main), str(issue))
 
 
+def main_of_worktree(run):
+    """The main working tree a run directory sits under, read from the layout alone
+    (`<main>/.tdd/wt/<n>` gives `<main>`), or None for any other directory. str, never raises."""
+    wt = os.path.dirname(os.path.normpath(run))
+    state = os.path.dirname(wt)
+    if os.path.basename(wt) == "wt" and os.path.basename(state) == ".tdd":
+        return os.path.dirname(state)
+    return None
+
+
 def run_file(run, name):
     """The path of `name` inside `run`'s .tdd/ directory. str, never raises."""
     return os.path.join(run, ".tdd", name)

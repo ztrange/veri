@@ -30,6 +30,7 @@ import re
 import sys
 import run_dir
 import run_end
+import run_pins
 import tunables
 
 from event_log import read_events
@@ -122,6 +123,12 @@ def main_checkout_file(path, name):
     if not os.path.exists(found):
         found = os.path.join(os.path.dirname(path), "..", "..", "..", name)
     return found
+
+
+def pin_roots():
+    """Where a run's pin files may sit: the run's own `.tdd/`, then the main working tree's."""
+    main = run_dir.main_of_worktree(os.getcwd())
+    return (".",) if main is None else (".", main)
 
 
 def count_families(turn_rows, open_turn_rows, result_output):
@@ -563,10 +570,7 @@ def fold(issue, path, ledger):
     ending = ending or None
     wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
     planned, full_suite = planned_steps(ledger)
-    pinned = ""
-    with contextlib.suppress(OSError):
-        with open(main_checkout_file(path, "issue-%s-skip-verify" % issue)) as recorded:
-            pinned = recorded.read().strip()
+    pinned = run_pins.skip_verify(issue, *pin_roots()) or ""
     sessions, turn_rows = [], []
     if not tally.conductor_counted:
         sessions, turn_rows = conductor_sessions(issue, path)
@@ -576,9 +580,7 @@ def fold(issue, path, ledger):
         some_priced = any(r.get("total_cost_usd") is not None for r in sessions)
         spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
         tally.total[DOLLARS] += spend
-        with contextlib.suppress(OSError):
-            with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
-                model = recorded.read().strip()
+        model = run_pins.conductor_model(issue, *pin_roots()) or ""
         estimated = any(r.get("open") for r in sessions)
     transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
     first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
