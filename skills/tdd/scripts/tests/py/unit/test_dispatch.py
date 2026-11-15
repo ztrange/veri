@@ -10,6 +10,8 @@ from dispatch_world import FakeWorld
 
 _USAGE_LINE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n"
 
+_OVERLAP = ("skills/tdd/scripts/veri/dispatch.py", "https://github.com/o/r/pull/90")
+
 
 @pytest.fixture
 def dispatch():
@@ -1584,36 +1586,21 @@ def test_main_with_target_0_and_a_live_run_that_exits_prints_its_done_line_and_e
     assert (run("0"), run("1")) == ((0, done, []), (0, done, ["12"]))
 
 
-def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
-        monkeypatch, tmp_path, run_cli, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
+def test_main_with_an_unknown_flag_prints_the_usage_on_stderr_and_exits_2_launching_nothing(dispatch):
+    world = FakeWorld({"queue": ["12"]})
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    code = dispatch.main(["--target", "1", "--frobnicate"], world=world)
 
-    code, out, err = run_cli(dispatch, ["--target", "1", "--frobnicate"])
-
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, world.said, world.complained, world.launched) == (2, [], [_USAGE_LINE], [])
 
 
 def test_main_with_an_unknown_flag_in_the_first_position_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
-        monkeypatch, tmp_path, run_cli, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
+        dispatch):
+    world = FakeWorld({"queue": ["12"]})
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    code = dispatch.main(["--frobnicate", "5"], world=world)
 
-    code, out, err = run_cli(dispatch, ["--frobnicate", "5"])
-
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, world.said, world.complained, world.launched) == (2, [], [_USAGE_LINE], [])
 
 
 def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing_and_reading_no_queue(
@@ -2070,40 +2057,15 @@ def test_main_prints_stalled_and_exits_0_when_the_newest_liveness_source_is_exac
 
 
 def test_main_launches_exactly_one_at_target_4_once_a_restarted_run_is_live_again_beside_a_live_run_and_a_never_seen_restarting_run_issue_3495(
-        monkeypatch, capsys, tmp_path, dispatch):
-    import os
-    marker = tmp_path / ".tdd" / "wt" / "9" / ".tdd" / "restart-pending"
-    marker.parent.mkdir(parents=True)
-    marker.write_text(f"{os.getpid()}\n")
-    launches = []
-    waits = []
+        dispatch):
+    restarting = {"restarting": ["9"], "worktrees": ["9"]}
+    world = FakeWorld({"live": ["7", "8"], "queue": ["12", "15"], **restarting},
+                      {"live": ["7", "8", "12"], "queue": ["15"], **restarting},
+                      {"live": ["7", "8", "12"], "queue": ["15"], **restarting})
 
-    def launch(issue):
-        launches.append(issue)
-        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
-        ledger.parent.mkdir(parents=True)
-        ledger.write_text("- [ ] step\n")
+    code = dispatch.main(["--target", "4"], world=world)
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7", "8"] + launches, raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "4"])
-    except _StopWaiting:
-        code = None
-
-    assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
+    assert (code, world.said, world.launched) == (None, [], ["12"])
 
 
 def test_main_launches_the_next_issue_at_target_2_beside_one_live_run_and_a_worktree_whose_restart_marker_names_a_dead_restarter_issue_3495(
@@ -2166,53 +2128,29 @@ def _overlap_case(monkeypatch, tmp_path, dispatch, solvable, named, prs, waits_b
 
 
 def test_main_skips_a_solvable_issue_naming_a_path_an_open_run_draft_pr_changes_and_launches_the_next_without_overlap_issue_3478(
-        monkeypatch, tmp_path, dispatch):
-    launches, _ = _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
-        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+        dispatch):
+    world = FakeWorld({"queue": ["12", "15"], "overlaps": {"12": _OVERLAP}})
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    dispatch.main(["--target", "1"], world=world)
 
-    assert launches == ["15"]
+    assert world.launched == ["15"]
 
 
 def test_main_launches_an_issue_skipped_for_overlap_at_a_later_pass_once_no_open_run_draft_pr_changes_its_paths_issue_3478(
-        monkeypatch, tmp_path, dispatch):
-    open_prs = [{"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, {}, {}]
-    launched = []
-    launches, waits = _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: [i for i in ["12", "15"] if i not in launched],
-        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
-        lambda: open_prs[len(waits)], waits_before_stop=2)
+        dispatch):
+    world = FakeWorld({"queue": ["12", "15"], "overlaps": {"12": _OVERLAP}}, {"queue": ["12"]})
 
-    def launch(issue):
-        launched.append(issue)
-        launches.append(issue)
-        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
-        ledger.parent.mkdir(parents=True)
-        ledger.write_text("- [ ] step\n")
+    dispatch.main(["--target", "2"], world=world)
 
-    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "2"])
-
-    assert waits == [["15"], ["15", "12"]]
+    assert world.launched_at_wait == [["15"], ["15", "12"]]
 
 
-def test_main_prints_one_line_per_skip_naming_the_skipped_issue_the_overlapping_path_and_the_pr_issue_3478(
-        monkeypatch, capsys, tmp_path, dispatch):
-    _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
-        {"12": ["skills/tdd/SCRIPTS.md", "skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/scripts/veri/status.py"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]})
+def test_main_prints_one_line_per_skip_naming_the_skipped_issue_the_overlapping_path_and_the_pr_issue_3478(dispatch):
+    world = FakeWorld({"queue": ["12", "15"], "overlaps": {"12": _OVERLAP}})
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    dispatch.main(["--target", "1"], world=world)
 
-    assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+    assert "".join(world.said) == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
 
 
 def test_main_has_the_skip_line_in_a_block_buffered_redirected_stdout_file_when_its_next_wait_begins_issue_3613(
@@ -2342,17 +2280,13 @@ def test_main_has_the_queue_empty_line_in_a_block_buffered_redirected_stdout_fil
 
 
 def test_main_launches_nothing_and_keeps_waiting_never_reporting_queue_empty_when_every_solvable_issue_overlaps_issue_3478(
-        monkeypatch, capsys, tmp_path, dispatch):
-    launches, waits = _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: ["12", "15"],
-        {"12": ["skills/tdd/scripts/veri/dispatch.py"], "15": ["skills/tdd/SCRIPTS.md"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py", "skills/tdd/SCRIPTS.md"]},
-        waits_before_stop=2)
+        dispatch):
+    tick = {"queue": ["12", "15"], "overlaps": {"12": _OVERLAP, "15": ("skills/tdd/SCRIPTS.md", _OVERLAP[1])}}
+    world = FakeWorld(tick, tick)
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    dispatch.main(["--target", "1"], world=world)
 
-    assert (launches, len(waits), "queue-empty" in capsys.readouterr().out) == ([], 2, False)
+    assert (world.launched, world.waits, "queue-empty" in "".join(world.said)) == ([], 2, False)
 
 
 def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of_an_open_run_draft_pr_fails_issue_3478(
@@ -2590,15 +2524,13 @@ def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_
 
 
 def test_main_prints_a_skip_line_once_per_issue_pr_and_path_for_the_life_of_the_process_not_on_every_pass_issue_3478(
-        monkeypatch, capsys, tmp_path, dispatch):
-    _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: ["12"], {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, waits_before_stop=3)
+        dispatch):
+    tick = {"queue": ["12"], "overlaps": {"12": _OVERLAP}}
+    world = FakeWorld(tick, tick, tick)
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    dispatch.main(["--target", "1"], world=world)
 
-    assert capsys.readouterr().out == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
+    assert "".join(world.said) == "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n"
 
 
 def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_each_pr_diff_once_per_head_sha_and_the_pr_list_once_per_poll_window_issue_3478(
@@ -2635,42 +2567,26 @@ def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_eac
 
 @pytest.mark.parametrize("poll", ["soon", "-5"])
 def test_main_with_a_bad_overlap_poll_window_prints_the_usage_on_stderr_and_exits_2_before_any_launch_issue_3478(
-        monkeypatch, tmp_path, run_cli, dispatch, poll):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
-
+        monkeypatch, dispatch, poll):
     monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", poll)
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    world = FakeWorld({"queue": ["12"]})
 
-    code, out, err = run_cli(dispatch, ["--target", "1"])
+    code = dispatch.main(["--target", "1"], world=world)
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, world.said, world.complained, world.launched) == (2, [], [_USAGE_LINE], [])
 
 
 @pytest.mark.parametrize("sleep", ["soon", "-5", "1.5"])
 def test_main_with_a_bad_retry_sleep_names_the_variable_on_stderr_and_exits_2_before_any_read_issue_3560(
-        monkeypatch, tmp_path, run_cli, dispatch, sleep):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
-    reads = []
-
+        monkeypatch, dispatch, sleep):
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", sleep)
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: reads.append("live") or [], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: reads.append("merges") or [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: reads.append("solvable") or ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    world = FakeWorld({"queue": ["12"]})
 
-    code, out, err = run_cli(dispatch, ["--target", "1"])
+    code = dispatch.main(["--target", "1"], world=world)
 
-    assert (code, out, "VERI_DISPATCH_RETRY_SLEEP" in err, "Traceback" in err, reads, launches) == (
-        2, "", True, False, [], [])
+    err = "".join(world.complained)
+    assert (code, world.said, "VERI_DISPATCH_RETRY_SLEEP" in err, "Traceback" in err, world.reads, world.launched) == (
+        2, [], True, False, [], [])
 
 
 def _serve_pulls(monkeypatch, dispatch, read):
@@ -2885,20 +2801,14 @@ def test_main_skips_an_overlap_read_through_the_rest_pr_shape_naming_its_html_ur
 
 
 def test_main_prints_no_second_skip_line_for_the_same_overlap_seen_again_after_the_poll_hold_expires_issue_3478(
-        monkeypatch, capsys, tmp_path, dispatch):
-    times = [0, 70, 140]
-    queue_reads = []
-    _, waits = _overlap_case(
-        monkeypatch, tmp_path, dispatch, lambda: queue_reads.append(times[len(waits)]) or ["12"],
-        {"12": ["skills/tdd/scripts/veri/dispatch.py"]},
-        lambda: {"https://github.com/o/r/pull/90": ["skills/tdd/scripts/veri/dispatch.py"]}, waits_before_stop=len(times))
-    monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
+        dispatch):
+    held = {"queue": ["12"], "overlaps": {"12": _OVERLAP}}
+    world = FakeWorld({**held, "clock": 0}, {**held, "clock": 70}, {**held, "clock": 140})
 
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
+    dispatch.main(["--target", "1"], world=world)
 
-    assert (queue_reads, capsys.readouterr().out) == (
-        [0, 70, 140], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")
+    assert ([index for key, index in world.reads if key == "queue"], "".join(world.said)) == (
+        [0, 1, 2], "skip 12 skills/tdd/scripts/veri/dispatch.py https://github.com/o/r/pull/90\n")
 
 
 def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_launched_issue_3525(
@@ -2988,12 +2898,13 @@ def _fake_one_pass(monkeypatch, dispatch, tmp_path, state, solvable, launches):
 
 
 def test_main_with_no_target_and_an_override_line_of_fewer_than_4_fields_exits_2_naming_the_line_and_launches_nothing(
-        run_cli, monkeypatch, tmp_path, dispatch):
-    launches = []
-    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=1\noverride dev-1 2026-11-07T10:00:00\n", ["12"], launches)
-    code, out, err = run_cli(dispatch, [])
-    assert (code, out, launches) == (2, "", [])
-    assert "override dev-1 2026-11-07T10:00:00" in err
+        dispatch):
+    world = FakeWorld({"queue": ["12"]}, role_state=["n=1", "override dev-1 2026-11-07T10:00:00"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, world.said, world.launched) == (2, [], [])
+    assert "override dev-1 2026-11-07T10:00:00" in "".join(world.complained)
 
 
 def test_prioritize_moves_an_issue_two_override_lines_name_to_the_front_once(dispatch):
@@ -3016,21 +2927,25 @@ def test_main_with_no_target_and_a_role_dev_state_file_that_exists_but_is_unread
 
 
 def test_main_with_no_target_and_a_role_dev_state_file_with_no_n_line_exits_2_naming_the_file_and_launches_nothing(
-        run_cli, monkeypatch, tmp_path, dispatch):
-    launches = []
-    _fake_one_pass(monkeypatch, dispatch, tmp_path, "override dev-1 2026-11-07T10:00:00 take #12 first\n", ["12"], launches)
-    code, out, err = run_cli(dispatch, [])
-    assert (code, out, launches) == (2, "", [])
+        dispatch):
+    world = FakeWorld({"queue": ["12"]}, role_state=["override dev-1 2026-11-07T10:00:00 take #12 first"],
+                      role_state_file="/main/.tdd/role-dev.state")
+
+    code = dispatch.main([], world=world)
+
+    err = "".join(world.complained)
+    assert (code, world.said, world.launched) == (2, [], [])
     assert "no n= line" in err
-    assert str(tmp_path / ".tdd" / "role-dev.state") in err
+    assert "/main/.tdd/role-dev.state" in err
 
 
-def test_main_with_no_target_and_a_malformed_timed_n_line_exits_2_naming_the_line_and_launches_nothing(
-        run_cli, monkeypatch, tmp_path, dispatch):
-    launches = []
-    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=1\ntimed-n dev-1 2026-11-07T10:00:00\n", ["12"], launches)
-    code, out, err = run_cli(dispatch, [])
-    assert (code, out, launches) == (2, "", [])
+def test_main_with_no_target_and_a_malformed_timed_n_line_exits_2_naming_the_line_and_launches_nothing(dispatch):
+    world = FakeWorld({"queue": ["12"]}, role_state=["n=1", "timed-n dev-1 2026-11-07T10:00:00"])
+
+    code = dispatch.main([], world=world)
+
+    err = "".join(world.complained)
+    assert (code, world.said, world.launched) == (2, [], [])
     assert "malformed timed-n line" in err
     assert "timed-n dev-1 2026-11-07T10:00:00" in err
 
@@ -3055,13 +2970,13 @@ def test_main_with_no_target_under_a_lane_label_and_no_state_file_for_that_lane_
     assert str(tmp_path / ".tdd" / "role-dev-mu.state") in err
 
 
-def test_main_with_no_target_and_a_non_numeric_n_line_exits_2_naming_the_line_and_launches_nothing(
-        run_cli, monkeypatch, tmp_path, dispatch):
-    launches = []
-    _fake_one_pass(monkeypatch, dispatch, tmp_path, "n=two\n", ["12"], launches)
-    code, out, err = run_cli(dispatch, [])
-    assert (code, out, launches) == (2, "", [])
-    assert "malformed n line: n=two" in err
+def test_main_with_no_target_and_a_non_numeric_n_line_exits_2_naming_the_line_and_launches_nothing(dispatch):
+    world = FakeWorld({"queue": ["12"]}, role_state=["n=two"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, world.said, world.launched) == (2, [], [])
+    assert "malformed n line: n=two" in "".join(world.complained)
 
 
 def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes_while_a_non_parked_draft_pr_still_skips_issue_3545(
@@ -3434,36 +3349,13 @@ def test_launchable_skips_for_a_run_draft_pr_whose_issue_number_merely_starts_wi
 
 
 def test_main_reads_an_empty_queue_once_per_overlap_poll_interval_with_a_free_slot_and_one_live_conductor_issue_3748(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    now = [1000]
-    reads = []
-
-    def solvable():
-        reads.append(now[0])
-        return []
-
-    def wait():
-        if len(reads) == 2:
-            raise _StopWaiting
-        now[0] += 10
-
+        monkeypatch, dispatch):
     monkeypatch.delenv("VERI_DISPATCH_OVERLAP_POLL", raising=False)
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "clock", lambda: now[0])
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", solvable, raising=False)
-    monkeypatch.setattr(dispatch, "run_pr_paths", lambda: {}, raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    world = FakeWorld(*({"live": ["5"], "queue": [], "clock": 1000 + 10 * poll} for poll in range(7)))
 
-    try:
-        dispatch.main(["--target", "2"])
-    except _StopWaiting:
-        pass
+    dispatch.main(["--target", "2"], world=world)
 
-    assert reads == [1000, 1060]
+    assert [1000 + 10 * index for key, index in world.reads if key == "queue"] == [1000, 1060]
 
 def test_main_waits_for_the_reset_and_reads_the_exit_comments_again_when_the_read_in_exit_line_is_rate_limited_with_a_403_issue_3747(
         monkeypatch, tmp_path, run_cli, dispatch):
