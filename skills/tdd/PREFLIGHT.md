@@ -6,10 +6,11 @@ When a preflight check refuses (a failing check, a red baseline or full tier, or
 names as a stop or a bail), `Read` `<base directory>/PREFLIGHT-FAILURES.md` then and not before, and
 run it. A preflight that passes never reads it.
 
-**A fresh run starts with the script.** Before step 1, run `$S/preflight.sh <n> <slug>` (slug from
-the issue title). On exit 3, call it again. Take preflight's values (`baseline`, `full`, the
-default branch, the timeout) from its output. On any other non-zero exit, continue from the step
-its last line names, by the steps below. Steps 1 to 7 stay stated here.
+**The script ran before this file was read.** `SKILL.md` step 0 runs `$S/preflight.sh <n> <slug>`
+first, and this file is read only when it exits neither 0 nor 3. A fresh run continues from the
+step the script's last line names, by the steps below. A resume, told by the script's exit 2 saying
+the branch already holds a ledger, runs steps 1 to 7 below and never calls the script again. Steps
+1 to 7 stay stated here.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty.

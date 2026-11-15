@@ -30,9 +30,7 @@ and the supervisor's **stuck-retry**, all still in force):
 - **Resume.** Re-running `/tdd <n>` reads the ledger and continues from the first
   unchecked step.
 
-Hardened edges (#7) have since landed too, and are described below: the preflight
-baseline bail, reverting only the half-done step, and deterministic cause classification.
-Still **out of scope**: the loop and parallel rungs of the scope ladder. A step that
+**Out of scope**: the loop and parallel rungs of the scope ladder. A step that
 exhausts its revise budget, or a leaf that stays killed-stuck past the supervisor's
 budget, **bails** — preserving completed steps' commits and classifying the cause
 (process vs system; see `<base directory>/BAIL.md`).
@@ -255,9 +253,10 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 
 ### 0. Preflight — baseline checks (bail before any cycle)
 
-`Read` `<base directory>/PREFLIGHT.md` and run it. On a fresh run, the claim of step 1.6 is part
-of it: made right after preflight step 3 enters the worktree, before the baseline and the
-full-suite lock wait.
+Run `$S/preflight.sh <n> <slug>` (slug as in step 1.1) first, `PREFLIGHT.md` unread; on exit 3 run
+it again. Exit 0 is a whole preflight, step 1.6's claim included: take its values from its last
+lines. On any other exit `Read` `<base directory>/PREFLIGHT.md` and run it: from the step the last
+line names, or as a resume when exit 2 says the branch holds a ledger.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
