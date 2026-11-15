@@ -223,31 +223,34 @@ def test_main_all_with_no_tdd_wt_directory_answers_3_no_live_run_to_stop_as_the_
 
 
 def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_no_main_working_tree(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     caller = tmp_path / "caller"
     caller.mkdir()
     run_with_conductor(tmp_path)
     monkeypatch.chdir(caller)
     signalled = []
     monkeypatch.setattr(os, "kill", lambda pid, sig: signalled.append((pid, sig)))
-    calls = []
+    working_dirs = []
 
     def git_answering(answer):
-        def fake_run(args, **kwargs):
-            calls.append((list(args), kwargs.get("cwd"), kwargs.get("capture_output"), os.getcwd()))
+        def respond(line, **kwargs):
+            working_dirs.append(os.getcwd())
             if isinstance(answer, BaseException):
                 raise answer
-            return subprocess.CompletedProcess(args, answer[0], answer[1].decode(), None)
-        return fake_run
+            return answer[0], answer[1], b""
+        return respond
 
     for answer in ((0, b""), (128, b""), FileNotFoundError(2, "No such file or directory", "git")):
-        monkeypatch.setattr(subprocess, "run", git_answering(answer))
-        calls.clear()
+        working_dirs.clear()
+        fake = fake_processes.answers({"git worktree list --porcelain": git_answering(answer)})
 
         assert (answer, stop_run.main(["5"])) == (answer, 2)
         assert capsysbinary.readouterr() == (
             b"", "stop-run: no main working tree here — type this inside the repository\n".encode() + USAGE)
-        assert calls == [(["git", "worktree", "list", "--porcelain"], None, True, str(caller))]
+        assert [(argv, kwargs.get("cwd"), kwargs.get("capture_output"), cwd)
+                for (argv, kwargs), cwd in zip(fake.seen, working_dirs)] == [
+            (["git", "worktree", "list", "--porcelain"], None, True, str(caller))]
+        assert len(fake.seen) == 1
         assert list(tmp_path.rglob("stop")) == []
         assert signalled == []
 
@@ -374,7 +377,7 @@ def test_main_passes_non_utf8_bytes_in_an_argument_through_to_the_refusal_unchan
 
 
 def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_tree_and_pid_0_cases_do(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     repo = tmp_path / "repo"
     outside = tmp_path / "outside"
     outside.mkdir()
@@ -382,16 +385,14 @@ def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_
     trees = {str(repo): b"worktree %s\nHEAD abc\n" % os.fsencode(repo), str(outside): b""}
     held = conductor_answers(4242, 7007)
 
-    def fake_run(args, **kwargs):
-        if tuple(args) in held:
-            return subprocess.CompletedProcess(args, 0, held[tuple(args)][1].decode(), None)
-        if list(args[:2]) == ["ps", "-p"]:
-            return subprocess.CompletedProcess(args, 1, "", None)
-        if list(args) != ["git", "worktree", "list", "--porcelain"]:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0 if trees[os.getcwd()] else 128, trees[os.getcwd()].decode(), None)
+    def worktrees(line, **_):
+        return (0 if trees[os.getcwd()] else 128), trees[os.getcwd()], b""
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({
+        **{" ".join(argv): (0, answer[1], b"") for argv, answer in held.items()},
+        "ps -p": (1, b"", b""),
+        "git worktree list --porcelain": worktrees,
+    })
     live = {4242, 7007}
     signals = []
 

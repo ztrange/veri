@@ -43,7 +43,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_skill_edit_step_process.py": "not inventoried",
     "test_solvable_issues.py": "22 inline worktree-list fakes, Popen too",
     "test_status.py": "worktree list faked, the rest real",
-    "test_stop_run.py": "held-argv dict, per-cwd answers",
     "test_structural_predicate.py": "not inventoried",
     "test_supervise.py": "not inventoried",
     "test_tick_issue_criterion.py": "gh view/PATCH faked, git real",
