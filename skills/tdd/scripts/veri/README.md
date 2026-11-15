@@ -34,10 +34,11 @@ about twelve lines.
 - **Prose grading and requirements**: Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step.
 - **Conductors and operator tools**: The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports, handoff state).
 
-Directions the tree obeys (checked by the same test; a group not named may import any group):
+Directions the tree obeys (checked by the same test; every group states what it may import except Conductors and operator tools, which may import any group and which nothing imports):
 
 - Foundations imports only: nothing
 - Run state and journal imports only: Foundations
+- Ledger and plan imports only: Foundations; Run state and journal
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; Frozen tests and case history
 - Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
@@ -236,13 +237,21 @@ The ledger of a run: reading and ticking steps, growing, dropping and reordering
 - `replaces-case-survivors.sh`: replaced cases that still exist.
 - `resume-clean.sh`: discard a resumed run's uncommitted changes.
 - `scope-check.sh`: checks of a plan's scope.
-- `suite-red-resume.sh`: resume after a red suite.
-- `tick-ledger.sh`: tick a ledger step.
 - `unreplaced-cases.sh`: bash cases a replaces-case step names with no pytest replacement.
 
 ## add_ledger_step
 - `main(argv)`: exit code of add-ledger-step.sh; 2 with the usage on bad arguments.
 - `add(path, where, anchor, texts, *, criterion=None, planned=False)`: what `main` does once parsed, for an in-process caller: inserts `texts` after, before or instead of the one step holding `anchor`. Same exit codes (0 inserted, 1 budget spent or a clean negative, 2 refused) and same stderr as the script.
+
+## issue_body
+The one reading of a GitHub issue's markdown body: its `## <heading>` sections, acceptance criteria and blockers. Built on `markdown_sections.fenced_lines`; indexes count lines of `body.split("\n")`. It sits here because it reads the checkbox lines with `ledger.STEP_RE` and the GitHub modules may build on Ledger and plan.
+- `spans(body, heading, *, prefix=False)`: `[(start, end)]`, the content lines under each matching heading (start the line after it, end exclusive).
+- `section(body, heading, *, prefix=False, occurrence="last")`: the text, `None` when the heading is absent. `occurrence` is `first`, `last` or `all`.
+- `criteria(body, *, prefix=False, occurrence="last")`: `[(index, line)]`, the unfenced checkbox lines (`ledger.STEP_RE`) under `## Acceptance criteria`; the k-th criterion is `[k - 1]`.
+- `blockers(body, repo)`: the issue numbers under the first `## Blocked by`, as `#<n>` or `https://github.com/<repo>/issues/<n>`; an empty `repo` reads any github.com issue URL as local.
+- `add_blocker(body, n)`: `body` with `- #<n>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
+
+A heading matches when it equals the heading once stripped (CRLF and trailing whitespace tolerated; `prefix=True` also accepts a suffix); a heading inside a fenced block is none; a section ends at the next unfenced `# ` or `## `; the last occurrence wins unless `first` or `all` is asked. Callers: `blocked_by`, `report_cache`, `tick_issue_criterion`, `ledger_steps`, `add_ledger_step`, `refresh_spec`.
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
@@ -416,6 +425,7 @@ The tests-frozen rule: recording and checking that a step's tests are not change
 - `pin-reject-route.sh`: route a rejected pin to a ledger step.
 - `production-frozen.sh`: whether production code changed in a range.
 - `restore-production.sh`: restore production files changed against the frozen record.
+- `tick-ledger.sh`: tick a ledger step, re-recording the earlier steps' frozen cases.
 - `tests-frozen.sh`: record and check that a step's tests stay frozen.
 - `transform-touches-tests.sh`: whether a transform touched tests.
 - `wrong-test-route.sh`: route a wrong test to its repair.
@@ -473,16 +483,6 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `gh_api(path, stderr=None)`, `gh_api_delete(path)`, `gh_probe(*args)`, `run_gh(*args, stderr=None)`: raw `CompletedProcess` results; `run_gh` waits and retries while `gh` is not installed.
 - `gh_pr_ready(number, head_sha="")`, `gh_pr_diff_names(number)`: mark a draft PR ready, list the paths of a PR.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `wait_seconds(name, default, least)`: an int tunable, NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
-
-## issue_body
-The one reading of a GitHub issue's markdown body: its `## <heading>` sections, acceptance criteria and blockers. Built on `markdown_sections.fenced_lines`; indexes count lines of `body.split("\n")`.
-- `spans(body, heading, *, prefix=False)`: `[(start, end)]`, the content lines under each matching heading (start the line after it, end exclusive).
-- `section(body, heading, *, prefix=False, occurrence="last")`: the text, `None` when the heading is absent. `occurrence` is `first`, `last` or `all`.
-- `criteria(body, *, prefix=False, occurrence="last")`: `[(index, line)]`, the unfenced checkbox lines (`ledger.STEP_RE`) under `## Acceptance criteria`; the k-th criterion is `[k - 1]`.
-- `blockers(body, repo)`: the issue numbers under the first `## Blocked by`, as `#<n>` or `https://github.com/<repo>/issues/<n>`; an empty `repo` reads any github.com issue URL as local.
-- `add_blocker(body, n)`: `body` with `- #<n>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
-
-A heading matches when it equals the heading once stripped (CRLF and trailing whitespace tolerated; `prefix=True` also accepts a suffix); a heading inside a fenced block is none; a section ends at the next unfenced `# ` or `## `; the last occurrence wins unless `first` or `all` is asked. Callers: `blocked_by`, `report_cache`, `tick_issue_criterion`, `ledger_steps`, `add_ledger_step`, `refresh_spec`.
 
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
@@ -548,6 +548,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `run-finished.sh`: whether an issue's run finished.
 - `script-help.sh`: look up a script's help.
 - `status.sh`: the runs and scope totals view.
+- `suite-red-resume.sh`: resume after a red suite.
 - `unreachable.sh`: walk reachability of the modules.
 - `update-veri.sh`: update veri itself.
 - `watch-runs.sh`: watch the runs of a queue.
