@@ -10,14 +10,7 @@ import ledger
 import mutation_record
 import paths
 import tests_frozen
-from add_ledger_step import added_file
 
-# A clause (cut at , ; . or a newline) that names the before-state and says green or pass, and says
-# nothing of failing, being red, negating or "after": "fails on the before-state and passes after" is not it.
-_CLAUSE = r"(?:(?!\bfail|\bred\b|\bnot\b|n't|\bafter\b)[^,;.\n])*"
-BEFORE_STATE_GREEN = re.compile(
-    r"(?:^|(?<=[,;.\n]))" + _CLAUSE
-    + r"(?:before-state" + _CLAUSE + r"\b(?:green|pass)|\b(?:green|pass)" + _CLAUSE + r"before-state)")
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
 
 
@@ -58,7 +51,7 @@ def changed_line(text, new):
 
 def tick_added(path, step_line):
     target = ledger.body(ledger.STEP_RE.fullmatch(step_line).group(4))
-    record = added_file(path)
+    record = ledger.added_file(path)
     try:
         with open(record, "rb") as handle:
             lines = handle.read().decode(errors="surrogateescape").split("\n")
@@ -131,7 +124,7 @@ def main(argv):
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if event_name == "unpinnable-step" and "stays green" not in reason_text and not BEFORE_STATE_GREEN.search(
+        if event_name == "unpinnable-step" and "stays green" not in reason_text and not ledger.BEFORE_STATE_GREEN.search(
                 reason_text):
             return 1
         if event_name == "already-holds-step" and not any(

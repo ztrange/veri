@@ -16,7 +16,7 @@ import skill_edit_guard
 import tunables
 
 from event_log import read_events
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -138,10 +138,6 @@ def is_anchor_step(line, anchor):
 def write_ledger(path, text, appended=""):
     open(path, "ab").close()
     replace_ledger(path, (text + appended).encode(errors=BYTES))
-
-
-def added_file(path):
-    return sibling(path, "-added.md")
 
 
 def record_insertions(path, steps, awake):
