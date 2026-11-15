@@ -4,6 +4,11 @@ import json
 import subprocess
 
 
+def main_log_answer(log):
+    """A git command naming main reads <log>; any other git command reads nothing."""
+    return lambda line, **_: (0, log if "main" in line.split() else "", "")
+
+
 def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -113,7 +118,7 @@ def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips
     assert (code, [(l.split()[0], "42" in l, "41" in l) for l in waiting]) == (0, [("#2750", True, False)]), (waiting, err)
 
 
-def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli):
+def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -126,10 +131,7 @@ def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_wit
               {"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
 
-    def fake_run(argv, *a, **k):
-        out = "fix: something (#2750)\n" if argv[0] == "git" and "main" in argv else ""
-        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", fake_run)
+    fake_processes.answers({"": (0, "", ""), "git ": main_log_answer("fix: something (#2750)\n")})
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -138,7 +140,7 @@ def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_wit
     assert (code, waiting) == (0, []), (waiting, err)
 
 
-def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main(tmp_path, monkeypatch, run_cli):
+def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -151,10 +153,7 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
               {"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
 
-    def fake_run(argv, *a, **k):
-        out = "fix: something else (#2751)\nchore: mentions #2750 mid-subject\nfix: x (#2750) tail\n" if argv[0] == "git" and "main" in argv else ""
-        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", fake_run)
+    fake_processes.answers({"": (0, "", ""), "git ": main_log_answer("fix: something else (#2751)\nchore: mentions #2750 mid-subject\nfix: x (#2750) tail\n")})
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -163,7 +162,7 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
     assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
 
 
-def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli):
+def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -176,10 +175,7 @@ def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_mai
               {"ts": 1793600050, "awake": 50, "event": "done", "pr": "https://github.com/acme/widgets/pull/2911"}]
     (runs / "2826.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
 
-    def fake_run(argv, *a, **k):
-        out = "fix: something (#2911)\n" if argv[0] == "git" and "main" in argv else ""
-        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", fake_run)
+    fake_processes.answers({"": (0, "", ""), "git ": main_log_answer("fix: something (#2911)\n")})
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -188,7 +184,7 @@ def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_mai
     assert (code, waiting) == (0, []), (waiting, err)
 
 
-def _waiting_calls(tmp_path, monkeypatch, main_log):
+def _waiting_calls(tmp_path, monkeypatch, fake_processes, main_log):
     """Run waiting_lines() for a journal with a done PR; return (lines, argv of every process it ran)."""
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -201,23 +197,18 @@ def _waiting_calls(tmp_path, monkeypatch, main_log):
     events = [{"ts": 1793600000, "awake": 0, "event": "conductor-start", "pid": 2 ** 22 + 7, "started": "x"},
               {"ts": 1793600050, "awake": 50, "event": "done", "pr": 99}]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    calls = []
-
-    def spy(argv, *a, **k):
-        calls.append(list(argv))
-        out = main_log if argv[0] == "git" and "main" in argv else ""
-        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", spy)
-    return status.waiting_lines(), calls
+    fake = fake_processes.answers({"": (0, "", ""), "git ": main_log_answer(main_log)})
+    lines = status.waiting_lines()
+    return lines, [argv for argv, _ in fake.seen]
 
 
-def test_3250_waiting_runs_no_gh_when_the_issue_subject_is_on_local_main(tmp_path, monkeypatch):
-    lines, calls = _waiting_calls(tmp_path, monkeypatch, "fix: something (#2750)\n")
+def test_3250_waiting_runs_no_gh_when_the_issue_subject_is_on_local_main(tmp_path, monkeypatch, fake_processes):
+    lines, calls = _waiting_calls(tmp_path, monkeypatch, fake_processes, "fix: something (#2750)\n")
 
     assert (lines, [c for c in calls if c[0] == "gh"], len(calls) > 0) == ("none", [], True), calls
 
 
-def test_3250_waiting_runs_no_gh_when_the_issue_subject_is_not_on_local_main(tmp_path, monkeypatch):
-    lines, calls = _waiting_calls(tmp_path, monkeypatch, "fix: unrelated (#1)\n")
+def test_3250_waiting_runs_no_gh_when_the_issue_subject_is_not_on_local_main(tmp_path, monkeypatch, fake_processes):
+    lines, calls = _waiting_calls(tmp_path, monkeypatch, fake_processes, "fix: unrelated (#1)\n")
 
     assert ("PR 99 ready to merge" in lines, [c for c in calls if c[0] == "gh"], len(calls) > 0) == (True, [], True), calls
