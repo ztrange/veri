@@ -5,6 +5,8 @@ import subprocess
 
 import pytest
 
+from repo_builder import git, new_repo
+
 REF = "refs/remotes/origin/main"
 ABSENT = "0123456789abcdef0123456789abcdef01234567"
 GIT_BOUNDARY = "a real git repository, its clone and a fetch from the clone's origin"
@@ -13,18 +15,6 @@ GIT_BOUNDARY = "a real git repository, its clone and a fetch from the clone's or
 @pytest.fixture
 def skill_drift():
     return importlib.import_module("veri.skill_drift")
-
-
-def git(repo, *args):
-    done = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True)
-    return done.stdout.strip()
-
-
-def new_repo(path):
-    path.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=path, check=True)
-    git(path, "config", "user.name", "Test")
-    git(path, "config", "user.email", "test@example.com")
 
 
 def touch_commit(repo, path, subject):
