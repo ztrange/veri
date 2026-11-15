@@ -687,3 +687,16 @@ def test_is_human_owed_tolerates_whitespace_around_and_inside_the_marker_run_yet
     )]
 
     assert got == [True, True, True, False]
+
+
+def test_criterion_skips_a_fenced_checkbox_and_stops_at_a_top_level_heading_as_tick_issue_criterion_does(
+        monkeypatch, capsysbinary, ledger_steps):
+    fence = "`" * 3
+    body = (f"## Acceptance criteria\n- [ ] c1\n{fence}\n- [ ] fake\n{fence}\n- [ ] c2\n# Other\n- [ ] after\n").encode()
+    results = {}
+    for k in ("1", "2", "3"):
+        fake_stdin(monkeypatch, body)
+        code = ledger_steps.main(["criterion", k])
+        results[k] = (code, *capsysbinary.readouterr())
+
+    assert results == {"1": (0, b"c1\n", b""), "2": (0, b"c2\n", b""), "3": (3, b"", b"")}
