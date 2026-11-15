@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 
+import entry
 import paths
+import run_dir
 from git import git
 from ledger import CRITERION_RE, decode_ledger, ledger_path, ledger_steps
 
@@ -16,17 +18,11 @@ IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
             "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
 
 
-def inside_own_scripts():
-    scripts = paths.resolved_scripts_of(__file__)
-    here = os.path.realpath(os.getcwd())
-    return here == scripts or here.startswith(scripts + os.sep)
-
-
 def main(argv):
     if len(argv) < 4 or not all(argv[:4]):
         print(USAGE, file=sys.stderr)
         return 2
-    if inside_own_scripts():
+    if paths.inside_scripts(__file__):
         print("preserve-attempt.sh: type this from the run's worktree,"
               " not from the skill's own scripts directory", file=sys.stderr)
         return 2
@@ -57,7 +53,7 @@ def preserve(repo, issue, step, phase, attempt, mark="", env=None):
             result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}",
                              env=IDENTITY | env, cwd=repo)
         if result.returncode != 0:
-            return mapped(result.returncode)
+            return entry.to_contract(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     step_ref = sanitised(ledger_step_index(repo, issue, os.fsencode(step).decode("utf-8", "surrogateescape")))
@@ -75,10 +71,10 @@ def preserve(repo, issue, step, phase, attempt, mark="", env=None):
 
 
 def copy_leaf_files(repo, step_ref, phase, attempt, mark):
-    attempts = os.path.join(repo, ".tdd", "attempts")
+    attempts = run_dir.run_file(repo, "attempts")
     os.makedirs(attempts, exist_ok=True)
     for ext in ("log", "out"):
-        source = os.path.join(repo, ".tdd", f"{phase}.{ext}")
+        source = run_dir.run_file(repo, f"{phase}.{ext}")
         if os.path.isfile(source):
             shutil.copy(source, os.path.join(attempts, f"{step_ref}-{phase}-{attempt}-{mark}.{ext}"))
 
@@ -111,10 +107,6 @@ def run_git(*args, env=None, capture=True, quiet=False, cwd=None):
     return git(*args, env=env, cwd=cwd, text=True,
                stdout=subprocess.PIPE if capture else None,
                stderr=subprocess.DEVNULL if quiet else None)
-
-
-def mapped(code):
-    return code if 0 <= code <= 3 else 2
 
 
 if __name__ == "__main__":

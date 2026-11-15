@@ -90,8 +90,10 @@ def test_five_modules_resolve_the_symlinked_scripts_directory_to_its_target(tmp_
         spec.loader.exec_module(loaded)
         if module == "ensure_run_state_ignored":
             inside[module] = loaded.inside_own_scripts(real_scripts)
-        else:
+        elif hasattr(loaded, "inside_own_scripts"):
             inside[module] = loaded.inside_own_scripts()
+        else:
+            inside[module] = loaded.paths.inside_scripts(loaded.__file__)
     assert inside == {"ensure_run_state_ignored": True, "issue_worktree": True,
                       "leaf_timeout": True, "preserve_attempt": True, "stop_run": True}
 

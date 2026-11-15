@@ -978,4 +978,4 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     spec.loader.exec_module(loaded)
     monkeypatch.chdir(os.path.dirname(os.path.dirname(real)))
 
-    assert loaded.inside_own_scripts() is True
+    assert loaded.paths.inside_scripts(loaded.__file__) is True

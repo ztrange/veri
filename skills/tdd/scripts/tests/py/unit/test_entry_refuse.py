@@ -24,9 +24,7 @@ def test_refuse_with_usage_writes_the_message_then_usage_with_a_newline_added_as
 
     usage = leaf_timeout.USAGE
     code, err = stderr_of(capfdbinary, "leaf-timeout: bad", usage=usage)
-    assert leaf_timeout.refuse("leaf-timeout: bad") == 2
 
-    assert capfdbinary.readouterr().err == err
     assert not usage.endswith("\n")
     assert (code, err) == (2, b"leaf-timeout: bad\n" + usage.encode() + b"\n")
 
