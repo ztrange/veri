@@ -1,6 +1,5 @@
 """take, release and holder of veri/merge_lock.py under an --owner token."""
 import os
-import types
 
 from veri import merge_lock
 
@@ -37,9 +36,9 @@ def test_3134_release_without_an_owner_of_a_lock_taken_under_one_is_refused(tmp_
     assert (refused, os.path.isdir(lock)) == (1, True)
 
 
-def test_3134_failed_gate_under_another_owner_token_of_the_same_pid_leaves_the_lock_held(tmp_path, monkeypatch):
+def test_3134_failed_gate_under_another_owner_token_of_the_same_pid_leaves_the_lock_held(tmp_path, monkeypatch, fake_processes):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
-    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    fake_processes.answers({"false": (1, "", "")})
     me = str(os.getpid())
     lock = str(tmp_path / ".tdd" / "merge.lock")
     record = os.path.join(lock, "holder")
@@ -70,9 +69,9 @@ def test_3134_take_under_another_owner_token_of_the_same_pid_keeps_waiting_with_
     assert (code, held, open(record).read().split()[3:]) == ("waiting", 0, ["token-a"])
 
 
-def test_3134_failed_gate_under_the_owner_token_that_took_the_lock_releases_it(tmp_path, monkeypatch):
+def test_3134_failed_gate_under_the_owner_token_that_took_the_lock_releases_it(tmp_path, monkeypatch, fake_processes):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
-    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    fake_processes.answers({"false": (1, "", "")})
     me = str(os.getpid())
     lock = str(tmp_path / ".tdd" / "merge.lock")
     record = os.path.join(lock, "holder")
@@ -128,9 +127,9 @@ def test_3134_take_and_release_use_the_given_pid_and_owner_in_either_option_orde
     assert outcomes == {n: (0, me, ["token-a"], 0, False) for n in ORDERS}
 
 
-def test_3134_gate_uses_the_given_pid_and_owner_in_either_option_order(tmp_path, monkeypatch):
+def test_3134_gate_uses_the_given_pid_and_owner_in_either_option_order(tmp_path, monkeypatch, fake_processes):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
-    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    fake_processes.answers({"false": (1, "", "")})
     me = str(os.getpid())
     outcomes = {}
     for name, order in ORDERS.items():
@@ -196,9 +195,9 @@ def test_3579_forced_release_removes_the_token_file_holding_the_token_the_freed_
     assert (released, os.path.isdir(lock), mine.exists(), theirs.exists()) == (0, False, False, True)
 
 
-def test_3579_failed_gate_removes_the_token_file_holding_its_owner_token(tmp_path, monkeypatch):
+def test_3579_failed_gate_removes_the_token_file_holding_its_owner_token(tmp_path, monkeypatch, fake_processes):
     monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
-    monkeypatch.setattr(merge_lock.subprocess, "run", lambda cmd, **kw: types.SimpleNamespace(returncode=1))
+    fake_processes.answers({"false": (1, "", "")})
     me = str(os.getpid())
     lock = str(tmp_path / ".tdd" / "merge.lock")
     record = os.path.join(lock, "holder")
