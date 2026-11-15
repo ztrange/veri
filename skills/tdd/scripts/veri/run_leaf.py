@@ -32,6 +32,30 @@ def leaf_argv(binary, model, extra):
     return argv + extra
 
 
+def launch_spec(environ, git_path, shell, seconds, binary, model, extra):
+    """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
+
+    `env` is a copy of `environ` stripped of the conductor's session variables, with the leaf's private git
+    config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
+    PATH; the shim's locale marker, when `environ` carries it as "1", is removed together with
+    PYTHONCOERCECLOCALE. `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
+    env = dict(environ)
+    strip_session_env(env)
+    env["GIT_CONFIG_GLOBAL"] = git_path
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["FORCE_PROMPT_CACHING_5M"] = "1"
+    env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
+    env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shell
+    cap_ms = str(int(seconds) * 1000)
+    env.setdefault("BASH_DEFAULT_TIMEOUT_MS", cap_ms)
+    env.setdefault("BASH_MAX_TIMEOUT_MS", cap_ms)
+    env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
+    if environ.get("VERI_SHIM_SET_COERCE") == "1":
+        env.pop("VERI_SHIM_SET_COERCE", None)
+        env.pop("PYTHONCOERCECLOCALE", None)
+    return leaf_argv(binary, model, extra), env
+
+
 def read_prompt(path):
     if path == "-":
         data = sys.stdin.buffer.read()
@@ -84,15 +108,9 @@ def main(argv):
         except OSError as error:
             complain(git_path, error)
             return 2
-        env = dict(os.environ)
         binary = tunables.claude_bin()
         model = tunables.read("VERI_LEAF_MODEL")
-        strip_session_env(env)
-        env["GIT_CONFIG_GLOBAL"] = git_path
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-        env["FORCE_PROMPT_CACHING_5M"] = "1"
-        env["CLAUDE_CODE_DISABLE_BACKGROUND_TASKS"] = "1"
-        env["SHELL"] = env["CLAUDE_CODE_SHELL"] = shutil.which("bash")
+        shell = shutil.which("bash")
         try:
             seconds = effective_timeout()
         except leaf_timeout.Malformed as bad:
@@ -100,18 +118,11 @@ def main(argv):
                   file=sys.stderr)
             return 2
         try:
-            cap_ms = str(int(seconds) * 1000)
+            command, env = launch_spec(os.environ, git_path, shell, seconds, binary, model, argv[1:])
         except ValueError:
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
             return 2
-        env.setdefault("BASH_DEFAULT_TIMEOUT_MS", cap_ms)
-        env.setdefault("BASH_MAX_TIMEOUT_MS", cap_ms)
-        env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
-        if tunables.read("VERI_SHIM_SET_COERCE") == "1":
-            env.pop("VERI_SHIM_SET_COERCE", None)
-            env.pop("PYTHONCOERCECLOCALE", None)
-        command = leaf_argv(binary, model, argv[1:])
         try:
             leaf = subprocess.Popen(command, stdin=subprocess.PIPE,
                                     stdout=subprocess.PIPE, env=env,
