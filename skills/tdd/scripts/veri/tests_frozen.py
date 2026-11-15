@@ -14,8 +14,8 @@ import renamed_case
 import replaces_case
 import tunables
 import entry
-from frozen_record import (body_digest, body_line, body_record, helper_records, pass_marker_path,
-                           record_path, remove_pass_marker, step_key, work_tree_hash,
+from frozen_record import (body_digest, body_line, body_record, helper_records,
+                           record_path, remove_pass_marker, work_tree_hash,
                            write_pass_marker)
 import event
 import frozen_record
