@@ -213,7 +213,7 @@ Where a run lives on disk; the module docstring draws the layout. Paths are str 
 
 ## run_pins
 The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's writer and reader sit together. The hard-timeout pin is `leaf_timeout`'s.
-- `write_skip_verify(root, issue, listed)`, `skip_verify(issue, *roots)`: the VERI_SKIP_VERIFY list; the read answers the stripped text of the first root holding the pin, `None` when none does.
+- `write_skip_verify(root, issue, listed)`, `skip_verify(issue, *roots, unreadable_raises=False)`: the VERI_SKIP_VERIFY list; an unreadable pin answers `None`, or raises its `OSError` with `unreadable_raises`; the read answers the stripped text of the first root holding the pin, `None` when none does.
 - `write_conductor_model(root, issue, model)`, `conductor_model(issue, *roots)`: the conductor's model, read the same way.
 - `write_launch_env(root, issue, environment)`, `launch_env(issue, root)`: the `VERI_*` environment a restart relaunches with (VERI_NEW_SKILL left out); the read is `{name: value}`, `None` when the run recorded none.
 - `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
