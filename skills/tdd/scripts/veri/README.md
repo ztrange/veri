@@ -436,7 +436,7 @@ Every query runs in the current directory through `git.git`; a git failure becom
 
 ## frozen_record
 The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its pass marker.
-- `record_path(step)`, `pass_marker_path(step)`, `step_key(step)`: paths under `.tdd/` and the 16-hex key of a step.
+- `record_path(step)`: the step's record file under `.tdd/`. The marker's path and the step's 16-hex key are this module's own; only tests read the marker's path, at this module.
 - `recorded_cases(step)`: the case names recorded, an empty set when the record is unreadable. `is_marked(records)`: True for a `format: 2` record.
 - `body_digest(body)`, `body_line(name, case, body)`, `helpers_line(name, case, digest)`, `case_lines(name, case, body)`, `format_line()`: build record lines.
 - `body_record(line)`, `digest_entry(line)`, `helper_records(records)`: parse them (`None` for a line of another kind).

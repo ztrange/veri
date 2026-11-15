@@ -1348,7 +1348,7 @@ def test_check_earlier_over_a_case_whose_call_never_closes_removes_the_steps_pas
     _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, earlier)
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
-    marker = tmp_path / tests_frozen.pass_marker_path(later)
+    marker = tmp_path / importlib.import_module("frozen_record").pass_marker_path(later)
     marker.write_text("step: %s\n" % later)
 
     code = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[0]
