@@ -212,3 +212,122 @@ def test_path_holding_restricts_itself_to_the_given_basename_and_answers_none_wh
     assert (case_identity.path_holding("test_moved_3284", held, only="test_x.py"),
             case_identity.path_holding("test_moved_3284", held, only="test_y.py"),
             case_identity.path_holding("test_moved_3284", held)) == (None, "./b/test_y.py", "./b/test_y.py")
+
+
+class History:
+    """Stands in for case_history on one file: `versions` is {rev: source}, newest first; `subjects` {rev: subject}."""
+
+    def __init__(self, monkeypatch, case_identity, versions, subjects=None):
+        self.versions, self.subjects, self.quiet = versions, subjects or {}, []
+        history = case_identity.case_history
+        monkeypatch.setattr(history, "revisions", lambda path, since=None: list(self.versions))
+        monkeypatch.setattr(history, "cases_at", self.cases_at)
+        monkeypatch.setattr(history, "text_at", self.text_at)
+        monkeypatch.setattr(history, "subject", lambda rev: self.subjects.get(rev, ""))
+
+    def text_at(self, rev, path, quiet=False):
+        self.quiet.append(quiet)
+        return self.versions.get(rev, "")
+
+    def cases_at(self, rev, path):
+        if rev == "HEAD":
+            rev = next(iter(self.versions))
+        return dict(importlib.import_module("veri.case_reader").cut_cases(self.versions.get(rev, "")))
+
+
+OLD = "def test_a():\n    assert 1 == 1\n"
+
+
+def test_renamed_to_names_the_case_of_the_current_text_that_is_the_recorded_one_but_for_its_name(
+        case_identity, digest, monkeypatch):
+    History(monkeypatch, case_identity, {"r1": OLD})
+    consumed = set()
+
+    other = case_identity.renamed_to("f.py", "test_a", digest("def test_a():\n    assert 1 == 1"),
+                                     "def test_b():\n    assert 1 == 1\n", consumed)
+
+    assert (other, consumed) == ("test_b", {"test_b"})
+
+
+def test_renamed_to_answers_none_when_no_revision_held_the_case_under_the_recorded_digest(
+        case_identity, digest, monkeypatch):
+    History(monkeypatch, case_identity, {"r1": OLD})
+
+    assert case_identity.renamed_to("f.py", "test_a", digest("some other body"),
+                                    "def test_b():\n    assert 1 == 1\n", set()) is None
+
+
+def test_renamed_to_answers_none_for_a_renamed_case_whose_body_changed_with_its_name(
+        case_identity, digest, monkeypatch):
+    History(monkeypatch, case_identity, {"r1": OLD})
+    consumed = set()
+
+    other = case_identity.renamed_to("f.py", "test_a", digest("def test_a():\n    assert 1 == 1"),
+                                     "def test_b():\n    assert 1 == 2\n", consumed)
+
+    assert (other, consumed) == (None, set())
+
+
+def test_renamed_to_skips_a_successor_an_earlier_rename_already_consumed(case_identity, digest, monkeypatch):
+    History(monkeypatch, case_identity, {"r1": OLD})
+    current = "def test_b():\n    assert 1 == 1\n\n\ndef test_c():\n    assert 1 == 1\n"
+    consumed = {"test_b"}
+
+    other = case_identity.renamed_to("f.py", "test_a", digest("def test_a():\n    assert 1 == 1"), current, consumed)
+
+    assert (other, consumed) == ("test_c", {"test_b", "test_c"})
+
+
+def test_renamed_to_uses_the_newest_revision_that_held_the_recorded_body(case_identity, digest, monkeypatch):
+    History(monkeypatch, case_identity, {"r2": "def test_a():\n    assert 1 == 1\n\n\ndef test_b():\n    assert 2 == 2\n",
+                                         "r1": "def test_a():\n    assert 0 == 0\n"})
+
+    other = case_identity.renamed_to("f.py", "test_a", digest("def test_a():\n    assert 1 == 1"),
+                                     "def test_c():\n    assert 1 == 1\n", set())
+
+    assert other == "test_c"
+
+
+def _refactor_history(monkeypatch, case_identity, bodies, subjects):
+    versions = {rev: ("def test_a():\n    assert %s\n" % body) for rev, body in bodies.items()}
+    return History(monkeypatch, case_identity, versions, subjects)
+
+
+def test_changed_by_refactor_is_true_when_the_newest_revision_that_changed_the_case_is_a_refactor_commit(
+        case_identity, monkeypatch):
+    _refactor_history(monkeypatch, case_identity, {"r3": "x == 2", "r2": "x == 2", "r1": "x == 1"},
+                      {"r3": "feat: later\n", "r2": "refactor: tidy the cases\n", "r1": "feat: first\n"})
+
+    assert case_identity.changed_by_refactor("f.py", "test_a") is True
+
+
+def test_changed_by_refactor_is_false_when_the_newest_change_was_not_a_refactor_even_if_an_older_one_was(
+        case_identity, monkeypatch):
+    _refactor_history(monkeypatch, case_identity, {"r3": "x == 3", "r2": "x == 2", "r1": "x == 1"},
+                      {"r3": "fix: edit\n", "r2": "refactor: tidy\n", "r1": "feat: first\n"})
+
+    assert case_identity.changed_by_refactor("f.py", "test_a") is False
+
+
+def test_changed_by_refactor_is_false_for_a_case_no_revision_ever_changed_or_one_gone_from_head(
+        case_identity, monkeypatch):
+    _refactor_history(monkeypatch, case_identity, {"r2": "x == 1", "r1": "x == 1"},
+                      {"r2": "refactor: tidy\n", "r1": "feat: first\n"})
+
+    assert (case_identity.changed_by_refactor("f.py", "test_a"),
+            case_identity.changed_by_refactor("f.py", "test_gone")) == (False, False)
+
+
+def test_changed_by_refactor_is_false_when_the_history_cannot_be_read(case_identity, monkeypatch):
+    def refuse(rev, path):
+        raise OSError("git show failed")
+    monkeypatch.setattr(case_identity.case_history, "cases_at", refuse)
+
+    assert case_identity.changed_by_refactor("f.py", "test_a") is False
+
+
+def test_called_helpers_reads_the_file_at_the_revision_quietly_and_returns_the_helpers_the_body_calls(
+        case_identity, monkeypatch):
+    history = History(monkeypatch, case_identity, {"r1": PY_HELPER + PY_CASE})
+
+    assert (case_identity.called_helpers("r1", "f.py", PY_CASE), history.quiet) == (PY_HELPER, [True])
