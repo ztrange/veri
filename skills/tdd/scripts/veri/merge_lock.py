@@ -1,4 +1,4 @@
-"""merge-lock.sh's verbs, run in-process."""
+"""merge-lock.sh's verbs, run in-process. It reads ps itself rather than through pid_file: queued_merge releases the lock from a release copy holding only RELEASE_FILES."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
 import os
