@@ -193,6 +193,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_refactor_touched.py",
     "test_refactor_touched_process.py",
     "test_solvable_issues.py",
+    "test_solvable_issues_process.py",
     "test_status.py",
     "test_timed_test_run.py",
     "test_timed_test_run_process.py",
