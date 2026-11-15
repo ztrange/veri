@@ -13,7 +13,7 @@ import metrics as metrics_module
 import paths
 import restart_marker
 import run_dir
-from ledger import handed_out, ledger_path, ledger_steps
+from ledger import handed_out, ledger_steps
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
 
@@ -34,7 +34,7 @@ def with_note(body, note_file):
 
 
 def read_steps(issue):
-    with open(ledger_path(".", issue)) as f:
+    with open(run_dir.ledger(".", issue)) as f:
         return ledger_steps(f.read())
 
 
