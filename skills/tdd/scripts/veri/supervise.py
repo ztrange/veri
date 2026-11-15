@@ -27,7 +27,7 @@ from frozen_record import work_tree_hash, pass_marker_current
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
-from ledger import carries_mark, ledger_steps, trailing_markers
+from ledger import carries_mark, ledger_steps, step_at, trailing_markers
 from pid_file import number_in, record
 
 HERE = paths.scripts_of(__file__)
@@ -452,24 +452,39 @@ def red_awaits_pass(step):
     return last is False
 
 
+def ledger_step(issue, step, **rule):
+    """The Step the reference `step` names in the run's ledger, or None; `rule` is ledger.step_at's.
+
+    OSError, and ValueError for a digit that int() cannot read ("²"), reach the caller. "0" names the LAST step,
+    as indexing boxes[-1] always did here (ledger.step_at names none for it).
+    """
+    with open(run_dir.ledger(".", issue)) as f:
+        steps = ledger_steps(f.read())
+    if step.isdigit() and int(step) == 0 and steps:
+        step = str(len(steps))
+    return step_at(steps, step, **rule)
+
+
+def starts_with(reference, text):
+    return text.startswith(reference)
+
+
 def ci_repair_step(issue, step):
     try:
-        with open(run_dir.ledger(".", issue)) as f:
-            boxes = [record.text for record in ledger_steps(f.read())]
-        if not step.isdigit():
-            return carries_mark(trailing_markers(step), "ci-repair") and any(t.startswith(step) for t in boxes)
-        return carries_mark(trailing_markers(boxes[int(step) - 1]), "ci-repair")
-    except (OSError, ValueError, IndexError):
+        found = ledger_step(issue, step, text_matches=starts_with)
+    except (OSError, ValueError):
         return False
+    if not step.isdigit():
+        return carries_mark(trailing_markers(step), "ci-repair") and found is not None
+    return found is not None and carries_mark(trailing_markers(found.text), "ci-repair")
 
 
 def step_text(issue, step):
     try:
-        with open(run_dir.ledger(".", issue)) as f:
-            boxes = [record.text for record in ledger_steps(f.read())]
-        return boxes[int(step) - 1] if step.isdigit() else step if step in boxes else None
-    except (OSError, ValueError, IndexError):
+        found = ledger_step(issue, step)
+    except (OSError, ValueError):
         return None
+    return None if found is None else found.text
 
 
 def whole_number_refusal(var, value):
