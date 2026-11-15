@@ -11,7 +11,7 @@ import entry
 import paths
 import run_dir
 from git import git
-from ledger import CRITERION_RE, decode_ledger, ledger_steps
+from ledger import CRITERION_RE, decode_ledger, ledger_steps, step_at
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
@@ -89,10 +89,12 @@ def ledger_step_index(repo, issue, step):
     except OSError as error:
         print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
         return step
-    steps = [(record.number, record.text) for record in ledger_steps(text)]
-    if any(index == step for index, _ in steps):
-        return step
-    return next((index for index, step_text in steps if step in (step_text, unmarked(step_text))), step)
+    found = step_at(ledger_steps(text), step, by_index=True, text_matches=names_text)
+    return step if found is None else found.number
+
+
+def names_text(reference, text):
+    return reference in (text, unmarked(text))
 
 
 def unmarked(text):
