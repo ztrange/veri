@@ -133,3 +133,11 @@ def test_cli_answers_the_same_from_another_working_directory_with_the_tunables_u
         "unset": ((0, "10\n1.5\n", ""),) * 2,
         "ten": ((2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),) * 2,
     }
+
+
+def test_main_reads_an_empty_ratio_as_the_default_1_5_like_an_unset_one(capfd, monkeypatch, time_budget):
+    monkeypatch.setenv("VERI_TIME_WARN_RATIO", "")
+
+    code = time_budget.main([])
+
+    assert (code,) + capfd.readouterr() == (0, "10\n1.5\n", "")

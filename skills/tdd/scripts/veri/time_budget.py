@@ -10,8 +10,8 @@ NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
 
 def limits():
-    budget = tunables.read_bytes("VERI_UNIT_BUDGET") or b"10"
-    ratio = tunables.read_bytes("VERI_TIME_WARN_RATIO") or b"1.5"
+    budget = tunables.get_bytes("VERI_UNIT_BUDGET", unless_empty=True)
+    ratio = tunables.get_bytes("VERI_TIME_WARN_RATIO", unless_empty=True)
     for value, what in (
         (budget, b"VERI_UNIT_BUDGET must be a number of seconds"),
         (ratio, b"VERI_TIME_WARN_RATIO must be a number"),

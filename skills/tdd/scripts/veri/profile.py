@@ -72,7 +72,7 @@ USAGE = "usage: profile.sh <suite>..."
 
 
 def main(argv):
-    threshold = tunables.read("VERI_PROFILE_THRESHOLD") or "1"
+    threshold = tunables.get("VERI_PROFILE_THRESHOLD", unless_empty=True)
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", threshold):
         print("profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'" % threshold,
               file=sys.stderr)
