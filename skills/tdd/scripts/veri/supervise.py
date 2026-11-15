@@ -1,7 +1,6 @@
 """supervise.sh's watchdog, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
-import glob
 import json
 import os
 import paths
@@ -16,6 +15,7 @@ import entry
 import event
 import event_log
 import harvest_usage
+import mutation_record
 import preserve_attempt
 import run_dir
 import tunables
@@ -240,11 +240,7 @@ def mark(role, env, *fields):
 
 
 def mutation_records():
-    out = {}
-    for path in glob.glob(".tdd/issue-*-mutations.md"):
-        with open(path, "rb") as f:
-            out[path] = f.read()
-    return out
+    return mutation_record.snapshot()
 
 
 def restore_mutation_records(before, role, env, name):
