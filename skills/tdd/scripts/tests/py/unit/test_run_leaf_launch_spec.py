@@ -12,9 +12,9 @@ def run_leaf(monkeypatch):
 
 
 def spec(run_leaf, environ=None, *, git_path="/tmp/gitcfg", shell="/opt/bash", seconds="900",
-         binary="claude", model="", extra=()):
+         binary="claude", model="", extra=(), coerce_marker=""):
     return run_leaf.launch_spec(environ if environ is not None else {"PATH": "/usr/bin"},
-                                git_path, shell, seconds, binary, model, list(extra))
+                                git_path, shell, seconds, binary, model, list(extra), coerce_marker)
 
 
 def test_launch_spec_argv_is_the_binary_the_stream_options_the_model_only_when_non_empty_and_the_callers_arguments_in_order(
@@ -79,10 +79,11 @@ def test_launch_spec_puts_the_guard_first_on_path_whether_the_caller_held_one_or
 
 
 def test_launch_spec_drops_the_shims_locale_marker_and_pythoncoerceclocale_only_when_the_marker_is_1(run_leaf):
-    _, env = spec(run_leaf, {"VERI_SHIM_SET_COERCE": "1", "PYTHONCOERCECLOCALE": "0"})
+    _, env = spec(run_leaf, {"VERI_SHIM_SET_COERCE": "1", "PYTHONCOERCECLOCALE": "0"}, coerce_marker="1")
     assert "VERI_SHIM_SET_COERCE" not in env and "PYTHONCOERCECLOCALE" not in env
     for marker in ("0", ""):
-        _, env = spec(run_leaf, {"VERI_SHIM_SET_COERCE": marker, "PYTHONCOERCECLOCALE": "0"})
+        _, env = spec(run_leaf, {"VERI_SHIM_SET_COERCE": marker, "PYTHONCOERCECLOCALE": "0"},
+                      coerce_marker=marker)
         assert (env["VERI_SHIM_SET_COERCE"], env["PYTHONCOERCECLOCALE"]) == (marker, "0")
     _, env = spec(run_leaf, {"PYTHONCOERCECLOCALE": "0"})
     assert env["PYTHONCOERCECLOCALE"] == "0"
@@ -101,5 +102,5 @@ def test_launch_spec_removes_the_conductors_session_variables_and_values_carryin
 def test_launch_spec_passes_every_other_variable_through_and_leaves_the_incoming_environment_untouched(run_leaf):
     held = {"VERI_TEST_CMD": "make", "CLAUDE_CODE_SESSION_ID": "s", "VERI_SHIM_SET_COERCE": "1", "PATH": "/p"}
     before = dict(held)
-    _, env = spec(run_leaf, held)
+    _, env = spec(run_leaf, held, coerce_marker="1")
     assert env["VERI_TEST_CMD"] == "make" and held == before

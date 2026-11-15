@@ -32,12 +32,12 @@ def leaf_argv(binary, model, extra):
     return argv + extra
 
 
-def launch_spec(environ, git_path, shell, seconds, binary, model, extra):
+def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_marker=""):
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
     `env` is a copy of `environ` stripped of the conductor's session variables, with the leaf's private git
     config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
-    PATH; the shim's locale marker, when `environ` carries it as "1", is removed together with
+    PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `seconds` is the hard cap as text: raises ValueError when it is not a whole number."""
     env = dict(environ)
     strip_session_env(env)
@@ -50,7 +50,7 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra):
     env.setdefault("BASH_DEFAULT_TIMEOUT_MS", cap_ms)
     env.setdefault("BASH_MAX_TIMEOUT_MS", cap_ms)
     env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
-    if environ.get("VERI_SHIM_SET_COERCE") == "1":
+    if coerce_marker == "1":
         env.pop("VERI_SHIM_SET_COERCE", None)
         env.pop("PYTHONCOERCECLOCALE", None)
     return leaf_argv(binary, model, extra), env
@@ -111,6 +111,7 @@ def main(argv):
         binary = tunables.claude_bin()
         model = tunables.read("VERI_LEAF_MODEL")
         shell = shutil.which("bash")
+        coerce_marker = tunables.read("VERI_SHIM_SET_COERCE")
         try:
             seconds = effective_timeout()
         except leaf_timeout.Malformed as bad:
@@ -118,7 +119,8 @@ def main(argv):
                   file=sys.stderr)
             return 2
         try:
-            command, env = launch_spec(os.environ, git_path, shell, seconds, binary, model, argv[1:])
+            command, env = launch_spec(tunables.environment(), git_path, shell, seconds, binary, model, argv[1:],
+                                      coerce_marker)
         except ValueError:
             print(f"run-leaf.sh: VERI_TIMEOUT is not a whole number: {seconds!r}",
                   file=sys.stderr)
