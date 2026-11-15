@@ -6,6 +6,7 @@ import sys
 
 import ledger
 import paths
+import run_dir
 
 USAGE = "usage: build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>"
 
@@ -22,7 +23,7 @@ def main(argv):
         print(f"build-adjudicate-prompt.sh: cause not eligible: {cause}", file=sys.stderr)
         return 2
     routes = ", ".join(re.findall(r"`([^`]+)`", eligible[cause])) or eligible[cause].strip()
-    with open(ledger.ledger_path(".", n)) as f:
+    with open(run_dir.ledger(".", n)) as f:
         steps = [line.rstrip("\n") for line in f if line.startswith((ledger.OPEN_STEP, ledger.TICKED_STEP))]
     step = next((s for s in steps if s.startswith(ledger.OPEN_STEP)), steps[-1])
     with open(stderr_file) as f:
