@@ -1105,8 +1105,7 @@ def test_main_unpinnable_retire_over_a_mutation_record_with_a_non_numeric_size_r
     ("--already-holds", "REASON: it already holds\n"),
 ])
 def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_environment_3617(
-        tmp_path, tick_ledger, monkeypatch, flag, reason_text):
-    import subprocess
+        tmp_path, tick_ledger, monkeypatch, fake_processes, flag, reason_text):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1117,15 +1116,13 @@ def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_
     for name in ("TESTS", "MAKEFLAGS", "MAKELEVEL"):
         monkeypatch.setenv(name, "leaked")
 
-    def fake_run(args, **kwargs):
-        if args[0].endswith("detect-test-command.sh"):
-            return subprocess.CompletedProcess(args, 0, "stub-case-command\n", "")
+    def run_case(line, **kwargs):
         env = kwargs.get("env")
         env = os.environ if env is None else env
         seen.write_text("".join(f"{k}\n" for k in env))
-        return subprocess.CompletedProcess(args, 0, "1 passed\n", "")
+        return (0, "1 passed\n", "")
 
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command\n", ""), "": run_case})
 
     code = tick_ledger.main([flag, str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1134,8 +1131,7 @@ def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_
 
 
 def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_environment_keeping_its_argv_3617(
-        tmp_path, tick_ledger, monkeypatch):
-    import subprocess
+        tmp_path, tick_ledger, monkeypatch, fake_processes):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1146,16 +1142,14 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
     for name in ("TESTS", "MAKEFLAGS", "MAKELEVEL"):
         monkeypatch.setenv(name, "leaked")
 
-    def fake_run(args, **kwargs):
-        if args[0].endswith("detect-test-command.sh"):
-            return subprocess.CompletedProcess(args, 0, "", "")
+    def run_case(line, **kwargs):
         env = kwargs.get("env")
         env = os.environ if env is None else env
-        ran["argv"] = list(args)
+        ran["argv"] = list(fake.argvs[-1])
         ran["env"] = sorted({"MAKEFLAGS", "MAKELEVEL"} & set(env))
-        return subprocess.CompletedProcess(args, 0, "1 passed\n", "")
+        return (0, "1 passed\n", "")
 
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake = fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": run_case})
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
@@ -1163,8 +1157,7 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
 
 
 def test_main_on_a_case_whose_test_file_is_missing_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617(
-        tmp_path, capsys, tick_ledger, monkeypatch):
-    import subprocess
+        tmp_path, capsys, tick_ledger, fake_processes):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1172,13 +1165,8 @@ def test_main_on_a_case_whose_test_file_is_missing_exits_2_with_nothing_on_stdou
     reason = tmp_path / "reason.txt"
     reason.write_text("the case stays green\n")
     case = str(tmp_path / "gone" / "test_missing.py")
-
-    def fake_run(args, **kwargs):
-        if args[0].endswith("detect-test-command.sh"):
-            return subprocess.CompletedProcess(args, 0, "stub-case-command --flag\n", "")
-        return subprocess.CompletedProcess(args, 4, "", "ERROR: file or directory not found\n")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command --flag\n", ""),
+                            "": (4, "", "ERROR: file or directory not found\n")})
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
@@ -1187,8 +1175,7 @@ def test_main_on_a_case_whose_test_file_is_missing_exits_2_with_nothing_on_stdou
 
 
 def test_main_on_a_case_whose_test_file_exists_but_ran_no_tests_exits_2_with_nothing_on_stdout_and_names_the_command_that_was_run_on_stderr_3617(
-        tmp_path, capsys, tick_ledger, monkeypatch):
-    import subprocess
+        tmp_path, capsys, tick_ledger, fake_processes):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1198,13 +1185,8 @@ def test_main_on_a_case_whose_test_file_exists_but_ran_no_tests_exits_2_with_not
     case_file = tmp_path / "test_empty.py"
     case_file.write_text("")
     case = str(case_file)
-
-    def fake_run(args, **kwargs):
-        if args[0].endswith("detect-test-command.sh"):
-            return subprocess.CompletedProcess(args, 0, "stub-case-command --flag\n", "")
-        return subprocess.CompletedProcess(args, 5, "collected 0 items\n\nno tests ran in 0.01s\n", "")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command --flag\n", ""),
+                            "": (5, "collected 0 items\n\nno tests ran in 0.01s\n", "")})
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
@@ -1213,8 +1195,7 @@ def test_main_on_a_case_whose_test_file_exists_but_ran_no_tests_exits_2_with_not
 
 
 def test_main_on_a_fallback_make_that_exits_2_exits_2_with_nothing_on_stdout_and_names_make_test_tests_with_the_case_on_stderr_3617(
-        tmp_path, capsys, tick_ledger, monkeypatch):
-    import subprocess
+        tmp_path, capsys, tick_ledger, fake_processes):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -1222,13 +1203,7 @@ def test_main_on_a_fallback_make_that_exits_2_exits_2_with_nothing_on_stdout_and
     reason = tmp_path / "reason.txt"
     reason.write_text("the case stays green\n")
     case = "tests/py/test_x.py::test_gone"
-
-    def fake_run(args, **kwargs):
-        if args[0].endswith("detect-test-command.sh"):
-            return subprocess.CompletedProcess(args, 0, "", "")
-        return subprocess.CompletedProcess(args, 2, "", "")
-
-    monkeypatch.setattr(tick_ledger.subprocess, "run", fake_run)
+    fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": (2, "", "")})
 
     code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
