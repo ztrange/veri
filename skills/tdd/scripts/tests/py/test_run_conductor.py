@@ -1977,7 +1977,7 @@ def test_main_a_conductor_launch_pins_claudes_shell_to_the_bash_on_path_under_a_
 
 def test_main_a_parent_environment_asking_for_the_five_minute_cache_ttl_reaches_the_leaf_but_not_the_conductor_1738(
         tmp_path, monkeypatch, capfdbinary):
-    from test_run_leaf import _FakeLeaf
+    from test_run_leaf_process import _FakeLeaf
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     monkeypatch.setenv("FORCE_PROMPT_CACHING_5M", "1")
