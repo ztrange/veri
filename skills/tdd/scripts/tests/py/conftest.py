@@ -193,9 +193,12 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_solvable_issues.py",
     "test_status.py",
     "test_timed_test_run.py",
+    "test_timed_test_run_process.py",
     "test_transform_touches_tests.py",
+    "test_transform_touches_tests_process.py",
     "test_verify.py",
     "test_workqueue.py",
+    "test_workqueue_process.py",
 }
 
 
