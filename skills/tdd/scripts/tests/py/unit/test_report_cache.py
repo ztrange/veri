@@ -13,9 +13,8 @@ def test_no_subcommand_or_an_unknown_one_exits_2_with_the_usage_on_stderr(run_cl
     assert all(err.startswith("usage: report-cache.sh") for _, _, err in results)
 
 
-def test_refresh_with_no_cache_writes_every_issue_open_and_closed_with_fetched_at_and_exits_0(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_writes_every_issue_open_and_closed_with_fetched_at_and_exits_0(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -26,15 +25,16 @@ def test_refresh_with_no_cache_writes_every_issue_open_and_closed_with_fetched_a
          "closedAt": "2026-10-21T09:00:00Z", "updatedAt": "2026-10-21T09:00:00Z"},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -74,9 +74,8 @@ def test_refresh_from_a_linked_worktree_writes_the_cache_under_the_main_working_
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / ".tdd" / "report-cache.json").exists()) == (0, True, False)
 
 
-def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_when_none(run_cli, monkeypatch, tmp_path):
+def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_when_none(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -88,15 +87,16 @@ def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_w
          "updatedAt": "2026-10-20T11:00:00Z", "body": "## Problem\n\nx\n\n## Blocked by\n\nNone.\n"},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -105,9 +105,8 @@ def test_refresh_carries_the_issue_numbers_under_each_blocked_by_section_empty_w
     assert (code, blockers) == (0, {7: [3, 5], 8: []})
 
 
-def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_a_null_lane_when_none(run_cli, monkeypatch, tmp_path):
+def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_a_null_lane_when_none(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -120,15 +119,16 @@ def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_
          "updatedAt": "2026-10-20T11:00:00Z", "comments": [{"body": "no report here"}]},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -137,9 +137,8 @@ def test_refresh_carries_the_wall_seconds_of_the_last_metrics_comment_null_with_
     assert (code, walls) == (0, {7: (250, None), 8: (None, None)})
 
 
-def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_without_own_number_2736(run_cli, monkeypatch, tmp_path):
+def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_without_own_number_2736(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -152,15 +151,16 @@ def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_withou
          "updatedAt": "2026-10-20T11:00:00Z", "body": "no links", "comments": [{"body": "none"}]},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -169,9 +169,8 @@ def test_refresh_carries_links_sorted_deduplicated_from_body_and_comments_withou
     assert (code, links) == (0, {7: [5, 9, 12], 8: []})
 
 
-def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_comments_2736(run_cli, monkeypatch, tmp_path):
+def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_comments_2736(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -183,16 +182,17 @@ def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_co
     ]
     comments = [{"number": 7, "comments": [{"body": "c"}]}, {"number": 8, "comments": [{"body": "c"}]}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         answer = comments if args[args.index("--json") + 1] == "number,comments" else issues
-        return subprocess.CompletedProcess(args, 0, json.dumps(answer), "")
+        return (0, json.dumps(answer), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -201,9 +201,8 @@ def test_refresh_keeps_the_body_of_a_prd_titled_issue_only_and_no_issue_keeps_co
     assert (code, shape) == (0, {7: ("prd prose #5", False), 8: (None, False)})
 
 
-def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_heading(run_cli, monkeypatch, tmp_path):
+def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_heading(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -214,15 +213,16 @@ def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_headi
          "comments": [{"body": done}]},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -231,9 +231,8 @@ def test_refresh_reads_the_wall_seconds_from_a_metrics_block_under_another_headi
     assert (code, walls) == (0, {7: 321})
 
 
-def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_merges_them_by_number(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_merges_them_by_number(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -253,19 +252,20 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
     ]
     asked = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         if args[args.index("--json") + 1] == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         asked.append([term for i, arg in enumerate(args) if arg == "--search"
                       for term in args[i + 1].split() if term.startswith("updated:>=")])
-        return subprocess.CompletedProcess(args, 0, json.dumps(received), "")
+        return (0, json.dumps(received), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -275,9 +275,8 @@ def test_refresh_with_a_cache_asks_only_for_issues_updated_since_fetched_at_and_
         0, [["updated:>=2026-10-01T00:00:00Z"]], {7: "kept", 8: "fresh", 9: "new"}, True)
 
 
-def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -288,15 +287,16 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
+        return (1, "", "gh: HTTP 502")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -304,9 +304,8 @@ def test_refresh_whose_gh_read_fails_exits_2_with_one_stderr_line_and_leaves_the
     assert (code, out, len(err.splitlines()), "HTTP 502" in err, cache_file.read_bytes() == before) == (2, "", 1, True, True)
 
 
-def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_leaves_the_cache_byte_identical(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -317,24 +316,24 @@ def test_refresh_whose_gh_read_is_unparseable_exits_2_with_one_stderr_line_and_l
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None}]}))
     before = cache_file.read_bytes()
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, "<html>rate limited</html>", "")
+        return (0, "<html>rate limited</html>", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, len(err.splitlines()), err.startswith("report-cache.sh:"), cache_file.read_bytes() == before) == (2, "", 1, True, True)
 
 
-def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_lane(run_cli, monkeypatch, tmp_path):
+def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_lane(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -345,15 +344,16 @@ def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_
          "comments": [{"body": metrics % "old-lane"}, {"body": "thanks"}, {"body": metrics % "fast-lane"}]},
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -362,20 +362,20 @@ def test_refresh_reads_the_lane_line_of_the_last_metrics_comment_into_the_issue_
     assert (code, lanes) == (0, {7: "fast-lane"})
 
 
-def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming_it_with_no_gh_started(run_cli, monkeypatch, tmp_path):
-    import subprocess
+def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming_it_with_no_gh_started(fake_processes, run_cli, monkeypatch, tmp_path):
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     started = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         started.append([str(arg) for arg in args])
-        return subprocess.CompletedProcess(args, 0, "[]", "")
+        return (0, "[]", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
     monkeypatch.setenv("VERI_GH_DRIVER", "bogus")
 
@@ -385,10 +385,9 @@ def test_refresh_reads_through_the_github_port_so_a_bad_gh_driver_exits_2_naming
         2, "", True, [], False)
 
 
-def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identical_and_parseable_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identical_and_parseable_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
     import os
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -401,16 +400,17 @@ def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identica
     issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
     def failing_replace(src, dst):
         raise OSError("interrupted before replace")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setattr(os, "replace", failing_replace)
 
     try:
@@ -422,9 +422,8 @@ def test_refresh_whose_os_replace_raises_leaves_the_previous_cache_byte_identica
     assert (after == before, json.loads(after)["issues"][0]["title"]) == (True, "old")
 
 
-def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -433,21 +432,21 @@ def test_refresh_that_succeeds_leaves_no_temp_file_in_tdd_beside_the_cache_2160(
     issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
-        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
+            return (0, "", "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (0, ["report-cache.json"])
 
 
-def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complete_cache_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complete_cache_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -456,12 +455,13 @@ def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complet
     issues = [{"number": 8, "title": "new", "state": "OPEN", "labels": [], "closedAt": None,
                "updatedAt": "2026-10-21T10:00:00Z"}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
-        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(issues), "")
+            return (0, "", "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -469,9 +469,8 @@ def test_refresh_with_a_stray_temp_file_left_in_tdd_exits_0_and_writes_a_complet
     assert (code, [i["number"] for i in written["issues"]]) == (0, [8])
 
 
-def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -482,17 +481,18 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -500,9 +500,8 @@ def test_refresh_with_a_truncated_cache_names_it_on_stderr_rebuilds_with_a_full_
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
-def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -513,17 +512,18 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -532,9 +532,8 @@ def test_refresh_with_a_cache_lacking_fetched_at_names_it_on_stderr_rebuilds_wit
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
 
-def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -545,17 +544,18 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -564,9 +564,8 @@ def test_refresh_with_a_cache_lacking_issues_names_it_on_stderr_rebuilds_with_a_
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
 
-def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -577,17 +576,18 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -596,9 +596,8 @@ def test_refresh_with_a_cache_that_is_a_json_list_names_it_on_stderr_rebuilds_wi
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
 
-def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -609,17 +608,18 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -628,8 +628,7 @@ def test_refresh_with_a_cache_that_is_a_json_null_names_it_on_stderr_rebuilds_wi
     assert ("fetched_at" in written, [i["number"] for i in written["issues"]]) == (True, [8])
 
 
-def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_the_gh_message_and_leaves_the_corrupt_file_byte_identical_2160(run_cli, monkeypatch, tmp_path):
-    import subprocess
+def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_the_gh_message_and_leaves_the_corrupt_file_byte_identical_2160(fake_processes, run_cli, monkeypatch, tmp_path):
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -638,13 +637,14 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
     cache.write_text('{"fetched_at": "2026-10-01T00:00:00Z", "issues": [{"numb')
     before = cache.read_bytes()
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
-        return subprocess.CompletedProcess(args, 1, "", "gh: HTTP 502")
+        return (1, "", "gh: HTTP 502")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -652,9 +652,8 @@ def test_refresh_with_a_corrupt_cache_and_a_failing_gh_issue_list_exits_2_with_t
     assert (code, out, "gh issue list failed" in err, "HTTP 502" in err, cache.read_bytes() == before) == (2, "", True, True, True)
 
 
-def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_writes_nothing_to_stderr_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_writes_nothing_to_stderr_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -665,14 +664,15 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
          "updatedAt": "2026-09-30T10:00:00Z", "blockedBy": [], "wallSeconds": None, "lane": None, "links": []}]}))
     calls = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         calls.append(args)
-        return subprocess.CompletedProcess(args, 0, "[]", "")
+        return (0, "[]", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -681,10 +681,9 @@ def test_refresh_with_a_well_formed_cache_searches_updated_since_fetched_at_and_
     assert (code, err, searches) == (0, "", ["updated:>=2026-10-01T00:00:00Z"])
 
 
-def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_from_one_writer_2160(run_cli, monkeypatch, tmp_path):
+def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_from_one_writer_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
     import os
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -701,10 +700,11 @@ def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_fro
     b_replaces = []
     real_dump, real_replace = json.dump, os.replace
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
-        return subprocess.CompletedProcess([str(arg) for arg in args], 0, json.dumps(answers[writer[-1]]), "")
+            return (0, "", "")
+        return (0, json.dumps(answers[writer[-1]]), "")
 
     def interleaving_dump(obj, out, **kwargs):
         if writer[-1] == "B":
@@ -725,7 +725,7 @@ def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_fro
             return None
         return real_replace(src, dst)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setattr(json, "dump", interleaving_dump)
     monkeypatch.setattr(os, "replace", deferring_replace)
 
@@ -741,9 +741,8 @@ def test_two_refreshes_interleaved_mid_write_leave_a_cache_that_parses_whole_fro
     assert (a_code, b_code, b_lost, titles in ({"from writer A"}, {"from writer B, a longer answer"})) == (0, [0], None, True)
 
 
-def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -754,17 +753,18 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -772,9 +772,8 @@ def test_refresh_with_a_cache_that_is_not_utf8_names_it_on_stderr_rebuilds_with_
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
-def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stderr_rebuilds_with_a_full_fetch_and_exits_0_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -785,17 +784,18 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
                "updatedAt": "2026-10-21T10:00:00Z"}]
     searched = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         searched.append(("updated:>=" in " ".join(args), "comments" in fields.split(",")))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -803,25 +803,25 @@ def test_refresh_with_a_cache_whose_fetched_at_is_not_a_string_names_it_on_stder
     assert [i["number"] for i in json.loads(cache.read_text())["issues"]] == [8]
 
 
-def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
     import os
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps({"fetched_at": "2026-10-20T00:00:00Z", "cache_format": 2, "issues": []}))
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
-        return subprocess.CompletedProcess([str(arg) for arg in args], 0, "[]", "")
+            return (0, "", "")
+        return (0, "[]", "")
 
     def failing_replace(src, dst):
         raise OSError("interrupted before replace")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     monkeypatch.setattr(os, "replace", failing_replace)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -830,9 +830,8 @@ def test_refresh_whose_os_replace_raises_removes_its_own_temp_file_2160(run_cli,
         2, True, ["report-cache.json"])
 
 
-def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the_cache_a_single_answer_would_give_2244(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the_cache_a_single_answer_would_give_2244(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -844,20 +843,21 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
     limits = []
     asked = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         asked.append("comments" in fields.split(","))
         limit = int(args[args.index("--limit") + 1])
         limits.append(limit)
         if limit > 100:
-            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+            return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
         pool = sorted(everything, key=lambda i: i["updatedAt"], reverse=True)
         search = args[args.index("--search") + 1] if "--search" in args else ""
         for bound in search.split():
@@ -865,9 +865,9 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
                 pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
             elif bound.startswith("updated:<"):
                 pool = [i for i in pool if i["updatedAt"] < bound[len("updated:<"):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -876,9 +876,8 @@ def test_refresh_with_no_cache_fetches_in_bounded_pages_and_merges_them_into_the
     assert (code, kept, max(limits), any(asked)) == (0, list(range(1, 251)), 100, False)
 
 
-def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still_writes_the_full_cache_2244(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still_writes_the_full_cache_2244(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -890,9 +889,10 @@ def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still
     ]
     failed = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -900,16 +900,16 @@ def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still
         search = args[args.index("--search") + 1] if "--search" in args else ""
         if search and not failed:
             failed.append(search)
-            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+            return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
         pool = sorted(everything, key=lambda i: i["updatedAt"], reverse=True)
         for bound in search.split():
             if bound.startswith("updated:<="):
                 pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
             elif bound.startswith("updated:<"):
                 pool = [i for i in pool if i["updatedAt"] < bound[len("updated:<"):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -918,9 +918,8 @@ def test_refresh_with_no_cache_retries_a_page_whose_gh_read_fails_once_and_still
     assert (code, kept) == (0, list(range(1, 251)))
 
 
-def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_attempts_and_leaves_nothing_in_tdd_2244(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_attempts_and_leaves_nothing_in_tdd_2244(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -933,29 +932,29 @@ def test_refresh_with_no_cache_whose_page_keeps_failing_exits_2_after_bounded_at
     ]
     failing_calls = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         if "updated:<=" not in " ".join(args):
-            return subprocess.CompletedProcess(args, 0, json.dumps(first_page), "")
+            return (0, json.dumps(first_page), "")
         failing_calls.append(args)
         if len(failing_calls) > 50:
             raise AssertionError("retried without bound")
-        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, "504" in err, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, "", True, [])
 
 
-def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reader_2244(run_cli, monkeypatch, tmp_path):
+def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reader_2244(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     tunables = report_cache.tunables
@@ -967,25 +966,25 @@ def test_refresh_takes_its_page_retry_count_and_sleep_from_the_one_tunable_reade
     (tmp_path / ".git").mkdir()
     calls = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         calls.append(args)
         if len(calls) > 50:
             raise AssertionError("retried without bound")
-        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, len(calls)) == (2, 2)
 
 
-def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches_it_again_at_a_smaller_limit_and_writes_the_full_cache_2279(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches_it_again_at_a_smaller_limit_and_writes_the_full_cache_2279(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -998,22 +997,23 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
     limits = []
     asked = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         fields = args[args.index("--json") + 1]
         if fields == "number,comments":
-            return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "[]", "")
         asked.append("comments" in fields.split(","))
         limit = int(args[args.index("--limit") + 1])
         limits.append(limit)
         if len(limits) > 100:
             raise AssertionError("retried without bound")
         if limit > 50:
-            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+            return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
         pool = sorted(everything, key=lambda i: i["updatedAt"], reverse=True)
         search = args[args.index("--search") + 1] if "--search" in args else ""
         for bound in search.split():
@@ -1021,9 +1021,9 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
                 pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
             elif bound.startswith("updated:<"):
                 pool = [i for i in pool if i["updatedAt"] < bound[len("updated:<"):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1032,8 +1032,7 @@ def test_refresh_with_no_cache_whose_first_page_fails_every_retry_at_100_fetches
     assert (code, kept, limits[0], any(asked)) == (0, list(range(1, 121)), 100, False)
 
 
-def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with_the_gh_message_after_bounded_calls_and_writes_nothing_2279(run_cli, monkeypatch, tmp_path):
-    import subprocess
+def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with_the_gh_message_after_bounded_calls_and_writes_nothing_2279(fake_processes, run_cli, monkeypatch, tmp_path):
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -1041,27 +1040,27 @@ def test_refresh_with_no_cache_whose_first_page_fails_at_every_size_exits_2_with
     (tmp_path / ".tdd").mkdir()
     limits = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         limits.append(int(args[args.index("--limit") + 1]))
         if len(limits) > 50:
             raise AssertionError("retried without bound")
-        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+        return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, out, "gh issue list failed: HTTP 504" in err, 0 < len(limits) <= 10, sorted(p.name for p in (tmp_path / ".tdd").iterdir())) == (2, "", True, True, [])
 
 
-def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_updated_issues_and_merges_them_2279(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_updated_issues_and_merges_them_2279(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -1078,9 +1077,10 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     ]
     searches = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1088,14 +1088,14 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
         search = args[args.index("--search") + 1] if "--search" in args else ""
         searches.append(search)
         if len(searches) == 1:
-            return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+            return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
         pool = sorted(updated, key=lambda i: i["updatedAt"], reverse=True)
         for bound in search.split():
             if bound.startswith("updated:<="):
                 pool = [i for i in pool if i["updatedAt"] <= bound[len("updated:<="):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1104,9 +1104,8 @@ def test_refresh_with_a_well_formed_cache_retries_a_failed_gh_read_pages_the_upd
     assert (code, first, kept) == (0, ["updated:>=2026-10-01T00:00:00Z"], list(range(1, 251)) + [900])
 
 
-def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_so_older_issues_stay_out_2279(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_so_older_issues_stay_out_2279(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -1127,9 +1126,10 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
         for n in range(30)
     ]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1141,9 +1141,9 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
                 pool = [i for i in pool if i["updatedAt"] >= term[len("updated:>="):]]
             if term.startswith("updated:<="):
                 pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1151,9 +1151,8 @@ def test_refresh_with_a_well_formed_cache_bounds_every_later_page_by_fetched_at_
     assert (code, kept) == (0, list(range(1, 121)) + [900])
 
 
-def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second_never_exits_0_with_a_partial_cache_2272(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second_never_exits_0_with_a_partial_cache_2272(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "0")
@@ -1170,9 +1169,10 @@ def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second
     ]
     everything = sorted(i["number"] for i in same_second + older)
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1182,9 +1182,9 @@ def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second
         for term in search.split():
             if term.startswith("updated:<="):
                 pool = [i for i in pool if i["updatedAt"] <= term[len("updated:<="):]]
-        return subprocess.CompletedProcess(args, 0, json.dumps(pool[:limit]), "")
+        return (0, json.dumps(pool[:limit]), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1193,8 +1193,7 @@ def test_refresh_with_no_cache_and_over_100_issues_sharing_one_updated_at_second
     assert (code, kept) in [(0, everything), (2, None)]
 
 
-def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_writes_no_cache_2286(run_cli, monkeypatch, tmp_path):
-    import subprocess
+def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_writes_no_cache_2286(fake_processes, run_cli, monkeypatch, tmp_path):
 
     report_cache = importlib.import_module("veri.report_cache")
     monkeypatch.setenv("VERI_PAGE_RETRIES", "10")
@@ -1203,19 +1202,20 @@ def test_refresh_with_many_page_retries_never_asks_for_limit_0_exits_2_and_write
     (tmp_path / ".tdd").mkdir()
     limits = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         limit = int(args[args.index("--limit") + 1])
         limits.append(limit)
         if limit == 0:
-            return subprocess.CompletedProcess(args, 0, "[]", "")
-        return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
+            return (0, "[]", "")
+        return (1, "", "HTTP 504: 504 Gateway Timeout (https://api.github.com/graphql)")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1576,9 +1576,8 @@ def test_incremental_refresh_replaces_the_links_of_a_refetched_issue_so_a_link_f
         0, "", ["updated:>=2026-10-01T00:00:00Z"], [5, 6], [3])
 
 
-def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_prd_titles_and_the_last_7_days_of_closures(run_cli, monkeypatch, tmp_path):
+def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_prd_titles_and_the_last_7_days_of_closures(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -1586,9 +1585,10 @@ def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_
                "updatedAt": "2026-10-20T10:00:00Z"}]
     calls = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
@@ -1596,9 +1596,9 @@ def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_
         search = args[args.index("--search") + 1] if "--search" in args else ""
         calls.append((fields, search))
         answer = [] if fields == "number,comments" else issues
-        return subprocess.CompletedProcess(args, 0, json.dumps(answer), "")
+        return (0, json.dumps(answer), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1608,10 +1608,9 @@ def test_refresh_asks_gh_for_comments_only_through_separate_reads_restricted_to_
             any("closed:>=" in s for s in comment_searches)) == (0, [False], True, True)
 
 
-def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_issues_and_every_other_field_for_all(run_cli, monkeypatch, tmp_path):
+def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_issues_and_every_other_field_for_all(fake_processes, run_cli, monkeypatch, tmp_path):
     import datetime
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -1628,19 +1627,20 @@ def test_refresh_keeps_links_wall_seconds_and_lane_for_prd_and_recently_closed_i
     commented = {"PRD": [{"number": 900, "comments": [{"body": "also #6"}]}],
                  "closed:>=": [{"number": 901, "comments": [{"body": metrics}]}]}
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
+            return (0, "", "")
         args = [str(arg) for arg in args]
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         if args[args.index("--json") + 1] != "number,comments":
-            return subprocess.CompletedProcess(args, 0, json.dumps(paged), "")
+            return (0, json.dumps(paged), "")
         search = args[args.index("--search") + 1]
         rows = [row for term, found in commented.items() if term in search for row in found]
-        return subprocess.CompletedProcess(args, 0, json.dumps(rows), "")
+        return (0, json.dumps(rows), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1760,7 +1760,7 @@ def test_refresh_with_a_bad_comment_chunk_exits_2_naming_the_knob_and_its_value_
     assert (code, "VERI_COMMENT_CHUNK" in err and value in err, calls) == (2, True, [])
 
 
-def test_refresh_with_an_empty_comment_chunk_reads_windows_of_25(run_cli, monkeypatch, tmp_path):
+def test_refresh_with_an_empty_comment_chunk_reads_windows_of_25(fake_processes, run_cli, monkeypatch, tmp_path):
     import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
@@ -1769,7 +1769,7 @@ def test_refresh_with_an_empty_comment_chunk_reads_windows_of_25(run_cli, monkey
                "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-01T10:00:%02dZ" % n,
                "body": "", "comments": []} for n in range(1, 31)]
     reads = []
-    monkeypatch.setattr(subprocess, "run", _windowed_comments_gh(issues, reads))
+    _windowed_comments_gh(fake_processes, issues, reads)
     monkeypatch.setenv("VERI_COMMENT_CHUNK", "")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -1815,26 +1815,26 @@ def test_refresh_records_the_landed_tags_cut_since_status_last_with_name_date_an
     assert (code, listed) == (0, expected), record
 
 
-def test_refresh_whose_git_tag_list_cannot_start_still_writes_the_cache_with_an_empty_landed_record_and_exits_0(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_git_tag_list_cannot_start_still_writes_the_cache_with_an_empty_landed_record_and_exits_0(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     issues = [{"number": 7, "title": "open one", "state": "OPEN", "labels": [],
                "closedAt": None, "updatedAt": "2026-10-20T10:00:00Z"}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         args = [str(arg) for arg in args]
         if args[0] == "git" and "tag" in args:
             raise FileNotFoundError(2, "No such file or directory", "git")
         if args[0] == "git":
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1879,22 +1879,22 @@ def test_refresh_records_the_since_time_of_status_last_and_the_no_cut_default_0_
 
 
 @pytest.mark.parametrize("content", ["{not json", "{}", '{"time": "yesterday"}'])
-def test_refresh_with_a_malformed_status_last_still_writes_the_cache_with_the_no_cut_default_and_exits_0(run_cli, monkeypatch, tmp_path, content):
+def test_refresh_with_a_malformed_status_last_still_writes_the_cache_with_the_no_cut_default_and_exits_0(fake_processes, run_cli, monkeypatch, tmp_path, content):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "status-last").write_text(content)
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         args = [str(arg) for arg in args]
         if args[0] == "git":
-            return subprocess.CompletedProcess(args, 0, "", "")
-        return subprocess.CompletedProcess(args, 0, "[]", "")
+            return (0, "", "")
+        return (0, "[]", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1902,9 +1902,8 @@ def test_refresh_with_a_malformed_status_last_still_writes_the_cache_with_the_no
     assert (code, cache.get("since"), cache.get("landed")) == (0, 0, [])
 
 
-def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issues_fetches_incrementally_and_writes_the_record(run_cli, monkeypatch, tmp_path):
+def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issues_fetches_incrementally_and_writes_the_record(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
@@ -1916,18 +1915,19 @@ def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issue
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(before))
     asked = []
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         args = [str(arg) for arg in args]
         if args[0] == "git":
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         if args[args.index("--json") + 1] != "number,comments":
             asked.append([term for i, arg in enumerate(args) if arg == "--search"
                           for term in args[i + 1].split() if term.startswith("updated:>=")])
-        return subprocess.CompletedProcess(args, 0, "[]", "")
+        return (0, "[]", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -1936,37 +1936,40 @@ def test_refresh_over_a_format_2_cache_written_before_the_record_keeps_its_issue
         0, "", [["updated:>=2026-10-01T00:00:00Z"]], [7], [], 0)
 
 
-def _windowed_comments_gh(issues, comment_reads):
-    """gh issue list that times out on a comments search with no created: window, as GitHub does for ~280 PRDs."""
+def _windowed_comments_gh(fake_processes, issues, comment_reads, window_fails=False):
+    """gh issue list that times out on a comments search with no created: window, as GitHub does for ~280 PRDs;
+    <window_fails> also fails every created: window with a 502. Returns the fake_processes fake."""
     import json
     import re
-    import subprocess
 
-    def fake_run(args, **kwargs):
-        if str(args[0]) == "git":
-            return subprocess.CompletedProcess([str(arg) for arg in args], 0, "", "")
-        args = [str(arg) for arg in args]
+    def fake_run(line, **kwargs):
+        args = [str(arg) for arg in fake.argvs[-1]]
+        if window_fails and "created:" in line:
+            return (1, "", "HTTP 502: window failed")
+        if args[0] == "git":
+            return (0, "", "")
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
         fields = args[args.index("--json") + 1]
         search = args[args.index("--search") + 1] if "--search" in args else ""
         if fields == "number,createdAt":
-            return subprocess.CompletedProcess(args, 0, json.dumps(
-                [{"number": i["number"], "createdAt": i["createdAt"]} for i in issues]), "")
+            return (0, json.dumps([{"number": i["number"], "createdAt": i["createdAt"]} for i in issues]), "")
         if fields == "number,comments":
             window = re.search(r"created:(\S+)\.\.(\S+)", search)
             if not window:
-                return subprocess.CompletedProcess(args, 1, "", "HTTP 504: 504 Gateway Timeout")
+                return (1, "", "HTTP 504: 504 Gateway Timeout")
             comment_reads.append(search)
             rows = [{"number": i["number"], "comments": i["comments"]} for i in issues
                     if window.group(1) <= i["createdAt"] <= window.group(2)]
-            return subprocess.CompletedProcess(args, 0, json.dumps(rows), "")
-        return subprocess.CompletedProcess(args, 0, json.dumps(
+            return (0, json.dumps(rows), "")
+        return (0, json.dumps(
             [{k: v for k, v in i.items() if k not in ("comments", "createdAt")} for i in issues]), "")
-    return fake_run
+
+    fake = fake_processes.answers({}, default=fake_run)
+    return fake
 
 
-def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and_keeps_every_link(run_cli, monkeypatch, tmp_path):
+def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and_keeps_every_link(fake_processes, run_cli, monkeypatch, tmp_path):
     import json
     import subprocess
 
@@ -1976,7 +1979,7 @@ def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and
                "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-%02dT10:00:00Z" % n,
                "body": "", "comments": [{"body": "child #%d" % (100 + n)}]} for n in range(1, 6)]
     reads = []
-    monkeypatch.setattr(subprocess, "run", _windowed_comments_gh(issues, reads))
+    _windowed_comments_gh(fake_processes, issues, reads)
     monkeypatch.setenv("VERI_COMMENT_CHUNK", "2")
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
@@ -1986,22 +1989,14 @@ def test_refresh_whose_comments_search_times_out_reads_it_in_created_windows_and
     assert (code, links, len(reads) >= 3) == (0, {n: [100 + n] for n in range(1, 6)}, True)
 
 
-def test_refresh_whose_windowed_comments_read_also_fails_exits_2_naming_the_failure(run_cli, monkeypatch, tmp_path):
-    import subprocess
+def test_refresh_whose_windowed_comments_read_also_fails_exits_2_naming_the_failure(fake_processes, run_cli, monkeypatch, tmp_path):
 
     report_cache = importlib.import_module("veri.report_cache")
     (tmp_path / ".git").mkdir()
     issues = [{"number": 1, "title": "PRD 001", "state": "OPEN", "labels": [], "closedAt": None,
                "updatedAt": "2026-10-20T10:00:00Z", "createdAt": "2026-10-01T10:00:00Z",
                "body": "", "comments": []}]
-    windowed = _windowed_comments_gh(issues, [])
-
-    def fake_run(args, **kwargs):
-        if "created:" in " ".join(str(a) for a in args):
-            return subprocess.CompletedProcess([str(a) for a in args], 1, "", "HTTP 502: window failed")
-        return windowed(args, **kwargs)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _windowed_comments_gh(fake_processes, issues, [], window_fails=True)
 
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
@@ -2016,24 +2011,24 @@ def test_blocked_by_reads_an_issue_url_as_solvable_issues_does_and_a_heading_wit
             report_cache.blocked_by(None), report_cache.blocked_by("no section #4")) == ([3, 34], [5], [], [])
 
 
-def refresh_from(run_cli, monkeypatch, cwd):
+def refresh_from(run_cli, fake_processes, cwd):
     """Runs `refresh` from `cwd` with gh answering one open issue; returns the exit code."""
     import json
-    import subprocess
 
     report_cache = importlib.import_module("veri.report_cache")
     issues = [{"number": 7, "title": "open one", "state": "OPEN", "labels": [],
                "closedAt": None, "updatedAt": "2026-10-20T10:00:00Z"}]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         args = [str(arg) for arg in args]
         if args[0] == "git":
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
         if args[:3] != ["gh", "issue", "list"]:
             raise AssertionError("unexpected call: %s" % " ".join(args))
-        return subprocess.CompletedProcess(args, 0, json.dumps(issues), "")
+        return (0, json.dumps(issues), "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
     return run_cli(report_cache, ["refresh"], cwd=cwd)[0]
 
 
@@ -2049,31 +2044,31 @@ def linked_checkout(tmp_path, pointer, admin="main/.git/worktrees/linked", commo
 
 
 def test_refresh_from_a_subdirectory_of_a_linked_worktree_writes_the_cache_under_the_main_working_tree(
-        run_cli, monkeypatch, tmp_path):
+        run_cli, monkeypatch, tmp_path, fake_processes):
     main, linked = linked_checkout(tmp_path, str(tmp_path / "main/.git/worktrees/linked"))
     (linked / "src" / "deep").mkdir(parents=True)
 
-    code = refresh_from(run_cli, monkeypatch, linked / "src" / "deep")
+    code = refresh_from(run_cli, fake_processes, linked / "src" / "deep")
 
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / "src" / "deep" / ".tdd").exists()) == (
         0, True, False)
 
 
 def test_refresh_from_a_worktree_whose_git_file_holds_a_relative_gitdir_writes_the_cache_under_the_main_working_tree(
-        run_cli, monkeypatch, tmp_path):
+        run_cli, monkeypatch, tmp_path, fake_processes):
     main, linked = linked_checkout(tmp_path, "../main/.git/worktrees/linked")
 
-    code = refresh_from(run_cli, monkeypatch, linked)
+    code = refresh_from(run_cli, fake_processes, linked)
 
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (linked / ".tdd").exists()) == (0, True, False)
 
 
 def test_refresh_from_a_worktree_whose_gitdir_is_not_three_levels_under_the_main_tree_follows_its_commondir(
-        run_cli, monkeypatch, tmp_path):
+        run_cli, monkeypatch, tmp_path, fake_processes):
     main, linked = linked_checkout(tmp_path, str(tmp_path / "admin/linked"), admin="admin/linked",
                                    commondir=str(tmp_path / "main/.git"))
 
-    code = refresh_from(run_cli, monkeypatch, linked)
+    code = refresh_from(run_cli, fake_processes, linked)
 
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (tmp_path / ".tdd").exists()) == (0, True, False)
 
