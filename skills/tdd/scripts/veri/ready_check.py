@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 
+import git
 import launch_floor
 import paths
 import tunables
@@ -15,20 +16,16 @@ from wait_ci import trigger_lines
 USAGE = "usage: ready-check.sh [repo-root]"
 
 
-def git(*argv):
-    return subprocess.run(["git", *argv], capture_output=True, text=True)
-
-
 def default_tip():
-    head = git("symbolic-ref", "refs/remotes/origin/HEAD")
-    return head.stdout.strip() if head.returncode == 0 else "main"
+    name = git.default_branch(remote=False)
+    return "refs/remotes/origin/" + name if name else "main"
 
 
 def triggers_on(event):
     tip = default_tip()
-    names = git("ls-tree", "--name-only", tip, ".github/workflows/").stdout.split()
+    names = git.git("ls-tree", "--name-only", tip, ".github/workflows/", capture_output=True, text=True).stdout.split()
     for name in names:
-        text = git("show", tip + ":" + name).stdout
+        text = git.git("show", tip + ":" + name, capture_output=True, text=True).stdout
         if any(event in line for line in trigger_lines(text)):
             return True
     return False
@@ -54,12 +51,12 @@ def push_row():
 
 
 def test_file_row():
-    holds = any(is_test_path(f) for f in git("ls-files").stdout.splitlines())
+    holds = any(is_test_path(f) for f in git.git("ls-files", capture_output=True, text=True).stdout.splitlines())
     return "test file", None if holds else "track at least one test file"
 
 
 def tdd_ignored_row():
-    return ".tdd/", None if git("check-ignore", "-q", ".tdd/issue-0-spec.md").returncode == 0 else "add `.tdd/` to .gitignore"
+    return ".tdd/", None if git.git("check-ignore", "-q", ".tdd/issue-0-spec.md", capture_output=True, text=True).returncode == 0 else "add `.tdd/` to .gitignore"
 
 
 def gh_auth_row():
@@ -108,10 +105,10 @@ def main(argv):
     if argv:
         os.chdir(argv[0])
     else:
-        listing = git("worktree", "list", "--porcelain").stdout.split("\n", 1)[0]
+        listing = git.git("worktree", "list", "--porcelain", capture_output=True, text=True).stdout.split("\n", 1)[0]
         if listing.startswith("worktree "):
             os.chdir(listing[len("worktree "):])
-    inside = git("rev-parse", "--git-dir")
+    inside = git.git("rev-parse", "--git-dir", capture_output=True, text=True)
     if inside.returncode != 0:
         print(f"ready-check.sh: not a git repository\n{USAGE}", file=sys.stderr)
         return 2
