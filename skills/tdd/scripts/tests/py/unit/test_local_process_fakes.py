@@ -45,7 +45,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_supervise.py": "not inventoried",
     "test_timed_test_run.py": "one callable: note() then status lookup",
     "test_verify.py": "not inventoried",
-    "unit/test_detach.py": "not inventoried",
     "unit/test_detach_command.py": "not inventoried",
     "unit/test_dispatch.py": "not inventoried",
     "unit/test_dispatch_issue_states.py": "not inventoried",
