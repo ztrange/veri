@@ -1,8 +1,8 @@
 """What a pull request head's CI state means for wait-ci.sh: values in, a decision out, no I/O.
 
 `decide(observation, marks, now, loop, options)` maps one answered read of the head, the marks kept on disk for
-it, the clock and what earlier polls of this call carried (`Loop`) to a `Decision`: the marks to write or remove,
-then the outcome (`Exit`, `Sleep`, a `Probe` to answer first, or a `Crash`) and the `Loop` for the next poll.
+it, the clock (None until a `Need("now")` asks for it) and what earlier polls of this call carried (`Loop`) to a `Decision`: the marks to write or remove,
+then the outcome (`Exit`, `Sleep`, a `Need` to answer first, or a `Crash`) and the `Loop` for the next poll.
 Reading GitHub, the marks and the clock, and sleeping, are wait_ci's and ci_marks's."""
 import re
 from dataclasses import dataclass, replace
@@ -63,8 +63,11 @@ class Sleep:
 
 
 @dataclass(frozen=True)
-class Probe:
-    """Decide again with `no_workflow` set: whether nothing under .github/workflows triggers on pull_request."""
+class Need:
+    """A fact decide asks for before it can answer: decide again with it supplied. <what> is `workflow` (set
+    `no_workflow` on the observation: whether nothing under .github/workflows triggers on pull_request) or `now`
+    (pass the clock). A fact is asked for only on the paths that use it, so a caller reads it only then."""
+    what: str
 
 
 @dataclass(frozen=True)
@@ -119,7 +122,7 @@ def decide(obs, marks, now, loop, opts):
         return Decision(Exit(0, "", _warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % opts.pr)), (), loop)
     if state == "none" and not opts.explicit:
         if obs.no_workflow is None:
-            return Decision(Probe(), (), loop)
+            return Decision(Need("workflow"), (), loop)
         if obs.no_workflow:
             return Decision(Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come" % opts.pr)), (), loop)
     none = state == "none"
@@ -134,6 +137,8 @@ def decide(obs, marks, now, loop, opts):
         return done(Exit(0))
     if state == "red":
         return done(Exit(1, obs.failed + "\n" if obs.failed else ""))
+    if now is None:
+        return Decision(Need("now"), (), loop)
     if none and obs.mergeable:
         if loop.none_head != head:
             first = now if marks.none is None else marks.none

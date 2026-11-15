@@ -2,25 +2,26 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import base64
 import json
-import os
 import re
 import subprocess
 import sys
 import traceback
+from dataclasses import replace
 from datetime import datetime
 
 import github
 from github import NoAnswer, run_gh, gh_api, gh_rest_list
 from json_documents import documents
 import tunables
+import ci_marks
+from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
 from ci_on_pr import declared, trigger_lines
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>"
 PASSING = ("success", "neutral", "skipped")
 SLICE_CAP = 540
 CEILING = 600
-UNREAD_LIMIT = 3
-RETRY_CAP = 60
+RUN = ""
 
 
 def warn(message):
@@ -52,10 +53,6 @@ def arith(text, scope):
     else:
         raise ArithError('%s: syntax error: invalid arithmetic operator (error token is "%s")' % (word, body))
     return sign * value
-
-
-def decimal(text):
-    return str(int(text)) if re.fullmatch(r"[0-9]+", text) else None
 
 
 def capped(value, cap, scope):
@@ -138,14 +135,13 @@ def wait_for_reset(stderr, key, draft, total, bound, slice_end=None):
     reset = github.rate_limit_reset(subprocess.run)
     if reset is None:
         return
-    mark = deadline_mark(key) if key else None
-    limit = read_deadline(mark) if mark else None
+    limit = ci_marks.seconds(RUN, "deadline", key) if key else None
     if limit is None:
         if "limit" not in bound:
             bound["limit"] = epoch() + int(total)
         limit = bound["limit"]
-        if mark and not draft and not os.path.exists(mark):
-            record(mark, str(limit))
+        if key and not draft and not ci_marks.exists(RUN, "deadline", key):
+            ci_marks.record(RUN, "deadline", key, limit)
     if reset >= limit:
         warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
         raise NoAnswer("permanent")
@@ -183,54 +179,14 @@ def epoch():
     return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
 
 
-def deadline_mark(key):
-    return ".tdd/ci-deadline-" + key
-
-
-def read_deadline(mark):
-    try:
-        with open(mark) as found:
-            return int(found.read())
-    except (OSError, ValueError):
-        return None
-
-
-def before_deadline(mark):
-    limit = read_deadline(mark)
+def before_deadline(key):
+    limit = ci_marks.seconds(RUN, "deadline", key)
     return limit is not None and epoch() < limit
-
-
-def retry_sleep(poll, unread):
-    try:
-        return "%g" % min(RETRY_CAP, float(poll) * 2 ** (unread - 1))
-    except ValueError:
-        return poll
-
-
-def record(mark, deadline):
-    try:
-        with open(mark, "w") as out:
-            out.write("%s\n" % deadline)
-    except OSError as error:
-        warn(error)
-
-
-def first_sighting(mark, now):
-    try:
-        with open(mark) as found:
-            return int(found.read())
-    except (OSError, ValueError):
-        record(mark, now)
-        return now
 
 
 def main(argv):
     if len(argv) == 2 and argv[0] == "--fresh-window":
-        for kind in ("deadline", "queued", "none"):
-            try:
-                os.remove(".tdd/ci-%s-%s" % (kind, argv[1]))
-            except OSError:
-                pass
+        ci_marks.fresh_window(RUN, argv[1])
         return 0
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -275,13 +231,13 @@ def main(argv):
             traceback.print_exc()
             total = span
     poll = tunables.read("VERI_POLL", unless_empty="10")
-    deadline = ""
+    options = Options(pr=pr, want=want, explicit=explicit, on_pr=on_pr, no_run_wait=int(no_run_wait),
+                      queue_wait=tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600"), poll=poll,
+                      span=arith(span, scope), total=arith(total, scope))
     bound = {}
-    slice_end = None
-    call_end = epoch() + arith(span, scope)
+    call_end = epoch() + options.span
+    loop = Loop()
     unread = 0
-    first_none = None
-    none_head = None
     while True:
         draft = False
         try:
@@ -313,99 +269,39 @@ def main(argv):
         if state is None:
             unread += 1
             key = want or head
-            if key and not draft and not os.path.exists(deadline_mark(key)):
-                record(deadline_mark(key), str(epoch() + arith(total, scope)))
-            if unread >= UNREAD_LIMIT and not before_deadline(deadline_mark(want or head)):
+            if key and not draft and not ci_marks.exists(RUN, "deadline", key):
+                ci_marks.record(RUN, "deadline", key, epoch() + options.total)
+            if unread >= UNREAD_LIMIT and not before_deadline(want or head):
                 return unreadable(head or pr)
-            subprocess.run(["sleep", retry_sleep(poll, unread) if backoff == "1" else poll])
+            subprocess.run(["sleep", retry_sleep(poll, unread, backoff)])
             continue
         unread = 0
-        if state in ("none", "skipped") and mergeable is False:
-            warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
-            return 2
-        mismatched = bool(want and head != want)
-        if state == "none" and on_pr == "0" and not mismatched:
-            warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % pr)
-            return 0
-        if state == "none" and not explicit and no_pull_request_workflow(repo, head):
-            warn("%s has no checks and no workflow triggers on pull_request; no check will come" % pr)
-            return 0
-        none = state == "none"
-        if not none:
-            try:
-                os.remove(".tdd/ci-none-" + head)
-            except OSError:
-                pass
-        if state == "skipped":
-            state = "pending"
-        if mismatched:
-            state = "pending"
-        if state == "green":
-            return 0
-        if state == "red":
-            if failed:
-                print(failed)
-            return 1
-        now = epoch()
-        scope["now"] = now
-        if none and mergeable:
-            if none_head != head:
-                none_head = head
-                first_none = first_sighting(".tdd/ci-none-" + head, now)
-            if now - first_none >= int(no_run_wait):
-                warn("no CI run for %s" % head)
-                return 2
-        if slice_end is None:
-            try:
-                slice_end = now + arith(span, scope)
-                if mismatched and os.path.dirname(deadline_mark(want)) != ".tdd":
-                    warn("head-sha %s cannot name a deadline file" % want)
-            except ArithError as error:
-                warn(error)
+        observation = Observation(state, head, failed, queued, mergeable, draft)
+        marks = ci_marks.load(RUN, want or head, head)
+        now = None
+        while True:
+            decision = decide(observation, marks, now, loop, options)
+            if not isinstance(decision.outcome, Need):
                 break
-        if queued and not mismatched:
-            first = first_sighting(".tdd/ci-queued-" + (want or head), now)
-            if now - first > int(tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600")):
-                warn("checks of %s never started: queued since %s" % (pr, first))
-                return 2
-        if mismatched or queued:
-            if now >= slice_end:
-                break
-            subprocess.run(["sleep", poll])
+            if decision.outcome.what == "workflow":
+                observation = replace(observation, no_workflow=no_pull_request_workflow(repo, head))
+            else:
+                now = epoch()
+        loop = decision.loop
+        for effect in decision.effects:
+            if isinstance(effect, Record):
+                ci_marks.record(RUN, effect.kind, effect.key, effect.value)
+            else:
+                ci_marks.remove(RUN, effect.kind, effect.key)
+        outcome = decision.outcome
+        if isinstance(outcome, Crash):
+            raise outcome.error
+        if isinstance(outcome, Sleep):
+            subprocess.run(["sleep", outcome.seconds])
             continue
-        if not deadline:
-            try:
-                key = want or head
-                mark = deadline_mark(key)
-                inherited = os.path.exists(mark)
-                if inherited:
-                    try:
-                        with open(mark) as found:
-                            deadline = found.read().rstrip("\n")
-                    except OSError:
-                        deadline = ""
-                    deadline = decimal(deadline)
-                    if deadline is None:
-                        warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
-                        return 2
-                elif draft:
-                    warn("%s is a draft; mark it ready before waiting on its checks" % pr)
-                    return 2
-                else:
-                    deadline = str(now + arith(total, scope))
-                    record(mark, deadline)
-            except ArithError as error:
-                warn(error)
-                break
-        if now >= arith(deadline, scope):
-            if inherited:
-                warn("checks of %s still pending past the deadline recorded for %s" % (pr, key))
-                return 2
-            break
-        if now >= slice_end:
-            break
-        subprocess.run(["sleep", poll])
-    return 3
+        sys.stdout.write(outcome.out)
+        sys.stderr.write(outcome.err)
+        return outcome.code
 
 
 if __name__ == "__main__":
