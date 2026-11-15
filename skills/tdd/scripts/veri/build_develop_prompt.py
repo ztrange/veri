@@ -52,12 +52,14 @@ def _bullets(cases):
 
 
 class Refusal:
-    """A refusal of the arguments: `message` (str, or None for the usage line alone) and exit `code` 2."""
-    __slots__ = ("message", "code")
+    """A refusal: `message` (str or bytes; None for the usage line alone), exit `code` 2, and whether the usage line
+    follows (`usage`; the refusals of arguments do, those of rendering do not)."""
+    __slots__ = ("message", "code", "usage")
 
-    def __init__(self, message):
+    def __init__(self, message, usage=True):
         self.message = message
         self.code = 2
+        self.usage = usage
 
 
 class Arguments:
@@ -187,15 +189,19 @@ def fragments(phase, revised_phase, step, has_bug):
     return chosen
 
 
-def main(argv):
-    parsed = arguments(argv)
-    if isinstance(parsed, Refusal):
-        entry.refuse(parsed.message, usage=USAGE)
-        return parsed.code
+def render(parsed, chosen):
+    """The prompt text (bytes, no trailing newline) for the checked `Arguments` and their `Fragments`, or a `Refusal` with
+    no usage line.
+
+    Files are read in this order, and the order is behaviour: every file the prompt is built from is first checked
+    readable (template, shared rules, spec, the phase's argument files, then the optional and marked fragments), the
+    first unreadable one refused; then the template and shared rules are read, VERI_ISSUE is demanded when the template
+    carries ISSUE_NUMBER, the inline fragments are expanded (the first missing partial is refused), and last the
+    placeholders are filled in the order of `values`, a later value seeing what an earlier one inserted. A revise
+    prompt that renders empty is refused."""
     phase, revised_phase, names, args = parsed.phase, parsed.revised_phase, parsed.names, parsed.args
     prompts = f"{HERE}/prompts"
     spec, step = args[0], args[1]
-    chosen = fragments(phase, revised_phase, step, has_heading(spec_text_of(spec), b"Bug"))
     paths = [f"{prompts}/{chosen.template}", f"{prompts}/_develop-shared.md", spec]
     optional = {}
     if phase in ("revise", "exhausted", "red-missing"):
@@ -214,8 +220,7 @@ def main(argv):
     repair = chosen.repair
     for path in paths:
         if not os.access(path, os.R_OK):
-            write(sys.stderr, f"build-develop-prompt: cannot read '{path}'", before=False, after=False)
-            return 2
+            return Refusal(f"build-develop-prompt: cannot read '{path}'", usage=False)
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
@@ -248,9 +253,8 @@ def main(argv):
         if b"{{ISSUE_NUMBER}}" in text:
             issue = tunables.read("VERI_ISSUE") or ""
             if entry.whole_number(issue, 0) is None:
-                write(sys.stderr, "build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number",
-                      before=False, after=False)
-                return 2
+                return Refusal("build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number",
+                               usage=False)
             values["ISSUE_NUMBER"] = issue.encode()
             try:
                 rerouted = [e.get("case") for e in event_log.events(".", "reroute")
@@ -271,8 +275,7 @@ def main(argv):
             if placeholder in marked:
                 values[placeholder] = expand_includes(b"\n\n" + values[placeholder], prompts_b)
     except IncludeRefused as refusal:
-        sys.stderr.buffer.write(refusal.args[0] + b"\n")
-        return 2
+        return Refusal(refusal.args[0], usage=False)
     named = parse_replaces_case(step) if "REPLACES_CASE" in marked else None
     if named:
         names, suite = named
@@ -294,15 +297,28 @@ def main(argv):
     try:
         text = fill(text, ((name.encode(), lazy.get(name, value)) for name, value in values.items()))
     except IncludeRefused as refusal:
-        sys.stderr.buffer.write(refusal.args[0] + b"\n")
-        return 2
+        return Refusal(refusal.args[0], usage=False)
     run_state = os.fsencode(os.path.join(event.toplevel() or os.getcwd(), ".tdd"))
     for name in (b"red-prediction.md", b"red-run-output.txt"):
         text = text.replace(b"`.tdd/" + name + b"`", b"`" + run_state + b"/" + name + b"`")
     if phase == "revise" and not text.strip():
-        write(sys.stderr, f"build-develop-prompt: the revise prompt for '{revised_phase}' is empty", before=False, after=False)
-        return 2
-    sys.stdout.buffer.write(text + b"\n")
+        return Refusal(f"build-develop-prompt: the revise prompt for '{revised_phase}' is empty", usage=False)
+    return text
+
+
+def main(argv):
+    parsed = arguments(argv)
+    if isinstance(parsed, Arguments):
+        spec, step = parsed.args[0], parsed.args[1]
+        chosen = fragments(parsed.phase, parsed.revised_phase, step, has_heading(spec_text_of(spec), b"Bug"))
+        parsed = render(parsed, chosen)
+    if isinstance(parsed, Refusal):
+        if parsed.usage:
+            entry.refuse(parsed.message, usage=USAGE)
+        else:
+            write(sys.stderr, parsed.message, before=False, after=False)
+        return parsed.code
+    sys.stdout.buffer.write(parsed + b"\n")
     return 0
 
 
