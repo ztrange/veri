@@ -10,8 +10,6 @@ from test_veri_interface_index import _modules, _private, _readme_lines, _shared
 # Names a section lists that no other module of veri/ uses, each with why it stays. A ratchet: the set may shrink,
 # never grow; an entry that is used by a sibling after all, or no longer listed, fails the case that checks it.
 USED_ONLY_BY_TESTS = {
-    "add_ledger_step.main": "the shim's entry point (entry.run calls it); the suite drives it, no sibling should",
-    "grade_prose.main": "the shim's entry point (entry.run calls it); the suite drives it, no sibling should",
     "case_reader.js_title_pattern": "the public name wrong_test_route will import once its open PR lands (it reads the `_js_title_pattern` alias, KNOWN_REACHES in test_veri_interface_index.py)",
     "git.ok": "the never-raises predicate of git's interface; every hand-written 'did git succeed' left in the tree differs in stderr or in raising on a missing git binary (case_history.has_rev passes stderr through and raises OSError by contract), so none can switch byte-identically",
     "grade_prose.signature": "the stamp formula: the graded-signature pins and signer() call it, in the tree's own grade_prose.py",
@@ -22,7 +20,7 @@ USED_ONLY_BY_TESTS = {
     "tunables.TUNABLES": "the table the tunable audits read; code reads it through get and resolve",
     "tunables.Tunable": "the table's entry type, built by the table and read by the tunable audits",
 }
-MOST_ALLOWANCES = 11
+MOST_ALLOWANCES = 9
 
 _NAME = re.compile(r"[A-Za-z_]\w*(?:\(.*\))?$")
 _IDENT = re.compile(r"[A-Za-z_]\w*")

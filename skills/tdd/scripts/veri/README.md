@@ -241,7 +241,6 @@ The ledger of a run: reading and ticking steps, growing, dropping and reordering
 - `unreplaced-cases.sh`: bash cases a replaces-case step names with no pytest replacement.
 
 ## add_ledger_step
-- `main(argv)`: exit code of add-ledger-step.sh; 2 with the usage on bad arguments.
 - `add(path, where, anchor, texts, *, criterion=None, planned=False)`: what `main` does once parsed, for an in-process caller: inserts `texts` after, before or instead of the one step holding `anchor`. Same exit codes (0 inserted, 1 budget spent or a clean negative, 2 refused) and same stderr as the script.
 
 ## issue_body
@@ -521,7 +520,7 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `stale-rows.sh`: requirements rows gone stale.
 
 ## grade_prose
-- `main(argv)`: grades a prose unit and returns an exit code (2 on bad arguments); `--owed` and `--convert` are modes. `grade_unit(path, unit)`: the grading `main` does once parsed (0 PASS, 1 REJECT, 2 no answer), for `stale_rows` and `skill_edit_step`.
+- `grade_unit(path, unit)`: grades a prose unit (0 PASS, 1 REJECT, 2 no answer), for `stale_rows` and `skill_edit_step`; the script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
 - `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `read(file)`, `graded_path(unit)`: the unit's text, a file's text, its `GRADED` file path.
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale; `prose_owed` imports it (`suite_red_resume` reads it as `prose_owed.owed_listed`). It lives here so `prose_owed` builds on `grade_prose` and not the reverse: `signer()` runs the tree's own `grade_prose.py` for the formula, so the stamp's functions stay in that one file.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
