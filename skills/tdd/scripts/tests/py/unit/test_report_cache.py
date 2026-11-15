@@ -2076,3 +2076,15 @@ def test_refresh_from_a_worktree_whose_gitdir_is_not_three_levels_under_the_main
     code = refresh_from(run_cli, monkeypatch, linked)
 
     assert (code, (main / ".tdd" / "report-cache.json").is_file(), (tmp_path / ".tdd").exists()) == (0, True, False)
+
+
+def test_refresh_from_a_worktree_whose_gitdir_has_no_commondir_file_dies_on_the_one_line_entry_refusal(
+        run_cli, monkeypatch, tmp_path):
+    main, linked = linked_checkout(tmp_path, str(tmp_path / "main/.git/worktrees/linked"))
+    (tmp_path / "main/.git/worktrees/linked/commondir").unlink()
+    report_cache = importlib.import_module("veri.report_cache")
+
+    code, out, err = run_cli(report_cache, ["refresh"], cwd=linked)
+
+    assert (code, out, len(err.splitlines()), err.startswith("report-cache.sh: FileNotFoundError:"),
+            "commondir" in err, "Traceback" in err) == (2, "", 1, True, True, False)
