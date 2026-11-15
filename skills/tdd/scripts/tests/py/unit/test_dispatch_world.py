@@ -74,3 +74,11 @@ def test_a_set_but_empty_overlap_poll_window_reads_as_60_seconds(monkeypatch, di
     monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", "")
 
     assert dispatch.overlap_poll() == "60"
+
+
+def test_a_world_records_the_launches_made_by_the_time_of_each_wait(dispatch):
+    world = FakeWorld({"queue": ["12", "15"], "no_ledger": ["12"]}, {"queue": ["15"], "no_ledger": ["12"]}, {"queue": ["15"]})
+
+    dispatch.main(["--target", "3"], world=world)
+
+    assert (world.launched, world.launched_at_wait) == (["12", "15"], [["12"], ["12"], ["12", "15"]])
