@@ -199,11 +199,11 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 
 ## restart_marker
 A run's `.tdd/restart-pending` marker, which says a conductor restart is in flight.
-- `path(run)`: its path. `claim(run, pid)`: write `<pid>\n` (not atomic). `clear(run)`: remove it, `FileNotFoundError` when absent.
+- `claim(run, pid)`: write `<pid>\n` (not atomic). `clear(run)`: remove it, `FileNotFoundError` when absent.
 - `in_flight(run, *, unreadable)`: whether a live restarter holds the marker. Missing, a dead pid or an impossibly large one: `False`; a live pid: `True`. A marker that cannot say (empty, non-digit, undecodable, unopenable, probe denied) answers `unreadable`, which every caller names: dispatch passes `True`, comment and watch_runs `False`.
 
 ## run_activity
-- `activity(run, closed=False)`: an `Activity` (frozen dataclass: `state`, `detail`, `phase`, `actor`, `leaf`, `elapsed_seconds`, `attempts`, `dollars`, `tokens`, `pr`, `bail_phase`, `classification`, `stop_mode`, `cause`) for the run directory; `state` is one of `running`, `stale`, `done`, `stopped`, `bailed`, `refused`, `closed`.
+- `activity(run, closed=False)`: an Activity (frozen dataclass: `state`, `detail`, `phase`, `actor`, `leaf`, `elapsed_seconds`, `attempts`, `dollars`, `tokens`, `pr`, `bail_phase`, `classification`, `stop_mode`, `cause`) for the run directory; `state` is one of `running`, `stale`, `done`, `stopped`, `bailed`, `refused`, `closed`.
 - `state(run)`: just that state word. No journal reads as `running`; a dead pid with no end mark is `stale`.
 
 ## run_dir
@@ -245,6 +245,7 @@ The ledger of a run: reading and ticking steps, growing, dropping and reordering
 
 ## issue_body
 The one reading of a GitHub issue's markdown body: its `## <heading>` sections, acceptance criteria and blockers. Built on `markdown_sections.fenced_lines`; indexes count lines of `body.split("\n")`. It sits here because it reads the checkbox lines with `ledger.STEP_RE` and the GitHub modules may build on Ledger and plan.
+- `CRITERIA`: the heading `## Acceptance criteria`, to hand `spans` (or `section`) for the criteria.
 - `spans(body, heading, *, prefix=False)`: `[(start, end)]`, the content lines under each matching heading (start the line after it, end exclusive).
 - `section(body, heading, *, prefix=False, occurrence="last")`: the text, `None` when the heading is absent. `occurrence` is `first`, `last` or `all`.
 - `criteria(body, *, prefix=False, occurrence="last")`: `[(index, line)]`, the unfenced checkbox lines (`ledger.STEP_RE`) under `## Acceptance criteria`; the k-th criterion is `[k - 1]`.
@@ -258,7 +259,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (records of `(index, state, kind, pending, added, criterion, text)`), `items_at(rev, path)` (OSError when git cannot show it).
 - Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_clear_pending(text, matcher)`, `tick_line(match)` (a `STEP_RE` match with its box ticked): the first three return `(changed, text)`.
 - A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `is_skill_edit`, `is_retired(text)`, `handed_out(record)`: predicates and parts of its text.
-- Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `mark(phase, state)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`, `added_file(path)` (the sibling `-added.md` path of a ledger file).
+- Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`, `added_file(path)` (the sibling `-added.md` path of a ledger file).
 - Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger, pin-reject-route and the develop prompt read it), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
 ## preserve_attempt
@@ -296,7 +297,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 ## leaf_log
 - `result_records(lines)`: every `{"type":"result", …}` record among a leaf log's lines, in order.
-- `result_text(line)`: the result string of the result record on one line (str or bytes), else `None`. `result_texts(lines)`: those strings, in order. `last_result_text(lines)`: the final one, else `None`.
+- `result_text(line)`: the result string of the result record on one line (str or bytes), else `None`. `last_result_text(lines)`: the final one, else `None`.
 - `cost(lines)`: dollars, `total_cost_usd` (missing or null counts 0) summed over the result records that carry a `result` field.
 
 ## leaf_model
@@ -482,7 +483,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `gh_issue_add_label(number, label)`, `gh_issue_remove_label(number, label)` (a 404 is fine), `gh_label_ensure(label)` (already existing is fine), `gh_label_create(name)`, `gh_api_add_label(path, name)`: label operations.
 - `gh_api(path, stderr=None)`, `gh_api_delete(path)`, `gh_probe(*args)`, `run_gh(*args, stderr=None)`: raw `CompletedProcess` results; `run_gh` waits and retries while `gh` is not installed.
 - `gh_pr_ready(number, head_sha="")`, `gh_pr_diff_names(number)`: mark a draft PR ready, list the paths of a PR.
-- `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `wait_seconds(name, default, least)`: an int tunable, NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
+- `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
 
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
@@ -557,4 +558,4 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## status
-- `json_document(scope=None, read_states=True)`: `(exit code, --json document)`. `run_activity(run, as_json=False, closed=False)`: renders one run's `run_activity.activity` as its text line or `--json` object.
+- `json_document(scope=None, read_states=True)`: `(exit code, --json document)`.
