@@ -76,3 +76,15 @@ def test_commit_all_with_nothing_to_commit_fails_naming_what_git_said(tmp_path):
 
     with pytest.raises(AssertionError, match="nothing to commit"):
         repo_builder.commit_all(repo, "chore: empty")
+
+
+@pytest.mark.process("an empty commit in a scratch repository, read back with rev-parse and show")
+def test_commit_all_allowing_empty_commits_a_tree_with_nothing_to_commit_and_returns_its_head(tmp_path):
+    repo = repo_builder.new_repo(tmp_path / "repo")
+    first = repo_builder.commit_all(repo, "feat: first", kept="a\n")
+
+    empty = repo_builder.commit_all(repo, "chore: empty", allow_empty=True)
+
+    assert empty != first
+    assert empty == run(repo, "rev-parse", "HEAD").stdout.strip()
+    assert run(repo, "show", "--name-status", "--format=%s", "HEAD").stdout.split() == ["chore:", "empty"]
