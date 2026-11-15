@@ -66,6 +66,8 @@ names other modules use. Related names share a line where the list would otherwi
 - `write(stream, text, *, before=True, after=True, end="\n")`: writes str or bytes to the stream's binary buffer, flushing before and after by default.
 - `refusal(main, exc)`: the one-line `<shim>: <Type>: <reason> (at file:line)` text for an exception.
 - `silence_stdout()`: points fd 1 at `/dev/null`; ignores failure.
+- `refuse(*lines, usage=None, prefix="")`: writes each str/bytes line (prefixed) and then the usage to stderr; returns 2. The one way to refuse.
+- `to_contract(code)`: the code when it is 0, 1, 2 or 3, else 2.
 
 ## event
 - `mark(directory, context, event, fields=(), ts=None)`: appends an event to the run journal; returns 0, or 2 after printing the refusal on any exception.
@@ -75,6 +77,9 @@ names other modules use. Related names share a line where the list would otherwi
 - `journal_path(clone, issue)`: the path of the shared journal, `None` when the clone's config is unreadable. `state_labels(event, issue)`: mirrors a bail, resume or start onto the issue's labels.
 
 ## event_log
+- `path(run)`: the journal of a run directory, `<run>/.tdd/events.jsonl`.
+- `events(run, *kinds, skip_unreadable=False, errors="replace")`: the events of those kinds (all when none), in order; `[]` when the run has no journal; ValueError on an unreadable line unless skipped.
+- `last(run, kind)`: the last event of a kind, or `None`.
 - `read_events(path, skip_unreadable=False, mark_unreadable=False, errors="replace")`: one dict per non-blank line of an `events.jsonl`; `skip_unreadable` drops lines that are not a JSON object, `mark_unreadable` keeps them as `None`.
 - `usage_totals(events)`: `(dollars, tokens)` summed over the `usage` events.
 - `append_bytes(path, data)`: appends bytes to a file; raises OSError.
@@ -100,6 +105,9 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 ## git
 - `git(*args, **kwargs)`: `subprocess.run(["git", *args], **kwargs)`; the CompletedProcess, never raises on a non-zero exit.
 - `symref_default(answer)`: the default branch named in `ls-remote --symref` output, `None` when absent.
+- `out(*args, cwd=None)`: stdout as str, trailing newlines stripped; raises `GitFailed` on a non-zero exit or a missing git.
+- `ok(*args, cwd=None)`: whether the command exited 0; never raises.
+- `default_branch(cwd=None, remote=True)`: the default branch name, `None` when it cannot be told; `remote=False` never touches the network. A fallback is the caller's to write.
 
 ## github
 Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed call raises `NoAnswer(answer, detail="")`.
@@ -163,6 +171,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 ## paths
 - `scripts_of(file)`: the `scripts/` directory above a file of `veri/`, `..` resolved after following symlinks.
 - `resolved_scripts_of(file)`: the same with the file's symlinks resolved first.
+- `inside_scripts(file, where=None)`: whether `where` (default: the current directory) is that scripts directory or inside it.
 
 ## pid_file
 - `number_in(file)`: the number on a pid file's first line, `None` when missing or malformed.
@@ -203,6 +212,12 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 ## role_state
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+
+## run_dir
+Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` touches the disk.
+- `main_tree(cwd=None)`: the repository's main working tree; raises `NoMainTree` when git cannot name one.
+- `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue.
+- `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.
