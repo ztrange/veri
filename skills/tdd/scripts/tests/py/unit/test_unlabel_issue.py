@@ -5,6 +5,16 @@ import os
 import subprocess
 
 
+def _install(fake_processes, fake_run):
+    """Answers every gh call through <fake_run>(args, **kwargs), which returns a CompletedProcess, and records it."""
+    def answer(line, **kwargs):
+        done = fake_run(fake.argvs[-1], **kwargs)
+        return done.returncode, done.stdout, done.stderr
+
+    fake = fake_processes.answers({"gh": answer})
+    return fake
+
+
 def _labels_read(args, labels):
     """The read of an issue's labels, answered with its names as a JSON list; None for any other call."""
     if args[:2] != ["gh", "api"] or "-X" in args:
@@ -26,7 +36,7 @@ def _claim_call(args):
     return None
 
 
-def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label_already_absent_exits_0(monkeypatch, capsys):
+def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label_already_absent_exits_0(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     labels = {"7": {"ready-for-agent", "bug"}, "8": {"bug"}}
@@ -53,7 +63,7 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
             return subprocess.CompletedProcess(args, 0, "", "")
         raise AssertionError("unexpected call: %s" % joined)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     carrying = unlabel_issue.main(["7"])
     carrying_left = set(labels["7"])
@@ -63,7 +73,7 @@ def test_main_1656_removes_the_opt_in_label_so_the_issue_is_unlisted_and_a_label
     assert (carrying, carrying_left, bare, labels["8"], changes) == (0, {"bug"}, 2, {"bug"}, [])
 
 
-def _deleting(monkeypatch, answer):
+def _deleting(fake_processes, answer):
     """Fake gh: records each DELETE's path and answers it with `answer` (returncode, stderr)."""
     deleted = []
 
@@ -80,32 +90,32 @@ def _deleting(monkeypatch, answer):
         deleted.append(args[4])
         return subprocess.CompletedProcess(args, answer[0], "", answer[1])
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     return deleted
 
 
-def test_main_1656_removes_the_label_veri_label_names_not_the_default_one(monkeypatch, capsys):
+def test_main_1656_removes_the_label_veri_label_names_not_the_default_one(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_LABEL", "veri ok")
-    deleted = _deleting(monkeypatch, (0, ""))
+    deleted = _deleting(fake_processes, (0, ""))
 
     code = unlabel_issue.main(["7"])
 
     assert (code, deleted, capsys.readouterr().err) == (0, ["repos/{owner}/{repo}/issues/7/labels/veri%20ok"], "")
 
 
-def test_main_1656_exits_2_and_echoes_gh_when_the_removal_fails_with_anything_but_a_404(monkeypatch, capsys):
+def test_main_1656_exits_2_and_echoes_gh_when_the_removal_fails_with_anything_but_a_404(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
-    _deleting(monkeypatch, (1, "gh: Server Error (HTTP 502)\n"))
+    _deleting(fake_processes, (1, "gh: Server Error (HTTP 502)\n"))
 
     code = unlabel_issue.main(["7"])
 
     assert (code, capsys.readouterr().err) == (2, "gh: Server Error (HTTP 502)\n")
 
 
-def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothing(monkeypatch, capsys):
+def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothing(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
-    deleted = _deleting(monkeypatch, (1, "gh: Not Found (HTTP 404)\n"))
+    deleted = _deleting(fake_processes, (1, "gh: Not Found (HTTP 404)\n"))
 
     code = unlabel_issue.main(["abc"])
 
@@ -113,7 +123,7 @@ def test_main_1672_exits_2_naming_a_non_numeric_issue_argument_and_asks_gh_nothi
     assert (code, deleted, "abc" in err) == (2, [], True)
 
 
-def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_without_the_label_exits_0(monkeypatch, capsys):
+def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_without_the_label_exits_0(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     labels = {"8": {"ready-for-agent"}, "9": {"bug"}}
 
@@ -135,7 +145,7 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
             return subprocess.CompletedProcess(args, 1, "", "gh: Label does not exist (HTTP 404)\n")
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     existing = unlabel_issue.main(["8"])
     existing_err = capsys.readouterr().err
@@ -147,9 +157,9 @@ def test_main_1672_exits_2_naming_a_nonexistent_issue_while_an_existing_issue_wi
     assert (existing, existing_err, bare, missing, "999" in missing_err) == (0, "", 2, 2, True)
 
 
-def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no_answer(monkeypatch, capsys):
+def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no_answer(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
-    _deleting(monkeypatch, (1, "error connecting to api.github.com\n"))
+    _deleting(fake_processes, (1, "error connecting to api.github.com\n"))
 
     code = unlabel_issue.main(["7"])
 
@@ -157,7 +167,7 @@ def test_main_1672_exits_2_naming_the_unanswered_removal_request_when_gh_gets_no
     assert (code, "unlabel-issue.sh" in err, "#7" in err) == (2, True, True)
 
 
-def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_itself(monkeypatch, capsys):
+def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_itself(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     github = importlib.import_module("veri.github")
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
@@ -171,20 +181,17 @@ def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_i
             return read
         return subprocess.CompletedProcess(args, 0, "", "")
 
-    def own_launch(args, **kwargs):
-        raise AssertionError("unlabel_issue started a process itself: %s" % " ".join(map(str, args)))
-
     monkeypatch.setattr(github, "run_gh", port_launch)
-    monkeypatch.setattr(subprocess, "run", own_launch)
+    own = fake_processes.answers({})
 
     code = unlabel_issue.main(["7"])
 
     deletions = [call for call in ported if "DELETE" in call]
-    assert (code, deletions, capsys.readouterr().err) == (
-        0, [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/7/labels/ready-for-agent"]], "")
+    assert (code, deletions, capsys.readouterr().err, own.calls) == (
+        0, [["api", "-X", "DELETE", "repos/{owner}/{repo}/issues/7/labels/ready-for-agent"]], "", [])
 
 
-def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last_colon_of_veri_label_or_main(monkeypatch):
+def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last_colon_of_veri_label_or_main(monkeypatch, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = []
@@ -197,7 +204,7 @@ def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last
             return read
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     def taken_after(label):
         calls.clear()
@@ -215,7 +222,7 @@ def test_main_2030_adds_the_taken_lane_label_named_after_the_text_after_the_last
         (0, ["taken:main"], []), (0, ["taken:main"], []), (0, ["taken:mu"], [])]
 
 
-def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so_the_add_succeeds_and_the_issue_carries_it(monkeypatch, capsys):
+def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so_the_add_succeeds_and_the_issue_carries_it(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
@@ -245,7 +252,7 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
             return subprocess.CompletedProcess(args, 0, "[]", "")
         raise AssertionError("unexpected call: %s" % " ".join(args))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
@@ -253,7 +260,7 @@ def test_main_2030_creates_the_taken_lane_label_in_the_repository_when_absent_so
         0, {"taken:mu"}, True, "")
 
 
-def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_and_leaves_it_on_the_issue(monkeypatch, capsys, tmp_path):
+def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_and_leaves_it_on_the_issue(monkeypatch, capsys, tmp_path, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tdd").mkdir()
@@ -282,14 +289,14 @@ def test_main_2030_exits_0_when_the_issue_already_carries_the_taken_lane_label_a
             return subprocess.CompletedProcess(args, 0, "[]", "")
         raise AssertionError("unexpected call: %s" % " ".join(args))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
     assert (code, issue_labels["7"], "taken:mu" in capsys.readouterr().err) == (2, {"taken:mu", "bug"}, True)
 
 
-def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_creating_it_or_to_adding_it(monkeypatch, capsys):
+def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_creating_it_or_to_adding_it(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
 
@@ -313,7 +320,7 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
                 return subprocess.CompletedProcess(args, 1, "", "error connecting to api.github.com\n")
             return subprocess.CompletedProcess(args, 0, "[]", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        _install(fake_processes, fake_run)
         code = unlabel_issue.main(["7"])
         err = capsys.readouterr().err
         return code, "unlabel-issue.sh" in err, "taken:main" in err, "#7" in err, calls[:1] == ["read"]
@@ -322,7 +329,7 @@ def test_main_2030_exits_2_naming_the_taken_label_when_gh_gets_no_answer_to_crea
 
 
 
-def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_and_description_and_no_force_and_exits_2_when_the_lookup_gets_no_answer(monkeypatch, capsys):
+def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_and_description_and_no_force_and_exits_2_when_the_lookup_gets_no_answer(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
 
@@ -339,7 +346,7 @@ def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_a
                 return lookup(args)
             return subprocess.CompletedProcess(args, 0, "[]", "")
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        _install(fake_processes, fake_run)
         code = unlabel_issue.main(["7"])
         return code, calls, capsys.readouterr().err
 
@@ -357,7 +364,7 @@ def test_main_2301_creates_a_missing_taken_lane_label_once_with_a_fixed_colour_a
     assert (code, "taken:main" in err, "#7" in err, [call for call in calls if call[:3] == ["gh", "label", "create"]]) == (2, True, True, [])
 
 
-def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_because_the_label_already_exists(monkeypatch, capsys):
+def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_because_the_label_already_exists(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     issue_labels = {"7": {"ready-for-agent"}}
@@ -379,14 +386,14 @@ def test_main_2328_adds_the_taken_lane_label_and_exits_0_when_the_create_fails_b
             return subprocess.CompletedProcess(args, 0, "[]", "")
         raise AssertionError("unexpected call: %s" % " ".join(args))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
     assert (code, issue_labels["7"], capsys.readouterr().err) == (0, {"taken:main"}, "")
 
 
-def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_anything_but_already_exists(monkeypatch, capsys):
+def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_anything_but_already_exists(monkeypatch, capsys, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     issue_labels = {"7": {"ready-for-agent"}}
@@ -408,14 +415,14 @@ def test_main_2328_exits_2_and_adds_no_taken_label_when_the_create_fails_with_an
             return subprocess.CompletedProcess(args, 0, "[]", "")
         raise AssertionError("unexpected call: %s" % " ".join(args))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
     assert (code, issue_labels["7"], "taken:main" in capsys.readouterr().err) == (2, set(), True)
 
 
-def test_main_2966_exits_2_and_changes_no_label_when_the_issue_already_carries_a_taken_label(monkeypatch):
+def test_main_2966_exits_2_and_changes_no_label_when_the_issue_already_carries_a_taken_label(monkeypatch, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     labels = {"7": {"ready-for-agent", "taken:mu"}}
@@ -429,14 +436,14 @@ def test_main_2966_exits_2_and_changes_no_label_when_the_issue_already_carries_a
         changes.append(" ".join(args))
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
     assert (code, changes) == (2, [])
 
 
-def test_main_2966_exits_2_and_changes_no_label_when_the_issue_lacks_the_opt_in_label_on_a_fresh_claim(monkeypatch):
+def test_main_2966_exits_2_and_changes_no_label_when_the_issue_lacks_the_opt_in_label_on_a_fresh_claim(monkeypatch, fake_processes):
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
@@ -451,14 +458,14 @@ def test_main_2966_exits_2_and_changes_no_label_when_the_issue_lacks_the_opt_in_
         changes.append(" ".join(args))
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
 
     code = unlabel_issue.main(["7"])
 
     assert (code, changes) == (2, [])
 
 
-def _reclaim_run(monkeypatch, tmp_path, labels, ledger):
+def _reclaim_run(monkeypatch, fake_processes, tmp_path, labels, ledger):
     """Run main(["7"]) from a worktree with or without .tdd/issue-7.md; return (code, the label-changing calls)."""
     unlabel_issue = importlib.import_module("veri.unlabel_issue")
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
@@ -476,32 +483,32 @@ def _reclaim_run(monkeypatch, tmp_path, labels, ledger):
         changes.append(" ".join(args))
         return subprocess.CompletedProcess(args, 0, "{}", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     return unlabel_issue.main(["7"]), changes
 
 
-def test_main_2966_exits_0_on_a_reclaim_when_the_issue_carries_the_own_lane_taken_label_and_no_ledger_exists(monkeypatch, tmp_path):
-    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:main"}, ledger=False)
+def test_main_2966_exits_0_on_a_reclaim_when_the_issue_carries_the_own_lane_taken_label_and_no_ledger_exists(monkeypatch, tmp_path, fake_processes):
+    code, changes = _reclaim_run(monkeypatch, fake_processes, tmp_path, {"ready-for-agent", "taken:main"}, ledger=False)
 
     removed = [call for call in changes if "DELETE" in call and "ready-for-agent" in call]
     removed_taken = [call for call in changes if "DELETE" in call and "taken" in call]
     assert (code, len(removed), removed_taken) == (0, 1, [])
 
 
-def test_main_2966_exits_0_on_a_reclaim_without_the_opt_in_label_and_changes_no_label_when_the_own_lane_taken_label_is_held(monkeypatch, tmp_path):
-    code, changes = _reclaim_run(monkeypatch, tmp_path, {"taken:main", "bug"}, ledger=False)
+def test_main_2966_exits_0_on_a_reclaim_without_the_opt_in_label_and_changes_no_label_when_the_own_lane_taken_label_is_held(monkeypatch, tmp_path, fake_processes):
+    code, changes = _reclaim_run(monkeypatch, fake_processes, tmp_path, {"taken:main", "bug"}, ledger=False)
 
     assert (code, [call for call in changes if "DELETE" in call]) == (0, [])
 
 
-def test_main_2966_exits_2_and_changes_no_label_when_the_own_lane_taken_label_is_held_and_a_ledger_exists(monkeypatch, tmp_path):
-    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:main"}, ledger=True)
+def test_main_2966_exits_2_and_changes_no_label_when_the_own_lane_taken_label_is_held_and_a_ledger_exists(monkeypatch, tmp_path, fake_processes):
+    code, changes = _reclaim_run(monkeypatch, fake_processes, tmp_path, {"ready-for-agent", "taken:main"}, ledger=True)
 
     assert (code, changes) == (2, [])
 
 
-def test_main_2966_exits_2_and_changes_no_label_when_another_lanes_taken_label_is_held_and_no_ledger_exists(monkeypatch, tmp_path):
-    code, changes = _reclaim_run(monkeypatch, tmp_path, {"ready-for-agent", "taken:mu"}, ledger=False)
+def test_main_2966_exits_2_and_changes_no_label_when_another_lanes_taken_label_is_held_and_no_ledger_exists(monkeypatch, tmp_path, fake_processes):
+    code, changes = _reclaim_run(monkeypatch, fake_processes, tmp_path, {"ready-for-agent", "taken:mu"}, ledger=False)
 
     assert (code, changes) == (2, [])
 
