@@ -253,7 +253,7 @@ def eta_range(count):
 
 
 def opted_in_issues():
-    label = tunables.read("VERI_LABEL", "ready-for-agent")
+    label = tunables.get("VERI_LABEL")
     issues = read_snapshot()["issues"]
     return label, issues, [i for i in issues if i["state"] == "OPEN" and label in [x["name"] for x in i["labels"]]]
 

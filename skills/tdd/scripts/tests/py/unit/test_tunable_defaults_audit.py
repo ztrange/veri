@@ -22,7 +22,6 @@ EXEMPT = {
         "so neither site is migrated until a decision picks one",
     ("grade_prose.py", "VERI_NO_VERDICT_RETRIES"):
         "the other side of the verify.py divergence on '010' (decimal 10 here, octal 8 there)",
-    ("status.py", "VERI_LABEL"): "status.py is edited by work in flight; migrate it once that lands",
 }
 
 
