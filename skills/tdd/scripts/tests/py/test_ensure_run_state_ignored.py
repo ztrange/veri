@@ -423,7 +423,7 @@ def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_director
         assert not (repo / ".gitignore").exists()
 
 
-def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path):
+def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_path, capsys):
     import importlib.util
     import os
     farm = tmp_path.resolve() / "farm" / "veri"
@@ -434,4 +434,5 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     loaded = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(loaded)
 
-    assert loaded.inside_own_scripts(str(SCRIPTS)) is True
+    assert (loaded.main([str(SCRIPTS)]), capsys.readouterr().err) == (
+        2, "ensure-run-state-ignored: name the target repository, not the skill's own scripts directory\n")

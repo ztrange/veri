@@ -48,15 +48,9 @@ def write_failed(error):
     return 2
 
 
-def inside_own_scripts(root):
-    scripts = paths.resolved_scripts_of(__file__)
-    here = os.path.realpath(root)
-    return here == scripts or here.startswith(scripts + os.sep)
-
-
 def main(argv):
     root = argv[0] if argv and argv[0] else "."
-    if inside_own_scripts(root):
+    if paths.inside_scripts(__file__, root):
         print("ensure-run-state-ignored: name the target repository,"
               " not the skill's own scripts directory", file=sys.stderr)
         return 2

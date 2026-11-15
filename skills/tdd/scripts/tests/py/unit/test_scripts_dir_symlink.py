@@ -89,7 +89,9 @@ def test_five_modules_resolve_the_symlinked_scripts_directory_to_its_target(tmp_
         loaded = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(loaded)
         if module == "ensure_run_state_ignored":
-            inside[module] = loaded.inside_own_scripts(real_scripts)
+            inside[module] = loaded.main([real_scripts]) == 2
+        elif module == "issue_worktree":
+            inside[module] = loaded.main(["7", "slug"]) == 2
         elif hasattr(loaded, "inside_own_scripts"):
             inside[module] = loaded.inside_own_scripts()
         else:

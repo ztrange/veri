@@ -4,6 +4,7 @@ import json
 import sys
 import traceback
 
+import entry
 import event
 import tunables
 import leaf_role
@@ -31,10 +32,6 @@ def usage_pairs(record):
     if "modelUsage" in record:
         pairs.append("model_usage=%s" % json.dumps(models, sort_keys=True))
     return pairs
-
-
-def to_contract(code):
-    return code if code in (0, 1, 2, 3) else 2
 
 
 def no_usage_event(name, why):
@@ -65,7 +62,7 @@ def harvest(name, env):
     role = leaf_role.leaf_role(name)
     if role is None:
         return 2
-    return to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
+    return entry.to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
 
 
 def main(argv):
