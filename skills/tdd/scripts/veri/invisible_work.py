@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
-from github import NoAnswer, gh_json
+from github import NoAnswer, gh_json, open_pulls_text, pulls_in
 from json_documents import items
 
 
@@ -79,9 +79,7 @@ def main(argv):
         issues_text = gh_json("issues.json", "repos/{owner}/{repo}/issues?state=all&per_page=100",
                               "issue", "list", "--state", "all", "--limit", "10000",
                               "--json", "number,state")
-        prs_text = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=all&per_page=100",
-                           "pr", "list", "--state", "all", "--limit", "10000",
-                           "--json", "headRefName,state")
+        prs_text = open_pulls_text("headRefName,state", state="all")
     except (NoAnswer, OSError):
         print("invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)",
               file=sys.stderr)
@@ -97,15 +95,11 @@ def main(argv):
     return report(branches, locals_, issues_text, prs_text)
 
 
-def head(pr):
-    return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
-
-
 def report(branches, locals_, issues_text, prs_text):
     issues = {i["number"]: i["state"].upper() for i in items(issues_text)}
-    prs = items(prs_text)
-    with_pr = {head(p) for p in prs}
-    decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
+    prs = pulls_in(prs_text)
+    with_pr = {p.head_ref for p in prs}
+    decided = {p.head_ref for p in prs if p.state in ("MERGED", "CLOSED")}
     findings = []
 
     for name, tip, ahead in branches:
