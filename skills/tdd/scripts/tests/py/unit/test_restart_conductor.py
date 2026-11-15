@@ -20,7 +20,7 @@ def recorded_signal_handlers(monkeypatch):
 def no_run_conductor_processes(monkeypatch):
     """The `ps` listing of run_conductor.py processes, empty unless a case lists its own: an unreadable or missing pid
     file makes the watch read that listing, and the fast tier runs no `ps`."""
-    monkeypatch.setattr(importlib.import_module("pid_file"), "_conductors", lambda: [])
+    monkeypatch.setattr(importlib.import_module("pid_file"), "conductors", lambda: [])
 
 
 def test_3223_called_with_no_run_number_exits_2_with_a_usage_line_naming_the_script_and_writes_nothing(tmp_path, run_cli):
@@ -951,7 +951,7 @@ def test_3477_leaving_the_watch_after_three_not_live_reads_logs_which_condition_
         return "node server.js" if state[0] == "own" else "claude --print"
 
     monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
@@ -989,7 +989,7 @@ def test_3477_leaving_the_watch_logs_pid_file_unreadable_for_a_garbled_pid_file_
         return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
 
     monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
@@ -1028,7 +1028,7 @@ def test_3477_after_a_not_live_read_then_a_live_read_leaving_the_watch_logs_only
         return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
 
     monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", lambda seconds: None, raising=False)
@@ -1070,7 +1070,7 @@ def test_3477_a_conductor_reading_not_live_for_three_polls_while_its_pid_is_a_li
             return "bash -l" if transient() else "python3 run_conductor.py 7"
         return "claude --print"
 
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
@@ -1107,7 +1107,7 @@ def test_3477_a_conductor_reading_not_live_for_three_polls_because_its_own_comma
             return "python3 run_conductor.py 7"
         return "bash -l" if 1 <= naps[0] < 4 else "claude --print"
 
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
@@ -1142,7 +1142,7 @@ def test_3477_a_conductor_whose_recorded_pid_is_dead_for_three_polls_ends_the_wa
             return "python3 run_conductor.py 7"
         return "claude --print"
 
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
@@ -1180,7 +1180,7 @@ def test_3526_a_conductor_whose_start_time_ps_cannot_report_for_three_polls_whil
             return "python3 run_conductor.py 7"
         return "claude --print"
 
-    monkeypatch.setattr(pid_file, "_ps", ps)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(os, "kill", kill)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "sleep", nap, raising=False)
@@ -1260,9 +1260,9 @@ def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_i
         return "python3 run_conductor.py 7" if str(pid) == "100" else "claude --print"
 
     monkeypatch.setattr(pid_file, "live_conductor", live_conductor)
-    monkeypatch.setattr(pid_file, "_ps", ps)
-    monkeypatch.setattr(pid_file, "_conductors", lambda: [("999", process_issue)] if process_live() else [])
-    monkeypatch.setattr(pid_file, "_cwd", lambda pid: process_cwd(os.getcwd()) if pid == "999" else None)
+    monkeypatch.setattr(pid_file, "ps_field", ps)
+    monkeypatch.setattr(pid_file, "conductors", lambda: [("999", process_issue)] if process_live() else [])
+    monkeypatch.setattr(pid_file, "cwd_of", lambda pid: process_cwd(os.getcwd()) if pid == "999" else None)
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(restart_conductor, "run_state", lambda run: "stopped" if process_live() else "✅ Done", raising=False)
     monkeypatch.setattr(restart_conductor, "stop_run", lambda mode, run: calls.append(("stop", mode, run)), raising=False)

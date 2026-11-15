@@ -1974,9 +1974,9 @@ def test_an_as_is_marker_under_a_unit_heading_changes_neither_the_rows_nor_the_u
     (tmp_path / "plain.md").write_text(plain)
     (tmp_path / "marked.md").write_text(marked)
 
-    assert skill_edit_step._issue_rows(str(tmp_path / "marked.md"), "unit.md") == \
-        skill_edit_step._issue_rows(str(tmp_path / "plain.md"), "unit.md")
-    assert skill_edit_step._issue_rows(str(tmp_path / "marked.md"), "unit.md")
+    assert skill_edit_step.unit_rows(str(tmp_path / "marked.md"), "unit.md") == \
+        skill_edit_step.unit_rows(str(tmp_path / "plain.md"), "unit.md")
+    assert skill_edit_step.unit_rows(str(tmp_path / "marked.md"), "unit.md")
 
     lists = []
     for name in ("plain.md", "marked.md"):

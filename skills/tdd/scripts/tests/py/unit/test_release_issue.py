@@ -246,7 +246,7 @@ def test_a_preflight_refused_claim_is_released_through_the_real_rest_adapter_368
             out = json.dumps([{"body": "### ⛔ Preflight refused — requirements clash"}])
         return subprocess.CompletedProcess(args, 0, out, "")
 
-    monkeypatch.setattr(github, "_gh", fake_gh)
+    monkeypatch.setattr(github, "run_gh", fake_gh)
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
 
     code, out, err = run_cli(release_issue, ["3241"])

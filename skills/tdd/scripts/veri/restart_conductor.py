@@ -46,7 +46,7 @@ def conductor_alive(run):
 
 def _process_live(run):
     root = os.path.dirname(_tdd_dir())
-    return any(issue == run and pid_file._inside(pid_file._cwd(pid), root) for pid, issue in pid_file._conductors())
+    return any(issue == run and pid_file.is_inside(pid_file.cwd_of(pid), root) for pid, issue in pid_file.conductors())
 
 
 def stop_run(mode, run):

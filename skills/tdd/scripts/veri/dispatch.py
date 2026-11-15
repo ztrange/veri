@@ -90,7 +90,7 @@ def _read_after_rate_limit(read, path):
             detail = failure.detail or str(failure.answer)
             if "rate limit" not in detail:
                 raise
-            if waits >= github._wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+            if waits >= github.wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
                 raise RateLimitPersists(f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n")
             reset = github.rate_limit_reset(subprocess.run)
             if reset is None:
@@ -168,7 +168,7 @@ def answered(what, read, *args):
             unreadable = f"dispatch.sh: reading {what} failed: {detail}\n"
             if "rate limit" in detail:
                 limited[what] = limited.get(what, 0) + 1
-                if limited[what] > github._wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+                if limited[what] > github.wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
                     raise RateLimitPersists(unreadable)
             raise watch_runs.QueueUnreadable(unreadable)
 

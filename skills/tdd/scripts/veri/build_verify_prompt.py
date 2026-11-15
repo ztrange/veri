@@ -34,7 +34,7 @@ def _last_phase_check(step_arg, phase, number):
             "the missing case, when one is absent.").encode()
 
 
-def _refuse(message=None):
+def refuse(message=None):
     if message is not None:
         write(sys.stderr, message, before=False, after=False)
     write(sys.stderr, USAGE, before=False, after=False)
@@ -46,37 +46,37 @@ def _read(path):
         return f.read().rstrip(b"\n")
 
 
-def _spec_text(path):
+def spec_text_of(path):
     try:
         return _read(path)
     except OSError:
         return b""
 
 
-def _has_heading(text, heading):
+def has_heading(text, heading):
     return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
-class _IncludeRefused(Exception):
+class IncludeRefused(Exception):
     pass
 
 
-def _expand(text, prompts, chain=()):
+def expand_includes(text, prompts, chain=()):
     out = b""
     while (match := re.search(rb"\{\{INCLUDE:([^}]*)\}\}", text)):
         part = prompts + b"/" + match[1]
         out += text[:match.start()]
         text = text[match.end():]
         if not os.access(part, os.R_OK):
-            raise _IncludeRefused(b"missing partial: " + part)
+            raise IncludeRefused(b"missing partial: " + part)
         if part in chain:
-            raise _IncludeRefused(b"partial includes itself: " + part)
+            raise IncludeRefused(b"partial includes itself: " + part)
         try:
             content = _read(part)
         except IsADirectoryError:
             sys.stderr.buffer.write(b"cat: " + part + b": Is a directory\n")
             content = b""
-        out += _expand(content, prompts, chain + (part,))
+        out += expand_includes(content, prompts, chain + (part,))
     return out + text
 
 
@@ -103,16 +103,16 @@ def main(argv):
     options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": "", "--supersede-base": ""}
     while argv[:1] and argv[0] in options:
         if len(argv) < 2 or not argv[1]:
-            return _refuse(f"build-verify-prompt: {argv[0]} needs a value")
+            return refuse(f"build-verify-prompt: {argv[0]} needs a value")
         options[argv[0]] = argv[1]
         argv = argv[2:]
     if len(argv) < 3 or not all(argv[:3]):
-        return _refuse()
+        return refuse()
     if len(argv) > 4:
-        return _refuse("build-verify-prompt: too many arguments")
+        return refuse("build-verify-prompt: too many arguments")
     base = options["--supersede-base"]
     if base and not _HEX_SHA.fullmatch(base):
-        return _refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
+        return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
                       ledger=options["--ledger"], supersede_base=options["--supersede-base"])
     sys.stdout.buffer.write(out)
@@ -123,7 +123,7 @@ _HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
 
 
 def _refused(message=None):
-    return _refuse(message), b""
+    return refuse(message), b""
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base=""):
@@ -155,10 +155,10 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     prompts = f"{HERE}/prompts"
     spec = spec_arg
     optional = {}
-    spec_text = _spec_text(spec)
-    if _has_heading(spec_text, b"Bug"):
+    spec_text = spec_text_of(spec)
+    if has_heading(spec_text, b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
-    if phase == "plan" and _has_heading(spec_text, b"Refactor"):
+    if phase == "plan" and has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     trailing = trailing_markers(step_arg)
     for placeholder, mark in GREEN_PARAGRAPHS.items():
@@ -179,15 +179,15 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "RED_FAST_CHECK", *GREEN_PARAGRAPHS, "LEDGER"), b"")
     try:
-        template = _expand(_read(paths[0]), prompts_b)
-        shared = _expand(_read(paths[1]), prompts_b)
+        template = expand_includes(_read(paths[0]), prompts_b)
+        shared = expand_includes(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
             if placeholder in GREEN_PARAGRAPHS:
-                values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
+                values[placeholder] = expand_includes(b"\n\n" + values[placeholder], prompts_b)
             elif placeholder == "RED_FAST_CHECK":
                 values[placeholder] = b"\n\n" + values[placeholder].rstrip(b"\n")
-    except _IncludeRefused as refusal:
+    except IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2, b""
     step = os.fsencode(step_arg)

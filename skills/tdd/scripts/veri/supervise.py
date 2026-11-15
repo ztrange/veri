@@ -20,7 +20,7 @@ import preserve_attempt
 import tunables
 from case_reader import is_test_path
 from extract_result import extract
-from frozen_record import _work_tree_hash, pass_marker_current
+from frozen_record import work_tree_hash, pass_marker_current
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
@@ -523,7 +523,7 @@ def main(argv):
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
-    if name.startswith(("verify-red", "verify-green")) and not _work_tree_hash():
+    if name.startswith(("verify-red", "verify-green")) and not work_tree_hash():
         write_line(exitfile, 2)
         return refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
     if name.startswith(("verify-red", "verify-green")) \

@@ -31,7 +31,7 @@ def _frozen(line):
     return ticked or ledger.PENDING_MARK in line
 
 
-def _open_match(lines, substring, refusal):
+def open_match(lines, substring, refusal):
     index = _only_match(lines, substring)
     if index is None:
         return None
@@ -49,10 +49,10 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     lines = ledger.read_ledger(argv[0]).split("\n")
-    moved = _open_match(lines, argv[1], "cannot move a ticked step")
+    moved = open_match(lines, argv[1], "cannot move a ticked step")
     if moved is None:
         return 1
-    anchor = _open_match(lines, argv[3], "cannot move a step relative to a ticked step")
+    anchor = open_match(lines, argv[3], "cannot move a step relative to a ticked step")
     if anchor is None:
         return 1
     step = lines.pop(moved)

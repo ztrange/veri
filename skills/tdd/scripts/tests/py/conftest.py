@@ -50,7 +50,7 @@ def fake_pid_file_ps(monkeypatch, conductor=True):
         return "python3 run_conductor.py 1" if str(pid) == "1" else "claude -p"
 
     for name in ("pid_file", "veri.pid_file"):
-        monkeypatch.setattr(importlib.import_module(name), "_ps", ps, raising=True)
+        monkeypatch.setattr(importlib.import_module(name), "ps_field", ps, raising=True)
 
 
 def live_conductor(monkeypatch, run_tdd, issue):
@@ -584,14 +584,14 @@ def unmarked_case_reads_no_real_process_listing(request, monkeypatch):
 
     for name in ("pid_file", "veri.pid_file"):
         module = importlib.import_module(name)
-        real, run = module._conductors, module.subprocess.run
+        real, run = module.conductors, module.subprocess.run
 
         def checked(module=module, real=real, run=run):
             if module.subprocess.run is run:
-                raise AssertionError("%s reads the real process listing: fake pid_file._conductors or mark it process" % request.node.nodeid)
+                raise AssertionError("%s reads the real process listing: fake pid_file.conductors or mark it process" % request.node.nodeid)
             return real()
 
-        monkeypatch.setattr(module, "_conductors", checked)
+        monkeypatch.setattr(module, "conductors", checked)
 
 
 STARTS_PYTEST_EXEMPT = {

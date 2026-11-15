@@ -22,7 +22,7 @@ def spared_tests():
     listed = git.git("ls-files", "-z", capture_output=True, text=True)
     if listed.returncode:
         raise OSError("git ls-files failed: " + " ".join(listed.stderr.split()))
-    names = tests_frozen._differing_tests()  # raises OSError when git cannot list them
+    names = tests_frozen.differing_tests()  # raises OSError when git cannot list them
     tracked = listed.stdout.split("\0")
     tracked_dirs = {parent for name in tracked for parent in _parents(name)}
     spared = set(names)

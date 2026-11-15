@@ -86,7 +86,7 @@ def _spans(text):
     return found, starts, ends
 
 
-def _old_cut_cases_all(text, call_form_only=False):
+def old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
     return [(m.group(1) or m.group(2) or m.group(4), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
             if m.group(4) or not call_form_only or text.startswith("func", start)]
@@ -151,7 +151,7 @@ def _literal_call_end(text, opening):
     return None
 
 
-def _cases(text):
+def cut_cases(text):
     found, starts, ends = _spans(text)
     lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
     cases = []
@@ -184,7 +184,7 @@ def cut_prefix(case):
     return case[:-1] if case.endswith("…") else case[:-3] if case.endswith("...") else None
 
 
-def _js_title_pattern(case):
+def js_title_pattern(case):
     prefix = cut_prefix(case)
     gap = "(?:(?!\\1).)*"
     if prefix is not None:
@@ -192,6 +192,10 @@ def _js_title_pattern(case):
     else:
         title = "(%s)" % gap.join(re.escape(part) for part in re.split(r"…|\.\.\.", case))
     return re.compile(CALL + r"(['\"])" + title + r"\1")
+
+
+# wrong_test_route.py (owned by an open PR) still imports the old spelling; drop this once it takes the public one.
+_js_title_pattern = js_title_pattern
 
 
 def defined_name(case, text, py_file, go_file):
@@ -211,7 +215,7 @@ def live_titles(case, text):
 
     def code(prefix):
         return re.sub(r"\"[^\"]*\"|'[^']*'|`[^`]*`", "", prefix)
-    return [m.group(2) for m in _js_title_pattern(case).finditer(text)
+    return [m.group(2) for m in js_title_pattern(case).finditer(text)
             if "//" not in code(text[text.rfind("\n", 0, m.start()) + 1:m.start()])]
 
 

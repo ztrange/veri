@@ -13,7 +13,7 @@ STARTED = "Thu Nov 11 09:00:00 2026"
 def fake_start_time(monkeypatch):
     """Answer pid_file's ps lstart read with STARTED for any pid."""
     for name in ("pid_file", "veri.pid_file"):
-        monkeypatch.setattr(importlib.import_module(name), "_ps", lambda field, pid: STARTED, raising=True)
+        monkeypatch.setattr(importlib.import_module(name), "ps_field", lambda field, pid: STARTED, raising=True)
 
 
 @pytest.fixture

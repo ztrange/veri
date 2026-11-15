@@ -276,7 +276,7 @@ def test_2832_an_unmarked_case_that_reaches_pid_files_real_process_listing_fails
         "def test_unmarked():\n"
         "    pid_file.starting_runs(%r)\n"
         "def test_faked(monkeypatch):\n"
-        "    monkeypatch.setattr(pid_file, '_conductors', lambda: [])\n"
+        "    monkeypatch.setattr(pid_file, 'conductors', lambda: [])\n"
         "    assert pid_file.starting_runs(%r) == []\n"
         "@pytest.mark.process('the real ps')\n"
         "def test_process():\n"

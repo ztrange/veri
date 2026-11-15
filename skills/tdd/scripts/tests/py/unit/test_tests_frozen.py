@@ -159,7 +159,7 @@ def test_check_on_a_ts_file_flags_an_edit_inside_a_recorded_it_body_and_not_one_
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     step = "the case passes: repairs the fixture 'db' in a.test.ts, reproduced by a case in a.test.ts ⟦fixture-repair⟧"
     recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)[0]
@@ -184,7 +184,7 @@ def test_check_earlier_except_a_vitest_case_by_title_leaves_it_unreported_while_
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     earlier, later = "the earlier step", "the later step"
     ledger = tmp_path / "ledger.md"
@@ -211,7 +211,7 @@ def test_differing_tests_counts_a_spec_ts_and_a_ts_file_under_tests_dir_as_test_
 
     monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **_: Done(listings[command[1]]))
 
-    assert tests_frozen._differing_tests() == ["src/app.spec.ts", "src/__tests__/sum.ts"]
+    assert tests_frozen.differing_tests() == ["src/app.spec.ts", "src/__tests__/sum.ts"]
 
 
 def test_check_earlier_except_the_current_steps_own_case_still_exits_1_naming_an_earlier_steps_case_the_repair_changed_2596(
@@ -224,7 +224,7 @@ def test_check_earlier_except_the_current_steps_own_case_still_exits_1_naming_an
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     earlier, later = "the earlier step", "the current step"
     ledger = tmp_path / "ledger.md"
@@ -247,10 +247,10 @@ def test_check_earlier_ignores_the_record_of_an_unchecked_step_and_still_flags_t
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     first, bailed, current = "step A", "step B", "step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n- [ ] %s\n" % (first, bailed, current))
@@ -273,10 +273,10 @@ def test_check_earlier_still_flags_the_record_of_a_step_ticked_green_with_its_re
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     first, pending, current = "step A", "step B", "step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s ⟂ refactor pending\n- [ ] %s\n" % (first, pending, current))
@@ -297,12 +297,12 @@ def test_check_earlier_skips_a_recorded_case_in_no_revision_of_its_file_naming_i
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
     monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
@@ -325,12 +325,12 @@ def test_check_earlier_still_flags_a_recorded_case_a_reachable_revision_held_and
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {"test_real": "def test_real():\n    pass\n"})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
     monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
@@ -350,12 +350,12 @@ def test_check_earlier_reports_the_changed_case_alone_on_stdout_and_names_the_gh
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
     monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
@@ -377,10 +377,10 @@ def test_check_earlier_leaves_a_vitest_it_case_unchanged_when_a_second_case_is_a
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -404,10 +404,10 @@ def test_check_earlier_leaves_a_vitest_it_case_last_in_its_describe_unchanged_wh
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -431,10 +431,10 @@ def test_check_earlier_leaves_a_vitest_it_case_last_before_a_finish_trailer_unch
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -456,7 +456,7 @@ def test_check_step_exits_0_for_a_vitest_it_case_after_a_case_is_appended_to_the
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     step = "the case passes: repairs the fixture 'db' in sum.test.ts, reproduced by a case in sum.test.ts ⟦fixture-repair⟧"
     recorded = run_cli(tests_frozen, ["record", "--step", step, "sum.test.ts"], cwd=tmp_path)[0]
@@ -477,10 +477,10 @@ def test_check_earlier_flags_an_edit_inside_a_recorded_vitest_it_case_naming_it_
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -503,13 +503,13 @@ def test_record_digests_a_python_def_case_over_its_ast_span_decorators_included_
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     step = "step A"
 
     recorded = run_cli(tests_frozen, ["record", "--step", step, "test_sum.py"], cwd=tmp_path)[0]
 
-    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    record = (tmp_path / tests_frozen.record_path(step)).read_text()
     digest = hashlib.sha256(adds.rstrip().encode()).hexdigest()
     assert (recorded, "body: test_sum.py\ttest_adds\t%s\n" % digest in record) == (0, True)
 
@@ -523,15 +523,15 @@ def test_check_earlier_exits_0_for_a_format_2_record_of_a_vitest_it_case_digeste
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
     old_extent = (adds + "});\n").strip().rstrip()
-    record = tmp_path / tests_frozen._record_path(earlier)
+    record = tmp_path / tests_frozen.record_path(earlier)
     record.write_text("deadbeef  sum.test.ts\nformat: 2\ncase: adds\nbody: sum.test.ts\tadds\t%s\n"
                       % hashlib.sha256(old_extent.encode()).hexdigest())
 
@@ -550,14 +550,14 @@ def test_check_earlier_exits_0_for_a_format_2_record_of_a_vitest_it_case_followe
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
-    record = tmp_path / tests_frozen._record_path(earlier)
+    record = tmp_path / tests_frozen.record_path(earlier)
     record.write_text("deadbeef  sum.test.ts\nformat: 2\ncase: adds\nbody: sum.test.ts\tadds\t%s\n"
                       % hashlib.sha256(adds.strip().encode()).hexdigest())
 
@@ -575,15 +575,15 @@ def test_check_earlier_flags_an_edit_inside_a_vitest_it_case_of_a_format_2_recor
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
     old_extent = (adds + "});\n").strip()
-    record = tmp_path / tests_frozen._record_path(earlier)
+    record = tmp_path / tests_frozen.record_path(earlier)
     record.write_text("deadbeef  sum.test.ts\nformat: 2\ncase: adds\nbody: sum.test.ts\tadds\t%s\n"
                       % hashlib.sha256(old_extent.encode()).hexdigest())
 
@@ -614,9 +614,9 @@ def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_anoth
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
 
     def git_show(command, **kwargs):
         assert command[:2] == ["git", "show"]
@@ -643,9 +643,9 @@ def test_check_earlier_exits_0_for_a_js_call_form_case_sharing_its_name_under_tw
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
 
     def git_show(command, **kwargs):
         assert command[:2] == ["git", "show"]
@@ -671,7 +671,7 @@ def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_python_
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
     step = "the case passes: repairs the fixture 'db' in test_dup.py, reproduced by a case in test_dup.py ⟦fixture-repair⟧"
@@ -694,7 +694,7 @@ def test_check_step_exits_0_for_a_fixture_repair_step_of_a_file_with_two_js_call
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
     step = "the case passes: repairs the fixture 'db' in dup.test.ts, reproduced by a case in dup.test.ts ⟦fixture-repair⟧"
@@ -715,7 +715,7 @@ def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
 
     def git_show(command, **kwargs):
         assert command[:2] == ["git", "show"]
@@ -730,7 +730,7 @@ def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing
     written = (tmp_path / record).read_text().splitlines()
     digests = [line.split("\t")[2] for line in written if line.startswith("body: ")]
 
-    assert digests == [tests_frozen._body_digest("def test_dup():\n    assert 3 + 3 == 6")]
+    assert digests == [tests_frozen.body_digest("def test_dup():\n    assert 3 + 3 == 6")]
 
 
 def test_check_earlier_flags_an_edit_inside_the_first_of_two_python_def_cases_sharing_a_name_both_added_since_head_2543(
@@ -742,11 +742,11 @@ def test_check_earlier_flags_an_edit_inside_the_first_of_two_python_def_cases_sh
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -767,11 +767,11 @@ def test_check_earlier_flags_an_edit_inside_the_second_of_two_python_def_cases_s
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -790,11 +790,11 @@ def _twins_added_since_head(tmp_path, tests_frozen, monkeypatch, name, original)
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_head_cases_all", lambda name: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] step A\n- [ ] step B\n")
     return suite, ledger
@@ -857,9 +857,9 @@ def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_fir
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **kwargs: types.SimpleNamespace(
         returncode=0, stdout=at_head.encode(), stderr=b""))
     ledger = tmp_path / "ledger.md"
@@ -906,14 +906,14 @@ def _rerecord_fixture(tmp_path, tests_frozen, monkeypatch):
     (tmp_path / ".tdd").mkdir()
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     monkeypatch.setattr(tests_frozen, "_revisions", lambda name: [])
     return tmp_path / "test_suite.py"
 
 
 def _recorded_names(tmp_path, tests_frozen, step):
-    record = (tmp_path / tests_frozen._record_path(step)).read_text()
+    record = (tmp_path / tests_frozen.record_path(step)).read_text()
     return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
 
 
@@ -925,7 +925,7 @@ def test_rerecord_on_head_keeps_every_recorded_case_still_there_and_never_one_a_
     recorded = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)[0]
     suite.write_text("def test_one():\n    assert 1\n\n\ndef test_later_step():\n    assert 9\n\n\n"
                      "def test_two():\n    assert 2\n\n\ndef test_last_step():\n    assert 8\n")
-    head = dict(tests_frozen._cases(suite.read_text()))
+    head = dict(tests_frozen.cut_cases(suite.read_text()))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head)
     monkeypatch.setattr(tests_frozen, "_step_commits", lambda s: {"mine"})
     monkeypatch.setattr(tests_frozen, "_introduced_by", lambda name, own: set())
@@ -941,16 +941,16 @@ def test_rerecord_on_head_exits_2_naming_the_step_and_file_and_keeps_the_record_
     step = "the step that owns the cases"
     suite.write_text("def test_one():\n    assert 1\n")
     run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    kept = (tmp_path / tests_frozen._record_path(step)).read_text()
+    kept = (tmp_path / tests_frozen.record_path(step)).read_text()
     suite.write_text("def test_other_step():\n    assert 9\n")
-    head = dict(tests_frozen._cases(suite.read_text()))
+    head = dict(tests_frozen.cut_cases(suite.read_text()))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: head)
     monkeypatch.setattr(tests_frozen, "_step_commits", lambda s: {"mine"})
     monkeypatch.setattr(tests_frozen, "_introduced_by", lambda name, own: set())
 
     code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
 
-    assert (code, step in err and "test_suite.py" in err, (tmp_path / tests_frozen._record_path(step)).read_text()) == (
+    assert (code, step in err and "test_suite.py" in err, (tmp_path / tests_frozen.record_path(step)).read_text()) == (
         2, True, kept)
 
 
@@ -960,51 +960,51 @@ def test_cases_records_a_js_title_holding_an_escaped_quote_of_its_own_kind_whole
     title = "a \\%sb\\%s c" % (quote, quote)
     text = "it(%s%s%s, () => {\n  expect(1).toBe(1);\n});\n" % (quote, title, quote)
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ["a %sb%s c" % (quote, quote)]
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ["a %sb%s c" % (quote, quote)]
 
 
 def test_cases_records_two_js_titles_differing_only_after_an_escaped_quote_as_two_cases_2765(tests_frozen):
     text = ('it("shows \\"¿Ya contrataste?", () => {\n  expect(1).toBe(1);\n});\n\n'
             'it("shows \\"Validando", () => {\n  expect(2).toBe(2);\n});\n')
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ['shows "¿Ya contrataste?', 'shows "Validando']
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ['shows "¿Ya contrataste?', 'shows "Validando']
 
 
 def test_cases_records_a_js_backtick_title_without_interpolation_2765(tests_frozen):
     text = "it(`shows the login page`, () => {\n  expect(1).toBe(1);\n});\n"
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ["shows the login page"]
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ["shows the login page"]
 
 
 def test_cases_records_a_js_backtick_title_holding_an_interpolation_whole_as_written_2765(tests_frozen):
     text = "it(`shows ${name} on the login page`, () => {\n  expect(1).toBe(1);\n});\n"
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ["shows ${name} on the login page"]
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ["shows ${name} on the login page"]
 
 
 def test_cases_records_a_go_test_function_as_a_case_named_for_it_2799(tests_frozen):
     text = 'package x\n\nfunc TestX(t *testing.T) {\n\tif 1+1 != 2 {\n\t\tt.Fatal("no")\n\t}\n}\n'
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ["TestX"]
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ["TestX"]
 
 
 def test_cases_ends_a_go_case_at_its_first_column_0_closing_brace_with_a_helper_after_the_last_case_2863(tests_frozen):
     case = 'func TestX(t *testing.T) {\n\tif 1+1 != 2 {\n\t\tt.Fatal("no")\n\t}\n\thelper(t)\n}'
     text = 'package x\n\n%s\n\nfunc helper(t *testing.T) {\n\tt.Fatal("a")\n}\n' % case
 
-    assert tests_frozen._cases(text) == [("TestX", case)]
+    assert tests_frozen.cut_cases(text) == [("TestX", case)]
 
 
 def test_cases_keeps_the_whole_body_of_a_non_go_case_holding_a_column_0_closing_brace_line_2863(tests_frozen):
     text = 'name="adds"\nrun_one\n}\nrun_two\n'
 
-    assert tests_frozen._cases(text) == [("adds", 'name="adds"\nrun_one\n}\nrun_two')]
+    assert tests_frozen.cut_cases(text) == [("adds", 'name="adds"\nrun_one\n}\nrun_two')]
 
 
 def test_cases_leaves_a_go_function_not_named_test_out_of_the_cases_2799(tests_frozen):
     text = 'package x\n\nfunc helper(t *testing.T) {\n}\n\nfunc TestX(t *testing.T) {\n}\n'
 
-    assert [name for name, _ in tests_frozen._cases(text)] == ["TestX"]
+    assert [name for name, _ in tests_frozen.cut_cases(text)] == ["TestX"]
 
 
 def test_check_earlier_flags_an_edit_inside_a_recorded_go_test_function_naming_it_2799(
@@ -1016,10 +1016,10 @@ def test_check_earlier_flags_an_edit_inside_a_recorded_go_test_function_naming_i
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "tree")
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -1045,7 +1045,7 @@ def test_cases_cuts_a_vitest_case_holding_an_unbalanced_paren_literal_at_its_own
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["reports unmarked"]
+    body = dict(tests_frozen.cut_cases(text))["reports unmarked"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1064,7 +1064,7 @@ def test_cases_cuts_a_vitest_case_holding_a_double_quoted_unbalanced_paren_liter
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["holds a double quote"]
+    body = dict(tests_frozen.cut_cases(text))["holds a double quote"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1083,7 +1083,7 @@ def test_cases_cuts_a_vitest_case_holding_a_template_quoted_unbalanced_paren_lit
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["holds a template quote"]
+    body = dict(tests_frozen.cut_cases(text))["holds a template quote"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1102,7 +1102,7 @@ def test_cases_cuts_a_vitest_case_holding_an_escaped_quote_then_an_unbalanced_pa
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["holds an escaped quote"]
+    body = dict(tests_frozen.cut_cases(text))["holds an escaped quote"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1121,7 +1121,7 @@ def test_cases_cuts_a_vitest_case_holding_a_line_comment_with_an_unbalanced_pare
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["holds a line comment"]
+    body = dict(tests_frozen.cut_cases(text))["holds a line comment"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1140,7 +1140,7 @@ def test_cases_cuts_a_vitest_case_holding_a_block_comment_with_an_unbalanced_par
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["holds a block comment"]
+    body = dict(tests_frozen.cut_cases(text))["holds a block comment"]
 
     assert body.endswith("  })") and "between" not in body and "second" not in body
 
@@ -1151,7 +1151,7 @@ def test_cases_cuts_a_vitest_case_holding_a_regex_literal_with_a_quote_at_its_ow
         "it('b', () => { expect(1).toBe(1); });\n"
     )
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("toBe('its'); })") and "it('b'" not in cases["a"] and "b" in cases
 
@@ -1162,7 +1162,7 @@ def test_cases_cuts_a_vitest_case_holding_an_arrow_returned_regex_literal_with_a
         "it('b', () => { expect(1).toBe(1); });\n"
     )
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("toBe(true); })") and "it('b'" not in cases["a"] and "b" in cases
 
@@ -1173,7 +1173,7 @@ def test_cases_cuts_a_vitest_case_with_a_returned_regex_literal_with_a_quote_lik
         "it('b', () => { expect(1).toBe(1); });\n"
     )
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("toBe(true);\n})") and "it('b'" not in cases["a"] and "b" in cases
 
@@ -1181,7 +1181,7 @@ def test_cases_cuts_a_vitest_case_with_a_returned_regex_literal_with_a_quote_lik
 def test_cases_falls_back_to_the_plain_paren_count_when_the_literal_aware_scan_finds_no_close_2970(tests_frozen):
     text = "it('a', () => { const re = /'/; expect(re.test(\"'\")).toBe(true); });\n"
 
-    body = dict(tests_frozen._cases(text))["a"]
+    body = dict(tests_frozen.cut_cases(text))["a"]
 
     assert body == text.rstrip()[:-1]
 
@@ -1192,7 +1192,7 @@ def test_cases_skips_a_paren_in_a_block_comment_inside_a_case_2970(tests_frozen)
         "it('b', () => { expect(1).toBe(1); });\n"
     )
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("toBe(1); })") and "it('b'" not in cases["a"]
 
@@ -1203,7 +1203,7 @@ def test_cases_ends_a_string_only_at_its_own_quote_kind_2970(tests_frozen):
         "it('b', () => { expect(1).toBe(1); });\n"
     )
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("toBe(1); })") and "it('b'" not in cases["a"]
 
@@ -1212,7 +1212,7 @@ def test_cases_refuses_a_case_whose_call_the_plain_paren_count_cannot_close_eith
     text = "it('a', () => { (\n"
 
     with pytest.raises(tests_frozen.UnclosedCase):
-        tests_frozen._cases(text)
+        tests_frozen.cut_cases(text)
 
 
 
@@ -1224,7 +1224,7 @@ def test_record_over_a_js_case_whose_closing_paren_is_never_found_exits_2_naming
         'it("never closes", () => {\n  expect(1).toBe(1);\n')
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     step = "the case passes: adds a case in a.test.ts"
 
@@ -1239,7 +1239,7 @@ def _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, step):
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)[0]
     suite.write_text('import { it } from "vitest";\nit("never closes", () => {\n  expect(1).toBe(1);\n')
@@ -1280,13 +1280,13 @@ _DESCRIBE_CLOSED = _DESCRIBE_UNCLOSED.replace("expect(foo(1).toBe(1);", "expect(
 
 def test_cases_refuses_a_case_whose_call_is_not_closed_before_its_enclosing_blocks_brace_2970(tests_frozen):
     with pytest.raises(tests_frozen.UnclosedCase):
-        tests_frozen._cases(_DESCRIBE_UNCLOSED)
+        tests_frozen.cut_cases(_DESCRIBE_UNCLOSED)
 
 
 def test_cases_closes_a_call_on_the_paren_right_after_a_block_comment_2970(tests_frozen):
     text = "describe('d', () => {\n  it('a', () => expect(1).toBe(1) /* c */)\n});\n"
 
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
 
     assert cases["a"].endswith("/* c */)")
 
@@ -1297,7 +1297,7 @@ def test_record_over_a_js_case_not_closed_before_its_describes_brace_exits_2_nam
     (tmp_path / "a.test.ts").write_text(_DESCRIBE_UNCLOSED)
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
 
     code, out, err = run_cli(tests_frozen, ["record", "--step", "the case passes: adds a case in a.test.ts", "a.test.ts"],
@@ -1315,7 +1315,7 @@ def test_check_over_a_js_case_not_closed_before_its_describes_brace_exits_2_nami
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {})
     recorded = run_cli(tests_frozen, ["record", "--step", step, "a.test.ts"], cwd=tmp_path)[0]
     suite.write_text(_DESCRIBE_UNCLOSED)
@@ -1337,7 +1337,7 @@ def test_cases_gives_a_balanced_vitest_case_with_no_paren_in_a_literal_or_commen
         "});\n"
     )
 
-    body = dict(tests_frozen._cases(text))["balanced"]
+    body = dict(tests_frozen.cut_cases(text))["balanced"]
 
     assert body.endswith("expect(add(1, 2)).toBe(3);\n  })") and "second" not in body
 
@@ -1348,7 +1348,7 @@ def test_check_earlier_over_a_case_whose_call_never_closes_removes_the_steps_pas
     _record_then_break(tmp_path, run_cli, tests_frozen, monkeypatch, earlier)
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
-    marker = tmp_path / tests_frozen._pass_marker_path(later)
+    marker = tmp_path / tests_frozen.pass_marker_path(later)
     marker.write_text("step: %s\n" % later)
 
     code = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[0]
@@ -1364,12 +1364,12 @@ def test_check_earlier_refuses_a_case_whose_test_file_is_deleted_with_no_counter
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: {"test_real": "def test_real():\n    pass\n"})
     monkeypatch.setattr(tests_frozen, "_renamed_to", lambda name, case, digest, text, consumed: None)
     monkeypatch.setattr(tests_frozen, "_revisions", lambda name: ["0" * 40], raising=False)
-    monkeypatch.setattr(tests_frozen, "_work_tree_hash", lambda: "1" * 40)
-    monkeypatch.setattr(tests_frozen, "_write_pass_marker", lambda step, tree: None)
+    monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "1" * 40)
+    monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
     earlier, later = "the earlier step B", "the later step C"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, later))
@@ -1392,19 +1392,19 @@ def test_rerecord_earlier_exits_2_naming_the_case_and_the_base_when_base_to_head
     run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
-    kept = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+    kept = (tmp_path / tests_frozen.record_path(earlier)).read_text()
     monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
         PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
     monkeypatch.setattr(tests_frozen, "_text_at", lambda rev, name, err=None: new)
-    old_cases, new_cases = dict(tests_frozen._cases(old)), dict(tests_frozen._cases(new))
+    old_cases, new_cases = dict(tests_frozen.cut_cases(old)), dict(tests_frozen.cut_cases(new))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases)
 
     run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
-    unchanged = (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept
+    unchanged = (tmp_path / tests_frozen.record_path(earlier)).read_text() == kept
 
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases if rev == base else new_cases)
     code2 = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
-    rewritten = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+    rewritten = (tmp_path / tests_frozen.record_path(earlier)).read_text()
 
     assert (unchanged, code2, rewritten != kept) == (True, 0, True)
 
@@ -1419,14 +1419,14 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n- [x] %s\n" % (first, second, edit))
     for step, case in ((first, "test_edited_3440"), (second, "test_untouched_3440")):
-        suite.write_text("".join(c for n, c in tests_frozen._cases(old) if n == case))
+        suite.write_text("".join(c for n, c in tests_frozen.cut_cases(old) if n == case))
         run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
     monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
         PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
     monkeypatch.setattr(tests_frozen, "_text_at", lambda rev, name, err=None: new)
-    old_cases, new_cases = dict(tests_frozen._cases(old)), dict(tests_frozen._cases(new))
+    old_cases, new_cases = dict(tests_frozen.cut_cases(old)), dict(tests_frozen.cut_cases(new))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: old_cases)
-    record = lambda step: (tmp_path / tests_frozen._record_path(step)).read_text()
+    record = lambda step: (tmp_path / tests_frozen.record_path(step)).read_text()
     kept_first, kept_second = record(first), record(second)
 
     run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
@@ -1449,16 +1449,16 @@ def test_rerecord_earlier_exits_0_not_2_and_keeps_the_record_when_every_earlier_
     run_cli(tests_frozen, ["record", "--step", earlier, "test_suite.py"], cwd=tmp_path)
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [x] %s\n" % (earlier, edit))
-    kept = (tmp_path / tests_frozen._record_path(earlier)).read_text()
+    kept = (tmp_path / tests_frozen.record_path(earlier)).read_text()
     monkeypatch.setattr(tests_frozen, "subprocess", types.SimpleNamespace(
         PIPE=-1, DEVNULL=-3, run=lambda *a, **k: types.SimpleNamespace(stdout=(base + "\n").encode())))
     monkeypatch.setattr(tests_frozen, "_text_at", lambda rev, name, err=None: text)
-    cases = dict(tests_frozen._cases(text))
+    cases = dict(tests_frozen.cut_cases(text))
     monkeypatch.setattr(tests_frozen, "_cases_at", lambda rev, name: cases)
 
     code = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
 
-    assert (code, (tmp_path / tests_frozen._record_path(earlier)).read_text() == kept) == (0, True)
+    assert (code, (tmp_path / tests_frozen.record_path(earlier)).read_text() == kept) == (0, True)
 
 
 def _refusals(tmp_path):
@@ -1489,7 +1489,7 @@ def test_record_step_given_no_test_file_exits_2_and_writes_a_refusal_event_carry
     (tmp_path / ".tdd").mkdir()
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
 
     code, _, _ = run_cli(tests_frozen, ["record", "--step", "step one"], cwd=tmp_path)
 
@@ -1513,7 +1513,7 @@ def test_record_whose_every_recorded_case_is_gone_exits_2_and_writes_a_refusal_e
     (tmp_path / "test_a.py").write_text("")
     monkeypatch.setattr(tests_frozen, "_refused_outside_repository", lambda: False)
     monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
-    monkeypatch.setattr(tests_frozen, "_differing_tests", lambda: [])
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "_added_cases", lambda name: [])
     monkeypatch.setattr(tests_frozen, "_guard_subjects", lambda step: [])
     monkeypatch.setattr(tests_frozen, "_kept_cases", lambda *a, **k: [])

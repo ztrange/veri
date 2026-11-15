@@ -22,7 +22,7 @@ USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] 
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 
-def _row_id(row):
+def row_id(row):
     return requirements.split_cells(row)[1]
 
 
@@ -30,21 +30,21 @@ def _row_text(row):
     return requirements.split_cells(row)[2]
 
 
-def _requirements_lines(issue):
+def issue_requirements_lines(issue):
     return requirements.requirements_lines(requirements.read_lines(issue))
 
 
-def _names_unit(heading, unit):
+def names_unit(heading, unit):
     return heading in (unit, unit + " (new)")
 
 
 def _unit_table_lines(issue, unit):
-    rows = [line for heading, line in _requirements_lines(issue)
-            if _names_unit(heading, unit) and line.startswith("|")]
+    rows = [line for heading, line in issue_requirements_lines(issue)
+            if names_unit(heading, unit) and line.startswith("|")]
     return rows
 
 
-def _issue_rows(issue, unit):
+def unit_rows(issue, unit):
     return _unit_table_lines(issue, unit)[2:]
 
 
@@ -54,7 +54,7 @@ def _headerless(issue, unit):
 
 
 def _unknown_heading(issue):
-    for heading, line in _requirements_lines(issue):
+    for heading, line in issue_requirements_lines(issue):
         if line.startswith("### ") and not heading.endswith(" (new)") and not os.path.exists(heading):
             return heading
     return None
@@ -76,10 +76,10 @@ def _refusal(issue, unit):
         return "Requirements heading names no existing unit: " + unknown
     if _rows_outside_requirements(issue, unit):
         return "rows for %s are not under ## Requirements" % unit
-    if any(heading is None and line.startswith("|") for heading, line in _requirements_lines(issue)):
+    if any(heading is None and line.startswith("|") for heading, line in issue_requirements_lines(issue)):
         return "a ## Requirements row is under no ### unit heading"
     if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
-            and not any(_names_unit(h, unit) for h, _ in _requirements_lines(issue))):
+            and not any(names_unit(h, unit) for h, _ in issue_requirements_lines(issue))):
         return "## Requirements has no ### heading for unit: " + unit
     if _headerless(issue, unit):
         return "## Requirements table for %s lacks its header: %s" % (unit, " / ".join(TABLE_HEAD))
@@ -101,16 +101,16 @@ def _claimed(path, unit):
     return os.path.exists(path) and requirements.claims(path, unit)
 
 
-def _listed_texts(path, unit):
+def listed_texts(path, unit):
     return dict(row.split("\t", 1) for row in (_claimed(path, unit) or "").splitlines())
 
 
 def clashes(rows, texts):
-    return [r for r in rows if _row_id(r) in texts and _row_text(r) != texts[_row_id(r)]]
+    return [r for r in rows if row_id(r) in texts and _row_text(r) != texts[row_id(r)]]
 
 
 def _listed_ids(path, unit):
-    return set(_listed_texts(path, unit))
+    return set(listed_texts(path, unit))
 
 
 def _append_section(path, unit, table):
@@ -119,7 +119,7 @@ def _append_section(path, unit, table):
 
 
 def _write_list(path, unit, rows):
-    _append_section(path, unit, TABLE_HEAD + _numbered(rows, {_row_id(r) for r in rows}))
+    _append_section(path, unit, TABLE_HEAD + _numbered(rows, {row_id(r) for r in rows}))
 
 
 def _create(unit, path, rows):
@@ -176,8 +176,8 @@ def _held_texts(lines, unit):
 def apply(issue, unit):
     path = skill_edit_guard.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
-    rows = [r.replace("<reword>", "", 1) if _row_id(r).endswith("<reword>") else r
-            for r in _issue_rows(issue, unit)]
+    rows = [r.replace("<reword>", "", 1) if row_id(r).endswith("<reword>") else r
+            for r in unit_rows(issue, unit)]
     if rows and not os.path.exists(unit):
         _create(unit, path, rows)
         return True
@@ -188,11 +188,11 @@ def apply(issue, unit):
         _write_list(path, unit, rows)
         return moved
     have = _listed_ids(path, unit)
-    rows = _numbered(rows, have | {_row_id(r) for r in rows})
+    rows = _numbered(rows, have | {row_id(r) for r in rows})
     lines = requirements.read_lines(path)
     held = _held_texts(lines, unit)
-    new = [r for r in rows if _row_id(r) not in have and _full_text(r) not in held]
-    reworded = {_row_id(r): r for r in rows}
+    new = [r for r in rows if row_id(r) not in have and _full_text(r) not in held]
+    reworded = {row_id(r): r for r in rows}
     last = None
     in_unit = False
     for number, line in enumerate(lines):
@@ -200,7 +200,7 @@ def apply(issue, unit):
             in_unit = line[3:] == unit
         elif in_unit and line.startswith("|"):
             last = number
-            row = reworded.get(_row_id(line), line)
+            row = reworded.get(row_id(line), line)
             lines[number] = None if _row_text(row) == "(dropped)" else row
     lines[last + 1:last + 1] = new
     _write(path, [l for l in lines if l is not None])
@@ -309,13 +309,13 @@ def main(argv):
     if refusal:
         print(refusal, file=sys.stderr)
         return 2
-    issue_rows = _issue_rows(issue, unit)
+    issue_rows = unit_rows(issue, unit)
     for row in issue_rows:
-        if not requirements.well_formed_row_id(_row_id(row)):
-            print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + _row_id(row),
+        if not requirements.well_formed_row_id(row_id(row)):
+            print("Requirement row ID is neither <prefix><digits> nor <prefix><next>: " + row_id(row),
                   file=sys.stderr)
             return 2
-    explicit = [_row_id(r) for r in issue_rows if not _row_id(r).endswith("<next>")]
+    explicit = [row_id(r) for r in issue_rows if not row_id(r).endswith("<next>")]
     for dup in explicit:
         if explicit.count(dup) > 1:
             print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
@@ -329,14 +329,14 @@ def main(argv):
         _restore(snapshot, path, unit, graded_file)
 
     listed = _listed_ids(path, unit)
-    texts = _listed_texts(path, unit)
+    texts = listed_texts(path, unit)
     clashing = clashes(issue_rows, texts)
     for r in clashing:
         print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
-              % (_row_id(r), texts[_row_id(r)], _row_text(r)), file=sys.stderr)
+              % (row_id(r), texts[row_id(r)], _row_text(r)), file=sys.stderr)
     if clashing:
         return 2
-    fresh = any(_row_id(r) not in listed or _row_text(r) != texts.get(_row_id(r))
+    fresh = any(row_id(r) not in listed or _row_text(r) != texts.get(row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
     if not _claimed(path, unit):

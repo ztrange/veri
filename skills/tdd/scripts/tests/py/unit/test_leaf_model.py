@@ -368,7 +368,7 @@ def test_main_takes_every_model_variable_from_the_one_reader_and_still_applies_t
     monkeypatch.setattr(verify.tunables, "read", reader)
     assert [(n, b, c, out) for n, b, c, out, _ in answers] == [(n, b, 0, w) for n, b, _, _, w in answers]
     assert served_answers == [("verify-green", 0, "haiku\n"), ("revise-green", 0, "fable\n")]
-    assert verify._env("VERI_MODEL_VERIFIER") == "haiku"
+    assert verify.env_value("VERI_MODEL_VERIFIER") == "haiku"
     assert "from-os-environ" not in capsys.readouterr().out
 
 

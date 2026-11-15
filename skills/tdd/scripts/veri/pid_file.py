@@ -5,28 +5,28 @@ import re
 import subprocess
 
 
-def _conductors():
+def conductors():
     listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE, text=True).stdout
     return re.findall(r"^\s*(\d+)\s+(?:\S*(?:python|/sh)\S*\s+)?\S*run_conductor\.py (\d+)(?=\s|$)", listing, re.M)
 
 
-def _cwd(pid):
+def cwd_of(pid):
     lsof = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     return next((line[1:] for line in lsof.stdout.splitlines() if line.startswith("n")), None)
 
 
-def _inside(cwd, root):
+def is_inside(cwd, root):
     return cwd == root or (cwd or "").startswith(root + "/")
 
 
 def conductor_processes():
     import status
     root = status.main_working_tree()
-    return [issue for pid, issue in _conductors() if _inside(_cwd(pid), root)]
+    return [issue for pid, issue in conductors() if is_inside(cwd_of(pid), root)]
 
 
 def _with_run_directory(root):
-    return [(pid, issue) for pid, issue in _conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+    return [(pid, issue) for pid, issue in conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
 
 
 def runs_with_directory(root):
@@ -34,7 +34,7 @@ def runs_with_directory(root):
 
 
 def starting_runs(root):
-    return [issue for pid, issue in _with_run_directory(root) if _inside(_cwd(pid), root)]
+    return [issue for pid, issue in _with_run_directory(root) if is_inside(cwd_of(pid), root)]
 
 
 def number_in(file):
@@ -63,7 +63,7 @@ def recorded_alive(path):
     return pid
 
 
-def _ps(field, pid):
+def ps_field(field, pid):
     try:
         ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     except OSError:
@@ -73,7 +73,7 @@ def _ps(field, pid):
 
 def record(path, pid):
     """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has."""
-    started = _ps("lstart", pid)
+    started = ps_field("lstart", pid)
     with open(path, "w") as handle:
         handle.write(f"{pid}\n{started}\n" if started else f"{pid}\n")
 
@@ -85,7 +85,7 @@ def _recorded(path):
     if pid is None:
         return None, "pid dead"
     if not start_matches(_pid_path(path), pid):
-        return None, "lstart mismatch" if _ps("lstart", pid) else "lstart unreadable"
+        return None, "lstart mismatch" if ps_field("lstart", pid) else "lstart unreadable"
     return pid, None
 
 
@@ -101,18 +101,18 @@ def start_recorded(file):
 
 def start_matches(file, pid):
     started = start_recorded(file)
-    return not started or started == _ps("lstart", pid)
+    return not started or started == ps_field("lstart", pid)
 
 
 def _reading(path):
     pid, reason = _recorded(path)
     if pid is None:
         return None, reason
-    parent = _ps("ppid", pid)
-    parent_command = _ps("command", parent) if parent else ""
+    parent = ps_field("ppid", pid)
+    parent_command = ps_field("command", parent) if parent else ""
     if parent_command and "run_conductor.py" not in parent_command:
         return None, "parent command"
-    own = _ps("command", pid)
+    own = ps_field("command", pid)
     if own and "claude" not in (os.path.basename(word) for word in own.split()[:2]):
         return None, "own command"
     return pid, None

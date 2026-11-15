@@ -62,7 +62,7 @@ def main(argv):
         made.insert(0, directory)
         directory = os.path.dirname(directory)
     os.makedirs(os.path.dirname(claim), exist_ok=True)
-    ours = ("%d\n%s\n" % (os.getpid(), pids._ps("lstart", os.getpid()))).encode()
+    ours = ("%d\n%s\n" % (os.getpid(), pids.ps_field("lstart", os.getpid()))).encode()
     with open(claim, "wb") as handle:
         handle.write(ours)
     CLAIM[:] = [ours]
@@ -318,7 +318,7 @@ def conduct(text, issue, env):
             del CLAIM_DIRS[:]
 
             def record_pid():
-                started = pids._ps("lstart", os.getpid())
+                started = pids.ps_field("lstart", os.getpid())
                 recorded = "%d\n%s\n" % (os.getpid(), started)
                 with open(pid_file, "w") as handle:
                     handle.write(recorded)
