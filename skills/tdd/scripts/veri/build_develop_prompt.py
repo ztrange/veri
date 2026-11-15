@@ -51,23 +51,52 @@ def _bullets(cases):
     return "".join(f"\n- {case}" for case in cases)
 
 
-def main(argv):
+class Refusal:
+    """A refusal of the arguments: `message` (str, or None for the usage line alone) and exit `code` 2."""
+    __slots__ = ("message", "code")
+
+    def __init__(self, message):
+        self.message = message
+        self.code = 2
+
+
+class Arguments:
+    """The checked arguments: `phase`, `revised_phase` ("" unless phase is revise), the `names` each argument after the phase
+    goes by (`args` aligned to them, the revised phase already taken off) and `args`."""
+    __slots__ = ("phase", "revised_phase", "names", "args")
+
+    def __init__(self, phase, revised_phase, names, args):
+        self.phase = phase
+        self.revised_phase = revised_phase
+        self.names = names
+        self.args = args
+
+
+def arguments(argv):
+    """The `Arguments` of argv, or a `Refusal` of the first check it fails; a pure answer, nothing is written.
+
+    The checks run in this order and the order is part of the behaviour: no argument; unknown phase; too few arguments
+    for the phase; (revise) an empty then an unknown phase to revise; the first empty required argument by position;
+    (over-budget) a non-decimal spent or budget; and last, for revise of red, a verify-pin.reason file whose REASON line
+    carries a before-state-green clause. Only that last check reads a file, and it does so before any readability check
+    of the files the prompt is built from.
+    """
     if not argv:
-        return entry.refuse(usage=USAGE)
+        return Refusal(None)
     phase = argv[0]
     if phase not in ACCEPTED_WANT:
-        return entry.refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})", usage=USAGE)
+        return Refusal(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < ACCEPTED_WANT[phase]:
-        return entry.refuse(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}", usage=USAGE)
+        return Refusal(f"build-develop-prompt: {phase} needs {ACCEPTED_WANT[phase]} arguments, got {len(argv)}")
     args = argv[1:]
     revised_phase = ""
     if phase == "revise":
         revised_phase = args.pop(0)
         if not revised_phase:
-            return entry.refuse("build-develop-prompt: missing <phase> being revised", usage=USAGE)
+            return Refusal("build-develop-prompt: missing <phase> being revised")
         if revised_phase not in REVISABLE_PHASES:
-            return entry.refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
-                                f"(want {WANT_REVISE_PHASES})", usage=USAGE)
+            return Refusal(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
+                           f"(want {WANT_REVISE_PHASES})")
     names = ["<issue-spec-file>", "<step-text>", "<test-cmd>"] + {
         "diff": ["<fast-cmd>"],
         "green": ["<test-path>", "<target-test>", "<fast-cmd>"],
@@ -87,17 +116,26 @@ def main(argv):
     }.get(phase, [])
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
-            return entry.refuse(f"build-develop-prompt: missing {name}", usage=USAGE)
+            return Refusal(f"build-develop-prompt: missing {name}")
     if phase == "over-budget":
         for name, value in zip(names[3:], args[3:]):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
-                return entry.refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number", usage=USAGE)
+                return Refusal(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
     if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
             and any(BEFORE_STATE_GREEN.search(line)
                     for line in _read(args[3]).decode("utf-8", "replace").splitlines()
                     if line.startswith("REASON:"))):
-        return entry.refuse("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
-                            "by pin-reject-route.sh, not revised", usage=USAGE)
+        return Refusal("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
+                       "by pin-reject-route.sh, not revised")
+    return Arguments(phase, revised_phase, names, args)
+
+
+def main(argv):
+    parsed = arguments(argv)
+    if isinstance(parsed, Refusal):
+        entry.refuse(parsed.message, usage=USAGE)
+        return parsed.code
+    phase, revised_phase, names, args = parsed.phase, parsed.revised_phase, parsed.names, parsed.args
     prompts = f"{HERE}/prompts"
     template = "revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
