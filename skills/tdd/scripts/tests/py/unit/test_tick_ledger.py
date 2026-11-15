@@ -1234,3 +1234,59 @@ def test_main_on_a_fallback_make_that_exits_2_exits_2_with_nothing_on_stdout_and
 
     out, err = capsys.readouterr()
     assert (code, out, f"case {case} never run" in err, f"make test TESTS={case}" in err) == (2, "", True, True)
+
+
+def test_tick_ticks_through_typed_parameters_exactly_as_main_does_with_the_matching_flags(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = b"# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n"
+    results = {}
+    for kind, call in (
+            ("main", lambda ledger: tick_ledger.main(["--refactor-pending", str(ledger), "collapse"])),
+            ("tick", lambda ledger: tick_ledger.tick(str(ledger), "collapse", pending=True))):
+        ledger = tmp_path / f"{kind}.md"
+        ledger.write_bytes(seed)
+        code = call(ledger)
+        results[kind] = (code, *capsysbinary.readouterr(), ledger.read_bytes())
+
+    assert results["tick"] == results["main"]
+    assert results["tick"][0] == 0 and b"refactor pending" in results["tick"][3]
+
+
+def test_tick_returns_3_for_an_unmatched_step_2_for_a_phase_with_refactor_pending_and_2_for_an_empty_ledger_path(
+        tmp_path, capsysbinary, tick_ledger):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"- [ ] alpha\n")
+
+    unmatched = tick_ledger.tick(str(ledger), "zeta")
+    out_unmatched = capsysbinary.readouterr()
+    both = tick_ledger.tick(str(ledger), "alpha", pending=True, phase="contract-a")
+    out_both = capsysbinary.readouterr()
+    blank = tick_ledger.tick("", "alpha")
+    out_blank = capsysbinary.readouterr()
+
+    assert (unmatched, out_unmatched) == (3, (b"", b""))
+    assert (both, out_both) == (2, (b"", b"tick-ledger.sh: --phase and --refactor-pending cannot be combined\n"))
+    assert (blank, out_blank) == (2, (b"", USAGE))
+    assert ledger.read_bytes() == b"- [ ] alpha\n"
+
+
+def test_tick_retire_unpinnable_without_a_case_exits_1_naming_the_matcher_and_already_holds_retires_with_its_own_event(
+        tmp_path, capsys, monkeypatch, tick_ledger):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: the pin already holds\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "42")
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: 0, raising=False)
+
+    no_case = tick_ledger.tick(str(ledger), "a one", retire="unpinnable", reason_file=str(reason))
+    err = capsys.readouterr().err
+    held = tick_ledger.tick(str(ledger), "a one", case="tests/py/test_x.py::test_holds", retire="already-holds",
+                            reason_file=str(reason))
+
+    assert (no_case, err) == (1, "tick-ledger.sh: a one: no case is named\n")
+    assert held == 0
+    assert "retired already holds" in ledger.read_text()
+    assert '"already-holds-step"' in (ledger.parent / "events.jsonl").read_text()
