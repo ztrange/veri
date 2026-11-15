@@ -14,6 +14,7 @@ import github
 import handoff_state
 import json_documents
 import paths
+import restart_marker
 import run_dir as layout
 from role_state import state_path
 import status
@@ -38,23 +39,10 @@ def stall_window():
 
 
 def restart_pending(issue):
-    """True while a restart is in flight: the marker holds the restarter's pid;
-    a dead pid is a stale marker, so the exit is reported. A marker not yet
-    holding a pid (restart-conductor.sh is mid-write) counts as in flight."""
-    try:
-        with open(layout.run_file(run_dir(issue), "restart-pending")) as f:
-            text = f.read().strip()
-    except FileNotFoundError:
-        return False
-    if not text.isdigit():
-        return True
-    try:
-        os.kill(int(text), 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+    """True while a restart is in flight: the marker holds the restarter's pid; a dead pid is a
+    stale marker, so the exit is reported. A marker that cannot say (restart-conductor.sh
+    mid-write, empty, unreadable) counts as in flight: SCRIPTS.md's dispatch entry."""
+    return restart_marker.in_flight(run_dir(issue), unreadable=True)
 
 
 def now():
