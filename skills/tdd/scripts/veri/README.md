@@ -2,7 +2,10 @@
 
 The Python half of veri's scripts: each `<name>.sh` in `skills/tdd/scripts/` is a `/bin/sh` shim that execs
 `veri/<name>.py`. Modules import their siblings flat (`import git`, `from ledger import ledger_path`) because they
-run as scripts; a module that must also load as `veri.x` uses `try: from x import … except ImportError: from .x import …`.
+run as scripts, and never relatively or as `veri.x`, with no `try/except ImportError` fallback: tests name a module `veri.x`
+but get the same object as flat `x` (the finder in `tests/py/conftest.py`). `tests/py/unit/test_flat_sibling_imports.py`
+(a tree audit) fails otherwise; only the pytest-leg plugins `network_guard` and `small_case_guard`, loaded by name where
+`veri/` may not lead `sys.path`, import `veri.popen_command`.
 `entry.run(main, argv)` is the one `__main__` path: it turns an uncaught exception into exit 2. Exit codes 0/1/2/3 are
 the API; they are defined in the root `CLAUDE.md`.
 

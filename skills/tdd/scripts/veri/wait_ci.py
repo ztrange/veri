@@ -9,18 +9,11 @@ import sys
 import traceback
 from datetime import datetime
 
-try:
-    from . import github
-    from .github import NoAnswer, run_gh, gh_api, gh_rest_list
-    from .json_documents import documents
-    from . import tunables
-    from .ci_on_pr import declared, trigger_lines
-except ImportError:
-    import github
-    from github import NoAnswer, run_gh, gh_api, gh_rest_list
-    from json_documents import documents
-    import tunables
-    from ci_on_pr import declared, trigger_lines
+import github
+from github import NoAnswer, run_gh, gh_api, gh_rest_list
+from json_documents import documents
+import tunables
+from ci_on_pr import declared, trigger_lines
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")

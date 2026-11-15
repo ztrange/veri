@@ -10,11 +10,8 @@ import urllib.parse
 import entry
 import tunables
 
-try:
-    from veri import github, ledger
-except ImportError:
-    import github
-    import ledger
+import github
+import ledger
 
 
 _refuse = functools.partial(entry.refuse, prefix="unlabel-issue.sh: ")

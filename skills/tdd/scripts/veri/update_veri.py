@@ -4,11 +4,8 @@ import os
 import subprocess
 import sys
 
-try:
-    import paths
-    import tunables
-except ImportError:
-    from . import paths, tunables
+import paths
+import tunables
 
 USAGE = "usage: update-veri.sh [--consent yes|no]"
 
