@@ -2491,3 +2491,16 @@ def test_main_prints_the_adjudicate_leafs_cost_under_a_role_of_its_own_in_the_by
     rows = {(row["role"], row["model"]): row for row in table(out, "#### By model")}
     assert ("adjudicator", opus) in rows, sorted(rows)
     assert rows[("adjudicator", opus)]["$"].lstrip("$") == "0.75"
+
+
+def test_rendered_answers_code_report_and_stderr_text_without_printing(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+
+    code, out, err = metrics.rendered("108")
+    refused = metrics.rendered("")
+    printed = render(metrics, capsys, ["108"])
+
+    assert (code, err) == (0, "")
+    assert out == printed and out.startswith("### 📊 Metrics — issue 108\n")
+    assert refused == (2, "", "usage: metrics.sh <issue-number>\n")

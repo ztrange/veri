@@ -879,6 +879,17 @@ def report(issue, events_path, ledger_path, stream=None):
     return out.getvalue() if stream is None else None
 
 
+def rendered(issue):
+    """The report of `issue` read from the working directory's `.tdd`; answer `(code, stdout, stderr)` as text.
+
+    Code 0 with the report on stdout, or code 2 with the usage line on stderr when `issue` is
+    empty. Prints nothing; a missing or unreadable file raises as `report` does. Built on `report`.
+    """
+    if not issue:
+        return 2, "", USAGE + "\n"
+    return 0, report(issue, ".tdd/events.jsonl", ledger_path(".", issue)), ""
+
+
 def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
