@@ -21,7 +21,7 @@ from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
 import run_dir
 import tunables
-from role_state import state_path
+import role_state
 from solvable_issues import priority_label, solvable
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
@@ -526,20 +526,12 @@ def recover_lock():
     return [out or "free"]
 
 
-def read_role_state(role, lane=None):
-    try:
-        with open(state_path(run_dir.main_tree(missing=""), role, lane)) as f:
-            return f.read().splitlines()
-    except FileNotFoundError:
-        return None
-
-
 def recover_items(role, lane, prefix):
-    return [line for line in read_role_state(role, lane) or [] if line.startswith(prefix)]
+    return [line for line in role_state.read_lines(role, lane) or [] if line.startswith(prefix)]
 
 
 def recover_state(role, lane=None):
-    lines = read_role_state(role, lane)
+    lines = role_state.read_lines(role, lane)
     if lines is None:
         return ["no state file"]
     fields = dict(line.partition("=")[::2] for line in lines)

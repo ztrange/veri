@@ -54,6 +54,12 @@ def read(path):
         return None
 
 
+def read_lines(role, lane=None):
+    """The role's state lines (`.tdd/role-<role>[-<lane>].state` of the main tree), `None` when the file is missing."""
+    text = read(state_path(run_dir.main_tree(missing=""), role, lane))
+    return None if text is None else text.splitlines()
+
+
 def append(path, text):
     replace(path, (read(path) or "") + text)
 

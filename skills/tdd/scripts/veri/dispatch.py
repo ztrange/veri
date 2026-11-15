@@ -17,7 +17,7 @@ import paths
 import restart_marker
 import run_dir as layout
 from role_state import state_path
-import status
+import role_state
 import timed_n_format
 import tunables
 import watch_runs
@@ -365,7 +365,7 @@ def main(argv):
                 say(line + "\n")
                 return 0
         if not argv:
-            lines = status.read_role_state("dev", lane()) or []
+            lines = role_state.read_lines("dev", lane()) or []
             try:
                 target = last_n(lines)
                 for line in lines:
@@ -415,7 +415,7 @@ def main(argv):
                 queue = solvable_issues()
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
-                free = prioritize(free, status.read_role_state("dev", lane()) or [])
+                free = prioritize(free, role_state.read_lines("dev", lane()) or [])
             except MalformedOverride as line:
                 sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
