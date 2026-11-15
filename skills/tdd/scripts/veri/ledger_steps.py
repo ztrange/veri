@@ -1,6 +1,5 @@
 """ledger-steps.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import re
 import sys
 
 import entry
@@ -69,7 +68,7 @@ def main(argv):
     verb = argv[0] if argv else ""
     if verb and verb not in VERBS:
         return entry.refuse(usage=USAGE)
-    if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
+    if verb == "criterion" and entry.whole_number(argv[1] if len(argv) > 1 else "", 0) is None:
         return entry.refuse(usage=USAGE)
     if verb == "has-mark" and (len(argv) < 2 or not argv[1]):
         return entry.refuse(usage=USAGE)
