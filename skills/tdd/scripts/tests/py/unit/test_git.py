@@ -131,6 +131,11 @@ def test_default_branch_asks_the_remote_when_origin_head_is_unset(git, runs, tmp
     assert git.default_branch(cwd=tmp_path) == "dev"
 
 
+def test_default_branch_believes_the_remote_symref_whatever_ls_remote_s_exit_code(git, runs, tmp_path):
+    runs({REMOTE: (2, f"ref: refs/heads/trunk\tHEAD\n{SHA}\tHEAD\n", "")})
+    assert git.default_branch(cwd=tmp_path) == "trunk"
+
+
 def test_default_branch_is_none_when_the_remote_names_none(git, runs, tmp_path):
     runs({REMOTE: (0, f"{SHA}\tHEAD\n", "")})
     assert git.default_branch(cwd=tmp_path) is None
