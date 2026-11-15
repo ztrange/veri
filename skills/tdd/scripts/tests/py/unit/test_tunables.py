@@ -234,7 +234,30 @@ def test_set_but_empty_tells_a_name_set_to_nothing_from_an_unset_one_and_a_set_o
     assert (unset, empty, tunables.set_but_empty("VERI_STEP_GROWTH")) == (False, True, False)
 
 
-def test_no_name_is_defined_in_both_tables():
+def test_one_table_holds_every_tunable_and_each_entry_states_a_default_a_parse_and_a_refusal_or_none():
     tunables = importlib.import_module("veri.tunables")
 
-    assert not set(tunables.TABLE) & set(tunables.DEFAULTED)
+    assert {"REVISE_BUDGET", "VERI_REFACTOR_BUDGET", "VERI_MODEL_CONDUCTOR"} <= set(tunables.TUNABLES)
+    assert tunables.TUNABLES["REVISE_BUDGET"].refusal == "a whole number"
+    assert tunables.TUNABLES["VERI_REFACTOR_BUDGET"].refusal is None
+    for entry in tunables.TUNABLES.values():
+        assert isinstance(entry.default, str) and callable(entry.parse)
+
+
+def test_the_refusing_table_is_exactly_the_entries_that_state_a_refusal():
+    tunables = importlib.import_module("veri.tunables")
+
+    assert tunables.TABLE == {n: e for n, e in tunables.TUNABLES.items() if e.refusal}
+    assert set(tunables.TABLE) == {
+        "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RESET_GROWTH_CONDUCTOR", "VERI_CONDUCTOR_STOP_TIMEOUT",
+        "VERI_KILL_POLL", "REVISE_BUDGET", "VERI_COMMENT_CHUNK", "VERI_REBASED_TIP_SUITE",
+        "VERI_BRANCH_SUITE", "VERI_BASELINE_FULL_TIER"}
+
+
+def test_resolve_refuses_nothing_for_a_name_that_states_no_refusal_and_get_reads_it(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "x")
+
+    assert tunables.get("VERI_REFACTOR_BUDGET") == "x"
+    with pytest.raises(KeyError):
+        tunables.resolve("VERI_REFACTOR_BUDGET")

@@ -94,7 +94,7 @@ def test_a_read_that_asks_tunables_or_reads_another_name_is_not_named(source):
 def test_no_module_writes_a_literal_default_for_a_name_tunables_defines(veri_modules_index):
     from veri import tunables
 
-    names = set(tunables.TABLE) | set(tunables.DEFAULTED)
+    names = set(tunables.TUNABLES)
     found = {}
     for module in veri_modules_index.names:
         if module == "tunables":
