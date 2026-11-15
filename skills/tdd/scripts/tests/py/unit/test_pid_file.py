@@ -2,6 +2,12 @@
 import importlib
 
 
+def ps_answering(fake_processes, table):
+    """Each ps command in <table> ({its words: its output}) answers 0 with that output; any other exits 1, silent."""
+    return fake_processes.answers({" ".join(words): (0, out, "") for words, out in table.items()},
+                                  default=(1, "", ""), exact=True)
+
+
 def test_number_in_answers_the_first_lines_digits_as_read(tmp_path):
     pid_file = importlib.import_module("veri.pid_file")
     answers = {}
@@ -103,7 +109,7 @@ def test_number_in_follows_a_symlink_to_a_regular_file_and_answers_no_number_for
     assert answers == {"to-file": "12", "dangling": None}
 
 
-def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_file_or_0_or_00(tmp_path, monkeypatch):
+def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_file_or_0_or_00(tmp_path, monkeypatch, fake_processes):
     import os
 
     pid_file = importlib.import_module("veri.pid_file")
@@ -113,19 +119,13 @@ def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_
         kills.append((pid, signal))
 
     monkeypatch.setattr(os, "kill", fake_kill)
-    import subprocess
-
     ps = {
         ("ps", "-o", "command=", "-p", "4242"): "claude -p /tdd 5\n",
         ("ps", "-o", "ppid=", "-p", "4242"): "1004242\n",
         ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps.get(tuple(argv))
-        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    ps_answering(fake_processes, ps)
     answers = {}
     calls = {}
     for name, content in [
@@ -176,19 +176,10 @@ def test_live_conductor_answers_no_pid_and_raises_nothing_when_os_kill_raises(tm
     assert answers == {"permission": None, "lookup": None, "overflow": None}
 
 
-def test_supervising_runs_ps_for_the_pids_args_and_is_true_only_when_they_name_the_leafs_supervisor(monkeypatch):
-    import subprocess
-
+def test_supervising_runs_ps_for_the_pids_args_and_is_true_only_when_they_name_the_leafs_supervisor(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     answered = {}
-    argvs = []
-
-    def fake_run(argv, *args, **kwargs):
-        argvs.append(list(argv))
-        returncode, stdout = answered["ps"]
-        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({"ps": lambda line, **kwargs: (answered["ps"][0], answered["ps"][1], "")})
     answers = {}
     for name, ps in [
         ("supervisor", (0, "bash /x/supervise.sh develop-red-3 claude -p\n")),
@@ -198,22 +189,16 @@ def test_supervising_runs_ps_for_the_pids_args_and_is_true_only_when_they_name_t
         answered["ps"] = ps
         answers[name] = pid_file.supervising("4242", "develop-red-3")
 
-    assert (answers, argvs) == (
+    assert (answers, fake.argvs) == (
         {"supervisor": True, "ps-exits-1": False, "ps-answers-empty": False},
         [["ps", "-p", "4242", "-o", "args="]] * 3,
     )
 
 
-def test_supervising_matches_the_literal_text_supervise_sh_name_with_its_trailing_space(monkeypatch):
-    import subprocess
-
+def test_supervising_matches_the_literal_text_supervise_sh_name_with_its_trailing_space(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     answered = {}
-
-    def fake_run(argv, *args, **kwargs):
-        return subprocess.CompletedProcess(argv, 0, stdout=answered["ps"], stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": lambda line, **kwargs: (0, answered["ps"], "")})
     answers = {}
     for case, name, ps in [
         ("nothing-after-the-name", "develop-red-3", "supervise.sh develop-red-3\n"),
@@ -226,16 +211,10 @@ def test_supervising_matches_the_literal_text_supervise_sh_name_with_its_trailin
     assert answers == {"nothing-after-the-name": False, "name-is-a-prefix": False, "glob-in-the-name": False}
 
 
-def test_supervising_recognises_a_supervisor_spelled_veri_supervise_py_as_well_as_supervise_sh(monkeypatch):
-    import subprocess
-
+def test_supervising_recognises_a_supervisor_spelled_veri_supervise_py_as_well_as_supervise_sh(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     answered = {}
-
-    def fake_run(argv, *args, **kwargs):
-        return subprocess.CompletedProcess(argv, 0, stdout=answered["ps"], stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": lambda line, **kwargs: (0, answered["ps"], "")})
     answers = {}
     for case, name, ps in [
         ("python-supervisor", "develop-red-3", "python3 /x/veri/supervise.py develop-red-3 claude -p\n"),
@@ -254,10 +233,8 @@ def test_supervising_recognises_a_supervisor_spelled_veri_supervise_py_as_well_a
     }
 
 
-def test_live_conductor_answers_no_pid_for_a_live_claude_whose_parent_is_not_run_conductor_2249(tmp_path, monkeypatch):
+def test_live_conductor_answers_no_pid_for_a_live_claude_whose_parent_is_not_run_conductor_2249(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     ps = {
@@ -266,11 +243,7 @@ def test_live_conductor_answers_no_pid_for_a_live_claude_whose_parent_is_not_run
         ("ps", "-o", "command=", "-p", "1004242"): "/Applications/Claude.app/claude-desktop\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps.get(tuple(argv))
-        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    ps_answering(fake_processes, ps)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -278,10 +251,8 @@ def test_live_conductor_answers_no_pid_for_a_live_claude_whose_parent_is_not_run
     assert pid_file.live_conductor(str(run_dir)) is None
 
 
-def test_live_conductor_answers_no_pid_for_a_live_process_under_run_conductor_that_is_not_a_claude_2249(tmp_path, monkeypatch):
+def test_live_conductor_answers_no_pid_for_a_live_process_under_run_conductor_that_is_not_a_claude_2249(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     ps = {
@@ -290,11 +261,7 @@ def test_live_conductor_answers_no_pid_for_a_live_process_under_run_conductor_th
         ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps.get(tuple(argv))
-        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    ps_answering(fake_processes, ps)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -302,10 +269,8 @@ def test_live_conductor_answers_no_pid_for_a_live_process_under_run_conductor_th
     assert pid_file.live_conductor(str(run_dir)) is None
 
 
-def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pid_is_reused_by_an_unrelated_process_2249(tmp_path, monkeypatch):
+def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pid_is_reused_by_an_unrelated_process_2249(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     ps = {
@@ -317,11 +282,7 @@ def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pi
         ("ps", "-o", "command=", "-p", "1"): "/sbin/launchd\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps.get(tuple(argv))
-        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    ps_answering(fake_processes, ps)
     answers = {}
     for name, recorded in [("conductor", b"4242\n"), ("reused", b"5151\n")]:
         run_dir = tmp_path / name
@@ -332,10 +293,8 @@ def test_live_conductor_answers_the_pid_of_a_live_conductor_and_none_once_the_pi
     assert answers == {"conductor": "4242", "reused": None}
 
 
-def test_live_conductor_answers_the_pid_when_its_own_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch):
+def test_live_conductor_answers_the_pid_when_its_own_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     own = {}
@@ -344,12 +303,10 @@ def test_live_conductor_answers_the_pid_when_its_own_ps_command_read_fails_or_pr
         ("ps", "-o", "command=", "-p", "1004242"): "python3 run_conductor.py 5\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        if tuple(argv) == ("ps", "-o", "command=", "-p", "4242"):
-            return subprocess.CompletedProcess(argv, own["returncode"], stdout=own["stdout"], stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout=ps[tuple(argv)], stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({
+        **{" ".join(words): (0, out, "") for words, out in ps.items()},
+        "ps -o command= -p 4242": lambda line, **kwargs: (own["returncode"], own["stdout"], ""),
+    }, exact=True)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -361,22 +318,16 @@ def test_live_conductor_answers_the_pid_when_its_own_ps_command_read_fails_or_pr
     assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
 
 
-def test_live_conductor_answers_the_pid_when_its_ps_ppid_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch):
+def test_live_conductor_answers_the_pid_when_its_ps_ppid_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     parent = {}
 
-    def fake_run(argv, *args, **kwargs):
-        if tuple(argv) == ("ps", "-o", "ppid=", "-p", "4242"):
-            return subprocess.CompletedProcess(argv, parent["returncode"], stdout=parent["stdout"], stderr="")
-        if tuple(argv) == ("ps", "-o", "command=", "-p", "4242"):
-            return subprocess.CompletedProcess(argv, 0, stdout="claude -p /tdd 5\n", stderr="")
-        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({
+        "ps -o ppid= -p 4242": lambda line, **kwargs: (parent["returncode"], parent["stdout"], ""),
+        "ps -o command= -p 4242": (0, "claude -p /tdd 5\n", ""),
+    }, default=(1, "", ""), exact=True)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -391,24 +342,17 @@ def test_live_conductor_answers_the_pid_when_its_ps_ppid_read_fails_or_prints_no
     assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
 
 
-def test_live_conductor_answers_the_pid_when_its_parents_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch):
+def test_live_conductor_answers_the_pid_when_its_parents_ps_command_read_fails_or_prints_nothing_2320(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     parent = {}
 
-    def fake_run(argv, *args, **kwargs):
-        if tuple(argv) == ("ps", "-o", "command=", "-p", "1004242"):
-            return subprocess.CompletedProcess(argv, parent["returncode"], stdout=parent["stdout"], stderr="")
-        if tuple(argv) == ("ps", "-o", "ppid=", "-p", "4242"):
-            return subprocess.CompletedProcess(argv, 0, stdout="1004242\n", stderr="")
-        if tuple(argv) == ("ps", "-o", "command=", "-p", "4242"):
-            return subprocess.CompletedProcess(argv, 0, stdout="claude -p /tdd 5\n", stderr="")
-        return subprocess.CompletedProcess(argv, 1, stdout="", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({
+        "ps -o command= -p 1004242": lambda line, **kwargs: (parent["returncode"], parent["stdout"], ""),
+        "ps -o ppid= -p 4242": (0, "1004242\n", ""),
+        "ps -o command= -p 4242": (0, "claude -p /tdd 5\n", ""),
+    }, default=(1, "", ""), exact=True)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -423,10 +367,8 @@ def test_live_conductor_answers_the_pid_when_its_parents_ps_command_read_fails_o
     assert answers == {"ps-fails": "4242", "ps-prints-nothing": "4242"}
 
 
-def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not_match_when_every_ps_read_answers_2320(tmp_path, monkeypatch):
+def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not_match_when_every_ps_read_answers_2320(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     ps = {
@@ -436,13 +378,13 @@ def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not
     }
     case = {}
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps[tuple(argv)]
-        if isinstance(out, dict):
-            out = out[case["name"]]
-        return subprocess.CompletedProcess(argv, 0, stdout=out, stderr="")
+    def read(words):
+        def answer(line, **kwargs):
+            out = ps[words]
+            return 0, out[case["name"]] if isinstance(out, dict) else out, ""
+        return answer
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({" ".join(words): read(words) for words in ps}, exact=True)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
@@ -454,17 +396,10 @@ def test_live_conductor_answers_no_pid_for_a_readable_command_line_that_does_not
     assert answers == {"stranger-parent": None, "not-claude": None}
 
 
-def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_2537(monkeypatch):
-    import subprocess
-
+def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_2537(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     ps = {}
-
-    def fake_run(argv, *args, **kwargs):
-        returncode, stdout = ps["answer"]
-        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": lambda line, **kwargs: (ps["answer"][0], ps["answer"][1], "")})
     answers = {}
     for name, answer in [("no-such-process", (1, "")), ("empty-field", (0, "\n"))]:
         ps["answer"] = answer
@@ -474,19 +409,16 @@ def test_ps_answers_a_non_zero_exit_with_a_value_distinct_from_an_empty_field_25
     assert answers["no-such-process"] != answers["empty-field"]
 
 
-def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an_empty_field_2537(monkeypatch):
-    import subprocess
-
+def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an_empty_field_2537(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     ps = {}
 
-    def fake_run(argv, *args, **kwargs):
+    def answer(line, **kwargs):
         if ps["answer"] == "unrunnable":
             raise FileNotFoundError(2, "No such file or directory", "ps")
-        returncode, stdout = ps["answer"]
-        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
+        return ps["answer"][0], ps["answer"][1], ""
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": answer})
     answers = {}
     for name, answer in [("no-such-process", (1, "")), ("empty-field", (0, "\n")), ("unrunnable", "unrunnable")]:
         ps["answer"] = answer
@@ -499,10 +431,8 @@ def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an
     assert answers["unrunnable"] != "FileNotFoundError"
 
 
-def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_start_time_differs_from_the_recorded_one_2537(tmp_path, monkeypatch):
+def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_start_time_differs_from_the_recorded_one_2537(tmp_path, monkeypatch, fake_processes):
     import os
-    import subprocess
-
     pid_file = importlib.import_module("veri.pid_file")
     monkeypatch.setattr(os, "kill", lambda pid, signal: None)
     ps = {
@@ -512,11 +442,7 @@ def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_st
         ("ps", "-o", "lstart=", "-p", "4242"): "Tue Oct 27 13:45:10 2026\n",
     }
 
-    def fake_run(argv, *args, **kwargs):
-        out = ps.get(tuple(argv))
-        return subprocess.CompletedProcess(argv, 0 if out else 1, stdout=out or "", stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    ps_answering(fake_processes, ps)
     run_dir = tmp_path / "run"
     (run_dir / ".tdd").mkdir(parents=True)
     (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\nMon Oct 26 09:00:00 2026\n")
@@ -524,9 +450,7 @@ def test_live_conductor_answers_no_pid_for_a_claude_under_run_conductor_whose_st
     assert pid_file.live_conductor(str(run_dir)) is None
 
 
-def test_starting_runs_names_no_issue_whose_run_conductor_process_works_in_another_repo_3247(tmp_path, monkeypatch):
-    import subprocess
-
+def test_starting_runs_names_no_issue_whose_run_conductor_process_works_in_another_repo_3247(tmp_path, fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     root = tmp_path / "repo"
     other = tmp_path / "other"
@@ -535,47 +459,29 @@ def test_starting_runs_names_no_issue_whose_run_conductor_process_works_in_anoth
     ps = "  500 /usr/bin/python3 /x/run_conductor.py 103\n  501 /usr/bin/python3 /x/run_conductor.py 104\n"
     cwds = {"500": str(other), "501": str(root)}
 
-    def fake_run(argv, *args, **kwargs):
-        if argv[0] == "ps":
-            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % cwds[argv[-1]], stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": (0, ps, "")},
+                           default=lambda line, **kwargs: (0, "n%s\n" % cwds[line.split()[-1]], ""))
 
     assert pid_file.starting_runs(str(root)) == ["104"]
 
 
-def test_starting_runs_names_no_issue_for_a_process_that_only_mentions_run_conductor_in_its_command_3448(tmp_path, monkeypatch):
-    import subprocess
-
+def test_starting_runs_names_no_issue_for_a_process_that_only_mentions_run_conductor_in_its_command_3448(tmp_path, fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     root = tmp_path / "repo"
     (root / ".tdd" / "wt" / "103" / ".tdd").mkdir(parents=True)
     ps = "  500 claude -p review run_conductor.py 103 now\n  501 grep run_conductor.py 103\n"
 
-    def fake_run(argv, *args, **kwargs):
-        if argv[0] == "ps":
-            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % root, stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": (0, ps, "")}, default=(0, "n%s\n" % root, ""))
 
     assert pid_file.starting_runs(str(root)) == []
 
 
-def test_starting_runs_names_the_issue_of_a_run_conductor_script_started_under_bin_sh_3448(tmp_path, monkeypatch):
-    import subprocess
-
+def test_starting_runs_names_the_issue_of_a_run_conductor_script_started_under_bin_sh_3448(tmp_path, fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     root = tmp_path / "repo"
     (root / ".tdd" / "wt" / "777" / ".tdd").mkdir(parents=True)
     ps = "  500 /bin/sh /x/run_conductor.py 777 /tmp/claude.pid\n"
 
-    def fake_run(argv, *args, **kwargs):
-        if argv[0] == "ps":
-            return subprocess.CompletedProcess(argv, 0, stdout=ps, stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout="n%s\n" % root, stderr="")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"ps": (0, ps, "")}, default=(0, "n%s\n" % root, ""))
 
     assert pid_file.starting_runs(str(root)) == ["777"]
