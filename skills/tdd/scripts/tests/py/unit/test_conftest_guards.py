@@ -333,8 +333,7 @@ def test_2198_live_conductor_fails_at_setup_when_the_pid_file_attribute_it_patch
     import importlib
     import pytest
 
-    for name in ("pid_file", "veri.pid_file"):
-        monkeypatch.delattr(importlib.import_module(name), "ps_field")
+    monkeypatch.delattr(importlib.import_module("pid_file"), "ps_field")
 
     with pytest.raises(AttributeError, match="ps_field"):
         conftest.live_conductor(monkeypatch, tmp_path, 2198)

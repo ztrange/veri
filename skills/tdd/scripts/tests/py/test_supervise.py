@@ -337,9 +337,8 @@ def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
     clean_env(monkeypatch)
-    for module in ("pid_file", "veri.pid_file"):
-        monkeypatch.setattr(importlib.import_module(module), "ps_field",
-                            lambda field, pid: "Thu Nov 11 09:00:00 2026", raising=True)
+    monkeypatch.setattr(importlib.import_module("pid_file"), "ps_field",
+                        lambda field, pid: "Thu Nov 11 09:00:00 2026", raising=True)
 
     leaves = {
         "rc-2": ("exit 2", False),

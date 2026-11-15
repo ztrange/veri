@@ -503,7 +503,7 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
         out = "b" * 40 + "\n" if args[:1] == ("rev-parse",) else "src/changed.py\n"
         return subprocess.CompletedProcess(args, 0, out if text else out.encode(), "" if text else b"")
 
-    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    reals = {importlib.import_module("git").git}
     for module in list(sys.modules.values()):
         if getattr(module, "git", None) in reals:
             monkeypatch.setattr(module, "git", faked_git)
@@ -526,7 +526,7 @@ def test_main_returns_2_naming_pin_recheck_sh_and_leaves_the_ledger_byte_identic
         text = kwargs.get("text") or kwargs.get("universal_newlines")
         return subprocess.CompletedProcess(args, 128, "" if text else b"", "fatal: bad object\n" if text else b"fatal: bad object\n")
 
-    reals = {importlib.import_module(name).git for name in ("veri.git", "git")}
+    reals = {importlib.import_module("git").git}
     for module in list(sys.modules.values()):
         if getattr(module, "git", None) in reals:
             monkeypatch.setattr(module, "git", faked_git)
