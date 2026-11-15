@@ -942,7 +942,7 @@ def _open_prs(issue_worktree, monkeypatch, prs):
         return json.dumps(prs)
 
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
-    monkeypatch.setattr(issue_worktree, "gh_json", fake_gh_json)
+    monkeypatch.setattr(issue_worktree.github, "gh_json", fake_gh_json)
     return issue_worktree.claiming_pr("62", "https://github.com/o/r.git"), asked
 
 

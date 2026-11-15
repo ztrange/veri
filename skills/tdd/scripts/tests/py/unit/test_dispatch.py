@@ -1,6 +1,7 @@
 """In-process cases for veri/dispatch.py, the module dispatch.sh is a shim over."""
 from datetime import datetime
 import importlib
+import json
 import sys
 
 import pytest
@@ -2724,7 +2725,7 @@ def test_main_exits_2_naming_the_failure_and_launches_nothing_when_gh_pr_diff_of
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     monkeypatch.setattr(dispatch.github.subprocess, "run",
                         lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 502: Bad Gateway\n"))
@@ -2746,7 +2747,7 @@ def test_main_exits_2_naming_the_diff_read_when_gh_pr_diff_answers_http_500_on_e
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     monkeypatch.setattr(dispatch.github.subprocess, "run",
                         lambda argv, **kw: subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 500\n"))
@@ -2767,7 +2768,7 @@ def test_main_exits_2_naming_the_diff_read_after_one_read_when_gh_pr_diff_answer
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
@@ -2794,7 +2795,7 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_answers_http_5xx_for_the_first_r
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
@@ -2822,7 +2823,7 @@ def test_main_retries_a_pr_diff_read_three_times_then_exits_2_naming_it_issue_35
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
@@ -2853,13 +2854,13 @@ def test_main_goes_on_to_launch_when_the_open_pr_list_read_answers_http_500_for_
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     list_reads = []
 
-    def open_prs(fields, *extra):
+    def open_prs(fields, **extra):
         list_reads.append(fields)
         if len(list_reads) <= 2:
             raise dispatch.github.NoAnswer("", "HTTP 500\n")
         return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}]
 
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    _serve_pulls(monkeypatch, dispatch, open_prs)
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: ["skills/tdd/SCRIPTS.md"])
 
     try:
@@ -2902,7 +2903,7 @@ def test_main_goes_on_to_launch_when_gh_pr_diff_fails_connecting_to_api_github_c
         _REAL["run_pr_paths"])
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "0")
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
@@ -2930,7 +2931,7 @@ def test_main_sleeps_the_vari_dispatch_retry_sleep_seconds_once_per_failed_http_
     monkeypatch.setenv("VERI_DISPATCH_RETRY_SLEEP", "7")
     sleeps = []
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: sleeps.append(seconds))
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True, "headRefName": "tdd/80-other"}])
     reads = []
 
@@ -2971,7 +2972,7 @@ def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_eac
     monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
     monkeypatch.setattr(dispatch, "clock", lambda: times[len(waits)])
 
-    def open_prs(fields, *extra):
+    def open_prs(fields, **extra):
         listed.append(1)
         return [{"number": 90, "url": "https://github.com/o/r/pull/90", "isDraft": True,
                  "headRefName": "tdd/80-other", "headRefOid": "bbb" if times[len(waits)] >= 140 else "aaa"}]
@@ -2984,7 +2985,7 @@ def test_main_while_every_solvable_issue_overlaps_reads_each_issue_body_once_eac
         viewed.append(issue)
         return {"12": "Touches `skills/tdd/scripts/veri/dispatch.py`.", "15": "Edits `skills/tdd/SCRIPTS.md`."}[issue]
 
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    _serve_pulls(monkeypatch, dispatch, open_prs)
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", diff)
     monkeypatch.setattr(dispatch.github, "gh_issue_view", view)
 
@@ -3034,10 +3035,16 @@ def test_main_with_a_bad_retry_sleep_names_the_variable_on_stderr_and_exits_2_be
         2, "", True, False, [], [])
 
 
+def _serve_pulls(monkeypatch, dispatch, read):
+    """github.open_pulls answering the raw pull requests <read>(fields, **options) returns, as the records the code reads."""
+    monkeypatch.setattr(dispatch.github, "open_pulls",
+                        lambda fields, **options: dispatch.github.pulls_in(json.dumps(read(fields, **options))))
+
+
 def _real_overlap_reads(monkeypatch, dispatch, prs, bodies, diffs):
     monkeypatch.setattr(dispatch, "run_pr_paths", _REAL["run_pr_paths"])
     monkeypatch.setattr(dispatch, "issue_paths", _REAL["issue_paths"])
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: prs)
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: prs)
     monkeypatch.setattr(dispatch.github, "gh_pr_diff_names", lambda number: diffs[number])
     monkeypatch.setattr(dispatch.github, "gh_issue_view", lambda issue, field: bodies[issue])
 
@@ -3426,7 +3433,7 @@ def test_main_launches_an_issue_naming_a_path_only_a_parked_run_draft_pr_changes
         monkeypatch, tmp_path, dispatch, lambda: ["15", "12"],
         {"12": ["skills/tdd/SCRIPTS.md"], "15": ["skills/tdd/scripts/veri/status.py"]},
         _REAL["run_pr_paths"])
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", lambda fields, *extra: [
+    _serve_pulls(monkeypatch, dispatch, lambda fields, **extra: [
         {"number": 90, "url": parked, "isDraft": True, "headRefName": "tdd/80-parked", "headRefOid": "a1",
          "labels": [{"name": "parked"}]},
         {"number": 91, "url": other, "isDraft": True, "headRefName": "tdd/81-live", "headRefOid": "b2",
@@ -3444,11 +3451,11 @@ def test_the_overlap_guard_asks_its_one_open_pr_list_read_for_the_labels_field_t
         monkeypatch, dispatch):
     asked = []
 
-    def open_prs(fields, *extra):
+    def open_prs(fields, **extra):
         asked.append(fields.split(","))
         return []
 
-    monkeypatch.setattr(dispatch.handoff_state, "open_prs", open_prs)
+    _serve_pulls(monkeypatch, dispatch, open_prs)
     monkeypatch.setattr(dispatch, "_reads", {})
 
     _REAL["run_pr_paths"]()

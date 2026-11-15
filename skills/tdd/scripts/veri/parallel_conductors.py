@@ -2,7 +2,6 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import paths
-import re
 import shutil
 import signal
 import subprocess
@@ -17,8 +16,7 @@ import traceback
 import run_dir
 from context_budget import START, watch
 from event import toplevel
-from github import NoAnswer, gh_json
-from json_documents import items
+from github import NoAnswer, closed_issues, open_pulls_text, pulls_in
 from run_end import run_end
 from solvable_issues import solvable_in_scope
 
@@ -78,8 +76,7 @@ class _Conductor:
 
 
 def _prs_json():
-    return gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
-                   "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url")
+    return open_pulls_text("body,isDraft,url")
 
 
 def _finish_prs_json():
@@ -97,20 +94,20 @@ def _outcome(n, code, prs):
     if _parked(n):
         return ""
     try:
-        prs = items(prs)
+        prs = pulls_in(prs)
     except ValueError:
         traceback.print_exc()
         return ""
     for pr in prs:
-        if n in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
-            url = pr.get("html_url", pr.get("url", ""))
+        if n in closed_issues(pr.body):
+            url = pr.html_url if pr.html_url is not None else pr.url or ""
             try:
                 cause = run_end(run_dir.worktree(toplevel(), n))[1]
             except OSError:
                 cause = None
             if cause == "bailed":
                 return "bailed %s" % url
-            if cause == "done" or not pr.get("isDraft", pr.get("draft")):
+            if cause == "done" or pr.draft is not True:
                 return "done %s" % url
             return ""
     return ""

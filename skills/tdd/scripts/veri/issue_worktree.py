@@ -16,8 +16,7 @@ import run_dir
 import tunables
 from git import git, symref_default
 import github
-from github import NoAnswer, gh_json
-from json_documents import items
+from github import NoAnswer
 from pid_file import ancestors, live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
@@ -82,14 +81,12 @@ def claiming_pr(issue, url):
     if not tunables.read("VERI_GH_JSON") and not re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()):
         return ""
     try:
-        prs = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
-                      "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,state,url")
+        prs = github.open_pulls("body,state,url")
     except (NoAnswer, OSError):
         return None
-    for pr in items(prs):
-        if str(pr.get("state", "")).upper() == "OPEN" and \
-                issue in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
-            return pr.get("url") or "an open PR"
+    for pr in prs:
+        if pr.state == "OPEN" and issue in github.closed_issues(pr.body):
+            return pr.url or "an open PR"
     return ""
 
 

@@ -17,7 +17,7 @@ def test_main_in_a_repository_with_no_tags_prints_main_sha_and_none_and_exits_0_
                     "commit", "-q", "--allow-empty", "-m", "base"], check=True)
     sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "main"], check=True,
                          stdout=subprocess.PIPE, text=True).stdout.strip()
-    monkeypatch.setattr(handoff_state, "open_prs", lambda fields, *extra: [])
+    monkeypatch.setattr(handoff_state.github, "open_pulls", lambda fields, **options: [])
     monkeypatch.setattr(status, "json_document", lambda scope=None: (0, '{"runs": []}'))
     code, out, err = run_cli(handoff_state, [], cwd=repo)
     assert (code, out.splitlines()[0] if out else "", "Traceback" in err) == (0, "main %s (none)" % sha, False)

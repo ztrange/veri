@@ -475,11 +475,13 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 
 ## github
 Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed call raises `NoAnswer(answer, detail="")`.
-- `gh_issue_view(number, field)`, `gh_issue_list(*args)`, `gh_list(path, *args)`, `gh_rest_list(path, empty)`, `gh_json(fixture, path, *args)`, `gh_json_page(...)`: reads; return text, or parsed pages for the `*_list`/`_json` forms.
+- `gh_issue_view(number, field)`, `gh_issue_list(*args)`, `gh_rest_list(path, empty)`, `gh_json(fixture, path, *args)`, `gh_json_page(...)`: reads; return text, or parsed pages for the `*_list`/`_json` forms.
 - `gh_issue_create(title, body, *labels)`, `gh_issue_edit(number, body_file)`, `gh_issue_comment(number, body)`: writes.
 - `gh_issue_add_label(number, label)`, `gh_issue_remove_label(number, label)` (a 404 is fine), `gh_label_ensure(label)` (already existing is fine), `gh_label_create(name)`, `gh_api_add_label(path, name)`: label operations.
 - `gh_api(path, stderr=None)`, `gh_api_delete(path)`, `gh_probe(*args)`, `run_gh(*args, stderr=None)`: raw `CompletedProcess` results; `run_gh` waits and retries while `gh` is not installed.
 - `gh_pr_ready(number, head_sha="")`, `gh_pr_diff_names(number)`: mark a draft PR ready, list the paths of a PR.
+- `open_pulls(fields, state="open", head=None, limit=10000, repo=None)`: the pull requests as `Pull` records (`number`, `url`, `html_url`, `draft`, `head_ref`, `head_sha`, `body`, `state`, `labels`), the same whichever route or fixture (`prs.json`) answered. `draft` is `None` when the answer carried no flag (a record with both spellings reads `isDraft`); each caller spells its own default, `pr.draft is True`, `is not True` or `is False`. `fields` are the GraphQL `--json` fields, `limit=None` leaves gh's default. `open_pulls_text(...)` is the same read as text and `pulls_in(text)` the parse, for a caller deciding over a partial answer (`NoAnswer.answer`) or a list that is not JSON.
+- `closed_issues(body, loose=False)`: the issue numbers (strings) a PR body closes with `Closes #n`, in order; `loose` reads `[Cc]loses #n` anywhere, as `status --recover` does.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
 
 ## solvable_issues

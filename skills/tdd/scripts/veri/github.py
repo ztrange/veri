@@ -320,7 +320,7 @@ def gh_json_page(fixture, path, *args):
 
 
 class Pull(NamedTuple):
-    """One pull request, whichever route answered. Fields the answer did not carry read as: draft None,
+    """One pull request, whichever route answered. A record carrying both draft spellings reads isDraft. Fields the answer did not carry read as: draft None,
     url, html_url and head_sha None, head_ref, body and state "", labels (). <url> and <html_url> are what
     the answer called them (a REST url is the API's; GraphQL has only url); <state> is upper-cased."""
     number: Optional[int]
@@ -336,7 +336,7 @@ class Pull(NamedTuple):
 
 def _pull(raw):
     head = raw.get("head") or {}
-    draft = raw["draft"] if "draft" in raw else raw.get("isDraft")
+    draft = raw["isDraft"] if "isDraft" in raw else raw.get("draft")
     return Pull(number=raw.get("number"), url=raw.get("url"), html_url=raw.get("html_url"), draft=draft,
                 head_ref=raw.get("headRefName") or head.get("ref") or "",
                 head_sha=raw.get("headRefOid") or head.get("sha"),
