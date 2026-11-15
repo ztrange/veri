@@ -219,6 +219,22 @@ def test_fake_processes_answers_check_output_returns_stdout_in_the_calls_mode_an
         subprocess.check_output(["other"])
 
 
+def test_fake_processes_answers_raises_an_exception_class_or_instance_from_every_entry_point_and_records_the_call(fake_processes):
+    expired = subprocess.TimeoutExpired(["slow"], 5)
+    fake = fake_processes.answers({"gone": OSError, "slow": expired, "seq": [OSError, (0, "", "")]})
+
+    for entry in (subprocess.run, subprocess.call, subprocess.check_call, subprocess.check_output):
+        with pytest.raises(OSError):
+            entry(["gone"])
+        with pytest.raises(subprocess.TimeoutExpired) as raised:
+            entry(["slow"], timeout=5)
+        assert raised.value is expired
+    with pytest.raises(OSError):
+        subprocess.call(["seq"])
+    assert subprocess.call(["seq"]) == 0
+    assert fake.calls == ["gone", "slow"] * 4 + ["seq", "seq"]
+
+
 def test_fake_processes_answers_hands_output_back_in_the_calls_mode_and_refuses_the_other_entry_points(fake_processes):
     fake_processes.answers({"tool": (0, "out", "err")})
 
