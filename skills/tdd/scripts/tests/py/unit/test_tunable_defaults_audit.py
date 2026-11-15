@@ -20,11 +20,6 @@ READERS = {"read", "read_bytes", "get", "getenv", "numeric_env", "wait_seconds"}
 
 # (module, name): why this site still writes its own literal default.
 EXEMPT = {
-    ("verify.py", "VERI_NO_VERDICT_RETRIES"):
-        "verify.no_verdict_budget reads '010' as octal 8 where grade_prose reads 10: the two parses disagree, "
-        "so neither site is migrated until a decision picks one (issue #3838)",
-    ("grade_prose.py", "VERI_NO_VERDICT_RETRIES"):
-        "the other side of the verify.py divergence on '010' (decimal 10 here, octal 8 there; issue #3838)",
     ("detach_command.py", "VERI_POLL"):
         "VERI_POLL has two purposes and several defaults (1, 10), declined: no single default to state",
     ("github.py", "VERI_POLL"):
@@ -166,4 +161,4 @@ def test_no_module_writes_a_literal_default_for_any_veri_name(veri_modules_index
 def test_every_exempt_name_is_one_tunables_does_not_define(veri_modules_index):
     from veri import tunables
 
-    assert {name for _, name in EXEMPT} & set(tunables.TUNABLES) == {"VERI_NO_VERDICT_RETRIES"}
+    assert {name for _, name in EXEMPT} & set(tunables.TUNABLES) == set()

@@ -524,8 +524,8 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
     assert (code, preserved, capfdbinary.readouterr().out) == (2, [], b"")
 
 
-@pytest.mark.parametrize("retries, launches", [("", 2), ("010", 9), ("08", 1)])
-def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_so_010_allows_8_relaunches_and_08_none(
+@pytest.mark.parametrize("retries, launches", [("", 2), ("010", 11), ("09", 10), ("08", 9)])
+def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_decimal_so_010_allows_10_relaunches_and_09_allows_9(
         retries, launches, tmp_path, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
