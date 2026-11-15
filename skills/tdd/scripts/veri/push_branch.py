@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import errno
 import os
+import entry
 import paths
 import re
 import shutil
@@ -49,7 +50,7 @@ def failed(attempts):
 
 def tunable(name, default):
     value = tunables.read(name) or default
-    if not re.fullmatch(r"[0-9]+", value):
+    if entry.whole_number(value, 0) is None:
         print(f"push-branch.sh: {name} must be a non-negative integer, got '{value}'",
               file=sys.stderr)
         return None
