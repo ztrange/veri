@@ -35,28 +35,18 @@ def transform_touches_tests():
     return importlib.import_module("veri.transform_touches_tests")
 
 
-def as_requested(text, kwargs):
-    wants_str = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
-    return text if wants_str else text.encode()
-
-
-def refused(*args, **kwargs):
-    raise AssertionError(f"unexpected subprocess entry: {args!r}")
-
-
 @pytest.fixture
-def git_fakes(monkeypatch):
-    """subprocess.run answering git log and sort -u from the returned script; every other entry refuses."""
+def git_fakes(fake_processes):
+    """git log and sort -u answered from the returned script; git rev-parse answers 0; every other command refuses."""
     script = {"log_code": 0, "log_text": "", "raise": None, "sorted_out": None, "calls": [], "sorts": []}
 
-    def fake_run(args, *rest, **kwargs):
-        args = list(args)
+    def answer(line, **kwargs):
+        args = list(fake.argvs[-1])
         script["calls"].append((args, kwargs))
         if args[:2] == ["git", "log"]:
             if script["raise"]:
                 raise script["raise"]
-            return subprocess.CompletedProcess(
-                args, script["log_code"], as_requested(script["log_text"], kwargs), None)
+            return script["log_code"], script["log_text"], None
         if args[:1] == ["sort"]:
             given = kwargs.get("input") or ""
             given = given.decode() if isinstance(given, bytes) else given
@@ -66,26 +56,17 @@ def git_fakes(monkeypatch):
             else:
                 lines = sorted(set(line for line in given.split("\n") if line))
                 joined = "".join(line + "\n" for line in lines)
-            return subprocess.CompletedProcess(args, 0, as_requested(joined, kwargs), None)
-        return subprocess.CompletedProcess(args, 0, None, None)
+            return 0, joined, None
+        return 0, None, None
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    for entry in ("Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, entry, refused)
+    fake = fake_processes.answers({"git rev-parse": answer, "git log": answer, "sort": answer})
     return script
 
 
 def test_main_refuses_a_missing_or_unresolvable_base_sha_with_exit_2_and_the_usage_line(
-        monkeypatch, capsys, transform_touches_tests):
-    calls = []
-
-    def fake(args, *rest, **kwargs):
-        calls.append(list(args))
-        code = 1 if list(args)[:2] == ["git", "rev-parse"] else 0
-        return subprocess.CompletedProcess(args, code, "", "")
-
-    for entry in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, entry, fake)
+        fake_processes, capsys, transform_touches_tests):
+    fake = fake_processes.answers({"git rev-parse": (1, "", "")})
+    calls = fake.calls
 
     for argv in ([], [""]):
         code = transform_touches_tests.main(argv)
