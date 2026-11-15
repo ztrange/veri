@@ -7,8 +7,6 @@ import re
 
 import pytest
 
-from conftest import ROOT
-
 GH_CALL = re.compile(r"(^|[^A-Za-z0-9_.-])gh\s+((issue|pr|repo)(\s|$)|auth\s+status([^A-Za-z0-9_-]|$))")
 
 
@@ -35,13 +33,20 @@ def test_a_gh_auth_status_call_planted_in_skill_md_is_named_as_file_line_and_a_c
 
 
 def gh_starts(package):
+    return gh_starts_in(
+        (module.name, ast.parse(module.read_text(encoding="utf-8", errors="surrogateescape")))
+        for module in sorted(package.glob("*.py")))
+
+
+def gh_starts_in(trees):
+    """`trees` is (file name, parsed tree) pairs."""
     found = []
-    for module in sorted(package.glob("*.py")):
-        if module.name == "github.py":
+    for name, tree in trees:
+        if name == "github.py":
             continue
-        for node in ast.walk(ast.parse(module.read_text(encoding="utf-8", errors="surrogateescape"))):
+        for node in ast.walk(tree):
             if isinstance(node, ast.List) and node.elts and isinstance(node.elts[0], ast.Constant) and node.elts[0].value == "gh":
-                found.append(f"{module.name}:{node.lineno} starts a gh process outside the GitHub port")
+                found.append(f"{name}:{node.lineno} starts a gh process outside the GitHub port")
     return found
 
 
@@ -54,5 +59,5 @@ def test_a_gh_process_started_outside_github_py_is_named_as_file_line_and_the_sh
 
 
 @pytest.mark.tree_audit("every module under skills/tdd/scripts/veri/")
-def test_no_module_but_github_py_starts_a_gh_process_1974():
-    assert gh_starts(ROOT / "skills" / "tdd" / "scripts" / "veri") == []
+def test_no_module_but_github_py_starts_a_gh_process_1974(veri_modules_index):
+    assert gh_starts_in((f"{name}.py", veri_modules_index.tree(name)) for name in veri_modules_index.names) == []
