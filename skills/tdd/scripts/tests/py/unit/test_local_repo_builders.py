@@ -7,7 +7,6 @@ import pytest
 # one fails the first. One line per file keeps parallel migrations from conflicting. The files left build something
 # repo_builder does not, said in each reason.
 FILES_WITH_A_LOCAL_REPO_BUILDER = {
-    "test_affected_suites.py": "allow-empty commit through another git helper",
     "test_push_branch_process.py": "remote and a branch with a ledger",
     "test_skill_preflight.py": "bare repository and configured identity for plain git commit",
 }
