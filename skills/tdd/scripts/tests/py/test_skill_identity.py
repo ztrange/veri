@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 from conftest import ROOT
+from repo_builder import new_repo
 
 SKILL_DIR = "skills/tdd"
 WANT_NAME = "tdd"
@@ -47,11 +48,6 @@ def sweep(repo, mode, pattern):
 
 def offenders(swept):
     return [path for path in swept if not exempt(path)]
-
-
-def new_repo(path):
-    for args in (["init", "-q"], ["config", "user.name", "Test"], ["config", "user.email", "test@example.com"]):
-        subprocess.run(["git", "-C", str(path), *args], check=True)
 
 
 def plant(path, files):
