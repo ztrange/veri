@@ -264,7 +264,7 @@ def test_done_posts_the_failed_render_line_with_the_exit_code_metrics_returns_wh
     posted = []
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or url)
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 3)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (3, "", ""))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
@@ -286,7 +286,7 @@ def test_done_posts_the_failed_render_line_in_place_of_a_metrics_file_whose_firs
     posted = []
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or url)
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 3)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (3, "", ""))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "done", "pr": pr}) + "\n")
@@ -400,10 +400,7 @@ def test_done_carries_the_block_metrics_renders_when_the_committed_file_is_absen
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "done", "pr": pr}])
     block = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n"
 
-    def render(argv):
-        print(block, end="")
-        return 0
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", render)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, block, ""))
 
     code, out, err = run_cli(comment, ["7", "done"], cwd=tmp_path)
 
@@ -1585,10 +1582,7 @@ def test_stopped_posts_the_heading_metrics_at_line_and_note_from_the_last_stop_e
                         lambda number, body: posted.append((str(number), body)) or url)
     block = "### 📊 Metrics\n\n| phase | cost |\n|---|---|\n| red | $0.10 |\n"
 
-    def render(argv):
-        print(block, end="")
-        return 0
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", render)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, block, ""))
     note = tmp_path / "note.txt"
     note.write_text("dropped work zulu\n")
 
@@ -1632,7 +1626,7 @@ def test_stopped_carries_the_branch_the_worktree_path_and_the_resume_command(mon
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
     note = tmp_path / "note.txt"
     note.write_text("dropped\n")
@@ -1652,7 +1646,7 @@ def test_stopped_carries_the_failed_render_line_in_place_of_the_metrics_block_an
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 4)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (4, "", ""))
     note = tmp_path / "note.txt"
     note.write_text("dropped yankee\n")
 
@@ -1677,7 +1671,7 @@ def test_stopped_carries_the_push_rejected_line_when_a_push_rejected_event_prece
     ])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     note = tmp_path / "note.txt"
     note.write_text("dropped\n")
 
@@ -1693,7 +1687,7 @@ def test_stopped_says_the_conductor_is_restarting_for_context_growth_with_no_ope
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     (tmp_path / ".tdd" / "restart-pending").write_text(f"{os.getpid()}\n")
     note = tmp_path / "note.txt"
     note.write_text("dropped\n")
@@ -1715,7 +1709,7 @@ def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_re
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     (tmp_path / ".tdd" / "restart-pending").write_text("2147483646\n")
     note = tmp_path / "note.txt"
     note.write_text("dropped\n")
@@ -1735,7 +1729,7 @@ def test_stopped_posts_the_operator_stop_comment_with_the_resume_command_when_re
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     note = tmp_path / "note.txt"
     note.write_text("dropped\n")
 
@@ -1760,7 +1754,7 @@ def test_every_heading_comment_sh_posts_for_bailed_and_stopped_is_classified_by_
     posted = _done_setup(monkeypatch, tmp_path, [
         {"event": "bail", "phase": "verify-green", "classification": "process"},
         {"event": "stop", "mode": "graceful", "at": "step-1"}])
-    monkeypatch.setattr(metrics, "main", lambda argv: 0)
+    monkeypatch.setattr(metrics, "rendered", lambda issue: (0, "", ""))
     (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/tdd/7-the-branch\n")
     note = tmp_path / "note.txt"
     note.write_text("the bail question zulu\n")
@@ -1806,7 +1800,7 @@ def test_a_bare_stopped_posts_the_noted_comment_body_without_the_note(monkeypatc
     posted = _done_setup(monkeypatch, tmp_path, [{"event": "stop", "mode": "graceful", "at": "step-1"}])
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
                         lambda number, body: posted.append((str(number), body)) or "https://x/1")
-    monkeypatch.setattr(importlib.import_module("metrics"), "main", lambda argv: 0)
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "", ""))
     note = tmp_path / "note.txt"
     note.write_text("dropped xray\n")
 
@@ -1880,3 +1874,13 @@ def test_done_bailed_and_stopped_in_a_run_with_no_journal_exit_2_naming_the_miss
          "comment.sh: no bail event in .tdd/events.jsonl\n",
          "comment.sh: no stop event in .tdd/events.jsonl\n"],
         [])
+
+
+def test_render_metrics_relays_the_renderers_stderr_line_and_answers_its_code_and_report(monkeypatch, capsys):
+    comment = importlib.import_module("veri.comment")
+
+    assert comment.render_metrics("") == (2, "")
+    assert capsys.readouterr() == ("", "usage: metrics.sh <issue-number>\n")
+    monkeypatch.setattr(importlib.import_module("metrics"), "rendered", lambda issue: (0, "### 📊 Metrics\n", ""))
+    assert comment.render_metrics("7") == (0, "### 📊 Metrics\n")
+    assert capsys.readouterr() == ("", "")

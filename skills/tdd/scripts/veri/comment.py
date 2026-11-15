@@ -1,7 +1,5 @@
 """comment.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import contextlib
-import io
 import json
 import os
 import sys
@@ -48,10 +46,9 @@ def post_and_record(issue, kind, body, strip_url=False, target=None):
 
 
 def render_metrics(issue):
-    rendered = io.StringIO()
-    with contextlib.redirect_stdout(rendered):
-        code = metrics_module.main([issue])
-    return code, rendered.getvalue()
+    code, rendered, err = metrics_module.rendered(issue)
+    sys.stderr.write(err)
+    return code, rendered
 
 
 def post_done(issue):
