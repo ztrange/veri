@@ -50,7 +50,7 @@ def test_two_matching_headings_the_last_wins_unless_first_or_all_is_asked(ib):
         ib.criteria(body, occurrence="all"),
         ib.section(body, AC, occurrence="all"),
     ) == ([(4, "- [ ] b"), (5, "- [ ] c")], [(1, "- [ ] a")],
-          [(1, "- [ ] a"), (4, "- [ ] b"), (5, "- [ ] c")], "- [ ] a\n- [ ] b\n- [ ] c")
+          [(1, "- [ ] a"), (4, "- [ ] b"), (5, "- [ ] c")], "- [ ] a\n- [ ] b\n- [ ] c\n")
 
 
 def test_a_heading_with_a_suffix_matches_only_when_prefix_is_asked(ib):
