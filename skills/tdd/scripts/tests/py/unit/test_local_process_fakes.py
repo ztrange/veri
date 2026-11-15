@@ -23,7 +23,6 @@ from process_fake_detection import installs_a_subprocess_fake
 # line per file keeps parallel migrations from conflicting. The reason says what the fake does, from the migration
 # inventory; "not inventoried" marks a file found only once the audit counted installs rather than names.
 FILES_WITH_A_LOCAL_PROCESS_FAKE = {
-    "test_affected_suites.py": "git diff / rev-parse answers by argv prefix, 17 inline",
     "test_detach_leaf.py": "not inventoried",
     "test_ensure_run_state_ignored.py": "not inventoried",
     "test_event.py": "not inventoried",

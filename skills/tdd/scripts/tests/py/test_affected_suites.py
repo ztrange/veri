@@ -15,9 +15,19 @@ def affected():
     return importlib.import_module("veri.affected_suites")
 
 
+def _install(fake_processes, fake_run):
+    """Answers every git call through <fake_run>(args, **kwargs), which returns a CompletedProcess, and records it."""
+    def answer(line, **kwargs):
+        done = fake_run(fake.argvs[-1], **kwargs)
+        return done.returncode, done.stdout, done.stderr
+
+    fake = fake_processes.answers({"git": answer})
+    return fake
+
+
 def test_main_returns_2_with_the_usage_line_for_no_argument_and_names_an_unresolvable_base(
-        monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(args, 1, "", ""))
+        fake_processes, capsys, affected):
+    _install(fake_processes, lambda args, **kwargs: subprocess.CompletedProcess(args, 1, "", ""))
     missing = (affected.main([]),) + tuple(capsys.readouterr())
     unresolvable = (affected.main(["no-range"]),) + tuple(capsys.readouterr())
     assert (missing, unresolvable) == (
@@ -44,14 +54,14 @@ def fake_git(touched, diff_code=0):
 
 @pytest.mark.parametrize("diff_code, returned", [(1, 1), (128, 2)])
 def test_main_returns_a_failed_git_diff_status_mapped_into_0_to_3(
-        tmp_path, monkeypatch, capsys, affected, diff_code, returned):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/foo.sh"], diff_code))
+        tmp_path, monkeypatch, capsys, affected, diff_code, returned, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/foo.sh"], diff_code))
     monkeypatch.chdir(tmp_path)
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (returned, "", "")
 
 
-def test_main_maps_a_touched_module_to_its_pytest_file_in_the_fast_tier(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/veri/foo.py"]))
+def test_main_maps_a_touched_module_to_its_pytest_file_in_the_fast_tier(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/veri/foo.py"]))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
     (tmp_path / "skills/tdd/scripts/tests/py/unit/test_foo.py").write_text("")
@@ -59,8 +69,8 @@ def test_main_maps_a_touched_module_to_its_pytest_file_in_the_fast_tier(tmp_path
         0, "skills/tdd/scripts/tests/py/unit/test_foo.py\n", "")
 
 
-def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/tests/py/unit/test_bar.py"]))
+def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/tests/py/unit/test_bar.py"]))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "skills/tdd/scripts/tests/py/unit").mkdir(parents=True)
     (tmp_path / "skills/tdd/scripts/tests/py/unit/test_bar.py").write_text("")
@@ -68,8 +78,8 @@ def test_main_selects_a_changed_pytest_file_in_the_fast_tier_as_itself(tmp_path,
         0, "skills/tdd/scripts/tests/py/unit/test_bar.py\n", "")
 
 
-def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["README.md"]))
+def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["README.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "py/unit").mkdir(parents=True)
@@ -84,8 +94,8 @@ def test_main_widens_to_every_suite_file_but_not_a_directory_named_like_one(tmp_
 
 
 def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_directory_named_like_one_1812(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["docs/notes.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["docs/notes.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "py/unit").mkdir(parents=True)
@@ -99,8 +109,8 @@ def test_main_widens_a_file_no_rule_handles_to_every_bash_suite_file_and_not_a_d
 
 
 def test_main_widens_a_file_under_a_projects_directory_like_any_file_no_rule_places_and_prints_none_of_its_tests(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["projects/other/serve.py"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["projects/other/serve.py"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "py/unit").mkdir(parents=True)
@@ -117,8 +127,8 @@ def test_main_widens_a_file_under_a_projects_directory_like_any_file_no_rule_pla
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_suite_names_1572(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -131,8 +141,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_develop_template_no_s
 
 
 def test_main_prints_the_develop_prompt_process_suite_for_a_develop_template_no_suite_names_1338(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -145,8 +155,8 @@ def test_main_prints_the_develop_prompt_process_suite_for_a_develop_template_no_
 
 
 def test_main_prints_the_verify_prompt_process_suite_for_a_verify_template_no_suite_names_1341(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/verify-green.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/verify-green.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -159,8 +169,8 @@ def test_main_prints_the_verify_prompt_process_suite_for_a_verify_template_no_su
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_suite_names_1572(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/verify-green.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/verify-green.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -173,8 +183,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_verify_template_no_su
 
 
 def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_names_1572(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/_leaf-safety.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/_leaf-safety.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -187,8 +197,8 @@ def test_main_prints_the_four_prompt_renderer_suites_for_a_partial_no_suite_name
 
 
 def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_change_1572(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "unit").mkdir(parents=True)
@@ -200,8 +210,8 @@ def test_main_prints_only_the_prompt_renderer_suites_that_exist_for_a_template_c
         0, sorted("skills/tdd/scripts/tests/" + n for n in present))
 
 
-def test_a_prompts_md_change_does_not_select_test_emitted_text_3128(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+def test_a_prompts_md_change_does_not_select_test_emitted_text_3128(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
     monkeypatch.chdir(tmp_path)
     tests = tmp_path / "skills/tdd/scripts/tests"
     (tests / "py/unit").mkdir(parents=True)
@@ -212,7 +222,7 @@ def test_a_prompts_md_change_does_not_select_test_emitted_text_3128(tmp_path, mo
 
 
 def test_main_prints_the_pytest_files_that_read_the_edited_skill_section_through_the_helper_only(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -226,7 +236,7 @@ def test_main_prints_the_pytest_files_that_read_the_edited_skill_section_through
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -239,7 +249,7 @@ def test_main_prints_the_pytest_files_that_read_the_edited_skill_section_through
 
 @pytest.mark.parametrize("fence", ["```", "~~~"])
 def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_enclosing_section_1569(
-        fence, tmp_path, monkeypatch, capsys, affected):
+        fence, tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -253,7 +263,7 @@ def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -265,7 +275,7 @@ def test_main_attributes_an_edit_below_a_fenced_heading_shaped_line_to_the_real_
 
 
 def test_main_attributes_an_edit_by_the_fence_answer_of_the_markdown_sections_reader_1976(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -279,7 +289,7 @@ def test_main_attributes_an_edit_by_the_fence_answer_of_the_markdown_sections_re
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -293,7 +303,7 @@ def test_main_attributes_an_edit_by_the_fence_answer_of_the_markdown_sections_re
 
 
 def test_main_keeps_a_longer_fence_open_past_a_shorter_fence_line_when_attributing_an_edit_1687(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -307,7 +317,7 @@ def test_main_keeps_a_longer_fence_open_past_a_shorter_fence_line_when_attributi
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -319,7 +329,7 @@ def test_main_keeps_a_longer_fence_open_past_a_shorter_fence_line_when_attributi
 
 
 def test_main_reads_a_heading_after_a_fence_line_indented_four_spaces_as_a_heading_1687(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -333,7 +343,7 @@ def test_main_reads_a_heading_after_a_fence_line_indented_four_spaces_as_a_headi
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -345,7 +355,7 @@ def test_main_reads_a_heading_after_a_fence_line_indented_four_spaces_as_a_headi
 
 
 def test_main_prints_a_pytest_file_whose_helper_call_spans_lines_with_the_heading_on_its_own(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -359,7 +369,7 @@ def test_main_prints_a_pytest_file_whose_helper_call_spans_lines_with_the_headin
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -371,7 +381,7 @@ def test_main_prints_a_pytest_file_whose_helper_call_spans_lines_with_the_headin
 
 
 def test_main_prints_a_fast_tier_pytest_file_that_reads_the_edited_skill_section_or_renders_an_edited_prompt_1633(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
     touched = {"files": [skill]}
 
@@ -386,7 +396,7 @@ def test_main_prints_a_fast_tier_pytest_file_that_reads_the_edited_skill_section
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     unit = tmp_path / "skills/tdd/scripts/tests/py/unit"
     unit.mkdir(parents=True)
@@ -406,7 +416,7 @@ def test_main_prints_a_fast_tier_pytest_file_that_reads_the_edited_skill_section
 
 
 def test_main_prints_a_pytest_file_that_reads_skill_md_without_the_helper_on_any_skill_edit(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -420,7 +430,7 @@ def test_main_prints_a_pytest_file_that_reads_skill_md_without_the_helper_on_any
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -434,7 +444,7 @@ def test_main_prints_a_pytest_file_that_reads_skill_md_without_the_helper_on_any
 
 
 def test_main_prints_every_pytest_file_reading_skill_md_when_the_edit_spans_more_than_one_section(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -448,7 +458,7 @@ def test_main_prints_every_pytest_file_reading_skill_md_when_the_edit_spans_more
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -463,7 +473,7 @@ def test_main_prints_every_pytest_file_reading_skill_md_when_the_edit_spans_more
 
 
 def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_helper_call_1581(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -477,7 +487,7 @@ def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_hel
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -493,7 +503,7 @@ def test_main_prints_a_pytest_file_that_names_the_edited_heading_outside_the_hel
 
 
 def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spells(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -507,7 +517,7 @@ def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spe
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -523,7 +533,7 @@ def test_main_prints_a_pytest_file_that_passes_the_helper_a_heading_it_never_spe
     'Path("skills/tdd/SKILL.md").read_text()',
 ])
 def test_main_prints_a_pytest_file_that_reads_skill_md_directly_and_also_calls_the_helper_on_a_section_it_does_not_name(
-        tmp_path, monkeypatch, capsys, affected, direct_read):
+        tmp_path, monkeypatch, capsys, affected, direct_read, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -537,7 +547,7 @@ def test_main_prints_a_pytest_file_that_reads_skill_md_directly_and_also_calls_t
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -550,7 +560,7 @@ def test_main_prints_a_pytest_file_that_reads_skill_md_directly_and_also_calls_t
 
 
 def test_main_narrows_a_pytest_file_with_only_literal_heading_calls_to_the_sections_it_names_1581(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -564,7 +574,7 @@ def test_main_narrows_a_pytest_file_with_only_literal_heading_calls_to_the_secti
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -576,7 +586,7 @@ def test_main_narrows_a_pytest_file_with_only_literal_heading_calls_to_the_secti
 
 
 def test_main_prints_a_pytest_file_with_a_literal_and_a_built_heading_for_an_edit_in_a_section_neither_names_1581(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -590,7 +600,7 @@ def test_main_prints_a_pytest_file_with_a_literal_and_a_built_heading_for_an_edi
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -601,7 +611,7 @@ def test_main_prints_a_pytest_file_with_a_literal_and_a_built_heading_for_an_edi
 
 
 def test_main_prints_a_pytest_file_with_a_literal_and_an_expression_heading_for_an_edit_in_a_section_no_literal_names_1581(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -615,7 +625,7 @@ def test_main_prints_a_pytest_file_with_a_literal_and_an_expression_heading_for_
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -626,7 +636,7 @@ def test_main_prints_a_pytest_file_with_a_literal_and_an_expression_heading_for_
 
 
 def test_main_prints_a_pytest_file_importing_the_section_helper_under_another_name_for_an_edit_in_a_section_its_literal_does_not_name_1581(
-        tmp_path, monkeypatch, capsys, affected):
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -640,7 +650,7 @@ def test_main_prints_a_pytest_file_importing_the_section_helper_under_another_na
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -657,7 +667,7 @@ def test_main_prints_a_pytest_file_importing_the_section_helper_under_another_na
     'pathlib.Path("fixture.json").read_bytes()',
 ])
 def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_read_for_an_edit_in_a_section_the_call_does_not_name_1581(
-        tmp_path, monkeypatch, capsys, affected, read):
+        tmp_path, monkeypatch, capsys, affected, read, fake_processes):
     skill = "skills/tdd/SKILL.md"
 
     def fake_run(args, **kwargs):
@@ -671,7 +681,7 @@ def test_main_prints_a_pytest_file_with_a_literal_heading_and_an_unrelated_file_
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    _install(fake_processes, fake_run)
     monkeypatch.chdir(tmp_path)
     py = tmp_path / "skills/tdd/scripts/tests/py"
     py.mkdir(parents=True)
@@ -729,29 +739,29 @@ def plant(root, files):
         (root / name).write_text(text)
 
 
-def affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files, range_="base..head", counted=()):
-    monkeypatch.setattr(subprocess, "run", cli_git(touched, counted=counted))
+def affected_by(fake_processes, run_cli, affected, tmp_path, touched, files, range_="base..head", counted=()):
+    _install(fake_processes, cli_git(touched, counted=counted))
     plant(tmp_path, files)
     return run_cli(affected, [range_], cwd=tmp_path)
 
 
-def test_malformed_range_exits_2_with_the_usage_line(monkeypatch, run_cli, affected, tmp_path):
+def test_malformed_range_exits_2_with_the_usage_line(fake_processes, run_cli, affected, tmp_path):
     results = []
     for range_ in ("abc..no-such-rev", "no-such-rev..abc"):
-        monkeypatch.setattr(subprocess, "run", cli_git([], unresolvable="no-such-rev"))
+        _install(fake_processes, cli_git([], unresolvable="no-such-rev"))
         results.append(run_cli(affected, [range_], cwd=tmp_path))
     refusal = (2, "", "affected-suites: cannot resolve revision 'no-such-rev'\n" + USAGE)
     assert results == [refusal, refusal]
 
 
-def test_empty_diff_exits_3_and_prints_nothing(monkeypatch, run_cli, affected, tmp_path):
-    assert affected_by(monkeypatch, run_cli, affected, tmp_path, [], {}) == (3, "", "")
+def test_empty_diff_exits_3_and_prints_nothing(fake_processes, run_cli, affected, tmp_path):
+    assert affected_by(fake_processes, run_cli, affected, tmp_path, [], {}) == (3, "", "")
 
 
 def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh", "docs/notes.md"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "foo.sh", "docs/notes.md"],
         {SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n", SCRIPTS_REL + "baz.sh": "baz\n",
          "docs/notes.md": "# notes\n",
          SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_baz.py": ""},
@@ -759,27 +769,27 @@ def test_rule_5_a_rule_1_file_plus_a_file_no_rule_matches_prints_every_suite(
           "affected-suites: no rule places docs/notes.md; widening to every suite\n")
 
 
-def test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr(monkeypatch, run_cli, affected, tmp_path):
+def test_a_widening_caused_by_two_unplaced_files_names_both_on_stderr(fake_processes, run_cli, affected, tmp_path):
     code, out, err = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, ["notes.md", "memo.md"],
+        fake_processes, run_cli, affected, tmp_path, ["notes.md", "memo.md"],
         {"notes.md": "# notes\n", "memo.md": "# memo\n", SCRIPTS_REL + "foo.sh": "foo\n",
          SCRIPTS_REL + "tests/py/test_foo.py": ""})
     assert (code, out, "notes.md" in err, "memo.md" in err) == (
         0, SCRIPTS_REL + "tests/py/test_foo.py\n", True, True)
 
 
-def test_run_state_alone_exits_3_and_prints_nothing(monkeypatch, run_cli, affected, tmp_path):
+def test_run_state_alone_exits_3_and_prints_nothing(fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", ".tdd/issue-416-refactor-owed.md"],
+        fake_processes, run_cli, affected, tmp_path, [".tdd/issue-416.md", ".tdd/issue-416-refactor-owed.md"],
         {".tdd/issue-416.md": "- [x] step one\n", ".tdd/issue-416-refactor-owed.md": "refactor owed [x]\n",
          SCRIPTS_REL + "foo.sh": "foo\n"},
     ) == (3, "", "")
 
 
 def test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_every_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", "notes.md"],
+        fake_processes, run_cli, affected, tmp_path, [".tdd/issue-416.md", "notes.md"],
         {".tdd/issue-416.md": "- [x] step one\n", "notes.md": "# notes\n",
          SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
          SCRIPTS_REL + "tests/py/test_foo.py": "", SCRIPTS_REL + "tests/py/unit/test_bar.py": ""},
@@ -790,9 +800,9 @@ def test_fail_closed_run_state_alongside_a_file_no_rule_places_still_prints_ever
 SKILL = "skills/tdd/SKILL.md"
 
 
-def doc_edit_with_pytest_file(monkeypatch, run_cli, affected, tmp_path, doc, pytest_file):
+def doc_edit_with_pytest_file(fake_processes, run_cli, affected, tmp_path, doc, pytest_file):
     return affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [doc],
+        fake_processes, run_cli, affected, tmp_path, [doc],
         {doc: "# doc\n\nstep 2\n",
          SCRIPTS_REL + "tests/py/unit/" + pytest_file: 'def test_step():\n    open("%s").read()\n' % doc,
          SCRIPTS_REL + "tests/py/unit/test_decoy_not_mentioning_it.py": "def test_other():\n    pass\n"})
@@ -807,17 +817,17 @@ def doc_edit_with_pytest_file(monkeypatch, run_cli, affected, tmp_path, doc, pyt
     ("REFACTOR-KIND", "test_refactor_kind_file.py"),
 ])
 def test_an_edit_to_a_skill_doc_prints_exactly_the_pytest_file_mentioning_it_without_widening(
-        monkeypatch, run_cli, affected, tmp_path, doc, pytest_file):
-    assert doc_edit_with_pytest_file(monkeypatch, run_cli, affected, tmp_path, "skills/tdd/%s.md" % doc,
+        fake_processes, run_cli, affected, tmp_path, doc, pytest_file):
+    assert doc_edit_with_pytest_file(fake_processes, run_cli, affected, tmp_path, "skills/tdd/%s.md" % doc,
                                      pytest_file) == (0, SUITES + "py/unit/" + pytest_file + "\n", "")
 
 
 def test_an_edit_to_draft_pr_md_prints_the_two_pytest_files_naming_it_and_neither_unplaced_nor_every_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     doc = "skills/tdd/DRAFT-PR.md"
     unit = SCRIPTS_REL + "tests/py/unit/"
     code, out, err = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [doc],
+        fake_processes, run_cli, affected, tmp_path, [doc],
         {doc: "# doc\n\nstep 2\n",
          unit + "test_reads_draft_pr_a.py": 'def test_a():\n    open("%s").read()\n' % doc,
          unit + "test_reads_draft_pr_b.py": 'def test_b():\n    open("%s").read()\n' % doc,
@@ -828,11 +838,11 @@ def test_an_edit_to_draft_pr_md_prints_the_two_pytest_files_naming_it_and_neithe
 
 
 def test_an_edit_to_suite_repair_md_prints_the_two_pytest_files_naming_it_and_neither_unplaced_nor_every_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     doc = "skills/tdd/SUITE-REPAIR.md"
     unit = SCRIPTS_REL + "tests/py/unit/"
     code, out, err = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [doc],
+        fake_processes, run_cli, affected, tmp_path, [doc],
         {doc: "# doc\n\nstep 2\n",
          unit + "test_reads_suite_repair_a.py": 'def test_a():\n    open("%s").read()\n' % doc,
          unit + "test_reads_suite_repair_b.py": 'def test_b():\n    open("%s").read()\n' % doc,
@@ -843,11 +853,11 @@ def test_an_edit_to_suite_repair_md_prints_the_two_pytest_files_naming_it_and_ne
 
 
 def test_an_edit_to_diff_checked_md_prints_the_two_pytest_files_naming_it_and_neither_unplaced_nor_every_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     doc = "skills/tdd/DIFF-CHECKED.md"
     unit = SCRIPTS_REL + "tests/py/unit/"
     code, out, err = affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [doc],
+        fake_processes, run_cli, affected, tmp_path, [doc],
         {doc: "# doc\n\nstep 2\n",
          unit + "test_reads_diff_checked_a.py": 'def test_a():\n    open("%s").read()\n' % doc,
          unit + "test_reads_diff_checked_b.py": 'def test_b():\n    open("%s").read()\n' % doc,
@@ -858,7 +868,7 @@ def test_an_edit_to_diff_checked_md_prints_the_two_pytest_files_naming_it_and_ne
 
 
 def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_planted_bash_suites(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     py = SCRIPTS_REL + "tests/py/"
     touched = ["CLAUDE.md", "skills/tdd/SKILL.md", "skills/tdd/PREFLIGHT.md",
                SCRIPTS_REL + "tests/fixtures/sample.txt", SCRIPTS_REL + "prompts/develop.md",
@@ -873,7 +883,7 @@ def test_every_changed_input_prints_its_pytest_file_and_no_test_sh_path_beside_p
     for bash in ("claude-md", "skill", "preflight", "fixtures", "prompts", "alpha-tool", "beta"):
         files[SUITES + bash + ".test.sh"] = "#!/bin/bash\n"
         files[SUITES + "unit/" + bash + ".test.sh"] = "#!/bin/bash\n"
-    code, out, err = affected_by(monkeypatch, run_cli, affected, tmp_path, touched, files)
+    code, out, err = affected_by(fake_processes, run_cli, affected, tmp_path, touched, files)
     assert (code, out.splitlines(), err) == (0, sorted([
         py + "test_alpha_tool.py", py + "unit/test_beta.py",
         py + "unit/test_reads_preflight.py", py + "unit/test_reads_skill.py"]), "")
@@ -891,10 +901,10 @@ def pytest_paths(*names):
 
 
 def test_rule_2_a_lib_prints_the_pytest_file_of_every_script_that_sources_it_and_no_others(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     sourcing = '#!/usr/bin/env bash\nsource "$HERE/lib/bar.sh"\n'
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
         {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { :; }\n",
          SCRIPTS_REL + "alpha.sh": sourcing, SCRIPTS_REL + "beta.sh": sourcing,
          SCRIPTS_REL + "gamma.sh": "echo gamma\n", SCRIPTS_REL + "bar.sh": "echo bar\n",
@@ -903,9 +913,9 @@ def test_rule_2_a_lib_prints_the_pytest_file_of_every_script_that_sources_it_and
 
 
 def test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to_that_callers_pytest_file(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
         {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
          SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh" \\\n  || { echo "alpha: cannot read lib/bar.sh" >&2; exit 2; }\n',
          SCRIPTS_REL + "gamma.sh": "echo gamma\n", **pytest_plants("alpha", "gamma")},
@@ -913,11 +923,11 @@ def test_487_a_lib_file_whose_callers_source_line_ends_in_a_continuation_maps_to
 
 
 def test_487_a_caller_whose_source_line_ends_at_the_lib_path_with_or_without_a_trailing_quote_and_spaces_still_maps_to_its_pytest_file(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     callers = {"alpha": 'source "$HERE/lib/bar.sh"\n', "beta": 'source "$HERE/lib/bar.sh"   \n',
                "delta": "source $HERE/lib/bar.sh\n", "epsilon": "source $HERE/lib/bar.sh  \n"}
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
         {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n", SCRIPTS_REL + "gamma.sh": "echo gamma\n",
          **{SCRIPTS_REL + n + ".sh": HEADER + line for n, line in callers.items()},
          **pytest_plants(*callers, "gamma")},
@@ -925,9 +935,9 @@ def test_487_a_caller_whose_source_line_ends_at_the_lib_path_with_or_without_a_t
 
 
 def test_487_a_comment_that_names_a_lib_file_is_still_not_a_dependency(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "lib/bar.sh"],
         {SCRIPTS_REL + "lib/bar.sh": "bar_fn() { echo 2; }\n",
          SCRIPTS_REL + "alpha.sh": HEADER + 'source "$HERE/lib/bar.sh"\n',
          SCRIPTS_REL + "beta.sh": HEADER + '# source "$HERE/lib/bar.sh" \\\n',
@@ -941,9 +951,9 @@ def module_shim(module):
 
 
 def test_a_touched_veri_module_prints_its_pytest_file_without_widening(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "veri/event_log.py"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "veri/event_log.py"],
         {SCRIPTS_REL + "veri/event_log.py": "def main(): return 2\n",
          SCRIPTS_REL + "tests/py/test_event_log.py": "def test_main(): pass\n",
          SCRIPTS_REL + "event-log.sh": module_shim("event_log"), SCRIPTS_REL + "bar.sh": "bar\n"},
@@ -951,9 +961,9 @@ def test_a_touched_veri_module_prints_its_pytest_file_without_widening(
 
 
 def test_a_touched_pytest_file_under_tests_py_prints_itself_without_widening(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/py/test_status.py"],
+        fake_processes, run_cli, affected, tmp_path, [SCRIPTS_REL + "tests/py/test_status.py"],
         {SCRIPTS_REL + "tests/py/test_status.py": "def test_main(): assert False\n",
          SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n"},
     ) == (0, SUITES + "py/test_status.py\n", "")
@@ -1031,13 +1041,13 @@ def working_tree_git(touched=(), untracked_=(), counted=(), counted_untracked=()
 
 
 def test_working_tree_with_nothing_changed_since_base_exits_3_and_prints_nothing(
-        monkeypatch, run_cli, affected, tmp_path):
-    monkeypatch.setattr(subprocess, "run", working_tree_git())
+        fake_processes, run_cli, affected, tmp_path):
+    _install(fake_processes, working_tree_git())
     assert run_cli(affected, ["base"], cwd=tmp_path) == (3, "", "")
 
 
-def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/foo.sh"]))
+def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/foo.sh"]))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "skills/tdd/scripts/tests/py").mkdir(parents=True)
     (tmp_path / "skills/tdd/scripts/tests/py/test_foo.py").write_text("")
@@ -1047,7 +1057,7 @@ def test_main_prints_the_pytest_file_of_a_touched_script_and_never_a_bash_suite(
 
 @pytest.mark.tree_audit("copies the real test_skill_*.py readers into a scratch tree")
 def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_read_that_section_2980(
-        monkeypatch, capsys, affected, tmp_path):
+        monkeypatch, capsys, affected, tmp_path, fake_processes):
     base = cli_git(["skills/tdd/SKILL.md"])
     skill_lines = (ROOT / "skills/tdd/SKILL.md").read_text().splitlines()
     in_draft_pr = skill_lines.index("### 4. Draft PR") + 3
@@ -1058,7 +1068,7 @@ def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_r
                 args, 0, "@@ -%d +%d @@\n-old\n+new\n" % (in_draft_pr, in_draft_pr), "")
         return base(args, **kwargs)
 
-    monkeypatch.setattr(subprocess, "run", run)
+    _install(fake_processes, run)
     prefix = "skills/tdd/scripts/tests/py/"
     for name in ["skills/tdd/SKILL.md"] + [
             str(f.relative_to(ROOT)) for f in (ROOT / prefix).rglob("test_skill_*.py")]:
@@ -1071,8 +1081,8 @@ def test_a_one_section_edit_to_the_real_skill_md_selects_the_pytest_files_that_r
     assert prefix + "unit/test_skill_sections.py" not in selected
 
 
-def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/lib/x.sh"]))
+def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/lib/x.sh"]))
     monkeypatch.chdir(tmp_path)
     scripts = tmp_path / "skills/tdd/scripts"
     (scripts / "dir.sh").mkdir(parents=True)
@@ -1082,52 +1092,52 @@ def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp
     assert capsys.readouterr().out == pytest_paths("user")
 
 
-def test_main_keeps_the_suffix_of_a_script_named_only_by_its_suffix(tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/.sh"]))
+def test_main_keeps_the_suffix_of_a_script_named_only_by_its_suffix(tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/.sh"]))
     monkeypatch.chdir(tmp_path)
     plant(tmp_path, {SUITES + "py/test_.sh.py": "", SUITES + "py/test_.py": ""})
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, SUITES + "py/test_.sh.py\n", "")
 
 
 def test_main_skips_a_directory_named_like_a_pytest_file_when_mapping_a_module(
-        tmp_path, monkeypatch, capsys, affected):
-    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/veri/foo.py"]))
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    _install(fake_processes, fake_git(["skills/tdd/scripts/veri/foo.py"]))
     monkeypatch.chdir(tmp_path)
     (tmp_path / SUITES / "py/test_foo.py").mkdir(parents=True)
     plant(tmp_path, {SUITES + "py/unit/test_foo.py": ""})
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, SUITES + "py/unit/test_foo.py\n", "")
 
 
-def test_working_tree_a_new_untracked_suite_is_printed(monkeypatch, run_cli, affected, tmp_path):
+def test_working_tree_a_new_untracked_suite_is_printed(fake_processes, run_cli, affected, tmp_path):
     baz = SUITES + "py/test_baz.py"
-    monkeypatch.setattr(subprocess, "run", working_tree_git(untracked_=[baz], counted_untracked=[baz]))
+    _install(fake_processes, working_tree_git(untracked_=[baz], counted_untracked=[baz]))
     plant(tmp_path, {SCRIPTS_REL + "foo.sh": "foo\n", SUITES + "py/test_foo.py": "", baz: ""})
     assert run_cli(affected, ["base"], cwd=tmp_path) == (0, baz + "\n", "")
 
 
 def test_run_state_a_tdd_ledger_alongside_a_script_change_prints_exactly_that_scripts_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [".tdd/issue-416.md", SCRIPTS_REL + "foo.sh"],
+        fake_processes, run_cli, affected, tmp_path, [".tdd/issue-416.md", SCRIPTS_REL + "foo.sh"],
         {".tdd/issue-416.md": "- [x] step one\n", SCRIPTS_REL + "foo.sh": "foo\n", SCRIPTS_REL + "bar.sh": "bar\n",
          **pytest_plants("foo", "bar")},
     ) == (0, pytest_paths("foo"), "")
 
 
 def test_a_changed_makefile_or_claude_md_alone_places_without_widening_and_prints_no_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, ["Makefile"],
+        fake_processes, run_cli, affected, tmp_path, ["Makefile"],
         {"Makefile": "test:\n", **pytest_plants("foo")}) == (3, "", "")
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, ["CLAUDE.md"],
+        fake_processes, run_cli, affected, tmp_path, ["CLAUDE.md"],
         {"CLAUDE.md": "# veri\n"}) == (3, "", "")
 
 
 def test_a_changed_fixture_alone_places_without_widening_and_prints_no_suite(
-        monkeypatch, run_cli, affected, tmp_path):
+        fake_processes, run_cli, affected, tmp_path):
     assert affected_by(
-        monkeypatch, run_cli, affected, tmp_path, [SUITES + "fixtures/plan.md"],
+        fake_processes, run_cli, affected, tmp_path, [SUITES + "fixtures/plan.md"],
         {SUITES + "fixtures/plan.md": "# plan\n", **pytest_plants("foo")}) == (3, "", "")
 
 
