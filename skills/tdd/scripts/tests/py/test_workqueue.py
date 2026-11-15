@@ -29,24 +29,24 @@ def workqueue():
     return importlib.import_module("veri.workqueue")
 
 
-def fake_git(monkeypatch, main_tree, origin=None, gh_api=None):
-    """subprocess.run answering `git worktree list` with <main_tree> and `git remote get-url origin` with <origin>, or no origin; `gh api` goes to <gh_api>(args) when given."""
-    def fake_run(args, **kwargs):
-        if gh_api is not None and list(args[:2]) == ["gh", "api"]:
-            return gh_api(args)
-        if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree, "")
-        if list(args[:3]) == ["git", "remote", "get-url"]:
+def fake_git(fake_processes, main_tree, origin=None, gh_api=None, extra=None):
+    """fake_processes answering `git worktree list` with <main_tree> and `git remote get-url origin` with <origin>, or no origin; `gh api` goes to <gh_api>(args) -> (code, stdout, stderr) when given; <extra> maps further command-line prefixes to answers."""
+    def answer(line, **kwargs):
+        if gh_api is not None and line.startswith("gh api "):
+            return gh_api(processes.argvs[-1])
+        if line.startswith("git worktree list"):
+            return 0, "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree, ""
+        if line.startswith("git remote get-url"):
             if origin is not None:
-                return subprocess.CompletedProcess(args, 0, origin + "\n", "")
-            return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
-        raise AssertionError("unexpected command: %r" % (args,))
+                return 0, origin + "\n", ""
+            return 2, "", "error: No such remote 'origin'\n"
+        raise AssertionError("unexpected command: %s" % line)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer, **(extra or {})})
 
 
-def test_main_refuses_bad_arguments_with_2_and_the_usage_text_and_answers_next_with_nothing_launchable_as_3(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_main_refuses_bad_arguments_with_2_and_the_usage_text_and_answers_next_with_nothing_launchable_as_3(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     queue.write_bytes(b"alpha\t12\tqueued\t\n")
@@ -67,8 +67,8 @@ def test_main_refuses_bad_arguments_with_2_and_the_usage_text_and_answers_next_w
     assert (code, out) == (3, "")
 
 
-def test_start_naming_no_queued_item_of_the_worker_returns_1_and_leaves_the_main_working_tree_queue_unchanged(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_start_naming_no_queued_item_of_the_worker_returns_1_and_leaves_the_main_working_tree_queue_unchanged(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\n"
@@ -85,15 +85,16 @@ def test_start_naming_no_queued_item_of_the_worker_returns_1_and_leaves_the_main
     subprocess.CompletedProcess([], 128, "", "fatal: not a git repository (or any of the parent directories): .git\n"),
     subprocess.CompletedProcess([], 0, "", ""),
 ], ids=["git-refused", "git-printed-nothing"])
-def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_names_no_main_working_tree_and_ignores_extra_arguments(answer, tmp_path, monkeypatch, capsys, workqueue):
-    def failing_run(args, **kwargs):
+def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_names_no_main_working_tree_and_ignores_extra_arguments(answer, tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    def respond(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
             if not kwargs.get("capture_output") and kwargs.get("stderr") is None:
                 sys.stderr.write(answer.stderr)
-            return subprocess.CompletedProcess(args, answer.returncode, answer.stdout, answer.stderr)
+            return (answer.returncode, answer.stdout, answer.stderr)
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", failing_run)
+    processes = fake_processes.answers({"": respond})
     monkeypatch.chdir(tmp_path)
 
     def run(argv):
@@ -107,7 +108,7 @@ def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_n
     assert run(["alpha", "start", "12"]) == (2, "", "workqueue.sh: unknown subcommand: alpha\n" + USAGE)
     assert list(tmp_path.iterdir()) == []
 
-    fake_git(monkeypatch, tmp_path)
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     before = b"alpha\t12\tqueued\t\n"
@@ -122,7 +123,7 @@ def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_n
     assert queue.read_bytes() == before
 
 
-def test_next_prints_the_workers_first_queued_item_with_no_open_blocker_reading_blockers_against_the_origin_slug(tmp_path, monkeypatch, capsys, workqueue):
+def test_next_prints_the_workers_first_queued_item_with_no_open_blocker_reading_blockers_against_the_origin_slug(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     before = (b"beta\t1\tqueued\t\nalpha\t2\trunning\t\nalpha\t012\tqueued\t\nalpha\t14\tqueued\t\n"
@@ -147,18 +148,18 @@ def test_next_prints_the_workers_first_queued_item_with_no_open_blocker_reading_
         out, err = capsys.readouterr()
         return code, out, err
 
-    fake_git(monkeypatch, tmp_path, origin="https://github.com/ztrange/veri.git")
+    fake_git(fake_processes, tmp_path, origin="https://github.com/ztrange/veri.git")
     assert run(["next", "alpha"]) == (0, "13\n", "")
-    fake_git(monkeypatch, tmp_path, origin="git@github.com:ztrange/veri.git")
+    fake_git(fake_processes, tmp_path, origin="git@github.com:ztrange/veri.git")
     assert run(["next", "alpha"]) == (0, "13\n", "")
     assert run(["next", "gamma"]) == (3, "", "")
     assert run(["next", "delta"]) == (3, "", "")
-    fake_git(monkeypatch, tmp_path)
+    fake_git(fake_processes, tmp_path)
     assert run(["next", "alpha"]) == (0, "99\n", "")
     assert queue.read_bytes() == before
 
 
-def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_body_is_null(tmp_path, monkeypatch, capsys, workqueue):
+def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_body_is_null(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     before = b"alpha\t7\tqueued\n"
@@ -167,7 +168,7 @@ def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_bo
     fixture.mkdir()
     (fixture / "issues.json").write_text(json.dumps([{"number": 7, "state": "OPEN", "body": None}]))
     monkeypatch.setenv("VERI_GH_JSON", str(fixture))
-    fake_git(monkeypatch, tmp_path)
+    fake_git(fake_processes, tmp_path)
 
     code = workqueue.main(["next", "alpha"])
     out, err = capsys.readouterr()
@@ -175,7 +176,7 @@ def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_bo
     assert queue.read_bytes() == before
 
 
-def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2_on_a_failed_page_and_dying_uncaught_on_a_bad_queue_or_listing(tmp_path, monkeypatch, capsys, workqueue):
+def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2_on_a_failed_page_and_dying_uncaught_on_a_bad_queue_or_listing(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     queue.write_bytes(b"alpha\t12\tqueued\t\n")
@@ -185,21 +186,22 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
     pages = {}
     requests = []
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         if list(args[:3]) == ["git", "remote", "get-url"]:
-            return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
+            return (2, "", "error: No such remote 'origin'\n")
         if list(args[:2]) == ["gh", "api"]:
             requests.append(args[2])
             returncode, stdout, stderr = pages[args[2]]
             if kwargs.get("stderr") is None:
                 sys.stderr.write(stderr)
-            return subprocess.CompletedProcess(args, returncode, stdout,
+            return (returncode, stdout,
                                                stderr if kwargs.get("stderr") == subprocess.PIPE else None)
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     def run(argv):
         requests.clear()
@@ -238,8 +240,8 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
     assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
 
 
-def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_reading_leading_zeros_as_decimal_and_release_it_on_every_path_issue_776(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_reading_leading_zeros_as_decimal_and_release_it_on_every_path_issue_776(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     lock = tmp_path / ".tdd" / "workqueue.lock"
     queue.parent.mkdir()
@@ -292,24 +294,25 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
     assert sleeps == []
 
 
-def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields_and_rename_the_temp_file_with_mv(tmp_path, monkeypatch, capsys, workqueue):
+def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields_and_rename_the_temp_file_with_mv(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
     queue.parent.mkdir()
     moves = []
     mv_status = [0]
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         if list(args[:1]) == ["mv"]:
             moves.append(list(args))
             if mv_status[0] == 0:
                 os.replace(args[1], args[2])
-            return subprocess.CompletedProcess(args, mv_status[0], "", "")
+            return (mv_status[0], "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     def run(argv):
         moves.clear()
@@ -344,22 +347,23 @@ def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields
         tmp.unlink()
 
 
-def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2(tmp_path, monkeypatch, capsys, workqueue):
+def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
     queue.parent.mkdir()
     mv_status = [0]
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         if list(args[:1]) == ["mv"]:
             if mv_status[0] == 0:
                 os.replace(args[1], args[2])
-            return subprocess.CompletedProcess(args, mv_status[0], "", "")
+            return (mv_status[0], "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
     queue.write_bytes(b"\talpha\t12\tqueued\tn\t\nalpha\t\t13\tqueued\tx\t\ty\t\nalpha\t14\tqueued\tc\rd\r\n")
     assert workqueue.main(["start", "alpha", "12"]) == 0
     assert queue.read_bytes() == b"alpha\t12\trunning\t\nalpha\t13\tqueued\tx\t\ty\nalpha\t14\tqueued\tc\rd\r\n"
@@ -369,21 +373,22 @@ def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2
     assert capsys.readouterr() == ("", "")
 
 
-def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_1_on_a_missing_argument_or_queue_file(tmp_path, monkeypatch, capsys, workqueue):
+def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_1_on_a_missing_argument_or_queue_file(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     lock = tmp_path / ".tdd" / "workqueue.lock"
     tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
     monkeypatch.setattr(time, "sleep", lambda seconds: None)
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         if list(args[:1]) == ["mv"]:
             os.replace(args[1], args[2])
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     def run(argv):
         code = workqueue.main(argv)
@@ -429,8 +434,8 @@ def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_
     assert not lock.exists()
 
 
-def test_show_groups_items_by_worker_in_first_appearance_order_reading_the_worker_with_awks_backslash_escapes(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_show_groups_items_by_worker_in_first_appearance_order_reading_the_worker_with_awks_backslash_escapes(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
 
@@ -454,8 +459,8 @@ def test_show_groups_items_by_worker_in_first_appearance_order_reading_the_worke
     assert queue.read_bytes() == before
 
 
-def test_show_reads_short_lines_an_empty_queue_and_every_escape_as_macos_awk_does(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_show_reads_short_lines_an_empty_queue_and_every_escape_as_macos_awk_does(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
 
@@ -491,8 +496,8 @@ def test_show_reads_short_lines_an_empty_queue_and_every_escape_as_macos_awk_doe
     assert run(["show", "\\400"]) == everything
 
 
-def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_line_per_issue_unvalidated_and_fails_outside_a_repository(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_line_per_issue_unvalidated_and_fails_outside_a_repository(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     lock = tmp_path / ".tdd" / "workqueue.lock"
     queue.parent.mkdir()
@@ -542,7 +547,7 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
     outside = tmp_path / "outside"
     outside.mkdir()
     (outside / ".tdd").write_bytes(b"")
-    fake_git(monkeypatch, outside)
+    fake_git(fake_processes, outside)
     fixture = tmp_path / "gh"
     fixture.mkdir()
     (fixture / "issues.json").write_text("[]")
@@ -551,12 +556,12 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
     assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
     code, out, err = run(["start", "beta", "7"])
     assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
-    fake_git(monkeypatch, "")
+    fake_git(fake_processes, "")
     assert run(["show"])[:2] == (2, "")
     assert run(["next", "beta"])[:2] == (2, "")
 
 
-def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_write_nothing_under_the_filesystem_root_issue_898(tmp_path, monkeypatch, capsys, workqueue):
+def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_write_nothing_under_the_filesystem_root_issue_898(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     root = tmp_path / "root"
     (root / ".tdd").mkdir(parents=True)
     planted = root / ".tdd" / "workqueue"
@@ -575,7 +580,7 @@ def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_wr
     monkeypatch.setattr(os, "makedirs", lambda path, *a, **k: real_makedirs(rooted(path), *a, **k))
     monkeypatch.setattr(os, "rmdir", lambda path, *a, **k: real_rmdir(rooted(path), *a, **k))
     monkeypatch.setattr(os.path, "isfile", lambda path: real_isfile(rooted(path)))
-    fake_git(monkeypatch, "")
+    fake_git(fake_processes, "")
     fixture = tmp_path / "gh"
     fixture.mkdir()
     (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
@@ -594,7 +599,7 @@ def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_wr
     assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
 
 
-def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothing_outside_tmp_path_whatever_exists_at_the_root_issue_898(tmp_path, monkeypatch, capsys, workqueue):
+def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothing_outside_tmp_path_whatever_exists_at_the_root_issue_898(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     root = tmp_path / "root"
     (root / ".tdd").mkdir(parents=True)
     planted = root / ".tdd" / "workqueue"
@@ -624,7 +629,7 @@ def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothi
     outside = tmp_path / "outside"
     outside.mkdir()
     (outside / ".tdd").write_bytes(b"")
-    fake_git(monkeypatch, outside)
+    fake_git(fake_processes, outside)
     fixture = tmp_path / "gh"
     fixture.mkdir()
     (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
@@ -633,7 +638,7 @@ def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothi
     assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
     code, out, err = run(["start", "beta", "7"])
     assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
-    fake_git(monkeypatch, "")
+    fake_git(fake_processes, "")
     assert run(["show"])[:2] == (2, "")
     assert run(["next", "beta"])[:2] == (2, "")
     assert [path for path in touched if not path.startswith(str(tmp_path) + "/")] == []
@@ -641,15 +646,15 @@ def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothi
     assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
 
 
-def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, "")
+def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, "")
     code = workqueue.main(["show"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
-def test_next_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(tmp_path, monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, "")
+def test_next_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, "")
     fixture = tmp_path / "gh"
     fixture.mkdir()
     (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
@@ -659,15 +664,15 @@ def test_next_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outs
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
-def test_assign_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, "")
+def test_assign_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, "")
     code = workqueue.main(["assign", "beta", "8"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
-def test_start_done_and_park_with_an_empty_toplevel_exit_2_with_empty_stdout_saying_it_is_outside_a_repository_taking_no_lock_issue_898(monkeypatch, capsys, workqueue):
-    fake_git(monkeypatch, "")
+def test_start_done_and_park_with_an_empty_toplevel_exit_2_with_empty_stdout_saying_it_is_outside_a_repository_taking_no_lock_issue_898(monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, "")
     locks = []
     monkeypatch.setattr(workqueue, "take_lock", locks.append)
     answers = []
@@ -679,31 +684,33 @@ def test_start_done_and_park_with_an_empty_toplevel_exit_2_with_empty_stdout_say
     assert locks == []
 
 
-def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
-    def fake_run(args, **kwargs):
+def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue, fake_processes):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 128, "", "fatal: not a git repository (or any of the parent directories): .git\n")
+            return (128, "", "fatal: not a git repository (or any of the parent directories): .git\n")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
     code = workqueue.main(["show"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
-def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
+def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         if list(args[:1]) == ["mv"]:
             os.replace(args[1], args[2])
-            return subprocess.CompletedProcess(args, 0, "", "")
+            return (0, "", "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     def run(argv):
         code = workqueue.main(argv)
@@ -723,16 +730,17 @@ def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_iss
     assert queue.read_bytes().splitlines() == [b"alpha\t13\tparked\tflaky", b"beta\t14\tqueued\t"]
 
 
-def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
+def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
 
-    def fake_run(args, **kwargs):
+    def answer(line, **kwargs):
+        args = processes.argvs[-1]
         if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            return (0, "worktree %s\n" % tmp_path, "")
         raise AssertionError("unexpected command: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    processes = fake_processes.answers({"": answer})
 
     queue.write_bytes(b"alpha\t12\tqueued\t")
     assert workqueue.main(["assign", "alpha", "13", "14"]) == 0
@@ -740,7 +748,7 @@ def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(t
     assert queue.read_bytes().splitlines() == [b"alpha\t12\tqueued\t", b"alpha\t13\tqueued\t", b"alpha\t14\tqueued\t"]
 
 
-def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_leaves_the_queue_byte_identical_creating_no_queue_file_or_temp_file(tmp_path, monkeypatch, run_cli, workqueue):
+def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_leaves_the_queue_byte_identical_creating_no_queue_file_or_temp_file(tmp_path, monkeypatch, run_cli, workqueue, fake_processes):
     refusals = [
         ([], "workqueue.sh: unknown subcommand: \n" + USAGE),
         (["bogus"], "workqueue.sh: unknown subcommand: bogus\n" + USAGE),
@@ -766,7 +774,7 @@ def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_
     queue.write_bytes(before)
 
     for tree in (queued, bare):
-        fake_git(monkeypatch, tree)
+        fake_git(fake_processes, tree)
         for argv, usage in refusals:
             assert run_cli(workqueue, argv) == (2, "", usage), argv
 
@@ -775,7 +783,7 @@ def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_
     assert list((bare / ".tdd").iterdir()) == []
 
 
-def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repositories_id_with_the_proxys_403_prints_the_same_issue_as_a_single_page(tmp_path, monkeypatch, run_cli, workqueue):
+def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repositories_id_with_the_proxys_403_prints_the_same_issue_as_a_single_page(tmp_path, monkeypatch, run_cli, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     queue.write_bytes(b"alpha\t71\tqueued\t\nalpha\t73\tqueued\t\n")
@@ -794,13 +802,13 @@ def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repos
             path = args[2]
             if "repositories/" in path:
                 sys.stderr.write(proxy)
-                return subprocess.CompletedProcess(args, 1, "", None)
+                return (1, "", None)
             assert path.startswith("repos/{owner}/{repo}/issues"), path
             page = int(path.rsplit("page=", 1)[1])
             chunk = issues[(page - 1) * per_page:page * per_page]
-            return subprocess.CompletedProcess(args, 0, json.dumps(chunk) + "\n", None)
+            return (0, json.dumps(chunk) + "\n", None)
 
-        fake_git(monkeypatch, tmp_path, gh_api=gh_api)
+        fake_git(fake_processes, tmp_path, gh_api=gh_api)
 
     serve(len(issues))
     one = run_cli(workqueue, ["next", "alpha"])
@@ -810,7 +818,7 @@ def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repos
     assert three == one
 
 
-def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_page_at_a_time_prints_the_same_issue_stderr_and_exit_code_as_against_a_working_gh_across_more_than_one_page_of_issues(tmp_path, monkeypatch, run_cli, workqueue):
+def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_page_at_a_time_prints_the_same_issue_stderr_and_exit_code_as_against_a_working_gh_across_more_than_one_page_of_issues(tmp_path, monkeypatch, run_cli, workqueue, fake_processes):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     queue.write_bytes(b"alpha\t20\tqueued\t\nalpha\t22\tqueued\t\n")
@@ -827,22 +835,18 @@ def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_
         def gh_api(args):
             if args[2] == "graphql":
                 assert graphql == "working"
-                return subprocess.CompletedProcess(args, 0, "{}\n", None)
+                return (0, "{}\n", None)
             page = int(args[2].rsplit("page=", 1)[1])
-            return subprocess.CompletedProcess(args, 0, json.dumps(issues[(page - 1) * 100:page * 100]) + "\n", None)
+            return (0, json.dumps(issues[(page - 1) * 100:page * 100]) + "\n", None)
 
-        fake_git(monkeypatch, tmp_path, origin="https://github.com/ztrange/veri.git", gh_api=gh_api)
-        fake = subprocess.run
-
-        def routed(args, **kwargs):
-            if list(args[:2]) not in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]):
-                return fake(args, **kwargs)
+        def routed(line, **kwargs):
             if graphql == "refused":
                 sys.stderr.write(refusal)
-                return subprocess.CompletedProcess(args, 1, "", None)
-            return subprocess.CompletedProcess(args, 0, "[]\n", None)
+                return (1, "", None)
+            return (0, "[]\n", None)
 
-        monkeypatch.setattr(subprocess, "run", routed)
+        fake_git(fake_processes, tmp_path, origin="https://github.com/ztrange/veri.git", gh_api=gh_api,
+                 extra={"gh issue": routed, "gh pr": routed, "gh repo": routed})
 
     serve("working")
     working = run_cli(workqueue, ["next", "alpha"])
@@ -852,8 +856,8 @@ def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_
     assert refused == working
 
 
-def test_assign_through_the_cli_takes_an_issue_held_only_as_merged_parked_or_skipped(tmp_path, monkeypatch, run_cli, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_assign_through_the_cli_takes_an_issue_held_only_as_merged_parked_or_skipped(tmp_path, monkeypatch, run_cli, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     before = b"beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\n"
@@ -863,8 +867,8 @@ def test_assign_through_the_cli_takes_an_issue_held_only_as_merged_parked_or_ski
     assert queue.read_bytes() == before + b"alpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t\n"
 
 
-def test_next_through_the_cli_reads_an_issues_document_over_256_kib_as_it_reads_a_small_one(tmp_path, monkeypatch, run_cli, workqueue):
-    fake_git(monkeypatch, tmp_path)
+def test_next_through_the_cli_reads_an_issues_document_over_256_kib_as_it_reads_a_small_one(tmp_path, monkeypatch, run_cli, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
     queue.write_bytes(b"alpha\t2\tqueued\t\nalpha\t3\tqueued\t\n")
