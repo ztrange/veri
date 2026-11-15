@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+from entry import no_arguments
 from ledger import ledger_steps, read_ledger_stdin
 
 
@@ -13,6 +14,9 @@ USAGE = "usage: next-pending-refactor.sh (the ledger on stdin)"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     for record in ledger_steps(read_ledger_stdin()):
         if refactor_pending(record):
             sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))

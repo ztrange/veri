@@ -24,7 +24,7 @@ def fake_stdin(monkeypatch, data):
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(data)))
 
 
-def test_main_prints_the_first_pending_step_exits_3_over_a_settled_ledger_and_ignores_arguments(
+def test_main_prints_the_first_pending_step_exits_3_over_a_settled_ledger(
         monkeypatch, capsysbinary, next_pending_refactor):
     settled = (
         "# Plan for #42\n"
@@ -34,17 +34,14 @@ def test_main_prints_the_first_pending_step_exits_3_over_a_settled_ledger_and_ig
     ).encode()
     results = {}
     for ledger_name, ledger in (("slugify", SLUGIFY), ("settled", settled)):
-        for argv in ([], ["--bogus"]):
-            fake_stdin(monkeypatch, ledger)
-            code = next_pending_refactor.main(argv)
-            results[(ledger_name, *argv)] = (code, *capsysbinary.readouterr())
+        fake_stdin(monkeypatch, ledger)
+        code = next_pending_refactor.main([])
+        results[ledger_name] = (code, *capsysbinary.readouterr())
 
     assert all(code in range(4) for code, _, _ in results.values())
     assert results == {
-        ("slugify",): (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
-        ("slugify", "--bogus"): (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
-        ("settled",): (3, b"", b""),
-        ("settled", "--bogus"): (3, b"", b""),
+        "slugify": (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
+        "settled": (3, b"", b""),
     }
 
 
@@ -122,7 +119,7 @@ def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_in_the_step_text_back_a
     assert (code, *capsysbinary.readouterr()) == (0, b"caf\xe9 slug\n", b"")
 
 
-def test_main_writes_nothing_on_stderr_for_a_printed_step_for_exit_3_and_with_arguments_given(
+def test_main_writes_nothing_on_stderr_for_a_printed_step_for_exit_3(
         monkeypatch, capsysbinary, next_pending_refactor):
     stderr = {}
     for ledger_name, ledger in (
@@ -130,13 +127,21 @@ def test_main_writes_nothing_on_stderr_for_a_printed_step_for_exit_3_and_with_ar
             ("empty", b""),
             ("no step line", b"# Plan for #42\n\nprose only\n"),
             ("settled", b"- [x] tidied already\n- [ ] still open")):
-        for argv in ([], ["--bogus"], ["a", "b"]):
-            fake_stdin(monkeypatch, ledger)
-            code = next_pending_refactor.main(argv)
-            stderr[(ledger_name, *argv)] = (code, capsysbinary.readouterr().err)
+        fake_stdin(monkeypatch, ledger)
+        code = next_pending_refactor.main([])
+        stderr[ledger_name] = (code, capsysbinary.readouterr().err)
 
     assert stderr == {
-        (ledger_name, *argv): (0 if ledger_name == "printed" else 3, b"")
+        ledger_name: (0 if ledger_name == "printed" else 3, b"")
         for ledger_name in ("printed", "empty", "no step line", "settled")
-        for argv in ([], ["--bogus"], ["a", "b"])
     }
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_ledger_unread(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    fake_stdin(monkeypatch, SLUGIFY)
+
+    code = next_pending_refactor.main(["--bogus", "a"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"next-pending-refactor.sh: unexpected argument '--bogus'\n{next_pending_refactor.USAGE}\n".encode())
