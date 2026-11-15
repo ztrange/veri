@@ -1,4 +1,11 @@
-"""The ledger reader and ticker, ledger_steps and ledger_tick, run in-process."""
+"""The ledger reader and ticker, ledger_steps and ledger_tick, run in-process; the one module that spells the ledger's grammar.
+
+Interface: reading (read_ledger, ledger_items, ledger_steps, items_at), writing (replace_ledger, rewrite_ledger,
+ledger_tick, ledger_mark_phase, ledger_clear_pending, tick_line), a step's parts and predicates (body, listed_phases,
+next_phase, unphased, trailing_markers, unit_of, carries_mark, is_added, is_human_owed, is_skill_edit, is_retired,
+handed_out), builders (new_step, open_step_line, mark, retire_mark), checks (multi_tag_refusal, receipt_refusal) and
+the constants (STEP_RE, ITEM_RE, PHASES_RE, OPEN_STEP, TICKED_STEP, PENDING_MARK, ADDED_MARK, INTERFACE_PHASES, ...).
+"""
 import os
 import re
 import shutil
@@ -17,6 +24,8 @@ SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ (?:" + ADDED_MARK + " )?" + CRITERION_RE)
+INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")  # the phases of an interface change
+MARK_DELIMITER = " ⟂ "
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
@@ -102,6 +111,21 @@ def is_added(step):
     return untagged.endswith(" " + ADDED_MARK)
 
 
+def body(step):
+    """step's text before its first ' ⟂ ' mark; step itself when it carries none."""
+    return step.split(MARK_DELIMITER, 1)[0]
+
+
+def retire_mark(reason):
+    """The mark that retires a step, e.g. retire_mark("unpinnable")."""
+    return f" ⟂ retired {reason}"
+
+
+def is_retired(text):
+    """True when text carries any retire mark."""
+    return "⟂ retired" in text
+
+
 def mark(phase, state):
     """The mark a phase appends to its step: state is "done" for its commit, "owed" for a contract filed as owed."""
     return f" ⟂ {phase} {state}"
@@ -164,9 +188,14 @@ def next_phase(step):
     return None
 
 
+def open_step_line(text):
+    """The unticked checkbox line holding text."""
+    return f"{OPEN_STEP} {text}"
+
+
 def new_step(text, criterion):
     """The ledger_add_step line for text and criterion."""
-    return f"{OPEN_STEP} {text} {ADDED_MARK} {CRITERION_TAG}{criterion}⟧"
+    return open_step_line(f"{text} {ADDED_MARK} {CRITERION_TAG}{criterion}⟧")
 
 
 ITEM_RE = re.compile(r"\s*- \[(.)\] (.*)")
@@ -238,12 +267,17 @@ def _open_holding(matcher):
     return lambda match, line: match.group(2) == " " and matcher in line
 
 
+def tick_line(match):
+    """The step line a STEP_RE match was made of, its box ticked."""
+    return f"{match.group(1)}[x]{match.group(3) or ''}"
+
+
 def ledger_tick(text, matcher, pending=False):
     """(True, text with the first open step holding matcher ticked), or (False, text)."""
     return _rewrite_first_step(
         text,
         _open_holding(matcher),
-        lambda match, line: f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}",
+        lambda match, line: f"{tick_line(match)}{PENDING_MARK if pending else ''}",
     )
 
 
