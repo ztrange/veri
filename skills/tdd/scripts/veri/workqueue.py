@@ -36,8 +36,9 @@ def queue_path():
 
 def lock_tries():
     wait = tunables.read("VERI_WORKQUEUE_LOCK_WAIT") or "30"
-    if re.fullmatch(r"[0-9]+", wait):
-        return int(wait) * 20
+    tries = entry.whole_number(wait, 0)
+    if tries is not None:
+        return tries * 20
     sys.stderr.write("workqueue.sh: VERI_WORKQUEUE_LOCK_WAIT must be a whole number >= 0: %s\n" % wait)
     raise SystemExit(2)
 
