@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
+from entry import no_arguments
 from leaf_log import result_records
 
 REPORT_RE = re.compile(r"^[ \t]*(verdict|impl_path|split|test_path|suite):", re.I | re.M)
@@ -27,6 +28,9 @@ USAGE = "usage: extract-result.sh < leaf-stream.jsonl"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     sys.stdout.write(extract(sys.stdin.read()))
     return 0
 

@@ -108,7 +108,7 @@ def test_main_writes_stdin_back_unchanged_when_no_record_carries_a_result(monkey
     assert seen == {name: (0, text) for name, text in streams.items()}
 
 
-def test_main_ports_the_null_result_non_string_report_case_newline_empty_stdin_and_argument_quirks(
+def test_main_ports_the_null_result_non_string_report_case_newline_and_empty_stdin_quirks(
         monkeypatch, capsys, extract_result):
     streams = {
         "a null result and a record with no result key pass through unchanged": (
@@ -124,8 +124,6 @@ def test_main_ports_the_null_result_non_string_report_case_newline_empty_stdin_a
         "a result already ending in a newline gets none added": (
             [], json.dumps({"type": "result", "result": "VERDICT: PASS\n"})),
         "empty stdin": ([], ""),
-        "arguments are ignored": (
-            ["--bogus", "extra"], json.dumps({"type": "result", "result": "VERDICT: PASS"})),
     }
     seen = {}
     for name, (argv, text) in streams.items():
@@ -142,16 +140,17 @@ def test_main_ports_the_null_result_non_string_report_case_newline_empty_stdin_a
         "a report line indented by a tab counts as a report": (0, "Done.\n\tImpl_Path: a.sh\n"),
         "a result already ending in a newline gets none added": (0, "VERDICT: PASS\n"),
         "empty stdin": (0, ""),
-        "arguments are ignored": (0, "VERDICT: PASS\n"),
     }
 
 
-def test_a_result_record_whose_result_is_a_number_exits_2_with_one_stderr_line_and_an_extra_argument_is_ignored(
+def test_a_result_record_whose_result_is_a_number_exits_2_with_one_stderr_line(
         run_cli, extract_result):
     code, out, err = run_cli(extract_result, [], stdin='{"type":"result","result":5}')
     assert (code, out, err.count("\n"), "Traceback" in err) == (2, "", 1, False)
     assert err.startswith("extract-result.sh: AttributeError:")
 
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_stream_unread(run_cli, extract_result):
     stream = '{"type":"result","result":"VERDICT: PASS\\nREASON: extra arg."}'
     assert run_cli(extract_result, ["extra-argument"], stdin=stream) == (
-        0, "VERDICT: PASS\nREASON: extra arg.\n", "")
+        2, "", f"extract-result.sh: unexpected argument 'extra-argument'\n{extract_result.USAGE}\n")
