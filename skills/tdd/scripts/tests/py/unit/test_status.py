@@ -1,0 +1,166 @@
+"""In-process cases for veri/status.py, the module status.sh is a shim over."""
+import ast
+import importlib
+import json
+import pathlib
+import time
+import pytest
+from conftest import live_conductor
+
+
+@pytest.fixture(autouse=True)
+def text_mode(monkeypatch):
+    monkeypatch.delenv("STATUS_JSON", raising=False)
+
+
+@pytest.fixture
+def status():
+    return importlib.import_module("veri.status")
+
+
+def write_events(path, events):
+    path.write_text("".join(json.dumps(event) + "\n" for event in events))
+
+
+def ledger_run(root, issue, text, number=None):
+    """<root>/.tdd/wt/<issue> holding <text> as issue-<number>.md (default: its own)."""
+    run = root / ".tdd" / "wt" / issue
+    (run / ".tdd").mkdir(parents=True, exist_ok=True)
+    (run / ".tdd" / ("issue-%s.md" % (number or issue))).write_text(text)
+    return run
+
+
+def lamp_run(tmp_path, issue, ledgers=None):
+    """.tdd/wt/<issue> holding a ledger per number in <ledgers> (default: its own), each '# Plan for #<n> — lamps glow'."""
+    for number in ledgers if ledgers is not None else [issue]:
+        run = ledger_run(tmp_path, issue, "# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n" % number, number)
+    return run
+
+
+def lamp_ev(ts, issue, event, **rest):
+    line = {"ts": ts, "issue": issue, "actor": "developer", "phase": "red", "step": "a lamp glows",
+            "event": event, "attempt": "1", "skill_commit": "abc"}
+    line.update(rest)
+    return line
+
+
+def at_ten_thousand(monkeypatch):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    monkeypatch.setattr(time, "time", lambda: 10000)
+
+
+def git_answering(main_tree, branches=None):
+    """A fake_processes answer: `git worktree list` is <main_tree>, `symbolic-ref` is looked up in <branches>."""
+    def answer(line, **kwargs):
+        if line.startswith("git worktree list"):
+            return 0, "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree, ""
+        if " symbolic-ref " in line:
+            return 0, branches[line.split()[2]] + "\n", ""
+        raise AssertionError("unexpected command: %s" % line)
+    return answer
+
+
+def test_status_with_no_run_under_the_main_working_tree_prints_no_runs_and_exits_3(tmp_path, fake_processes, run_cli, status):
+    fake_processes(git_answering(tmp_path))
+
+    assert run_cli(status, []) == (3, "no runs\n", "")
+
+
+def test_status_lists_a_run_under_tdd_wt_with_its_issue_number_title_branch_and_step_n_of_m(tmp_path, fake_processes, run_cli, status):
+    run = ledger_run(tmp_path, "7", "# Plan for #7 \u2014 widgets spin when clicked\n\n- [x] a widget exists\n"
+                                    "- [ ] a clicked widget spins\n- [ ] a spinning widget stops\n")
+    git = git_answering(tmp_path, {str(run): "tdd/7-widgets-spin"})
+    github = json.dumps([{"number": 7, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
+
+    assert run_cli(status, []) == (0, "#7  widgets spin when clicked  tdd/7-widgets-spin  step 2 of 3\n", "")
+
+
+def test_status_shows_a_runs_state_running_done_with_its_pr_url_bailed_with_phase_and_classification_or_stale(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    runs = {issue: lamp_run(tmp_path, issue) for issue in ("11", "12", "13", "14")}
+    launches = {"11": 9990, "12": 9980, "13": 9970, "14": 9000}
+    endings = {"12": [lamp_ev(9985, "12", "done", actor="conductor", phase="", step="", attempt="",
+                              pr="https://github.com/o/r/pull/12")],
+               "13": [lamp_ev(9975, "13", "bail", actor="conductor", phase="green", attempt="", classification="system")]}
+    for issue, run in runs.items():
+        write_events(run / ".tdd" / "events.jsonl",
+                     [lamp_ev(launches[issue], issue, "launch", name="develop-red")] + endings.get(issue, []))
+    # #14 names a pid no process can hold (above every pid_max), so os.kill rejects it, not open.
+    (runs["14"] / ".tdd" / "conductor.pid").write_text("%d\n" % (2 ** 31 - 1))
+    git = git_answering(tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()})
+    github = json.dumps([{"number": int(issue), "state": "CLOSED" if issue == "14" else "OPEN"} for issue in runs])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
+    live_conductor(monkeypatch, runs["11"] / ".tdd", "11")
+    at_ten_thousand(monkeypatch)
+
+    code, out, err = run_cli(status, [], env={"VERI_TIMEOUT": "600"})
+
+    head = "  step 1 of 1  red  developer  develop-red "
+    assert (code, err, out) == (0, "",
+        "#11  lamps glow  tdd/11-lamps" + head + "10s  attempt 1  $0.00  0 tokens  running\n"
+        "#12  lamps glow  tdd/12-lamps" + head + "20s  attempt 1  $0.00  0 tokens  done https://github.com/o/r/pull/12\n"
+        "#13  lamps glow  tdd/13-lamps" + head + "30s  attempt 1  $0.00  0 tokens  bailed green system\n"
+        "#14  lamps glow  tdd/14-lamps" + head + "1000s  attempt 1  $0.00  0 tokens  closed\n")
+
+
+def test_status_watch_redraws_in_place_recomputing_every_run_from_disk_on_each_render(
+        tmp_path, monkeypatch, fake_processes, run_cli, status):
+    run = lamp_run(tmp_path, "41")
+    events = run / ".tdd" / "events.jsonl"
+    write_events(events, [lamp_ev(9990, "41", "launch", name="develop-red")])
+    git = git_answering(tmp_path, {str(run): "tdd/41-lamps"})
+    github = json.dumps([{"number": 41, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
+    live_conductor(monkeypatch, run / ".tdd", "41")
+    at_ten_thousand(monkeypatch)
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        if len(sleeps) == 1:
+            write_events(events, [lamp_ev(9990, "41", "launch", name="develop-red"),
+                                  lamp_ev(9995, "41", "done", actor="conductor", phase="", step="", attempt="",
+                                          pr="https://github.com/o/r/pull/41")])
+        else:
+            raise SystemExit(0)
+
+    monkeypatch.setattr(time, "sleep", sleep)
+
+    code, out, err = run_cli(status, ["--watch", "0"])
+
+    line = "#41  lamps glow  tdd/41-lamps  step 1 of 1  red  developer  develop-red 10s  attempt 1  $0.00  0 tokens  "
+    assert (code, err, sleeps, out) == (0, "", [0, 0], "\033[H\033[2J" + line + "running\n"
+                                                        "\033[H\033[2J" + line + "done https://github.com/o/r/pull/41\n")
+
+
+def test_status_exits_2_naming_the_failure_when_a_ledger_cannot_be_read_as_text(tmp_path, fake_processes, run_cli, status):
+    run = ledger_run(tmp_path, "9", "")
+    (run / ".tdd" / "issue-9.md").write_bytes(b"# Plan for #9 \xe2\x80\x94 locked\n\n- [ ] a \xff lock\n")
+    git = git_answering(tmp_path, {str(run): "tdd/9-locked"})
+    github = json.dumps([{"number": 9, "state": "OPEN"}])
+    fake_processes(lambda line, **kwargs: (0, github, "") if line.startswith("gh ") else git(line, **kwargs))
+
+    code, out, err = run_cli(status, [])
+
+    assert (code, out, err.startswith("status.sh: UnicodeDecodeError: ")) == (2, "", True)
+
+
+def test_status_given_a_bad_argument_names_it_on_stderr_and_exits_2(tmp_path, fake_processes, run_cli, status):
+    fake_processes(git_answering(tmp_path))
+
+    code, out, err = run_cli(status, ["--bogus"])
+
+    assert (code, out, err.splitlines()[0], "--report" in err.splitlines()[1]) == (
+        2, "", "status.sh: unknown option '--bogus'", True)
+
+
+def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
+    tree = ast.parse(pathlib.Path(__file__).read_text())
+
+    calls = sorted({node.func.attr for node in ast.walk(tree)
+                    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name) and node.func.value.id == "status"
+                    and node.func.attr != "main"})
+
+    assert calls == []
