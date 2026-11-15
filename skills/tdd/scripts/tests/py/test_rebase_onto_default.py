@@ -42,9 +42,11 @@ def cli(run_cli):
     return Cli(run_cli)
 
 
-def git_answers(fake_processes, **overrides):
+def git_fake(fake_processes, hooks=None, raw=None, **overrides):
     """git faked as a process, answering each git call from a branch behind origin/main;
-    <overrides> maps a command line to (exit code, stdout). Returns the command lines run."""
+    <overrides> maps a command line to (exit code, stdout). <hooks> maps a command line to a function
+    (kwargs, exit code) run as that command is answered (what git does to the tree or the streams);
+    <raw> maps a command prefix to any fake_processes answer. Returns the fake."""
     answers = {
         "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/main\n"),
         "git fetch -q origin": (0, ""),
@@ -55,8 +57,32 @@ def git_answers(fake_processes, **overrides):
         f"git rebase -q {ONTO}": (0, ""),
     }
     answers.update(overrides)
-    return fake_processes.answers(
-        {line: (code, out, "") for line, (code, out) in answers.items()}, default=(0, "", "")).calls
+    hooks = hooks or {}
+
+    def answer(line, code, out):
+        if line not in hooks:
+            return code, out, ""
+
+        def hooked(_line, **kwargs):
+            hooks[line](kwargs, code)
+            return code, out, ""
+        return hooked
+
+    table = {line: answer(line, code, out) for line, (code, out) in answers.items()}
+    table.update(raw or {})
+    return fake_processes.answers(table, default=(0, "", ""))
+
+
+def git_answers(fake_processes, **overrides):
+    """git_fake's command lines run."""
+    return git_fake(fake_processes, **overrides).calls
+
+
+def stderr_asked(fake, line):
+    """What the last call of <line> asked for stderr (or capture_output)."""
+    asked = [kwargs.get("stderr") or kwargs.get("capture_output") for argv, kwargs in fake.seen
+             if " ".join([os.path.basename(str(argv[0]))] + [str(a) for a in argv[1:]]) == line]
+    return asked[-1]
 
 
 def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ignores_arguments(
@@ -91,30 +117,21 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
     local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
 
     def run(answer, **overrides):
-        calls = git_answers(fake_processes, **{local: (1, ""), symref: answer}, **overrides)
-        fake_run = subprocess.run
-        stderrs = {}
-
-        def recording_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            stderrs[line] = kwargs.get("stderr") or kwargs.get("capture_output")
-            return fake_run(args, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", recording_run)
+        fake = git_fake(fake_processes, **{local: (1, ""), symref: answer}, **overrides)
         code = cli.main([])
-        return code, cli.readouterr().out, calls, stderrs
+        return code, cli.readouterr().out, fake.calls, fake
 
     calls = git_answers(fake_processes)
     cli.main([])
     cli.readouterr()
     assert symref not in calls
 
-    code, out, calls, stderrs = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
+    code, out, calls, fake = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
                                     **{"git ls-remote origin refs/heads/trunk":
                                        (0, f"{ONTO}\trefs/heads/trunk\n"),
                                        "git rev-parse origin/trunk": (0, f"{ONTO}\n")})
     assert symref in calls
-    assert stderrs[symref] is True
+    assert stderr_asked(fake, symref) is True
     after = calls[calls.index(symref) + 1:]
     assert after[:3] == ["git fetch -q origin", "git ls-remote origin refs/heads/trunk",
                          "git rev-parse origin/trunk"]
@@ -149,10 +166,7 @@ def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_defau
     assert (code, captured.out, captured.err) == (2, "", refusal)
     assert calls[calls.index(symref) + 1:] == []
 
-    def no_git(args, **kwargs):
-        raise FileNotFoundError(2, "No such file or directory", "git")
-
-    monkeypatch.setattr(subprocess, "run", no_git)
+    fake_processes.answers({"git": FileNotFoundError(2, "No such file or directory", "git")})
     code = cli.main([])
     captured = cli.readouterr()
     assert (code, captured.out) == (2, "")
@@ -165,23 +179,14 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
     rev_parse = "git rev-parse origin/main"
 
     def run(**overrides):
-        calls = git_answers(fake_processes, **overrides)
-        fake_run = subprocess.run
-        stderrs = {}
-
-        def recording_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            stderrs[line] = kwargs.get("stderr") or kwargs.get("capture_output")
-            return fake_run(args, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", recording_run)
+        fake = git_fake(fake_processes, **overrides)
         code = cli.main([])
-        return code, cli.readouterr().out, calls, stderrs
+        return code, cli.readouterr().out, fake.calls, fake
 
-    code, out, calls, stderrs = run(**{ls_remote: (2, f"{ONTO}\trefs/heads/main\n")})
+    code, out, calls, fake = run(**{ls_remote: (2, f"{ONTO}\trefs/heads/main\n")})
     assert (code, out) == (2, "")
     assert "git fetch -q origin" in calls
-    assert stderrs[ls_remote] == subprocess.DEVNULL
+    assert stderr_asked(fake, ls_remote) == subprocess.DEVNULL
     assert [c for c in calls if c.startswith(("git merge-base", "git rebase"))] == []
 
     code, out, calls, _ = run(**{rev_parse: (128, "origin/main\n")})
@@ -198,20 +203,18 @@ def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_pa
         monkeypatch, cli, fake_processes):
     fetch = "git fetch -q origin"
     rebase = f"git rebase -q {ONTO}"
-    git_answers(fake_processes)
-    fake_run = subprocess.run
     speech = {fetch: ("fetch out\n", "fetch err\n"), rebase: ("rebase out\n", "rebase err\n")}
 
-    def speaking_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        out, err = speech.get(line, ("", ""))
-        if kwargs.get("stdout") is None:
-            sys.stdout.write(out)
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(err)
-        return fake_run(args, **kwargs)
+    def speaks(line):
+        def speak(kwargs, code):
+            out, err = speech[line]
+            if kwargs.get("stdout") is None:
+                sys.stdout.write(out)
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(err)
+        return speak
 
-    monkeypatch.setattr(subprocess, "run", speaking_run)
+    git_fake(fake_processes, hooks={fetch: speaks(fetch), rebase: speaks(rebase)})
     code = cli.main([])
     captured = cli.readouterr()
     assert (code, captured.out) == (0, f"{PRE}\n{ONTO}\n")
@@ -226,24 +229,20 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
 
     def run(present):
-        calls = git_answers(fake_processes, **{
+        def leave_the_directory(kwargs, code):
+            present.mkdir()
+
+        def say_abort_out(kwargs, code):
+            if kwargs.get("stdout") is None:
+                sys.stdout.write("abort out\n")
+
+        calls = git_answers(fake_processes, hooks={rebase: leave_the_directory, abort: say_abort_out}, **{
             rebase: (1, ""),
             "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
             diff: (0, "a.txt\nsub/b.txt\n\n\n"),
             abort: (1, "")})
-        fake_run = subprocess.run
-
-        def speaking_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            if line == rebase:
-                present.mkdir()
-            if line == abort and kwargs.get("stdout") is None:
-                sys.stdout.write("abort out\n")
-            return fake_run(args, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", speaking_run)
         code = cli.main([])
         present.rmdir()
         return code, cli.readouterr().out, calls
@@ -277,23 +276,18 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
                "I wonder if you are in the middle of another rebase.\n")
 
     def run(diff_answer, refuse=False, created=None):
-        calls = git_answers(fake_processes, **{
+        def refusing_rebase(kwargs, code):
+            if created is not None:
+                created.mkdir()
+            if refuse and kwargs.get("stderr") is None:
+                sys.stderr.write(refusal)
+
+        calls = git_answers(fake_processes, hooks={rebase: refusing_rebase}, **{
             rebase: (1, ""),
             "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
             diff: diff_answer})
-        fake_run = subprocess.run
-
-        def refusing_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            if created is not None and line == rebase:
-                created.mkdir()
-            if refuse and line == rebase and kwargs.get("stderr") is None:
-                sys.stderr.write(refusal)
-            return fake_run(args, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", refusing_run)
         code = cli.main([])
         return code, cli.readouterr(), calls
 
@@ -320,21 +314,16 @@ def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_
     refusal = ("fatal: It seems that there is already a rebase-merge directory, and\n"
                "I wonder if you are in the middle of another rebase.\n")
     merge.mkdir()
-    calls = git_answers(fake_processes, **{
+    def refusing_rebase(kwargs, code):
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(refusal)
+
+    calls = git_answers(fake_processes, hooks={rebase: refusing_rebase}, **{
         rebase: (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
         "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
         diff: (0, "earlier.txt\n")})
-    fake_run = subprocess.run
-
-    def refusing_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        if line == rebase and kwargs.get("stderr") is None:
-            sys.stderr.write(refusal)
-        return fake_run(args, **kwargs)
-
-    monkeypatch.setattr(subprocess, "run", refusing_run)
     code = cli.main([])
     captured = cli.readouterr()
     assert (code, captured.out) == (2, "")
@@ -351,24 +340,20 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
 
     def run(present, diff_answer):
-        calls = git_answers(fake_processes, **{
+        def leave_the_directory(kwargs, code):
+            present.mkdir()
+
+        def say_abort_out(kwargs, code):
+            if kwargs.get("stdout") is None:
+                sys.stdout.write("abort out\n")
+
+        calls = git_answers(fake_processes, hooks={rebase: leave_the_directory, abort: say_abort_out}, **{
             rebase: (1, ""),
             two_names: (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
             diff: diff_answer,
             abort: (1, "")})
-        fake_run = subprocess.run
-
-        def conflicting_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            if line == rebase:
-                present.mkdir()
-            if line == abort and kwargs.get("stdout") is None:
-                sys.stdout.write("abort out\n")
-            return fake_run(args, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", conflicting_run)
         code = cli.main([])
         present.rmdir()
         return code, cli.readouterr().out, calls
@@ -392,22 +377,16 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
                "\tfile.txt\nerror: could not detach HEAD\n")
 
     def run(**overrides):
-        calls = git_answers(fake_processes, **{
+        def refusing_rebase(kwargs, code):
+            if code != 0 and kwargs.get("stderr") is None:
+                sys.stderr.write(refused)
+
+        calls = git_answers(fake_processes, hooks={rebase: refusing_rebase}, **{
             "git rev-parse --git-path rebase-merge --git-path rebase-apply":
                 (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")},
             **overrides)
-        fake_run = subprocess.run
-
-        def refusing_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            result = fake_run(args, **kwargs)
-            if line == rebase and result.returncode != 0 and kwargs.get("stderr") is None:
-                sys.stderr.write(refused)
-            return result
-
-        monkeypatch.setattr(subprocess, "run", refusing_run)
         code = cli.main([])
         return code, cli.readouterr(), calls
 
@@ -438,19 +417,14 @@ def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_a
     merge = tmp_path / "rebase-merge"
     merge.mkdir()
     (merge / "head-name").write_text("refs/heads/caller\n")
-    calls = git_answers(fake_processes, **{rebase: (1, "")})
-    fake_run = subprocess.run
+    holder = []
 
-    def git_path_run(args, **kwargs):
-        if list(args[:3]) == ["git", "rev-parse", "--git-path"]:
-            fake_run(args, **kwargs)
-            names = [a for a in args[2:] if a != "--git-path"]
-            out = "".join(f"{tmp_path / name}\n" for name in names)
-            return subprocess.CompletedProcess(
-                args, 0, out if kwargs.get("stdout") == subprocess.PIPE else None, "")
-        return fake_run(args, **kwargs)
+    def git_path(line, **kwargs):
+        names = [a for a in holder[0].argvs[-1][2:] if a != "--git-path"]
+        return 0, "".join(f"{tmp_path / name}\n" for name in names), ""
 
-    monkeypatch.setattr(subprocess, "run", git_path_run)
+    holder.append(git_fake(fake_processes, raw={"git rev-parse --git-path": git_path}, **{rebase: (1, "")}))
+    calls = holder[0].calls
     code = cli.main([])
     assert (code, cli.readouterr().out) == (2, "")
     assert [c for c in calls if c.startswith("git rebase") and c != rebase] == []

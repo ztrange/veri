@@ -30,7 +30,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_leaf_launchable.py": "checks argv, fixed returncode",
     "test_parallel_conductors.py": "git faked, the rest runs real; fake_processes has no passthrough and refuses Popen",
     "test_profile.py": "bash writes fd 9, sort echoes input",
-    "test_rebase_onto_default.py": "not inventoried",
     "test_run_conductor.py": "os and subprocess boundary, sleep recorded",
     "test_run_leaf.py": "not inventoried",
     "test_skill_edit_step_process.py": "not inventoried",
