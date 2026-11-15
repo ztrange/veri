@@ -96,11 +96,10 @@ def last_comment(issue):
 
 
 def queued_merges():
-    out = subprocess.run(["ps", "-axo", "args="], capture_output=True, text=True, check=True)
     urls = []
     mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "queued-merge.sh"))
     py_mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "veri", "queued_merge.py"))
-    for line in out.stdout.splitlines():
+    for line in pid_file.argument_lines().splitlines():
         words = line.split()
         if len(words) < 3:
             continue

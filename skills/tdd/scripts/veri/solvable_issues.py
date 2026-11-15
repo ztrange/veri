@@ -6,7 +6,6 @@ import paths
 import pid_file
 import re
 import run_dir
-import subprocess
 import sys
 
 import blocked_by
@@ -150,8 +149,7 @@ def select(label, priority="priority", repo=None):
 
 def running_numbers():
     scripts = paths.scripts_of(__file__)
-    listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE,
-                             stderr=subprocess.DEVNULL, text=True).stdout
+    listing = pid_file.listing(quiet=True)
     found = [number for directory, number in re.findall(
         r"(?:^|\s)(\S+)/(?:run-conductor\.sh|veri/run_conductor\.py) (\d+)(?=\s|$)", listing, re.M)
         if os.path.realpath(directory) == os.path.realpath(scripts)]
