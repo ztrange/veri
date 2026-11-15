@@ -204,12 +204,12 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert [(c[0], c[1][:4]) for c in tail[3:4]] == [("detect-test-command.sh", ("--tier", "fast", "--issue", body))]
     assert tail[3][1][4:] == (str(wt),)
     fast_start, fast_wait = tail[4], tail[5]
-    assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("make unit",)
+    assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("make", "unit")
     assert fast_wait[0] == "detach-command.sh" and fast_wait[1] == ("wait", fast_start[1][1])
     assert tail[6][:2] == ["detect-test-command.sh", ("--tier", "all", "--issue", body, str(wt))]
     assert tail[7][:2] == ["baseline-full-tier.sh", ("12", "make test")]
     full_start, full_wait = tail[8], tail[9]
-    assert full_start[0] == "detach-command.sh" and full_start[1][0] == "start" and full_start[1][2:] == ("make test",)
+    assert full_start[0] == "detach-command.sh" and full_start[1][0] == "start" and full_start[1][2:] == ("make", "test")
     assert full_wait[0] == "detach-command.sh" and full_wait[1] == ("wait", full_start[1][1])
     assert tail[10][0] == "full-tier-time.sh" and tail[10][1][0] == "--record" and tail[10][1][1].isdigit()
     assert tail[10][1][2:] == ("make test",)
