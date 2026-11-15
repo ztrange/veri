@@ -1,9 +1,7 @@
 """In-process cases for veri/wait_ci.py, the module wait-ci.sh is a shim over."""
 import importlib
 import json
-import os
 import re
-import subprocess
 import sys
 
 import pytest
@@ -178,7 +176,7 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
 
 
 def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_body_fails(
-        monkeypatch, capsys, wait_ci, tmp_path):
+        monkeypatch, capsys, wait_ci, tmp_path, fake_processes):
     page_3 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=3"
     head = json.dumps({"mergeable": True, "head": {"sha": SHA}})
     one_run = json.dumps({"check_runs": [{"status": "completed", "conclusion": "success"}]})
@@ -213,27 +211,24 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
 
     observed = []
     for n, (bodies, _) in enumerate(cases):
-        calls = []
         (tmp_path / str(n) / ".tdd").mkdir(parents=True)
         monkeypatch.chdir(tmp_path / str(n))
         clock = []
 
-        def fake_run(args, bodies=bodies, calls=calls, clock=clock, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            calls.append(line)
+        def answer(line, bodies=bodies, **kwargs):
             if early_read(line, calls):
-                return subprocess.CompletedProcess(args, 0, "0\n", None)
+                return 0, "0\n", None
             if line == "date +%s":
                 clock.append(1000 * len(clock))
-                return subprocess.CompletedProcess(args, 0, f"{clock[-1]}\n", None)
-            answer = "" if line.startswith("sleep ") else bodies.get(line, (1, "", f"unexpected: {line}\n"))
-            code, out, err = (0, answer, "") if isinstance(answer, str) else answer
+                return 0, f"{clock[-1]}\n", None
+            reply = "" if line.startswith("sleep ") else bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            code, out, err = (0, reply, "") if isinstance(reply, str) else reply
             if kwargs.get("stderr") is None:
                 sys.stderr.write(err)
                 err = None
-            return subprocess.CompletedProcess(args, code, out, err)
+            return code, out, err
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        calls = fake_processes.answers({}, default=answer).calls
         try:
             code = wait_ci.main([PR, "60", "120", SHA])
         except Exception as e:
@@ -248,7 +243,7 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
 
 
 def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
-        monkeypatch, capsys, tmp_path, wait_ci):
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
     bad_sleep = "sleep: invalid time interval 'abc'\n"
     tick = ["date +%s", "sleep 10"]
@@ -289,12 +284,9 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
             monkeypatch.delenv("VERI_POLL", raising=False)
         else:
             monkeypatch.setenv("VERI_POLL", poll)
-        calls = []
         readings = iter(clock)
 
-        def fake_run(args, calls=calls, readings=readings, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            calls.append(line)
+        def answer(line, **kwargs):
             if early_read(line, calls):
                 code, out, err = 0, f"{clock[0]}\n", ""
             elif line == "date +%s":
@@ -306,9 +298,9 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
             if kwargs.get("stderr") is None:
                 sys.stderr.write(err)
                 err = None
-            return subprocess.CompletedProcess(args, code, out, err)
+            return code, out, err
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        calls = fake_processes.answers({}, default=answer).calls
         code = wait_ci.main(argv)
         captured = capsys.readouterr()
         err = captured.err if isinstance(expected[2], str) else bool(captured.err)
@@ -322,7 +314,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
 
 
 def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refuses_a_deadline_file_without_one_issue_776(
-        monkeypatch, capsys, tmp_path, wait_ci):
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     mark = f"ci-deadline-{SHA}"
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
     tick = ["date +%s", "sleep 10"]
@@ -381,21 +373,18 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
             else:
                 (work / ".tdd" / name).write_text(text)
         monkeypatch.chdir(work)
-        calls = []
         readings = iter(clock)
 
-        def fake_run(args, calls=calls, readings=readings, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            calls.append(line)
+        def answer(line, **kwargs):
             if early_read(line, calls):
                 out = f"{clock[0]}\n"
             elif line == "date +%s":
                 out = f"{next(readings, 99999)}\n"
             else:
                 out = bodies.get(line, "")
-            return subprocess.CompletedProcess(args, 0, out, "" if kwargs.get("stderr") else None)
+            return 0, out, "" if kwargs.get("stderr") else None
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        calls = fake_processes.answers({}, default=answer).calls
         try:
             code = wait_ci.main(argv)
         except Exception:
@@ -412,7 +401,7 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
 
 
 def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_runs(
-        monkeypatch, capsys, tmp_path, wait_ci):
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     mark = f"ci-deadline-{SHA}"
     listing = "gh run list --repo o/r --workflow CI --status %s --limit 5 --json databaseId,conclusion,startedAt,updatedAt"
     success, failure = listing % "success", listing % "failure"
@@ -458,12 +447,9 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
         work = tmp_path / str(i)
         (work / ".tdd").mkdir(parents=True)
         monkeypatch.chdir(work)
-        calls = []
         readings = iter([1000, 1030])
 
-        def fake_run(args, calls=calls, readings=readings, pages=pages, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            calls.append(line)
+        def answer(line, pages=pages, **kwargs):
             code = 0
             if early_read(line, calls):
                 out = "1000\n"
@@ -473,9 +459,9 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
                 code, out = (1, "") if pages[line] is None else (0, pages[line])
             else:
                 out = bodies.get(line, "")
-            return subprocess.CompletedProcess(args, code, out, "" if kwargs.get("stderr") else None)
+            return code, out, "" if kwargs.get("stderr") else None
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        calls = fake_processes.answers({}, default=answer).calls
         try:
             code = wait_ci.main(argv)
         except Exception as error:
