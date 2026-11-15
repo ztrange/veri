@@ -1190,3 +1190,43 @@ def test_3500_queued_merge_of_an_open_pr_whose_pull_record_carries_no_head_sha_e
 
     moved = [c for c in calls if "rebase" in c or " push " in c]
     assert (code, bool(err), moved) == (2, True, [])
+
+
+def test_queued_merge_with_empty_settle_tunables_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
+    calls = scenario(fake_processes, fail=("pulls/7/merge",))
+    waits = []
+    monkeypatch.setattr(queued_merge.time, "sleep", waits.append)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "", "VERI_MERGE_SETTLE_SLEEP": ""})
+
+    put = first(calls, "pulls/7/merge")
+    rereads = [c for c in calls[put + 1:] if c.endswith("gh api repos/o/r/pulls/7")]
+    assert (code, len(rereads), waits, cleaned(calls)) == (1, 10, [3.0] * 10, [])
+
+
+def test_queued_merge_with_an_empty_fetch_retry_sleep_waits_one_second_between_fetches(fake_processes, run_cli, monkeypatch):
+    seen = {"cat-file": 0}
+    waits = []
+
+    def lag(answer):
+        def lagging(line, **kwargs):
+            if "cat-file -e" in line:
+                seen["cat-file"] += 1
+                return (1, "", "") if seen["cat-file"] == 1 else (0, "", "")
+            return answer(line, **kwargs)
+        return fake_processes(lagging)
+
+    scenario(lag)
+    monkeypatch.setattr(queued_merge.time, "sleep", waits.append)
+
+    code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_FETCH_RETRY_SLEEP": ""})
+
+    assert (code, waits) == (0, [1.0])
+
+
+def test_queued_merge_refuses_an_empty_veri_gh_driver_with_2_naming_it_before_taking_the_lock(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, out, err = run_cli(queued_merge, ARGV, env={"VERI_GH_DRIVER": ""})
+
+    assert (code, out, err, calls) == (2, "", "VERI_GH_DRIVER is '': expected auto, rest or graphql\n", [])

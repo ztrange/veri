@@ -127,7 +127,7 @@ def preflight_and_launch(argv):
             sys.stderr.write(fetch.stderr.rstrip("\n") + "\n")
             held = any(wording in fetch.stderr for wording in HELD_REF_LOCK)
             if held and fetches < 60:
-                if subprocess.run(["sleep", tunables.read("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
+                if subprocess.run(["sleep", tunables.get("VERI_FETCH_RETRY_SLEEP", unless_empty=True)]).returncode != 0:
                     return 1
                 continue
             if held:

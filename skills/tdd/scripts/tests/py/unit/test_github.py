@@ -1204,3 +1204,12 @@ def test_a_rate_limit_marker_wins_over_a_transient_one(github):
 ])
 def test_no_answer_kind_classifies_its_detail_else_its_answer(github, answer, detail, kind):
     assert github.NoAnswer(answer, detail).kind == kind
+
+
+def test_gh_pr_ready_reads_an_empty_veri_gh_driver_as_empty_and_refuses_it_not_as_the_default_rest(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "")
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_pr_ready("12")
+
+    assert capsys.readouterr().err == "VERI_GH_DRIVER is '': expected auto, rest or graphql\n"

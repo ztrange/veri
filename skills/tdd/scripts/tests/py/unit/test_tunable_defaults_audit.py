@@ -25,6 +25,16 @@ EXEMPT = {
 }
 
 
+class _AnyVeri:
+    """Every name that starts `VERI_`: the `names` of a scan that does not depend on what TUNABLES defines."""
+
+    def __contains__(self, name):
+        return isinstance(name, str) and name.startswith("VERI_")
+
+
+ANY_VERI = _AnyVeri()
+
+
 def _name(call):
     function = call.func
     return function.attr if isinstance(function, ast.Attribute) else getattr(function, "id", None)
@@ -61,6 +71,25 @@ def literal_defaults_in(tree, names):
 
 
 NAMES = {"VERI_X"}
+
+
+@pytest.mark.parametrize("source", [
+    'tunables.read("VERI_ANYTHING", "5")',
+    'tunables.read("VERI_ANYTHING") or "5"',
+    'os.environ.get("VERI_ANYTHING", "5")',
+])
+def test_any_veri_name_with_a_literal_default_is_named_when_no_names_are_given(source):
+    assert literal_defaults("import os\n" + source + "\n", ANY_VERI) == [(2, "VERI_ANYTHING")]
+
+
+@pytest.mark.parametrize("source", [
+    'tunables.read("VERI_ANYTHING")',
+    'tunables.get("VERI_ANYTHING")',
+    'tunables.read("CLAUDE_BIN", "x")',
+    'os.environ.get("HOME", "x")',
+])
+def test_a_read_without_a_literal_default_or_of_a_non_veri_name_is_not_named(source):
+    assert literal_defaults("import os\n" + source + "\n", ANY_VERI) == []
 
 
 @pytest.mark.parametrize("source", [

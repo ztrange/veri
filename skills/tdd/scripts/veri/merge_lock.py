@@ -87,7 +87,7 @@ def _needs_pid(args, force_ok):
 
 
 def _poll_wait():
-    time.sleep(float(tunables.read("VERI_MERGE_LOCK_POLL", "30")))
+    time.sleep(float(tunables.get("VERI_MERGE_LOCK_POLL")))
 
 
 # release unlinks the record before the directory, so a take can read in that gap;

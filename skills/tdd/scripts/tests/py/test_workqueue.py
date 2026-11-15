@@ -1051,3 +1051,20 @@ def test_run_through_a_symlinked_skill_from_a_linked_worktree_subdirectory_assig
     assert (main / ".tdd" / "workqueue").read_bytes() == queue
     assert not (linked / ".tdd" / "workqueue").exists()
     assert not (linked / "sub" / "dir" / ".tdd" / "workqueue").exists()
+
+
+def test_an_empty_veri_workqueue_lock_wait_waits_the_default_30_times_20_polls_like_an_unset_one(tmp_path, monkeypatch, capsys, workqueue, fake_processes):
+    fake_git(fake_processes, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t12\tqueued\t\n")
+    lock.mkdir()
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", sleeps.append)
+    monkeypatch.setenv("VERI_WORKQUEUE_LOCK_WAIT", "")
+
+    code = workqueue.main(["start", "alpha", "12"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, err, sleeps) == (2, "", "workqueue.sh: could not take the lock %s\n" % lock, [0.05] * 600)

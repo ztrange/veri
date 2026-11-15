@@ -59,8 +59,8 @@ def _gh_api_said(path):
     return run
 
 
-def wait_seconds(name, default, least):
-    raw = tunables.read(name, default)
+def wait_seconds(name, least):
+    raw = tunables.get(name)
     value = entry.whole_number(raw, least)
     if value is None:
         print("%s: invalid value %r" % (name, raw), file=sys.stderr)
@@ -70,7 +70,7 @@ def wait_seconds(name, default, least):
 
 def refusal_retries():
     """How many rate-limit refusals a read waits out (VERI_GH_REFUSAL_RETRIES)."""
-    return wait_seconds("VERI_GH_REFUSAL_RETRIES", tunables.default("VERI_GH_REFUSAL_RETRIES"), 0)
+    return wait_seconds("VERI_GH_REFUSAL_RETRIES", 0)
 
 
 def run_gh(*args, stderr=None):
@@ -79,10 +79,10 @@ def run_gh(*args, stderr=None):
         try:
             return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
         except FileNotFoundError:
-            retry_sleep = wait_seconds("VERI_TOOL_RETRY_SLEEP", "15", 1)
-            fast_wait = wait_seconds("VERI_TOOL_FAST_WAIT", "900", 0)
-            slow_sleep = wait_seconds("VERI_TOOL_SLOW_SLEEP", "900", 1)
-            total_wait = wait_seconds("VERI_TOOL_WAIT", "3600", 0)
+            retry_sleep = wait_seconds("VERI_TOOL_RETRY_SLEEP", 1)
+            fast_wait = wait_seconds("VERI_TOOL_FAST_WAIT", 0)
+            slow_sleep = wait_seconds("VERI_TOOL_SLOW_SLEEP", 1)
+            total_wait = wait_seconds("VERI_TOOL_WAIT", 0)
             now = time.monotonic()
             if first_miss is None:
                 first_miss = now
@@ -306,7 +306,7 @@ def _select(operation):
     fixtures = tunables.read("VERI_GH_JSON") or None
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    driver = tunables.read("VERI_GH_DRIVER", "rest")
+    driver = tunables.get("VERI_GH_DRIVER")
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         raise NoAnswer("")
@@ -493,7 +493,7 @@ def _retry_refused(call, stream):
         if refusals >= refusal_retries():
             return done
         refusals += 1
-        time.sleep(wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
+        time.sleep(wait_seconds("VERI_GH_REFUSAL_SLEEP", 0))
 
 
 def _refuse_unpushed(number, head_sha):
@@ -512,7 +512,7 @@ def gh_pr_ready(number, head_sha=""):
     """Mark draft PR <number> ready for review; given <head_sha>, only once pulls/<number> reports it
     as the head, reading it again every VERI_POLL seconds (default 10), at most 30 times. NoAnswer
     when GitHub gave no answer on any open route, or the head never matched."""
-    driver = tunables.read("VERI_GH_DRIVER", "rest")
+    driver = tunables.get("VERI_GH_DRIVER")
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         raise NoAnswer("")
