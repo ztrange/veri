@@ -58,6 +58,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `refuse(*lines, usage=None, prefix="")`: writes each str/bytes line (prefixed) and then the usage to stderr; returns 2. The one way to refuse.
 - `no_arguments(argv, usage)`: for a script that takes none, `None` when `argv` is empty, else refuses (2) naming the first argument, then the usage.
 - `to_contract(code)`: the code when it is 0, 1, 2 or 3, else 2.
+- `whole_number(text, minimum=1)`: the int of `text` when it is ASCII digits only (leading zeros allowed; no sign, space or non-ASCII digit) and at least `minimum`, else `None`.
 
 ## git
 - `git(*args, **kwargs)`: `subprocess.run(["git", *args], **kwargs)`; the CompletedProcess, never raises on a non-zero exit.
