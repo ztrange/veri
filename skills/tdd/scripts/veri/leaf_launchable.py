@@ -8,12 +8,16 @@ import tempfile
 
 import launch_floor
 import tunables
+from entry import no_arguments
 
 
 USAGE = "usage: leaf-launchable.sh"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     if launch_floor.bash_refusal("leaf-launchable") or launch_floor.python_refusal("leaf-launchable"):
         return 2
     leaf_bin = tunables.claude_bin()

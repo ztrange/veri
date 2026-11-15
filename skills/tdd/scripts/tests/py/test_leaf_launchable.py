@@ -21,20 +21,28 @@ def fake_probe(fake_processes, returncode):
     return fake_processes.answers({"stub-claude --version": (returncode, "", "")}, exact=True)
 
 
-def test_main_returns_0_silently_for_a_launching_probe_with_or_without_an_argument_and_2_with_no_stdout_for_a_failing_one(
+def test_main_returns_0_silently_for_a_launching_probe_and_2_with_no_stdout_for_a_failing_one(
         capsys, leaf_launchable, fake_processes):
     answers = []
     fake_probe(fake_processes, 0)
-    for argv in ([], ["extra"]):
-        code = leaf_launchable.main(argv)
-        captured = capsys.readouterr()
-        answers.append((code, captured.out, captured.err))
+    code = leaf_launchable.main([])
+    captured = capsys.readouterr()
+    answers.append((code, captured.out, captured.err))
     fake_probe(fake_processes, 1)
     code = leaf_launchable.main([])
     captured = capsys.readouterr()
     answers.append((code, captured.out))
-    assert answers == [(0, "", ""), (0, "", ""), (2, "")]
+    assert answers == [(0, "", ""), (2, "")]
     assert all(0 <= answer[0] <= 3 for answer in answers)
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_probe_not_run(
+        run_cli, leaf_launchable, fake_processes):
+    fake = fake_probe(fake_processes, 0)
+
+    assert run_cli(leaf_launchable, ["extra"]) == (
+        2, "", f"leaf-launchable.sh: unexpected argument 'extra'\n{leaf_launchable.USAGE}\n")
+    assert fake.calls == []
 
 
 def test_main_returns_2_with_no_stdout_and_no_temp_file_left_over_a_probe_exiting_5_127_or_killed_by_a_signal(
