@@ -130,6 +130,63 @@ def arguments(argv):
     return Arguments(phase, revised_phase, names, args)
 
 
+class Fragments:
+    """The prompt fragments a phase uses, as file names under `scripts/prompts/`:
+    `template` (the phase's own file), `bug` (the bug-reproduction file or None), `marked` (slot -> file, ordered: one per
+    step marker or revise sub-phase that brings a paragraph), `freeze` (the files the FREEZE_RULE slot joins, ordered),
+    `inline` (slot -> file, ordered: spliced where the template carries the slot), `repair` (the step is a suite or ci
+    repair) and `replaces_red` (the red cases are a replaces-case step's)."""
+    __slots__ = ("template", "bug", "marked", "freeze", "inline", "repair", "replaces_red")
+
+
+def fragments(phase, revised_phase, step, has_bug):
+    """The `Fragments` for a phase, the phase it revises ("" unless revise), the step text and whether the spec has a
+    Bug section; a pure function of its inputs, reading no file.
+
+    The orders are behaviour: `marked` is the order its files are checked for readability (after the spec, the phase's
+    argument files and the bug file), `inline` the order they are expanded, so the first refusal printed is the first
+    in that order. The ci-repair mark counts for the freeze rule only with a green phase, and a revise of a repair
+    gets no freeze rule at all."""
+    chosen = Fragments()
+    chosen.template = f"develop-{'revise-diff' if revised_phase == 'diff' else phase}.md"
+    chosen.bug = "_develop-red-bug.md" if has_bug else None
+    replaces_case = is_replaces_case_step(step)
+    markers = trailing_markers(step)
+    marked = {}
+    freeze = []
+    repair = False
+    if phase == "red" and carries_mark(markers, "ci-repair"):
+        marked["CI_REPAIR"] = "_develop-red-ci-repair.md"
+    if "green" in (phase, revised_phase):
+        if replaces_case:
+            marked["REPLACES_CASE"] = "_develop-green-replaces-case.md"
+        if carries_mark(markers, "suite-repair"):
+            marked["SUITE_REPAIR"] = "_develop-green-suite-repair.md"
+        if carries_mark(markers, "fixture-repair"):
+            marked["FIXTURE_REPAIR"] = "_develop-green-fixture-repair.md"
+        repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
+        if not (repair and phase == "revise"):
+            freeze.append("_develop-repair-test-edit.md" if repair else "_develop-green-freeze-rule.md")
+        if not repair and "⟦guard-subject: " in markers:
+            freeze.append("_develop-guard-subject-grant.md")
+    if revised_phase in DEVELOP_INTERFACE_PHASES + ("dual-stub",):
+        frozen = "production" if revised_phase in ("cover-new", "contract-a", "dual-stub") else "test"
+        marked["FREEZE_RULE"] = f"_develop-revise-freeze-{frozen}.md"
+    replaces_red = "red" in (phase, revised_phase) and replaces_case
+    inline = {"NODE_ID_RULE": "_develop-node-id-rule.md",
+              "RED_LEAD": "_develop-red-lead-replaces-case.md" if replaces_red else "_develop-red-lead.md"}
+    if phase != "revise" or replaces_red:
+        inline["RED_CASES"] = "_develop-red-cases-replaces-case.md" if replaces_red else "_develop-red-cases.md"
+    inline["TEST_REWRITE"] = "_develop-" + {"red": "test-rewrite-grant", "contract-a": "test-move-contract-a"
+                                           }.get(revised_phase, "test-rewrite-none") + ".md"
+    if revised_phase == "green":
+        inline["WRONG_TEST_REPORT"] = "_develop-wrong-test-report.md"
+        inline["WRONG_TEST_FORMAT"] = "_develop-wrong-test-format.md"
+    chosen.marked, chosen.freeze, chosen.inline = marked, freeze, inline
+    chosen.repair, chosen.replaces_red = repair, replaces_red
+    return chosen
+
+
 def main(argv):
     parsed = arguments(argv)
     if isinstance(parsed, Refusal):
@@ -137,42 +194,24 @@ def main(argv):
         return parsed.code
     phase, revised_phase, names, args = parsed.phase, parsed.revised_phase, parsed.names, parsed.args
     prompts = f"{HERE}/prompts"
-    template = "revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
-    paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
+    chosen = fragments(phase, revised_phase, step, has_heading(spec_text_of(spec), b"Bug"))
+    paths = [f"{prompts}/{chosen.template}", f"{prompts}/_develop-shared.md", spec]
     optional = {}
     if phase in ("revise", "exhausted", "red-missing"):
         optional["REJECTION_REASON"] = args[3]
-    if has_heading(spec_text_of(spec), b"Bug"):
-        optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
-    replaces_case = is_replaces_case_step(step)
-    markers = trailing_markers(step)
-    marked = {}
-    freeze = []
-    if phase == "red" and carries_mark(markers, "ci-repair"):
-        marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
-    if "green" in (phase, revised_phase):
-        if replaces_case:
-            marked["REPLACES_CASE"] = f"{prompts}/_develop-green-replaces-case.md"
-        if carries_mark(markers, "suite-repair"):
-            marked["SUITE_REPAIR"] = f"{prompts}/_develop-green-suite-repair.md"
-        if carries_mark(markers, "fixture-repair"):
-            marked["FIXTURE_REPAIR"] = f"{prompts}/_develop-green-fixture-repair.md"
-        repair = carries_mark(markers, "suite-repair") or carries_mark(markers, "ci-repair")
-        if not (repair and phase == "revise"):
-            freeze.append(f"{prompts}/_develop-{'repair-test-edit' if repair else 'green-freeze-rule'}.md")
-        if not repair and "\u27e6guard-subject: " in markers:
-            freeze.append(f"{prompts}/_develop-guard-subject-grant.md")
-    if revised_phase in DEVELOP_INTERFACE_PHASES + ("dual-stub",):
-        frozen = "production" if revised_phase in ("cover-new", "contract-a", "dual-stub") else "test"
-        marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
+    if chosen.bug:
+        optional["BUG_REPRODUCTION"] = f"{prompts}/{chosen.bug}"
     if phase == "red-repair":
         paths.append(args[4])
     if phase == "replaces-report":
         optional["MISSING_CASES"] = args[4]
         paths.append(args[3])
+    marked = {slot: f"{prompts}/{name}" for slot, name in chosen.marked.items()}
     optional.update(marked)
     paths += optional.values()
+    freeze = [f"{prompts}/{name}" for name in chosen.freeze]
+    repair = chosen.repair
     for path in paths:
         if not os.access(path, os.R_OK):
             write(sys.stderr, f"build-develop-prompt: cannot read '{path}'", before=False, after=False)
@@ -199,9 +238,13 @@ def main(argv):
     try:
         text = expand_includes(_read(paths[0]), prompts_b)
         values["SHARED"] = expand_includes(_read(paths[1]), prompts_b)
-        def fragment(slot):
-            return expand_includes(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
-        replaces_red = "red" in (phase, revised_phase) and replaces_case
+        def splice(slots):
+            done = set()
+            for slot in slots:
+                if slot in chosen.inline and b"{{" + slot.encode() + b"}}" in text:
+                    values[slot] = expand_includes(b"{{INCLUDE:" + chosen.inline[slot].encode() + b"}}", prompts_b)
+                    done.add(slot)
+            return done
         if b"{{ISSUE_NUMBER}}" in text:
             issue = tunables.read("VERI_ISSUE") or ""
             if entry.whole_number(issue, 0) is None:
@@ -217,25 +260,12 @@ def main(argv):
                 rerouted = []
             values["STEP_ARGUMENT"] = os.fsencode(" ".join(
                 [shlex.quote(step)] + ["--except " + shlex.quote(c) for c in dict.fromkeys(rerouted)]))
-        if b"{{NODE_ID_RULE}}" in text:
-            values["NODE_ID_RULE"] = fragment(b"node-id-rule")
-        if b"{{RED_LEAD}}" in text:
-            values["RED_LEAD"] = fragment(b"red-lead-replaces-case" if replaces_red else b"red-lead")
-        if b"{{RED_CASES}}" in text and (phase != "revise" or replaces_red):
-            values["RED_CASES"] = fragment(b"red-cases-replaces-case" if replaces_red else b"red-cases")
-            if replaces_red and phase == "revise":
-                values["RED_CASES"] = b"\n\n" + values["RED_CASES"]
-        if b"{{TEST_REWRITE}}" in text:
-            values["TEST_REWRITE"] = fragment({"red": b"test-rewrite-grant", "contract-a": b"test-move-contract-a"}
-                                              .get(revised_phase, b"test-rewrite-none"))
+        if "RED_CASES" in splice(("NODE_ID_RULE", "RED_LEAD", "RED_CASES", "TEST_REWRITE")) and chosen.replaces_red and phase == "revise":
+            values["RED_CASES"] = b"\n\n" + values["RED_CASES"]
         if phase == "revise" and revised_phase != "red":
             text = re.sub(rb"^(?:FAIL_OUTPUT|PREDICTION_NOTE):.*\n", b"", text, flags=re.MULTILINE)
             text = text.replace(b" PREDICTION: FAIL_OUTPUT: PREDICTION_NOTE: |", b" PREDICTION: |")
-        if revised_phase == "green":
-            if b"{{WRONG_TEST_REPORT}}" in text:
-                values["WRONG_TEST_REPORT"] = fragment(b"wrong-test-report")
-            if b"{{WRONG_TEST_FORMAT}}" in text:
-                values["WRONG_TEST_FORMAT"] = fragment(b"wrong-test-format")
+        splice(("WRONG_TEST_REPORT", "WRONG_TEST_FORMAT"))
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
             if placeholder in marked:
