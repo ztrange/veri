@@ -16,52 +16,20 @@ def leaf_launchable(monkeypatch, tmp_path):
     return importlib.import_module("veri.leaf_launchable")
 
 
-class FakeProcess:
-    def __init__(self, returncode):
-        self.returncode = returncode
-
-    def wait(self, timeout=None):
-        return self.returncode
-
-    def poll(self):
-        return self.returncode
-
-    def communicate(self, input=None, timeout=None):
-        return None, None
-
-
-def fake_probe(monkeypatch, returncode):
+def fake_probe(fake_processes, returncode):
     """subprocess answering the leaf probe with <returncode>; any other command fails the case."""
-    def check(args):
-        if list(args) != ["stub-claude", "--version"]:
-            raise AssertionError("unexpected command: %r" % (args,))
-
-    def fake_run(args, **kwargs):
-        check(args)
-        return subprocess.CompletedProcess(args, returncode)
-
-    def fake_call(args, **kwargs):
-        check(args)
-        return returncode
-
-    def fake_popen(args, **kwargs):
-        check(args)
-        return FakeProcess(returncode)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    return fake_processes.answers({"stub-claude --version": (returncode, "", "")}, exact=True)
 
 
 def test_main_returns_0_silently_for_a_launching_probe_with_or_without_an_argument_and_2_with_no_stdout_for_a_failing_one(
-        capsys, monkeypatch, leaf_launchable):
+        capsys, leaf_launchable, fake_processes):
     answers = []
-    fake_probe(monkeypatch, 0)
+    fake_probe(fake_processes, 0)
     for argv in ([], ["extra"]):
         code = leaf_launchable.main(argv)
         captured = capsys.readouterr()
         answers.append((code, captured.out, captured.err))
-    fake_probe(monkeypatch, 1)
+    fake_probe(fake_processes, 1)
     code = leaf_launchable.main([])
     captured = capsys.readouterr()
     answers.append((code, captured.out))
@@ -70,11 +38,11 @@ def test_main_returns_0_silently_for_a_launching_probe_with_or_without_an_argume
 
 
 def test_main_returns_2_with_no_stdout_and_no_temp_file_left_over_a_probe_exiting_5_127_or_killed_by_a_signal(
-        capsys, monkeypatch, tmp_path, leaf_launchable):
+        capsys, monkeypatch, tmp_path, leaf_launchable, fake_processes):
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     answers = []
     for returncode in (5, 127, -9):
-        fake_probe(monkeypatch, returncode)
+        fake_probe(fake_processes, returncode)
         code = leaf_launchable.main([])
         captured = capsys.readouterr()
         answers.append((returncode, code, captured.out, sorted(p.name for p in tmp_path.iterdir())))
@@ -82,28 +50,23 @@ def test_main_returns_2_with_no_stdout_and_no_temp_file_left_over_a_probe_exitin
 
 
 def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_the_probe_with_the_leaf_launchable_prefix(
-        capsys, monkeypatch, tmp_path, leaf_launchable):
+        capsys, monkeypatch, tmp_path, leaf_launchable, fake_processes):
     monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
     monkeypatch.setenv("VERI_PYTHON_VERSION", "3.11.9")
-    commands = []
 
-    def record(args, **kwargs):
-        commands.append(list(args))
-        if list(args)[0] == "stub-claude":
-            return subprocess.CompletedProcess(args, 0)
-        raise FileNotFoundError(2, "No such file or directory", list(args)[0])
+    def missing(line, **kwargs):
+        program = fake.argvs[-1][0]
+        raise FileNotFoundError(2, "No such file or directory", program)
 
-    monkeypatch.setattr(subprocess, "run", record)
-    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: record(args, **kwargs).returncode)
-    monkeypatch.setattr(subprocess, "Popen", record)
+    fake = fake_processes.answers({"stub-claude": (0, "", "")}, default=missing)
     answers = []
     for major in ("3", "5"):
         monkeypatch.setenv("VERI_BASH_MAJOR", major)
-        del commands[:]
+        del fake.seen[:]
         code = leaf_launchable.main([])
         captured = capsys.readouterr()
         answers.append((code, captured.out, [line.split(";")[0] for line in captured.err.splitlines()],
-                        [command for command in commands if command[0] == "stub-claude"]))
+                        [command for command in fake.argvs if command[0] == "stub-claude"]))
     assert answers == [
         (2, "", ["leaf-launchable: veri needs bash 5 or newer"], []),
         (2, "", ["leaf-launchable: veri needs Python 3.12 or newer"], []),
@@ -111,23 +74,16 @@ def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_th
 
 
 def test_main_probes_claude_bin_else_claude_once_with_stdin_inherited_stdout_discarded_stderr_to_a_removed_temp_file_and_returns_2_naming_an_oserror(
-        capsys, monkeypatch, tmp_path, leaf_launchable):
+        capsys, monkeypatch, tmp_path, leaf_launchable, fake_processes):
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
-    calls = []
     raised = []
 
-    def spy(args, **kwargs):
-        stderr = kwargs.get("stderr")
-        calls.append((list(args), kwargs.get("stdin"), kwargs.get("stdout") == subprocess.DEVNULL,
-                      stderr not in (None, subprocess.PIPE, subprocess.DEVNULL, subprocess.STDOUT)))
+    def spy(line, **kwargs):
         if raised:
             raise raised[0]
-        return FakeProcess(0)
+        return 0, "", ""
 
-    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
-        args, spy(args, **kwargs).returncode))
-    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: spy(args, **kwargs).returncode)
-    monkeypatch.setattr(subprocess, "Popen", spy)
+    fake = fake_processes.answers({}, default=spy)
     answers = []
     monkeypatch.delenv("CLAUDE_BIN")
     answers.append(leaf_launchable.main([]))
@@ -144,6 +100,11 @@ def test_main_probes_claude_bin_else_claude_once_with_stdin_inherited_stdout_dis
         captured = capsys.readouterr()
         blocks.append((code, captured.out, "    " + str(error) in captured.err.splitlines()))
     probe = (None, True, True)
+    calls = []
+    for argv, kwargs in fake.seen:
+        stderr = kwargs.get("stderr")
+        calls.append((list(argv), kwargs.get("stdin"), kwargs.get("stdout") == subprocess.DEVNULL,
+                      stderr not in (None, subprocess.PIPE, subprocess.DEVNULL, subprocess.STDOUT)))
     assert calls == [(["claude", "--version"],) + probe, (["claude", "--version"],) + probe] + [
         (["stub-claude", "--version"],) + probe] * 3
     assert answers == [0, 0, 0]
@@ -152,16 +113,14 @@ def test_main_probes_claude_bin_else_claude_once_with_stdin_inherited_stdout_dis
 
 
 def test_main_prints_the_failed_probe_diagnostic_byte_identical_to_the_bash_script_indenting_its_stderr_as_bytes_split_on_newline_only(
-        capfdbinary, monkeypatch, leaf_launchable):
+        capfdbinary, leaf_launchable, fake_processes):
     def answering(said):
-        def fake_call(args, **kwargs):
+        def fake_call(line, **kwargs):
             stderr = kwargs["stderr"]
             os.write(stderr if isinstance(stderr, int) else stderr.fileno(), said)
-            return 1
+            return 1, "", ""
 
-        monkeypatch.setattr(subprocess, "call", fake_call)
-        monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
-            args, fake_call(args, **kwargs)))
+        fake_processes.answers({}, default=fake_call)
 
     header = (b"leaf-launchable: the leaf binary (stub-claude) could not be launched, so every leaf of this run"
               b" would die at launch. It said:\n")
@@ -184,16 +143,11 @@ def test_main_prints_the_failed_probe_diagnostic_byte_identical_to_the_bash_scri
 
 
 def test_main_prints_the_full_failed_probe_diagnostic_naming_the_binary_as_given_and_the_oserror_for_a_binary_not_found_or_not_executable(
-        capfdbinary, monkeypatch, leaf_launchable):
+        capfdbinary, monkeypatch, leaf_launchable, fake_processes):
     monkeypatch.setenv("CLAUDE_BIN", "missing/stub claude")
 
     def raising(error):
-        def fake_call(args, **kwargs):
-            raise error
-
-        monkeypatch.setattr(subprocess, "call", fake_call)
-        monkeypatch.setattr(subprocess, "run", fake_call)
-        monkeypatch.setattr(subprocess, "Popen", fake_call)
+        fake_processes.answers({}, default=error)
 
     header = (b"leaf-launchable: the leaf binary (missing/stub claude) could not be launched, so every leaf of this"
               b" run would die at launch. It said:\n")
@@ -216,26 +170,18 @@ def test_main_prints_the_full_failed_probe_diagnostic_naming_the_binary_as_given
 
 
 def test_run_cli_refusing_a_binary_that_cannot_launch_starts_nothing_but_the_probe_and_leaves_no_file(
-        monkeypatch, tmp_path, run_cli, leaf_launchable):
+        monkeypatch, tmp_path, run_cli, leaf_launchable, fake_processes):
     work = tmp_path / "work"
     work.mkdir()
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
-    started = []
 
-    def fake_call(args, **kwargs):
-        started.append(list(args))
+    def fake_call(line, **kwargs):
         os.write(kwargs["stderr"].fileno(), b"Error: cannot be launched here.\n")
-        return 1
+        return 1, "", ""
 
-    def refuse(args, **kwargs):
-        started.append(list(args))
-        raise AssertionError("unexpected command: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "run", refuse)
-    monkeypatch.setattr(subprocess, "Popen", refuse)
+    fake = fake_processes.answers({"stub-claude --version": fake_call}, exact=True)
     code, out, err = run_cli(leaf_launchable, [], cwd=str(work))
-    assert (code, out, started) == (2, "", [["stub-claude", "--version"]])
+    assert (code, out, fake.argvs) == (2, "", [["stub-claude", "--version"]])
     assert "    Error: cannot be launched here.\n" in err and 'claude -p "/tdd <issue-number>"' in err
     assert sorted(p.name for p in tmp_path.iterdir()) == ["work"]
     assert list(work.iterdir()) == []
