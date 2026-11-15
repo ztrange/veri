@@ -1,16 +1,20 @@
 """rebase-onto-default.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import functools
 import pathlib
 import re
 import subprocess
 import sys
 
 try:
-    from git import git, symref_default
+    import entry
+    from git import default_branch, git
 except ImportError:
-    from .git import git, symref_default
+    from . import entry
+    from .git import default_branch, git
 
 USAGE = "usage: rebase-onto-default.sh [--graded-only]"
+refuse = functools.partial(entry.refuse, prefix="rebase-onto-default: ")
 
 
 def output(*args, **kwargs):
@@ -30,16 +34,6 @@ def saved_files(saved):
     return " ".join(str(p) for p in [saved, *kept_files()])
 
 
-def default_branch():
-    local = git("rev-parse", "-q", "--verify", "--abbrev-ref", "refs/remotes/origin/HEAD",
-                text=True, stdout=subprocess.PIPE)
-    if local.returncode == 0:
-        return local.stdout.rstrip("\n").removeprefix("origin/")
-    answer = git("ls-remote", "--symref", "origin", "HEAD", text=True,
-                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
-    return symref_default(answer) or ""
-
-
 def rebase_in_progress():
     return any(pathlib.Path(path).is_dir() for path in output(
         "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
@@ -57,17 +51,9 @@ def union_graded(path):
     git("add", path, text=True)
 
 
-def refuse(reason):
-    sys.stderr.write(f"rebase-onto-default: {reason}\n")
-    return 2
-
-
 def main(argv):
     graded_only = "--graded-only" in argv
-    try:
-        default = default_branch()
-    except FileNotFoundError:
-        default = ""
+    default = default_branch() or ""
     if not default:
         return refuse("refs/remotes/origin/HEAD is not set — no default branch to rebase onto")
     if git("fetch", "-q", "origin", text=True,
