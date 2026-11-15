@@ -105,21 +105,15 @@ def test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_ma
     assert (code, started) == (0, []), (started, err)
 
 
-def test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running(tmp_path, monkeypatch, run_cli):
+def test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     started = []
     sibling = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(status.__file__))), "report-cache.sh")
 
-    def fake_run(argv, *a, **k):
-        name = os.path.basename(argv[0]) if argv else ""
-        if name == "pgrep":
-            return subprocess.CompletedProcess(argv, 0, stdout="4242\n", stderr="")
-        if name == "ps":
-            return subprocess.CompletedProcess(
-                argv, 0, stdout="  PID COMMAND\n 4242 /bin/sh %s refresh\n" % sibling, stderr="")
-        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", fake_run)
+    fake_processes.answers({"pgrep": (0, "4242\n", ""),
+                            "ps": (0, "  PID COMMAND\n 4242 /bin/sh %s refresh\n" % sibling, "")},
+                           default=(0, "", ""))
 
     class Detached:
         pass
