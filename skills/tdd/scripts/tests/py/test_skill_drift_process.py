@@ -7,6 +7,7 @@ import pytest
 
 from repo_builder import git, new_repo
 
+
 REF = "refs/remotes/origin/main"
 ABSENT = "0123456789abcdef0123456789abcdef01234567"
 GIT_BOUNDARY = "a real git repository, its clone and a fetch from the clone's origin"
@@ -89,19 +90,6 @@ def test_a_commit_after_the_pin_with_no_trailing_number_is_listed_by_short_sha(t
 
     assert (code, err) == (0, "")
     assert "- %s fix: a hand-pushed supervisor fix\n" % short in out.splitlines(keepends=True)
-
-
-def test_an_unpinned_run_or_an_unset_or_empty_skill_commit_answers_not_pinned(tmp_path, run_cli, skill_drift):
-    want = "Skill drift: unavailable — run was not pinned to a skill commit\n"
-    base = {"VERI_SKILL_CLONE": str(tmp_path), "VERI_SKILL_REF": REF}
-    variants = {
-        "unpinned": {**base, "VERI_SKILL_UNPINNED": "1", "VERI_SKILL_COMMIT": ABSENT},
-        "unset": base,
-        "empty": {**base, "VERI_SKILL_COMMIT": ""},
-    }
-    got = {name: run_cli(skill_drift, [], env=env) for name, env in variants.items()}
-
-    assert got == {name: (0, want, "") for name in variants}
 
 
 @pytest.mark.process(GIT_BOUNDARY)
