@@ -82,3 +82,14 @@ def test_a_world_records_the_launches_made_by_the_time_of_each_wait(dispatch):
     dispatch.main(["--target", "3"], world=world)
 
     assert (world.launched, world.launched_at_wait) == (["12", "15"], [["12"], ["12"], ["12", "15"]])
+
+
+def test_a_world_records_which_answers_were_read_and_at_which_tick(dispatch):
+    world = FakeWorld({"live": ["5"]}, {"live": ["5"], "queue": ["12"]})
+
+    assert world.reads == []
+
+    dispatch.main(["--target", "2"], world=world)
+
+    assert [read for read in world.reads if read[0] in ("live", "queue")] == [
+        ("live", 0), ("queue", 0), ("live", 1), ("queue", 1)]
