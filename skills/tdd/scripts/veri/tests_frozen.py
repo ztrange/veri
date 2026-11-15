@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 
+import case_history
 import git
 import ledger
 import renamed_case
@@ -34,19 +35,11 @@ def _digest(path):
         return hashlib.sha256(handle.read()).hexdigest()
 
 
-def _toplevel():
-    done = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
-                          stderr=subprocess.DEVNULL)
-    return os.fsdecode(done.stdout).rstrip("\n") if done.returncode == 0 else None
-
-
-def _has_rev(rev):
-    return subprocess.run(["git", "rev-parse", "--verify", "-q", rev],
-                          stdout=subprocess.DEVNULL).returncode == 0
+_toplevel = case_history.toplevel
 
 
 def _has_head():
-    return _has_rev("HEAD")
+    return case_history.has_rev("HEAD")
 
 
 def _enter_root(record, files):
@@ -157,8 +150,7 @@ def _issue():
     issue = tunables.read("VERI_ISSUE")
     if issue:
         return issue
-    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL).stdout.decode().strip()
+    branch = case_history.current_branch()
     found = re.match(r"tdd/(\d+)-", branch)
     return found.group(1) if found else ""
 
@@ -521,7 +513,7 @@ def _rerecord_committed(step):
             name, case = parsed[0], parsed[1]
             if name not in held:
                 at_head = _cases_at("HEAD", name)
-                before = _cases_at("HEAD~1", name) if _has_rev("HEAD~1") else {}
+                before = _cases_at("HEAD~1", name) if case_history.has_rev("HEAD~1") else {}
                 if os.path.exists(name):
                     tree = dict(_head_and_new_cases(name)[1])
                     if tree != at_head:
