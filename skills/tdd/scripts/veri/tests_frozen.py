@@ -21,10 +21,11 @@ import frozen_record
 from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, cut_cases, old_cut_cases_all, is_js_test_file, is_test_path
 
-USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
+USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>... | "
          "check <record-file>|--step <step-text> | "
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
          "rerecord-earlier <ledger> --step <step-text> | "
+         "rerecord-refactored <ledger> <green-sha> | "
          "rerecord-rebased <ledger> <pre-rebase-sha> | path <step-text>")
 REPAIR_MARKS = ("suite-repair", "ci-repair", "fixture-repair")
 

@@ -7,7 +7,7 @@ import sys
 
 import entry
 
-USAGE = "usage: refactor-touched.sh <commit> | --issue <base>"
+USAGE = "usage: refactor-touched.sh <commit> | --issue <base> [--candidate <text>]"
 
 
 def named_files(candidate):

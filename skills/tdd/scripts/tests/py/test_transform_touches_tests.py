@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-USAGE = "usage: transform-touches-tests.sh <base-sha>\n"
+USAGE = "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]\n"
 SKILL_DIR = Path(__file__).resolve().parents[3]
 
 
@@ -444,7 +444,7 @@ def test_3280_touched_option_with_no_value_exits_2_with_the_usage_line_and_no_tr
     commit_all(repo, "refactor: a", **{"src__a.py": "a2\n"})
 
     assert run_cli(transform_touches_tests, [base, "", "--touched"], cwd=repo) == (
-        2, "", "usage: transform-touches-tests.sh <base-sha>\n")
+        2, "", "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]\n")
 
 
 @pytest.mark.process("git rev-parse and git log over a scratch repository whose range changed a non-test file, with an empty --touched list")

@@ -1,8 +1,9 @@
 #!/bin/sh
 # ledger-growth.sh — check a ledger's growth against the plan commit's: a shim over veri/ledger_growth.py.
 #
-# usage: ledger-growth.sh <plan-ledger-file> <ledger-file>
-#        ledger-growth.sh plan-sha    (stdin: the git log, one "<sha> <subject>" line per commit)
+# usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha | record-existing <ledger-file>
+#        | record-rewrite <pre-rewrite-ledger-file> <ledger-file> | reopen <ledger-file> <needle> <change>
+#        plan-sha reads the git log on stdin, one "<sha> <subject>" line per commit.
 #
 # diff-leaf-deviation.sh is the sibling check on a diff-checked leaf's commits.
 # plan-sha prints the newest `plan: scope` or `plan: rewrite` commit, the baseline whose ledger is
