@@ -12,9 +12,9 @@ import time
 
 import event
 import paths
+import run_dir
 import tunables
 from github import gh_api, gh_probe
-from ledger import ledger_path
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
@@ -279,7 +279,7 @@ def main(argv):
             return 1
     own = re.match(r"tdd/(\d+)-", branch)
     if own:
-        paths = glob.glob(ledger_path(worktree, own.group(1)))
+        paths = glob.glob(run_dir.ledger(worktree, own.group(1)))
     else:
         changed = _git(worktree, "diff", "--name-only", "origin/main...HEAD", "--", ".tdd/issue-*.md")
         if changed.returncode:
