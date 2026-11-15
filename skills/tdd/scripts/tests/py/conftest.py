@@ -392,7 +392,8 @@ def fake_processes(monkeypatch):
             line_of(args, kwargs)
             return subprocess.CompletedProcess(args, 0, "", "")
 
-        def run(args, *_, **kwargs):
+        def answered(args, kwargs):
+            """What the answer table says <args> did: (returncode, stdout, stderr) in the caller's mode."""
             code, out, err = answer(line_of(args, kwargs), **kwargs)
             encoding = kwargs.get("encoding") or "utf-8"
             text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
@@ -407,15 +408,22 @@ def fake_processes(monkeypatch):
             out, err = in_mode(out), in_mode(err)
             if kwargs.get("stderr") == subprocess.STDOUT:
                 out, err = out + err, None
+            return code, out, err
+
+        def run(args, *_, **kwargs):
+            code, out, err = answered(args, kwargs)
             if kwargs.get("check") and code:
                 raise subprocess.CalledProcessError(code, args, out, err)
             return subprocess.CompletedProcess(args, code, out, err)
+
+        def call(args, *_, **kwargs):
+            return answered(args, kwargs)[0]
 
         def refuse(args, *_, **__):
             raise AssertionError("unexpected process: %s" % line_of(args))
 
         for name in ("run", "Popen", "call", "check_call", "check_output"):
-            entry = record if answer is None else run if name == "run" else refuse
+            entry = record if answer is None else {"run": run, "call": call}.get(name, refuse)
             monkeypatch.setattr(subprocess, name, entry)
         return calls
 
