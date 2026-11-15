@@ -25,8 +25,6 @@ from process_fake_detection import installs_a_subprocess_fake
 FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_detach_leaf.py": "not inventoried",
     "test_event.py": "not inventoried",
-    "test_issue_worktree.py": "8 cases put a fake in front of a real git (routed = subprocess.run / real_run passthrough)",
-    "test_launch_floor.py": "one answer(args, kwargs) callback",
     "test_leaf_launchable.py": "checks argv, fixed returncode",
     "test_parallel_conductors.py": "git faked, the rest runs real; fake_processes has no passthrough and refuses Popen",
     "test_profile.py": "bash writes fd 9, sort echoes input",

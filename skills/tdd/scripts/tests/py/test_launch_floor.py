@@ -13,44 +13,32 @@ def launch_floor():
     return importlib.import_module("veri.launch_floor")
 
 
-def fake_bash(monkeypatch, path, major, version):
-    """shutil.which finding bash at <path>, and a bash there printing <major> then <version>, one per line."""
-    calls = []
+def fake_bash(monkeypatch, fake_processes, path, major, version):
+    """shutil.which finding bash at <path>, and a bash there printing <major> then <version>, one per line.
 
-    def fake_which(cmd, mode=None, path_=None, **kwargs):
-        return path if cmd == "bash" else None
+    Returns the probes made, each (argv, env)."""
+    fake = fake_processes.answers({"bash": (0, "%s\n%s\n" % (major, version), "")})
+    monkeypatch.setattr(shutil, "which", lambda cmd, mode=None, path_=None, **kwargs: path if cmd == "bash" else None)
 
-    def answer(args, kwargs):
-        calls.append((list(args), kwargs.get("env")))
-        out = "%s\n%s\n" % (major, version)
-        if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
-            return out
-        return out.encode()
+    class Probes:
+        def __len__(self):
+            return len(fake.seen)
 
-    def fake_run(args, **kwargs):
-        return subprocess.CompletedProcess(args, 0, answer(args, kwargs), "" if kwargs.get("text") else b"")
+        def __getitem__(self, index):
+            argv, kwargs = fake.seen[index]
+            return argv, kwargs.get("env")
 
-    def fake_check_output(args, **kwargs):
-        return answer(args, kwargs)
-
-    def no_popen(args, **kwargs):
-        raise AssertionError("unexpected process: %r" % (args,))
-
-    monkeypatch.setattr(shutil, "which", fake_which)
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
-    monkeypatch.setattr(subprocess, "Popen", no_popen)
-    return calls
+    return Probes()
 
 
 def test_bash_refusal_asks_the_bash_on_path_once_without_bash_env_or_env_and_refuses_a_major_below_5_naming_its_version_and_path(
-        capsys, monkeypatch, launch_floor):
+        capsys, monkeypatch, launch_floor, fake_processes):
     monkeypatch.delenv("VERI_BASH_MAJOR", raising=False)
     monkeypatch.setenv("BASH_ENV", "/planted/bash_env")
     monkeypatch.setenv("ENV", "/planted/env")
     answers = []
     for major, version in (("5", "5.2.37(1)-release"), ("3", "3.2.57(1)-release")):
-        calls = fake_bash(monkeypatch, "/opt/old/bin/bash", major, version)
+        calls = fake_bash(monkeypatch, fake_processes, "/opt/old/bin/bash", major, version)
         code = launch_floor.bash_refusal("some-prefix")
         captured = capsys.readouterr()
         assert len(calls) == 1
@@ -68,7 +56,7 @@ def test_bash_refusal_asks_the_bash_on_path_once_without_bash_env_or_env_and_ref
 
 
 def test_bash_refusal_with_veri_bash_major_set_starts_no_probe_and_names_that_value_in_place_of_the_version(
-        capsys, monkeypatch, launch_floor):
+        capsys, monkeypatch, launch_floor, fake_processes):
     monkeypatch.delenv("BASH_ENV", raising=False)
     monkeypatch.delenv("ENV", raising=False)
 
@@ -81,9 +69,9 @@ def test_bash_refusal_with_veri_bash_major_set_starts_no_probe_and_names_that_va
     for value in ("abc", "5.1", " 5", "3", "05", "08", "09", ""):
         monkeypatch.setenv("VERI_BASH_MAJOR", value)
         if value:
-            calls = fake_bash(monkeypatch, "/opt/bin/bash", "5", "5.2.37(1)-release")
+            calls = fake_bash(monkeypatch, fake_processes, "/opt/bin/bash", "5", "5.2.37(1)-release")
         else:
-            calls = fake_bash(monkeypatch, "/opt/bin/bash", "3", "3.2.57(1)-release")
+            calls = fake_bash(monkeypatch, fake_processes, "/opt/bin/bash", "3", "3.2.57(1)-release")
         code = launch_floor.bash_refusal("some-prefix")
         captured = capsys.readouterr()
         answers.append((value, len(calls), code, captured.out, captured.err))
@@ -100,7 +88,7 @@ def test_bash_refusal_with_veri_bash_major_set_starts_no_probe_and_names_that_va
 
 
 def test_bash_refusal_with_no_bash_on_path_or_a_probe_that_fails_or_prints_no_number_refuses_naming_what_it_got(
-        capsys, monkeypatch, launch_floor):
+        capsys, monkeypatch, launch_floor, fake_processes):
     monkeypatch.delenv("VERI_BASH_MAJOR", raising=False)
 
     def refusal(version, path):
@@ -109,32 +97,8 @@ def test_bash_refusal_with_no_bash_on_path_or_a_probe_that_fails_or_prints_no_nu
                 "or your package manager on Linux.\n" % (version, path))
 
     def fake(path, status, out):
-        def fake_which(cmd, mode=None, path_=None, **kwargs):
-            return path if cmd == "bash" else None
-
-        def output(kwargs):
-            if path is None:
-                raise AssertionError("unexpected process: no bash on PATH")
-            if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
-                return out
-            return out.encode()
-
-        def fake_run(args, **kwargs):
-            return subprocess.CompletedProcess(args, status, output(kwargs), "" if kwargs.get("text") else b"")
-
-        def fake_check_output(args, **kwargs):
-            got = output(kwargs)
-            if status:
-                raise subprocess.CalledProcessError(status, args, output=got)
-            return got
-
-        def no_popen(args, **kwargs):
-            raise AssertionError("unexpected process: %r" % (args,))
-
-        monkeypatch.setattr(shutil, "which", fake_which)
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        monkeypatch.setattr(subprocess, "check_output", fake_check_output)
-        monkeypatch.setattr(subprocess, "Popen", no_popen)
+        monkeypatch.setattr(shutil, "which", lambda cmd, mode=None, path_=None, **kwargs: path if cmd == "bash" else None)
+        fake_processes.answers({} if path is None else {"bash": (status, out, "")})
 
     answers = []
     for path, status, out in ((None, 0, ""),
@@ -154,7 +118,7 @@ def test_bash_refusal_with_no_bash_on_path_or_a_probe_that_fails_or_prints_no_nu
 
 
 def test_python_refusal_reads_the_floor_from_the_lib_beside_the_module_and_refuses_below_it_the_veri_python_version_else_the_running_interpreters(
-        capsys, monkeypatch, tmp_path):
+        capsys, monkeypatch, tmp_path, fake_processes):
     import importlib.util
     import platform
 
@@ -176,16 +140,8 @@ def test_python_refusal_reads_the_floor_from_the_lib_beside_the_module_and_refus
         spec.loader.exec_module(module)
         return module
 
-    def no_venv(args, **kwargs):
-        return subprocess.CompletedProcess(args, 1, "" if kwargs.get("text") else b"", "")
-
-    def no_popen(args, **kwargs):
-        raise FileNotFoundError(2, "No such file or directory", args[0])
-
     monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
-    monkeypatch.setattr(subprocess, "run", no_venv)
-    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
-    monkeypatch.setattr(subprocess, "Popen", no_popen)
+    fake_processes.answers({}, default=(1, "", ""))
 
     def refusal(floor, version):
         return "some-prefix: veri needs Python %s or newer; the python3 on PATH is version %s.\n" % (floor, version)
@@ -219,19 +175,11 @@ def test_python_refusal_reads_the_floor_from_the_lib_beside_the_module_and_refus
 
 
 def test_python_refusal_parses_the_version_as_the_lib_does_major_before_the_first_dot_minor_up_to_the_second(
-        capsys, monkeypatch, tmp_path, launch_floor):
+        capsys, monkeypatch, tmp_path, launch_floor, fake_processes):
     import platform
 
-    def no_venv(args, **kwargs):
-        return subprocess.CompletedProcess(args, 1, "" if kwargs.get("text") else b"", "")
-
-    def no_popen(args, **kwargs):
-        raise FileNotFoundError(2, "No such file or directory", args[0])
-
     monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
-    monkeypatch.setattr(subprocess, "run", no_venv)
-    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
-    monkeypatch.setattr(subprocess, "Popen", no_popen)
+    fake_processes.answers({}, default=(1, "", ""))
     monkeypatch.setattr(platform, "python_version", lambda: "3.13.0")
 
     answers = []
@@ -252,40 +200,21 @@ def test_python_refusal_parses_the_version_as_the_lib_does_major_before_the_firs
 
 
 def test_python_refusal_hint_asks_the_venv_interpreter_with_version_info_and_names_the_venv_only_when_it_exits_0(
-        capsys, monkeypatch, tmp_path, launch_floor):
+        capsys, monkeypatch, tmp_path, launch_floor, fake_processes):
     import os
     import platform
 
-    calls = []
     statuses = {}
 
-    def answer(args, kwargs):
-        calls.append((list(args), kwargs))
-        if not os.path.exists(args[0]):
-            raise FileNotFoundError(2, "No such file or directory", args[0])
-        if not os.access(args[0], os.X_OK):
-            raise PermissionError(13, "Permission denied", args[0])
-        return statuses[args[0]]
+    def answer(line, **kwargs):
+        program = fake.argvs[-1][0]
+        if not os.path.exists(program):
+            raise FileNotFoundError(2, "No such file or directory", program)
+        if not os.access(program, os.X_OK):
+            raise PermissionError(13, "Permission denied", program)
+        return statuses[program], "", ""
 
-    def fake_run(args, **kwargs):
-        return subprocess.CompletedProcess(args, answer(args, kwargs), None, None)
-
-    def fake_call(args, **kwargs):
-        return answer(args, kwargs)
-
-    class FakePopen:
-        def __init__(self, args, **kwargs):
-            self.returncode = answer(args, kwargs)
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-        def communicate(self, input=None, timeout=None):
-            return None, None
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "call", fake_call)
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({}, default=answer)
     monkeypatch.setattr(platform, "python_version", lambda: "3.13.0")
 
     def interpreter(venv, status=None, executable=True):
@@ -322,11 +251,11 @@ def test_python_refusal_hint_asks_the_venv_interpreter_with_version_info_and_nam
                           (str(meets), "3.12.0")):
         monkeypatch.setenv("VERI_VENV", venv)
         monkeypatch.setenv("VERI_PYTHON_VERSION", version)
-        del calls[:]
+        del fake.seen[:]
         code = launch_floor.python_refusal("some-prefix")
         captured = capsys.readouterr()
         asked = []
-        for args, kwargs in calls:
+        for args, kwargs in fake.seen:
             assert any("version_info" in arg for arg in args[1:])
             assert kwargs.get("stderr") == subprocess.DEVNULL
             assert kwargs.get("stdout") is None and not kwargs.get("capture_output")
@@ -350,14 +279,14 @@ def test_python_refusal_hint_asks_the_venv_interpreter_with_version_info_and_nam
 
 
 def test_python_refusal_when_the_running_interpreter_is_the_venv_python3_below_the_floor_names_the_environment_and_advises_reinstalling_it_not_path_2106(
-        capsys, monkeypatch, tmp_path, launch_floor):
+        capsys, monkeypatch, tmp_path, launch_floor, fake_processes):
     import os
 
     venv = str(tmp_path / "venv")
     monkeypatch.setenv("VERI_VENV", venv)
     monkeypatch.setenv("VERI_PYTHON_VERSION", "3.9.6")
     monkeypatch.setattr("sys.executable", os.path.join(venv, "bin", "python3"))
-    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
+    fake_processes.answers({}, default=(1, "", ""))
 
     code = launch_floor.python_refusal("some-prefix")
     captured = capsys.readouterr()
