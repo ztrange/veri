@@ -15,6 +15,7 @@ import entry
 import event
 import event_log
 import harvest_usage
+import leaf_timeout
 import mutation_record
 import preserve_attempt
 import run_dir
@@ -455,14 +456,12 @@ def main(argv):
     issue = tunables.read("VERI_ISSUE")
     if not timeout and issue:
         top = answered("git", "rev-parse", "--show-toplevel")
-        settled = run_dir.issue_file("" if top is None else top, issue, "-timeout")
-        if os.path.isfile(settled):
-            with open(settled) as f:
-                timeout = f.read().rstrip("\n")
-            if timeout and (refused := not_a_number(settled, timeout)):
-                return refused
-            if not timeout or int(timeout, 10) < 1:
-                return entry.refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
+        try:
+            timeout = leaf_timeout.settled("" if top is None else top, issue) or timeout
+        except leaf_timeout.Malformed as bad:
+            if bad.not_a_number:
+                return entry.refuse(f"supervise: {bad.path} is not a number: '{bad.text}'")
+            return entry.refuse(f"supervise: {bad.path} must hold a whole number of seconds >= 1: '{bad.text}'")
     timeout = timeout or tunables.default("VERI_TIMEOUT")
     kill_poll, bad = tunables.resolve("VERI_KILL_POLL")
     if bad:
