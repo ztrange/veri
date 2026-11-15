@@ -87,7 +87,7 @@ def _shape(call, module):
 
 def writer_calls(source, module=""):
     """(line, kind or None, literal field names) for every event-writing call in `source`; `module` is the
-    source's own module name, so that `mark(role, "kind", …)` inside verify.py is read as verify.mark."""
+    source's own module name, so that a bare mark call inside verify.py is read as verify.mark."""
     found = []
     tree = ast.parse(source)
     assigned = {}
