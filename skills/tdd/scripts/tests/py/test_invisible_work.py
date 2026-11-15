@@ -32,6 +32,16 @@ def test_main_returns_2_with_empty_stdout_when_origin_is_unreachable_or_origin_h
     assert [line for line in unreachable_calls if line.startswith("gh")] == []
 
 
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_no_process_started(
+        run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    calls = fake_processes(lambda line, **_: (0, "", ""))
+
+    assert run_cli(invisible_work, ["--bogus"]) == (
+        2, "", f"invisible-work.sh: unexpected argument '--bogus'\n{invisible_work.USAGE}\n")
+    assert calls == []
+
+
 def fake_git(fake_processes, answers):
     """fake_processes answering each git command from <answers>, a list of
     (words the command line holds, exit code, stdout); an unlisted command exits 0 silently."""
@@ -228,7 +238,7 @@ def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_mal
         ' {"headRefName": "merged-pr", "state": "MERGED"},'
         ' {"head": {"ref": "done"}, "state": "closed"},'
         ' {"headRefName": "gone", "state": "MERGED"}]')
-    swept = invisible_work.main(["--help"])
+    swept = invisible_work.main([])
     swept_out = capsys.readouterr()
 
     assert (swept, swept_out.out) == (

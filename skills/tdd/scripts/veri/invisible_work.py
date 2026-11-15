@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 
+from entry import no_arguments
 from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
 from github import NoAnswer, gh_json, open_pulls_text, pulls_in
 from json_documents import items
@@ -71,6 +72,9 @@ USAGE = "usage: invisible-work.sh"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     if git("ls-remote", "--heads", "origin", stdout=subprocess.DEVNULL).returncode != 0:
         print("invisible-work.sh: cannot reach origin", file=sys.stderr)
         return 2
