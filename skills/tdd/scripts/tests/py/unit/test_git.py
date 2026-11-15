@@ -40,29 +40,13 @@ def test_symref_default_is_none_when_head_is_on_the_next_line(git):
     assert git.symref_default(f"ref: refs/heads/trunk\nHEAD\n{SHA}\tHEAD\n") is None
 
 
-class Runs:
-    """Stands in for subprocess.run on veri.git: answers by argv, records each call."""
-
-    def __init__(self, answers):
-        self.answers = answers
-        self.calls = []
-
-    def __call__(self, argv, **kwargs):
-        import subprocess
-        self.calls.append((argv, kwargs))
-        answer = self.answers.get(tuple(argv[1:]), (1, "", "fatal: nope\n"))
-        if isinstance(answer, Exception):
-            raise answer
-        code, out, err = answer
-        return subprocess.CompletedProcess(argv, code, out, err)
-
-
 @pytest.fixture
-def runs(git, monkeypatch):
+def runs(fake_processes):
+    """install(answers) -> fake: answers maps the argv after "git" to (code, out, err) or an exception to raise;
+    any other git command fails with code 1. fake.seen holds (argv, kwargs) per call."""
     def install(answers):
-        fake = Runs(answers)
-        monkeypatch.setattr(git.subprocess, "run", fake)
-        return fake
+        table = {" ".join(("git",) + key): answer for key, answer in answers.items()}
+        return fake_processes.answers(table, default=(1, "", "fatal: nope\n"), exact=True)
     return install
 
 
@@ -74,7 +58,7 @@ def test_out_returns_stdout_without_its_trailing_newline(git, runs, tmp_path):
 def test_out_runs_in_the_given_directory(git, runs, tmp_path):
     fake = runs({("rev-parse", "HEAD"): (0, "x\n", "")})
     git.out("rev-parse", "HEAD", cwd=tmp_path / "elsewhere")
-    assert fake.calls[0][1]["cwd"] == tmp_path / "elsewhere"
+    assert fake.seen[0][1]["cwd"] == tmp_path / "elsewhere"
 
 
 def test_out_raises_git_failed_carrying_args_code_and_stderr(git, runs, tmp_path):
@@ -118,7 +102,7 @@ REMOTE = ("ls-remote", "--symref", "origin", "HEAD")
 def test_default_branch_reads_the_local_origin_head_first(git, runs, tmp_path):
     fake = runs({LOCAL: (0, "origin/trunk\n", "")})
     assert git.default_branch(cwd=tmp_path) == "trunk"
-    assert [tuple(c[0][1:]) for c in fake.calls] == [LOCAL]
+    assert [tuple(c[0][1:]) for c in fake.seen] == [LOCAL]
 
 
 def test_default_branch_keeps_a_slash_in_the_branch_name(git, runs, tmp_path):
@@ -154,10 +138,10 @@ def test_default_branch_is_none_when_git_is_missing(git, runs, tmp_path):
 def test_default_branch_local_only_never_asks_the_remote(git, runs, tmp_path):
     fake = runs({REMOTE: (0, "ref: refs/heads/dev\tHEAD\n", "")})
     assert git.default_branch(cwd=tmp_path, remote=False) is None
-    assert [tuple(c[0][1:]) for c in fake.calls] == [LOCAL]
+    assert [tuple(c[0][1:]) for c in fake.seen] == [LOCAL]
 
 
 def test_default_branch_runs_both_questions_in_the_given_directory(git, runs, tmp_path):
     fake = runs({})
     git.default_branch(cwd=tmp_path / "clone")
-    assert [c[1]["cwd"] for c in fake.calls] == [tmp_path / "clone"] * 2
+    assert [c[1]["cwd"] for c in fake.seen] == [tmp_path / "clone"] * 2
