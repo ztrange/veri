@@ -4,17 +4,11 @@ import re
 import subprocess
 import sys
 
+import entry
 from case_reader import is_test_path
 
 USAGE = "usage: transform-touches-tests.sh <base-sha>"
 REFACTOR_OWED = re.compile(rb"\.tdd/issue-[0-9]+-refactor-owed\.md")
-
-
-def refuse(message=None, usage=None):
-    if message:
-        print(message, file=sys.stderr)
-    print(usage or USAGE, file=sys.stderr)
-    return 2
 
 
 def changed_paths(base):
@@ -33,13 +27,13 @@ def sorted_names(lines):
 def check_touched(argv, paths):
     value_at = argv.index("--touched") + 1
     if value_at >= len(argv):
-        return refuse()
+        return entry.refuse(usage=USAGE)
     raw = argv[value_at]
     if not raw:
-        return refuse("transform-touches-tests.sh: --touched list is empty")
+        return entry.refuse("transform-touches-tests.sh: --touched list is empty", usage=USAGE)
     touched_list = set(raw.encode().split(b","))
     if b"" in touched_list:
-        return refuse("transform-touches-tests.sh: --touched list has an empty entry")
+        return entry.refuse("transform-touches-tests.sh: --touched list has an empty entry", usage=USAGE)
     if not touched_list & set(paths):
         print("transform changed no file the issue touched")
         return 1
@@ -49,11 +43,11 @@ def check_touched(argv, paths):
 def main(argv):
     base = argv[0] if argv else ""
     if not base:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"],
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
-        return refuse(f"transform-touches-tests.sh: base-sha does not resolve to a commit: {base}")
+        return entry.refuse(f"transform-touches-tests.sh: base-sha does not resolve to a commit: {base}", usage=USAGE)
     paths = changed_paths(base)
     if paths is None:
         return 2
@@ -73,5 +67,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

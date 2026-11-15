@@ -5,6 +5,8 @@ import os
 import sys
 import tempfile
 
+import entry
+
 USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
 
 
@@ -59,17 +61,12 @@ def write_times(record, times):
         raise
 
 
-def refuse():
-    print(USAGE, file=sys.stderr)
-    return 2
-
-
 def main(argv):
     if not argv:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     if argv[0] == "--record":
         if len(argv) < 3 or not argv[1].isascii() or not argv[1].isdigit():
-            return refuse()
+            return entry.refuse(usage=USAGE)
         record = record_path()
         os.makedirs(os.path.dirname(record), exist_ok=True)
         try:
@@ -92,5 +89,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
