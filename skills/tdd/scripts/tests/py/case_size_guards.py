@@ -328,11 +328,11 @@ def case_starts_no_test_runner(request, monkeypatch):
 BELOW_FLOOR_INTERPRETER_EXEMPT = {
     "test_bash_version_guard_process.py::test_on_a_real_python3_below_the_floor_first_on_path_usr_bin_python3_leaf_launchable_sh_refuses_with_exit_2_naming_the_floor_and_its_version":
         "the shim's refusal of a below-floor python3 on PATH is the subject",
-    "test_shims.py::test_issue_2106_shim_with_both_python3s_below_the_floor_exits_2_without_its_module_naming_each_interpreter_its_source_and_version":
+    "test_shims_process.py::test_issue_2106_shim_with_both_python3s_below_the_floor_exits_2_without_its_module_naming_each_interpreter_its_source_and_version":
         "the shim's refusal of a below-floor venv and PATH python3 is the subject",
-    "test_shims.py::test_issue_2106_shim_with_no_venv_python3_and_none_on_path_exits_2_naming_where_it_looked_for_each":
+    "test_shims_process.py::test_issue_2106_shim_with_no_venv_python3_and_none_on_path_exits_2_naming_where_it_looked_for_each":
         "the shim's refusal when no python3 is found is the subject",
-    "test_shims.py::test_issue_2106_shim_with_both_python3s_exiting_1_silently_exits_2_naming_each_interpreter_and_an_unknown_version":
+    "test_shims_process.py::test_issue_2106_shim_with_both_python3s_exiting_1_silently_exits_2_naming_each_interpreter_and_an_unknown_version":
         "the shim's refusal of interpreters reporting no version is the subject",
 }
 
