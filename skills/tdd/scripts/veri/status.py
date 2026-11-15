@@ -26,10 +26,7 @@ from solvable_issues import priority_label, solvable
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
 
-try:
-    from . import github
-except ImportError:
-    import github
+import github
 
 
 def run_activity(run, as_json=False, closed=False):

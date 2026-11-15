@@ -6,17 +6,12 @@ import re
 import subprocess
 import sys
 
-try:
-    from . import add_ledger_step, event, prose_owed, requirements
-    from .case_reader import is_test_path
-    from .ledger import STEP_RE, carries_mark, read_ledger
-except ImportError:
-    import add_ledger_step
-    import event
-    import prose_owed
-    import requirements
-    from case_reader import is_test_path
-    from ledger import STEP_RE, carries_mark, read_ledger
+import add_ledger_step
+import event
+import prose_owed
+import requirements
+from case_reader import is_test_path
+from ledger import STEP_RE, carries_mark, read_ledger
 
 DEF_RE = re.compile(r"[-+ ]\s*def (test\w*)")
 ASSERT_RE = re.compile(r"-\s*assert\b")

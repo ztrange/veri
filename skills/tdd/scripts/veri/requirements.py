@@ -6,10 +6,7 @@ import re
 import subprocess
 import sys
 
-try:
-    from .markdown_sections import fenced_lines
-except ImportError:
-    from markdown_sections import fenced_lines
+from markdown_sections import fenced_lines
 
 COLUMNS = ["ID", "Requirement", "Why"]
 USAGE = "usage: requirements.sh units <file> | claims <file> <unit>"

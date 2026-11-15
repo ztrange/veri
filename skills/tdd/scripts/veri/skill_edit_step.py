@@ -13,10 +13,7 @@ import skill_edit_guard
 import tunables
 import requirements
 
-try:
-    from veri import leaf
-except ImportError:
-    import leaf
+import leaf
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
