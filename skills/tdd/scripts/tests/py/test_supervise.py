@@ -2828,11 +2828,19 @@ def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with
         0, "leaf: recovered on retry\n", ["supervise[flaky]: success"], b"0\n")
 
 
-def real_kill(tmp_path, supervise, run_cli, name, script, **env):
+def real_kill(tmp_path, supervise, run_cli, name, script, boundary_on_first_poll=False, **env):
     import re
     import signal
     work = tmp_path / name
     work.mkdir()
+    if boundary_on_first_poll:
+        # The awake clock reads 0 until the stub has recorded child.pid (its last pid file), then jumps past any
+        # timeout: a whole-second clock may cross its boundary on the first poll, so the timeout must be unable
+        # to precede the stub's first commands, whatever fraction of a second the real clock is at (#3833).
+        clock = tmp_path / f"{name}-awake-clock"
+        clock.write_text(f"#!/bin/sh\nif [ -s {work}/child.pid ]; then echo 5; else echo 0; fi\n")
+        clock.chmod(0o755)
+        env = {**env, "VERI_AWAKE_CLOCK": str(clock)}
     try:
         code, _, err = run_cli(supervise, [name, "sh", "-c", "ps -o pgid= -p $$ > stub.pgid; " + script], cwd=work,
                                env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
@@ -2866,13 +2874,26 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
                   VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
         real_kill(tmp_path, supervise, run_cli, "runaway",
                   "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
-                  VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
+                  VERI_HEARTBEAT="60", VERI_TIMEOUT="1", boundary_on_first_poll=True),
     ] == [
         (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"],
          {"stub.pid": False, "child.pid": False, "stub.pgid": False}, b"2\n"),
         (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"],
          {"stub.pid": False, "child.pid": False, "stub.pgid": False}, b"2\n"),
     ]
+
+
+@pytest.mark.process("a real runaway leaf whose stub records its pids late, under an awake clock crossing a second boundary on the first poll (#3833)")
+def test_real_kill_reports_the_stub_and_child_pids_of_a_runaway_leaf_whatever_fraction_of_a_second_the_clock_is_at_3833(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    assert real_kill(tmp_path, supervise, run_cli, "runaway",
+                     "sleep 0.3; echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
+                     VERI_HEARTBEAT="60", VERI_TIMEOUT="1", boundary_on_first_poll=True) == (
+        2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"],
+        {"stub.pid": False, "child.pid": False, "stub.pgid": False}, b"2\n")
 
 
 @pytest.mark.process("a real hung leaf killed by supervise.py before it wrote its pid file, leaving the file empty")
