@@ -267,3 +267,16 @@ def test_issue_2846_a_multiline_reason_before_the_reject_verdict_with_reason_tex
             "remove the cache helper only")
 
     assert run_cli(parse_verdict, [], stdin=text) == (1, "remove the cache helper only\n", "")
+
+
+def test_verdict_answers_code_reason_and_empty_err_for_pass_and_reject_without_printing(capsys, parse_verdict):
+    results = [parse_verdict.verdict(f"VERDICT: {word}\nREASON: the step is pinned") for word in ("PASS", "REJECT")]
+
+    assert results == [(0, "the step is pinned", ""), (1, "the step is pinned", "")]
+    assert capsys.readouterr() == ("", "")
+
+
+def test_verdict_answers_code_2_with_the_stderr_line_as_text_when_no_verdict_line_or_word_is_unknown(capsys, parse_verdict):
+    assert parse_verdict.verdict(NO_VERDICT_TEXT) == (2, "", "parse-verdict: no VERDICT: line found\n")
+    assert parse_verdict.verdict("VERDICT: MAYBE\n") == (2, "", "parse-verdict: unrecognised verdict word 'MAYBE'\n")
+    assert capsys.readouterr() == ("", "")

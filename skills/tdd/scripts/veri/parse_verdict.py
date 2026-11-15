@@ -80,26 +80,38 @@ def drop_closing_fence(reason):
 USAGE = "usage: parse-verdict.sh < leaf-output.txt"
 
 
-def main(argv):
-    lines = read_lines(sys.stdin.read())
+def verdict(text):
+    """Read the leaf output `text`; answer `(code, reason, err)`, printing nothing.
+
+    `code` is 0 for PASS, 1 for REJECT, 2 when no answer exists (no VERDICT: line,
+    or an unrecognised word). `reason` is what the shim prints on stdout, without
+    its trailing newline ("" on code 2). `err` is the stderr line, newline included
+    ("" unless code 2).
+    """
+    lines = read_lines(text)
     vidx = last_verdict(lines)
     if vidx < 0:
-        print("parse-verdict: no VERDICT: line found", file=sys.stderr)
-        return 2
+        return 2, "", "parse-verdict: no VERDICT: line found\n"
     tail = VERDICT_RE.match(lines[vidx]).group(1)
     token = first_token(tail)
     word = token.translate(UPPER)
     if word not in CODES:
-        print(f"parse-verdict: unrecognised verdict word '{word}'", file=sys.stderr)
-        return 2
+        return 2, "", f"parse-verdict: unrecognised verdict word '{word}'\n"
     after = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
     if after:
         missing = [line for line in lines[:vidx] if MISSING_TEST_RE.match(line)]
         reason = "\n".join([*missing, after])
     else:
         reason = preceding_reason(lines[:vidx])
-    print(drop_closing_fence(reason.strip(SPACE)))
-    return CODES[word]
+    return CODES[word], drop_closing_fence(reason.strip(SPACE)), ""
+
+
+def main(argv):
+    code, reason, err = verdict(sys.stdin.read())
+    sys.stderr.write(err)
+    if code != 2:
+        print(reason)
+    return code
 
 
 if __name__ == "__main__":
