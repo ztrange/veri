@@ -278,3 +278,31 @@ def test_a_symlink_beside_no_scripts_still_finds_the_real_scripts_directory(tmp_
     monkeypatch.chdir(real.parent.parent)
 
     assert loaded.paths.inside_scripts(loaded.__file__) is True
+
+
+def _pin(tmp_path, text):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "issue-7-timeout").write_text(text)
+
+
+def test_settled_answers_none_when_the_run_pinned_no_timeout(tmp_path, leaf_timeout):
+    assert leaf_timeout.settled(str(tmp_path), 7) is None
+
+
+def test_settled_answers_the_pinned_seconds_as_written_without_the_trailing_newline(tmp_path, leaf_timeout):
+    _pin(tmp_path, "3570\n")
+    assert leaf_timeout.settled(str(tmp_path), 7) == "3570"
+    _pin(tmp_path, "010\n")
+    assert leaf_timeout.settled(str(tmp_path), "7") == "010"
+
+
+def test_settled_raises_malformed_naming_the_pin_file_for_text_that_is_not_a_whole_number_of_seconds_at_least_1(tmp_path, leaf_timeout):
+    seen = []
+    for text in ("abc\n", " 5\n", "-3\n", "0\n", "\n", ""):
+        _pin(tmp_path, text)
+        with pytest.raises(leaf_timeout.Malformed) as caught:
+            leaf_timeout.settled(str(tmp_path), 7)
+        seen.append((caught.value.path, caught.value.text, caught.value.not_a_number))
+    pin = str(tmp_path / ".tdd" / "issue-7-timeout")
+    assert seen == [(pin, "abc", True), (pin, " 5", True), (pin, "-3", True),
+                    (pin, "0", False), (pin, "", False), (pin, "", False)]

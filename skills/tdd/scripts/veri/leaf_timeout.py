@@ -22,6 +22,36 @@ def require_seconds(name, value):
     return 0
 
 
+class Malformed(Exception):
+    """A run's timeout pin holds something other than a whole number of seconds >= 1.
+    `path` is the pin file, `text` what it holds (trailing newlines dropped), `not_a_number` whether
+    that text is non-empty yet not digits (else it is empty or below 1)."""
+
+    def __init__(self, path, text):
+        super().__init__(f"{path} holds '{text}'")
+        self.path = path
+        self.text = text
+        self.not_a_number = bool(text) and entry.whole_number(text, 0) is None
+
+
+def pin_path(root, issue):
+    """The run's timeout pin: `<root>/.tdd/issue-<issue>-timeout`. str, never raises."""
+    return run_dir.issue_file(root, issue, "-timeout")
+
+
+def settled(root, issue):
+    """The seconds the run pinned for `issue` under `root`, as the digits written (leading zeros kept),
+    or None when no pin file exists. Raises Malformed for a pin that is not a whole number >= 1."""
+    path = pin_path(root, issue)
+    if not os.path.isfile(path):
+        return None
+    with open(path) as f:
+        text = f.read().rstrip("\n")
+    if entry.whole_number(text, 1) is None:
+        raise Malformed(path, text)
+    return text
+
+
 def record(timeout):
     issue = tunables.read("VERI_ISSUE")
     if not issue:
@@ -30,7 +60,7 @@ def record(timeout):
     root = next((d for d in (here, *here.parents) if (d / ".git").exists()), here)
     os.makedirs(os.path.join(root, ".tdd"), exist_ok=True)
     try:
-        with open(run_dir.issue_file(root, issue, "-timeout"), "x") as settled:
+        with open(pin_path(root, issue), "x") as settled:
             settled.write(f"{timeout}\n")
     except FileExistsError:
         pass
