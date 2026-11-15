@@ -24,8 +24,16 @@ Interface (a function says what it touches: text only, the tree's files, or case
   as_recorded(body, digests)              the first of root_variants(body) whose digest is in `digests`, else
                                           `body`. Text only.
 
+  path_holding(case, digests, only=None) the first file under the current directory (hidden directories skipped; only the
+                                          basename `only` when given) one of whose `case` bodies, or a root variant of
+                                          one, hashes into `digests`, as os.walk spells it ("./tests/x.py"); None when
+                                          none does. Reads the tree's files; OSError when one cannot be opened.
+  moved_path(name, case, digests)         `name` while that file exists, else the path_holding of a file of the same
+                                          basename, else of any file, else `name`. Reads the tree's files.
+
 Error modes: none of these catches anything; they raise only what case_reader raises on an unclosed JS call.
 """
+import os
 import re
 
 from case_reader import cut_cases
@@ -73,3 +81,27 @@ def root_variants(body):
 
 def as_recorded(body, digests):
     return next((v for v in root_variants(body) if body_digest(v) in digests), body)
+
+
+def path_holding(case, digests, only=None):
+    for top, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for file in files:
+            if only is not None and file != only:
+                continue
+            path = os.path.join(top, file)
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                if any(body_digest(v) in digests for body in bodies_of(handle.read(), case)
+                       for v in root_variants(body)):
+                    return path
+    return None
+
+
+def moved_path(name, case, digests):
+    if os.path.exists(name):
+        return name
+    return (
+        path_holding(case, digests, only=os.path.basename(name))
+        or path_holding(case, digests)
+        or name
+    )
