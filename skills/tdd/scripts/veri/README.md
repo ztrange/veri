@@ -7,7 +7,7 @@ run as scripts; a module that must also load as `veri.x` uses `try: from x impor
 the API; they are defined in the root `CLAUDE.md`.
 
 This file indexes the **shared modules**: those imported by two or more other modules here. A test
-(`tests/py/test_veri_interface_index.py`) fails when one lacks a section, when a section names a module that is not
+(`tests/py/unit/test_veri_interface_index.py`, a tree audit: `make test` runs it, `make unit` does not) fails when one lacks a section, when a section names a module that is not
 shared, when a module reads a sibling's underscore name, or when a module has no docstring. Under each heading are the
 names other modules use. Related names share a line where the list would otherwise pass about twelve lines.
 
