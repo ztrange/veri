@@ -163,7 +163,7 @@ def main(argv):
         steps = step_texts(read_ledger(argv[1]))
     except OSError as error:
         return unreadable(error)
-    budget = tunables.read("VERI_STEP_GROWTH", "5")
+    budget = tunables.get("VERI_STEP_GROWTH")
     if not re.fullmatch("[0-9]+", budget):
         print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
         return 2

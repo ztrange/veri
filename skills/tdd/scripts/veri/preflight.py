@@ -169,7 +169,7 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
         checked(5, script("refactor-budget.sh"), *args, cwd=wt, ok=(0, 3))
     if "plan" in tunables.read("VERI_SKIP_VERIFY").replace(",", " ").split():
         return stopped(5, "VERI_SKIP_VERIFY", 2)
-    if tunables.read("VERI_STEP_GROWTH", "unset") == "":
+    if tunables.set_but_empty("VERI_STEP_GROWTH"):
         return stopped(5, "VERI_STEP_GROWTH", 2)
     if not tunables.read("VERI_MISSING_REROUTE_BUDGET", "0").isdigit():
         return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)

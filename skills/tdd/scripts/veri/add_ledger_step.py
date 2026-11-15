@@ -252,7 +252,7 @@ def main(argv):
     if this_run and any(is_suite_repair(text) for text in texts):
         warn("add-ledger-step.sh: this run already inserted a suite-repair step: " + (earlier[0] if this_run is True else this_run))
         return 1
-    budget = tunables.read("VERI_STEP_GROWTH", "5")
+    budget = tunables.get("VERI_STEP_GROWTH")
     if not re.fullmatch("[0-9]+", budget):
         return entry.refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     out = []
