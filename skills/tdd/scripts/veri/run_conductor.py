@@ -33,6 +33,7 @@ import launch_floor
 import run_end
 import tunables
 from git import symref_default
+from leaf_log import result_text
 from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
@@ -383,12 +384,9 @@ def relay(stream, terminal, unread, results):
             os.write(terminal, raw)
         except OSError:
             unread.append(True)
-        try:
-            record = json.loads(raw)
-        except ValueError:
-            continue
-        if isinstance(record, dict) and record.get("type") == "result" and isinstance(record.get("result"), str):
-            results.append(record["result"])
+        text = result_text(raw)
+        if text is not None:
+            results.append(text)
 
 
 def closed(issue):

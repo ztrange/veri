@@ -15,7 +15,7 @@ import requirements
 import tunables
 import markdown_sections
 from extract_result import extract
-from leaf_log import result_records
+import leaf_log
 from run_verdict import SCRIPTS
 
 try:
@@ -259,7 +259,7 @@ def main(argv):
                 break
     finally:
         os.unlink(f.name)
-    cost = sum(float(r.get("total_cost_usd") or 0) for r in result_records(raw.splitlines()) if "result" in r)
+    cost = leaf_log.cost(raw.splitlines())
     if "BEGIN GRADES" not in reply:
         return no_verdict("the reply has no BEGIN GRADES block")
     reply = "\n".join(drop_off_list(reply[reply.rindex("BEGIN GRADES"):].split("\n"), wanted))
