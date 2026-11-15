@@ -50,7 +50,10 @@ def state_word(issue):
 
 
 class QueueUnreadable(Exception):
-    pass
+    @property
+    def kind(self):
+        """github.refusal_kind of the stderr this carries."""
+        return github.refusal_kind(str(self))
 
 
 def solvable_issues():
@@ -154,7 +157,7 @@ def main(argv):
             try:
                 solvable = solvable_issues()
             except QueueUnreadable as failure:
-                if "rate limit" not in str(failure):
+                if failure.kind != "rate-limit":
                     sys.stderr.write(str(failure))
                     return 2
                 resume_at = github.rate_limit_reset(subprocess.run)

@@ -73,7 +73,7 @@ def _read_after_rate_limit(read, path):
             return read(path)
         except github.NoAnswer as failure:
             detail = failure.detail or str(failure.answer)
-            if "rate limit" not in detail:
+            if failure.kind != "rate-limit":
                 raise
             if waits >= github.refusal_retries():
                 raise RateLimitPersists(f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n")
@@ -131,7 +131,7 @@ TRANSIENT_RETRY_BOUND = 12
 
 
 def transient(detail):
-    return "HTTP 5" in detail or "error connecting to api.github.com" in detail
+    return github.refusal_kind(detail) == "transient"
 
 
 def answered(what, read, *args, **kwargs):
@@ -151,7 +151,7 @@ def answered(what, read, *args, **kwargs):
                 time.sleep(int(tunables.get("VERI_DISPATCH_RETRY_SLEEP")))
                 continue
             unreadable = f"dispatch.sh: reading {what} failed: {detail}\n"
-            if "rate limit" in detail:
+            if github.refusal_kind(detail) == "rate-limit":
                 limited[what] = limited.get(what, 0) + 1
                 if limited[what] > github.refusal_retries():
                     raise RateLimitPersists(unreadable)
@@ -418,7 +418,7 @@ def main(argv):
                 sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
-                if "rate limit" in str(failure) and not isinstance(failure, RateLimitPersists):
+                if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
                     resume_at = github.rate_limit_reset(subprocess.run)
                 elif str(failure):
                     sys.stderr.write(str(failure))
