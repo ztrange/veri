@@ -48,7 +48,7 @@ class Watch(NamedTuple):
 
 
 def not_a_number(var, value):
-    if not re.fullmatch(r"[0-9]+", value):
+    if entry.whole_number(value, 0) is None:
         return entry.refuse(f"supervise: {var} is not a number: '{value}'")
     return None
 
