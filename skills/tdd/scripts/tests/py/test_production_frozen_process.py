@@ -4,6 +4,7 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import commit_all
 
 FROZEN = SCRIPTS / "production-frozen.sh"
 
@@ -11,11 +12,6 @@ FROZEN = SCRIPTS / "production-frozen.sh"
 def git(repo, *args):
     return subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
                           capture_output=True, text=True, check=True).stdout.strip()
-
-
-def commit_all(repo, message):
-    git(repo, "add", "-A")
-    git(repo, "commit", "-q", "-m", message)
 
 
 def frozen(repo, base):
