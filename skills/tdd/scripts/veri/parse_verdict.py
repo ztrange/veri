@@ -4,6 +4,8 @@ import re
 import string
 import sys
 
+from entry import no_arguments
+
 SPACE = " \t\n\v\f\r"
 
 
@@ -107,6 +109,9 @@ def verdict(text):
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     code, reason, err = verdict(sys.stdin.read())
     sys.stderr.write(err)
     if code != 2:
