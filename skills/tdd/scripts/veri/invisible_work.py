@@ -5,28 +5,17 @@ import subprocess
 import sys
 
 try:
-    from git import git, symref_default
+    from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
     from github import NoAnswer, gh_json
     from json_documents import items
 except ImportError:
-    from .git import git, symref_default
+    from .git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
     from .github import NoAnswer, gh_json
     from .json_documents import items
 
 
-class GitFailed(Exception):
-    pass
-
-
 def git_out(*args):
     return git(*args, stdout=subprocess.PIPE, text=True).stdout
-
-
-def git_value(*args, **kwargs):
-    run = git(*args, stdout=subprocess.PIPE, text=True, **kwargs)
-    if run.returncode != 0:
-        raise GitFailed()
-    return run.stdout.rstrip("\n")
 
 
 def refs(prefix):
@@ -36,17 +25,15 @@ def refs(prefix):
 
 
 def default_branch():
-    try:
-        return git_value("symbolic-ref", "--short", "refs/remotes/origin/HEAD",
-                         stderr=subprocess.DEVNULL).removeprefix("origin/")
-    except GitFailed:
-        pass
+    name = local_default_branch(remote=False)
+    if name is not None:
+        return name
     name = symref_default(git_out("ls-remote", "--symref", "origin", "HEAD"))
     if name is not None:
         return name
     print("invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch",
           file=sys.stderr)
-    raise GitFailed()
+    raise GitFailed(("ls-remote", "--symref", "origin", "HEAD"), 0, "names no default branch")
 
 
 def remote_rows(default):
