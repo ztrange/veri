@@ -10,6 +10,7 @@ import pytest
 from veri import supervise
 
 HEAD = "git -C"
+TOP = "git rev-parse --show-toplevel"
 REFUSING = "supervise: refusing to launch {}: {}"
 
 
@@ -228,3 +229,32 @@ def test_perform_writes_exit_then_the_event_then_stderr_and_returns_2(work_tree,
     assert (code, seen, capsys.readouterr().err) == (
         2, [("actor=supervisor", ("launch-refused", "name=x", "reason=why"), "2\n", "")],
         "supervise: refusing to launch x: why\n")
+
+
+def ledger_of(root, *lines):
+    (root / ".tdd").mkdir(exist_ok=True)
+    (root / ".tdd" / "issue-7.md").write_text("".join(f"- [ ] {line}\n" for line in lines))
+
+
+@pytest.mark.parametrize("reference", ["0", "00"])
+def test_gate_18_a_step_reference_of_zero_names_no_step_like_one_past_the_ledger(work_tree, monkeypatch, fake_processes, reference):
+    ledger_of(work_tree, "first", "second")
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    monkeypatch.setenv("VERI_STEP", reference)
+    monkeypatch.setattr(supervise, "pass_marker_current", lambda text: True)
+    fake_processes.answers({TOP: (1, "", ""), HEAD: (0, "abc\n", ""), "git check-ignore": (1, "", ""), "git add": (0, "", ""),
+                            "git write-tree": (0, "tree\n", "")})
+
+    assert shape(supervise.launch_plan(["verify-red", "true"])) == hand_exit(
+        "verify-red", f"step {reference} has no current check-earlier pass marker (run tests-frozen.sh check-earlier first)")
+
+
+def test_gate_16_a_step_reference_of_zero_is_no_ci_repair_step_even_when_the_last_step_is_one(work_tree, monkeypatch, fake_processes):
+    ledger_of(work_tree, "first", "second ⟦ci-repair⟧")
+    (work_tree / ".tdd" / "events.jsonl").write_text(json.dumps({"event": "launch", "step": "0", "phase": "red"}) + "\n")
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    monkeypatch.setenv("VERI_STEP", "0")
+    fake_processes.answers({TOP: (1, "", ""), HEAD: (0, "abc\n", "")})
+
+    assert shape(supervise.launch_plan(["develop-green", "true"])) == hand_exit(
+        "develop-green", "step 0 has no verify-red PASS after its latest red leaf")
