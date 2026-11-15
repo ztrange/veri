@@ -2,7 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-from entry import write
+from entry import no_arguments, write
 from report import report_read
 
 
@@ -10,6 +10,9 @@ USAGE = "usage: cover-outcome.sh (the cover leaf's report on stdin)"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     report = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
     fields = report_read(report, ("COVERED", "CAUGHT_BY", "PROOF"))
     covered = fields.get("COVERED", "")
