@@ -8,7 +8,8 @@ Vocabulary, as these audits use it:
 - flat: a text with every run of whitespace collapsed to one space, so a line break in the document or in a
   literal never decides a match.
 - reader: a test case that, directly or through the module-level functions and constants it mentions, both
-  reaches SKILL.md (a name such as SKILL, SKILL_MD or skill_lines, or a literal path ending in SKILL.md) and
+  reaches SKILL.md (a name such as SKILL, SKILL_MD, skill_lines or skill_sections; with `Subsection.path_literal`,
+  also a string literal that is a path ending in SKILL.md, which a fixture repo's synthetic SKILL.md would trip) and
   reads this subsection: it carries one of the spec's markers, names the heading (or a prefix of it from
   `Subsection.prefix` on), or carries a literal of three or more words that the subsection holds and no other
   part of SKILL.md does. One or two words read as script vocabulary or a case's own message, so neither counts.
