@@ -18,7 +18,7 @@ from git import git, symref_default
 import github
 from github import NoAnswer, gh_json
 from json_documents import items
-from pid_file import live_conductor
+from pid_file import ancestors, live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
 PREFIX = "issue-worktree: "
@@ -95,22 +95,6 @@ def claiming_pr(issue, url):
 
 def worktree_add(*args):
     return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
-
-
-def ps_field(pid, field):
-    ps = subprocess.Popen(["ps", "-p", str(pid), "-o", field + "="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    out = ps.communicate()[0].strip()
-    return out if ps.returncode == 0 else ""
-
-
-def ancestors():
-    found = set()
-    pid = os.getpid()
-    while pid > 1 and pid not in found:
-        found.add(pid)
-        parent = ps_field(pid, "ppid")
-        pid = int(parent) if parent.isdigit() else 0
-    return found
 
 
 def main(argv):
