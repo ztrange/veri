@@ -1,5 +1,24 @@
-"""The one per-line parse of a run's events.jsonl and the one dollar/token sum over its
-`usage` events, which status.sh's run_activity and scope_totals both read through (#281)."""
+"""The one module that knows a run's journal, `<run>/.tdd/events.jsonl`: where it is, how a
+line parses, and which events of a kind it holds (#281).
+
+Interface by run (the run directory; "." for the current run):
+  path(run)                       the journal's path
+  events(run, *kinds, ...)        the events of those kinds (all when none), in journal order
+  last(run, kind, ...)            the last event of a kind, or None
+
+Interface by path (a journal file already in hand):
+  read_events, read_json_lines, append_bytes, usage_totals
+
+A run with no journal has no events: `events` returns [] and `last` None. A journal that
+exists but cannot be opened (a directory, no permission) raises OSError.
+"""
+import json
+from pathlib import Path
+
+try:
+    from run_dir import run_file
+except ImportError:
+    from .run_dir import run_file
 import json
 from pathlib import Path
 
@@ -31,6 +50,31 @@ def read_events(path, skip_unreadable=False, mark_unreadable=False, errors="repl
                 raise refusal from error
             events.append(event)
     return events
+
+
+def path(run):
+    """The path of `run`'s journal, whether or not it exists."""
+    return run_file(run, "events.jsonl")
+
+
+def events(run, *kinds, skip_unreadable=False, errors="replace"):
+    """The events of `run`'s journal whose "event" is one of `kinds` (every event when no
+    kind is given), in journal order; [] when the run has no journal. An unreadable line
+    (not a JSON object) raises ValueError naming the journal, unless skip_unreadable drops
+    it; errors="strict" makes an undecodable byte raise UnicodeDecodeError instead of
+    becoming U+FFFD."""
+    try:
+        found = read_events(path(run), skip_unreadable=skip_unreadable, errors=errors)
+    except FileNotFoundError:
+        return []
+    return [e for e in found if not kinds or e.get("event") in kinds]
+
+
+def last(run, kind, **tolerance):
+    """The last event of `kind` in `run`'s journal, or None when there is none or no
+    journal. Takes `events`' skip_unreadable and errors; raises as `events` does."""
+    found = events(run, kind, **tolerance)
+    return found[-1] if found else None
 
 
 def read_json_lines(path):

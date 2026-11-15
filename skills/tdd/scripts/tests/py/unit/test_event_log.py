@@ -74,3 +74,75 @@ def test_read_events_2035_with_errors_strict_keeps_raising_unicode_decode_error_
         event_log.read_events(log, errors="strict")
     with pytest.raises(UnicodeDecodeError):
         event_log.read_events(log, skip_unreadable=True, errors="strict")
+
+
+def _journal(tmp_path, text):
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(text)
+    return str(tmp_path)
+
+
+def test_journal_path_is_events_jsonl_under_the_runs_tdd_directory(event_log):
+    assert event_log.path("/some/run") == "/some/run/.tdd/events.jsonl"
+
+
+def test_events_without_kinds_returns_every_event_in_order_and_skips_blank_lines(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "a"}\n\n   \n{"event": "b"}\n')
+
+    assert event_log.events(run) == [{"event": "a"}, {"event": "b"}]
+
+
+def test_events_of_a_run_with_no_journal_is_an_empty_list(tmp_path, event_log):
+    assert event_log.events(str(tmp_path)) == []
+    assert event_log.events(str(tmp_path), "done") == []
+
+
+def test_events_with_kinds_keeps_only_those_kinds_in_journal_order(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "a", "n": 1}\n{"event": "b"}\n{"event": "c"}\n{"event": "a", "n": 2}\n')
+
+    assert event_log.events(run, "a") == [{"event": "a", "n": 1}, {"event": "a", "n": 2}]
+    assert event_log.events(run, "c", "b") == [{"event": "b"}, {"event": "c"}]
+    assert event_log.events(run, "zzz") == []
+
+
+def test_events_by_default_refuses_an_unreadable_line_naming_the_journal(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "a"}\nnot json\n')
+
+    with pytest.raises(ValueError, match="events.jsonl"):
+        event_log.events(run)
+
+
+def test_events_with_skip_unreadable_drops_unreadable_lines(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "a"}\nnot json\n[1]\n{"event": "b"}\n')
+
+    assert event_log.events(run, skip_unreadable=True) == [{"event": "a"}, {"event": "b"}]
+    assert event_log.events(run, "b", skip_unreadable=True) == [{"event": "b"}]
+
+
+def test_events_errors_strict_refuses_an_undecodable_byte_and_default_replaces_it(tmp_path, event_log):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_bytes(b'{"event": "a", "note": "x\xff"}\n')
+
+    assert event_log.events(str(tmp_path))[0]["note"] == "x�"
+    with pytest.raises(ValueError):
+        event_log.events(str(tmp_path), errors="strict")
+
+
+def test_last_returns_the_last_event_of_a_kind(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "bail", "n": 1}\n{"event": "x"}\n{"event": "bail", "n": 2}\n{"event": "x"}\n')
+
+    assert event_log.last(run, "bail") == {"event": "bail", "n": 2}
+
+
+def test_last_is_none_when_the_kind_is_absent_or_the_journal_missing(tmp_path, event_log):
+    assert event_log.last(str(tmp_path), "done") is None
+    run = _journal(tmp_path, '{"event": "x"}\n')
+    assert event_log.last(run, "done") is None
+
+
+def test_last_passes_the_tolerance_flags_through(tmp_path, event_log):
+    run = _journal(tmp_path, '{"event": "done", "pr": 1}\nnot json\n')
+
+    with pytest.raises(ValueError):
+        event_log.last(run, "done")
+    assert event_log.last(run, "done", skip_unreadable=True) == {"event": "done", "pr": 1}
