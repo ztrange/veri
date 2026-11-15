@@ -23,7 +23,7 @@ def fake_stdin(monkeypatch, data):
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(data)))
 
 
-def test_main_prints_the_first_open_step_exits_3_over_an_all_done_ledger_and_ignores_arguments(
+def test_main_prints_the_first_open_step_exits_3_over_an_all_done_ledger(
         monkeypatch, capsysbinary, next_unchecked):
     all_done = (
         "# Plan for #42\n"
@@ -33,17 +33,14 @@ def test_main_prints_the_first_open_step_exits_3_over_an_all_done_ledger_and_ign
     ).encode()
     results = {}
     for ledger_name, ledger in (("slugify", SLUGIFY), ("all done", all_done)):
-        for argv in ([], ["--bogus"]):
-            fake_stdin(monkeypatch, ledger)
-            code = next_unchecked.main(argv)
-            results[(ledger_name, *argv)] = (code, *capsysbinary.readouterr())
+        fake_stdin(monkeypatch, ledger)
+        code = next_unchecked.main([])
+        results[ledger_name] = (code, *capsysbinary.readouterr())
 
     assert all(code in range(4) for code, _, _ in results.values())
     assert results == {
-        ("slugify",): (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
-        ("slugify", "--bogus"): (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
-        ("all done",): (3, b"", b""),
-        ("all done", "--bogus"): (3, b"", b""),
+        "slugify": (0, b"collapse non-alphanumerics to a single hyphen\n", b""),
+        "all done": (3, b"", b""),
     }
 
 
@@ -113,21 +110,25 @@ def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_back_as_itself(
     assert (code, *capsysbinary.readouterr()) == (0, b"a caf\xe9 cog\n", b"")
 
 
-def test_main_writes_nothing_on_stderr_for_a_printed_step_exit_3_or_arguments_given(
+def test_main_writes_nothing_on_stderr_for_a_printed_step_exit_3(
         monkeypatch, capsysbinary, next_unchecked):
     stderr = {}
     for ledger_name, ledger in (("printed step", SLUGIFY), ("no step", b"# Plan for #42\n")):
-        for argv in ([], ["--bogus", "extra"]):
-            fake_stdin(monkeypatch, ledger)
-            code = next_unchecked.main(argv)
-            stderr[(ledger_name, *argv)] = (code, capsysbinary.readouterr().err)
+        fake_stdin(monkeypatch, ledger)
+        code = next_unchecked.main([])
+        stderr[ledger_name] = (code, capsysbinary.readouterr().err)
 
-    assert stderr == {
-        ("printed step",): (0, b""),
-        ("printed step", "--bogus", "extra"): (0, b""),
-        ("no step",): (3, b""),
-        ("no step", "--bogus", "extra"): (3, b""),
-    }
+    assert stderr == {"printed step": (0, b""), "no step": (3, b"")}
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_ledger_unread(
+        monkeypatch, capsysbinary, next_unchecked):
+    fake_stdin(monkeypatch, SLUGIFY)
+
+    code = next_unchecked.main(["--bogus", "extra"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"next-unchecked.sh: unexpected argument '--bogus'\n{next_unchecked.USAGE}\n".encode())
 
 
 CONTRACT_CASES = (

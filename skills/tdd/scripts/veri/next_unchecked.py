@@ -4,6 +4,7 @@ import os
 import sys
 
 import tunables
+from entry import no_arguments
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
 
@@ -11,6 +12,9 @@ USAGE = "usage: next-unchecked.sh (the ledger on stdin)"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     text = read_ledger_stdin()
     for record in ledger_steps(text):
         if handed_out(record):
