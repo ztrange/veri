@@ -45,13 +45,6 @@ def sibling(name):
     return os.path.join(SCRIPTS, name)
 
 
-def start(args, **kwargs):
-    try:
-        return subprocess.run(args, **kwargs)
-    except OSError:
-        return subprocess.CompletedProcess(args, 127, b"")
-
-
 def mark(role, *words):
     return event.mark("", event.context(role), words[0], words[1:])
 
@@ -62,17 +55,13 @@ def preserve(issue, step, leaf, attempt, outcome):
                % (outcome, issue, step, leaf, attempt))
 
 
-def git(*args, env=None):
-    return start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-
-
 def unreadable_gitconfig(unreadable):
     write(sys.stderr, "verify: cannot read the global git config %s: %s" % (unreadable.path, unreadable.strerror))
     return 2
 
 
 def save_diff(leaf, tree_before, tree_after):
-    diff = git("diff", "--binary", "--no-ext-diff", "--no-textconv", "--no-color",
+    diff = leaf_tree_guard.git("diff", "--binary", "--no-ext-diff", "--no-textconv", "--no-color",
                "--src-prefix=a/", "--dst-prefix=b/", "-U3", tree_before, tree_after)
     path = run_dir.run_file("", "%s.diff" % leaf)
     if diff.returncode == 0 and not diff.stdout:
@@ -136,7 +125,7 @@ def case_pattern(name):
 
 
 def pytest_cases(sha):
-    listed = git("ls-tree", "-r", "--name-only", sha)
+    listed = leaf_tree_guard.git("ls-tree", "-r", "--name-only", sha)
     if listed.returncode != 0:
         return None
     cases = set()
@@ -144,7 +133,7 @@ def pytest_cases(sha):
         pattern = case_pattern(path.rsplit("/", 1)[-1])
         if pattern is None:
             continue
-        shown = git("show", "%s:%s" % (sha, path))
+        shown = leaf_tree_guard.git("show", "%s:%s" % (sha, path))
         if shown.returncode != 0:
             return None
         for found in re.finditer(pattern, shown.stdout.decode(), re.M):
@@ -164,8 +153,8 @@ def deleted_cases(branch_base, step_base, tip="HEAD"):
 
 def rename_of(find, case, step_base, taken, tip="HEAD"):
     path, name = case
-    old = git("show", "%s:%s" % (step_base, path))
-    new = git("show", "%s:%s" % (tip, path))
+    old = leaf_tree_guard.git("show", "%s:%s" % (step_base, path))
+    new = leaf_tree_guard.git("show", "%s:%s" % (tip, path))
     return find(name, old.stdout.decode(), new.stdout.decode(), taken)
 
 
@@ -178,7 +167,7 @@ def changed_rename(case, step_base, taken, tip="HEAD"):
 
 
 def added_markers(onto):
-    log = git("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--format=commit %H", onto + "..HEAD")
+    log = leaf_tree_guard.git("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--format=commit %H", onto + "..HEAD")
     found, sha, path = [], None, None
     for line in log.stdout.decode("utf-8", "replace").splitlines():
         if line.startswith("commit "):
@@ -191,20 +180,20 @@ def added_markers(onto):
 
 
 def passes_in(gate, cwd):
-    done = start(["sh", "-c", gate], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                 stderr=subprocess.STDOUT)
+    done = leaf_tree_guard.start(["sh", "-c", gate], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
     return done.returncode == 0, done.stdout.decode("utf-8", "replace")
 
 
 def fails_at_head(gate, output):
     scratch = tempfile.mkdtemp(prefix="veri-head-")
     try:
-        git("worktree", "add", "--detach", scratch + "/tree", "HEAD~1")
+        leaf_tree_guard.git("worktree", "add", "--detach", scratch + "/tree", "HEAD~1")
         try:
             passed, before_output = passes_in(gate, scratch + "/tree")
             return not passed and before_output == output
         finally:
-            git("worktree", "remove", "--force", scratch + "/tree")
+            leaf_tree_guard.git("worktree", "remove", "--force", scratch + "/tree")
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
@@ -246,7 +235,7 @@ def main(argv):
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     base = ""
     if words[0] == "pin":
-        base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
+        base = leaf_tree_guard.git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
         if not base:
             write(sys.stderr, "verify: no merge-base of HEAD and origin/HEAD; a pin needs the real before-state")
             return 2
@@ -256,7 +245,7 @@ def main(argv):
                                             ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
         return entry.to_contract(code)
-    if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
+    if words[0] == "diff" and leaf_tree_guard.git("rev-parse", "--git-dir").returncode == 0:
         tip = "HEAD"
         if options["--supersede-base"]:
             tip = leaf_tree_guard.in_temp_index("write-tree")
@@ -274,7 +263,7 @@ def main(argv):
             write(sys.stdout, "step deleted pytest cases an earlier step added: "
                    + ", ".join("%s::%s" % case for case in deleted))
             return 1
-    if words[0] == "rebase" and git("rev-parse", "--git-dir").returncode == 0:
+    if words[0] == "rebase" and leaf_tree_guard.git("rev-parse", "--git-dir").returncode == 0:
         marked = added_markers(words[2])
         if marked:
             write(sys.stdout, "rebase committed conflict markers: "
@@ -317,7 +306,7 @@ def main(argv):
     else:
         launch_env = tunables.without("VERI_MUTATION_RECORD")
     while True:
-        launched = start(
+        launched = leaf_tree_guard.start(
             [sibling("supervise.sh"), leaf,
              sibling("run-leaf.sh"), prompt_path, *flags],
             env=launch_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

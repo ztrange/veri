@@ -352,7 +352,7 @@ The verifier and adjudicator legs: run the blind verifier, parse its verdict, co
 - `run-verdict.sh`: run a verifier and print its verdict.
 - `same-reject.sh`: compare two rejects.
 - `verify.sh`: run a verify leg and decide its verdict.
-- `leaf_tree_guard`: snapshot the repository before a verifier leaf, report what the leaf changed and put it back.
+- `leaf_tree_guard`: snapshot the repository before a verifier leaf, report what the leaf changed and put it back; `start(args, **kwargs)` (a `subprocess.run` answering a 127 CompletedProcess when the program cannot start) and `git(*args, env=None)` (its stdout captured, stderr dropped) are the process boundary `verify` shares.
 
 # Budgets and cost
 

@@ -3035,7 +3035,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
     git("commit", "-q", "-m", "base")
     expected = []
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3044,7 +3044,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
         expected.append(git("diff", "HEAD", "--", "tracked.txt"))
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
@@ -3081,7 +3081,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
     git("commit", "-q", "-m", "base")
     launches = []
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3090,7 +3090,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
         os.chmod(repo / "tracked.sh", 0o644)
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
@@ -3122,7 +3122,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3130,7 +3130,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
         (repo / "blob.bin").write_bytes(after)
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
@@ -3168,7 +3168,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3177,7 +3177,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
         (repo / ".tdd" / "verify-green.diff").mkdir()
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     try:
         code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -3212,7 +3212,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3221,7 +3221,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
         git("config", "diff.orderFile", str(tmp_path / "no-such-order-file"))
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
@@ -3255,7 +3255,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
     (repo / ".tdd").mkdir(exist_ok=True)
     (repo / ".tdd" / "verify-green.diff").write_text("an earlier refusal's diff\n")
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3264,7 +3264,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
         git("config", "diff.orderFile", str(tmp_path / "no-such-order-file"))
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
@@ -3295,7 +3295,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     verify = importlib.import_module("veri.verify")
-    real_start = verify.start
+    real_start = verify.leaf_tree_guard.start
 
     def stub_start(args, **kwargs):
         if os.path.basename(str(args[0])) != "supervise.sh":
@@ -3306,7 +3306,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
         git("config", "core.abbrev", "4")
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n")
 
-    monkeypatch.setattr(verify, "start", stub_start)
+    monkeypatch.setattr(verify.leaf_tree_guard, "start", stub_start)
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
 
