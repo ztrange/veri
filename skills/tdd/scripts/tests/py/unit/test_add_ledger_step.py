@@ -1801,3 +1801,48 @@ def test_spec_criteria_reads_the_section_as_tick_issue_criterion_does_last_headi
         spec.write_text(text)
         got[name] = add_ledger_step.spec_criteria(str(ledger))
     assert got == {name: (2, {"1"}) for name in ("crlf", "fenced", "second heading", "h1 ends")}
+
+
+def test_add_inserts_each_text_at_the_anchor_through_typed_parameters_like_main(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    via_main, via_add = tmp_path / "main" / "issue-42.md", tmp_path / "add" / "issue-42.md"
+    for ledger in (via_main, via_add):
+        ledger.parent.mkdir()
+        ledger.write_bytes(LEDGER)
+
+    code_main = add_ledger_step.main([str(via_main), "before", "b two", "t1", "t2"])
+    out_main = capsys.readouterr()
+    code_add = add_ledger_step.add(str(via_add), "before", "b two", ["t1", "t2"])
+    out_add = capsys.readouterr()
+
+    assert (code_main, code_add) == (0, 0)
+    assert via_add.read_bytes() == via_main.read_bytes()
+    assert via_add.read_bytes().decode().split("\n")[3:6] == [
+        "- [ ] t1 ⟦added⟧ ⟦criterion 2⟧",
+        "- [ ] t2 ⟦added⟧ ⟦criterion 2⟧",
+        "- [ ] b two ⟦criterion 2⟧",
+    ]
+    assert out_add == out_main
+
+
+def test_add_with_criterion_and_planned_tags_the_step_and_leaves_the_growth_budget_alone(tmp_path, monkeypatch, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    (tmp_path / "issue-42-spec.md").write_text("- [ ] one\n- [ ] two\n- [ ] three\n- [ ] four\n")
+
+    code = add_ledger_step.add(str(ledger), "after", "c three", ["new"], criterion="4", planned=True)
+
+    assert code == 0
+    assert ledger.read_bytes().decode().split("\n")[5] == "- [ ] new ⟦criterion 4⟧"
+
+
+def test_add_refuses_an_anchor_that_matches_no_single_step_with_exit_2_and_changes_nothing(tmp_path, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+
+    code = add_ledger_step.add(str(ledger), "after", "zzz", ["t"])
+
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (2, "", "add-ledger-step.sh: anchor matches no single step: zzz\n")
+    assert ledger.read_bytes() == LEDGER
