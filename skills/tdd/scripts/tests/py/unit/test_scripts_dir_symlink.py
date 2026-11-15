@@ -40,7 +40,7 @@ def test_four_more_modules_keep_the_symlinked_scripts_directory_they_were_reache
                     "run_leaf": os.path.join(scripts, "leaf-guard")}
 
 
-def test_run_conductor_and_solvable_issues_keep_the_symlinked_scripts_directory_they_derive(tmp_path, monkeypatch):
+def test_run_conductor_and_solvable_issues_keep_the_symlinked_scripts_directory_they_derive(tmp_path, monkeypatch, fake_processes):
     farm = tmp_path.resolve() / "farm" / "scripts"
     (farm / "veri").mkdir(parents=True)
     loaded = {}
@@ -68,12 +68,10 @@ def test_run_conductor_and_solvable_issues_keep_the_symlinked_scripts_directory_
     except Stop:
         pass
 
-    class Listing:
-        stdout = f"1 {farm}/run-conductor.sh 7\n"
-
+    ps = fake_processes.answers({"ps ": (0, f"1 {farm}/run-conductor.sh 7\n", "")})
     issues = loaded["solvable_issues"]
-    monkeypatch.setattr(issues.subprocess, "run", lambda *args, **kwargs: Listing())
     assert (based, issues.running_numbers()) == ([str(farm.parent)], {7})
+    assert ps.argvs == [["ps", "-axo", "pid=,command="]]
 
 
 def test_five_modules_resolve_the_symlinked_scripts_directory_to_its_target(tmp_path, monkeypatch):
