@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import detect_test_command as detect
+import run_dir
 
 MARKER = b"veri: setup:"
 
@@ -18,7 +19,7 @@ def main(argv):
     try:
         detect.answer_from_file("CLAUDE.md", MARKER)
     except detect.Answer as found:
-        done = f".tdd/issue-{argv[0]}-setup-done"
+        done = run_dir.issue_file(".", argv[0], "-setup-done")
         if os.path.exists(done):
             return 3
         command = found.command.decode()

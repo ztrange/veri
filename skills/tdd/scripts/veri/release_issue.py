@@ -6,6 +6,7 @@ import sys
 
 import event
 import github
+import run_dir
 import tunables
 
 USAGE = "usage: release-issue.sh <issue-number>\n"
@@ -54,7 +55,7 @@ def main(argv):
         except github.NoAnswer:
             sys.stderr.write("release-issue.sh: no answer from gh releasing #%s; re-run it\n" % number)
             return 2
-    open(os.path.join(event.toplevel(), ".tdd", "issue-%s-released" % number), "w").close()
+    open(run_dir.issue_file(event.toplevel(), number, "-released"), "w").close()
     return 0
 
 

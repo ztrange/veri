@@ -7,6 +7,8 @@ import sys
 import time
 
 from full_tier_time import main_tree
+import event_log
+import run_dir
 import timed_n_format
 import tunables
 
@@ -17,7 +19,7 @@ USAGE = ("usage: role-state.sh <coord|dev> [--lane <lane>] set <n|lane|coordinat
 
 def state_path(tree, role, lane=None):
     name = role if lane is None else "%s-%s" % (role, lane)
-    return os.path.join(tree, ".tdd", "role-%s.state" % name)
+    return run_dir.main_file(tree, "role-%s.state" % name)
 
 
 STAMP = "%Y-%m-%dT%H:%M:%S"
@@ -93,8 +95,8 @@ def do_recovered(path, argv):
 
 def launched_since(path, recovered):
     since = epoch(recovered)
-    tdd = os.path.dirname(path)
-    journals = [os.path.join(tdd, "events.jsonl")] + sorted(glob.glob(os.path.join(tdd, "wt", "*", ".tdd", "events.jsonl")))
+    main = os.path.dirname(os.path.dirname(path))
+    journals = [event_log.path(main)] + sorted(glob.glob(event_log.path(os.path.join(run_dir.worktrees(main), "*"))))
     events = [json.loads(l) for j in journals for l in (read(j) or "").splitlines()]
     return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
 
