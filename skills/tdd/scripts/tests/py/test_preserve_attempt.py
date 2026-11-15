@@ -8,6 +8,8 @@ import tempfile
 
 import pytest
 
+from repo_builder import commit_all, new_repo
+
 
 @pytest.fixture
 def preserve_attempt():
@@ -611,17 +613,14 @@ def git_in(repo, *args):
                           env={**os.environ, **IDENT})
 
 
-def make_repo(root):
-    root.mkdir(parents=True)
-    git_in(root, "init", "-q", "-b", "main")
-    (root / "stop-run.sh").write_text("committed\n")
-    git_in(root, "add", "stop-run.sh")
-    git_in(root, "commit", "-q", "-m", "initial")
+def committed_repo(root):
+    new_repo(root)
+    commit_all(root, "initial", **{"stop-run.sh": "committed\n"})
     return root
 
 
 def dirty_repo(root):
-    make_repo(root)
+    committed_repo(root)
     (root / "stop-run.sh").write_text(REJECTED + "\n")
     return root
 
@@ -684,7 +683,7 @@ def test_leaves_head_the_index_and_git_log_untouched(tmp_path, monkeypatch, run_
 @pytest.mark.process("real git repository and the leaf's files")
 def test_copies_the_leafs_log_and_final_output_to_names_carrying_step_phase_attempt_and_mark(
         tmp_path, monkeypatch, run_cli, preserve_attempt):
-    repo = make_repo(tmp_path / "repo")
+    repo = committed_repo(tmp_path / "repo")
     leaf_output(repo, "streamed progress", "final result text")
     code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
                                  "409", "3", "develop-green", "1", "reject")
@@ -699,7 +698,7 @@ def test_copies_the_leafs_log_and_final_output_to_names_carrying_step_phase_atte
 @pytest.mark.process("real git repository and the leaf's files")
 def test_preserves_the_log_of_a_leaf_that_wrote_no_final_output_with_exit_0(
         tmp_path, monkeypatch, run_cli, preserve_attempt):
-    repo = make_repo(tmp_path / "repo")
+    repo = committed_repo(tmp_path / "repo")
     leaf_output(repo, "streamed progress")
     code, out, err = preserve_in(run_cli, preserve_attempt, monkeypatch, repo,
                                  "409", "3", "develop-green", "1", "stuck")
@@ -767,7 +766,7 @@ def test_preserves_the_attempt_under_a_ref_git_accepts_when_the_step_title_carri
 @pytest.mark.process("real git repository and the leaf's files")
 def test_names_the_leafs_copies_by_the_steps_ledger_index_so_a_title_carrying_a_slash_writes_no_nested_path(
         tmp_path, monkeypatch, run_cli, preserve_attempt):
-    repo = make_repo(tmp_path / "repo")
+    repo = committed_repo(tmp_path / "repo")
     prose = "A leaf's output is kept under refs/veri, not the branch"
     write_ledger(repo, "The first step, already done", prose)
     leaf_output(repo, "streamed progress", "final result text")
@@ -803,7 +802,7 @@ def test_exits_exactly_1_with_the_could_not_preserve_line_last_on_stderr_when_an
 @pytest.mark.process("real git repository carrying a copy of the skill, left without a side ref")
 def test_refuses_from_the_skills_own_scripts_directory_with_exit_2_one_stderr_line_and_no_ref_or_attempts_entry(
         tmp_path, monkeypatch, run_cli, preserve_attempt):
-    decoy = make_repo(tmp_path / "decoy")
+    decoy = committed_repo(tmp_path / "decoy")
     write_ledger(decoy, "The first step, already done", "A step the decoy is on")
     leaf_output(decoy, "decoy progress", "decoy result")
     ledger_before = (decoy / ".tdd" / "issue-409.md").read_text()
@@ -888,7 +887,7 @@ def test_makes_one_ref_git_accepts_for_a_step_holding_multi_byte_characters_a_sl
 
 
 def tracked_ignored_repo(root):
-    make_repo(root)
+    committed_repo(root)
     (root / "t.txt").write_text("committed\n")
     (root / "gone.txt").write_text("committed\n")
     git_in(root, "add", "t.txt", "gone.txt")
