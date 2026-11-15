@@ -132,3 +132,7 @@ def test_refactor_totals_are_a_row_per_step_then_the_issue_each_with_counts_and_
     assert folded.refactor_totals == [
         ("one", 2, 3, 0, [("budget-spent", 1), ("candidates-done", 1)]),
         ("issue", 3, 4, 0, [("budget-spent", 2), ("candidates-done", 1)])]
+
+
+def test_the_model_table_is_shown_when_a_model_answered_or_a_launch_named_one(folded):
+    assert folded.by_model_shown is True

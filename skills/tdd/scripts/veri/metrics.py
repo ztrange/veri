@@ -1,4 +1,24 @@
-"""metrics.sh's report, rendered in-process."""
+"""metrics.sh's report, rendered in-process, in two stages.
+
+    fold(issue, events_path, ledger_path) -> Fold    what the report says: reads the event log, the ledger,
+                                                     the conductor stream log, the transcripts and the
+                                                     environment; computes every number; prints nothing
+    layout(fold)                                     how it is printed: reads only the Fold
+    render(...) is layout(fold(...)); report() captures it as text, main() is the CLI.
+
+A Fold holds plain data. Tables are {key: {column: number}} dicts (phases, by_model, lost, steps; `total` is
+one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_COLUMNS. Fields:
+  header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
+             pinned, model_knobs, models
+  tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
+             adjudications, switched_off, total
+  refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
+             refactor_totals
+  conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
+             conductor_spend, conductor_turns, conductor_model, conductor_priced, conductor_some_priced,
+             conductor_estimated, operator_sessions
+  raw        marks (the event log)
+A number that cannot be known is None; layout prints it as "unknown" or "?"."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import dataclasses
@@ -484,8 +504,6 @@ class Fold:
     marks: list                 # every event of the log
     clocked: bool               # whether every timed event carries an awake-clock reading
     models: dict                # (step, phase, attempt, actor) -> the model(s) that answered
-    opening: dict               # the last `resume` event, else the first event
-    recovered: set              # steps with a step-done or pin mark
     phases: dict                # phase -> {PHASE_COLUMNS: number}
     by_model: dict              # (role, model) -> {PHASE_COLUMNS: number}
     lost: dict                  # phase -> {LOST_COLUMNS: number}
@@ -497,7 +515,8 @@ class Fold:
     switched_off: int           # refactor verifiers switched off
     conductor_counted: bool     # whether the log carries the conductor's own usage event
     total: dict                 # {COST_COLUMNS: number}, leaves only until the conductor is added
-    structural: object          # the structural-pass event, or None
+    structural: object          # the structural-pass event, else {"stopped": "not marked"} for a landed run, else None
+    by_model_shown: bool        # a model answered, or a launch named one
     ended: bool                 # whether the run is over (run_end's answer)
     cause: object               # why it ended without an ending mark: "usage-limit", "killed" or None
     ending: object              # the mark that ended the run (done, stop or bail event), or None
@@ -578,7 +597,8 @@ def fold(issue, path, ledger):
                             for step in tally.steps},
                 structural_marked=structural_marked,
                 structural_inconsistency=None if structural is None else structural_inconsistency(structural),
-                refactor_totals=refactor_totals(passes, structural, structural_marked), clocked=clocked, models=models, opening=tally.opening,
+                refactor_totals=refactor_totals(passes, structural, structural_marked), clocked=clocked, models=models,
+                by_model_shown=bool(models) or any(mark.get("event") == "launch" and "model" in mark for mark in marks),
                 ended=ended, cause=cause, ending=ending,
                 sessions=sessions, turn_rows=turn_rows, conductor_spend=spend,
                 conductor_turns=sum(r.get("num_turns") or 0 for r in sessions), conductor_model=model,
@@ -593,84 +613,95 @@ def fold(issue, path, ledger):
                 pinned=pinned,
                 model_knobs={knob: tunables.read(knob) for knob in
                              ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]},
-                recovered=tally.recovered, phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
+                phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural)
 
 
-def render(issue, path, ledger):
-    f = fold(issue, path, ledger)
-    marks, clocked, models = f.marks, f.clocked, f.models
-    opening, recovered, structural = f.opening, f.recovered, f.structural
-    counts, steps, by_model, lost, spent = f.phases, f.steps, f.by_model, f.lost, f.step_marks
-    passes, tier_runs, adjudications, switched_off = f.passes, f.tier_runs, f.adjudications, f.switched_off
-    conductor_counted, totals = f.conductor_counted, {"total": f.total}
+def known(number):
+    """`number` as text, or "unknown" when it is None."""
+    return UNKNOWN if number is None else "%d" % number
 
-    def known(number):
-        return UNKNOWN if number is None else "%d" % number
 
-    def row(cells):
-        print("| " + " | ".join(cells) + " |")
+def row(cells):
+    print("| " + " | ".join(cells) + " |")
 
-    def figure(column, value):
-        return "%.2f" % value if column in MONEY else "%d" % value
 
-    def figures(row_counts, columns):
-        return [figure(c, row_counts[c]) for c in columns]
+def figure(column, value):
+    return "%.2f" % value if column in MONEY else "%d" % value
 
-    def refactor_spent(mark):
-        return "%s/%s" % (mark.get("transforms", "?"), mark.get("budget", "?"))
 
-    def budget_cells(mark):
-        phases = mark.get("revise phases", {})
-        leaf_phases = mark.get("leaf phases")
-        if leaf_phases and leaf_phases <= UNBUDGETED_PHASES and not phases and not mark.get("refactor"):
-            return [NOT_APPLICABLE] * len(BUDGETS)
-        named = len(phases) > 1
-        revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
-                           for phase, (count, budget) in phases.items()) or UNKNOWN
-        if mark.get("refactor"):
-            refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
-        else:
-            refactor = UNKNOWN
-        return [revise, refactor, mark.get("stopped") or UNKNOWN]
+def figures(row_counts, columns):
+    return [figure(c, row_counts[c]) for c in columns]
 
-    def step_cells(step):
-        mark = spent.get(step, {})
-        return [known(f.step_walls[step])] + budget_cells(mark) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
 
-    def heading_block(heading):
-        print()
-        print(heading)
-        print()
+def refactor_spent(mark):
+    """"transforms/budget" of a refactor mark, "?" for a part it lacks."""
+    return "%s/%s" % (mark.get("transforms", "?"), mark.get("budget", "?"))
 
-    def table_head(heading, key_column, columns, aligns):
-        heading_block(heading)
-        row([key_column] + columns)
-        row(["---"] + aligns)
 
-    def section(heading, key_column, columns, table, text=None):
-        headings, cells_for = text or ((), None)
-        headings = list(headings)
-        table_head(heading, key_column, columns + headings,
-                   ["---:"] * len(columns) + ["---"] * len(headings))
-        for key, row_counts in table.items():
-            cells = [key] + figures(row_counts, columns)
-            if heading == "#### Total" and total_estimated:
-                at = columns.index(DOLLARS) + 1
-                cells[at] += " (estimate)"
-            row(cells + (cells_for(key) if cells_for else []))
+def budget_cells(mark):
+    """The revise, refactor and stopped cells of a step's row, from the budget marks its events left."""
+    phases = mark.get("revise phases", {})
+    leaf_phases = mark.get("leaf phases")
+    if leaf_phases and leaf_phases <= UNBUDGETED_PHASES and not phases and not mark.get("refactor"):
+        return [NOT_APPLICABLE] * len(BUDGETS)
+    named = len(phases) > 1
+    revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
+                       for phase, (count, budget) in phases.items()) or UNKNOWN
+    if mark.get("refactor"):
+        refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
+    else:
+        refactor = UNKNOWN
+    return [revise, refactor, mark.get("stopped") or UNKNOWN]
 
-    def tier_section(heading, key_column):
-        width = max([len(runs) for runs in tier_runs.values()] or [0])
-        table_head(heading, key_column,
-                   ["run %d s" % (i + 1) for i in range(width)], ["---:"] * width)
-        for tier, runs in tier_runs.items():
-            row([tier] + runs + [""] * (width - len(runs)))
 
-    ended, cause, ending = f.ended, f.cause, f.ending
-    print("### 📊 Metrics — issue %s" % issue)
+def step_cells(f, step):
+    """The text cells after the counts in a step's row: wall, budgets, crossing and split marks, kind."""
+    mark = f.step_marks.get(step, {})
+    return ([known(f.step_walls[step])] + budget_cells(mark) + [mark.get(column, "") for column in MARK_COLUMNS]
+            + [mark.get(KIND, "full")])
+
+
+def heading_block(heading):
+    print()
+    print(heading)
+    print()
+
+
+def table_head(heading, key_column, columns, aligns):
+    heading_block(heading)
+    row([key_column] + columns)
+    row(["---"] + aligns)
+
+
+def section(heading, key_column, columns, table, text=None, estimate=False):
+    """A table of `columns` per key; `text` is ((extra headings), cells_for(key)); `estimate` marks the dollars."""
+    headings, cells_for = text or ((), None)
+    headings = list(headings)
+    table_head(heading, key_column, columns + headings,
+               ["---:"] * len(columns) + ["---"] * len(headings))
+    for key, row_counts in table.items():
+        cells = [key] + figures(row_counts, columns)
+        if estimate:
+            at = columns.index(DOLLARS) + 1
+            cells[at] += " (estimate)"
+        row(cells + (cells_for(key) if cells_for else []))
+
+
+def tier_section(heading, key_column, tier_runs):
+    width = max([len(runs) for runs in tier_runs.values()] or [0])
+    table_head(heading, key_column,
+               ["run %d s" % (i + 1) for i in range(width)], ["---:"] * width)
+    for tier, runs in tier_runs.items():
+        row([tier] + runs + [""] * (width - len(runs)))
+
+
+def print_outcome(f):
+    """The sentences that open the report: wall time, steps done, the outcome, the lane, flakes."""
+    ending = f.ending
+    print("### 📊 Metrics — issue %s" % f.issue)
     print()
     print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
           "there is none, to the mark that ended the run."
@@ -678,16 +709,16 @@ def render(issue, path, ledger):
     if f.asleep is not None:
         print("Seconds the machine was not running inside that span: %s s, excluded from it."
               % f.asleep)
-    if not clocked:
+    if not f.clocked:
         print("Every figure in this report is wall-clock: the log carries no awake-clock reading, "
               "so time the machine spent asleep is counted in them.")
     print("Steps done: %s of %s planned."
           % (known(f.steps_done), known(f.planned)))
-    if not ended:
+    if not f.ended:
         print("Outcome: none yet — the run is still going.")
-    elif ending is None and cause == "usage-limit":
+    elif ending is None and f.cause == "usage-limit":
         print("Outcome: the run hit a usage limit.")
-    elif ending is None and cause == "killed":
+    elif ending is None and f.cause == "killed":
         print("Outcome: the run was killed — its conductor's latest launch left no result.")
     elif ending is None:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
@@ -703,20 +734,23 @@ def render(issue, path, ledger):
     print("Lane: %s" % f.lane)
     if f.flaked:
         print("Suite flakes: %s." % ", ".join(f.flaked))
-    sessions, turn_rows, total_estimated = f.sessions, f.turn_rows, f.conductor_estimated
+
+
+def print_conductor(f):
+    """The sentences and tables about the conductor's own spending."""
+    sessions, turn_rows = f.sessions, f.turn_rows
     if sessions:
-        priced, some_priced = f.conductor_priced, f.conductor_some_priced
+        priced = f.conductor_priced
         print("Cost is every leaf of the run, and the conductor own spending." if priced else
               "Cost is every leaf of the run; the total row includes the priced sessions' conductor spending and leaves out the unpriced ones."
-              if some_priced else
+              if f.conductor_some_priced else
               "Cost is every leaf of the run; the total row excludes the conductor own spending, which is unpriced.")
-        spend, model = f.conductor_spend, f.conductor_model
         print("Conductor own spending: %s over %d turns, in %d sessions%s%s."
-              % ("$%.2f" % spend if priced else "unpriced",
+              % ("$%.2f" % f.conductor_spend if priced else "unpriced",
                  f.conductor_turns, len(sessions),
-                 ", on %s" % model if model else "",
-                 " (estimate)" if total_estimated else ""))
-        if total_estimated:
+                 ", on %s" % f.conductor_model if f.conductor_model else "",
+                 " (estimate)" if f.conductor_estimated else ""))
+        if f.conductor_estimated:
             print("The Conductor own spending figure is estimated: the output tokens of a session without a "
                   "result record are not yet known.")
         for contexts in turn_rows.session_contexts:
@@ -724,7 +758,7 @@ def render(issue, path, ledger):
     else:
         print("Cost is every leaf of the run, and the conductor own %s."
               % ("closing accounting with them, which this log carries"
-                 if conductor_counted else
+                 if f.conductor_counted else
                  "spending is not in it: this log carries no usage record of the conductor own"))
     if turn_rows:
         if turn_rows.estimated:
@@ -737,39 +771,46 @@ def render(issue, path, ledger):
         table_head("#### Conductor comments, by family", "family", ["turns", "output tokens", "dollars"], ["---:", "---:", "---:"])
         for name, (turns, tokens, dollars) in turn_rows.families.items():
             row([name, str(turns), str(tokens), "$%.2f" % dollars])
-    if models:
+
+
+def layout(f):
+    """Print the report for a `Fold`; reads nothing else."""
+    print_outcome(f)
+    print_conductor(f)
+    if f.models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, value or "unset") for knob, value in f.model_knobs.items()),
-                 ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
+                 ", ".join(sorted({m for answered in f.models.values() for m in answered.split(",") if m}))))
     if f.pinned:
         print("⚠️ Unverified phases: %s" % f.pinned)
-    if switched_off:
-        print("Verifiers switched off: refactor %d" % switched_off)
+    if f.switched_off:
+        print("Verifiers switched off: refactor %d" % f.switched_off)
     for operator_session in f.operator_sessions:
         print("%s session: %d turns, %d cache tokens read, $%.2f" % operator_session)
-    section("#### By phase", "phase", PHASE_COLUMNS, counts)
-    if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
+    section("#### By phase", "phase", PHASE_COLUMNS, f.phases)
+    if f.by_model_shown:
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
-        for (role, model), row_counts in by_model.items():
+        for (role, model), row_counts in f.by_model.items():
             row([role, model or "not recorded"] + figures(row_counts, PHASE_COLUMNS))
-    section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
-    section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
-            ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))
-    if adjudications:
+    section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, f.lost)
+    section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, f.steps,
+            ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], lambda step: step_cells(f, step)))
+    if f.adjudications:
         print()
-        print("Adjudications: " + ", ".join("%s %d" % (outcome, adjudications.get(outcome, 0))
+        print("Adjudications: " + ", ".join("%s %d" % (outcome, f.adjudications.get(outcome, 0))
                                          for outcome in ("retry", "bail", "route", "unparsed")))
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
           "VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.")
-    if passes:
+    if f.passes:
         table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
                    ["---:", "---:", "---", "---", "---:", "---:", "---:"])
-        for each in passes:
+        for each in f.passes:
             mark = each["mark"]
             row([each["step"], each["pass"], refactor_spent(mark), mark["stopped"],
                  each["verdict"], str(each["revise"])] + ["%d" % each["wall"], "%.2f" % each["dollars"]])
+    structural = f.structural
     if structural is not None:
         stopped = structural.get("stopped", "?")
         if "transforms" not in structural:
@@ -787,8 +828,13 @@ def render(issue, path, ledger):
         for label, passed, transforms, nothing, reasons in f.refactor_totals:
             row([label, str(passed), "?" if transforms is None else str(transforms),
                  "?" if nothing is None else str(nothing), ", ".join("%s %d" % item for item in reasons)])
-    tier_section("#### Test-command seconds, by tier", "tier")
-    section("#### Total", "run", COST_COLUMNS, totals)
+    tier_section("#### Test-command seconds, by tier", "tier", f.tier_runs)
+    section("#### Total", "run", COST_COLUMNS, {"total": f.total}, estimate=f.conductor_estimated)
+
+
+def render(issue, path, ledger):
+    """Print the report of `issue`: the journal at `path` and the ledger at `ledger`, folded then laid out."""
+    layout(fold(issue, path, ledger))
 
 
 def usage_dollars(usage, prices):
