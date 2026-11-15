@@ -160,6 +160,55 @@ def sections(index):
             for m in sorted(_shared_modules(index))}
 
 
+def listed_calls(lines):
+    """[(name, [parameter names])] for each backticked `name(parameters)` span of a section whose parentheses
+    hold a plain Python parameter list (defaults, `*`, `*args` and `**kwargs` allowed)."""
+    calls = []
+    for line in lines:
+        for span in re.findall(r"`([^`]+)`", line):
+            named = re.fullmatch(r"([A-Za-z_]\w*)\((.*)\)", span)
+            if not named:
+                continue
+            try:
+                function = ast.parse(f"def {named.group(1)}({named.group(2)}): pass").body[0]
+            except SyntaxError:
+                continue
+            calls.append((named.group(1), _parameters(function)))
+    return calls
+
+
+def _parameters(function):
+    """The parameter names of a def, in order, bar self and cls."""
+    args = function.args
+    named = [a.arg for a in args.posonlyargs + args.args + args.kwonlyargs + [x for x in (args.vararg, args.kwarg) if x]]
+    return [n for n in named if n not in ("self", "cls")]
+
+
+def call_problems(calls, tree):
+    """Why each listed call disagrees with the module `tree`: its name is bound nowhere in the module, or it is a
+    function there whose parameters (bar self and cls) are not the ones listed."""
+    functions = defaultdict(list)
+    bound = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            functions[node.name].append(_parameters(node))
+            bound.update(a.arg for a in node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+                         + [x for x in (node.args.vararg, node.args.kwarg) if x])
+        elif isinstance(node, ast.ClassDef):
+            bound.add(node.name)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            bound.add(node.id)
+    problems = []
+    for name, listed in calls:
+        if name in functions:
+            if listed not in functions[name]:
+                takes = functions[name][0]
+                problems.append(f"{name}({', '.join(listed)}): the function takes ({', '.join(takes)})")
+        elif name not in bound:
+            problems.append(f"{name}({', '.join(listed)}): bound nowhere in the module")
+    return problems
+
+
 # ---- the parser, on small snippets ----
 
 def test_a_bullet_lists_its_name_with_or_without_a_signature_and_several_to_a_line():
@@ -207,6 +256,25 @@ def test_uses_collects_from_imports_and_attribute_reads_through_aliases_and_flag
     assert reaches == ["b: from a import time", "b: m.time.sleep"]
 
 
+
+def test_a_call_form_span_lists_its_parameters_and_prose_in_parentheses_is_not_one():
+    calls = listed_calls([
+        "- `read(path, default=\"\", unless_empty=None)`: x. `main_tree(cwd=None, *, missing=)`: y. `f(a, ...)`: z.",
+        "- `fields()` and `(index, state)` and `ledger.step_at(a)` and `run(*args, **kwargs)`.",
+    ])
+
+    assert calls == [("read", ["path", "default", "unless_empty"]), ("fields", []), ("run", ["args", "kwargs"])]
+
+
+def test_a_listed_call_must_name_the_parameters_the_function_has_and_exist_in_the_module():
+    tree = ast.parse("def f(a, b=1, *, c=None): pass\nclass S:\n    def m(self, x): pass\ndef g(run): return run()\n")
+
+    assert call_problems([("f", ["a", "b", "c"]), ("m", ["x"]), ("run", [])], tree) == []
+    assert call_problems([("f", ["a", "b"])], tree) == ["f(a, b): the function takes (a, b, c)"]
+    assert call_problems([("f", ["a", "b", "d"])], tree) == ["f(a, b, d): the function takes (a, b, c)"]
+    assert call_problems([("gone", ["x"])], tree) == ["gone(x): bound nowhere in the module"]
+
+
 # ---- the audit ----
 
 @pytest.mark.tree_audit("every module of veri/")
@@ -251,3 +319,12 @@ def test_no_module_reaches_a_module_a_sibling_imported(veri_modules_index):
     _, reaches = uses(veri_modules_index)
 
     assert not reaches, f"modules of veri/ reach through a sibling to a module it imports (import it yourself): {reaches}"
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_every_call_a_section_lists_has_the_parameters_the_module_defines(veri_modules_index):
+    drift = [f"{module}: {problem}"
+             for module in sorted(_shared_modules(veri_modules_index))
+             for problem in call_problems(listed_calls(section_lines(_readme_lines(), module)), veri_modules_index.tree(module))]
+
+    assert not drift, f"calls veri/README.md's `## <module>` sections list that the module does not define so: {drift}"
