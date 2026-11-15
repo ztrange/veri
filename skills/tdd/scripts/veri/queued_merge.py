@@ -21,6 +21,8 @@ FETCH_ATTEMPTS = 5
 REFRESH_RETRIES = 10
 SCRIPTS = paths.resolved_scripts_of(__file__)
 
+RELEASE, LEAVE = "release", "leave"
+
 RELEASE_FILES = ("merge-lock.sh", "lib/shim-python.sh", "lib/venv-python.sh", "veri/merge_lock.py",
                  "veri/tunables.py", "veri/entry.py", "veri/pycache_prefix.py")
 
@@ -197,96 +199,52 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
     return 0
 
 
-def main(argv):
-    if len(argv) != 4:
-        print(USAGE, file=sys.stderr)
-        return 2
-    pr, worktree, branch, message = argv
-    if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
-        print(USAGE, file=sys.stderr)
-        return 2
-    driver = tunables.read("VERI_GH_DRIVER", None)
-    if driver is not None and driver not in ("auto", "rest", "graphql"):
-        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
-        return 2
-    repo = _repo(pr)
-    pid = str(os.getpid())
-    code = _script("merge-lock.sh", "take", "--pid", pid)
-    if code:
-        _say("taking the merge lock failed (exit %d)" % code)
-        return code
-    code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
-    if code:
-        return code
+def _refused(message, code=2):
+    """A refusal that frees the lock: main releases it once, after the message."""
+    _say(message)
+    return code, RELEASE
+
+
+def _before_rebase(repo, pr, worktree, branch):
+    """The checks made before the rebase: (lease, None) to go, ("", (message, code)) to refuse. No lock logic."""
     if _merged(repo, pr) is not None:
-        _say("%s is already merged; nothing rebased or pushed" % pr)
-        _release(pid)
-        return 2
+        return "", ("%s is already merged; nothing rebased or pushed" % pr, 2)
     if _closed(repo, pr):
-        _say("%s is closed and unmerged; nothing rebased or pushed" % pr)
-        _release(pid)
-        return 2
+        return "", ("%s is closed and unmerged; nothing rebased or pushed" % pr, 2)
     pull = _pull(repo, pr)
     head_sha = ((pull or {}).get("head") or {}).get("sha")
     if not isinstance(head_sha, str) or not head_sha:
-        _say("could not read the head of %s from GitHub; nothing rebased or pushed" % pr)
-        _release(pid)
-        return 2
+        return "", ("could not read the head of %s from GitHub; nothing rebased or pushed" % pr, 2)
     if not _git(worktree, "merge-base", "--is-ancestor", head_sha, "origin/main").returncode:
-        _say("the head %s of %s is already on origin/main; nothing rebased or pushed" % (head_sha, pr))
-        _release(pid)
-        return 2
+        return "", ("the head %s of %s is already on origin/main; nothing rebased or pushed" % (head_sha, pr), 2)
     lease = _rev(worktree, "refs/remotes/origin/%s" % branch)
     if not lease:
-        _say("origin/%s does not resolve; no lease to pin" % branch)
-        _release(pid)
-        return 2
+        return "", ("origin/%s does not resolve; no lease to pin" % branch, 2)
     if not _synced(worktree, lease):
-        _say("origin/%s has commits the worktree lacks; nothing pushed" % branch)
-        _release(pid)
-        return 2
-    before = _rev(worktree, "HEAD")
-    code = _rebase(pid, worktree, ("rebase", "origin/main"))
-    if code:
-        return code
-    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
-    if code:
-        return code
-    head = _rev(worktree, "HEAD")
-    if not head:
-        _say("the pushed head does not resolve")
-        _release(pid)
-        return 2
-    code = 3
-    while code == 3:
-        code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
-    if code:
-        return code
+        return "", ("origin/%s has commits the worktree lacks; nothing pushed" % branch, 2)
+    return lease, None
+
+
+def _before_merge(pid, pr, worktree, branch, before, head):
+    """The checks between the pushed head's CI and the merge call: None to go, (message, code) to refuse."""
     if tunables.read("VERI_CI_ON_PR") == "0" and before != head:
         found = subprocess.run([os.path.join(SCRIPTS, "detect-test-command.sh"), "--tier", "all"],
                                cwd=worktree, capture_output=True, text=True)
         full = found.stdout.strip()
         if found.returncode or not full:
-            _say("no full test command for the rebased tree (%s); not merged" % (
+            return ("no full test command for the rebased tree (%s); not merged" % (
                 "detect-test-command.sh exited %d" % found.returncode if found.returncode
-                else "detect-test-command.sh printed nothing"))
-            _release(pid)
-            return 2
+                else "detect-test-command.sh printed nothing"), 2)
         if _gate(pid, "sh", "-c", full, keep=True):
-            _say("the full test command (%s) is red on the rebased tree; not merged" % full)
-            _release(pid)
-            return 1
+            return "the full test command (%s) is red on the rebased tree; not merged" % full, 1
     own = re.match(r"tdd/(\d+)-", branch)
     if own:
         paths = glob.glob(run_dir.ledger(worktree, own.group(1)))
     else:
         changed = _git(worktree, "diff", "--name-only", "origin/main...HEAD", "--", ".tdd/issue-*.md")
         if changed.returncode:
-            _say("git diff --name-only origin/main...HEAD failed (exit %d): %s; not merged" % (
-                changed.returncode, changed.stderr.strip()))
-            _release(pid)
-            return 2
+            return ("git diff --name-only origin/main...HEAD failed (exit %d): %s; not merged" % (
+                changed.returncode, changed.stderr.strip()), 2)
         paths = changed.stdout.split()
     for path in paths:
         number = re.match(r"issue-(\d+)\.md", os.path.basename(path))
@@ -294,14 +252,53 @@ def main(argv):
             continue
         shown = gh_probe("pr", "view", pr, "--json", "body")
         if shown.returncode:
-            _say("could not read the PR body of %s; not merged" % pr)
-            _release(pid)
-            return 2
+            return "could not read the PR body of %s; not merged" % pr, 2
         body = json.loads(shown.stdout)["body"]
         if not re.search(r"Closes #%s\b" % number.group(1), body):
-            _say("the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)))
-            _release(pid)
-            return 2
+            return "the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)), 2
+    return None
+
+
+def _locked(pid, repo, pr, worktree, branch, message):
+    """Everything after the lock is taken: returns (exit code, RELEASE | LEAVE), never releasing itself.
+
+    main releases the lock exactly once when the outcome is RELEASE. LEAVE means the lock needs
+    nothing more from main, for one of two reasons:
+
+    Kept on purpose, held for the next merge or the operator to recover:
+      - the rebase stops (a conflict, a dirty "would be overwritten" stop, a phantom stop past the
+        retry bound): exits git's code, nothing pushed;
+      - the push under the pinned lease is refused: exits git's code.
+
+    Already settled by the callee:
+      - the first fetch, the wait-ci gate: a gate without --keep releases the lock itself on failure;
+      - _cleanup: releases the lock after the tag, branch delete and worktree removal.
+    """
+    code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
+    if code:
+        return code, LEAVE
+    lease, refusal = _before_rebase(repo, pr, worktree, branch)
+    if refusal:
+        return _refused(*refusal)
+    before = _rev(worktree, "HEAD")
+    code = _rebase(pid, worktree, ("rebase", "origin/main"))
+    if code:
+        return code, LEAVE
+    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
+    if code:
+        return code, LEAVE
+    head = _rev(worktree, "HEAD")
+    if not head:
+        return _refused("the pushed head does not resolve")
+    code = 3
+    while code == 3:
+        code = _gate(pid, os.path.join(SCRIPTS, "wait-ci.sh"), pr, "540", "", head)
+    if code:
+        return code, LEAVE
+    refusal = _before_merge(pid, pr, worktree, branch, before, head)
+    if refusal:
+        return _refused(*refusal)
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
@@ -325,16 +322,36 @@ def main(argv):
             if pull is not None:
                 break
         if pull is None:
-            _say("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code))
-            _release(pid)
-            return code
+            return _refused("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code), code)
     else:
         pull = _merged(repo, pr)
     if pull is None:
-        _say("%s is not reported merged; no tag, branch delete or worktree removal" % pr)
+        return _refused("%s is not reported merged; no tag, branch delete or worktree removal" % pr, 1)
+    return _cleanup(pid, pr, pull, worktree, branch, message), LEAVE
+
+
+def main(argv):
+    if len(argv) != 4:
+        print(USAGE, file=sys.stderr)
+        return 2
+    pr, worktree, branch, message = argv
+    if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
+        print(USAGE, file=sys.stderr)
+        return 2
+    driver = tunables.read("VERI_GH_DRIVER", None)
+    if driver is not None and driver not in ("auto", "rest", "graphql"):
+        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
+        return 2
+    repo = _repo(pr)
+    pid = str(os.getpid())
+    code = _script("merge-lock.sh", "take", "--pid", pid)
+    if code:
+        _say("taking the merge lock failed (exit %d)" % code)
+        return code
+    code, outcome = _locked(pid, repo, pr, worktree, branch, message)
+    if outcome is RELEASE:
         _release(pid)
-        return 1
-    return _cleanup(pid, pr, pull, worktree, branch, message)
+    return code
 
 
 if __name__ == "__main__":
