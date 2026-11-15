@@ -12,7 +12,6 @@ import pinned_scripts
 import pid_file as pids
 import run_dir
 import requirements
-import re
 import calendar
 import json
 import shutil
@@ -90,10 +89,10 @@ def pid_file_path(issue):
 
 def preflight_and_launch(argv):
     raw_minimum = tunables.read("VERI_MIN_FREE_GB", "20")
-    if not re.fullmatch(r"[0-9]+", raw_minimum, re.ASCII):
+    minimum = entry.whole_number(raw_minimum, 0)
+    if minimum is None:
         sys.stderr.write("run-conductor: VERI_MIN_FREE_GB must be a whole number >= 0, got '%s'\n" % raw_minimum)
         return 2
-    minimum = int(raw_minimum)
     for directory in (tempfile.gettempdir(), pinned_tmpdir(), os.getcwd()):
         free = free_gb(directory)
         if free < minimum:
