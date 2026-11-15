@@ -1,7 +1,6 @@
 """In-process cases for veri/pr_body.py, the module pr-body.sh is a shim over."""
 import importlib
 import json
-import subprocess
 
 import pytest
 
@@ -21,29 +20,28 @@ def test_main_with_no_argument_exits_2_with_a_usage_line_naming_pr_number_and_bo
 BEGIN, END = "<!-- veri:run-body -->", "<!-- /veri:run-body -->"
 
 
-def fake_gh_pr_body(monkeypatch, current):
-    """subprocess.run answered as GitHub: a body read gives <current>; a body write is recorded. Returns the written bodies."""
+def fake_gh_pr_body(fake_processes, current):
+    """gh answered as GitHub: a body read gives <current>; a body write is recorded. Returns the written bodies."""
     written = []
 
-    def fake_run(args, **kwargs):
-        args = tuple(str(arg) for arg in args)
-        body = [a[len("body="):] for a in args if a.startswith("body=")]
+    def gh(line, **kwargs):
+        words = [str(arg) for arg in fake.argvs[-1]]
+        body = [a[len("body="):] for a in words if a.startswith("body=")]
         if kwargs.get("input") is not None:
             body.append(kwargs["input"])
         if body:
             written.extend(body)
-            return subprocess.CompletedProcess(args, 0, "{}", "")
-        out = current if ("--jq" in args or "-q" in args) else json.dumps({"body": current})
-        return subprocess.CompletedProcess(args, 0, out, "")
+            return 0, "{}", ""
+        return 0, current if ("--jq" in words or "-q" in words) else json.dumps({"body": current}), ""
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({"gh": gh})
     return written
 
 
-def test_main_keeps_review_notes_appended_after_the_runs_part_and_rewrites_only_the_runs_part_3453(run_cli, pr_body, monkeypatch, tmp_path):
+def test_main_keeps_review_notes_appended_after_the_runs_part_and_rewrites_only_the_runs_part_3453(run_cli, pr_body, fake_processes, tmp_path):
     notes = "## Review notes\n\n- the subagent found a gap\n"
     current = "%s\nCloses #7 — work in progress: 2 of 5 steps done\n%s\n\n%s" % (BEGIN, END, notes)
-    written = fake_gh_pr_body(monkeypatch, current)
+    written = fake_gh_pr_body(fake_processes, current)
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -56,10 +54,10 @@ def test_main_keeps_review_notes_appended_after_the_runs_part_and_rewrites_only_
     assert "2 of 5 steps done" not in written[0]
 
 
-def test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453(run_cli, pr_body, monkeypatch, tmp_path):
+def test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453(run_cli, pr_body, fake_processes, tmp_path):
     mine = "Closes #7 — keeps \\1 and \\g<0> and a lone \\"
     current = "%s\nCloses #7 — work in progress\n%s\n\n## Review notes\n" % (BEGIN, END)
-    written = fake_gh_pr_body(monkeypatch, current)
+    written = fake_gh_pr_body(fake_processes, current)
     body_file = tmp_path / "body.md"
     body_file.write_text(mine)
 
@@ -69,18 +67,18 @@ def test_main_writes_a_run_part_holding_backslash_sequences_verbatim_3453(run_cl
     assert written == ["%s\n%s\n%s\n\n## Review notes\n" % (BEGIN, mine, END)]
 
 
-def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_next_write_keeps_appended_notes_3453(run_cli, pr_body, monkeypatch, tmp_path):
+def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_next_write_keeps_appended_notes_3453(run_cli, pr_body, fake_processes, tmp_path):
     notes = "## Review notes\n\n- appended later\n"
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
-    first = fake_gh_pr_body(monkeypatch, "")
+    first = fake_gh_pr_body(fake_processes, "")
 
     code, out, err = run_cli(pr_body, ["42", str(body_file)])
 
     assert code == 0, err
     assert first == ["%s\nCloses #7 — ready: 5 of 5 steps done\n%s" % (BEGIN, END)]
 
-    second = fake_gh_pr_body(monkeypatch, first[0] + "\n\n" + notes)
+    second = fake_gh_pr_body(fake_processes, first[0] + "\n\n" + notes)
     body_file.write_text("Closes #7 — resumed: 5 of 5 steps done")
 
     code, out, err = run_cli(pr_body, ["42", str(body_file)])
@@ -92,15 +90,8 @@ def test_main_on_a_body_with_no_run_part_writes_the_file_as_the_run_part_so_the_
     assert "ready" not in second[0]
 
 
-def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_writes_nothing_3453(run_cli, pr_body, monkeypatch, tmp_path):
-    calls = []
-
-    def fake_run(args, **kwargs):
-        args = tuple(str(arg) for arg in args)
-        calls.append(args)
-        return subprocess.CompletedProcess(args, 1, "", "HTTP 502")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_writes_nothing_3453(run_cli, pr_body, fake_processes, tmp_path):
+    fake = fake_processes.answers({"gh": (1, "", "HTTP 502")})
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -108,11 +99,11 @@ def test_main_when_the_current_body_cannot_be_read_exits_2_naming_the_pr_and_wri
 
     assert code == 2
     assert "42" in err
-    assert [c for c in calls if "PATCH" in c or any(a.startswith("body=") for a in c)] == []
+    assert [c for c in fake.argvs if "PATCH" in c or any(str(a).startswith("body=") for a in c)] == []
 
 
-def test_main_on_a_null_body_treats_it_as_empty_and_writes_the_file_as_the_run_part_3453(run_cli, pr_body, monkeypatch, tmp_path):
-    written = fake_gh_pr_body(monkeypatch, None)
+def test_main_on_a_null_body_treats_it_as_empty_and_writes_the_file_as_the_run_part_3453(run_cli, pr_body, fake_processes, tmp_path):
+    written = fake_gh_pr_body(fake_processes, None)
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -122,14 +113,14 @@ def test_main_on_a_null_body_treats_it_as_empty_and_writes_the_file_as_the_run_p
     assert written == ["%s\n%s\n%s" % (BEGIN, "Closes #7 — ready: 5 of 5 steps done", END)]
 
 
-def test_main_when_the_write_of_the_body_fails_exits_2_naming_the_pr_3453(run_cli, pr_body, monkeypatch, tmp_path):
-    def fake_run(args, **kwargs):
-        args = tuple(str(arg) for arg in args)
-        if "PATCH" in args or any(a.startswith("body=") for a in args):
-            return subprocess.CompletedProcess(args, 1, "", "HTTP 502")
-        return subprocess.CompletedProcess(args, 0, json.dumps({"body": ""}), "")
+def test_main_when_the_write_of_the_body_fails_exits_2_naming_the_pr_3453(run_cli, pr_body, fake_processes, tmp_path):
+    def gh(line, **kwargs):
+        words = [str(arg) for arg in fake.argvs[-1]]
+        if "PATCH" in words or any(a.startswith("body=") for a in words):
+            return 1, "", "HTTP 502"
+        return 0, json.dumps({"body": ""}), ""
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({"gh": gh})
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -139,8 +130,8 @@ def test_main_when_the_write_of_the_body_fails_exits_2_naming_the_pr_3453(run_cl
     assert "42" in err
 
 
-def test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part_alone_3453(run_cli, pr_body, monkeypatch, tmp_path):
-    written = fake_gh_pr_body(monkeypatch, "Closes #7 — legacy text a run wrote before markers")
+def test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part_alone_3453(run_cli, pr_body, fake_processes, tmp_path):
+    written = fake_gh_pr_body(fake_processes, "Closes #7 — legacy text a run wrote before markers")
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -151,8 +142,8 @@ def test_main_on_a_legacy_body_with_no_run_markers_replaces_it_with_the_run_part
     assert "legacy text" not in written[0]
 
 
-def test_main_with_an_extra_argument_exits_2_with_the_usage_line_and_writes_nothing_3453(run_cli, pr_body, monkeypatch, tmp_path):
-    written = fake_gh_pr_body(monkeypatch, "%s\nCloses #7\n%s\n" % (BEGIN, END))
+def test_main_with_an_extra_argument_exits_2_with_the_usage_line_and_writes_nothing_3453(run_cli, pr_body, fake_processes, tmp_path):
+    written = fake_gh_pr_body(fake_processes, "%s\nCloses #7\n%s\n" % (BEGIN, END))
     body_file = tmp_path / "body.md"
     body_file.write_text("Closes #7 — ready: 5 of 5 steps done")
 
@@ -163,10 +154,10 @@ def test_main_with_an_extra_argument_exits_2_with_the_usage_line_and_writes_noth
     assert written == []
 
 
-def test_main_keeps_foreign_text_between_two_run_parts_byte_identical_3502(run_cli, pr_body, monkeypatch, tmp_path):
+def test_main_keeps_foreign_text_between_two_run_parts_byte_identical_3502(run_cli, pr_body, fake_processes, tmp_path):
     foreign = "## Review notes\nhuman text"
     current = "%s\na\n%s\n\n%s\n\n%s\nb\n%s" % (BEGIN, END, foreign, BEGIN, END)
-    written = fake_gh_pr_body(monkeypatch, current)
+    written = fake_gh_pr_body(fake_processes, current)
     body_file = tmp_path / "body.md"
     body_file.write_text("new")
 
