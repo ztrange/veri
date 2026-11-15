@@ -3019,6 +3019,28 @@ def test_cli_a_veri_min_free_gb_that_is_not_a_whole_number_at_least_0_exits_2_na
     assert (outcomes, launches) == ({bad: (2, True) for bad in ("", "abc", "-1", "1.5")}, [])
 
 
+def test_cli_veri_min_free_gb_takes_only_ascii_digits_so_a_signed_padded_or_non_ascii_digit_value_is_refused_and_leading_zeros_are_read_as_decimal(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    monkeypatch.setattr(run_conductor, "free_gb", lambda path: 500, raising=False)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    outcomes = {}
+    for probe in ("+1", " 7", "7\n", "\u00b2", "\u0661", "007", "9" * 30):
+        monkeypatch.setenv("VERI_MIN_FREE_GB", probe)
+        code, _, err = run_cli(run_conductor, ["4242"], cwd=cwd)
+        outcomes[probe] = (code, "must be a whole number >= 0" in err, "has 500 GB free, below VERI_MIN_FREE_GB=" in err)
+
+    refused = (2, True, False)
+    assert (outcomes, len(launches)) == ({"+1": refused, " 7": refused, "7\n": refused, "\u00b2": refused, "\u0661": refused,
+                                    "007": (0, False, False), "9" * 30: (2, False, True)}, 1)
+
+
 def test_cli_a_launch_whose_inherited_tmpdir_filesystem_has_3_gb_free_launches_the_conductor_when_veri_min_free_gb_is_0_under_tdd_issue_2183(
         tmp_path, monkeypatch, run_cli):
     past_the_guards(monkeypatch)
