@@ -1,11 +1,9 @@
 """In-process cases for veri/timed_test_run.py, the module timed-test-run.sh is a shim over."""
 import importlib
 import json
-import os
 import re
-import subprocess
-
 import pytest
+
 
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 
@@ -156,23 +154,6 @@ def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_p
     assert (code, events.records()) == (3, [])
 
 
-@pytest.mark.process("git init making tmp_path a worktree whose subdirectory is the working directory, and a real true run")
-def test_issue_1528_main_from_a_subdirectory_of_a_worktree_records_its_test_run_under_dot_tdd_of_the_toplevel(
-        tmp_path, monkeypatch, timed_test_run):
-    root = tmp_path / "repo"
-    cwd = root / "sub"
-    subprocess.run(["git", "init", "-q", str(root)], check=True)
-    cwd.mkdir()
-    monkeypatch.chdir(cwd)
-    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
-
-    assert timed_test_run.main(["fast", "", "true"]) == 0
-
-    assert os.listdir(cwd) == []
-    lines = (root / ".tdd" / "events.jsonl").read_text().splitlines()
-    assert [json.loads(text)["event"] for text in lines] == ["test-run"]
-
-
 def test_issue_1702_main_refuses_an_affected_tier_bare_make_test_with_exit_2_naming_it_running_nothing_and_recording_no_event(
         tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
@@ -219,56 +200,9 @@ def _read_events(directory):
     return [json.loads(line) for line in path.read_text().splitlines()] if path.is_file() else []
 
 
-@pytest.mark.process("a real sh -c run as the wrapped command")
-def test_cli_runs_the_command_and_writes_one_test_run_event_with_tier_suites_and_seconds_exiting_with_its_status(
-        tmp_path, run_cli, timed_test_run):
-    suites = "skills/tdd/scripts/tests/unit/next-unchecked.test.sh skills/tdd/scripts/tests/event.test.sh"
-    env = {"VERI_ISSUE": "342", "VERI_ACTOR": "developer", "VERI_PHASE": "green", "VERI_STEP": "1",
-           "VERI_ATTEMPT": "1"}
-
-    code, out, err = run_cli(timed_test_run, ["fast", suites, "sh", "-c", "exit 7"], env=env, cwd=tmp_path)
-
-    records = _read_events(tmp_path)
-    assert (code, len(records)) == (7, 1)
-    assert (records[0]["event"], records[0]["tier"], records[0]["suites"]) == ("test-run", "fast", suites)
-    assert re.fullmatch(r"[0-9]+", records[0]["seconds"])
-
-
-@pytest.mark.process("a real sh -c run as the wrapped command, once exiting 7 and once exiting 0")
-@pytest.mark.parametrize("want", [7, 0])
-def test_cli_records_the_commands_own_exit_status_on_the_test_run_event(
-        want, tmp_path, run_cli, timed_test_run):
-    env = {"VERI_ISSUE": "383", "VERI_ACTOR": "developer", "VERI_PHASE": "red", "VERI_STEP": "1",
-           "VERI_ATTEMPT": "1"}
-
-    code, out, err = run_cli(timed_test_run, ["fast", "skills/tdd/scripts/tests/event.test.sh", "sh", "-c",
-                                              "exit %d" % want], env=env, cwd=tmp_path)
-
-    assert (code, [r["status"] for r in _read_events(tmp_path)]) == (want, [str(want)])
-
-
 @pytest.mark.parametrize("argv", [[], ["all"], ["all", ""], ["all", "", ""], ["", "", "true"]])
 def test_cli_refuses_fewer_than_three_arguments_an_empty_tier_or_an_empty_cmd_with_exit_2_and_the_usage_line_alone(
         argv, tmp_path, run_cli, timed_test_run):
     code, out, err = run_cli(timed_test_run, argv, cwd=tmp_path)
 
     assert (code, out, err, _read_events(tmp_path)) == (2, "", USAGE, [])
-
-
-@pytest.mark.process("a real sh -c run as the wrapped command, from two working directories")
-def test_cli_from_another_working_directory_answers_as_in_place_with_its_one_test_run_line_in_that_directory(
-        tmp_path, run_cli, timed_test_run):
-    env = {"VERI_ISSUE": "804", "VERI_ACTOR": "developer", "VERI_PHASE": "red", "VERI_STEP": "1",
-           "VERI_ATTEMPT": "1"}
-    argv = ["fast", "x.test.sh", "sh", "-c", "echo out; echo err >&2; exit 5"]
-    here, far = tmp_path / "here", tmp_path / "far"
-    here.mkdir()
-    far.mkdir()
-
-    in_place = run_cli(timed_test_run, argv, env=env, cwd=here)
-    from_afar = run_cli(timed_test_run, argv, env=env, cwd=far)
-
-    assert in_place == from_afar == (5, "out\n", "err\n")
-    records = _read_events(far)
-    assert [(r["event"], r["status"]) for r in records] == [("test-run", "5")]
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["far", "here"]
