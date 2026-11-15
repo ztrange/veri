@@ -1,16 +1,15 @@
 """refactor-budget.sh's comparison, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import re
 import sys
 import tunables
-from entry import write
+from entry import whole_number, write
 
 USAGE = "usage: refactor-budget.sh [--issue] <count>"
 
 
 def _refused(name, value):
-    if re.fullmatch(r"[0-9]+", value):
+    if whole_number(value, 0) is not None:
         return False
     write(sys.stderr, f"refactor-budget: {name} must be a whole number >= 0: {value}", before=False)
     return True
