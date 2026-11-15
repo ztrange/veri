@@ -16,25 +16,28 @@ def github():
     return importlib.import_module("veri.github")
 
 
-def fake_gh(monkeypatch, answers):
-    """subprocess.run answering each command in <answers> (argv tuple → (returncode, stdout,
-    stderr)); every subprocess call, run or Popen, recorded in the returned list."""
-    calls = []
+def fake_gh(fake_processes, answers):
+    """fake_processes answering each command in <answers> (argv tuple → (returncode, stdout,
+    stderr)) and no other; every subprocess call, run or Popen, recorded in the returned fake's argvs."""
+    return fake_processes.answers({" ".join(argv): answer for argv, answer in answers.items()}, exact=True)
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        return subprocess.CompletedProcess(args, returncode, stdout, stderr)
 
-    def fake_popen(args, *rest, **kwargs):
-        calls.append(list(args))
-        raise AssertionError("unexpected Popen: %r" % (args,))
+def inheriting(answers):
+    """An answer callable for fake_processes.answers(default=...) behaving like gh for the streams: <answers>
+    maps an argv tuple to (returncode, stdout, stderr); a stream the call did not ask for as PIPE is written
+    to this process's own stream and answered None, and a command not in <answers> fails the case."""
+    table = {" ".join(argv): answer for argv, answer in answers.items()}
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    return calls
+    def answer(line, **kwargs):
+        if line not in table:
+            raise AssertionError("unexpected command: %r" % (line,))
+        returncode, stdout, stderr = table[line]
+        for stream, text, name in ((sys.stdout, stdout, "stdout"), (sys.stderr, stderr, "stderr")):
+            if kwargs.get(name) is None:
+                stream.write(text)
+        return (returncode, stdout if kwargs.get("stdout") == subprocess.PIPE else None,
+                stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+    return answer
 
 
 def fake_clock(monkeypatch):
@@ -55,40 +58,37 @@ def fake_clock(monkeypatch):
     return now, sleeps
 
 
-def fake_missing_gh(monkeypatch, misses=None):
+def fake_missing_gh(fake_processes, misses=None):
     """subprocess.run raising the FileNotFoundError of a gh missing from PATH for the first
-    <misses> calls (every call when None), then answering '{"number":7}'; returns the calls."""
-    lookups = []
-
-    def fake_run(args, **kwargs):
-        lookups.append(list(args))
-        if misses is None or len(lookups) <= misses:
+    <misses> calls (every call when None), then answering '{"number":7}'; returns the fake."""
+    def answer(line, **kwargs):
+        if misses is None or len(fake.argvs) <= misses:
             raise FileNotFoundError(2, "No such file or directory", "gh")
-        return subprocess.CompletedProcess(args, 0, '{"number":7}', "")
+        return (0, '{"number":7}', "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    return lookups
+    fake = fake_processes.answers({}, default=answer)
+    return fake
 
 
-def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_then_answers_2097(monkeypatch, capsys, github):
+def test_gh_missing_from_path_twice_is_waited_out_with_a_stderr_line_per_wait_then_answers_2097(fake_processes, monkeypatch, capsys, github):
     _, sleeps = fake_clock(monkeypatch)
     monkeypatch.delenv("VERI_TOOL_RETRY_SLEEP", raising=False)
-    lookups = fake_missing_gh(monkeypatch, misses=2)
+    fake = fake_missing_gh(fake_processes, misses=2)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert (run.returncode, run.stdout) == (0, '{"number":7}')
     assert sleeps == [15, 15]
-    assert len(lookups) == 3
+    assert len(fake.argvs) == 3
     err_lines = capsys.readouterr().err.splitlines()
     assert len(err_lines) == 2
     assert all("gh" in line for line in err_lines)
 
 
-def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_before_each_retry_2097(monkeypatch, capsys, github):
+def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_before_each_retry_2097(fake_processes, monkeypatch, capsys, github):
     _, sleeps = fake_clock(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "2")
-    fake_missing_gh(monkeypatch, misses=2)
+    fake_missing_gh(fake_processes, misses=2)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
@@ -96,55 +96,55 @@ def test_gh_missing_from_path_twice_sleeps_the_veri_tool_retry_sleep_value_befor
     assert sleeps == [2, 2]
 
 
-def test_gh_never_found_on_path_is_polled_every_15s_for_900s_then_every_900s_and_is_a_no_answer_naming_gh_at_3600s_2097(monkeypatch, capsys, github):
+def test_gh_never_found_on_path_is_polled_every_15s_for_900s_then_every_900s_and_is_a_no_answer_naming_gh_at_3600s_2097(fake_processes, monkeypatch, capsys, github):
     _, sleeps = fake_clock(monkeypatch)
     for name in ("VERI_TOOL_RETRY_SLEEP", "VERI_TOOL_FAST_WAIT", "VERI_TOOL_SLOW_SLEEP", "VERI_TOOL_WAIT"):
         monkeypatch.delenv(name, raising=False)
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert sleeps == [15] * 60 + [900] * 3
-    assert len(lookups) == 64
+    assert len(fake.argvs) == 64
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line for line in err_lines)
 
 
-def test_gh_never_found_on_path_follows_the_four_tool_wait_tunables_when_set_to_non_default_values_2097(monkeypatch, capsys, github):
+def test_gh_never_found_on_path_follows_the_four_tool_wait_tunables_when_set_to_non_default_values_2097(fake_processes, monkeypatch, capsys, github):
     now, sleeps = fake_clock(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "10")
     monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "30")
     monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "50")
     monkeypatch.setenv("VERI_TOOL_WAIT", "100")
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert sleeps == [10, 10, 10, 50, 50]
-    assert len(lookups) == 6
+    assert len(fake.argvs) == 6
     assert now[0] == 1130.0
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line for line in err_lines)
 
 
-def test_gh_that_runs_and_fails_is_not_waited_on_and_its_exit_code_reaches_the_caller_unchanged_2097(monkeypatch, capsys, github):
+def test_gh_that_runs_and_fails_is_not_waited_on_and_its_exit_code_reaches_the_caller_unchanged_2097(fake_processes, monkeypatch, capsys, github):
     sleeps = []
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
-    calls = fake_gh(monkeypatch, {("gh", "api", "repos/{owner}/{repo}/issues/7"): (4, "", "")})
+    fake = fake_gh(fake_processes, {("gh", "api", "repos/{owner}/{repo}/issues/7"): (4, "", "")})
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert run.returncode == 4
     assert sleeps == []
-    assert len(calls) == 1
+    assert len(fake.argvs) == 1
     assert capsys.readouterr().err == ""
 
 
-def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_page(monkeypatch, github):
+def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_page(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/pulls"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", path + "?page=1"): (0, '[{"number":1},{"number":2}]', ""),
         ("gh", "api", path + "?page=2"): (0, '[{"number":3}]', ""),
         ("gh", "api", path + "?page=3"): (0, "[]", ""),
@@ -153,16 +153,16 @@ def test_gh_rest_list_answers_each_page_back_to_back_until_the_first_bare_empty_
     answer = github.gh_rest_list(path)
 
     assert answer == '[{"number":1},{"number":2}][{"number":3}]'
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
         ["gh", "api", path + "?page=3"],
     ]
 
 
-def test_gh_rest_list_drops_the_trailing_newlines_gh_api_prints_after_each_page(monkeypatch, github):
+def test_gh_rest_list_drops_the_trailing_newlines_gh_api_prints_after_each_page(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/issues"
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "api", path + "?page=1"): (0, '[{"number":1}]\n', ""),
         ("gh", "api", path + "?page=2"): (0, '[{"number":2}]\n\n', ""),
         ("gh", "api", path + "?page=3"): (0, "[]\n", ""),
@@ -171,9 +171,9 @@ def test_gh_rest_list_drops_the_trailing_newlines_gh_api_prints_after_each_page(
     assert github.gh_rest_list(path) == '[{"number":1}][{"number":2}]'
 
 
-def test_gh_rest_list_joins_page_with_an_ampersand_when_the_path_already_holds_a_query(monkeypatch, github):
+def test_gh_rest_list_joins_page_with_an_ampersand_when_the_path_already_holds_a_query(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/commits/abc123/check-runs?per_page=100"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", path + "&page=1"): (0, '[{"id":1}]', ""),
         ("gh", "api", path + "&page=2"): (0, "[]", ""),
     })
@@ -181,15 +181,15 @@ def test_gh_rest_list_joins_page_with_an_ampersand_when_the_path_already_holds_a
     answer = github.gh_rest_list(path)
 
     assert answer == '[{"id":1}]'
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", path + "&page=1"],
         ["gh", "api", path + "&page=2"],
     ]
 
 
-def test_gh_rest_list_stops_at_the_first_page_matching_a_caller_given_empty_pattern(monkeypatch, github):
+def test_gh_rest_list_stops_at_the_first_page_matching_a_caller_given_empty_pattern(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/commits/abc123/check-runs"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", path + "?page=1"): (0, '{"total_count":1,"check_runs":[{"id":1}]}', ""),
         ("gh", "api", path + "?page=2"): (0, '{"total_count":1,"check_runs": [ ]}', ""),
     })
@@ -197,46 +197,34 @@ def test_gh_rest_list_stops_at_the_first_page_matching_a_caller_given_empty_patt
     answer = github.gh_rest_list(path, r'"check_runs": *\[ *\]')
 
     assert answer == '{"total_count":1,"check_runs":[{"id":1}]}'
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
     ]
 
 
-def test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_through(monkeypatch, capsys, github):
+def test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_through(fake_processes, monkeypatch, capsys, github):
     path = "repos/{owner}/{repo}/pulls"
     refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls?page=2)\n"
     answers = {
         ("gh", "api", path + "?page=1"): (0, '[{"number":1}]', ""),
         ("gh", "api", path + "?page=2"): (1, "", refusal),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(
-            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     with pytest.raises(github.NoAnswer):
         github.gh_rest_list(path)
 
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
     ]
     assert capsys.readouterr().err == refusal
 
 
-def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_the_no_answer(monkeypatch, github):
+def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_the_no_answer(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/issues?per_page=2"
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "api", path + "&page=1"): (0, '[{"number":1},{"number":2}]\n', ""),
         ("gh", "api", path + "&page=2"): (0, '[{"number":3},{"number":4}]\n', ""),
         ("gh", "api", path + "&page=3"): (1, "", "gh: Bad Gateway (HTTP 502)\n"),
@@ -248,20 +236,20 @@ def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_t
     assert no_answer.value.answer == '[{"number":1},{"number":2}][{"number":3},{"number":4}]'
 
 
-def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_succeeds(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7},{"number":9}]', ""),
     })
 
     answer = github.gh_list(path, "pr", "list", "--json", "number")
 
     assert answer == '[{"number":7},{"number":9}]'
-    assert calls == [["gh", "pr", "list", "--json", "number"]]
+    assert fake.argvs == [["gh", "pr", "list", "--json", "number"]]
 
 
-def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh_call_fails(monkeypatch, capsys, github):
+def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh_call_fails(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     refusal = "GraphQL: Resource not accessible by integration\n"
@@ -271,24 +259,12 @@ def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh
         ("gh", "api", path + "&page=2"): (0, '[{"number":9}]\n', ""),
         ("gh", "api", path + "&page=3"): (0, "[]\n", ""),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(
-            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     answer = github.gh_list(path, "pr", "list", "--json", "number")
 
     assert answer == '[{"number":7}][{"number":9}]'
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "pr", "list", "--json", "number"],
         ["gh", "api", path + "&page=1"],
         ["gh", "api", path + "&page=2"],
@@ -297,7 +273,7 @@ def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh
     assert capsys.readouterr().err == ""
 
 
-def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
+def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
@@ -306,55 +282,43 @@ def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_ro
         ("gh", "pr", "list", "--json", "number"): (1, "", graphql_refusal),
         ("gh", "api", path + "&page=1"): (1, "", rest_refusal),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(
-            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     with pytest.raises(github.NoAnswer):
         github.gh_list(path, "pr", "list", "--json", "number")
 
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "pr", "list", "--json", "number"],
         ["gh", "api", path + "&page=1"],
     ]
     assert capsys.readouterr().err == rest_refusal
 
 
-def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_when_it_succeeds(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (0, "## What to build\n\nA thing.\n", ""),
     })
 
     answer = github.gh_issue_view("60", "body")
 
     assert answer == "## What to build\n\nA thing.\n"
-    assert calls == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]]
+    assert fake.argvs == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]]
 
 
-def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api_call_when_it_succeeds(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (0, "bug\nready-for-agent\n", ""),
     })
 
     answer = github.gh_issue_view("60", "labels")
 
     assert answer == "bug\nready-for-agent\n"
-    assert calls == [["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"]]
+    assert fake.argvs == [["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"]]
 
 
-def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_gh_issue_view_fails(monkeypatch, capsys, github):
+def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_gh_issue_view_fails(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     refusal = "GraphQL: Resource not accessible by integration\n"
     answers = {
@@ -362,33 +326,21 @@ def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_g
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
             0, '{"number":60,"body":"## What to build\\n\\nA thing.","labels":[]}\n', ""),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(
-            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     answer = github.gh_issue_view("60", "body")
 
     assert answer == "## What to build\n\nA thing.\n"
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
     assert capsys.readouterr().err == ""
 
 
-def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_body_is_null(monkeypatch, github):
+def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_body_is_null(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
             0, '{"number":60,"body":null,"labels":[]}\n', ""),
@@ -397,15 +349,15 @@ def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_
     answer = github.gh_issue_view("60", "body")
 
     assert answer == "\n"
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
 
 
-def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_for_labels(monkeypatch, github):
+def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_for_labels(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
             0, '{"number":60,"body":"A thing.","labels":[{"name":"bug"},{"name":"ready-for-agent"}]}\n', ""),
@@ -414,15 +366,15 @@ def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_
     answer = github.gh_issue_view("60", "labels")
 
     assert answer == "bug\nready-for-agent\n"
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
 
 
-def test_gh_issue_view_answers_the_comment_bodies_of_every_page_for_comments_issue_3687(monkeypatch, github):
+def test_gh_issue_view_answers_the_comment_bodies_of_every_page_for_comments_issue_3687(fake_processes, monkeypatch, github):
     base = "repos/{owner}/{repo}/issues/3241/comments"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", base + "?page=1"): (0, '[{"body":"first comment"}]\n', ""),
         ("gh", "api", base + "?page=2"): (0, '[{"body":"### \u26d4 Preflight refused\\n\\nwhy"}]\n', ""),
         ("gh", "api", base + "?page=3"): (0, "[]\n", ""),
@@ -432,14 +384,14 @@ def test_gh_issue_view_answers_the_comment_bodies_of_every_page_for_comments_iss
 
     assert "### \u26d4 Preflight refused" in answer
     assert "first comment" in answer
-    assert calls
+    assert fake.argvs
 
 
-def test_graphql_gh_issue_view_answers_the_comment_bodies_of_every_page_not_the_label_names_for_comments_issue_3687(monkeypatch, github):
+def test_graphql_gh_issue_view_answers_the_comment_bodies_of_every_page_not_the_label_names_for_comments_issue_3687(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     base = "repos/{owner}/{repo}/issues/3241/comments"
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "issue", "view", "3241", "--json", "comments", "-q", ".labels[].name"): (0, "taken:mu\n", ""),
         ("gh", "api", base + "?page=1"): (0, '[{"body":"first comment"}]\n', ""),
         ("gh", "api", base + "?page=2"): (0, '[{"body":"### \u26d4 Preflight refused\\n\\nwhy"}]\n', ""),
@@ -452,9 +404,9 @@ def test_graphql_gh_issue_view_answers_the_comment_bodies_of_every_page_not_the_
     assert "first comment" in answer
 
 
-def test_rest_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_issue_body_issue_3687(monkeypatch, github):
+def test_rest_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_issue_body_issue_3687(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "api", "repos/{owner}/{repo}/issues/3241"): (
             0, '{"number":3241,"body":"## Problem","labels":[{"name":"taken:mu"}]}\n', ""),
     })
@@ -463,10 +415,10 @@ def test_rest_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_issue_b
         github.gh_issue_view("3241", "assignees")
 
 
-def test_graphql_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_label_names_issue_3687(monkeypatch, github):
+def test_graphql_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_label_names_issue_3687(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "issue", "view", "3241", "--json", "assignees", "-q", ".labels[].name"): (0, "taken:mu\n", ""),
     })
 
@@ -474,9 +426,9 @@ def test_graphql_gh_issue_view_with_an_unknown_field_is_a_no_answer_not_the_labe
         github.gh_issue_view("3241", "assignees")
 
 
-def test_gh_issue_view_for_comments_is_a_no_answer_not_a_json_decode_error_when_a_comments_page_fails_issue_3687(monkeypatch, github):
+def test_gh_issue_view_for_comments_is_a_no_answer_not_a_json_decode_error_when_a_comments_page_fails_issue_3687(fake_processes, monkeypatch, github):
     base = "repos/{owner}/{repo}/issues/3241/comments"
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "api", base + "?page=1"): (0, '[{"body":"first comment"}]\n', ""),
         ("gh", "api", base + "?page=2"): (1, "", "gh: HTTP 502: Bad Gateway\n"),
     })
@@ -485,7 +437,7 @@ def test_gh_issue_view_for_comments_is_a_no_answer_not_a_json_decode_error_when_
         github.gh_issue_view("3241", "comments")
 
 
-def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(monkeypatch, capsys, github):
+def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
@@ -494,33 +446,21 @@ def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", graphql_refusal),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (1, "", rest_refusal),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(
-            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     with pytest.raises(github.NoAnswer):
         github.gh_issue_view("60", "body")
 
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
     assert capsys.readouterr().err == rest_refusal + decode_line
 
 
-def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypatch, github):
+def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (0, "<html>Bad Gateway</html>\n", ""),
     })
@@ -528,15 +468,15 @@ def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypat
     with pytest.raises(github.NoAnswer):
         github.gh_issue_view("60", "body")
 
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
 
 
-def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exits_0_with_a_non_json_stdout(monkeypatch, capsys, github):
+def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exits_0_with_a_non_json_stdout(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (0, "<html>Bad Gateway</html>\n", ""),
     })
@@ -547,9 +487,9 @@ def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exit
     assert capsys.readouterr().err == "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
 
 
-def test_gh_issue_view_is_a_no_answer_with_no_json_decode_line_when_gh_api_exits_non_zero_with_a_json_stdout(monkeypatch, capsys, github):
+def test_gh_issue_view_is_a_no_answer_with_no_json_decode_line_when_gh_api_exits_non_zero_with_a_json_stdout(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
             1, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest","status":"404"}\n', ""),
@@ -561,82 +501,58 @@ def test_gh_issue_view_is_a_no_answer_with_no_json_decode_line_when_gh_api_exits
     assert capsys.readouterr().err == ""
 
 
-def test_gh_issue_edit_patches_the_issue_body_from_the_file_and_answers_nothing_of_its_stdout(monkeypatch, capsys, github):
+def test_gh_issue_edit_patches_the_issue_body_from_the_file_and_answers_nothing_of_its_stdout(fake_processes, monkeypatch, capsys, github):
     patch = ("gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@/tmp/body.md")
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) != patch:
-            raise AssertionError("unexpected command: %r" % (args,))
-        stdout = '{"number":60,"body":"New body."}\n'
-        if kwargs.get("stdout") is None:
-            sys.stdout.write(stdout)
-        return subprocess.CompletedProcess(
-            args, 0, stdout if kwargs.get("stdout") == subprocess.PIPE else None, None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting({patch: (0, '{"number":60,"body":"New body."}\n', "")}))
 
     answer = github.gh_issue_edit("60", "/tmp/body.md")
 
     assert answer is None
-    assert calls == [list(patch)]
+    assert fake.argvs == [list(patch)]
     assert capsys.readouterr().out == ""
 
 
-def test_gh_issue_edit_is_a_no_answer_with_gh_stderr_passed_through_when_the_patch_fails(monkeypatch, capsys, github):
+def test_gh_issue_edit_is_a_no_answer_with_gh_stderr_passed_through_when_the_patch_fails(fake_processes, monkeypatch, capsys, github):
     patch = ("gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@/tmp/body.md")
     refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) != patch:
-            raise AssertionError("unexpected command: %r" % (args,))
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(refusal)
-        return subprocess.CompletedProcess(
-            args, 1, "" if kwargs.get("stdout") == subprocess.PIPE else None,
-            refusal if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting({patch: (1, "", refusal)}))
 
     with pytest.raises(github.NoAnswer):
         github.gh_issue_edit("60", "/tmp/body.md")
 
-    assert calls == [list(patch)]
+    assert fake.argvs == [list(patch)]
     assert capsys.readouterr().err == refusal
 
 
-def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(monkeypatch, github):
+def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(fake_processes, monkeypatch, github):
     create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         create: (0, "https://github.com/o/r/issues/61\n", ""),
     })
 
     answer = github.gh_issue_create("T", "B")
 
     assert answer == "https://github.com/o/r/issues/61\n"
-    assert calls == [list(create)]
+    assert fake.argvs == [list(create)]
 
 
-def test_gh_issue_create_sends_each_label_as_a_labels_array_field_after_title_and_body(monkeypatch, github):
+def test_gh_issue_create_sends_each_label_as_a_labels_array_field_after_title_and_body(fake_processes, monkeypatch, github):
     create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B",
               "-f", "labels[]=ready-for-agent", "-f", "labels[]=filed-by:x", "-q", ".html_url")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         create: (0, "https://github.com/o/r/issues/62\n", ""),
     })
 
     answer = github.gh_issue_create("T", "B", "ready-for-agent", "filed-by:x")
 
     assert answer == "https://github.com/o/r/issues/62\n"
-    assert calls == [list(create)]
+    assert fake.argvs == [list(create)]
 
 
-def test_gh_issue_comment_asks_gh_for_the_html_url_alone_and_answers_it_not_the_whole_comment_json(monkeypatch, github):
+def test_gh_issue_comment_asks_gh_for_the_html_url_alone_and_answers_it_not_the_whole_comment_json(fake_processes, monkeypatch, github):
     url = "https://github.com/o/r/issues/7#issuecomment-99"
     post = ("gh", "api", "repos/{owner}/{repo}/issues/7/comments", "-f", "body=B")
-    fake_gh(monkeypatch, {
+    fake_gh(fake_processes, {
         post + ("-q", ".html_url"): (0, url + "\n", ""),
         post: (0, '{"id":99,"html_url":"%s","body":"B"}\n' % url, ""),
     })
@@ -646,47 +562,35 @@ def test_gh_issue_comment_asks_gh_for_the_html_url_alone_and_answers_it_not_the_
     assert answer == url + "\n"
 
 
-def test_gh_issue_create_is_a_no_answer_with_gh_stderr_passed_through_when_the_create_fails(monkeypatch, capsys, github):
+def test_gh_issue_create_is_a_no_answer_with_gh_stderr_passed_through_when_the_create_fails(fake_processes, monkeypatch, capsys, github):
     create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url")
     refusal = "gh: HTTP 422: Validation Failed (https://api.github.com/repos/o/r/issues)\n"
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) != create:
-            raise AssertionError("unexpected command: %r" % (args,))
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(refusal)
-        return subprocess.CompletedProcess(
-            args, 1, "" if kwargs.get("stdout") == subprocess.PIPE else None,
-            refusal if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting({create: (1, "", refusal)}))
 
     with pytest.raises(github.NoAnswer):
         github.gh_issue_create("T", "B")
 
-    assert calls == [list(create)]
+    assert fake.argvs == [list(create)]
     assert capsys.readouterr().err == refusal
 
 
-def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_when_veri_gh_json_is_set(monkeypatch, tmp_path, github):
+def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_when_veri_gh_json_is_set(fake_processes, monkeypatch, tmp_path, github):
     fixture = '[{"number":7,"title":"A thing"}]\n'
     (tmp_path / "prs.json").write_text(fixture)
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
-    calls = fake_gh(monkeypatch, {})
+    fake = fake_gh(fake_processes, {})
 
     answer = github.gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open",
                             "pr", "list", "--json", "number,title")
 
     assert answer == fixture
-    assert calls == []
+    assert fake.argvs == []
 
 
-def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_args_are_given(monkeypatch, github):
+def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_args_are_given(fake_processes, monkeypatch, github):
     path = "repos/{owner}/{repo}/issues"
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", path + "?page=1"): (0, '[{"number":4}]\n', ""),
         ("gh", "api", path + "?page=2"): (0, "[]\n", ""),
     })
@@ -694,31 +598,31 @@ def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_arg
     answer = github.gh_json("issues.json", path)
 
     assert answer == '[{"number":4}]'
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
     ]
 
 
-def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_args_are_given(monkeypatch, github):
+def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_args_are_given(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7},{"number":9}]', ""),
     })
 
     answer = github.gh_json("prs.json", path, "pr", "list", "--json", "number")
 
     assert answer == '[{"number":7},{"number":9}]'
-    assert calls == [["gh", "pr", "list", "--json", "number"]]
+    assert fake.argvs == [["gh", "pr", "list", "--json", "number"]]
 
 
-def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_call_and_a_rest_failure_is_a_no_answer(monkeypatch, github):
+def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_call_and_a_rest_failure_is_a_no_answer(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     path = "repos/{owner}/{repo}/pulls?state=open"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
             0, '{"number":60,"body":"A thing.","labels":[]}\n', ""),
         ("gh", "api", path + "&page=1"): (0, '[{"number":7}]\n', ""),
@@ -732,7 +636,7 @@ def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_c
     with pytest.raises(github.NoAnswer):
         github.gh_issue_view("61", "body")
 
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
         ["gh", "api", path + "&page=1"],
         ["gh", "api", path + "&page=2"],
@@ -742,7 +646,7 @@ def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_c
     ]
 
 
-def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_rest_failure_is_a_no_answer_with_gh_api_stderr(monkeypatch, capsys, github):
+def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_rest_failure_is_a_no_answer_with_gh_api_stderr(fake_processes, monkeypatch, capsys, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     path = "repos/{owner}/{repo}/pulls?state=open"
@@ -756,19 +660,7 @@ def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_re
         ("gh", "api", "repos/{owner}/{repo}/issues/61"): (1, "", refusal),
         ("gh", "api", broken + "&page=1"): (1, "", refusal),
     }
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        returncode, stdout, stderr = answers[tuple(args)]
-        if kwargs.get("stderr") is None:
-            sys.stderr.write(stderr)
-        return subprocess.CompletedProcess(args, returncode, stdout,
-                                           stderr if kwargs.get("stderr") == subprocess.PIPE else None)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=inheriting(answers))
 
     assert github.gh_issue_view("60", "body") == "A thing.\n"
     assert github.gh_list(path, "pr", "list", "--json", "number") == '[{"number":7}]'
@@ -782,15 +674,15 @@ def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_re
             read()
         errs.append(capsys.readouterr().err)
 
-    assert [call for call in calls if call[1] != "api"] == []
+    assert [call for call in fake.argvs if call[1] != "api"] == []
     assert [err.startswith(refusal) for err in errs] == [True, True, True]
 
 
-def test_with_veri_gh_driver_graphql_the_graphql_route_reads_answer_graphql_stdout_and_a_graphql_failure_is_a_no_answer_with_no_gh_api_call(monkeypatch, github):
+def test_with_veri_gh_driver_graphql_the_graphql_route_reads_answer_graphql_stdout_and_a_graphql_failure_is_a_no_answer_with_no_gh_api_call(fake_processes, monkeypatch, github):
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     path = "repos/{owner}/{repo}/pulls?state=open"
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (0, "A thing.\n", ""),
         ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7}]', ""),
         ("gh", "issue", "view", "61", "--json", "body", "-q", ".body"): (1, "", ""),
@@ -806,15 +698,15 @@ def test_with_veri_gh_driver_graphql_the_graphql_route_reads_answer_graphql_stdo
         with pytest.raises(github.NoAnswer):
             read()
 
-    assert [call for call in calls if call[1] == "api"] == []
+    assert [call for call in fake.argvs if call[1] == "api"] == []
 
 
-def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_each_veri_gh_driver(monkeypatch, github):
+def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_each_veri_gh_driver(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     path = "repos/{owner}/{repo}/issues"
     patch = ("gh", "api", "-X", "PATCH", path + "/60", "-F", "body=@/tmp/body.md")
     create = ("gh", "api", path, "-f", "title=T", "-f", "body=B", "-q", ".html_url")
-    calls = fake_gh(monkeypatch, {
+    fake = fake_gh(fake_processes, {
         patch: (0, "", ""),
         create: (0, "https://github.com/o/r/issues/61\n", ""),
         ("gh", "api", path + "?page=1"): (0, '[{"number":4}]\n', ""),
@@ -830,14 +722,14 @@ def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_
             monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
         else:
             monkeypatch.setenv("VERI_GH_DRIVER", driver)
-        del calls[:]
+        del fake.seen[:]
         answers = []
         for operation in operations:
             try:
                 answers.append(operation())
             except Exception as error:
                 answers.append(type(error).__name__)
-        observed[driver] = (answers, list(calls))
+        observed[driver] = (answers, list(fake.argvs))
 
     pages = [["gh", "api", path + "?page=1"], ["gh", "api", path + "?page=2"]]
     expected = ([None, "https://github.com/o/r/issues/61\n", '[{"number":4}]', '[{"number":4}]'],
@@ -845,11 +737,11 @@ def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_
     assert observed == {driver: expected for driver in (None, "auto", "rest", "graphql")}
 
 
-def test_with_veri_gh_json_set_gh_json_answers_the_fixture_file_contents_and_starts_no_process_under_each_veri_gh_driver(monkeypatch, tmp_path, github):
+def test_with_veri_gh_json_set_gh_json_answers_the_fixture_file_contents_and_starts_no_process_under_each_veri_gh_driver(fake_processes, monkeypatch, tmp_path, github):
     fixture = '[{"number":7,"title":"A thing"}]\n'
     (tmp_path / "prs.json").write_text(fixture)
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
-    calls = fake_gh(monkeypatch, {})
+    fake = fake_gh(fake_processes, {})
     path = "repos/{owner}/{repo}/pulls?state=open"
     observed = {}
     for driver in (None, "auto", "rest", "graphql"):
@@ -857,14 +749,14 @@ def test_with_veri_gh_json_set_gh_json_answers_the_fixture_file_contents_and_sta
             monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
         else:
             monkeypatch.setenv("VERI_GH_DRIVER", driver)
-        del calls[:]
+        del fake.seen[:]
         answers = []
         for args in ((), ("pr", "list", "--json", "number,title")):
             try:
                 answers.append(github.gh_json("prs.json", path, *args))
             except Exception as error:
                 answers.append(type(error).__name__)
-        observed[driver] = (answers, list(calls))
+        observed[driver] = (answers, list(fake.argvs))
 
     assert observed == {driver: ([fixture, fixture], []) for driver in (None, "auto", "rest", "graphql")}
 
@@ -881,24 +773,25 @@ def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_
     assert callable(from_import.gh_json)
 
 
-def test_importing_the_module_starts_no_process_and_reads_veri_gh_json_only_when_called(monkeypatch, tmp_path):
-    calls = fake_gh(monkeypatch, {})
-    monkeypatch.setattr("os.system", lambda command: calls.append(command))
+def test_importing_the_module_starts_no_process_and_reads_veri_gh_json_only_when_called(fake_processes, monkeypatch, tmp_path):
+    fake = fake_gh(fake_processes, {})
+    systems = []
+    monkeypatch.setattr("os.system", lambda command: systems.append(command))
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
 
     import veri.github as github
 
-    assert calls == []
+    assert fake.argvs + systems == []
     (tmp_path / "issues.json").write_text('[{"number":5}]')
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
     assert github.gh_json("issues.json", "repos/{owner}/{repo}/issues") == '[{"number":5}]'
-    assert calls == []
+    assert fake.argvs + systems == []
 
 
-def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh_process_and_is_a_no_answer_naming_the_variable_and_value(monkeypatch, capsys):
-    calls = fake_gh(monkeypatch, {})
+def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh_process_and_is_a_no_answer_naming_the_variable_and_value(fake_processes, monkeypatch, capsys):
+    fake = fake_gh(fake_processes, {})
     reads = []
 
     class RecordingEnviron(dict):
@@ -919,7 +812,7 @@ def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh
 
     import veri.github as github
 
-    assert (reads, calls, capsys.readouterr().err) == ([], [], "")
+    assert (reads, fake.argvs, capsys.readouterr().err) == ([], [], "")
 
     path = "repos/{owner}/{repo}/issues"
     operations = (lambda: github.gh_rest_list(path),
@@ -934,14 +827,14 @@ def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh
         environ["VERI_GH_DRIVER"] = driver
         outcomes = []
         for operation in operations:
-            del calls[:]
+            del fake.seen[:]
             try:
                 operation()
                 outcome = "answered"
             except Exception as error:
                 outcome = type(error).__name__
             err = capsys.readouterr().err
-            outcomes.append((outcome, list(calls), err.count("\n"),
+            outcomes.append((outcome, list(fake.argvs), err.count("\n"),
                              "VERI_GH_DRIVER" in err, "'%s'" % driver in err))
         observed[driver] = outcomes
 
@@ -949,7 +842,7 @@ def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh
     assert observed == {driver: refused for driver in ("", "REST", "gql")}
 
 
-def test_gh_never_found_on_path_gives_up_once_veri_tool_wait_seconds_of_clock_have_passed_though_the_sleeps_asked_for_sum_to_less_2097(monkeypatch, capsys, github):
+def test_gh_never_found_on_path_gives_up_once_veri_tool_wait_seconds_of_clock_have_passed_though_the_sleeps_asked_for_sum_to_less_2097(fake_processes, monkeypatch, capsys, github):
     now = [1000.0]
     sleeps = []
 
@@ -965,13 +858,13 @@ def test_gh_never_found_on_path_gives_up_once_veri_tool_wait_seconds_of_clock_ha
     monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "30")
     monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "50")
     monkeypatch.setenv("VERI_TOOL_WAIT", "100")
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert sleeps == [10, 10, 50]
-    assert len(lookups) == 4
+    assert len(fake.argvs) == 4
     assert now[0] == 1140.0
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line for line in err_lines)
@@ -992,63 +885,63 @@ def clear_tool_wait_tunables(monkeypatch):
     for name in _INTERVALS + _LIMITS
     for value in (("0", "-1", "abc", "1.5", "inf", "") if name in _INTERVALS else ("-1", "abc", "1.5", "inf", ""))
 ])
-def test_gh_never_found_on_path_with_an_invalid_tool_wait_tunable_is_a_no_answer_at_once_naming_the_variable_and_value_2097(monkeypatch, capsys, github, name, value):
+def test_gh_never_found_on_path_with_an_invalid_tool_wait_tunable_is_a_no_answer_at_once_naming_the_variable_and_value_2097(fake_processes, monkeypatch, capsys, github, name, value):
     _, sleeps = fake_clock(monkeypatch)
     clear_tool_wait_tunables(monkeypatch)
     monkeypatch.setenv(name, value)
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert sleeps == []
-    assert len(lookups) == 1
+    assert len(fake.argvs) == 1
     err_lines = capsys.readouterr().err.splitlines()
     assert any(name in line and repr(value) in line for line in err_lines)
 
 
-def test_gh_missing_from_path_with_veri_tool_fast_wait_0_is_accepted_and_waits_at_the_slow_interval_2097(monkeypatch, capsys, github):
+def test_gh_missing_from_path_with_veri_tool_fast_wait_0_is_accepted_and_waits_at_the_slow_interval_2097(fake_processes, monkeypatch, capsys, github):
     _, sleeps = fake_clock(monkeypatch)
     clear_tool_wait_tunables(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "0")
-    lookups = fake_missing_gh(monkeypatch, misses=1)
+    fake = fake_missing_gh(fake_processes, misses=1)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert (run.returncode, run.stdout) == (0, '{"number":7}')
     assert sleeps == [900]
-    assert len(lookups) == 2
+    assert len(fake.argvs) == 2
     assert "VERI_TOOL_FAST_WAIT" not in capsys.readouterr().err
 
 
-def test_gh_never_found_on_path_with_veri_tool_wait_0_is_accepted_and_gives_up_at_the_first_miss_naming_gh_2097(monkeypatch, capsys, github):
+def test_gh_never_found_on_path_with_veri_tool_wait_0_is_accepted_and_gives_up_at_the_first_miss_naming_gh_2097(fake_processes, monkeypatch, capsys, github):
     _, sleeps = fake_clock(monkeypatch)
     clear_tool_wait_tunables(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_WAIT", "0")
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert sleeps == []
-    assert len(lookups) == 1
+    assert len(fake.argvs) == 1
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line and "VERI_TOOL_WAIT" not in line for line in err_lines)
 
 
-def test_gh_never_found_on_path_with_veri_tool_wait_08_reads_8_decimal_seconds_and_gives_up_only_once_8s_of_clock_have_passed_naming_gh_2132(monkeypatch, capsys, github):
+def test_gh_never_found_on_path_with_veri_tool_wait_08_reads_8_decimal_seconds_and_gives_up_only_once_8s_of_clock_have_passed_naming_gh_2132(fake_processes, monkeypatch, capsys, github):
     now, sleeps = fake_clock(monkeypatch)
     clear_tool_wait_tunables(monkeypatch)
     monkeypatch.setenv("VERI_TOOL_RETRY_SLEEP", "2")
     monkeypatch.setenv("VERI_TOOL_FAST_WAIT", "100")
     monkeypatch.setenv("VERI_TOOL_SLOW_SLEEP", "2")
     monkeypatch.setenv("VERI_TOOL_WAIT", "08")
-    lookups = fake_missing_gh(monkeypatch)
+    fake = fake_missing_gh(fake_processes)
 
     with pytest.raises(github.NoAnswer):
         github.gh_api("repos/{owner}/{repo}/issues/7")
 
-    assert (sleeps, len(lookups), now[0]) == ([2, 2, 2, 2], 5, 1008.0)
+    assert (sleeps, len(fake.argvs), now[0]) == ([2, 2, 2, 2], 5, 1008.0)
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines and all("gh" in line and "VERI_TOOL_WAIT" not in line for line in err_lines)
 
@@ -1057,22 +950,22 @@ def test_gh_never_found_on_path_with_veri_tool_wait_08_reads_8_decimal_seconds_a
     ("VERI_TOOL_RETRY_SLEEP", {}),
     ("VERI_TOOL_SLOW_SLEEP", {"VERI_TOOL_FAST_WAIT": "0"}),
 ])
-def test_gh_missing_from_path_with_an_interval_tunable_of_1_is_accepted_and_waits_1s_2097(monkeypatch, capsys, github, name, env):
+def test_gh_missing_from_path_with_an_interval_tunable_of_1_is_accepted_and_waits_1s_2097(fake_processes, monkeypatch, capsys, github, name, env):
     _, sleeps = fake_clock(monkeypatch)
     clear_tool_wait_tunables(monkeypatch)
     for var, value in {**env, name: "1"}.items():
         monkeypatch.setenv(var, value)
-    lookups = fake_missing_gh(monkeypatch, misses=1)
+    fake = fake_missing_gh(fake_processes, misses=1)
 
     run = github.gh_api("repos/{owner}/{repo}/issues/7")
 
     assert (run.returncode, run.stdout) == (0, '{"number":7}')
     assert sleeps == [1]
-    assert len(lookups) == 2
+    assert len(fake.argvs) == 2
     assert name not in capsys.readouterr().err
 
 
-def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_rest_route_2581(monkeypatch, github):
+def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_rest_route_2581(fake_processes, monkeypatch, github):
     from veri import pr_ready
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
@@ -1081,26 +974,24 @@ def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ["gh", "api", pulls, "--jq", ".head.sha"]:
-            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
+            return (0, "abc123\n", "")
         if list(args) == ready:
-            if calls.count(ready) == 1:
-                return subprocess.CompletedProcess(args, 1, "API rate limit already exceeded\n", None)
-            return subprocess.CompletedProcess(args, 0, "{}\n", None)
-        return subprocess.CompletedProcess(args, 1, "", "")
+            if fake.argvs.count(ready) == 1:
+                return (1, "API rate limit already exceeded\n", "")
+            return (0, "{}\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     assert pr_ready.main(["12", "abc123"]) == 0
     assert sleeps == [60]
-    assert calls.count(ready) == 2
+    assert fake.argvs.count(ready) == 2
 
 
-def test_gh_pr_ready_retries_a_refused_rest_route_at_most_veri_gh_refusal_retries_times_then_falls_through_to_graphql_2581(monkeypatch, github):
+def test_gh_pr_ready_retries_a_refused_rest_route_at_most_veri_gh_refusal_retries_times_then_falls_through_to_graphql_2581(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.setenv("VERI_GH_REFUSAL_RETRIES", "2")
     monkeypatch.setenv("VERI_GH_REFUSAL_SLEEP", "5")
@@ -1108,29 +999,27 @@ def test_gh_pr_ready_retries_a_refused_rest_route_at_most_veri_gh_refusal_retrie
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ready:
-            assert calls.count(ready) <= 10, "still retrying ccr after 10 calls"
-            return subprocess.CompletedProcess(args, 1, "You have exceeded a secondary rate limit\n", None)
+            assert fake.argvs.count(ready) <= 10, "still retrying ccr after 10 fake.argvs"
+            return (1, "You have exceeded a secondary rate limit\n", "")
         if list(args) == ["gh", "api", pulls, "-q", ".node_id"]:
-            return subprocess.CompletedProcess(args, 0, "NODE\n", "")
+            return (0, "NODE\n", "")
         if args[:3] == ["gh", "api", "graphql"]:
-            return subprocess.CompletedProcess(args, 0, "{}\n", "")
-        return subprocess.CompletedProcess(args, 1, "", "")
+            return (0, "{}\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     github.gh_pr_ready("12")
 
-    assert calls.count(ready) == 3
+    assert fake.argvs.count(ready) == 3
     assert sleeps == [5, 5]
-    assert calls[-1][:3] == ["gh", "api", "graphql"]
+    assert fake.argvs[-1][:3] == ["gh", "api", "graphql"]
 
 
-def test_gh_pr_ready_with_veri_gh_refusal_retries_unset_retries_a_refused_rest_route_3_times_then_falls_through_to_graphql_2581(monkeypatch, github):
+def test_gh_pr_ready_with_veri_gh_refusal_retries_unset_retries_a_refused_rest_route_3_times_then_falls_through_to_graphql_2581(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
@@ -1138,54 +1027,50 @@ def test_gh_pr_ready_with_veri_gh_refusal_retries_unset_retries_a_refused_rest_r
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ready:
-            assert calls.count(ready) <= 10, "still retrying ccr after 10 calls"
-            return subprocess.CompletedProcess(args, 1, "You have exceeded a secondary rate limit\n", None)
+            assert fake.argvs.count(ready) <= 10, "still retrying ccr after 10 fake.argvs"
+            return (1, "You have exceeded a secondary rate limit\n", "")
         if list(args) == ["gh", "api", pulls, "-q", ".node_id"]:
-            return subprocess.CompletedProcess(args, 0, "NODE\n", "")
+            return (0, "NODE\n", "")
         if args[:3] == ["gh", "api", "graphql"]:
-            return subprocess.CompletedProcess(args, 0, "{}\n", "")
-        return subprocess.CompletedProcess(args, 1, "", "")
+            return (0, "{}\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     github.gh_pr_ready("12")
 
-    assert calls.count(ready) == 4
+    assert fake.argvs.count(ready) == 4
     assert sleeps == [60, 60, 60]
-    assert calls[-1][:3] == ["gh", "api", "graphql"]
+    assert fake.argvs[-1][:3] == ["gh", "api", "graphql"]
 
 
-def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_with_the_refusal_as_the_last_stderr_line_not_a_later_routes_404_2581(monkeypatch, capsys, github):
+def test_gh_pr_ready_with_a_rate_limit_refusal_that_never_clears_is_a_no_answer_with_the_refusal_as_the_last_stderr_line_not_a_later_routes_404_2581(fake_processes, monkeypatch, capsys, github):
     from veri import pr_ready
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
     monkeypatch.delenv("VERI_GH_REFUSAL_RETRIES", raising=False)
     monkeypatch.setattr(time, "sleep", lambda seconds: None)
     pulls = "repos/{owner}/{repo}/pulls/12"
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        assert len(calls) <= 50, "still calling gh after 50 calls"
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
+        assert len(fake.argvs) <= 50, "still calling gh after 50 fake.argvs"
         if list(args) == ["gh", "api", pulls, "--jq", ".head.sha"]:
-            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
+            return (0, "abc123\n", "")
         if list(args) == ["gh", "pr", "ready", "12"]:
-            return subprocess.CompletedProcess(args, 1, "", "API rate limit already exceeded\n")
-        return subprocess.CompletedProcess(args, 1, "HTTP 404: Not Found\n", "")
+            return (1, "", "API rate limit already exceeded\n")
+        return (1, "HTTP 404: Not Found\n", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     assert pr_ready.main(["12", "abc123"]) == 2
     err_lines = capsys.readouterr().err.splitlines()
     assert err_lines[-1] == "API rate limit already exceeded"
 
 
-def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_graphql_route_2581(monkeypatch, github):
+def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_graphql_route_2581(fake_processes, monkeypatch, github):
     from veri import pr_ready
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     monkeypatch.delenv("VERI_GH_REFUSAL_SLEEP", raising=False)
@@ -1194,99 +1079,98 @@ def test_gh_pr_ready_waits_out_a_rate_limit_refusal_that_clears_and_retries_the_
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "pr", "ready", "12"]
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ["gh", "api", pulls, "--jq", ".head.sha"]:
-            return subprocess.CompletedProcess(args, 0, "abc123\n", "")
+            return (0, "abc123\n", "")
         if list(args) == ready:
-            if calls.count(ready) == 1:
-                return subprocess.CompletedProcess(args, 1, "", "API rate limit already exceeded\n")
-            return subprocess.CompletedProcess(args, 0, "", "")
-        return subprocess.CompletedProcess(args, 1, "", "")
+            if fake.argvs.count(ready) == 1:
+                return (1, "", "API rate limit already exceeded\n")
+            return (0, "", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     assert pr_ready.main(["12", "abc123"]) == 0
     assert sleeps == [60]
-    assert calls.count(ready) == 2
+    assert fake.argvs.count(ready) == 2
 
 
-def test_gh_pr_ready_does_not_retry_a_ccr_404_and_takes_no_sleep_before_falling_through_to_graphql_2581(monkeypatch, github):
+def test_gh_pr_ready_does_not_retry_a_ccr_404_and_takes_no_sleep_before_falling_through_to_graphql_2581(fake_processes, monkeypatch, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     sleeps = []
     monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ready:
-            assert calls.count(ready) <= 10, "still retrying ccr after 10 calls"
-            return subprocess.CompletedProcess(args, 1, "gh: HTTP 404: Not Found\n", None)
+            assert fake.argvs.count(ready) <= 10, "still retrying ccr after 10 fake.argvs"
+            return (1, "gh: HTTP 404: Not Found\n", "")
         if list(args) == ["gh", "api", pulls, "-q", ".node_id"]:
-            return subprocess.CompletedProcess(args, 0, "NODE\n", "")
+            return (0, "NODE\n", "")
         if args[:3] == ["gh", "api", "graphql"]:
-            return subprocess.CompletedProcess(args, 0, "{}\n", "")
-        return subprocess.CompletedProcess(args, 1, "", "")
+            return (0, "{}\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     github.gh_pr_ready("12")
 
-    assert calls.count(ready) == 1
+    assert fake.argvs.count(ready) == 1
     assert sleeps == []
-    assert calls[-1][:3] == ["gh", "api", "graphql"]
+    assert fake.argvs[-1][:3] == ["gh", "api", "graphql"]
 
 
-def test_gh_pr_ready_with_a_non_integer_veri_gh_refusal_sleep_is_a_no_answer_naming_the_variable_when_ccr_answers_a_rate_limit_refusal_2581(monkeypatch, capsys, github):
+def test_gh_pr_ready_with_a_non_integer_veri_gh_refusal_sleep_is_a_no_answer_naming_the_variable_when_ccr_answers_a_rate_limit_refusal_2581(fake_processes, monkeypatch, capsys, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.setenv("VERI_GH_REFUSAL_SLEEP", "abc")
     monkeypatch.setattr(time, "sleep", lambda seconds: None)
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ready:
-            return subprocess.CompletedProcess(args, 1, "API rate limit already exceeded\n", None)
-        return subprocess.CompletedProcess(args, 1, "", "")
+            return (1, "API rate limit already exceeded\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     with pytest.raises(github.NoAnswer):
         github.gh_pr_ready("12")
     assert "VERI_GH_REFUSAL_SLEEP" in capsys.readouterr().err
 
 
-def test_gh_pr_ready_with_a_negative_veri_gh_refusal_retries_is_a_no_answer_naming_the_variable_when_ccr_answers_a_rate_limit_refusal_2581(monkeypatch, capsys, github):
+def test_gh_pr_ready_with_a_negative_veri_gh_refusal_retries_is_a_no_answer_naming_the_variable_when_ccr_answers_a_rate_limit_refusal_2581(fake_processes, monkeypatch, capsys, github):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     monkeypatch.setenv("VERI_GH_REFUSAL_RETRIES", "-1")
     monkeypatch.setattr(time, "sleep", lambda seconds: None)
     pulls = "repos/{owner}/{repo}/pulls/12"
     ready = ["gh", "api", "-X", "POST", pulls + "/ccr/ready_for_review"]
 
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         if list(args) == ready:
-            return subprocess.CompletedProcess(args, 1, "API rate limit already exceeded\n", None)
-        return subprocess.CompletedProcess(args, 1, "", "")
+            return (1, "API rate limit already exceeded\n", "")
+        return (1, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     with pytest.raises(github.NoAnswer):
         github.gh_pr_ready("12")
     assert "VERI_GH_REFUSAL_RETRIES" in capsys.readouterr().err
 
 
-def test_a_failed_graphql_gh_call_carries_gh_stderr_in_the_no_answer_detail_only_when_the_call_asked_for_it_piped_3651(monkeypatch, github):
+def test_a_failed_graphql_gh_call_carries_gh_stderr_in_the_no_answer_detail_only_when_the_call_asked_for_it_piped_3651(fake_processes, monkeypatch, github):
     """The fake honours the stderr argument like the real subprocess: no text unless PIPE was passed, so a
     caller that stops capturing stderr loses the 'HTTP 503' that dispatch.sh's retry reads from the detail."""
-    def fake_run(args, **kwargs):
+    def fake_run(line, **kwargs):
+        args = fake.argvs[-1]
         said = "gh: Service Unavailable (HTTP 503)\n" if kwargs.get("stderr") == subprocess.PIPE else None
-        return subprocess.CompletedProcess(args, 1, "", said)
+        return (1, "", said)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({}, default=fake_run)
 
     with pytest.raises(github.NoAnswer) as no_answer:
         github.GraphQLAdapter().list("pr", "list", "--json", "number")

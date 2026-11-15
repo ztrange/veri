@@ -54,7 +54,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_dispatch_issue_states.py": "not inventoried",
     "unit/test_event_journal.py": "not inventoried",
     "unit/test_git.py": "not inventoried",
-    "unit/test_github.py": "exact argv-tuple dict, 20 inline",
     "unit/test_grade_prose.py": "not inventoried",
     "unit/test_help_flag.py": "not inventoried",
     "unit/test_merge_lock_gate.py": "not inventoried",
