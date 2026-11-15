@@ -5,6 +5,8 @@ import stat
 import sys
 import tempfile
 
+import run_dir
+
 SNAPSHOT_PREFIX = "veri-snapshot-"
 SNAPSHOT_MARKER = ".veri-snapshot"
 
@@ -42,14 +44,14 @@ def main(argv):
     if not argv:
         print("usage: pinned-scripts.sh <n>", file=sys.stderr)
         return 2
-    tdd = os.path.join(os.getcwd(), ".tdd")
-    here = os.path.join(tdd, "pinned-scripts")
+    run = os.getcwd()
+    here = run_dir.run_file(run, "pinned-scripts")
     if not os.path.isdir(here):
-        here = os.path.join(tdd, "wt", argv[0], ".tdd", "pinned-scripts")
-    pin_name = "issue-%s-skill-commit" % argv[0]
-    pin_file = os.path.join(os.path.dirname(here), pin_name)
+        run = run_dir.worktree(os.getcwd(), argv[0])
+        here = run_dir.run_file(run, "pinned-scripts")
+    pin_file = run_dir.issue_file(run, argv[0], "-skill-commit")
     if not os.path.isfile(pin_file):
-        pin_file = os.path.join(tdd, pin_name)
+        pin_file = run_dir.issue_file(os.getcwd(), argv[0], "-skill-commit")
     if not os.path.isdir(here) and os.path.isfile(pin_file):
         with open(pin_file) as f:
             pin = f.read().strip()
