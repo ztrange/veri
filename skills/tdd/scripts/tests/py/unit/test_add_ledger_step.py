@@ -1829,7 +1829,7 @@ def test_add_with_criterion_and_planned_tags_the_step_and_leaves_the_growth_budg
     monkeypatch.setenv("VERI_STEP_GROWTH", "0")
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
-    (tmp_path / "issue-42-spec.md").write_text("- [ ] one\n- [ ] two\n- [ ] three\n- [ ] four\n")
+    (tmp_path / "issue-42-spec.md").write_text("## Acceptance criteria\n\n" + "".join(f"- [ ] c{n}\n" for n in range(1, 5)))
 
     code = add_ledger_step.add(str(ledger), "after", "c three", ["new"], criterion="4", planned=True)
 

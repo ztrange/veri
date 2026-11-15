@@ -185,6 +185,20 @@ def main(argv):
     if planned and not criterion:
         return entry.refuse("add-ledger-step.sh: --planned requires --criterion")
     path, where, anchor, *texts = argv
+    return add(path, where, anchor, texts, criterion=criterion, planned=planned)
+
+
+def add(path, where, anchor, texts, *, criterion=None, planned=False):
+    """Insert each of `texts` as a ledger step `where` ("after", "before" or "instead-of") the one step of the
+    ledger at `path` whose line holds `anchor`: what `add-ledger-step.sh` does once its arguments are parsed.
+
+    `criterion` is the criterion number as a string (None: each step inherits the anchor's); `planned` (needs a
+    criterion) inserts steps the spec already lists, outside the VERI_STEP_GROWTH budget.
+    Returns 0 inserted; 1 clean negative (growth budget spent, the texts parked under "## Owed steps"; an
+    unreadable replaces-case step; a second suite-repair step this run); 2 refused (stderr says why) or no answer.
+    Writes the ledger, its added-steps record and events.jsonl (step-added, plan); commits the amendment when a
+    conductor is live. Prints refusals and notes to stderr, as the script does.
+    """
     if where not in ("after", "before", "instead-of"):
         return entry.refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     for text in texts:
