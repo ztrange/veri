@@ -7,6 +7,7 @@ import re
 import sys
 import time
 
+import entry
 import event_log
 import run_dir
 import timed_n_format
@@ -202,7 +203,7 @@ def do_request_reset(path, argv):
 def do_set(path, argv):
     if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
-    if argv[2] == "n" and not argv[3].isdigit():
+    if argv[2] == "n" and entry.whole_number(argv[3], minimum=0) is None:
         return usage()
     append(path, "%s=%s\n" % (argv[2], argv[3]))
     return 0
@@ -258,5 +259,4 @@ VERBS = {"recovered": do_recovered, "request-reset": do_request_reset, "set": do
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
