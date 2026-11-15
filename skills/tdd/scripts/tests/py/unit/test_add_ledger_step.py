@@ -1823,6 +1823,8 @@ def test_add_inserts_each_text_at_the_anchor_through_typed_parameters_like_main(
         "- [ ] b two ⟦criterion 2⟧",
     ]
     assert out_add == out_main
+    events = [json.loads(line)["event"] for line in (via_add.parent / "events.jsonl").read_text().splitlines()]
+    assert events.count("step-added") == 2
 
 
 def test_add_with_criterion_and_planned_tags_the_step_and_leaves_the_growth_budget_alone(tmp_path, monkeypatch, add_ledger_step):
