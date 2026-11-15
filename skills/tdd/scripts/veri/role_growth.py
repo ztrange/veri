@@ -66,7 +66,9 @@ def _main(argv):
     raw = tunables.read(KNOBS[argv[0]], "70000")
     if not raw.isdigit() or int(raw) < 1:
         raise Failure("%s must be a whole number of at least 1, got %r\n" % (KNOBS[argv[0]], raw))
-    session = os.environ["CLAUDE_CODE_SESSION_ID"]
+    session = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if not session:
+        raise Failure("CLAUDE_CODE_SESSION_ID is not set\n")
     pattern = os.path.join(os.path.expanduser("~"), ".claude", "projects", "*", session + ".jsonl")
     found = glob.glob(pattern)
     if not found:
