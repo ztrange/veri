@@ -638,7 +638,7 @@ def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_ap
     assert len(named) == 1 and "unit=unit.md" in named[0][-1], (code, out, err, events)
 
 
-def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997(tmp_path, monkeypatch, run_cli):
+def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_author_with_the_reworded_text_not_the_old_2997(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
     import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
@@ -656,14 +656,15 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         prompts.append(open(prompt).read())
         return subprocess.CompletedProcess([name], 0, b"", None)
 
-    def run(cmd, **kw):
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
@@ -814,9 +815,8 @@ def test_an_added_step_on_a_unit_whose_grade_fails_first_runs_its_author_attempt
     assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
 
 
-def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_checksum_or_verbatim_pins_there_2232(tmp_path, monkeypatch, run_cli):
+def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_checksum_or_verbatim_pins_there_2232(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -824,15 +824,16 @@ def test_the_author_prompt_names_every_pin_file_and_tells_it_to_update_the_check
     (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
     prompts = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             prompts.append(open(cmd[3]).read())
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
     for pins in (["tests/test_alpha.py", "tests/test_beta.py"], []):
         grades = iter([(1, "A1: FAIL - no\n"), (0, "")])
         monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: next(grades))
@@ -1412,9 +1413,8 @@ def test_a_guard_refusal_leaves_a_pre_existing_untracked_symlink_the_guard_names
     assert ((tmp_path / "link").is_symlink(), (tmp_path / "stray.py").exists()) == (True, False)
 
 
-def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_nothing_in_graded_without_an_author_changing_it_2121(tmp_path, monkeypatch, run_cli):
+def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_nothing_in_graded_without_an_author_changing_it_2121(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     grade_prose = skill_edit_step.grade_prose
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
@@ -1429,16 +1429,17 @@ def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_not
     (tmp_path / ".tdd" / "grade-prose-rejected").write_text("unit.md %s 2026-10-22 earlier\n" % sig)
     authors = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0] == "git":
-            return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+            return 0, "abc1234\n", ""
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":'
             '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n')
-        return subprocess.CompletedProcess(cmd, 0)
+        return 0, "", ""
 
     monkeypatch.setenv("PATH", "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
     monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
@@ -1448,9 +1449,8 @@ def test_a_pass_on_the_unchanged_text_of_a_unit_with_a_recorded_reject_signs_not
     assert (len(authors), (tmp_path / "GRADED").exists()) == (1, False), (code, out, err, authors)
 
 
-def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_prompt_names_the_change_and_commits_the_unit_list_and_graded_when_the_unit_grades_pass_after_it_2340(tmp_path, monkeypatch, run_cli):
+def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_prompt_names_the_change_and_commits_the_unit_list_and_graded_when_the_unit_grades_pass_after_it_2340(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -1460,18 +1460,19 @@ def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_pr
     prompts = []
     commands = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         commands.append(cmd)
         if cmd[0].endswith("supervise.sh"):
             prompts.append(open(cmd[3]).read())
             (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--change", change, str(tmp_path / "issue.md"), "unit.md"])
 
@@ -1480,9 +1481,8 @@ def test_a_change_step_on_a_unit_already_graded_pass_launches_an_author_whose_pr
     assert len(commits) == 1 and all(any(n in p for p in commits[0]) for n in ("REQUIREMENTS.md", "GRADED", "unit.md")), commands
 
 
-def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_without_a_change_to_make_line_2340(tmp_path, monkeypatch, run_cli):
+def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_without_a_change_to_make_line_2340(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -1491,25 +1491,25 @@ def test_a_run_given_no_change_whose_unit_grades_fail_sends_its_author_a_prompt_
     prompts = []
     grades = [(1, "A1: FAIL - no\n"), (0, "")]
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             prompts.append(open(cmd[3]).read())
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: grades.pop(0))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, [str(tmp_path / "issue.md"), "unit.md"])
 
     assert code == 0 and len(prompts) == 1 and "Change to make:" not in prompts[0], (code, err, prompts)
 
 
-def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spends_the_whole_budget_commits_nothing_and_exits_1_2340(tmp_path, monkeypatch, run_cli):
+def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spends_the_whole_budget_commits_nothing_and_exits_1_2340(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -1519,18 +1519,19 @@ def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spe
     authors = []
     commits = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             authors.append(cmd)
         if cmd[:2] == ["git", "commit"]:
             commits.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                str(tmp_path / "issue.md"), "unit.md"],
@@ -1540,9 +1541,8 @@ def test_a_change_step_whose_every_author_attempt_leaves_the_prose_unchanged_spe
     assert (code, len(authors), len(commits), after) == (1, 2, 0, before), (code, err)
 
 
-def test_an_added_step_given_a_change_on_a_unit_graded_pass_before_any_author_ran_launches_its_author_and_commits_instead_of_exiting_2_2340(tmp_path, monkeypatch, run_cli):
+def test_an_added_step_given_a_change_on_a_unit_graded_pass_before_any_author_ran_launches_its_author_and_commits_instead_of_exiting_2_2340(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -1551,19 +1551,20 @@ def test_an_added_step_given_a_change_on_a_unit_graded_pass_before_any_author_ra
     authors = []
     commits = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             authors.append(cmd)
             (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
         if cmd[:2] == ["git", "commit"]:
             commits.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "--added", "drop the stale bullet",
@@ -1600,7 +1601,7 @@ def test_a_run_given_no_change_on_a_unit_graded_pass_launches_no_author_commits_
     assert len(adds) == 1 and sorted(adds[0]) == sorted(["REQUIREMENTS.md", "GRADED"]), adds
 
 
-def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_though_the_up_front_passs_own_graded_write_is_uncommitted_2490(tmp_path, monkeypatch, run_cli):
+def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_though_the_up_front_passs_own_graded_write_is_uncommitted_2490(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
     import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
@@ -1628,15 +1629,16 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
             (tmp_path / "unit.md").write_text(edited)
         return subprocess.CompletedProcess([name], 0, b"", None)
 
-    def run(cmd, **kw):
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
     monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
         p.name for p in tmp_path.iterdir() if p.name not in (".tdd", "skills")) if a[0] == "ls-files" else [])
     monkeypatch.setattr(grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
@@ -1651,9 +1653,8 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
     assert gradings[-1]["id"] in (tmp_path / "GRADED").read_text(), (gradings, err)
 
 
-def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray_path_has_it_flagged_and_restored_and_grades_no_attempt_2490(tmp_path, monkeypatch, run_cli):
+def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray_path_has_it_flagged_and_restored_and_grades_no_attempt_2490(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     skill_edit_guard = skill_edit_step.skill_edit_guard
     original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
@@ -1669,11 +1670,12 @@ def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray
         (tmp_path / "GRADED").write_text("sig\n")
         return 0, ""
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             (tmp_path / "unit.md").write_text(edited)
             (tmp_path / "stray.txt").write_text("stray\n")
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
@@ -1681,7 +1683,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray
         p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "issue.md", "unit.md"],
@@ -1691,9 +1693,8 @@ def test_a_change_step_on_a_unit_already_graded_pass_whose_author_writes_a_stray
     assert (code, (tmp_path / "stray.txt").exists(), (tmp_path / "unit.md").read_text()) == (1, False, original), (code, out, err)
 
 
-def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exactly_the_unit_its_list_its_graded_and_the_pins_2490(tmp_path, monkeypatch, run_cli):
+def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exactly_the_unit_its_list_its_graded_and_the_pins_2490(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     skill_edit_guard = skill_edit_step.skill_edit_guard
     original = "The widget is painted a deep blue.\n- a merge is in flight;\n"
@@ -1709,12 +1710,13 @@ def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exact
         (tmp_path / "GRADED").write_text("sig\n")
         return 0, ""
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         commands.append(cmd)
         if cmd[0].endswith("supervise.sh"):
             (tmp_path / "unit.md").write_text(edited)
             (tmp_path / "pin.md").write_text("pin, edited\n")
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
@@ -1722,7 +1724,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exact
         p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
                                                "issue.md", "unit.md", "pin.md"],
@@ -1734,9 +1736,8 @@ def test_a_change_step_on_a_unit_already_graded_pass_ends_in_one_commit_of_exact
     assert sorted(commits[0][5:]) == sorted(["unit.md", "REQUIREMENTS.md", "GRADED", "pin.md"]), commits
 
 
-def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_order_does_never_reading_the_literal_change_as_the_issue_body_2472(tmp_path, monkeypatch, run_cli):
+def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_order_does_never_reading_the_literal_change_as_the_issue_body_2472(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
-    import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n- a merge is in flight;\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
@@ -1745,19 +1746,20 @@ def test_an_added_flag_before_a_change_flag_applies_both_as_the_change_first_ord
     authors = []
     commits = []
 
-    def run(cmd, **kw):
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
         if cmd[0].endswith("supervise.sh"):
             authors.append(cmd)
             (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
         if cmd[:2] == ["git", "commit"]:
             commits.append(cmd)
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (0, ""))
     monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
 
     code, out, err = run_cli(skill_edit_step, ["--added", "drop the stale bullet",
                                                "--change", "delete the bullet - a merge is in flight;",
@@ -1844,7 +1846,7 @@ def test_a_change_step_whose_author_edits_the_unit_and_leaves_every_pin_file_unt
     assert (code, len(commits)) == (0, 1), (code, out, err)
 
 
-def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_edit_1_with_bypass_permissions_and_its_edit_is_graded_2498(tmp_path, monkeypatch, run_cli):
+def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_edit_1_with_bypass_permissions_and_its_edit_is_graded_2498(tmp_path, monkeypatch, run_cli, fake_processes):
     monkeypatch.chdir(tmp_path)
     import subprocess
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
@@ -1869,8 +1871,9 @@ def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_ed
         (tmp_path / "unit.md").write_text(edited)
         return subprocess.CompletedProcess([name], 0, b"", None)
 
-    def run(cmd, **kw):
-        return subprocess.CompletedProcess(cmd, 0, "abc1234\n", "")
+    def run(line, **kw):
+        cmd = fake.argvs[-1]
+        return 0, "abc1234\n", ""
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_guard, "_git_ok", lambda *a: True)
@@ -1878,7 +1881,7 @@ def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_ed
         p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
     monkeypatch.setattr(skill_edit_step.event, "append", lambda *a, **k: None)
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    monkeypatch.setattr(subprocess, "run", run)
+    fake = fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
