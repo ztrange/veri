@@ -1,4 +1,7 @@
-"""A VERI_* name that tunables.py defines has one default, and no other module of veri/ writes one.
+"""A VERI_* name read with a literal default anywhere in veri/ is a site this audit names, unless EXEMPT says why.
+
+The tunables table states each default once; a literal default beside a read is a second statement of it.
+This covers every `VERI_*` name, defined in `tunables.TUNABLES` or not.
 
 What the audit sees, by `ast`: a call whose first argument is the name as a string literal and whose
 function is called `read`, `read_bytes`, `get`, `getenv`, `numeric_env` or `wait_seconds` (so
@@ -19,9 +22,39 @@ READERS = {"read", "read_bytes", "get", "getenv", "numeric_env", "wait_seconds"}
 EXEMPT = {
     ("verify.py", "VERI_NO_VERDICT_RETRIES"):
         "verify.no_verdict_budget reads '010' as octal 8 where grade_prose reads 10: the two parses disagree, "
-        "so neither site is migrated until a decision picks one",
+        "so neither site is migrated until a decision picks one (issue #3838)",
     ("grade_prose.py", "VERI_NO_VERDICT_RETRIES"):
-        "the other side of the verify.py divergence on '010' (decimal 10 here, octal 8 there)",
+        "the other side of the verify.py divergence on '010' (decimal 10 here, octal 8 there; issue #3838)",
+    ("detach_command.py", "VERI_POLL"):
+        "VERI_POLL has two purposes and several defaults (1, 10), declined: no single default to state",
+    ("github.py", "VERI_POLL"):
+        "VERI_POLL, default 10 here, 1 elsewhere: two purposes, two defaults, declined",
+    ("parallel_conductors.py", "VERI_POLL"):
+        "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
+    ("reset_wait.py", "VERI_POLL"):
+        "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
+    ("supervise.py", "VERI_POLL"):
+        "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
+    ("wait_ci.py", "VERI_POLL"):
+        "VERI_POLL, default 10 here, 1 in supervise.py and wait_leaf.py: two purposes, declined",
+    ("wait_leaf.py", "VERI_POLL"):
+        "VERI_POLL, default 1 here, 10 in github.py and wait_ci.py: two purposes, declined",
+    ("preflight.py", "VERI_MISSING_REROUTE_BUDGET"):
+        "read at two defaults (0 here, 3 in wrong_test_route.py): declined, no single default to state",
+    ("wrong_test_route.py", "VERI_MISSING_REROUTE_BUDGET"):
+        "the other default of VERI_MISSING_REROUTE_BUDGET (3 here, 0 in preflight.py): declined",
+    ("dispatch.py", "VERI_DISPATCH_STALL"):
+        "dispatch.py is being restructured by another change; its reads migrate with it",
+    ("dispatch.py", "VERI_DISPATCH_OVERLAP_POLL"):
+        "dispatch.py is being restructured by another change; its reads migrate with it",
+    ("parallel_conductors.py", "VERI_RUN_TIMEOUT"):
+        "parallel_conductors.py's argument handling is filed as issue #3839; its reads migrate with it",
+    ("parallel_conductors.py", "VERI_PARALLEL"):
+        "parallel_conductors.py's argument handling is filed as issue #3839; its reads migrate with it",
+    ("build_develop_prompt.py", "VERI_ISSUE"):
+        "a run-context field the conductor exports, not a tunable: `or \"\"` states no default, only its absence",
+    ("supervise.py", "VERI_STEP"):
+        "a run-context field the conductor exports, not a tunable: `or \"\"` states no default, only its absence",
 }
 
 
@@ -119,10 +152,8 @@ def test_a_read_that_asks_tunables_or_reads_another_name_is_not_named(source):
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri")
-def test_no_module_writes_a_literal_default_for_a_name_tunables_defines(veri_modules_index):
-    from veri import tunables
-
-    names = set(tunables.TUNABLES)
+def test_no_module_writes_a_literal_default_for_any_veri_name(veri_modules_index):
+    names = ANY_VERI
     found = {}
     for module in veri_modules_index.names:
         if module == "tunables":
@@ -133,3 +164,10 @@ def test_no_module_writes_a_literal_default_for_a_name_tunables_defines(veri_mod
     assert {key: lines for key, lines in found.items() if key not in EXEMPT} == {}
     assert set(EXEMPT) == set(found), "an exemption names a site that no longer writes a literal default"
     assert all(EXEMPT.values())
+
+
+@pytest.mark.tree_audit("skills/tdd/scripts/veri")
+def test_every_exempt_name_is_one_tunables_does_not_define(veri_modules_index):
+    from veri import tunables
+
+    assert {name for _, name in EXEMPT} & set(tunables.TUNABLES) == {"VERI_NO_VERDICT_RETRIES"}
