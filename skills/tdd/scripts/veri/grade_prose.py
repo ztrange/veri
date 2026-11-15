@@ -193,13 +193,23 @@ def main(argv):
     if argv == ["--owed"]:
         import prose_owed
         path = "REQUIREMENTS.md"
-        return max([main([p, unit]) for p, unit in prose_owed.owed_listed(path)[0]], default=0)
+        return max([grade_unit(p, unit) for p, unit in prose_owed.owed_listed(path)[0]], default=0)
     if argv == ["--convert"]:
         return convert("REQUIREMENTS.md")
     if len(argv) != 2:
         print(USAGE, file=sys.stderr)
         return 2
     path, unit = argv
+    return grade_unit(path, unit)
+
+
+def grade_unit(path, unit):
+    """Grade `unit` against the requirements list `path` names: what `grade-prose.sh <path> <unit>` does.
+
+    Launches the grader leaf (retrying a reply without a verdict, and re-grading failed rows), prints the grades
+    and the verdict to stdout, signs the unit into its GRADED file on PASS, and appends a `grading` event.
+    Returns 0 PASS; 1 REJECT; 2 no answer (a grader model naming no version, no requirements list, a reply that
+    breaks the protocol, a signature disagreement)."""
     model = grader_model()
     if not re.search(r"(^|-)\d+(-|$)", model):
         print("grade-prose.sh: grader.conf model %r names no version" % model, file=sys.stderr)
