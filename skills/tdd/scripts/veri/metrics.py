@@ -466,6 +466,18 @@ class Fold:
     flaked: list                # files named by suite-flake events
     pinned: str                 # the phases whose verifiers the run skipped (VERI_SKIP_VERIFY, pinned)
     model_knobs: dict           # VERI_MODEL* knob -> its value, falsy when unset
+    sessions: list              # the conductor's sessions (result records, a trailing open one); [] when its usage
+                                # event is in the log or its stream log is missing
+    turn_rows: list             # the conductor's turns as [number, dollars text, context text], with .estimated,
+                                # .session_contexts (tokens per turn, per session) and .families (comment family
+                                # -> [turns, output tokens, dollars])
+    conductor_spend: float      # dollars over every session, already added into `total`
+    conductor_turns: int
+    conductor_model: str        # the conductor model the launcher recorded, "" when none
+    conductor_priced: bool      # every session carries a price
+    conductor_some_priced: bool
+    conductor_estimated: bool   # some session has no result record yet
+    operator_sessions: list     # (label, turns, cache tokens read, dollars) per coordinator / dev transcript found
 
 
 def fold(issue, path, ledger):
@@ -488,8 +500,33 @@ def fold(issue, path, ledger):
     with contextlib.suppress(OSError):
         with open(main_checkout_file(path, "issue-%s-skip-verify" % issue)) as recorded:
             pinned = recorded.read().strip()
+    sessions, turn_rows = [], []
+    if not tally.conductor_counted:
+        sessions, turn_rows = conductor_sessions(issue, path)
+    spend, model, estimated, priced, some_priced = 0.0, "", False, False, False
+    if sessions:
+        priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
+        some_priced = any(r.get("total_cost_usd") is not None for r in sessions)
+        spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
+        tally.total[DOLLARS] += spend
+        with contextlib.suppress(OSError):
+            with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
+                model = recorded.read().strip()
+        estimated = any(r.get("open") for r in sessions)
+    transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
+    first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
+    done_at = max((mark["ts"] for mark in marks if mark.get("event") == "done" and "ts" in mark), default=None)
+    operator_sessions = []
+    for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
+        found = session_spend(transcripts, command, first_event, done_at) if transcripts else None
+        if found:
+            operator_sessions.append((label,) + found)
     return Fold(issue=issue, marks=marks, clocked=clocked, models=models, opening=tally.opening,
                 ended=ended, cause=cause, ending=ending,
+                sessions=sessions, turn_rows=turn_rows, conductor_spend=spend,
+                conductor_turns=sum(r.get("num_turns") or 0 for r in sessions), conductor_model=model,
+                conductor_priced=priced, conductor_some_priced=some_priced, conductor_estimated=estimated,
+                operator_sessions=operator_sessions,
                 issue_wall=awake_span_or_wall(tally.opening, ending, clocked),
                 asleep=None if awake_span is None or wall_span is None else max(0, wall_span - awake_span),
                 steps_done=counted(len(tally.recovered) + full_suite), planned=planned,
@@ -612,27 +649,17 @@ def render(issue, path, ledger):
     print("Lane: %s" % f.lane)
     if f.flaked:
         print("Suite flakes: %s." % ", ".join(f.flaked))
-    sessions, turn_rows = [], []
-    total_estimated = False
-    if not conductor_counted:
-        sessions, turn_rows = conductor_sessions(issue, path)
+    sessions, turn_rows, total_estimated = f.sessions, f.turn_rows, f.conductor_estimated
     if sessions:
-        priced = not any(r.get("total_cost_usd", 0) is None for r in sessions)
-        some_priced = any(r.get("total_cost_usd") is not None for r in sessions)
+        priced, some_priced = f.conductor_priced, f.conductor_some_priced
         print("Cost is every leaf of the run, and the conductor own spending." if priced else
               "Cost is every leaf of the run; the total row includes the priced sessions' conductor spending and leaves out the unpriced ones."
               if some_priced else
               "Cost is every leaf of the run; the total row excludes the conductor own spending, which is unpriced.")
-        spend = sum(r.get("total_cost_usd") or 0 for r in sessions)
-        totals["total"][DOLLARS] += spend
-        model = ""
-        with contextlib.suppress(OSError):
-            with open(main_checkout_file(path, "issue-%s-conductor-model" % issue)) as recorded:
-                model = recorded.read().strip()
-        total_estimated = any(r.get("open") for r in sessions)
+        spend, model = f.conductor_spend, f.conductor_model
         print("Conductor own spending: %s over %d turns, in %d sessions%s%s."
               % ("$%.2f" % spend if priced else "unpriced",
-                 sum(r.get("num_turns") or 0 for r in sessions), len(sessions),
+                 f.conductor_turns, len(sessions),
                  ", on %s" % model if model else "",
                  " (estimate)" if total_estimated else ""))
         if total_estimated:
@@ -664,13 +691,8 @@ def render(issue, path, ledger):
         print("⚠️ Unverified phases: %s" % f.pinned)
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
-    transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
-    first_event = min((mark["ts"] for mark in marks if "ts" in mark), default=None)
-    done_at = max((mark["ts"] for mark in marks if mark.get("event") == "done" and "ts" in mark), default=None)
-    for label, command in (("Coordinator", "/vcoord"), ("Dev", "/vdev")):
-        spend = session_spend(transcripts, command, first_event, done_at) if transcripts else None
-        if spend:
-            print("%s session: %d turns, %d cache tokens read, $%.2f" % ((label,) + spend))
+    for operator_session in f.operator_sessions:
+        print("%s session: %d turns, %d cache tokens read, $%.2f" % operator_session)
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
