@@ -22,18 +22,10 @@ def detach_command():
 
 
 def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0_to_3(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tdd").mkdir()
-    launches = []
-
-    class FakePopen:
-        pid = 4242
-
-        def __init__(self, args, **kwargs):
-            launches.append(args)
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({"sh ": (0, "", "")})
     fake_start_time(monkeypatch)
     now = [1000.0]
 
@@ -45,10 +37,10 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
 
     for argv in ([], ["start", "x"], ["bogus", "x"]):
         code = detach_command.main(argv)
-        assert (argv, code, capsys.readouterr(), launches) == (argv, 2, ("", USAGE), [])
+        assert (argv, code, capsys.readouterr(), fake.calls) == (argv, 2, ("", USAGE), [])
 
     code = detach_command.main(["start", "x", "true"])
-    assert (code, capsys.readouterr(), len(launches)) == (0, ("", ""), 1)
+    assert (code, capsys.readouterr(), len(fake.calls)) == (0, ("", ""), 1)
     assert (tmp_path / ".tdd" / "x.pid").read_text() == "4242\n" + STARTED + "\n"
 
     (tmp_path / ".tdd" / "x.pid").unlink()
@@ -67,19 +59,17 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
 
 
 def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_prints_nothing(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     at_launch = []
 
-    class FakePopen:
-        pid = 4242
+    def launch(line, **kwargs):
+        at_launch.append(((tdd / "x.exit").exists(), (tdd / "x.out").read_text()))
+        return (0, "", "")
 
-        def __init__(self, args, **kwargs):
-            at_launch.append(((tdd / "x.exit").exists(), (tdd / "x.out").read_text()))
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake_processes.answers({"sh ": launch})
     fake_start_time(monkeypatch)
 
     (tdd / "x.exit").write_text("7\n")
@@ -98,24 +88,22 @@ def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_pr
 
 
 def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_in_and_out_for_both_streams(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     launches = []
 
-    class FakePopen:
-        pid = 4242
+    def launch(line, stdin, stdout, stderr, **kwargs):
+        null = stdin == subprocess.DEVNULL or (
+            hasattr(stdin, "fileno") and os.fstat(stdin.fileno()).st_rdev == os.stat(os.devnull).st_rdev)
+        for stream, text in ((stdout, b"out "), (stderr, b"err")):
+            if hasattr(stream, "fileno"):
+                os.write(stream.fileno(), text)
+        launches.append((fake.argvs[-1], null))
+        return (0, "", "")
 
-        def __init__(self, args, stdin, stdout, stderr, **kwargs):
-            null = stdin == subprocess.DEVNULL or (
-                hasattr(stdin, "fileno") and os.fstat(stdin.fileno()).st_rdev == os.stat(os.devnull).st_rdev)
-            for stream, text in ((stdout, b"out "), (stderr, b"err")):
-                if hasattr(stream, "fileno"):
-                    os.write(stream.fileno(), text)
-            launches.append((args, null))
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({"sh ": launch})
     fake_start_time(monkeypatch)
 
     code = detach_command.main(["start", "x", "printf", "%s", "a b"])
@@ -125,30 +113,28 @@ def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_
 
 
 def test_start_with_no_tdd_directory_raises_naming_the_out_file_launching_nothing_and_creating_no_file(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
-    launches = []
-    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: launches.append(args))
+    fake = fake_processes.answers({})
 
     with pytest.raises(FileNotFoundError) as raised:
         detach_command.main(["start", "x", "true"])
-    assert (raised.value.filename, launches, list(tmp_path.iterdir())) == (".tdd/x.out", [], [])
+    assert (raised.value.filename, fake.calls, list(tmp_path.iterdir())) == (".tdd/x.out", [], [])
 
 
 def test_main_refuses_start_alone_and_an_empty_mode_like_no_arguments_touching_nothing(
-        tmp_path, monkeypatch, capsys, detach_command):
+        tmp_path, monkeypatch, capsys, detach_command, fake_processes):
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     for name, text in (("x.exit", "7\n"), ("x.out", "old\n"), ("x.pid", "99\n"), (".exit", "5\n")):
         (tdd / name).write_text(text)
     before = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
-    launches = []
-    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: launches.append(args))
+    fake = fake_processes.answers({})
 
     for argv in ([], ["start"], ["", "x"]):
         code = detach_command.main(argv)
-        assert (argv, code, capsys.readouterr(), launches) == (argv, 2, ("", USAGE), [])
+        assert (argv, code, capsys.readouterr(), fake.calls) == (argv, 2, ("", USAGE), [])
     after = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
     assert (after, sorted(p.name for p in tmp_path.iterdir())) == (before, [".tdd"])
 
@@ -511,21 +497,11 @@ def run(tmp_path, run_cli, detach_command):
     return call
 
 
-def _fake_popen(monkeypatch):
-    class FakePopen:
-        pid = 4242
-
-        def __init__(self, args, **kwargs):
-            pass
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
-    fake_start_time(monkeypatch)
-
-
 def test_start_returns_at_once_wait_gives_the_recorded_code_3_while_running_and_2_for_a_death(
-        tmp_path, monkeypatch, run):
+        tmp_path, monkeypatch, run, fake_processes):
     tdd = tmp_path / ".tdd"
-    _fake_popen(monkeypatch)
+    fake_processes.answers({"sh ": (0, "", "")})
+    fake_start_time(monkeypatch)
     alive = [True]
 
     def kill(pid, signum):
@@ -613,21 +589,13 @@ def test_wait_alone_reruns_through_the_shared_rerun_alone_helper_so_breaking_it_
 
 
 def test_start_passes_a_trailing_alone_and_its_value_to_the_command_unchanged_2955(
-        tmp_path, monkeypatch, run, detach_command):
-    launches = []
-
-    class FakePopen:
-        pid = 4242
-
-        def __init__(self, args, **kwargs):
-            launches.append(args)
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+        tmp_path, monkeypatch, run, detach_command, fake_processes):
+    fake = fake_processes.answers({"sh ": (0, "", "")})
     fake_start_time(monkeypatch)
 
     code = run("start", "x", "sh", "-c", 'printf %s "$*"', "_", "--alone", "x")[0]
 
-    assert (code, [args[4:] for args in launches]) == (
+    assert (code, [args[4:] for args in fake.argvs]) == (
         0, [["sh", "-c", 'printf %s "$*"', "_", "--alone", "x"]])
 
 
