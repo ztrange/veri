@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 
+import entry
 import paths
 import tunables
 
@@ -22,7 +23,7 @@ def bash_refusal(prefix):
         major, version = (probe.stdout.split("\n") + ["", ""])[:2]
         if probe.returncode:
             major = ""
-    if re.fullmatch("[0-9]+", major) and int(major) >= 5:
+    if entry.whole_number(major, 5) is not None:
         return 0
     sys.stderr.write(
         "%s: veri needs bash 5 or newer; this is bash %s (%s). Install it with `brew install bash` "

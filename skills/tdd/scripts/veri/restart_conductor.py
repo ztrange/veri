@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 
+import entry
 import event
 import full_tier_time
 import growth
@@ -23,7 +24,7 @@ LAUNCH_WAIT = 60
 
 
 def _positive_int(text):
-    return text.isascii() and text.isdigit() and int(text) >= 1
+    return entry.whole_number(text) is not None
 
 
 def _main_tree():

@@ -25,7 +25,7 @@ PREFIX = "issue-worktree: "
 
 
 def positive_whole(n):
-    return re.fullmatch(r"[0-9]+", n) is not None and int(n) > 0
+    return entry.whole_number(n) is not None
 
 
 def checkout_holder(registry, branch):
