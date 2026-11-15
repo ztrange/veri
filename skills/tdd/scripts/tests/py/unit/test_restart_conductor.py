@@ -3,7 +3,6 @@ import importlib
 import json
 import os
 import signal
-import subprocess
 
 import pytest
 
@@ -319,7 +318,7 @@ def test_3223_the_run_state_of_a_run_whose_last_end_is_a_stop_reads_stopped(tmp_
     assert restart_conductor.run_state("7") == "stopped"
 
 
-def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_run_appending_stdout_to_the_main_trees_conductor_log(tmp_path, monkeypatch):
+def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_run_appending_stdout_to_the_main_trees_conductor_log(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     main = tmp_path / "main"
     gitdir = main / ".git" / "worktrees" / "7"
@@ -330,40 +329,31 @@ def test_3223_the_detach_wrapper_launches_detach_leaf_on_run_conductor_for_the_r
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
     log = main / ".tdd" / "conductor-7.log"
     log.write_text("earlier launch\n")
-    launches = []
 
-    class FakePopen:
-        pid = 4242
+    def launching(line, stdout=None, **kwargs):
+        stdout.write("new launch\n")
+        stdout.flush()
+        return 0, "", ""
 
-        def __init__(self, argv, stdin=None, stdout=None, stderr=None, **kwargs):
-            launches.append([os.path.basename(a) for a in argv])
-            stdout.write("new launch\n")
-            stdout.flush()
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({"detach-leaf": launching})
     monkeypatch.chdir(start)
 
     restart_conductor.detach_leaf("7")
 
+    launches = [[os.path.basename(a) for a in argv] for argv in fake.argvs]
     assert (launches, log.read_text()) == ([["detach-leaf.sh", "run-conductor.sh", "7"]], "earlier launch\nnew launch\n")
 
 
-def test_3729_detach_leaf_launches_one_process_on_the_detach_and_run_conductor_scripts_in_the_scripts_directory_holding_restart_conductor_sh(tmp_path, monkeypatch):
+def test_3729_detach_leaf_launches_one_process_on_the_detach_and_run_conductor_scripts_in_the_scripts_directory_holding_restart_conductor_sh(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     scripts = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    launches = []
-
-    class FakePopen:
-        def __init__(self, argv, **kwargs):
-            launches.append(argv)
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    fake = fake_processes.answers({"": (0, "", "")})
     monkeypatch.setattr(restart_conductor, "_log_path", lambda run: str(tmp_path / "conductor.log"))
     monkeypatch.setattr(restart_conductor, "_launch_env", lambda run: {})
 
     restart_conductor.detach_leaf("7")
 
-    assert (os.path.exists(os.path.join(scripts, "restart-conductor.sh")), launches) == (
+    assert (os.path.exists(os.path.join(scripts, "restart-conductor.sh")), fake.argvs) == (
         True, [[os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, "run-conductor.sh"), "7"]])
 
 
@@ -823,7 +813,12 @@ def test_3382_the_watchers_own_at_ledger_stop_is_removed_at_the_conductors_exit_
     assert stops == {"watcher": None, "operator": "at-ledger"}
 
 
-def test_3402_the_detach_wrapper_launches_run_conductor_with_the_veri_values_in_the_launch_record_not_the_watchers_environment(tmp_path, monkeypatch):
+def launched_envs(fake):
+    """The environment each faked launch ran with: its env kwarg, else the watcher's own."""
+    return [os.environ if kwargs.get("env") is None else kwargs["env"] for _, kwargs in fake.seen]
+
+
+def test_3402_the_detach_wrapper_launches_run_conductor_with_the_veri_values_in_the_launch_record_not_the_watchers_environment(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     main = tmp_path / "main"
     gitdir = main / ".git" / "worktrees" / "7"
@@ -833,23 +828,19 @@ def test_3402_the_detach_wrapper_launches_run_conductor_with_the_veri_values_in_
     start.mkdir(parents=True)
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
     (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
-    launched = []
-
-    class FakePopen:
-        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
-            seen = os.environ if env is None else env
-            launched.append(seen.get("VERI_STEP_GROWTH"))
+    fake = fake_processes.answers({"": (0, "", "")})
 
     monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
     monkeypatch.chdir(start)
 
     restart_conductor.detach_leaf("7")
+
+    launched = [seen.get("VERI_STEP_GROWTH") for seen in launched_envs(fake)]
 
     assert launched == ["18"]
 
 
-def test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_record_is_absent_from_the_relaunched_process(tmp_path, monkeypatch):
+def test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_record_is_absent_from_the_relaunched_process(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     main = tmp_path / "main"
     gitdir = main / ".git" / "worktrees" / "7"
@@ -859,23 +850,19 @@ def test_3402_a_veri_value_in_the_watchers_environment_but_not_in_the_launch_rec
     start.mkdir(parents=True)
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
     (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
-    launched = []
-
-    class FakePopen:
-        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
-            seen = os.environ if env is None else env
-            launched.append((seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET")))
+    fake = fake_processes.answers({"": (0, "", "")})
 
     monkeypatch.setenv("VERI_REFACTOR_BUDGET", "99")
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
     monkeypatch.chdir(start)
 
     restart_conductor.detach_leaf("7")
 
+    launched = [(seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET")) for seen in launched_envs(fake)]
+
     assert launched == [("18", None)]
 
 
-def test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_around_it_still_reach_the_relaunched_process(tmp_path, monkeypatch):
+def test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_around_it_still_reach_the_relaunched_process(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     main = tmp_path / "main"
     gitdir = main / ".git" / "worktrees" / "7"
@@ -885,22 +872,18 @@ def test_3402_a_launch_record_line_with_no_equals_sign_is_ignored_and_the_lines_
     start.mkdir(parents=True)
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
     (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\nVERI_STRAY_LINE\nVERI_REFACTOR_BUDGET=3\n")
-    launched = []
+    fake = fake_processes.answers({"": (0, "", "")})
 
-    class FakePopen:
-        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
-            seen = os.environ if env is None else env
-            launched.append((seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET"), "VERI_STRAY_LINE" in seen))
-
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
     monkeypatch.chdir(start)
 
     restart_conductor.detach_leaf("7")
 
+    launched = [(seen.get("VERI_STEP_GROWTH"), seen.get("VERI_REFACTOR_BUDGET"), "VERI_STRAY_LINE" in seen) for seen in launched_envs(fake)]
+
     assert launched == [("18", "3", False)]
 
 
-def test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment(tmp_path, monkeypatch):
+def test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment(tmp_path, monkeypatch, fake_processes):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     main = tmp_path / "main"
     gitdir = main / ".git" / "worktrees" / "7"
@@ -910,18 +893,14 @@ def test_3402_a_relaunched_conductor_keeps_the_watchers_non_veri_environment(tmp
     start.mkdir(parents=True)
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
     (main / ".tdd" / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\n")
-    launched = []
-
-    class FakePopen:
-        def __init__(self, argv, stdin=None, stdout=None, stderr=None, env=None, **kwargs):
-            seen = os.environ if env is None else env
-            launched.append((seen.get("PATH"), seen.get("VERI_STEP_GROWTH")))
+    fake = fake_processes.answers({"": (0, "", "")})
 
     monkeypatch.setenv("PATH", "/watcher/bin:/usr/bin")
-    monkeypatch.setattr(subprocess, "Popen", FakePopen)
     monkeypatch.chdir(start)
 
     restart_conductor.detach_leaf("7")
+
+    launched = [(seen.get("PATH"), seen.get("VERI_STEP_GROWTH")) for seen in launched_envs(fake)]
 
     assert launched == [("/watcher/bin:/usr/bin", "18")]
 
