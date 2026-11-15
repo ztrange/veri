@@ -209,7 +209,7 @@ def test_differing_tests_counts_a_spec_ts_and_a_ts_file_under_tests_dir_as_test_
         def __init__(self, stdout):
             self.stdout = stdout
 
-    monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **_: Done(listings[command[1]]))
+    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", lambda command, **_: Done(listings[command[1]]))
 
     assert tests_frozen.differing_tests() == ["src/app.spec.ts", "src/__tests__/sum.ts"]
 
@@ -622,7 +622,7 @@ def test_check_earlier_exits_0_for_a_python_def_case_sharing_its_name_with_anoth
         assert command[:2] == ["git", "show"]
         return types.SimpleNamespace(returncode=0, stdout=suite.read_bytes(), stderr=b"")
 
-    monkeypatch.setattr(tests_frozen.subprocess, "run", git_show)
+    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -651,7 +651,7 @@ def test_check_earlier_exits_0_for_a_js_call_form_case_sharing_its_name_under_tw
         assert command[:2] == ["git", "show"]
         return types.SimpleNamespace(returncode=0, stdout=suite.read_bytes(), stderr=b"")
 
-    monkeypatch.setattr(tests_frozen.subprocess, "run", git_show)
+    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
     earlier, current = "step A", "step B"
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
@@ -721,7 +721,7 @@ def test_record_step_writes_only_the_edited_twin_of_two_python_def_cases_sharing
         assert command[:2] == ["git", "show"]
         return types.SimpleNamespace(returncode=0, stdout=at_head.encode(), stderr=b"")
 
-    monkeypatch.setattr(tests_frozen.subprocess, "run", git_show)
+    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", git_show)
     step = "step A"
     recorded = run_cli(tests_frozen, ["record", "--step", step, "test_dup.py"], cwd=tmp_path)
     record = run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
@@ -860,7 +860,7 @@ def _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, edited_fir
     monkeypatch.setattr(tests_frozen, "differing_tests", lambda: [])
     monkeypatch.setattr(tests_frozen, "work_tree_hash", lambda: "tree")
     monkeypatch.setattr(tests_frozen, "write_pass_marker", lambda step, tree: None)
-    monkeypatch.setattr(tests_frozen.subprocess, "run", lambda command, **kwargs: types.SimpleNamespace(
+    monkeypatch.setattr(tests_frozen.case_history.subprocess, "run", lambda command, **kwargs: types.SimpleNamespace(
         returncode=0, stdout=at_head.encode(), stderr=b""))
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [x] step A\n- [ ] step B\n")
