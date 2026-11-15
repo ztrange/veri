@@ -15,24 +15,22 @@ def ensure_run_state_ignored():
     return importlib.import_module("veri.ensure_run_state_ignored")
 
 
-def fake_rev_parse(monkeypatch, code, stdout):
+def fake_rev_parse(fake_processes, code, stdout):
     """subprocess.run answering `git -C <root> rev-parse --git-common-dir` with <code> and <stdout>."""
-    def fake_run(args, **kwargs):
-        if list(args[:2]) != ["git", "-C"] or list(args[3:]) != ["rev-parse", "--git-common-dir"]:
-            raise AssertionError("unexpected command: %r" % (args,))
-        captured = stdout if kwargs.get("stdout") == subprocess.PIPE else None
-        if captured is not None and not kwargs.get("text"):
-            captured = captured.encode()
-        return subprocess.CompletedProcess(args, code, captured, None)
+    def rev_parse(line, **kwargs):
+        words = line.split()
+        if words[:2] != ["git", "-C"] or words[3:] != ["rev-parse", "--git-common-dir"]:
+            raise AssertionError("unexpected command: %s" % line)
+        return code, stdout if kwargs.get("stdout") == subprocess.PIPE else None, None
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"git": rev_parse})
 
 
 def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp_path, monkeypatch, capsys,
-                                                                              ensure_run_state_ignored):
+                                                                              ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git").mkdir(parents=True)
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     code = ensure_run_state_ignored.main([str(root)])
 
@@ -42,7 +40,7 @@ def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp
 
     broken = tmp_path / "broken"
     (broken / ".git").mkdir(parents=True)
-    fake_rev_parse(monkeypatch, 128, "")
+    fake_rev_parse(fake_processes, 128, "")
 
     assert ensure_run_state_ignored.main([str(broken)]) == 2
     assert not (broken / ".gitignore").exists()
@@ -50,8 +48,8 @@ def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp
 
 
 def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_line(tmp_path, monkeypatch, capsys,
-                                                                                     ensure_run_state_ignored):
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+                                                                                     ensure_run_state_ignored, fake_processes):
+    fake_rev_parse(fake_processes, 0, ".git\n")
     for name, original in (("node_modules", b"node_modules/\n"), ("non_utf8", b"\xff\xfe\n")):
         root = tmp_path / name
         (root / ".git").mkdir(parents=True)
@@ -63,12 +61,12 @@ def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_l
         assert (root / ".gitignore").read_bytes() == original + RULE.encode()
 
 
-def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info").mkdir(parents=True)
     (root / ".gitignore").write_bytes(b".tdd/issue-*-spec.md\n")
     (root / ".git" / "info" / "exclude").write_bytes(b"")
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     code = ensure_run_state_ignored.main([str(root)])
 
@@ -80,8 +78,8 @@ def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypat
 
 
 def test_main_reports_already_present_from_the_gitignore_alone_and_leaves_both_files_on_a_second_run(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
+    fake_rev_parse(fake_processes, 0, ".git\n")
     root = tmp_path / "repo"
     (root / ".git").mkdir(parents=True)
     assert ensure_run_state_ignored.main([str(root)]) == 0
@@ -106,8 +104,8 @@ def test_main_reports_already_present_from_the_gitignore_alone_and_leaves_both_f
 
 
 def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_misordered_rule(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
+    fake_rev_parse(fake_processes, 0, ".git\n")
     appended = (
         ("newline_terminated", b"node_modules/\n", b"node_modules/\n"),
         ("misordered", b".tdd/*\n.tdd/issue-*-spec.md\n!.tdd/issue-*.md\n", None),
@@ -143,13 +141,13 @@ def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_mi
 
 
 def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_writes_exclude_first(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     refusal = ("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of "
                "order — fix it by hand\n")
     roots = []
 
     def answer(stdout):
-        fake_rev_parse(monkeypatch, 0, stdout)
+        fake_rev_parse(fake_processes, 0, stdout)
         faked = subprocess.run
         monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: (roots.append(args[2]), faked(args, **kwargs))[1])
 
@@ -192,12 +190,12 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
 
 
 def test_main_leaves_info_exclude_byte_identical_and_returns_2_when_the_gitignore_write_fails_777(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info").mkdir(parents=True)
     (root / ".git" / "info" / "exclude").write_bytes(b"*.swp\n")
     (root / ".gitignore").mkdir()
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     try:
         outcome = ensure_run_state_ignored.main([str(root)])
@@ -208,11 +206,11 @@ def test_main_leaves_info_exclude_byte_identical_and_returns_2_when_the_gitignor
 
 
 def test_main_leaves_gitignore_byte_identical_and_fails_on_stderr_when_the_info_exclude_write_fails_777(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info" / "exclude").mkdir(parents=True)
     (root / ".gitignore").write_bytes(b"node_modules/\n")
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     try:
         outcome = ensure_run_state_ignored.main([str(root)])
@@ -226,10 +224,10 @@ def test_main_leaves_gitignore_byte_identical_and_fails_on_stderr_when_the_info_
 
 
 def test_main_leaves_no_gitignore_and_fails_on_stderr_when_there_was_none_and_the_info_exclude_write_fails_777(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info" / "exclude").mkdir(parents=True)
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     try:
         outcome = ensure_run_state_ignored.main([str(root)])
@@ -243,12 +241,12 @@ def test_main_leaves_no_gitignore_and_fails_on_stderr_when_there_was_none_and_th
 
 
 def test_main_leaves_a_gitignore_already_carrying_the_rule_byte_identical_when_the_info_exclude_write_fails_777(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info" / "exclude").mkdir(parents=True)
     carried = b"node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
     (root / ".gitignore").write_bytes(carried)
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     try:
         outcome = ensure_run_state_ignored.main([str(root)])
@@ -263,10 +261,10 @@ def test_main_leaves_a_gitignore_already_carrying_the_rule_byte_identical_when_t
 
 
 def test_main_returns_2_when_the_info_exclude_write_fails_as_when_the_gitignore_write_fails_777(
-        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info" / "exclude").mkdir(parents=True)
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     try:
         outcome = ensure_run_state_ignored.main([str(root)])
@@ -359,12 +357,12 @@ def test_not_a_git_repository_exits_2_prints_nothing_on_stdout_and_lets_gits_own
 
 
 def test_a_gitignore_that_is_a_directory_exits_2_says_why_on_stderr_and_leaves_info_exclude_unchanged(
-        tmp_path, monkeypatch, run_cli, ensure_run_state_ignored):
+        tmp_path, monkeypatch, run_cli, ensure_run_state_ignored, fake_processes):
     root = tmp_path / "repo"
     (root / ".git" / "info").mkdir(parents=True)
     (root / ".git" / "info" / "exclude").write_bytes(b"*.swp\n")
     (root / ".gitignore").mkdir()
-    fake_rev_parse(monkeypatch, 0, ".git\n")
+    fake_rev_parse(fake_processes, 0, ".git\n")
 
     code, out, err = run_cli(ensure_run_state_ignored, [str(root)])
 
