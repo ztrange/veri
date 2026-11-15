@@ -474,6 +474,8 @@ A heading matches when it equals the heading once stripped (CRLF and trailing wh
 
 Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Test suites and tiers and Foundations.
 
+- `ci_decision`: what a polled CI state means for `wait-ci.sh`, as a pure `decide()` (values in, a decision out).
+- `ci_marks`: the `.tdd/ci-*` marks `wait-ci.sh` keeps for a head, with their file names and contents.
 - `issue-worktree.sh`: create or reuse the worktree of an issue's run.
 - `merge-lock.sh`: take, release and gate on the merge lock.
 - `pr-body.sh`: write a pull request's body.

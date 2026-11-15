@@ -4,7 +4,7 @@ import dataclasses
 import pytest
 
 from veri.ci_marks import Marks
-from veri.ci_decision import (Crash, Decision, Exit, Loop, Observation, Options, Probe, Record, Remove, Sleep,
+from veri.ci_decision import (Crash, Decision, Exit, Loop, Observation, Need, Options, Record, Remove, Sleep,
                               decide, decimal, retry_sleep)
 
 PR = "https://github.com/o/r/pull/1"
@@ -59,10 +59,18 @@ ROWS = {
     "no checks with VERI_CI_ON_PR=0 on another head is still waited on":
         (run(obs("none", mergeable=None), explicit=True, on_pr="0", want=OTHER).outcome, Sleep("10")),
     "no checks and no workflow read yet asks for the probe":
-        (run(obs("none")), decision(Probe())),
+        (run(obs("none")), decision(Need("workflow"))),
     "no checks and no pull_request workflow is exit 0":
         (run(obs("none", no_workflow=True)),
          decision(Exit(0, "", f"wait-ci.sh: {PR} has no checks and no workflow triggers on pull_request; no check will come\n"))),
+    "green and red are answered before the clock is asked for":
+        (run(obs("green"), now=None).outcome, Exit(0)),
+    "red is answered before the clock is asked for":
+        (run(obs("red", failed="x"), now=None).outcome, Exit(1, "x\n")),
+    "every other wait asks for the clock before it reads a mark":
+        (run(obs("pending"), now=None), decision(Need("now"))),
+    "an early exit is answered before the clock is asked for":
+        (run(obs("none", mergeable=False), now=None).outcome.code, 2),
     "an explicit VERI_CI_ON_PR=1 never asks for the probe":
         (run(obs("none", mergeable=None), explicit=True).outcome, Sleep("10")),
     "a first none sighting is recorded and waited on with a fresh deadline":
