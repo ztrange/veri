@@ -55,7 +55,7 @@ def test_main_with_no_target_exits_2_on_no_n_line_when_the_role_dev_state_file_v
     (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\n")
     launches = []
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.status, "read_role_state", lambda role, lane=None: None)
+    monkeypatch.setattr(dispatch.role_state, "read_lines", lambda role, lane=None: None)
     monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
     monkeypatch.setattr(dispatch, "solvable_issues", lambda: [], raising=False)
@@ -3276,7 +3276,7 @@ def test_main_at_target_3_launches_nothing_with_three_live_pid_files_one_hand_la
         raise _StopWaiting
 
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
+    monkeypatch.setattr(importlib.import_module("veri.status"), "branch_of", lambda run: "")
     monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(pid_file, "conductors", lambda: [])
@@ -3310,7 +3310,7 @@ def test_main_at_target_1_launches_nothing_with_a_live_pid_file_whose_ledger_and
         raise _StopWaiting
 
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch.status, "branch_of", lambda run: "")
+    monkeypatch.setattr(importlib.import_module("veri.status"), "branch_of", lambda run: "")
     monkeypatch.setattr(pid_file.os, "kill", lambda pid, sig: None)
     monkeypatch.setattr(pid_file, "ps_field", ps)
     monkeypatch.setattr(pid_file, "conductors", lambda: [])

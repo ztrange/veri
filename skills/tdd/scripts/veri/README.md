@@ -233,6 +233,7 @@ The ledger of a run: reading and ticking steps, growing, dropping and reordering
 
 ## add_ledger_step
 - `main(argv)`: exit code of add-ledger-step.sh; 2 with the usage on bad arguments.
+- `add(path, where, anchor, texts, *, criterion=None, planned=False)`: what `main` does once parsed, for an in-process caller: inserts `texts` after, before or instead of the one step holding `anchor`. Same exit codes (0 inserted, 1 budget spent or a clean negative, 2 refused) and same stderr as the script.
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
@@ -499,7 +500,7 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `stale-rows.sh`: requirements rows gone stale.
 
 ## grade_prose
-- `main(argv)`: grades a prose unit and returns an exit code (2 on bad arguments); `--owed` and `--convert` are modes.
+- `main(argv)`: grades a prose unit and returns an exit code (2 on bad arguments); `--owed` and `--convert` are modes. `grade_unit(path, unit)`: the grading `main` does once parsed (0 PASS, 1 REJECT, 2 no answer), for `stale_rows` and `skill_edit_step`.
 - `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `read(file)`, `graded_path(unit)`: the unit's text, a file's text, its `GRADED` file path.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
 
@@ -543,8 +544,8 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 
 ## role_state
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
+- `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`. `run_activity(run, as_json=False, closed=False)`: renders one run's `run_activity.activity` as its text line or `--json` object.
-- `read_role_state(role, lane=None)`: the role's state lines, `None` when missing.
