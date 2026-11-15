@@ -7,6 +7,7 @@ import sys
 
 import event
 import ledger
+import mutation_record
 import paths
 import tests_frozen
 from add_ledger_step import added_file
@@ -75,20 +76,12 @@ def tick_added(path, step_line):
 def drop_missing_cases(record, root):
     with open(record, encoding="utf-8") as handle:
         text = handle.read()
-    kept, i = [], 0
-    while i < len(text):
-        start, fields = i, {}
-        while i < len(text) and text[i] != "\n":
-            end = text.index("\n", i)
-            try:
-                name, size = text[i:end].split()
-                int(size)
-            except ValueError:
-                raise ValueError(f"{record}: malformed mutation record {text[i:end]!r}")
-            fields[name] = text[end + 1:end + 1 + int(size)]
-            i = end + 2 + int(size)
-        while i < len(text) and text[i] == "\n":
-            i += 1
+    try:
+        entries = mutation_record.chunks(text)
+    except mutation_record.MalformedRecord as error:
+        raise ValueError(f"{record}: malformed mutation record {error.header!r}")
+    kept = []
+    for raw, fields in entries:
         target = re.search(r"TESTS=(\S+?)::(?:\w+::)*(\w+)", fields.get("command", ""))
         if target:
             try:
@@ -97,7 +90,7 @@ def drop_missing_cases(record, root):
                         continue
             except FileNotFoundError:
                 continue
-        kept.append(text[start:i])
+        kept.append(raw)
     if "".join(kept) == text:
         return
     with open(record, "w", encoding="utf-8") as handle:
@@ -105,7 +98,7 @@ def drop_missing_cases(record, root):
 
 
 def mutations_path(ledger_path):
-    return re.sub(r"\.md$", "", ledger_path) + "-mutations.md"
+    return mutation_record.of_ledger(ledger_path)
 
 
 def main(argv):
