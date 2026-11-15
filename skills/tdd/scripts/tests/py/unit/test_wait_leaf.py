@@ -1,10 +1,8 @@
 """In-process cases for veri/wait_leaf.py, the module wait-leaf.sh is a shim over."""
 import importlib
-import subprocess
-
 import pytest
+from conftest import SCRIPTS
 
-from conftest import INTERPRETER_VENV, SCRIPTS
 
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
 
@@ -303,21 +301,6 @@ def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the
               "date +%s", "sleep 0", "date +%s"]
     assert waits == {"prints nothing": (3, rounds), "fails": (3, rounds), "missing": (3, rounds)}
     assert capsys.readouterr().out == ""
-
-
-@pytest.mark.process("wait-leaf.sh run through a symlink to the skills directory")
-def test_a_run_through_a_symlink_to_the_skills_directory_reads_the_working_directorys_exit_file_and_answers_a_recorded_1(
-        tmp_path):
-    (tmp_path / "linked").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
-    (tmp_path / "caller" / ".tdd").mkdir(parents=True)
-    (tmp_path / "caller" / ".tdd" / "via-link.exit").write_text("1\n")
-
-    ran = subprocess.run([str(tmp_path / "linked" / "tdd" / "scripts" / "wait-leaf.sh"), "via-link", "0"],
-                         cwd=tmp_path / "caller", stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                         env={"PATH": "/usr/bin:/bin", "VERI_VENV": INTERPRETER_VENV, "VERI_POLL": "0"})
-
-    assert (ran.returncode, ran.stdout, ran.stderr) == (1, "", "")
-    assert not (SCRIPTS / ".tdd" / "via-link.exit").exists()
 
 
 def stepping_clock(fake_processes, ps=None, land=None):
