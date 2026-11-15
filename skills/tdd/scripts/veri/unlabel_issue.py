@@ -11,7 +11,7 @@ import entry
 import tunables
 
 import github
-import ledger
+import run_dir
 
 
 _refuse = functools.partial(entry.refuse, prefix="unlabel-issue.sh: ")
@@ -34,7 +34,7 @@ def main(argv):
     taken = tunables.taken_label(opt_in)
     held = [name for name in names if name.startswith("taken:")]
     # A re-claim: this lane's own label with no ledger means a prior launch claimed and died before planning.
-    reclaim = taken in held and not os.path.exists(ledger.ledger_path(os.getcwd(), argv[0]))
+    reclaim = taken in held and not os.path.exists(run_dir.ledger(os.getcwd(), argv[0]))
     if held and not (reclaim and held == [taken]):
         return _refuse("issue #%s already carries %s" % (argv[0], ", ".join(held)))
     if opt_in not in names and not reclaim:
