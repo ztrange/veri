@@ -14,8 +14,10 @@ import re
 import subprocess
 import sys
 import time
+from typing import NamedTuple, Optional
 
 import entry
+import json_documents
 import tunables
 
 PARKED_HEADING = "### ⏸ Parked"
@@ -315,6 +317,64 @@ def gh_json(fixture, path, *args):
 
 def gh_json_page(fixture, path, *args):
     return _select("json").page(fixture, path, *args)
+
+
+class Pull(NamedTuple):
+    """One pull request, whichever route answered. Fields the answer did not carry read as: draft None,
+    url, html_url and head_sha None, head_ref, body and state "", labels (). <url> and <html_url> are what
+    the answer called them (a REST url is the API's; GraphQL has only url); <state> is upper-cased."""
+    number: Optional[int]
+    url: Optional[str]
+    html_url: Optional[str]
+    draft: Optional[bool]
+    head_ref: str
+    head_sha: Optional[str]
+    body: str
+    state: str
+    labels: tuple
+
+
+def _pull(raw):
+    head = raw.get("head") or {}
+    draft = raw["draft"] if "draft" in raw else raw.get("isDraft")
+    return Pull(number=raw.get("number"), url=raw.get("url"), html_url=raw.get("html_url"), draft=draft,
+                head_ref=raw.get("headRefName") or head.get("ref") or "",
+                head_sha=raw.get("headRefOid") or head.get("sha"),
+                body=raw.get("body") or "", state=str(raw.get("state", "")).upper(),
+                labels=tuple(label.get("name") for label in raw.get("labels") or []))
+
+
+def pulls_in(text):
+    """The pull requests in <text>, as open_pulls_text returns it; ValueError when it is not JSON."""
+    return [_pull(raw) for raw in json_documents.items(text)]
+
+
+def open_pulls_text(fields, state="open", head=None, limit=10000, repo=None):
+    """The pull request listing as text, REST pages concatenated, for a caller that decides over a
+    partial answer (NoAnswer.answer) or a list that is not JSON; open_pulls reads it. <fields> are the
+    GraphQL --json fields, <limit> its --limit (None leaves gh's default), <repo> owner/name (default:
+    this repository), <head> one branch. With VERI_GH_JSON set it is prs.json, filtered to <head> by the
+    REST shape's head.ref."""
+    path = "repos/%s/pulls?state=%s&per_page=100" % (repo or "{owner}/{repo}", state)
+    if head:
+        path += "&head={owner}:" + head
+    args = ["pr", "list", *(["--head", head] if head else []), "--state", state,
+            *(["--limit", str(limit)] if limit else []), "--json", fields]
+    answer = gh_json("prs.json", path, *args)
+    if head and tunables.read("VERI_GH_JSON"):
+        answer = json.dumps([raw for raw in json_documents.items(answer) if (raw.get("head") or {}).get("ref") == head])
+    return answer
+
+
+def open_pulls(fields, state="open", head=None, limit=10000, repo=None):
+    """The open pull requests (<state> "all" adds the closed) as Pull records; arguments as open_pulls_text."""
+    return pulls_in(open_pulls_text(fields, state, head, limit, repo))
+
+
+def closed_issues(body, loose=False):
+    """The issue numbers (strings) <body> closes, in order: `Closes #n`; <loose> also reads `closes #n`
+    and `disCloses #n`, the spelling of status --recover."""
+    return re.findall(r"[Cc]loses #(\d+)" if loose else r"\bCloses #(\d+)", body or "")
 
 
 def gh_pr_diff_names(number):
