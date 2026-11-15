@@ -35,6 +35,7 @@ import subprocess
 
 import git
 import ledger
+import run_dir
 from case_reader import cut_cases, is_js_test_file, is_test_path
 
 
@@ -125,7 +126,7 @@ def step_commits(step, issue):
     carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
     step = ledger.unphased(step)
     if issue:
-        path = ledger.ledger_path(".", issue)
+        path = run_dir.ledger(".", issue)
         revs = _out("log", "--reverse", "--format=%H", "--", path).split()
         previous, last_tick, tick = set(), revs[:1], None
         for rev in revs:
