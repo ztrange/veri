@@ -214,9 +214,8 @@ def test_prose_owed_sh_stays_at_exit_0_after_an_edit_to_the_grader_instructions_
     import importlib
 
     prose_owed = importlib.import_module("veri.prose_owed")
-    # prose_owed does `import grade_prose`, so its grader is a different module object
-    # from veri.grade_prose: sign and patch through the one it actually calls.
-    grade_prose = prose_owed.grade_prose
+    # prose_owed imports owed_listed from grade_prose, which signs: sign and patch through grade_prose.
+    grade_prose = importlib.import_module("veri.grade_prose")
     unit = "skills/demo/one.md"
     (tmp_path / "skills" / "demo").mkdir(parents=True)
     (tmp_path / unit).write_text("The widget is blue.\n")

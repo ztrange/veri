@@ -119,6 +119,35 @@ def graded_path(unit):
     return os.path.join(os.path.dirname(unit.partition("#")[0]), "GRADED")
 
 
+def graded_lines(graded):
+    if not os.path.exists(graded):
+        return
+    with open(graded, encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            yield line.split(" ")
+
+
+def graded_signature(unit):
+    graded = graded_path(unit)
+    for fields in graded_lines(graded):
+        if fields[0] == unit and len(fields) > 1:
+            return fields[1]
+    return None
+
+
+def orphans(units):
+    for graded in requirements.tracked("GRADED"):
+        for fields in graded_lines(graded):
+            if fields[0] not in units:
+                yield fields[0]
+
+
+def owed_listed(path="REQUIREMENTS.md"):
+    listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
+    owed = [(p, u) for p, u in listed if graded_signature(u) != signature(p, u)]
+    return owed, list(orphans([u for _, u in listed]))
+
+
 def read_graded(graded):
     with open(graded, encoding="utf-8") as f:
         return f.read().splitlines()
@@ -191,9 +220,8 @@ def convert(path):
 
 def main(argv):
     if argv == ["--owed"]:
-        import prose_owed
         path = "REQUIREMENTS.md"
-        return max([grade_unit(p, unit) for p, unit in prose_owed.owed_listed(path)[0]], default=0)
+        return max([grade_unit(p, unit) for p, unit in owed_listed(path)[0]], default=0)
     if argv == ["--convert"]:
         return convert("REQUIREMENTS.md")
     if len(argv) != 2:

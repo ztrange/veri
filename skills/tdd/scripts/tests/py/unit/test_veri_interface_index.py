@@ -121,9 +121,8 @@ EXEMPT_DIRECTION_BREAKS = {
     "event -> github",
 }
 
-# Import cycles the tree has. A ratchet like the list above; grade_prose asks prose_owed for what is owed, and
-# prose_owed grades through grade_prose.
-KNOWN_CYCLES = {frozenset({"grade_prose", "prose_owed"})}
+# Import cycles the tree has: none. A ratchet like the list above; an entry is a frozenset of the modules in a cycle.
+KNOWN_CYCLES = set()
 
 
 def _readme_lines():
