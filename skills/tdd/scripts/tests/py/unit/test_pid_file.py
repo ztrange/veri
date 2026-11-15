@@ -514,3 +514,97 @@ def test_ancestors_stops_at_a_parent_ps_cannot_read_and_at_a_cycle(fake_processe
         answers[name] = pid_file.ancestors()
 
     assert answers == {"vanished-parent": {me, 700}, "empty-field": {me}, "cycle": {me, 700}}
+
+
+def test_listing_answers_the_process_table_as_ps_prints_it_and_asks_once(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"ps": (0, " 11 sh a\n 12 b c\n", "")})
+
+    text = pid_file.listing()
+
+    assert (text, fake.argvs) == (" 11 sh a\n 12 b c\n", [["ps", "-axo", "pid=,command="]])
+
+
+def test_listing_leaves_ps_stderr_alone_unless_asked_to_be_quiet(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"ps": (0, "", "")})
+
+    pid_file.listing()
+    pid_file.listing(quiet=True)
+
+    assert [kwargs.get("stderr") is not None for _, kwargs in fake.seen] == [False, True]
+
+
+def test_listing_answers_what_a_failing_ps_printed_and_raises_when_ps_is_missing(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake_processes.answers({"ps": (1, "partial\n", "")})
+    assert pid_file.listing() == "partial\n"
+
+    fake_processes.answers({"ps": FileNotFoundError(2, "No such file or directory", "ps")})
+    try:
+        pid_file.listing()
+    except FileNotFoundError:
+        raised = True
+    else:
+        raised = False
+    assert raised
+
+
+def test_argument_lines_answers_each_process_arguments_and_raises_when_ps_fails(fake_processes):
+    import subprocess
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"ps": [(0, "sh a b\nclaude\n", ""), (1, "", "")]})
+
+    text = pid_file.argument_lines()
+    try:
+        pid_file.argument_lines()
+    except subprocess.CalledProcessError:
+        raised = True
+    else:
+        raised = False
+
+    assert (text, raised, fake.argvs[0]) == ("sh a b\nclaude\n", True, ["ps", "-axo", "args="])
+
+
+def test_started_as_answers_the_start_time_text_ps_prints_stripped_whatever_ps_exits(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"ps": [(0, "Mon Nov  2 10:00:00 2026\n", ""), (1, "", ""), (1, "stale \n", "")]})
+
+    answers = [pid_file.started_as(4242), pid_file.started_as("4243"), pid_file.started_as(4244)]
+
+    assert answers == ["Mon Nov  2 10:00:00 2026", "", "stale"]
+    assert fake.argvs == [["ps", "-o", "lstart=", "-p", "4242"], ["ps", "-o", "lstart=", "-p", "4243"],
+                          ["ps", "-o", "lstart=", "-p", "4244"]]
+
+
+def test_started_as_raises_when_ps_is_missing(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake_processes.answers({"ps": FileNotFoundError(2, "No such file or directory", "ps")})
+
+    try:
+        pid_file.started_as(1)
+    except FileNotFoundError:
+        raised = True
+    else:
+        raised = False
+
+    assert raised
+
+
+def test_pids_matching_answers_the_pids_pgrep_prints_in_order_and_none_when_it_prints_nothing(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"pgrep": [(0, "31\n7\n", ""), (1, "", "")]})
+
+    answers = [pid_file.pids_matching("report-cache.sh refresh"), pid_file.pids_matching("x")]
+
+    assert answers == [["31", "7"], []]
+    assert fake.argvs[0] == ["pgrep", "-f", "report-cache.sh refresh"]
+
+
+def test_commands_of_answers_ps_pid_and_command_lines_for_the_pids_in_one_call(fake_processes):
+    pid_file = importlib.import_module("veri.pid_file")
+    fake = fake_processes.answers({"ps": (0, "31 /s/report-cache.sh refresh\n", "")})
+
+    text = pid_file.commands_of(["31", "7"])
+
+    assert (text, fake.argvs) == ("31 /s/report-cache.sh refresh\n", [["ps", "-p", "31,7", "-o", "pid=,command="]])
