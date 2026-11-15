@@ -4,8 +4,8 @@ import os
 import sys
 import time
 
-from full_tier_time import main_tree
 import entry
+import run_dir
 import tunables
 
 USAGE = "usage: reset-wait.sh marker|recovered|idle <coord|dev> [--lane <lane>] [<seconds>]"
@@ -16,7 +16,7 @@ def poll():
 
 
 def tdd_dir():
-    return os.path.join(main_tree(os.getcwd()), ".tdd")
+    return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd")
 
 
 def role_key(role, lane=None):

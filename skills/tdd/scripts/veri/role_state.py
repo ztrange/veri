@@ -6,7 +6,6 @@ import os
 import sys
 import time
 
-from full_tier_time import main_tree
 import event_log
 import run_dir
 import timed_n_format
@@ -81,7 +80,7 @@ def main(argv):
             return usage()
         lane = argv[2]
         argv = [argv[0]] + argv[3:]
-    path = state_path(main_tree(os.getcwd()), name, lane)
+    path = state_path(run_dir.main_tree_from_files(os.getcwd()), name, lane)
     verb = VERBS.get(argv[1])
     return verb(path, argv) if verb else usage()
 

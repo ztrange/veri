@@ -5,9 +5,9 @@ import json
 import os
 import sys
 
-from full_tier_time import main_tree
 import growth
 import role_state
+import run_dir
 import tunables
 
 KNOBS = {"coord": "VERI_RESET_GROWTH_COORD", "dev": "VERI_RESET_GROWTH_DEV"}
@@ -72,7 +72,7 @@ def _main(argv):
     if not found:
         raise Failure("no transcript %s\n" % pattern)
     transcript = found[0]
-    path = role_state.state_path(main_tree(os.getcwd()), argv[0], lane)
+    path = role_state.state_path(run_dir.main_tree_from_files(os.getcwd()), argv[0], lane)
     text = "session=%s\ntranscript=%s\n" % (session, transcript)
     lines = (role_state.read(path) or "").splitlines()
     if any("=" not in l and not l.startswith(("decision ", "dropped-decision ", "message ", "override ", "timed-n ")) for l in lines):
