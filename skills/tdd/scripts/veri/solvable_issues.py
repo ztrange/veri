@@ -44,7 +44,7 @@ def priority_label():
     """The priority label, or None when VERI_PRIORITY_LABEL is set but empty."""
     if refused_if_empty("VERI_PRIORITY_LABEL"):
         return None
-    return tunables.read("VERI_PRIORITY_LABEL", "priority")
+    return tunables.get("VERI_PRIORITY_LABEL")
 
 
 def band(issue, priority):

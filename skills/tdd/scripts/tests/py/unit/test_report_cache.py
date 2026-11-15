@@ -2083,3 +2083,25 @@ def test_refresh_from_a_worktree_whose_gitdir_has_no_commondir_file_dies_on_the_
 
     assert (code, out, len(err.splitlines()), err.startswith("report-cache.sh: FileNotFoundError:"),
             "commondir" in err, "Traceback" in err) == (2, "", 1, True, True, False)
+
+
+def test_read_issue_page_reads_an_empty_page_retries_as_empty_and_fails_not_as_the_default_3(monkeypatch):
+    report_cache = importlib.import_module("veri.report_cache")
+    monkeypatch.setenv("VERI_PAGE_RETRIES", "")
+
+    with pytest.raises(ValueError):
+        report_cache.read_issue_page(10)
+
+
+def test_read_issue_page_reads_an_empty_page_retry_sleep_as_empty_and_fails_not_as_the_default_2(monkeypatch):
+    report_cache = importlib.import_module("veri.report_cache")
+
+    def refuse(*args):
+        raise report_cache.github.NoAnswer("")
+
+    monkeypatch.setattr(report_cache.github, "gh_issue_list", refuse)
+    monkeypatch.setattr(report_cache.time, "sleep", lambda seconds: pytest.fail("slept %r" % seconds))
+    monkeypatch.setenv("VERI_PAGE_RETRY_SLEEP", "")
+
+    with pytest.raises(ValueError):
+        report_cache.read_issue_page(10)

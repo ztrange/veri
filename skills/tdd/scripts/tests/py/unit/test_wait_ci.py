@@ -1671,7 +1671,7 @@ def test_main_records_no_deadline_while_every_pending_check_is_queued_and_counts
     assert observed == [(3, False), (3, False), (3, True), (3, True), (0, True)]
 
 
-@pytest.mark.parametrize("queue_wait, limit", [(None, 3600), ("120", 120)])
+@pytest.mark.parametrize("queue_wait, limit", [(None, 3600), ("", 3600), ("120", 120)])
 def test_main_exits_2_saying_the_checks_never_started_when_they_stay_queued_past_the_queue_wait_issue_2145(
         tmp_path, wait_ci, fake_processes, run_cli, queue_wait, limit):
     work = tmp_path / "work"
@@ -1689,7 +1689,7 @@ def test_main_exits_2_saying_the_checks_never_started_when_they_stay_queued_past
 
     fake_processes(answer)
     env = {"VERI_POLL": "0"}
-    if queue_wait:
+    if queue_wait is not None:
         env["VERI_CI_QUEUE_WAIT"] = queue_wait
     first, _, _ = run_cli(wait_ci, [PR, "60", "120", FULL_SHA], env=env, cwd=work)
     clock["now"] += limit + 1
@@ -2694,3 +2694,15 @@ def test_main_caps_the_rate_limit_sleep_of_the_pr_head_read_at_the_time_left_unt
     code, _, _ = run_cli(wait_ci, [PR, "540", "600"], env={"VERI_POLL": "0"}, cwd=work)
 
     assert (code, slept, len(reads)) == (3, [440], 1)
+
+
+def test_main_reads_an_empty_ci_retry_backoff_and_an_empty_no_run_wait_as_their_defaults_not_as_refusals(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    fake_processes(lambda line, **_: (0, "", ""))
+
+    code, _, err = run_cli(wait_ci, [PR, "60", "60", FULL_SHA],
+                           env={"VERI_POLL": "0", "VERI_CI_RETRY_BACKOFF": "", "VERI_CI_NO_RUN_WAIT": ""}, cwd=work)
+
+    assert ("is not 0 or 1" in err, "non-negative whole number" in err) == (False, False)

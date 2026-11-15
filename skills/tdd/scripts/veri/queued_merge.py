@@ -125,7 +125,7 @@ def _merge_commit(worktree, pull, pr):
         return ""
     for attempt in range(FETCH_ATTEMPTS):
         if attempt:
-            time.sleep(float(tunables.read("VERI_FETCH_RETRY_SLEEP") or "1"))
+            time.sleep(float(tunables.get("VERI_FETCH_RETRY_SLEEP", unless_empty=True)))
         fetch = _git(worktree, "fetch", "origin")
         if not fetch.returncode and not _git(worktree, "cat-file", "-e", sha + "^{commit}").returncode:
             return sha
@@ -302,7 +302,7 @@ def _locked(pid, repo, pr, worktree, branch, message):
     gh_merge = ("gh", "pr", "merge", pr, "--rebase", "--match-head-commit", head)
     rest_merge = ("gh", "api", "-X", "PUT", "repos/%s/pulls/%s/merge" % (repo, _number(pr)),
                   "-f", "merge_method=rebase", "-f", "sha=%s" % head)
-    driver = tunables.read("VERI_GH_DRIVER", None)
+    driver = tunables.get("VERI_GH_DRIVER")
     # The merge call keeps the lock even when it errors: an errored call may have landed, and the
     # settle window below re-reads the PR while still holding it, so a landed merge reaches _cleanup
     # with the lock its release expects, and no other merge takes the lock mid-window.
@@ -316,8 +316,8 @@ def _locked(pid, repo, pr, worktree, branch, message):
         code = _gate(pid, *rest_merge, keep=True)
     pull = None
     if code:
-        for _ in range(int(tunables.read("VERI_MERGE_SETTLE_READS") or "10")):
-            time.sleep(float(tunables.read("VERI_MERGE_SETTLE_SLEEP") or "3"))
+        for _ in range(int(tunables.get("VERI_MERGE_SETTLE_READS", unless_empty=True))):
+            time.sleep(float(tunables.get("VERI_MERGE_SETTLE_SLEEP", unless_empty=True)))
             pull = _merged(repo, pr)
             if pull is not None:
                 break
@@ -338,8 +338,8 @@ def main(argv):
     if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", pr):
         print(USAGE, file=sys.stderr)
         return 2
-    driver = tunables.read("VERI_GH_DRIVER", None)
-    if driver is not None and driver not in ("auto", "rest", "graphql"):
+    driver = tunables.get("VERI_GH_DRIVER")
+    if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         return 2
     repo = _repo(pr)

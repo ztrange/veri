@@ -55,7 +55,7 @@ def lane(comments):
 
 
 def read_issue_page(size, *search):
-    attempts = int(tunables.read("VERI_PAGE_RETRIES", "3"))
+    attempts = int(tunables.get("VERI_PAGE_RETRIES"))
     for attempt in range(attempts):
         try:
             args = ("--state", "all", "--limit", str(size), "--json", FIELDS) + search
@@ -64,7 +64,7 @@ def read_issue_page(size, *search):
             if attempt == attempts - 1:
                 raise
             size = max(1, size // 2)
-            time.sleep(float(tunables.read("VERI_PAGE_RETRY_SLEEP", "2")))
+            time.sleep(float(tunables.get("VERI_PAGE_RETRY_SLEEP")))
 
 
 def fetch_comments():

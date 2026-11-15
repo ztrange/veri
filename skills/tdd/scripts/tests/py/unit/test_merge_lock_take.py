@@ -3,6 +3,8 @@ import os
 import shutil
 from types import SimpleNamespace
 
+import pytest
+
 from veri import merge_lock
 
 
@@ -142,3 +144,11 @@ def test_3027_take_whose_own_pid_dies_after_three_polls_of_a_live_holder_exits_2
     except RuntimeError:
         code = "retried"
     assert (code, str(mine) in capsys.readouterr().err, (lock / "holder").read_text()) == (2, True, f"{me} h t\n")
+
+
+def test_the_poll_wait_reads_an_empty_veri_merge_lock_poll_as_empty_and_fails_not_as_the_default_30(monkeypatch):
+    monkeypatch.setattr(merge_lock.time, "sleep", lambda seconds: pytest.fail("slept %r" % seconds))
+    monkeypatch.setenv("VERI_MERGE_LOCK_POLL", "")
+
+    with pytest.raises(ValueError):
+        merge_lock._poll_wait()

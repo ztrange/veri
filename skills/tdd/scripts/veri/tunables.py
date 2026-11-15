@@ -109,6 +109,7 @@ def choice(*allowed):
 
 local_or_ci = choice("local", "ci")
 baseline_full_tier = choice("run", "reuse")
+gh_driver = choice("auto", "rest", "graphql")
 
 
 class Tunable:
@@ -150,6 +151,23 @@ TUNABLES = {
     "VERI_DISPATCH_RETRY_SLEEP": Tunable(isdigit_seconds, "5"),
     "VERI_GH_REFUSAL_RETRIES": Tunable(tokens, "3"),
     "VERI_LABEL": Tunable(text, "ready-for-agent"),
+    "VERI_TOOL_RETRY_SLEEP": Tunable(text, "15"),
+    "VERI_TOOL_FAST_WAIT": Tunable(text, "900"),
+    "VERI_TOOL_SLOW_SLEEP": Tunable(text, "900"),
+    "VERI_TOOL_WAIT": Tunable(text, "3600"),
+    "VERI_GH_REFUSAL_SLEEP": Tunable(text, "60"),
+    "VERI_GH_DRIVER": Tunable(gh_driver, "rest"),
+    "VERI_MERGE_LOCK_POLL": Tunable(text, "30"),
+    "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
+    "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
+    "VERI_MERGE_SETTLE_SLEEP": Tunable(text, "3"),
+    "VERI_CI_RETRY_BACKOFF": Tunable(text, "1"),
+    "VERI_CI_NO_RUN_WAIT": Tunable(text, "600"),
+    "VERI_CI_QUEUE_WAIT": Tunable(text, "3600"),
+    "VERI_PRIORITY_LABEL": Tunable(text, "priority"),
+    "VERI_PAGE_RETRIES": Tunable(text, "3"),
+    "VERI_PAGE_RETRY_SLEEP": Tunable(text, "2"),
+    "VERI_WORKQUEUE_LOCK_WAIT": Tunable(text, "30"),
     "VERI_MODEL": Tunable(text, ""),
     "VERI_MODEL_DEVELOPER": Tunable(text, "sonnet"),
     "VERI_MODEL_VERIFIER": Tunable(text, "sonnet"),
@@ -182,6 +200,11 @@ def get(name, unless_empty=False):
     The verb for a reader that refuses a bad value in its own words (or none)."""
     fallback = default(name)
     return read(name, fallback, unless_empty=fallback if unless_empty else None)
+
+
+def get_bytes(name, unless_empty=False):
+    """`get`, as the bytes of the environment (a name that is not valid UTF-8 survives); same empty rule."""
+    return os.fsencode(get(name, unless_empty=unless_empty))
 
 
 def set_but_empty(name):

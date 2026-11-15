@@ -35,7 +35,7 @@ def queue_path():
 
 
 def lock_tries():
-    wait = tunables.read("VERI_WORKQUEUE_LOCK_WAIT") or "30"
+    wait = tunables.get("VERI_WORKQUEUE_LOCK_WAIT", unless_empty=True)
     tries = entry.whole_number(wait, 0)
     if tries is not None:
         return tries * 20

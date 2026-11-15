@@ -184,6 +184,23 @@ DEFAULTED = {
     "VERI_DISPATCH_RETRY_SLEEP": ("5", "0", "x"),
     "VERI_GH_REFUSAL_RETRIES": ("3", "0", "-1"),
     "VERI_LABEL": ("ready-for-agent", "ready-for-agent:mu", None),
+    "VERI_TOOL_RETRY_SLEEP": ("15", "15", None),
+    "VERI_TOOL_FAST_WAIT": ("900", "900", None),
+    "VERI_TOOL_SLOW_SLEEP": ("900", "900", None),
+    "VERI_TOOL_WAIT": ("3600", "3600", None),
+    "VERI_GH_REFUSAL_SLEEP": ("60", "60", None),
+    "VERI_GH_DRIVER": ("rest", "graphql", "x"),
+    "VERI_MERGE_LOCK_POLL": ("30", "30", None),
+    "VERI_FETCH_RETRY_SLEEP": ("1", "1", None),
+    "VERI_MERGE_SETTLE_READS": ("10", "10", None),
+    "VERI_MERGE_SETTLE_SLEEP": ("3", "3", None),
+    "VERI_CI_RETRY_BACKOFF": ("1", "1", None),
+    "VERI_CI_NO_RUN_WAIT": ("600", "600", None),
+    "VERI_CI_QUEUE_WAIT": ("3600", "3600", None),
+    "VERI_PRIORITY_LABEL": ("priority", "priority", None),
+    "VERI_PAGE_RETRIES": ("3", "3", None),
+    "VERI_PAGE_RETRY_SLEEP": ("2", "2", None),
+    "VERI_WORKQUEUE_LOCK_WAIT": ("30", "30", None),
     "VERI_MODEL": ("", "opus", None),
     "VERI_MODEL_DEVELOPER": ("sonnet", "opus", None),
     "VERI_MODEL_VERIFIER": ("sonnet", "opus", None),
@@ -271,3 +288,20 @@ def test_claude_bin_is_the_environment_value_and_claude_when_unset_or_empty(monk
     else:
         monkeypatch.setenv("CLAUDE_BIN", value)
     assert tunables.claude_bin() == expected
+
+
+@pytest.mark.parametrize("unless_empty, empty_reads", [(False, b""), (True, b"ready-for-agent")])
+def test_get_bytes_reads_a_tunable_as_bytes_with_the_defaults_of_get(monkeypatch, unless_empty, empty_reads):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+    assert tunables.get_bytes("VERI_LABEL", unless_empty=unless_empty) == b"ready-for-agent"
+    monkeypatch.setenv("VERI_LABEL", "")
+    assert tunables.get_bytes("VERI_LABEL", unless_empty=unless_empty) == empty_reads
+    monkeypatch.setenv("VERI_LABEL", "x:mu")
+    assert tunables.get_bytes("VERI_LABEL", unless_empty=unless_empty) == b"x:mu"
+
+
+def test_get_bytes_returns_the_bytes_of_the_environment_undecoded(monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.setitem(os.environb, b"VERI_LABEL", b"\xff1")
+    assert tunables.get_bytes("VERI_LABEL") == b"\xff1"

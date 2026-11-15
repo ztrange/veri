@@ -205,11 +205,11 @@ def main(argv):
         return 2
     explicit = bool(stated)
     on_pr = stated or "1"
-    backoff = tunables.read("VERI_CI_RETRY_BACKOFF", unless_empty="1")
+    backoff = tunables.get("VERI_CI_RETRY_BACKOFF", unless_empty=True)
     if backoff not in ("0", "1"):
         warn("VERI_CI_RETRY_BACKOFF '%s' is not 0 or 1" % backoff)
         return 2
-    no_run_wait = tunables.read("VERI_CI_NO_RUN_WAIT", unless_empty="600")
+    no_run_wait = tunables.get("VERI_CI_NO_RUN_WAIT", unless_empty=True)
     if not re.fullmatch(r"[0-9]+", no_run_wait):
         warn("VERI_CI_NO_RUN_WAIT '%s' is not a non-negative whole number" % no_run_wait)
         return 2
@@ -239,7 +239,7 @@ def main(argv):
             total = span
     poll = tunables.read("VERI_POLL", unless_empty="10")
     options = Options(pr=pr, want=want, explicit=explicit, on_pr=on_pr, no_run_wait=int(no_run_wait),
-                      queue_wait=tunables.read("VERI_CI_QUEUE_WAIT", unless_empty="3600"), poll=poll,
+                      queue_wait=tunables.get("VERI_CI_QUEUE_WAIT", unless_empty=True), poll=poll,
                       span=arith(span, scope), total=arith(total, scope))
     bound = {}
     call_end = epoch() + options.span
