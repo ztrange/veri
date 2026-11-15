@@ -17,6 +17,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import types
 from time import time_ns
 
 import pytest
@@ -934,20 +935,43 @@ def run_cli(monkeypatch, capfd):
 
 @pytest.fixture
 def fake_processes(monkeypatch):
-    def install(answer=None):
-        calls = []
+    """Fakes every way subprocess starts a process, so a unit case starts none. Two entry points.
 
-        def line_of(args):
+    fake_processes(answer=None) -> calls
+        <answer>(line, **kwargs) -> (returncode, stdout, stderr) answers subprocess.run, <line> being the
+        command line ("git rev-parse HEAD": argv[0] by basename, the rest as str) and <kwargs> what the caller
+        passed. Popen, call, check_call and check_output refuse, naming the command. With no <answer>, every
+        entry point records and answers 0 with empty output. Returns the list of command lines run.
+
+    fake_processes.answers(table, default=None) -> fake    (the table-driven form: prefer it)
+        <table> maps a command-line prefix to what that command does; the longest matching prefix wins:
+            "git rev-parse": (0, "sha\\n", "")           one answer, every time
+            "git log": [(0, "a", ""), (0, "b", "")]      successive calls; once spent the call fails loudly
+            "gh ": FileNotFoundError(2, "no gh")         an exception instance is raised, as the OS would
+            "git": lambda line, **kwargs: (0, "", "")    a callable is handed the line and the kwargs
+        A list may mix tuples, exception instances and callables. A call no prefix matches fails the case with
+        AssertionError("unexpected process: <line>") unless <default> (any of the above) answers it.
+        fake.calls: the command lines, in order. fake.seen: one (argv, kwargs) per call, argv as the caller
+        passed it (full path kept) and kwargs as passed (cwd, env, input, capture_output, check ...).
+        Output is handed back in the caller's mode (str under text=True, bytes otherwise), stderr=STDOUT
+        merges, check=True raises CalledProcessError; Popen, call, check_call and check_output refuse.
+    """
+    def install(answer=None, seen=None):
+        calls = []
+        seen = [] if seen is None else seen
+
+        def line_of(args, kwargs=None):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
             calls.append(line)
+            seen.append((list(args), dict(kwargs or {})))
             return line
 
-        def record(args, *_, **__):
-            line_of(args)
+        def record(args, *_, **kwargs):
+            line_of(args, kwargs)
             return subprocess.CompletedProcess(args, 0, "", "")
 
         def run(args, *_, **kwargs):
-            code, out, err = answer(line_of(args), **kwargs)
+            code, out, err = answer(line_of(args, kwargs), **kwargs)
             encoding = kwargs.get("encoding") or "utf-8"
             text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
 
@@ -973,6 +997,28 @@ def fake_processes(monkeypatch):
             monkeypatch.setattr(subprocess, name, entry)
         return calls
 
+    def answers(table, default=None):
+        every = dict(table, **({} if default is None else {"": default}))
+        remaining = {prefix: list(what) if isinstance(what, list) else what for prefix, what in every.items()}
+
+        def answer(line, **kwargs):
+            matching = [prefix for prefix in remaining if line.startswith(prefix)]
+            if not matching:
+                raise AssertionError("unexpected process: %s" % line)
+            what = remaining[max(matching, key=len)]
+            if isinstance(what, list):
+                if not what:
+                    raise AssertionError("unexpected process: %s (every answer for it is spent)" % line)
+                what = what.pop(0)
+            if isinstance(what, BaseException):
+                raise what
+            return what(line, **kwargs) if callable(what) else what
+
+        seen = []
+        calls = install(answer, seen)
+        return types.SimpleNamespace(calls=calls, seen=seen)
+
+    install.answers = answers
     return install
 
 

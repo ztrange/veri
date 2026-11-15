@@ -89,6 +89,90 @@ def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_req
         raise AssertionError("a non-zero answer under check=True returned rather than raising")
 
 
+def test_fake_processes_answers_picks_the_longest_matching_prefix_and_records_command_lines_and_argv_with_keyword_arguments(
+        fake_processes):
+    fake = fake_processes.answers({"vcs": (1, "", "plain"), "vcs rev-parse": (0, "sha\n", ""), "hub ": (1, "", "boom")})
+
+    parsed = subprocess.run(["/usr/bin/vcs", "rev-parse", "HEAD"], capture_output=True, text=True, cwd="/x")
+    other = subprocess.run(["vcs", "status"], capture_output=True, text=True)
+    failed = subprocess.run(["hub", "issue", "list"], capture_output=True, text=True)
+
+    assert [(r.returncode, r.stdout, r.stderr) for r in (parsed, other, failed)] == [
+        (0, "sha\n", ""), (1, "", "plain"), (1, "", "boom")]
+    assert fake.calls == ["vcs rev-parse HEAD", "vcs status", "hub issue list"]
+    assert fake.seen[0] == (["/usr/bin/vcs", "rev-parse", "HEAD"], {"capture_output": True, "text": True, "cwd": "/x"})
+    assert [argv for argv, _ in fake.seen] == [["/usr/bin/vcs", "rev-parse", "HEAD"], ["vcs", "status"],
+                                               ["hub", "issue", "list"]]
+
+
+def test_fake_processes_answers_hands_a_list_of_answers_out_in_turn_and_fails_naming_the_command_once_it_is_spent(
+        fake_processes):
+    fake_processes.answers({"vcs log": [(0, "first", ""), (0, "second", "")]})
+
+    first = subprocess.run(["vcs", "log"], capture_output=True, text=True)
+    second = subprocess.run(["vcs", "log"], capture_output=True, text=True)
+
+    assert (first.stdout, second.stdout) == ("first", "second")
+    with pytest.raises(AssertionError, match="vcs log"):
+        subprocess.run(["vcs", "log"], capture_output=True, text=True)
+
+
+def test_fake_processes_answers_raises_an_exception_instance_and_still_records_the_call(fake_processes):
+    fake = fake_processes.answers({"missing": FileNotFoundError(2, "no such file"),
+                                   "tool": [(0, "ok", ""), OSError("then it broke")]})
+
+    with pytest.raises(FileNotFoundError):
+        subprocess.run(["missing", "--version"], capture_output=True, text=True)
+    assert subprocess.run(["tool"], capture_output=True, text=True).stdout == "ok"
+    with pytest.raises(OSError, match="then it broke"):
+        subprocess.run(["tool"], capture_output=True, text=True)
+    assert fake.calls == ["missing --version", "tool", "tool"]
+
+
+def test_fake_processes_answers_hands_a_callable_the_line_and_the_keyword_arguments_and_raises_on_check(fake_processes):
+    handed = []
+
+    def answer(line, **kwargs):
+        handed.append((line, kwargs))
+        return 4, "out", "err"
+
+    fake_processes.answers({"tool": answer})
+
+    with pytest.raises(subprocess.CalledProcessError) as failed:
+        subprocess.run(["tool", "x"], check=True, text=True)
+
+    assert handed == [("tool x", {"check": True, "text": True})]
+    assert (failed.value.returncode, failed.value.output, failed.value.stderr) == (4, "out", "err")
+
+
+def test_fake_processes_answers_fails_an_unmatched_call_naming_its_command_line_unless_a_default_answers(fake_processes):
+    fake = fake_processes.answers({"vcs": (0, "", "")})
+
+    with pytest.raises(AssertionError, match="unexpected process: curl -s http://x"):
+        subprocess.run(["/usr/bin/curl", "-s", "http://x"], capture_output=True, text=True)
+    assert fake.calls == ["curl -s http://x"]
+
+
+def test_fake_processes_answers_given_a_default_answers_every_unmatched_call_with_it(fake_processes):
+    fake = fake_processes.answers({"vcs": (0, "g", "")}, default=(1, "", "nope"))
+
+    unmatched = subprocess.run(["curl"], capture_output=True, text=True)
+
+    assert (unmatched.returncode, unmatched.stderr) == (1, "nope")
+    assert subprocess.run(["vcs"], capture_output=True, text=True).stdout == "g"
+    assert fake.calls == ["curl", "vcs"]
+
+
+def test_fake_processes_answers_hands_output_back_in_the_calls_mode_and_refuses_the_other_entry_points(fake_processes):
+    fake_processes.answers({"tool": (0, "out", "err")})
+
+    assert subprocess.run(["tool"], capture_output=True).stdout == b"out"
+    assert subprocess.run(["tool"], capture_output=True, text=True).stdout == "out"
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        with pytest.raises(AssertionError, match="unexpected process: tool"):
+            getattr(subprocess, entry)(["tool"])
+
+
 def child_pytest(tmp_path, probe, env, select=(), plugins=()):
     here = pathlib.Path(__file__).resolve().parent
     env = {**env, "PYTHONPATH": os.pathsep.join([str(here), str(here.parents[1])] if plugins else [str(here)])}
