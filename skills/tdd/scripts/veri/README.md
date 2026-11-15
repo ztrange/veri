@@ -213,6 +213,10 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `append(path, text)`, `now()`: append (written through a temp file and renamed); the stamp. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
+## run_activity
+- `activity(run, closed=False)`: an `Activity` (frozen dataclass: `state`, `detail`, `phase`, `actor`, `leaf`, `elapsed_seconds`, `attempts`, `dollars`, `tokens`, `pr`, `bail_phase`, `classification`, `stop_mode`, `cause`) for the run directory; `state` is one of `running`, `stale`, `done`, `stopped`, `bailed`, `refused`, `closed`.
+- `state(run)`: just that state word. No journal reads as `running`; a dead pid with no end mark is `stale`.
+
 ## run_dir
 Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` touches the disk.
 - `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
@@ -237,7 +241,7 @@ Where a run lives on disk; the module docstring draws the layout. Paths are str 
 - `solvable_in_scope()`: the same for the configured scope. `priority_label()`: the label, `None` when set but empty.
 
 ## status
-- `json_document(scope=None, read_states=True)`: `(exit code, --json document)`. `run_activity(run, as_json=False, closed=False)`: one run's activity line.
+- `json_document(scope=None, read_states=True)`: `(exit code, --json document)`. `run_activity(run, as_json=False, closed=False)`: renders one run's `run_activity.activity` as its text line or `--json` object.
 - `read_role_state(role, lane=None)`: the role's state lines, `None` when missing.
 
 ## stop_modes
