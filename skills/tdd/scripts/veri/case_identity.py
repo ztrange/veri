@@ -31,11 +31,26 @@ Interface (a function says what it touches: text only, the tree's files, or case
   moved_path(name, case, digests)         `name` while that file exists, else the path_holding of a file of the same
                                           basename, else of any file, else `name`. Reads the tree's files.
 
-Error modes: none of these catches anything; they raise only what case_reader raises on an unclosed JS call.
+  renamed_to(name, case, digest, text, consumed)
+                                          the case of `text` that is the recorded `case` of file `name` but for its
+                                          name: the case_history revision (newest first) that held `case` at `digest`
+                                          is compared with `text` by renamed_case, skipping names that revision held
+                                          and names in `consumed`; the answer is added to `consumed`. None when no
+                                          revision held that body or no case of `text` fits. Asks case_history.
+  changed_by_refactor(name, case)         True when the newest commit that changed `case` in `name` has a subject
+                                          starting "refactor:". False when `case` is not at HEAD, was never changed,
+                                          or the history cannot be read (OSError). Asks case_history.
+  called_helpers(rev, name, body)         helpers_in of the file `name` at `rev` (read quietly); "" when git cannot
+                                          show it. Asks case_history.
+
+Error modes: only changed_by_refactor catches anything (OSError from case_history, answered False). The rest let
+case_reader's UnclosedCase, a file's OSError and case_history's OSError through to the caller, who decides.
 """
 import os
 import re
 
+import case_history
+import renamed_case
 from case_reader import cut_cases
 from frozen_record import body_digest
 
@@ -105,3 +120,32 @@ def moved_path(name, case, digests):
         or path_holding(case, digests)
         or name
     )
+
+
+def renamed_to(name, case, digest, text, consumed):
+    for rev in case_history.revisions(name):
+        held = case_history.cases_at(rev, name)
+        if case in held and body_digest(held[case]) == digest:
+            other = renamed_case.renamed_to(case, case_history.text_at(rev, name), text, set(held) | consumed)
+            if other:
+                consumed.add(other)
+            return other
+    return None
+
+
+def changed_by_refactor(name, case):
+    try:
+        if case not in case_history.cases_at("HEAD", name):
+            return False
+        revs = case_history.revisions(name)
+        history = [case_history.cases_at(rev, name).get(case) for rev in revs]
+    except OSError:
+        return False
+    for rev, now, before in zip(revs, history, history[1:]):
+        if now != before:
+            return case_history.subject(rev).startswith("refactor:")
+    return False
+
+
+def called_helpers(rev, name, body):
+    return helpers_in(case_history.text_at(rev, name, quiet=True), body)

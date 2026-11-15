@@ -148,7 +148,7 @@ def _kept_cases(record, name, step=None, skip=()):
     consumed = set(owned)
     for case, digest in held.items():
         if case not in names:
-            other = _renamed_to(name, case, digest, text, consumed)
+            other = case_identity.renamed_to(name, case, digest, text, consumed)
             if other and other in names:
                 owned.add(other)
     extra = [case for case in names - owned - set(skip)] if held and step else []
@@ -183,31 +183,6 @@ def _earlier_records(lines, step, strict=False):
                 raise
             continue
         yield match.group(2), path, records
-
-
-def _renamed_to(name, case, digest, text, consumed):
-    for rev in case_history.revisions(name):
-        held = case_history.cases_at(rev, name)
-        if case in held and body_digest(held[case]) == digest:
-            other = renamed_case.renamed_to(case, case_history.text_at(rev, name), text, set(held) | consumed)
-            if other:
-                consumed.add(other)
-            return other
-    return None
-
-
-def _changed_by_refactor(name, case):
-    try:
-        if case not in case_history.cases_at("HEAD", name):
-            return False
-        revs = case_history.revisions(name)
-        history = [case_history.cases_at(rev, name).get(case) for rev in revs]
-    except OSError:
-        return False
-    for rev, now, before in zip(revs, history, history[1:]):
-        if now != before:
-            return case_history.subject(rev).startswith("refactor:")
-    return False
 
 
 def _helpers_stale(releg, name, case, recorded, text, body):
@@ -266,7 +241,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
                 olds = [case_identity.as_recorded(b, digests) for b in olds]
             digest = digests[-1]
             if not nows:
-                other = _renamed_to(name, case, digest, text, consumed)
+                other = case_identity.renamed_to(name, case, digest, text, consumed)
                 if other:
                     nows = olds = [dict(cut_cases(text))[other].replace(other, case, 1)]
                 elif not any(case in case_history.cases_at(rev, name) for rev in case_history.revisions(name)):
@@ -285,7 +260,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
                 or ((name, case) in helper_digests
                     and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows)))):
             entry = "%s (%s)" % (case, owner)
-            if nows and _changed_by_refactor(name, case):
+            if nows and case_identity.changed_by_refactor(name, case):
                 entry += ": the record is stale against a verified refactor"
             changed.append(entry)
     for entry in changed:
@@ -420,10 +395,6 @@ _bodies_of = case_identity.bodies_of
 _assertion_lines = case_identity.assertion_lines
 
 
-def _called_helpers(rev, name, body):
-    return case_identity.helpers_in(case_history.text_at(rev, name, quiet=True), body)
-
-
 def _is_suite_repair_green(lines, green):
     """True when `green` is one of the own commits of a ticked ⟦suite-repair⟧ step of the ledger `lines`: only
     then may a frozen case's body at `green^` stand for its record. A suite-repair step ticked elsewhere in the
@@ -492,16 +463,16 @@ def rerecord_refactored(ledger, green):
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), green_helpers) != green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
-        helpers = _called_helpers("HEAD", name, head)
+        helpers = case_identity.called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
         head_lines = [l for l in case_identity.assertion_lines(head) if l.split("(")[0] not in called]
         verified_lines = case_identity.assertion_lines(verified)
-        verified_count = collections.Counter(verified_lines + case_identity.assertion_lines(_called_helpers(green, name, verified)))
+        verified_count = collections.Counter(verified_lines + case_identity.assertion_lines(case_identity.called_helpers(green, name, verified)))
         carried = collections.Counter(head_lines + case_identity.assertion_lines(helpers))
         if head_lines != verified_lines and carried != verified_count:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
         if head_lines == verified_lines and len(case_identity.assertion_lines(helpers)) \
-                != len(case_identity.assertion_lines(_called_helpers(green, name, verified))):
+                != len(case_identity.assertion_lines(case_identity.called_helpers(green, name, verified))):
             return skip(name, case, record, "helper assertion count differs from green's")
         if not verified_lines and case_identity.squeezed(head) != case_identity.squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
