@@ -2,7 +2,6 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import pathlib
-import re
 import sys
 
 import entry
@@ -14,7 +13,7 @@ USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seco
 
 
 def is_whole(text):
-    return re.fullmatch(r"[0-9]+", text) is not None
+    return entry.whole_number(text, 0) is not None
 
 
 def require_seconds(name, value):
