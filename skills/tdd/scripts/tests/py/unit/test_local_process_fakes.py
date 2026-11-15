@@ -43,7 +43,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_status.py": "worktree list faked, the rest real",
     "test_structural_predicate.py": "not inventoried",
     "test_supervise.py": "not inventoried",
-    "test_tick_issue_criterion.py": "gh view/PATCH faked, git real",
     "test_timed_test_run.py": "one callable: note() then status lookup",
     "test_verify.py": "not inventoried",
     "unit/test_add_ledger_step.py": "not inventoried",
