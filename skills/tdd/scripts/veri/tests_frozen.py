@@ -7,6 +7,7 @@ import re
 import sys
 
 import case_history
+import case_identity
 import git
 import ledger
 import renamed_case
@@ -184,16 +185,6 @@ def _earlier_records(lines, step, strict=False):
         yield match.group(2), path, records
 
 
-def _root_variants(body):
-    yield body
-    for k in range(10):
-        yield re.sub(r"parents\[\d+\]", "parents[%d]" % k, body)
-
-
-def _as_recorded(body, digests):
-    return next((v for v in _root_variants(body) if body_digest(v) in digests), body)
-
-
 def _path_holding(case, digests, only=None):
     for top, dirs, files in os.walk("."):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
@@ -202,8 +193,8 @@ def _path_holding(case, digests, only=None):
                 continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if any(body_digest(v) in digests for body in _bodies_of(handle.read(), case)
-                       for v in _root_variants(body)):
+                if any(body_digest(v) in digests for body in case_identity.bodies_of(handle.read(), case)
+                       for v in case_identity.root_variants(body)):
                     return path
     return None
 
@@ -244,10 +235,10 @@ def _changed_by_refactor(name, case):
 
 
 def _helpers_stale(releg, name, case, recorded, text, body):
-    current = _helper_digest(text, body)
+    current = case_identity.helper_digest(text, body)
     if recorded == current:
         return False
-    if recorded != _helper_digest(text, body, legacy=True):
+    if recorded != case_identity.helper_digest(text, body, legacy=True):
         return True
     releg[(name, case)] = current
     return False
@@ -292,11 +283,11 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
             moved = _moved_path(name, case, digests)
             with open(moved, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
-            nows = _bodies_of(text, case)
+            nows = case_identity.bodies_of(text, case)
             olds = [body for c, body in old_cut_cases_all(text, marked) if c == case]
             if moved != name:
-                nows = [_as_recorded(b, digests) for b in nows]
-                olds = [_as_recorded(b, digests) for b in olds]
+                nows = [case_identity.as_recorded(b, digests) for b in nows]
+                olds = [case_identity.as_recorded(b, digests) for b in olds]
             digest = digests[-1]
             if not nows:
                 other = _renamed_to(name, case, digest, text, consumed)
@@ -389,11 +380,11 @@ def rerecord_earlier(ledger, step):
         now = after[name].get(case)
         if now is not None and now != before.get(case):
             head_text = case_history.text_at("HEAD", name, quiet=True)
-            body = "\n".join(_bodies_of(head_text, case))
-            if not _helpers_in(head_text, body):
+            body = "\n".join(case_identity.bodies_of(head_text, case))
+            if not case_identity.helpers_in(head_text, body):
                 return body_line(name, case, now)
             return body_line(name, case, now) + "\n" + frozen_record.helpers_line(
-                name, case, _helper_digest(head_text, body))
+                name, case, case_identity.helper_digest(head_text, body))
         return record
     try:
         if not rewrite_records(_earlier_records(lines, step), rewrite):
@@ -447,41 +438,14 @@ def _rerecord_committed(step):
     return 0 if not changed or write_record(path, out) else 2
 
 
-def _squeezed(text):
-    return re.sub(r"\s+", "", text)
-
-
-def _assertion_lines(body):
-    return [_squeezed(line) for line in body.splitlines() if line.lstrip().startswith(("assert", "expect(", "t.Fatal", "t.Error", "t.Fail", "require."))]
-
-
-def _helper_digest(text, body, legacy=False):
-    return body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body, legacy)))))
-
-
-def _bodies_of(text, case):
-    return [b for c, b in cut_cases(text) if c == case]
+# Spellings the process suite reads off this module (it never patches them); the rules live in case_identity.
+_helper_digest = case_identity.helper_digest
+_bodies_of = case_identity.bodies_of
+_assertion_lines = case_identity.assertion_lines
 
 
 def _called_helpers(rev, name, body):
-    return _helpers_in(case_history.text_at(rev, name, quiet=True), body)
-
-
-_HELPER_NAME = r"^(?:(?:function|func|def)\s+(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
-
-
-def _helpers_in(text, body, legacy=False):
-    helpers = []
-    stop = r"func" if legacy else r"(?:function|func|def|const)"
-    rest = re.compile(r"(?:(?!%s\b).*\n?)*" % stop)
-    for head in re.finditer(_HELPER_NAME + r"[^\n]*\n", text, re.M):
-        definition = head.group() + rest.match(text, head.end()).group()
-        name = head.group(1) or head.group(2)
-        keyword = definition.split(None, 1)[0]
-        collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
-        if not collected and re.search(r"\b%s\(" % name, body):
-            helpers.append(definition)
-    return "\n".join(helpers)
+    return case_identity.helpers_in(case_history.text_at(rev, name, quiet=True), body)
 
 
 def _is_suite_repair_green(lines, green):
@@ -533,7 +497,7 @@ def rerecord_refactored(ledger, green):
     repaired = _is_suite_repair_green(lines, green)
 
     def nth(rev, name, case, k):
-        found = _bodies_of(case_history.text_at(rev, name, quiet=True), case)
+        found = case_identity.bodies_of(case_history.text_at(rev, name, quiet=True), case)
         return found[k] if k < len(found) else None
 
     def rewrite(_, record, name, case, digest):
@@ -548,26 +512,26 @@ def rerecord_refactored(ledger, green):
                 body_digest, (b for c, b in old_cut_cases_all(green_text) if c == case)),
                 *([body_digest(before)] if before else [])}:
             return skip(name, case, record, "body digest matches neither green nor HEAD")
-        green_helpers = _helper_digest(green_text, verified)
+        green_helpers = case_identity.helper_digest(green_text, verified)
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), green_helpers) != green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = _called_helpers("HEAD", name, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
-        head_lines = [l for l in _assertion_lines(head) if l.split("(")[0] not in called]
-        verified_lines = _assertion_lines(verified)
-        verified_count = collections.Counter(verified_lines + _assertion_lines(_called_helpers(green, name, verified)))
-        carried = collections.Counter(head_lines + _assertion_lines(helpers))
+        head_lines = [l for l in case_identity.assertion_lines(head) if l.split("(")[0] not in called]
+        verified_lines = case_identity.assertion_lines(verified)
+        verified_count = collections.Counter(verified_lines + case_identity.assertion_lines(_called_helpers(green, name, verified)))
+        carried = collections.Counter(head_lines + case_identity.assertion_lines(helpers))
         if head_lines != verified_lines and carried != verified_count:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
-        if head_lines == verified_lines and len(_assertion_lines(helpers)) \
-                != len(_assertion_lines(_called_helpers(green, name, verified))):
+        if head_lines == verified_lines and len(case_identity.assertion_lines(helpers)) \
+                != len(case_identity.assertion_lines(_called_helpers(green, name, verified))):
             return skip(name, case, record, "helper assertion count differs from green's")
-        if not verified_lines and _squeezed(head) != _squeezed(verified):
+        if not verified_lines and case_identity.squeezed(head) != case_identity.squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = case_history.text_at("HEAD", name, quiet=True)
         return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
-            name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
+            name, case, case_identity.helper_digest(head_text, "\n".join(case_identity.bodies_of(head_text, case))))
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
     return _check_earlier(ledger, "", sanctioned=exempt)
