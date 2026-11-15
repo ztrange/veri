@@ -194,6 +194,68 @@ def test_main_2462_grades_the_marked_unit_as_it_reads_on_the_default_branch_not_
             "The working tree says green." in first) == (0, "", True, False)
 
 
+def _wired_tree(tmp_path, monkeypatch, fake_processes, reply):
+    """A tree whose marked unit reads green in the working tree and blue on origin/main, graded through the real
+    grade_prose.grade_unit: only git and the grader leaf are answered. Returns the prompts the leaf read."""
+    stale_rows = importlib.import_module("veri.stale_rows")
+    grade_prose = importlib.import_module("veri.grade_prose")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "skills" / "marked.md").write_text("The working tree says green.\n")
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.setattr(stale_rows.github, "gh_issue_view", lambda number, field: ISSUE)
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setenv("PATH", "")
+    prompts = []
+
+    def launch(line, **kwargs):
+        with open(line.split()[3], encoding="utf-8") as f:
+            prompts.append(f.read())
+        (tmp_path / ".tdd" / "grade-prose.log").write_text(json.dumps({"type": "result", "result": reply}) + "\n")
+        return (0, "", "")
+
+    fake_processes.answers({
+        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/main\n", ""),
+        "git show origin/main:skills/marked.md": (0, "The default branch says blue.\n", ""),
+        "supervise.sh": launch})
+    return stale_rows, prompts
+
+
+def _cached(tmp_path):
+    return [json.loads(f.read_text()) for f in sorted((tmp_path / ".tdd" / "stale-rows-cache").glob("*"))]
+
+
+def test_main_through_the_real_grade_unit_prints_the_failing_row_of_the_default_branch_text_and_caches_code_and_text(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    stale_rows, prompts = _wired_tree(tmp_path, monkeypatch, fake_processes,
+                                      "BEGIN GRADES\nM1: FAIL — says blue, not green\nVERDICT: REJECT\nEND GRADES\n")
+
+    code, out, err = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    first = prompts[0] if prompts else ""
+    assert (code, out) == (1, "2462\tM1\tskills/marked.md\tM1: FAIL — says blue, not green\n"), err
+    assert ("The default branch says blue." in first, "The working tree says green." in first) == (True, False)
+    assert _cached(tmp_path) == [[1, "M1: FAIL — says blue, not green\n"]]
+    assert not (tmp_path / "skills" / "GRADED").exists()
+
+
+def test_main_through_the_real_grade_unit_on_a_pass_prints_nothing_caches_an_empty_line_and_signs_graded(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    stale_rows, prompts = _wired_tree(tmp_path, monkeypatch, fake_processes,
+                                      "BEGIN GRADES\nM1: PASS — says blue\nVERDICT: PASS\nEND GRADES\n")
+
+    code, out, err = run_cli(stale_rows, ["2462"], cwd=tmp_path)
+
+    graded = tmp_path / "skills" / "GRADED"
+    records = [json.loads(line) for f in (tmp_path / ".tdd").glob("*") if f.is_file()
+               for line in f.read_text(errors="ignore").splitlines() if line.startswith("{")]
+    gradings = [(r.get("unit"), r.get("verdict")) for r in records if r.get("event") == "grading"]
+    assert (code, out, len(prompts)) == (0, "", 1), err
+    assert _cached(tmp_path) == [[0, "\n"]]
+    assert (graded.read_text().split(" ")[:1] if graded.exists() else []) == ["skills/marked.md"]
+    assert gradings == [("skills/marked.md", "PASS")], records
+
+
 def test_main_2462_regrades_only_when_the_marked_rows_or_the_units_default_branch_text_change(
         tmp_path, monkeypatch, run_cli):
     stale_rows = importlib.import_module("veri.stale_rows")
