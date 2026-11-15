@@ -81,7 +81,7 @@ def test_shim_run_outside_make_after_a_same_second_mutation_reads_the_current_so
     source = scripts / "veri" / "ledger.py"
     stat = source.stat()
     text = source.read_text()
-    mutated = text.replace('record[1] == "open"', 'record[1] == "oper"')
+    mutated = text.replace('record.state == "open"', 'record.state == "oper"')
     assert len(mutated) == len(text) and mutated != text
     source.write_text(mutated)
     os.utime(source, ns=(stat.st_atime_ns, stat.st_mtime_ns))
