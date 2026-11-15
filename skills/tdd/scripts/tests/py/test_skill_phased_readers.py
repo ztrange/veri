@@ -37,7 +37,7 @@ ALLOWED = {
     "test_no_product_caller_process.py": "script suite", "test_tests_frozen_process.py": "script suite",
     "test_suite_reported_process.py": "script suite", "test_prompt_test_tiers.py": "script suite",
     "test_build_develop_prompt.py": "script suite", "test_build_verify_prompt.py": "script suite",
-    "test_metrics.py": "the phases fixtures",
+    "unit/test_metrics.py": "the phases fixtures",
 }
 
 
