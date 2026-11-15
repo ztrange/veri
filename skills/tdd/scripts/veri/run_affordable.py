@@ -1,11 +1,11 @@
 """run-affordable.sh's projection, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import re
 import sys
 
 import step_budget
 import step_cost
+import entry
 
 USAGE = "usage: run-affordable.sh <steps-remaining> (a whole number)"
 
@@ -16,7 +16,7 @@ def _passed(status):
 
 def main(argv):
     remaining = argv[0] if argv else ""
-    if not re.fullmatch(r"[0-9]+", remaining):
+    if entry.whole_number(remaining, 0) is None:
         sys.stderr.buffer.write(os.fsencode("run-affordable.sh: <steps-remaining> is not a whole number: '%s'\n%s\n"
                                             % (remaining, USAGE)))
         return 2
