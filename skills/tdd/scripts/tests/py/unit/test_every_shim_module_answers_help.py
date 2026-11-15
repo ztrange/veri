@@ -15,12 +15,6 @@ SHIM_EXEC = re.compile(r'^exec (?:python3|"\$py") .*/veri/([\w-]+)\.py"', re.MUL
 # Shims whose module is owned by an open PR and so cannot be edited here; none today. A ratchet: it may shrink, never grow.
 EXEMPT = {}
 
-# Shims whose `--help` is answered but whose USAGE does not name the shim after `usage: `; naming it would change the bytes of
-# every refusal that prints USAGE. A ratchet: it may shrink, never grow.
-UNNAMED = {
-    "build-develop-prompt.sh": "USAGE opens `usage: <phase list> …`; the refusal text prints it, so naming the shim changes stderr",
-}
-
 
 def fronted():
     """(shim name, module name) of every shim that execs a veri/ module, in shim order."""
@@ -46,7 +40,7 @@ def test_every_shim_fronted_module_declares_a_usage_that_opens_with_its_shims_na
     # entry prints from the first `usage: `, so a `<name>: ` lead-in (refactor-owed: usage: …) is allowed before it.
     form = {shim: re.compile(rf"(?:[\w.-]+: )?usage: {re.escape(shim)}") for shim, _ in fronted()}
     wrong = [f"{shim}: {module}.py USAGE does not start with `usage: {shim}`" for shim, module in fronted()
-             if shim not in EXEMPT and shim not in UNNAMED and (usage := declared_usage(module)) is not None
+             if shim not in EXEMPT and (usage := declared_usage(module)) is not None
              and usage != "" and not form[shim].match(usage.lstrip())]
     wrong += [f"{shim}: {module}.py declares no USAGE" for shim, module in fronted()
               if shim not in EXEMPT and declared_usage(module) is None]
@@ -87,7 +81,7 @@ def test_help_prints_the_usage_on_stdout_exits_0_and_starts_no_process_and_no_co
 
     assert (code, err, no_work) == (0, "", [])
     declared = imported.USAGE.decode() if isinstance(imported.USAGE, bytes) else imported.USAGE
-    assert out.startswith("usage: ") and (shim in UNNAMED or out.startswith(f"usage: {shim}"))
+    assert out.startswith("usage: ") and out.startswith(f"usage: {shim}")
     assert out.rstrip("\n") == declared[declared.index("usage: "):].rstrip("\n")
 
 
