@@ -25,7 +25,7 @@ def fake_rev_parse(fake_processes, code, stdout):
             raise AssertionError("unexpected command: %s" % line)
         return code, stdout if kwargs.get("stdout") == subprocess.PIPE else None, None
 
-    fake_processes.answers({"git": rev_parse})
+    return fake_processes.answers({"git": rev_parse})
 
 
 def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp_path, monkeypatch, capsys,
@@ -146,12 +146,10 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
         tmp_path, monkeypatch, capsys, ensure_run_state_ignored, fake_processes):
     refusal = ("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of "
                "order — fix it by hand\n")
-    roots = []
+    fakes = []
 
     def answer(stdout):
-        fake_rev_parse(fake_processes, 0, stdout)
-        faked = subprocess.run
-        monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: (roots.append(args[2]), faked(args, **kwargs))[1])
+        fakes.append(fake_rev_parse(fake_processes, 0, stdout))
 
     monkeypatch.chdir(tmp_path)
     common = tmp_path / "common"
@@ -179,6 +177,7 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
     answer(".git\n")
     for argv in ([""], []):
         assert (ensure_run_state_ignored.main(argv), capsys.readouterr()[:]) == (2, ("", refusal % "./.gitignore"))
+    roots = [argv[2] for fake in fakes for argv in fake.argvs]
     assert roots == ["a", "r/", "r/sub", ".", "."]
 
     monkeypatch.chdir(tmp_path)
