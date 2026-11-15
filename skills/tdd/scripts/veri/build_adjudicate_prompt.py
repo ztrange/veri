@@ -23,8 +23,8 @@ def main(argv):
         return 2
     routes = ", ".join(re.findall(r"`([^`]+)`", eligible[cause])) or eligible[cause].strip()
     with open(ledger.ledger_path(".", n)) as f:
-        steps = [line.rstrip("\n") for line in f if line.startswith(("- [ ]", "- [x]"))]
-    step = next((s for s in steps if s.startswith("- [ ]")), steps[-1])
+        steps = [line.rstrip("\n") for line in f if line.startswith((ledger.OPEN_STEP, ledger.TICKED_STEP))]
+    step = next((s for s in steps if s.startswith(ledger.OPEN_STEP)), steps[-1])
     with open(stderr_file) as f:
         stderr = "".join(f.readlines()[-50:])
     print(
