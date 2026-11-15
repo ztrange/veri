@@ -11,26 +11,25 @@ def refresh_spec():
     return importlib.import_module("veri.refresh_spec")
 
 
-def fake_gh(monkeypatch, labels, body):
-    def fake_run(args, **kwargs):
-        if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args:
-            stdout = labels
-        elif list(args[:3]) == ["gh", "issue", "view"] and "body" in args:
-            stdout = body
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
+def fake_gh(fake_processes, labels, body):
+    def view(line, **kwargs):
+        words = line.split()
+        if "labels" in words:
+            return 0, labels, ""
+        if "body" in words:
+            return 0, body, ""
+        raise AssertionError("unexpected command: %s" % line)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"gh issue view": view})
 
 
 def test_main_2572_exits_0_and_holds_the_live_capture_when_it_differs_with_the_same_checkbox_count(
-        monkeypatch, tmp_path, refresh_spec):
+        monkeypatch, fake_processes, tmp_path, refresh_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     spec = tmp_path / "issue-7-spec.md"
     spec.write_text("## Acceptance criteria\n\n- [ ] the old criterion\n- [ ] second\n")
     live = "## Acceptance criteria\n\n- [ ] the narrowed criterion\n- [ ] second\n"
-    fake_gh(monkeypatch, "enhancement\n", live)
+    fake_gh(fake_processes, "enhancement\n", live)
 
     code = refresh_spec.main(["7", str(spec)])
 
@@ -38,13 +37,13 @@ def test_main_2572_exits_0_and_holds_the_live_capture_when_it_differs_with_the_s
 
 
 def test_main_2572_exits_3_and_leaves_bytes_and_mtime_when_the_live_capture_is_identical(
-        monkeypatch, tmp_path, refresh_spec):
+        monkeypatch, fake_processes, tmp_path, refresh_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     spec = tmp_path / "issue-7-spec.md"
     live = "## Acceptance criteria\n\n- [ ] the criterion\n- [ ] second\n"
     spec.write_text(live)
     os.utime(spec, ns=(1_000_000_000_000_000_000, 1_000_000_000_000_000_000))
-    fake_gh(monkeypatch, "enhancement\n", live)
+    fake_gh(fake_processes, "enhancement\n", live)
 
     code = refresh_spec.main(["7", str(spec)])
 
@@ -53,13 +52,13 @@ def test_main_2572_exits_3_and_leaves_bytes_and_mtime_when_the_live_capture_is_i
 
 
 def test_main_2572_exits_1_names_both_counts_and_leaves_the_file_when_the_checkbox_count_differs(
-        monkeypatch, tmp_path, capsys, refresh_spec):
+        monkeypatch, fake_processes, tmp_path, capsys, refresh_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     spec = tmp_path / "issue-7-spec.md"
     old = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n"
     spec.write_text(old)
     live = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n- [ ] third\n"
-    fake_gh(monkeypatch, "enhancement\n", live)
+    fake_gh(fake_processes, "enhancement\n", live)
 
     code = refresh_spec.main(["7", str(spec)])
 
