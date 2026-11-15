@@ -118,7 +118,7 @@ ALLOW_LIST_HOLDERS = (
     ("test_skill_refactor_readers.py", "ALLOWED"),
     ("unit/test_skill_plan_readers.py", "ALLOWED"),
     ("unit/test_skill_draft_pr_readers.py", "ALLOWED"),
-    ("test_skill_preflight.py", "MECHANICAL_READERS"),
+    ("unit/test_skill_preflight.py", "MECHANICAL_READERS"),
 )
 
 

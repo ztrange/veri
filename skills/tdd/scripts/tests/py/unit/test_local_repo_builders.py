@@ -7,7 +7,7 @@ import pytest
 # one fails the first. One line per file keeps parallel migrations from conflicting. The files left build something
 # repo_builder does not, said in each reason.
 FILES_WITH_A_LOCAL_REPO_BUILDER = {
-    "test_skill_preflight.py": "bare repository and configured identity for plain git commit",
+    "test_skill_preflight_process.py":"bare repository and configured identity for plain git commit",
 }
 
 LOCAL_BUILDERS = ("new_repo", "make_repo", "fixture_repo", "commit_all")
