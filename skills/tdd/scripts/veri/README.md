@@ -134,6 +134,13 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 - `append_bytes(path, data)`: appends bytes to a file; raises OSError.
 - `run_keeping_journal(run)`: calls `run()` and puts the earlier `.tdd/events.jsonl` content back if it no longer starts with it; returns what `run()` returned.
 
+## mutation_record
+The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format (`<name> <size>\n<value>\n` fields, a blank line closing each entry, `old`/`new`/`context` base64-encoded under `<name>-b64`).
+- `path(run, issue)`: the record of an issue. `of_ledger(ledger_path)`: the record beside a ledger file. `is_record(name)`: whether a basename is `issue-<digits>-mutations.md`. `number(path)`: the issue number in its name.
+- `paths(run="")`: the records present, sorted, relative when `run` is empty. `snapshot(run="")`: `{path: bytes}` of them.
+- `format_record(fields)`: the text of one entry from (name, value) pairs. `append(path, fields)`: add one entry to a record.
+- `records(text)`: `[{name: value}]`, text fields decoded. `chunks(text)`: `[(raw, fields)]`, each entry's exact text with the blank lines after it and its undecoded fields; raises `MalformedRecord` (a `ValueError` whose `header` is the bad line).
+
 ## pid_file
 - `number_in(file)`: the number on a pid file's first line, `None` when missing or malformed.
 - `live_conductor(path)`: the pid of the live conductor recorded in `path`, else `None`; `not_live_reason(path)` says why. `recorded_alive(path)`, `recorded_started(path)`, `start_recorded(file)`, `start_matches(file, pid)`: parts of that check. `record(path, pid)` writes a pid file.
@@ -143,6 +150,11 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 ## pinned_scripts
 - `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree.
 - `snapshot_gone(recorded)`, `snapshot_made_for(recorded, worktree)`: bool checks of a recorded path.
+
+## restart_marker
+A run's `.tdd/restart-pending` marker, which says a conductor restart is in flight.
+- `path(run)`: its path. `claim(run, pid)`: write `<pid>\n` (not atomic). `clear(run)`: remove it, `FileNotFoundError` when absent.
+- `in_flight(run, *, unreadable)`: whether a live restarter holds the marker. Missing, a dead pid or an impossibly large one: `False`; a live pid: `True`. A marker that cannot say (empty, non-digit, undecodable, unopenable, probe denied) answers `unreadable`, which every caller names: dispatch passes `True`, comment and watch_runs `False`.
 
 ## run_activity
 - `activity(run, closed=False)`: an `Activity` (frozen dataclass: `state`, `detail`, `phase`, `actor`, `leaf`, `elapsed_seconds`, `attempts`, `dollars`, `tokens`, `pr`, `bail_phase`, `classification`, `stop_mode`, `cause`) for the run directory; `state` is one of `running`, `stale`, `done`, `stopped`, `bailed`, `refused`, `closed`.
