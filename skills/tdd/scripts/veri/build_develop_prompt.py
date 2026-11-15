@@ -10,11 +10,10 @@ import entry
 import event
 import event_log
 import tunables
-from ledger import carries_mark, trailing_markers
+from ledger import INTERFACE_PHASES, carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
 from pin_reject_route import BEFORE_STATE_GREEN
-from build_verify_prompt import INTERFACE_PHASES
 from prompt_template import IncludeRefused, expand_includes, fill, has_heading, spec_text_of
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
