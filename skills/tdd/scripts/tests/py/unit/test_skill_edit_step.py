@@ -2323,3 +2323,24 @@ def test_apply_still_appends_a_prefix_next_row_whose_text_equals_a_row_held_only
     section = (tmp_path / "REQUIREMENTS.md").read_text().split("## unit.md")[1]
     rows = [line for line in section.splitlines() if line.startswith("| PF")]
     assert rows == ["| PF60 | The widget is round. | shape |", "| PF61 | The widget is blue. | because |"], rows
+
+
+@pytest.mark.parametrize("line, step_reads, grader_reads", [
+    ("unit.md sig 2026-11-15 id tmpl", ["sig"], "sig"),
+    ("unit.md  sig 2026-11-15 id tmpl", ["sig"], ""),
+    ("unit.md\tsig 2026-11-15 id tmpl", ["sig"], None),
+    (" unit.md sig 2026-11-15 id tmpl", ["sig"], None),
+], ids=["one-space", "two-spaces", "tab", "leading-space"])
+def test_skill_edit_steps_graded_signature_splits_on_any_whitespace_where_grade_prose_splits_on_single_spaces(
+        line, step_reads, grader_reads):
+    """Not unified on purpose: skill_edit_step._signature reads a GRADED line with str.split(), grade_prose's
+    graded_fields with split(" "), so a line grade_prose never writes (two spaces, a tab, a leading space) reads
+    differently. Each keeps its own result until that is decided."""
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    grade_prose = importlib.import_module("veri.grade_prose")
+
+    fields = grade_prose.graded_fields(line)
+    by_grader = fields[1] if fields[0] == "unit.md" and len(fields) > 1 else None
+
+    assert (skill_edit_step._signature(line.encode() + b"\n", "unit.md"), by_grader) == (step_reads, grader_reads)
+    assert grade_prose.graded_line(fields) == line
