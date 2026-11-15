@@ -8,7 +8,7 @@ Interface, documented side (pure: each takes JOURNAL.md's text, the caller reads
 Interface, writer side (pure: takes a module's source text):
   writer_calls(source)    one (line, kind, fields) per call that appends an event, found with `ast`
 
-`kind` is None when the call's kind is not a string literal; `fields` holds only the names written
+`kind` is a string literal or a module-level string constant assigned once, else None; `fields` holds only the names written
 as a literal `"name=…"` (a constant, an f-string or `%`/`+` expression starting with one). Blind
 spots: a computed kind, `**fields`, a field list built in a variable, and events that prose writes
 through `event.sh`.
@@ -89,12 +89,22 @@ def writer_calls(source, module=""):
     """(line, kind or None, literal field names) for every event-writing call in `source`; `module` is the
     source's own module name, so that `mark(role, "kind", …)` inside verify.py is read as verify.mark."""
     found = []
-    for call in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    assigned = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            assigned.setdefault(node.targets[0].id, []).append(node.value)
+    constants = {name: values[0].value for name, values in assigned.items() if len(values) == 1
+                 and isinstance(values[0], ast.Constant) and isinstance(values[0].value, str)}
+    for call in ast.walk(tree):
         shape = isinstance(call, ast.Call) and _shape(call, module)
         if not shape or len(call.args) <= shape[0]:
             continue
         kind_arg = call.args[shape[0]]
-        kind = kind_arg.value if isinstance(kind_arg, ast.Constant) and isinstance(kind_arg.value, str) else None
+        if isinstance(kind_arg, ast.Constant) and isinstance(kind_arg.value, str):
+            kind = kind_arg.value
+        else:
+            kind = constants.get(kind_arg.id) if isinstance(kind_arg, ast.Name) else None
         names = []
         for argument in call.args[shape[1]:]:
             names += _field_names(argument)

@@ -81,3 +81,15 @@ def test_other_calls_named_mark_or_append_are_not_writers():
     source = 'rows.append(1)\nledger.mark(x, "y", "z=1")\nevent.context(env)\n'
 
     assert journal_schema.writer_calls(source) == []
+
+
+def test_a_kind_named_by_a_module_level_string_constant_is_resolved():
+    source = 'CAUSE = "preflight-refused"\n\ndef go():\n    event.mark(run, {}, CAUSE, ["check=x"])\n'
+
+    assert journal_schema.writer_calls(source) == [(4, "preflight-refused", ["check"])]
+
+
+def test_a_name_assigned_twice_or_inside_a_function_is_not_resolved():
+    source = 'K = "a"\nK = "b"\ndef go():\n    J = "c"\n    event.mark(r, {}, K, [])\n    event.mark(r, {}, J, [])\n'
+
+    assert journal_schema.writer_calls(source) == [(5, None, []), (6, None, [])]
