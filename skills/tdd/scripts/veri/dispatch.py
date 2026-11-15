@@ -213,13 +213,14 @@ def say(text):
     sys.stdout.flush()
 
 
-def launchable(issue, changed, reported):
+def launchable(issue, changed, reported, world=None):
     """Whether <issue> overlaps no open run draft PR; a skip prints one line naming the issue, the path and the PR,
     once per (issue, path, PR) in <reported>, the skips this dispatch process already printed."""
-    found = overlap(issue, changed)
+    world = World() if world is None else world
+    found = world.overlap(issue, changed)
     if found and (issue, *found) not in reported:
         reported.add((issue, *found))
-        say(f"skip {issue} {found[0]} {found[1]}\n")
+        world.say(f"skip {issue} {found[0]} {found[1]}\n")
     return not found
 
 
@@ -268,18 +269,119 @@ def state_file():
     return state_path(layout.main_tree(missing=""), "dev", lane())
 
 
-def main(argv):
-    if not argv:
+class World:
+    """Everything dispatch's loop asks of the outside, the real adapter: the runs, the queued merges, the queue,
+    the role state file, launching, output, the clock and the wait. Each method looks its helper up on this module
+    when called, so a patch of the module's name (`dispatch.wait`, `dispatch.launch`, ...) still takes effect.
+    tests/py/dispatch_world.py holds the other adapter, a scripted FakeWorld."""
+
+    # the runs
+    def live_runs(self):
+        return live_conductors()
+
+    def has_worktree(self, issue):
+        return os.path.isdir(run_dir(issue))
+
+    def conductor_alive(self, issue):
+        return issue in pid_file.conductor_processes()
+
+    def restarting(self, issue):
+        return restart_pending(issue)
+
+    def run_worktrees(self):
+        """The names under the main tree's worktrees directory, [] when it is absent."""
+        wt = layout.worktrees(layout.main_tree(missing=""))
+        return os.listdir(wt) if os.path.isdir(wt) else []
+
+    def has_ledger(self, issue):
+        return os.path.exists(layout.ledger(run_dir(issue), issue))
+
+    def closing_line(self, issue):
+        return exit_line(issue)
+
+    def last_activity(self, issue):
+        """The last write time of the run's journal, outputs, logs and conductor.pid; None with no journal."""
+        run = run_dir(issue)
+        events = event_log.path(run)
+        if not os.path.exists(events):
+            return None
+        return max(os.path.getmtime(f)
+                   for f in (events, *glob.glob(layout.run_file(run, "*.out")),
+                             *glob.glob(layout.run_file(run, "*.log")),
+                             layout.run_file(run, "conductor.pid"))
+                   if os.path.exists(f))
+
+    def issue_states(self, issues):
+        return answered("issue states", issue_states, issues)
+
+    # the queued merges
+    def queued_merges(self):
+        return queued_merges()
+
+    def merge_state(self, pr_url):
+        return pr_state(pr_url)
+
+    # the queue
+    def solvable(self):
+        return solvable_issues()
+
+    def run_pr_paths(self):
+        return run_pr_paths()
+
+    def overlap(self, issue, changed):
+        return overlap(issue, changed)
+
+    def rate_limit_reset(self):
+        return github.rate_limit_reset(subprocess.run)
+
+    # the role state file
+    def unreadable_role_state(self):
+        """The role state file's path when it is missing or unreadable, else None."""
         state = state_file()
-        if not os.path.isfile(state) or not os.access(state, os.R_OK):
-            sys.stderr.write(f"dispatch.sh: cannot read {state}\n")
+        return None if os.path.isfile(state) and os.access(state, os.R_OK) else state
+
+    def role_state(self):
+        return role_state.read_lines("dev", lane()) or []
+
+    def role_state_file(self):
+        return state_file()
+
+    # acting
+    def launch(self, issue):
+        """Launch <issue>'s run and append its `launched <n> <time>` line to dispatch.log."""
+        launch(issue)
+        with open(layout.main_file(layout.main_tree(missing=""), "dispatch.log"), "a") as log:
+            log.write(f"launched {issue} {now()}\n")
+
+    def say(self, text):
+        say(text)
+
+    def complain(self, text):
+        sys.stderr.write(text)
+
+    def clock(self):
+        return clock()
+
+    def wait(self):
+        """Wait one poll; True: keep watching (the real world never says stop)."""
+        wait()
+        return True
+
+
+def main(argv, world=None):
+    """dispatch.sh: watch, decide and launch until a closing line or exit code; None when <world> says stop."""
+    world = World() if world is None else world
+    if not argv:
+        state = world.unreadable_role_state()
+        if state is not None:
+            world.complain(f"dispatch.sh: cannot read {state}\n")
             return 2
     target = parse_args(argv) if argv else 0
     if target is None:
-        sys.stderr.write(USAGE + "\n")
+        world.complain(USAGE + "\n")
         return 2
     if not tunables.parses("VERI_DISPATCH_RETRY_SLEEP", tunables.get("VERI_DISPATCH_RETRY_SLEEP")):
-        sys.stderr.write("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
+        world.complain("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
         return 2
     previous = None
     seen = []
@@ -292,17 +394,17 @@ def main(argv):
     held_at = None
     _reads.clear()
     while True:
-        live = live_conductors()
-        running = queued_merges()
+        live = world.live_runs()
+        running = world.queued_merges()
         for pr_url in merges:
-            if pr_url not in running and pr_state(pr_url) not in ("MERGED", "UNRESOLVED"):
-                say(f"merge-failed {pr_url}\n")
+            if pr_url not in running and world.merge_state(pr_url) not in ("MERGED", "UNRESOLVED"):
+                world.say(f"merge-failed {pr_url}\n")
                 return 0
         merges = running
         for issue in seen:
             if issue not in live:
-                if not os.path.isdir(run_dir(issue)):
-                    if issue in pid_file.conductor_processes():
+                if not world.has_worktree(issue):
+                    if world.conductor_alive(issue):
                         if issue in absent:
                             absent.remove(issue)
                         if issue not in pending:
@@ -310,98 +412,89 @@ def main(argv):
                         continue
                     pending = [p for p in pending if p != issue]
                     if issue in absent:
-                        wait()
-                        if os.path.isdir(run_dir(issue)):
+                        world.wait()
+                        if world.has_worktree(issue):
                             absent.remove(issue)
                             pending.append(issue)
                             continue
-                        sys.stderr.write(f"run {issue} vanished: no worktree left behind\n")
+                        world.complain(f"run {issue} vanished: no worktree left behind\n")
                         return 2
                     absent.append(issue)
                     continue
-                if restart_pending(issue):
+                if world.restarting(issue):
                     if issue not in pending:
                         pending.append(issue)
                     continue
-                line = exit_line(issue)
-                if line.startswith("silent-exit") and clock() - missing.setdefault(issue, clock()) < 30:
+                line = world.closing_line(issue)
+                if line.startswith("silent-exit") and world.clock() - missing.setdefault(issue, world.clock()) < 30:
                     if issue not in pending:
                         pending.append(issue)
                     continue
-                say(line + "\n")
+                world.say(line + "\n")
                 return 0
         if not argv:
-            state = role_state.State(role_state.read_lines("dev", lane()) or [])
+            state = role_state.State(world.role_state())
             try:
                 target = state.last_n()
                 for value, expiry in state.timed_ns():
-                    if clock() < expiry:
+                    if world.clock() < expiry:
                         target = value
             except role_state.Malformed as why:
                 said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
-                sys.stderr.write(f"dispatch.sh: {said} in {state_file()}\n")
+                world.complain(f"dispatch.sh: {said} in {world.role_state_file()}\n")
                 return 2
         stall = int(stall_window())
         states = None
         for issue in seen:
-            run = run_dir(issue)
-            events = event_log.path(run)
-            if os.path.exists(events) and clock() - max(
-                    os.path.getmtime(f)
-                    for f in (events, *glob.glob(layout.run_file(run, "*.out")),
-                              *glob.glob(layout.run_file(run, "*.log")),
-                              layout.run_file(run, "conductor.pid"))
-                    if os.path.exists(f)) >= stall:
+            last = world.last_activity(issue)
+            if last is not None and world.clock() - last >= stall:
                 if states is None:
                     try:
-                        states = answered("issue states", issue_states, seen)
+                        states = world.issue_states(seen)
                     except watch_runs.QueueUnreadable as failure:
-                        sys.stderr.write(str(failure))
+                        world.complain(str(failure))
                         return 2
                 if states.get(issue) == "CLOSED":
                     continue
-                say(f"stalled {issue}\n")
+                world.say(f"stalled {issue}\n")
                 return 0
         for issue in live:
             missing.pop(issue, None)
         absent = [issue for issue in absent if issue not in live]
         pending = [issue for issue in pending if issue not in live and issue not in absent]
         seen = live + absent + pending
-        ledger = previous and layout.ledger(run_dir(previous), previous)
+        ledger = previous and world.has_ledger(previous)
         held = len(live) + len(pending)
         if held < target:
-            wt = layout.worktrees(layout.main_tree(missing=""))
             held = len(live) + len(set(pending) | {
-                i for i in (os.listdir(wt) if os.path.isdir(wt) else [])
-                if i not in live and restart_pending(i)})
-        if held < target and (previous is None or os.path.exists(ledger)) \
-            and clock() >= resume_at and (held_at is None or clock() - held_at >= int(overlap_poll())):
+                i for i in world.run_worktrees()
+                if i not in live and world.restarting(i)})
+        if held < target and (previous is None or ledger) \
+            and world.clock() >= resume_at and (held_at is None or world.clock() - held_at >= int(overlap_poll())):
             try:
-                queue = solvable_issues()
-                changed = run_pr_paths()
-                free = [issue for issue in queue if launchable(issue, changed, reported)]
-                free = prioritize(free, role_state.read_lines("dev", lane()) or [])
+                queue = world.solvable()
+                changed = world.run_pr_paths()
+                free = [issue for issue in queue if launchable(issue, changed, reported, world)]
+                free = prioritize(free, world.role_state())
             except role_state.Malformed as why:
-                sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {why.line}\n")
+                world.complain(f"dispatch.sh: malformed override line in {world.role_state_file()}: {why.line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
                 if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
-                    resume_at = github.rate_limit_reset(subprocess.run)
+                    resume_at = world.rate_limit_reset()
                 elif str(failure):
-                    sys.stderr.write(str(failure))
+                    world.complain(str(failure))
                     return 2
                 elif not live:
-                    say("queue-empty\n")
+                    world.say("queue-empty\n")
                     return 3
             else:
-                held_at = clock() if not free and (queue or live) else None
+                held_at = world.clock() if not free and (queue or live) else None
                 if free:
                     previous = free[0]
-                    launch(previous)
-                    with open(layout.main_file(layout.main_tree(missing=""), "dispatch.log"), "a") as log:
-                        log.write(f"launched {previous} {now()}\n")
-        wait()
-
+                    world.launch(previous)
+        if not world.wait():
+            return None
 
 if __name__ == "__main__":
     import entry
