@@ -452,3 +452,24 @@ def test_state_items_are_the_raw_lines_of_the_named_kinds_in_file_order():
     lines = ["n=1", "timed-n 1 t 3 until x", "override 2 t y", "message 3 t z", "decision 4 t w"]
     state = _state(lines)
     assert (state.items("timed-n", "override"), state.items("decision")) == (lines[1:3], [lines[4]])
+
+
+def test_dev_set_n_with_a_non_ascii_digit_exits_2_with_the_usage_line_and_writes_nothing(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    (tmp_path / ".tdd").mkdir()
+    state = tmp_path / ".tdd" / "role-dev.state"
+    state.write_text("n=2\n")
+
+    code, out, err = run_cli(role_state, ["dev", "set", "n", "²"])
+
+    assert (code, out, err, state.read_text()) == (2, "", role_state.USAGE, "n=2\n")
+
+
+def test_dev_set_n_zero_and_a_padded_number_are_written(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    codes = [run_cli(role_state, ["dev", "set", "n", value])[0] for value in ("0", "007")]
+
+    assert (codes, (tmp_path / ".tdd" / "role-dev.state").read_text()) == ([0, 0], "n=0\nn=007\n")
