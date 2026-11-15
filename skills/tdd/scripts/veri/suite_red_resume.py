@@ -9,14 +9,14 @@ import sys
 try:
     from . import add_ledger_step, event, prose_owed, requirements
     from .case_reader import is_test_path
-    from .ledger import STEP_RE, read_ledger
+    from .ledger import STEP_RE, carries_mark, read_ledger
 except ImportError:
     import add_ledger_step
     import event
     import prose_owed
     import requirements
     from case_reader import is_test_path
-    from ledger import STEP_RE, read_ledger
+    from ledger import STEP_RE, carries_mark, read_ledger
 
 DEF_RE = re.compile(r"[-+ ]\s*def (test\w*)")
 ASSERT_RE = re.compile(r"-\s*assert\b")
@@ -89,7 +89,7 @@ def insert(ledger, branch_file):
     pinned = [unit for unit in candidates if all(unit in red for red in reds)]
     pending = []
     for line in unchecked:
-        if "⟦skill-edit⟧" not in line:
+        if not carries_mark(line, "skill-edit"):
             break
         pending.append(line)
     def covered_by(lines):
@@ -97,7 +97,7 @@ def insert(ledger, branch_file):
 
     if covered_by(pending):
         return 0
-    every = [line for line in unchecked if "⟦skill-edit⟧" in line]
+    every = [line for line in unchecked if carries_mark(line, "skill-edit")]
     if covered_by(every):
         named = [line for line in every if any(unit in line for unit in candidates)]
         complain("a non-skill-edit step separates the pending skill-edit steps " + "; ".join(named) + ": reorder them with reorder-ledger-steps.sh")
