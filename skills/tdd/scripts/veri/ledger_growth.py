@@ -8,8 +8,7 @@ import sys
 import tunables
 
 from event_log import read_events
-from add_ledger_step import added_file
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
 
 USAGE = ("usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
          " | record-existing <ledger-file> | record-rewrite <pre-rewrite-ledger-file> <ledger-file>"

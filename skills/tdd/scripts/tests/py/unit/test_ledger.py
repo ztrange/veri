@@ -263,6 +263,39 @@ def test_retire_mark_and_is_retired_agree_on_the_marks_a_retired_step_carries():
     assert not ledger.is_retired("- [x] a step ⟂ red done")
 
 
+def test_before_state_green_matches_a_clause_that_calls_the_before_state_green_and_no_clause_that_fails_negates_or_looks_after():
+    ledger = importlib.import_module("veri.ledger")
+    answers = {
+        reason: bool(ledger.BEFORE_STATE_GREEN.search(reason))
+        for reason in [
+            "the before-state is green",
+            "REASON: the before-state already passes",
+            "x, green on the before-state",
+            "fails on the before-state and passes after",
+            "the before-state is not green",
+            "the before-state is red",
+            "green after the before-state",
+        ]
+    }
+
+    assert answers == {
+        "the before-state is green": True,
+        "REASON: the before-state already passes": True,
+        "x, green on the before-state": True,
+        "fails on the before-state and passes after": False,
+        "the before-state is not green": False,
+        "the before-state is red": False,
+        "green after the before-state": False,
+    }
+
+
+def test_added_file_is_the_added_md_sibling_of_a_ledger_file():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert [ledger.added_file(p) for p in ["/run/.tdd/issue-7.md", "issue-7", "a.md.md"]] == [
+        "/run/.tdd/issue-7-added.md", "issue-7-added.md", "a.md-added.md"]
+
+
 def test_interface_phases_are_the_phases_of_an_interface_change():
     ledger = importlib.import_module("veri.ledger")
     assert ledger.INTERFACE_PHASES == ("expand", "cover-new", "migrate", "contract-a", "contract-b")

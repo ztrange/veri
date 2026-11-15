@@ -39,6 +39,7 @@ Directions the tree obeys (checked by the same test; a group not named may impor
 - Foundations imports only: nothing
 - Run state and journal imports only: Foundations
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; Frozen tests and case history
+- Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
 - Test suites and tiers imports only: Foundations; Run state and journal
 - Budgets and cost imports only: Foundations; Run state and journal
@@ -218,7 +219,6 @@ The ledger of a run: reading and ticking steps, growing, dropping and reordering
 - `unreplaced-cases.sh`: bash cases a replaces-case step names with no pytest replacement.
 
 ## add_ledger_step
-- `added_file(path)`: the sibling `-added.md` path of a ledger file.
 - `main(argv)`: exit code of add-ledger-step.sh; 2 with the usage on bad arguments.
 
 ## ledger
@@ -226,8 +226,8 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (records of `(index, state, kind, pending, added, criterion, text)`), `items_at(rev, path)` (OSError when git cannot show it).
 - Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_clear_pending(text, matcher)`, `tick_line(match)` (a `STEP_RE` match with its box ticked): the first three return `(changed, text)`.
 - A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `is_skill_edit`, `is_retired(text)`, `handed_out(record)`: predicates and parts of its text.
-- Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `mark(phase, state)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`.
-- Constants: `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
+- Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `mark(phase, state)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `receipt_refusal(ledger_file)`, `ledger_path(run_dir, issue)`, `added_file(path)` (the sibling `-added.md` path of a ledger file).
+- Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger, pin-reject-route and the develop prompt read it), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
 ## preserve_attempt
 - `preserve(repo, issue, step, phase, attempt, mark="", env=None)`: saves the work tree as a commit under `refs/veri/attempts/…` without touching the branch; returns 0, 1 (stderr message) when the ref or leaf files cannot be written, or a failed git step's code.
@@ -278,7 +278,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 # Prompts and leaf reports
 
-What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal and Leaf launch and supervision.
+What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal, Leaf launch and supervision and Foundations.
 
 - `build-adjudicate-prompt.sh`: render the adjudicator leaf's prompt.
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).

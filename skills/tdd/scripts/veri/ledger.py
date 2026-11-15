@@ -30,8 +30,21 @@ PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
 
+# A clause (cut at , ; . or a newline) that names the before-state and says green or pass, and says
+# nothing of failing, being red, negating or "after": "fails on the before-state and passes after" is not it.
+_CLAUSE = r"(?:(?!\bfail|\bred\b|\bnot\b|n't|\bafter\b)[^,;.\n])*"
+BEFORE_STATE_GREEN = re.compile(
+    r"(?:^|(?<=[,;.\n]))" + _CLAUSE
+    + r"(?:before-state" + _CLAUSE + r"\b(?:green|pass)|\b(?:green|pass)" + _CLAUSE + r"before-state)")
+
+
 def ledger_path(run_dir, issue):
     return run_ledger(run_dir, issue)
+
+
+def added_file(path):
+    """The `-added.md` record beside a ledger file: the planned steps its run added."""
+    return re.sub(r"\.md$", "", path) + "-added.md"
 
 
 def receipt_refusal(ledger_file):

@@ -9,7 +9,6 @@ import ledger
 import os
 import re
 import tick_ledger
-from tick_ledger import BEFORE_STATE_GREEN
 
 USAGE = ("usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-file> <matcher> <target-test>\n"
          "       pin-reject-route.sh --recheck <reason-file> <ledger-file> <matcher>")
@@ -46,7 +45,7 @@ def main(argv):
     if missing:
         with open(argv[0], encoding="utf-8") as handle:
             reason = handle.read()
-        if BEFORE_STATE_GREEN.search(reason):
+        if ledger.BEFORE_STATE_GREEN.search(reason):
             text = ledger.read_ledger(argv[1])
             _, new = ledger.ledger_tick(text, argv[2], False)
             if new == text:
