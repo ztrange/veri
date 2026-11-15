@@ -12,8 +12,8 @@ NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
 
 def budgets():
-    step = tunables.read_bytes("VERI_STEP_BUDGET", b"12")
-    run = tunables.read_bytes("VERI_RUN_BUDGET", b"120")
+    step = tunables.get_bytes("VERI_STEP_BUDGET")
+    run = tunables.get_bytes("VERI_RUN_BUDGET")
     for name, value in ((b"VERI_STEP_BUDGET", step), (b"VERI_RUN_BUDGET", run)):
         if not NUMBER.fullmatch(value):
             write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value, before=False)
