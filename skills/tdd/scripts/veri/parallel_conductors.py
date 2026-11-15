@@ -14,6 +14,7 @@ import tunables
 import traceback
 
 try:
+    import run_dir
     from context_budget import START, watch
     from event import toplevel
     from github import NoAnswer, gh_json
@@ -21,6 +22,7 @@ try:
     from run_end import run_end
     from solvable_issues import solvable_in_scope
 except ImportError:
+    from . import run_dir
     from .context_budget import START, watch
     from .event import toplevel
     from .github import NoAnswer, gh_json
@@ -111,7 +113,7 @@ def _outcome(n, code, prs):
         if n in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
             url = pr.get("html_url", pr.get("url", ""))
             try:
-                cause = run_end(_tdd("wt", n))[1]
+                cause = run_end(run_dir.worktree(toplevel(), n))[1]
             except OSError:
                 cause = None
             if cause == "bailed":
