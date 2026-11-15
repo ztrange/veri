@@ -52,6 +52,14 @@ def write(stream, text, *, before=True, after=True, end="\n"):
         stream.buffer.flush()
 
 
+def whole_number(text, minimum=1):
+    """The int of `text` when it is ASCII digits only (leading zeros allowed, no sign, space or other digits) and at least `minimum`, else None."""
+    if not (text.isascii() and text.isdigit()):
+        return None
+    value = int(text)
+    return value if value >= minimum else None
+
+
 def refuse(*lines, usage=None, prefix=""):
     """Write each line (str or bytes, None skipped) behind prefix, then usage, to stderr; return 2."""
     lead = os.fsencode(prefix)
