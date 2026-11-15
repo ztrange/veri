@@ -144,6 +144,8 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 
 ## leaf_log
 - `result_records(lines)`: every `{"type":"result", …}` record among a leaf log's lines, in order.
+- `result_text(line)`: the result string of the result record on one line (str or bytes), else `None`. `result_texts(lines)`: those strings, in order. `last_result_text(lines)`: the final one, else `None`.
+- `cost(lines)`: dollars, `total_cost_usd` (missing or null counts 0) summed over the result records that carry a `result` field.
 
 ## leaf_model
 - `resolve(name)`: the model for a leaf, `None` when the name is invalid or the model has whitespace (message on stderr).

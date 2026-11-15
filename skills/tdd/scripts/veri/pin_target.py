@@ -9,16 +9,12 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
-    import json
+    from leaf_log import last_result_text
     from report import report_read
     text = open(argv[0], encoding="utf-8").read()
-    for line in text.splitlines():
-        try:
-            record = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(record, dict) and record.get("type") == "result" and isinstance(record.get("result"), str):
-            text = record["result"]
+    last = last_result_text(text.splitlines())
+    if last is not None:
+        text = last
     target = None
     for line in text.splitlines():
         target = report_read(line, ["TARGET_TEST"]).get("TARGET_TEST")
