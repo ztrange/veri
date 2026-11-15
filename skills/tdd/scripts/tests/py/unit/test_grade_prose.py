@@ -1733,3 +1733,23 @@ def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     assert (code, "grade word MAYBE is neither PASS nor FAIL" in err) == (2, True), (code, err)
+
+
+def test_grade_unit_answers_like_main_for_the_same_path_and_unit_a_versionless_grader_model_exits_2_with_the_same_stderr(
+        tmp_path, monkeypatch, run_cli, capfd, grade_prose):
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet\n")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: pytest.fail("launched"))
+    monkeypatch.chdir(tmp_path)
+
+    code = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
+    captured = capfd.readouterr()
+    via_main = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert via_main[0] == code == 2
+    assert (captured.out, captured.err) == (via_main[1], via_main[2])
+    assert "names no version" in captured.err
