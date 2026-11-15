@@ -6,6 +6,10 @@ import sys
 
 import pytest
 
+from dispatch_world import FakeWorld
+
+_USAGE_LINE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n"
+
 
 @pytest.fixture
 def dispatch():
@@ -70,196 +74,72 @@ class _StopWaiting(Exception):
     pass
 
 
-def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_issue_silently_and_keeps_waiting(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
-    waits = []
+def test_main_with_fewer_live_conductors_than_target_launches_the_first_queued_issue_silently_and_keeps_waiting(dispatch):
+    world = FakeWorld({"live": ["5"], "queue": ["12", "15"]})
 
-    def wait():
-        waits.append(1)
-        raise _StopWaiting
+    code = dispatch.main(["--target", "2"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "2"])
-    except _StopWaiting:
-        code = None
-
-    assert (launches, waits, code, capsys.readouterr().out) == (["12"], [1], None, "")
+    assert (world.launched, world.waits, code, "".join(world.said)) == (["12"], 1, None, "")
 
 
-def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_the_second_slot_decision(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    state = tmp_path / ".tdd" / "role-dev.state"
-    state.write_text("n=1\n")
-    launches = []
-    waits = []
+def test_main_with_no_target_applies_the_n_a_wait_changed_in_role_dev_state_at_the_second_slot_decision(dispatch):
+    world = FakeWorld({"live": ["5"], "queue": ["12"], "role_state": ["n=1"]},
+                      {"live": ["5"], "queue": ["12"], "role_state": ["n=1", "n=2"]})
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 2:
-            raise _StopWaiting
-        state.write_text("n=1\nn=2\n")
+    dispatch.main([], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        dispatch.main([])
-    except _StopWaiting:
-        pass
-
-    assert (launches, waits) == (["12"], [1, 1])
+    assert (world.launched, world.waits) == (["12"], 2)
 
 
-def test_main_with_no_target_applies_the_n_of_a_role_dev_state_timed_n_change_whose_expiry_has_not_passed(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "role-dev.state").write_text(
-        "n=1\ntimed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00\n")
-    launches = []
+def test_main_with_no_target_applies_the_n_of_a_role_dev_state_timed_n_change_whose_expiry_has_not_passed(dispatch):
+    lines = ["n=1", "timed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00"]
+    world = FakeWorld({"live": ["5"], "queue": ["12"], "role_state": lines,
+                       "clock": datetime(2026, 11, 7, 10, 30).timestamp()})
 
-    def wait():
-        raise _StopWaiting
+    dispatch.main([], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 10, 30).timestamp())
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        dispatch.main([])
-    except _StopWaiting:
-        pass
-
-    assert launches == ["12"]
+    assert world.launched == ["12"]
 
 
-def test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_timed_n_change_has_expired(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "role-dev.state").write_text(
-        "n=1\ntimed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00\n")
+def test_main_with_no_target_keeps_the_n_line_in_force_once_a_role_dev_state_timed_n_change_has_expired(dispatch):
+    lines = ["n=1", "timed-n dev-1 2026-11-07T10:00:00 2 until 2026-11-07T11:00:00"]
 
     def decide(at):
-        launches = []
-
-        def wait():
-            raise _StopWaiting
-
-        monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-        monkeypatch.setattr(dispatch, "clock", lambda: at.timestamp())
-        monkeypatch.setattr(dispatch, "now", lambda: at.isoformat(), raising=False)
-        monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-        monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-        monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-        monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-        monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-        try:
-            dispatch.main([])
-        except _StopWaiting:
-            pass
-        return launches
+        world = FakeWorld({"live": ["5"], "queue": ["12"], "role_state": lines, "clock": at.timestamp()})
+        dispatch.main([], world=world)
+        return world.launched
 
     assert (decide(datetime(2026, 11, 7, 10, 30)), decide(datetime(2026, 11, 7, 11, 30))) == (["12"], [])
 
 
-def test_main_with_no_target_does_not_apply_an_expired_role_dev_state_timed_n_change_lowering_the_n_line(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "role-dev.state").write_text(
-        "n=2\ntimed-n dev-1 2026-11-07T10:00:00 1 until 2026-11-07T11:00:00\n")
-    launches = []
+def test_main_with_no_target_does_not_apply_an_expired_role_dev_state_timed_n_change_lowering_the_n_line(dispatch):
+    lines = ["n=2", "timed-n dev-1 2026-11-07T10:00:00 1 until 2026-11-07T11:00:00"]
+    world = FakeWorld({"live": ["5"], "queue": ["12"], "role_state": lines,
+                       "clock": datetime(2026, 11, 7, 11, 30).timestamp()})
 
-    def wait():
-        raise _StopWaiting
+    dispatch.main([], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "clock", lambda: datetime(2026, 11, 7, 11, 30).timestamp())
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T11:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        dispatch.main([])
-    except _StopWaiting:
-        pass
-
-    assert launches == ["12"]
+    assert world.launched == ["12"]
 
 
-def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_before_the_first_solvable_issue(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "role-dev.state").write_text("n=1\noverride dev-1 2026-11-07T10:00:00 take #15 first\n")
-    launches = []
+def test_main_with_no_target_launches_the_issue_a_role_dev_state_override_names_before_the_first_solvable_issue(dispatch):
+    world = FakeWorld({"queue": ["12", "15"], "role_state": ["n=1", "override dev-1 2026-11-07T10:00:00 take #15 first"]})
 
-    def wait():
-        raise _StopWaiting
+    dispatch.main([], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        dispatch.main([])
-    except _StopWaiting:
-        pass
-
-    assert launches == ["15"]
+    assert world.launched == ["15"]
 
 
 def test_main_with_no_target_ignores_a_role_dev_state_override_naming_an_issue_not_among_the_solvable_ones_and_launches_the_next_override_issue(
-        monkeypatch, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    (tmp_path / ".tdd" / "role-dev.state").write_text(
-        "n=1\n"
-        "override dev-1 2026-11-07T10:00:00 take #99 first\n"
-        "override dev-2 2026-11-07T10:01:00 take #15 first\n")
-    launches = []
+        dispatch):
+    world = FakeWorld({"queue": ["12", "15"],
+                       "role_state": ["n=1",
+                                      "override dev-1 2026-11-07T10:00:00 take #99 first",
+                                      "override dev-2 2026-11-07T10:01:00 take #15 first"]})
 
-    def wait():
-        raise _StopWaiting
+    dispatch.main([], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        dispatch.main([])
-    except _StopWaiting:
-        pass
-
-    assert launches == ["15"]
+    assert world.launched == ["15"]
 
 
 def test_main_without_a_queued_merges_fake_fails_naming_the_unfaked_call_issue_3435(
@@ -394,32 +274,14 @@ def test_main_with_target_or_more_live_conductors_launches_nothing_and_signals_n
     assert (launches, signals, waits, code, capsys.readouterr().out) == ([], [], [1], None, "")
 
 
-def test_main_launches_the_next_issue_only_once_the_previous_launch_has_its_ledger_under_the_main_working_tree(
-        monkeypatch, tmp_path, dispatch):
-    launches = []
-    seen_at_wait = []
-    ledger = tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md"
-    ledger.parent.mkdir(parents=True)
+def test_main_launches_the_next_issue_only_once_the_previous_launch_has_its_ledger_under_the_main_working_tree(dispatch):
+    world = FakeWorld({"live": ["5"], "queue": ["12", "15", "18", "19"], "no_ledger": ["12"]},
+                      {"live": ["5"], "queue": ["15", "18", "19"], "no_ledger": ["12"]},
+                      {"live": ["5"], "queue": ["15", "18", "19"]})
 
-    def wait():
-        seen_at_wait.append(list(launches))
-        if len(seen_at_wait) == 2:
-            ledger.write_text("- [ ] step\n")
-        if len(seen_at_wait) == 3:
-            raise _StopWaiting
+    dispatch.main(["--target", "3"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15", "18", "19"] if i not in launches], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "3"])
-
-    assert seen_at_wait == [["12"], ["12"], ["12", "15"]]
+    assert world.launched_at_wait == [["12"], ["12"], ["12", "15"]]
 
 
 def test_main_appends_one_launched_line_with_the_local_iso_time_to_dispatch_log_under_the_main_working_tree_per_launch(
@@ -663,131 +525,42 @@ def test_main_prints_no_exit_line_and_keeps_looping_when_an_absent_run_has_a_res
 
 
 def test_main_launches_nothing_on_any_tick_across_a_restart_of_one_of_two_slot_holding_runs_at_target_2_issue_3495(
-        monkeypatch, tmp_path, dispatch):
-    import os
-    marker = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
-    marker.parent.mkdir(parents=True)
-    marker.write_text(f"{os.getpid()}\n")
-    lives = [["5", "7"], ["5"], ["5", "7"]]
-    launches = []
-    waits = []
+        dispatch):
+    restarting = {"restarting": ["7"], "worktrees": ["7"], "queue": ["12"]}
+    world = FakeWorld({"live": ["5", "7"], **restarting}, {"live": ["5"], **restarting}, {"live": ["5", "7"], **restarting})
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            raise _StopWaiting
+    dispatch.main(["--target", "2"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives[len(waits)], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "2"])
-
-    assert launches == []
+    assert (world.launched, world.waits) == ([], 3)
 
 
 def test_main_launches_nothing_on_the_tick_where_a_run_seen_live_is_restarting_beside_one_live_run_at_target_2_issue_3495(
-        monkeypatch, tmp_path, dispatch):
-    import os
-    marker = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
-    marker.parent.mkdir(parents=True)
-    marker.write_text(f"{os.getpid()}\n")
-    lives = [["5", "7"], ["5"]]
-    launches = []
-    waits = []
+        dispatch):
+    restarting = {"restarting": ["7"], "worktrees": ["7"], "queue": ["12"]}
+    world = FakeWorld({"live": ["5", "7"], **restarting}, {"live": ["5"], **restarting})
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 2:
-            raise _StopWaiting
+    dispatch.main(["--target", "2"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: lives[len(waits)], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "2"])
-
-    assert launches == []
+    assert (world.launched, world.waits) == ([], 2)
 
 
 def test_main_launches_exactly_one_at_target_3_beside_a_live_run_with_a_leftover_marker_and_a_never_seen_restarting_run_issue_3495(
-        monkeypatch, capsys, tmp_path, dispatch):
-    import os
-    for issue in ("7", "9"):
-        marker = tmp_path / ".tdd" / "wt" / issue / ".tdd" / "restart-pending"
-        marker.parent.mkdir(parents=True)
-        marker.write_text(f"{os.getpid()}\n")
-    launches = []
-    waits = []
+        dispatch):
+    restarting = {"restarting": ["7", "9"], "worktrees": ["7", "9"]}
+    world = FakeWorld({"live": ["7"], "queue": ["12", "15"], **restarting},
+                      {"live": ["7", "12"], "queue": ["15"], **restarting},
+                      {"live": ["7", "12"], "queue": ["15"], **restarting})
 
-    def launch(issue):
-        launches.append(issue)
-        ledger = tmp_path / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
-        ledger.parent.mkdir(parents=True)
-        ledger.write_text("- [ ] step\n")
+    code = dispatch.main(["--target", "3"], world=world)
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            raise _StopWaiting
+    assert (code, world.said, world.launched) == (None, [], ["12"])
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"] + launches, raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launch, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    contrast = FakeWorld({"live": ["5", "7", "8"], "queue": ["12", "15"]},
+                         {"live": ["5"], "queue": ["12", "15"], "no_worktree": ["8"], "restarting": ["7"], "worktrees": ["7"]})
 
-    try:
-        code = dispatch.main(["--target", "3"])
-    except _StopWaiting:
-        code = None
+    code = dispatch.main(["--target", "3"], world=contrast)
 
-    assert (code, capsys.readouterr().out, launches) == (None, "", ["12"])
-
-    root = tmp_path / "contrast"
-    marker = root / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
-    marker.parent.mkdir(parents=True)
-    marker.write_text(f"{os.getpid()}\n")
-    contrast_launches = []
-    contrast_waits = []
-
-    def contrast_launch(issue):
-        contrast_launches.append(issue)
-        ledger = root / ".tdd" / "wt" / issue / ".tdd" / f"issue-{issue}.md"
-        ledger.parent.mkdir(parents=True)
-        ledger.write_text("- [ ] step\n")
-
-    def contrast_wait():
-        contrast_waits.append(1)
-        if len(contrast_waits) == 2:
-            raise _StopWaiting
-
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(root))
-    monkeypatch.setattr(dispatch, "live_conductors",
-                        lambda: ["5", "7", "8"] if not contrast_waits else ["5"] + contrast_launches,
-                        raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15"] if i not in contrast_launches], raising=False)
-    monkeypatch.setattr(dispatch, "launch", contrast_launch, raising=False)
-    monkeypatch.setattr(dispatch, "wait", contrast_wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "3"])
-    except _StopWaiting:
-        code = None
-
-    assert (code, capsys.readouterr().out, contrast_launches) == (None, "", ["12"])
+    assert (code, contrast.said, contrast.launched) == (None, [], ["12"])
 
 
 def test_main_prints_silent_exit_when_an_absent_run_has_a_restart_pending_marker_naming_a_dead_restarter_issue_3370(
@@ -1486,124 +1259,47 @@ def test_main_does_not_exit_or_report_vanished_when_a_run_with_no_worktree_is_ab
 
 
 def test_main_prints_merge_failed_with_the_pr_url_and_exits_0_when_a_running_queued_merge_ends_with_the_pr_not_merged(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
+        dispatch):
     url = "https://github.com/o/r/pull/9"
-    listings = [[url], []]
-    waits = []
+    world = FakeWorld({"live": ["5"], "queue": ["12"], "merges": [url], "merge_states": {url: "CLOSED"}},
+                      {"live": ["5"], "queue": ["12"], "merges": [], "merge_states": {url: "CLOSED"}})
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 2:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges",
-                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
-    monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "CLOSED", raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = None
-
-    assert (code, capsys.readouterr().out) == (0, f"merge-failed {url}\n")
+    assert (code, "".join(world.said)) == (0, f"merge-failed {url}\n")
 
 
 def test_main_prints_nothing_while_a_queued_merge_is_still_listed_on_the_next_pass_even_though_the_pr_is_not_merged(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
+        dispatch):
     url = "https://github.com/o/r/pull/9"
-    waits = []
+    tick = {"live": ["5"], "queue": ["12"], "merges": [url], "merge_states": {url: "CLOSED"}}
+    world = FakeWorld(tick, tick)
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 2:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "1"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [url], raising=False)
-    monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "CLOSED", raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    with pytest.raises(_StopWaiting):
-        dispatch.main(["--target", "1"])
-
-    assert capsys.readouterr().out == ""
+    assert (code, world.said, world.waits) == (None, [], 2)
 
 
 def test_main_prints_nothing_and_takes_the_slot_decision_again_when_a_running_queued_merge_ends_with_the_pr_merged(
-        monkeypatch, capsys, tmp_path, dispatch):
+        dispatch):
     url = "https://github.com/o/r/pull/9"
-    ledger = tmp_path / ".tdd" / "wt" / "12" / ".tdd" / "issue-12.md"
-    ledger.parent.mkdir(parents=True)
-    listings = [[url], []]
-    launches = []
-    waits = []
+    world = FakeWorld({"live": ["5"], "queue": ["12", "15"], "merges": [url], "no_ledger": ["12"]},
+                      {"live": ["5"], "queue": ["15"], "merges": []})
 
-    def wait():
-        waits.append(1)
-        if len(waits) == 1:
-            ledger.write_text("- [ ] step\n")
-        if len(waits) == 2:
-            raise _StopWaiting
+    code = dispatch.main(["--target", "2"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["5"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges",
-                        lambda: listings.pop(0) if len(listings) > 1 else listings[0], raising=False)
-    monkeypatch.setattr(dispatch, "pr_state", lambda pr_url: "MERGED", raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues",
-                        lambda: [i for i in ["12", "15"] if i not in launches], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "2"])
-    except _StopWaiting:
-        code = None
-
-    assert (code, capsys.readouterr().out, launches, waits) == (None, "", ["12", "15"], [1, 1])
+    assert (code, "".join(world.said), world.launched, world.waits) == (None, "", ["12", "15"], 2)
 
 
 def test_main_prints_stalled_and_exits_0_when_a_live_conductors_event_log_records_no_new_event_for_the_stall_window(
-        monkeypatch, capsys, tmp_path, dispatch):
-    import os
-    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
-    events.parent.mkdir(parents=True)
-    events.write_text('{"event": "leaf-start"}\n')
-    os.utime(events, (1000, 1000))
-    ticks = [1000, 1003]
-    waits = []
-
-    def wait():
-        waits.append(1)
-        if len(waits) == 3:
-            raise _StopWaiting
-
+        monkeypatch, dispatch):
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    silent = {"live": ["7"], "queue": ["12"], "activity": {"7": 1000}}
+    world = FakeWorld({**silent, "clock": 1000}, {**silent, "clock": 1000}, {**silent, "clock": 1003})
 
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = None
+    code = dispatch.main(["--target", "1"], world=world)
 
-    assert (code, capsys.readouterr().out) == (0, "stalled 7\n")
+    assert (code, "".join(world.said)) == (0, "stalled 7\n")
 
 
 def test_main_prints_no_stalled_line_for_a_conductor_started_within_the_stall_window_over_older_activity_files_issue_3605(
@@ -1675,52 +1371,25 @@ def test_main_prints_stalled_for_a_conductor_whose_pid_file_and_every_activity_f
 
 
 def test_main_with_the_stall_window_unset_reports_a_conductor_silent_for_3600_seconds_but_not_one_silent_for_3599(
-        monkeypatch, capsys, tmp_path, dispatch):
-    import os
-    events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
-    events.parent.mkdir(parents=True)
-    events.write_text('{"event": "leaf-start"}\n')
-    os.utime(events, (1000, 1000))
-    ticks = [1000 + 3599, 1000 + 3600]
-    waits = []
-
-    def wait():
-        waits.append(1)
-        if len(waits) == 4:
-            raise _StopWaiting
-
+        monkeypatch, dispatch):
     monkeypatch.delenv("VERI_DISPATCH_STALL", raising=False)
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: ["7"], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", lambda issue: None, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
+    silent = {"live": ["7"], "queue": ["12"], "activity": {"7": 1000}}
+    world = FakeWorld({**silent, "clock": 1000 + 3599}, {**silent, "clock": 1000 + 3599}, {**silent, "clock": 1000 + 3600},
+                      {**silent, "clock": 1000 + 3600})
 
-    try:
-        code = dispatch.main(["--target", "1"])
-    except _StopWaiting:
-        code = None
+    code = dispatch.main(["--target", "1"], world=world)
 
-    assert (code, capsys.readouterr().out, len(waits)) == (0, "stalled 7\n", 2)
+    assert (code, "".join(world.said), world.waits) == (0, "stalled 7\n", 2)
 
 
 def test_main_with_a_non_integer_stall_window_prints_the_usage_on_stderr_and_exits_2_before_any_launch(
-        monkeypatch, tmp_path, run_cli, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
-
+        monkeypatch, dispatch):
     monkeypatch.setenv("VERI_DISPATCH_STALL", "abc")
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    world = FakeWorld({"queue": ["12"]})
 
-    code, out, err = run_cli(dispatch, ["--target", "1"])
+    code = dispatch.main(["--target", "1"], world=world)
 
-    assert (code, out, err, launches) == (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", [])
+    assert (code, world.said, world.complained, world.launched) == (2, [], [_USAGE_LINE], [])
 
 
 def test_main_prints_queue_empty_and_exits_3_when_solvable_issues_exits_3_and_no_conductor_is_live(
@@ -1832,65 +1501,34 @@ def test_main_with_a_rate_limited_queue_read_waits_for_the_reported_reset_making
     assert (reads, launches, code) == ([1000, 1030], ["12"], None)
 
 
-def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing(
-        monkeypatch, tmp_path, run_cli, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
+def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing(dispatch):
+    worlds = [FakeWorld({"queue": ["12"]}) for _ in range(2)]
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    results = [(dispatch.main(argv, world=world), world.said, world.complained)
+               for argv, world in zip((["--target", "abc"], ["--target"]), worlds)]
 
-    results = [run_cli(dispatch, argv) for argv in (["--target", "abc"], ["--target"])]
-
-    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
-    assert (results, launches) == ([usage, usage], [])
+    usage = (2, [], [_USAGE_LINE])
+    assert (results, [world.launched for world in worlds]) == ([usage, usage], [[], []])
 
 
 def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_and_exits_2_launching_nothing_issue_3520(
-        monkeypatch, tmp_path, run_cli, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
+        dispatch):
+    worlds = [FakeWorld({"queue": ["12"]}) for _ in range(3)]
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", lambda: (_ for _ in ()).throw(_StopWaiting), raising=False)
+    results = [(dispatch.main(["--target", value], world=world), world.said, world.complained)
+               for value, world in zip(("-1", "abc", "1.5"), worlds)]
 
-    results = [run_cli(dispatch, ["--target", value]) for value in ("-1", "abc", "1.5")]
-
-    usage = (2, "", "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n")
-    assert (results, launches) == ([usage, usage, usage], [])
+    usage = (2, [], [_USAGE_LINE])
+    assert (results, [world.launched for world in worlds]) == ([usage, usage, usage], [[], [], []])
 
 
 def test_main_with_target_0_is_accepted_and_launches_nothing_appending_no_launched_line_with_issues_queued_issue_3520(
-        monkeypatch, capsys, tmp_path, dispatch):
-    (tmp_path / ".tdd").mkdir()
-    launches = []
-    waits = []
+        dispatch):
+    world = FakeWorld({"queue": ["12", "15"]})
 
-    def wait():
-        waits.append(1)
-        raise _StopWaiting
+    code = dispatch.main(["--target", "0"], world=world)
 
-    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(dispatch, "now", lambda: "2026-11-07T10:30:00", raising=False)
-    monkeypatch.setattr(dispatch, "live_conductors", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "queued_merges", lambda: [], raising=False)
-    monkeypatch.setattr(dispatch, "solvable_issues", lambda: ["12", "15"], raising=False)
-    monkeypatch.setattr(dispatch, "launch", launches.append, raising=False)
-    monkeypatch.setattr(dispatch, "wait", wait, raising=False)
-
-    try:
-        code = dispatch.main(["--target", "0"])
-    except _StopWaiting:
-        code = None
-
-    captured = capsys.readouterr()
-    assert (code, captured.err, launches, (tmp_path / ".tdd" / "dispatch.log").exists()) == (None, "", [], False)
+    assert (code, world.complained, world.launched) == (None, [], [])
 
 
 def test_main_with_target_0_an_empty_queue_and_no_live_run_prints_no_queue_empty_and_keeps_waiting_issue_3520(
