@@ -271,7 +271,7 @@ def fake_git_passing_stderr(monkeypatch, answers):
             if all(word in line.split(" ") for word in words):
                 code, out, err = answer_code, answer_out, answer_err
                 break
-        if "stderr" not in kwargs:
+        if "stderr" not in kwargs and not kwargs.get("capture_output"):
             sys.stderr.write(err)
         text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
         return subprocess.CompletedProcess(args, code, out if text else out.encode(), "" if text else b"")
