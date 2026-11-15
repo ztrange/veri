@@ -125,8 +125,7 @@ class Tunable:
         return self.parse(raw)
 
 
-# Every tunable, stating its default once. `text` parses anything: the name has no shape to refuse, or its readers
-# disagree on one (see VERI_NO_VERDICT_RETRIES, which verify.py and grade_prose.py parse differently).
+# Every tunable, stating its default once. `text` parses anything: the name has no shape to refuse.
 TUNABLES = {
     "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
     "VERI_RESET_GROWTH_CONDUCTOR": Tunable(positive_tokens, "70000", "a whole number of tokens >= 1"),
@@ -141,7 +140,7 @@ TUNABLES = {
     "VERI_REFACTOR_BUDGET": Tunable(tokens, "5"),
     "VERI_ISSUE_REFACTOR_BUDGET": Tunable(tokens, "10"),
     "VERI_STEP_GROWTH": Tunable(tokens, "5"),
-    "VERI_NO_VERDICT_RETRIES": Tunable(text, "1"),
+    "VERI_NO_VERDICT_RETRIES": Tunable(tokens, "1"),
     "VERI_SKILL_EDIT_BUDGET": Tunable(decimal_at_least_one, "3"),
     "VERI_ADJUDICATE_BUDGET": Tunable(tokens, "2"),
     "VERI_STUCK_RETRIES": Tunable(tokens, "1"),

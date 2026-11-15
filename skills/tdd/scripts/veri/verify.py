@@ -96,15 +96,6 @@ def leaf_args(words):
             for path in (sorted(glob.glob(word)) or [word])]
 
 
-def no_verdict_budget(value):
-    if len(value) > 1 and value.startswith("0"):
-        try:
-            return int(value, 8)
-        except ValueError:
-            return 0
-    return int(value)
-
-
 CASE_PATTERNS = (
     ("_test.go", r"^func[ \t]+(Test\w+)"),
 )
@@ -290,14 +281,13 @@ def main(argv):
         return 2
     if isinstance(guard, leaf_tree_guard.ConfigUnreadable):
         return unreadable_gitconfig(guard)
-    retries = tunables.read("VERI_NO_VERDICT_RETRIES", unless_empty="1")
+    raw_retries = tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True)
     try:
-        tunables.tokens(retries)
+        retries = tunables.tokens(raw_retries)
     except ValueError:
         write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
-               " got '%s'" % retries)
+               " got '%s'" % raw_retries)
         return 2
-    retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
     if record:
