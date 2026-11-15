@@ -9,6 +9,7 @@ import os
 import paths
 import pinned_scripts
 import pid_file as pids
+import run_dir
 import requirements
 import re
 import calendar
@@ -26,7 +27,7 @@ sys.dont_write_bytecode = sys.dont_write_bytecode or __name__ == "__main__"
 
 from context_limits import context_limits
 import event
-from event_log import read_events
+import event_log
 import github
 import launch_floor
 import run_end
@@ -82,7 +83,7 @@ def main(argv):
 
 
 def pid_file_path(issue):
-    return os.path.join(run_worktree(issue), ".tdd", "conductor.pid")
+    return run_dir.run_file(run_worktree(issue), "conductor.pid")
 
 
 def preflight_and_launch(argv):
@@ -100,7 +101,7 @@ def preflight_and_launch(argv):
     base = os.path.dirname(here)
     record = record_path(argv[0])
     readable = os.access(record, os.R_OK)
-    released = record.replace("-skill-commit", "-released")
+    released = run_dir.issue_file(event.toplevel(), argv[0], "-released")
     resuming = readable and tunables.read("VERI_NEW_SKILL", None) != "1" and not os.path.exists(released)
     if not resuming:
         for word in tunables.read("VERI_SKIP_VERIFY", "").split(","):
@@ -171,10 +172,10 @@ def preflight_and_launch(argv):
                 out.write(commit + "\n")
             if os.path.exists(released):
                 os.remove(released)
-            with open(os.path.join(run_state, "issue-%s-skip-verify" % argv[0]), "w") as skip:
+            with open(run_dir.issue_file(event.toplevel(), argv[0], "-skip-verify"), "w") as skip:
                 listed = tunables.read("VERI_SKIP_VERIFY", "")
                 skip.write(listed + "\n" if listed else "")
-            with open(os.path.join(run_state, "issue-%s-baseline-full-tier" % argv[0]), "w") as pin:
+            with open(run_dir.issue_file(event.toplevel(), argv[0], "-baseline-full-tier"), "w") as pin:
                 pin.write(tunables.read("VERI_BASELINE_FULL_TIER", tunables.TABLE["VERI_BASELINE_FULL_TIER"].default) + "\n")
             if readable:
                 worktree = run_worktree(argv[0])
@@ -198,7 +199,7 @@ def preflight_and_launch(argv):
 
 
 def keep_pinned_scripts(snapshot, issue):
-    kept = os.path.join(run_worktree(issue), ".tdd", "pinned-scripts")
+    kept = run_dir.run_file(run_worktree(issue), "pinned-scripts")
     if is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts")):
         shutil.rmtree(kept, ignore_errors=True)
         shutil.copytree(os.path.join(snapshot, "scripts"), kept)
@@ -257,11 +258,11 @@ def launch(base, issue, commit, **exports):
     sweep_dead_runs(run_state)
     run_tmp = tempfile.mkdtemp(prefix="veri-run-%s-" % issue)
     try:
-        with open(os.path.join(run_state, "issue-%s-tmpdir-skill-commit" % issue), "w") as record:
+        with open(run_dir.issue_file(event.toplevel(), issue, "-tmpdir-skill-commit"), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
-        with open(os.path.join(run_state, "issue-%s-conductor-model" % issue), "w") as record:
+        with open(run_dir.issue_file(event.toplevel(), issue, "-conductor-model"), "w") as record:
             record.write(conductor_model() + "\n")
-        with open(os.path.join(run_state, "issue-%s-launch-env" % issue), "w") as record:
+        with open(run_dir.issue_file(event.toplevel(), issue, "-launch-env"), "w") as record:
             record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_") and kv[0] != "VERI_NEW_SKILL"))
         exports["VERI_STATE_LABEL_ISSUE"] = issue
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
@@ -417,7 +418,7 @@ def done_posted(issue):
 
 def last_resume(issue):
     try:
-        events = read_events(os.path.join(run_worktree(issue), ".tdd", "events.jsonl"), skip_unreadable=True)
+        events = event_log.events(run_worktree(issue), "resume", skip_unreadable=True)
     except OSError:
         return 0
     return max([e.get("ts", 0) for e in events if e.get("event") == "resume" and isinstance(e.get("ts"), int)] or [0])
@@ -431,11 +432,11 @@ def posted_at(comment):
 
 
 def run_worktree(issue):
-    return os.path.join(event.toplevel(), ".tdd", "wt", issue)
+    return run_dir.worktree(event.toplevel(), issue)
 
 
 def record_path(issue):
-    return os.path.join(event.toplevel(), ".tdd", "issue-%s-skill-commit" % issue)
+    return run_dir.issue_file(event.toplevel(), issue, "-skill-commit")
 
 
 def is_registered_worktree(issue):
