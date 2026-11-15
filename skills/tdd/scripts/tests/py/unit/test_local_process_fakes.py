@@ -1,41 +1,233 @@
-"""A ratchet: test files defining their own subprocess fake do not grow in number; new cases use fake_processes."""
+"""A ratchet: test files that install their own fake on `subprocess` only shrink in number; new cases use fake_processes.
+
+What counts as a local process fake is what a file DOES to the subprocess module, never what it names its function:
+a call `setattr(<subprocess>, "run" | "Popen" | "check_output" | "check_call" | "call" | "getoutput" |
+"getstatusoutput", <fake>)` (any receiver: `monkeypatch`, a `monkeypatch.context()` scope), where <subprocess> is the module
+(`subprocess`) or a module's own reference to it (`status.subprocess`, `a.b.subprocess`); the same with a dotted string target
+(`setattr("subprocess.run", <fake>)`, `setattr("status.subprocess.run", <fake>)`, an f-string `f"subprocess.{name}"`);
+a setattr of `subprocess` whose attribute name is not a literal (a loop over names); `mock.patch` and `patch.object` of the
+same targets; and a plain assignment `subprocess.run = <fake>`.
+A fake that only replaces a module's OWN function (`update_veri.git`, `plan_reverify.git`, `pin_recheck.run_captured`)
+starts no process and is not a process fake: those files are not listed, however their fake is named. A function named
+`fake_run` that no subprocess install uses does not count either. Not detected (a documented blind spot): an alias of the
+module (`sp = subprocess`) and a `from subprocess import run` name patched on the importer. `conftest.py` holds the
+fake_processes fixture itself and is the one file exempt.
+"""
 import ast
 
 import pytest
 
-# Test files that still define a local fake_run or fake_git (at any depth). Lower this number when you migrate a
-# file to conftest's fake_processes (see its docstring); never raise it. A new case answers its processes with
-# fake_processes.answers(...), which matches a command line, records the call and fails an unexpected one loudly.
-FILES_WITH_A_LOCAL_PROCESS_FAKE = 29
+# The test files (paths under tests/py, sorted, ONE per line) that still install their own fake on subprocess. Migrate a
+# file to conftest's fake_processes (see its docstring) and delete its line: a listed file that no longer installs one
+# fails the second case below. Entries may be removed, NEVER added: a new case answers its processes with
+# fake_processes.answers(...), which matches a command line, records the call and fails an unexpected one loudly. One
+# line per file keeps parallel migrations from conflicting. The reason says what the fake does, from the migration
+# inventory; "not inventoried" marks a file found only once the audit counted installs rather than names.
+FILES_WITH_A_LOCAL_PROCESS_FAKE = {
+    "test_affected_suites.py": "git diff / rev-parse answers by argv prefix, 17 inline",
+    "test_coverage_blocker.py": "gh api branches; the PATCH reads the -F body file",
+    "test_detach_leaf.py": "not inventoried",
+    "test_ensure_run_state_ignored.py": "not inventoried",
+    "test_event.py": "not inventoried",
+    "test_invisible_work.py": "words-in-line answer list; already uses fake_processes",
+    "test_issue_worktree.py": "exact argv tuples, records calls; 6 real-run uses to keep",
+    "test_launch_floor.py": "one answer(args, kwargs) callback",
+    "test_leaf_launchable.py": "checks argv, fixed returncode",
+    "test_over_budget.py": "not inventoried",
+    "test_parallel_conductors.py": "git faked, the rest runs real; fake_processes has no passthrough and refuses Popen",
+    "test_preserve_attempt.py": "line-prefix branches; already uses fake_processes",
+    "test_profile.py": "bash writes fd 9, sort echoes input",
+    "test_pytest_leg.py": "not inventoried",
+    "test_rebase_onto_default.py": "not inventoried",
+    "test_refactor_touched.py": "not inventoried",
+    "test_run_conductor.py": "os and subprocess boundary, sleep recorded",
+    "test_run_leaf.py": "not inventoried",
+    "test_run_verdict.py": "not inventoried",
+    "test_skill_edit_step_process.py": "not inventoried",
+    "test_solvable_issues.py": "22 inline worktree-list fakes, Popen too",
+    "test_status.py": "worktree list faked, the rest real",
+    "test_stop_run.py": "held-argv dict, per-cwd answers",
+    "test_structural_predicate.py": "not inventoried",
+    "test_supervise.py": "not inventoried",
+    "test_tick_issue_criterion.py": "gh view/PATCH faked, git real",
+    "test_timed_test_run.py": "one callable: note() then status lookup",
+    "test_transform_touches_tests.py": "scripted git log, sort input",
+    "test_verify.py": "not inventoried",
+    "test_workqueue.py": "worktree list, get-url, gh api",
+    "unit/test_add_ledger_step.py": "not inventoried",
+    "unit/test_case_history.py": "not inventoried",
+    "unit/test_detach.py": "not inventoried",
+    "unit/test_detach_command.py": "not inventoried",
+    "unit/test_dispatch.py": "not inventoried",
+    "unit/test_dispatch_issue_states.py": "not inventoried",
+    "unit/test_event_journal.py": "not inventoried",
+    "unit/test_git.py": "not inventoried",
+    "unit/test_github.py": "exact argv-tuple dict, 20 inline",
+    "unit/test_grade_prose.py": "not inventoried",
+    "unit/test_help_flag.py": "not inventoried",
+    "unit/test_merge_lock_gate.py": "not inventoried",
+    "unit/test_merge_lock_owner.py": "not inventoried",
+    "unit/test_mutation_probe.py": "wraps the red fake, records text",
+    "unit/test_orchestrate.py": "not inventoried",
+    "unit/test_pin_reject_route.py": "detect-test-command answer, setup error",
+    "unit/test_prose_owed_gate.py": "not inventoried",
+    "unit/test_refresh_spec.py": "not inventoried",
+    "unit/test_report_cache.py": "git -> 0, gh issue list JSON, 45 inline",
+    "unit/test_rerun_alone.py": "not inventoried",
+    "unit/test_restart_conductor.py": "not inventoried",
+    "unit/test_run_dir.py": "not inventoried",
+    "unit/test_scripts_dir_symlink.py": "not inventoried",
+    "unit/test_skill_edit_step.py": "not inventoried",
+    "unit/test_status_recover.py": "not inventoried",
+    "unit/test_status_refresh_running_own.py": "not inventoried",
+    "unit/test_status_report.py": "not inventoried",
+    "unit/test_status_report_blocked.py": "not inventoried",
+    "unit/test_status_report_eta.py": "not inventoried",
+    "unit/test_status_report_eta_range.py": "not inventoried",
+    "unit/test_status_report_last_written.py": "not inventoried",
+    "unit/test_status_report_nojournal.py": "not inventoried",
+    "unit/test_status_report_queue_delta.py": "not inventoried",
+    "unit/test_status_report_running.py": "not inventoried",
+    "unit/test_status_report_running_attempts.py": "not inventoried",
+    "unit/test_status_report_running_awake.py": "not inventoried",
+    "unit/test_status_report_running_cost.py": "not inventoried",
+    "unit/test_status_report_running_cost_delta.py": "not inventoried",
+    "unit/test_status_report_running_delta.py": "not inventoried",
+    "unit/test_status_report_running_journal_shapes.py": "not inventoried",
+    "unit/test_status_report_running_latest_start.py": "not inventoried",
+    "unit/test_status_report_running_models.py": "not inventoried",
+    "unit/test_status_report_running_phase.py": "not inventoried",
+    "unit/test_status_report_running_refactor.py": "not inventoried",
+    "unit/test_status_report_running_steps.py": "not inventoried",
+    "unit/test_status_report_running_verdicts.py": "not inventoried",
+    "unit/test_status_report_waiting.py": "not inventoried",
+    "unit/test_status_report_zone.py": "not inventoried",
+    "unit/test_structural_predicate_cli.py": "not inventoried",
+    "unit/test_supervise_launch_failure.py": "not inventoried",
+    "unit/test_tests_frozen.py": "not inventoried",
+    "unit/test_tick_ledger.py": "detect-test-command, captures env",
+    "unit/test_tick_ledger_already_holds.py": "records argv, returns bytes",
+    "unit/test_tick_ledger_detect_lookup.py": "records argv, empty output",
+    "unit/test_unlabel_issue.py": "gh label read/claim log",
+    "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
+    "unit/test_watch_runs.py": "not inventoried",
+}
 
-LOCAL_FAKES = ("fake_run", "fake_git")
+PROCESS_STARTERS = ("run", "Popen", "check_output", "check_call", "call", "getoutput", "getstatusoutput")
+EXEMPT = ("conftest.py",)
 
 
-def _files_defining_a_local_process_fake():
-    from conftest import SCRIPTS
+def _is_subprocess_module(node):
+    return (isinstance(node, ast.Name) and node.id == "subprocess") or (
+        isinstance(node, ast.Attribute) and node.attr == "subprocess")
 
+
+def _names_a_starter_path(text):
+    parts = text.split(".")
+    return len(parts) >= 2 and parts[-2] == "subprocess" and parts[-1] in PROCESS_STARTERS
+
+
+def _string_target_installs(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return _names_a_starter_path(node.value)
+    if isinstance(node, ast.JoinedStr):
+        head = node.values[0] if node.values else None
+        return (isinstance(head, ast.Constant) and isinstance(head.value, str) and head.value.endswith(".")
+                and head.value[:-1].split(".")[-1] == "subprocess")
+    return False
+
+
+def _installs_on_subprocess(call):
+    args = call.args
+    method = call.func.attr
+    if method == "setattr" and len(args) >= 2 and _is_subprocess_module(args[0]):
+        name = args[1]
+        return not (isinstance(name, ast.Constant) and isinstance(name.value, str)) or name.value in PROCESS_STARTERS
+    if method in ("setattr", "patch") and args and _string_target_installs(args[0]):
+        return True
+    if method == "object" and len(args) >= 2 and _is_subprocess_module(args[0]):
+        return isinstance(args[1], ast.Constant) and args[1].value in PROCESS_STARTERS
+    return False
+
+
+def installs_a_subprocess_fake(source):
+    """True when <source> replaces how subprocess starts a process (see the module docstring for what counts)."""
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and _installs_on_subprocess(node):
+            return True
+        if isinstance(node, ast.Assign) and any(
+                isinstance(target, ast.Attribute) and target.attr in PROCESS_STARTERS
+                and _is_subprocess_module(target.value) for target in node.targets):
+            return True
+    return False
+
+
+def _files_installing_a_local_process_fake(tests_py_index):
     found = []
-    for source in sorted((SCRIPTS / "tests" / "py").rglob("*.py")):
-        tree = ast.parse(source.read_text())
-        if any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in LOCAL_FAKES
-               for node in ast.walk(tree)):
-            found.append(str(source.relative_to(SCRIPTS / "tests" / "py")))
-    return found
+    for entry in tests_py_index:
+        relative = _relative(entry.path)
+        if relative not in EXEMPT and installs_a_subprocess_fake(entry.text):
+            found.append(relative)
+    return sorted(found)
+
+
+def _relative(path):
+    parts = path.parts
+    return "/".join(parts[parts.index("py") + 1:])
+
+
+@pytest.mark.parametrize("source", [
+    'monkeypatch.setattr(subprocess, "run", lambda *a, **k: None)',
+    'monkeypatch.setattr(subprocess, "Popen", Spy)',
+    'monkeypatch.setattr(status.subprocess, "run", fake)',
+    'monkeypatch.setattr(a.b.subprocess, "check_output", fake)',
+    'scope.setattr(module.subprocess, "call", fake)',
+    'monkeypatch.setattr("subprocess.run", fake)',
+    'monkeypatch.setattr("status.subprocess.run", fake)',
+    'monkeypatch.setattr(f"subprocess.{name}", refuse)',
+    'for name in names:\n    monkeypatch.setattr(subprocess, name, refuse)',
+    'mock.patch("subprocess.run", fake)',
+    'patch.object(subprocess, "run", fake)',
+    'subprocess.run = fake',
+    'def rename_me(): pass\nmonkeypatch.setattr(subprocess, "run", rename_me)',
+])
+def test_a_replacement_installed_on_subprocess_is_a_local_process_fake(source):
+    assert installs_a_subprocess_fake(source)
+
+
+@pytest.mark.parametrize("source", [
+    'def fake_git(*args): return args\nmonkeypatch.setattr(update_veri, "git", fake_git)',
+    'def fake_run(argv): return 0\nmonkeypatch.setattr(pin_recheck, "run_captured", fake_run)',
+    'monkeypatch.setattr(subprocess.Popen, "__init__", checked)',
+    'monkeypatch.setattr(subprocess, "CompletedProcess", fake)',
+    'monkeypatch.setattr("subprocess.PIPE", None)',
+    'monkeypatch.setattr("update_veri.subprocess_note", fake)',
+    'subprocess.run(["git", "status"])',
+    'fake_processes.answers({"git": (0, "", "")})',
+])
+def test_a_fake_that_starts_no_subprocess_install_is_not_a_local_process_fake(source):
+    assert not installs_a_subprocess_fake(source)
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/tests/py")
-def test_no_more_test_files_define_a_local_fake_run_or_fake_git_than_the_ratchet_allows():
-    found = _files_defining_a_local_process_fake()
+def test_no_test_file_outside_the_list_installs_its_own_fake_on_subprocess(tests_py_index):
+    unlisted = [path for path in _files_installing_a_local_process_fake(tests_py_index)
+                if path not in FILES_WITH_A_LOCAL_PROCESS_FAKE]
 
-    assert len(found) <= FILES_WITH_A_LOCAL_PROCESS_FAKE, (
-        f"{len(found)} test files define their own {' or '.join(LOCAL_FAKES)}, the ratchet allows "
-        f"{FILES_WITH_A_LOCAL_PROCESS_FAKE}: answer processes with fake_processes.answers instead: {found}")
+    assert not unlisted, (
+        f"{unlisted} install their own fake on subprocess: use fake_processes.answers instead. "
+        f"FILES_WITH_A_LOCAL_PROCESS_FAKE only shrinks, never add to it")
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/tests/py")
-def test_the_ratchet_is_lowered_to_the_number_of_files_still_defining_a_local_fake():
-    found = _files_defining_a_local_process_fake()
+def test_a_listed_file_that_no_longer_installs_a_fake_on_subprocess_is_removed_from_the_list(tests_py_index):
+    found = _files_installing_a_local_process_fake(tests_py_index)
+    gone = [path for path in FILES_WITH_A_LOCAL_PROCESS_FAKE if path not in found]
 
-    assert len(found) >= FILES_WITH_A_LOCAL_PROCESS_FAKE, (
-        f"only {len(found)} test files still define a local fake, below the ratchet's "
-        f"{FILES_WITH_A_LOCAL_PROCESS_FAKE}: lower FILES_WITH_A_LOCAL_PROCESS_FAKE to {len(found)}")
+    assert not gone, f"{gone} no longer install a fake on subprocess: remove them from FILES_WITH_A_LOCAL_PROCESS_FAKE"
+
+
+def test_the_list_is_sorted_and_():
+    paths = list(FILES_WITH_A_LOCAL_PROCESS_FAKE)
+
+    assert paths == sorted(paths)
