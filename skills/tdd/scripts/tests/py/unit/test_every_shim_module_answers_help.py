@@ -85,10 +85,10 @@ def test_help_prints_the_usage_on_stdout_exits_0_and_starts_no_process_and_no_co
     assert out.rstrip("\n") == declared[declared.index("usage: "):].rstrip("\n")
 
 
-# Scripts that take no arguments and refuse one. Not listed, on purpose: invisible-work, leaf-launchable, cover-outcome, exhausted-outcome,
-# extract-result, next-pending-refactor, next-unchecked, parse-verdict, refactor-triage and time-budget also take none, but their
-# own suites pin that an argument is ignored (and invisible-work's calls main(["--help"]) to sweep), so refusing would change them.
-NO_ARGUMENTS = ["branch_suite", "handoff_state", "orchestrate", "rebased_tip_suite", "resume_clean", "skill_drift"]
+# Scripts that take no arguments and refuse one; unit/test_zero_argument_modules_refuse_an_argument.py fails for any module that should be here and is not.
+NO_ARGUMENTS = ["branch_suite", "cover_outcome", "exhausted_outcome", "extract_result", "handoff_state", "invisible_work",
+                "leaf_launchable", "next_pending_refactor", "next_unchecked", "orchestrate", "parse_verdict",
+                "rebased_tip_suite", "refactor_triage", "resume_clean", "skill_drift", "time_budget"]
 
 
 @pytest.mark.parametrize("module", NO_ARGUMENTS)
