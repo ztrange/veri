@@ -83,7 +83,7 @@ def test_main_reads_an_out_of_scope_candidate_and_never_prints_it_exiting_3_alon
     }
 
 
-def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_dropping_nul_passing_non_utf8_through_reading_no_break_space_as_not_whitespace_under_any_locale_and_ignoring_argv(
+def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_dropping_nul_passing_non_utf8_through_reading_no_break_space_as_not_whitespace_under_any_locale(
         monkeypatch, capsysbinary, refactor_triage):
     results = {}
     for report in (
@@ -101,9 +101,6 @@ def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_droppin
         fake_stdin(monkeypatch, b"CANDIDATES:\xc2\xa0structural | a\n")
         code = refactor_triage.main([])
         results[tuple(env.items())] = (code, capsysbinary.readouterr().out)
-    fake_stdin(monkeypatch, b"CANDIDATES: structural | x\n")
-    code = refactor_triage.main(["foo", "bar"])
-    results["argv"] = (code, *capsysbinary.readouterr())
 
     assert results == {
         b"CANDIDATES: structural | a": (0, b"a\n", b""),
@@ -113,8 +110,17 @@ def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_droppin
         (("LC_ALL", "en_US.UTF-8"),): (2, b""),
         (("LC_CTYPE", "en_US.UTF-8"),): (2, b""),
         (("LANG", "en_US.UTF-8"),): (2, b""),
-        "argv": (0, b"x\n", b""),
     }
+
+
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_report_unread(
+        monkeypatch, capsysbinary, refactor_triage):
+    fake_stdin(monkeypatch, b"CANDIDATES: structural | x\n")
+
+    code = refactor_triage.main(["foo", "bar"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", f"refactor-triage.sh: unexpected argument 'foo'\n{refactor_triage.USAGE}\n".encode())
 
 
 def test_main_reads_the_class_with_optional_whitespace_around_it_and_the_bar_matched_exactly_and_case_sensitively_and_counts_only_a_line_starting_candidates(

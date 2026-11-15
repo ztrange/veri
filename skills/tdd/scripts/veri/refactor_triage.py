@@ -26,6 +26,9 @@ USAGE = "usage: refactor-triage.sh < leaf-report.txt"
 
 
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     structural = []
     candidates_seen = False
     for line in sys.stdin.buffer.read().replace(b"\0", b"").split(b"\n"):
