@@ -59,3 +59,18 @@ def test_a_malformed_n_line_in_the_role_state_exits_2_naming_the_line_and_the_fi
 
     assert (code, world.said, world.launched, world.complained) == (
         2, [], [], ["dispatch.sh: malformed n line: n=two in /main/.tdd/role-dev.state\n"])
+
+
+def test_a_set_but_empty_stall_window_is_refused_with_the_usage_and_exit_2(monkeypatch, dispatch):
+    monkeypatch.setenv("VERI_DISPATCH_STALL", "")
+    world = FakeWorld({"queue": ["12"]})
+
+    code = dispatch.main(["--target", "1"], world=world)
+
+    assert (code, world.said, world.launched, len(world.complained)) == (2, [], [], 1)
+
+
+def test_a_set_but_empty_overlap_poll_window_reads_as_60_seconds(monkeypatch, dispatch):
+    monkeypatch.setenv("VERI_DISPATCH_OVERLAP_POLL", "")
+
+    assert dispatch.overlap_poll() == "60"

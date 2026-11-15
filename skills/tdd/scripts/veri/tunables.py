@@ -178,6 +178,8 @@ TUNABLES = {
     "VERI_SLEEP_GAP": Tunable(text, "900"),
     "VERI_SNAPSHOT_MAX_AGE": Tunable(text, "60"),
     "VERI_WATCH_QUEUE_INTERVAL": Tunable(text, "60"),
+    "VERI_DISPATCH_STALL": Tunable(text, "3600"),
+    "VERI_DISPATCH_OVERLAP_POLL": Tunable(text, "60"),
     "VERI_STEP_BUDGET": Tunable(text, "12"),
     "VERI_RUN_BUDGET": Tunable(text, "120"),
     "VERI_UNIT_BUDGET": Tunable(text, "10"),
