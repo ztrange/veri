@@ -43,7 +43,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_event_journal.py": "not inventoried",
     "unit/test_orchestrate.py": "not inventoried",
     "unit/test_report_cache.py": "3 cases answer gh and pass git through to a real process (real_run)",
-    "unit/test_skill_edit_step.py": "not inventoried",
     "unit/test_status_recover.py": "not inventoried",
     "unit/test_status_refresh_running_own.py": "not inventoried",
     "unit/test_status_report.py": "not inventoried",
