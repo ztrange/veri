@@ -13,6 +13,7 @@ RARE_PATH_IMPORTS = {
     "entry": {"traceback": "loads _colorize, dataclasses and inspect (about 20 ms): only refusal() needs it"},
     "harvest_usage": {"traceback": "only the crash path prints one, and supervise imports this module at every leaf start"},
     "wait_ci": {"traceback": "only the unexpected-error paths of the poll loop print one; ready_check imports this module"},
+    "status": {"statistics": "only eta_range() needs it, and only once three runs have finished"},
 }
 
 
