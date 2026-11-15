@@ -1,6 +1,7 @@
 """metrics.sh's report, rendered in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
+import dataclasses
 import datetime
 import io
 import json
@@ -67,6 +68,11 @@ WASTE_WALL, WASTE_COST = "waste wall s", "waste $"
 LOST_COLUMNS = [REWORK_WALL, REWORK_COST, WASTE_WALL, WASTE_COST]
 
 MONEY = {DOLLARS, REWORK_COST, WASTE_COST}
+
+PHASE_COLUMNS = COUNTS + TIMES + COST_COLUMNS
+STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
+
+ROLES = ("developer", "verifier", "adjudicator")
 
 UNKNOWN = "unknown"
 
@@ -186,212 +192,207 @@ def conductor_sessions(issue, path):
     return sessions, turn_rows
 
 
-def render(issue, path, ledger):
-    def known(number):
-        return UNKNOWN if number is None else "%d" % number
+def span(start, end):
+    """Seconds from `start` to `end`; None when either is missing."""
+    return None if start is None or end is None else end - start
 
-    def counted(total):
-        return total or None
 
-    def span(start, end):
-        return None if start is None or end is None else end - start
+def counted(total):
+    """`total`, or None when it is zero: a count of nothing is unknown, not 0."""
+    return total or None
 
-    def reading(mark, clock):
-        if mark is None or (clock == "awake" and not clocked):
-            return None
-        return mark.get(clock)
 
-    def wall_and_awake_spans(start, end):
-        return (span(reading(start, "ts"), reading(end, "ts")),
-                span(reading(start, "awake"), reading(end, "awake")))
+def reading(mark, clock, clocked):
+    """The `clock` ("ts" or "awake") reading of an event mark; None when the mark is missing or, for
+    "awake", when the log carries no awake clock (`clocked` is False)."""
+    if mark is None or (clock == "awake" and not clocked):
+        return None
+    return mark.get(clock)
 
-    def awake_span_or_wall(start, end):
-        wall, awake = wall_and_awake_spans(start, end)
-        return wall if awake is None or wall < awake else awake
 
-    def planned_steps(path):
-        try:
-            with open(path, "rb") as f:
-                text = decode_ledger(f.read())
-        except OSError:
-            return None, 0
-        steps = ledger_steps(text)
-        records = "".join("\t".join(record) + "\n" for record in steps)
-        full_suite = sum(1 for record in steps if record[1] == "done" and record[2] == "full-suite")
-        return counted(len(records.splitlines())), full_suite
+def wall_and_awake_spans(start, end, clocked):
+    """(wall seconds, awake seconds) between two event marks, each None when it cannot be read."""
+    return (span(reading(start, "ts", clocked), reading(end, "ts", clocked)),
+            span(reading(start, "awake", clocked), reading(end, "awake", clocked)))
 
-    counts = {}
-    steps = {}
 
-    PHASE_COLUMNS = COUNTS + TIMES + COST_COLUMNS
-    STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
+def awake_span_or_wall(start, end, clocked):
+    """Seconds between two event marks on the awake clock, or on the wall clock when that is shorter
+    or the awake clock is unreadable; None when neither can be read."""
+    wall, awake = wall_and_awake_spans(start, end, clocked)
+    return wall if awake is None or wall < awake else awake
 
-    lost = {}
 
-    ROLES = ("developer", "verifier", "adjudicator")
-    by_model = {}
+def planned_steps(path):
+    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines)."""
+    try:
+        with open(path, "rb") as f:
+            text = decode_ledger(f.read())
+    except OSError:
+        return None, 0
+    steps = ledger_steps(text)
+    records = "".join("\t".join(record) + "\n" for record in steps)
+    full_suite = sum(1 for record in steps if record[1] == "done" and record[2] == "full-suite")
+    return counted(len(records.splitlines())), full_suite
 
-    spent = {}
 
-    def step_mark(step):
-        return spent.setdefault(step, {})
+class _Tally:
+    """The event log's tables, accumulated one event at a time by `take`; `fold` reads them off."""
 
-    passes = {}
-    open_passes = {}
+    def __init__(self, models, clocked):
+        self.models = models
+        self.clocked = clocked
+        self.counts = {}
+        self.steps = {}
+        self.by_model = {}
+        self.spent = {}
+        self.passes = {}
+        self.open_passes = {}
+        self.attempts_spent = {}
+        self.rejected = []
+        self.recovered = set()
+        self.tier_runs = {}
+        self.total = dict.fromkeys(COST_COLUMNS, 0)
+        self.conductor_counted = False
+        self.switched_off = 0
+        self.adjudications = {}
+        self.opening = None
+        self.structural = None
+        self.launched = {}
 
-    def open_pass(step):
-        return open_passes.setdefault(step, {"verdict": "", "revise": 0, WALL: 0, DOLLARS: 0.0})
+    def step_mark(self, step):
+        return self.spent.setdefault(step, {})
 
-    def settle_pass(step, current):
+    def open_pass(self, step):
+        return self.open_passes.setdefault(step, {"verdict": "", "revise": 0, WALL: 0, DOLLARS: 0.0})
+
+    def settle_pass(self, step, current):
         if current["verdict"] == "PASS" and current.get("marked"):
-            open_passes.pop(step)
+            self.open_passes.pop(step)
 
-    attempts_spent = {}
-
-    rejected = []
-    recovered = set()
-
-    tier_runs = {}
-
-    totals = {"total": dict.fromkeys(COST_COLUMNS, 0)}
-
-    conductor_counted = False
-    switched_off = 0
-    adjudications = {}
-
+    @staticmethod
     def row_in(table, key, columns):
         return table.setdefault(key, dict.fromkeys(columns, 0))
 
-    def tally(table, key, columns, count):
-        row_in(table, key, columns)[count] += 1
+    def tally(self, table, key, columns, count):
+        self.row_in(table, key, columns)[count] += 1
 
-    def model_row(line):
+    def model_row(self, line):
         actor = line.get("actor")
         if actor not in ROLES:
             return None
         attempt = (line.get("step", ""), line.get("phase", ""), line.get("attempt", ""), actor)
-        return row_in(by_model, (actor, models.get(attempt, "")), PHASE_COLUMNS)
+        return self.row_in(self.by_model, (actor, self.models.get(attempt, "")), PHASE_COLUMNS)
 
-    def rows_for(phase, step, line):
-        rows = [r for r in [model_row(line)] if r is not None]
+    def rows_for(self, phase, step, line):
+        rows = [r for r in [self.model_row(line)] if r is not None]
         if phase:
-            rows.append(row_in(counts, phase, PHASE_COLUMNS))
+            rows.append(self.row_in(self.counts, phase, PHASE_COLUMNS))
         if step:
-            rows.append(row_in(steps, step, STEP_COLUMNS))
+            rows.append(self.row_in(self.steps, step, STEP_COLUMNS))
         return rows
 
-    def add_seconds(phase, step, line, column, seconds):
-        for row_of in rows_for(phase, step, line):
+    def add_seconds(self, phase, step, line, column, seconds):
+        for row_of in self.rows_for(phase, step, line):
             row_of[column] += seconds
 
-    def attempt_in(phase, step, attempt):
+    def attempt_in(self, phase, step, attempt):
         if not phase or not step:
             return None
-        return attempts_spent.setdefault((step, phase, attempt), {WALL: 0, DOLLARS: 0.0})
+        return self.attempts_spent.setdefault((step, phase, attempt), {WALL: 0, DOLLARS: 0.0})
 
-    def add_cost(phase, step, line):
-        rows = rows_for(phase, step, line) + [totals["total"]]
+    def add_cost(self, phase, step, line):
+        rows = self.rows_for(phase, step, line) + [self.total]
         for heading, field in COSTS:
             reported = line.get(field) or 0
             amount = float(reported) if heading in MONEY else int(reported)
             for row_of in rows:
                 row_of[heading] += amount
 
-    opening = None
-
-    structural = None
-
-    launched = {}
-
-    marks = read_events(path)
-    clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
-    models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
-              mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
-
-    for line in marks:
+    def take(self, line):
+        """Fold one event of the log into the tables."""
         event = line.get("event", "")
         step = line.get("step", "")
         phase = line.get("phase", "")
-        ts = line.get("ts")
-        if opening is None or event == "resume":
-            opening = line
+        if self.opening is None or event == "resume":
+            self.opening = line
         if event == "structural-pass":
-            structural = line
+            self.structural = line
         if event in ("step-start", "step-done") and step:
-            step_mark(step)[event] = line
+            self.step_mark(step)[event] = line
             if event == "step-done":
-                recovered.add(step)
-            continue
+                self.recovered.add(step)
+            return
         if event == "test-run":
             seconds = line.get("seconds")
             if seconds not in (None, ""):
-                tier_runs.setdefault(line.get("tier") or UNKNOWN, []).append(str(seconds))
-            continue
+                self.tier_runs.setdefault(line.get("tier") or UNKNOWN, []).append(str(seconds))
+            return
         if event == "pin" and step:
-            recovered.add(step)
-            step_mark(step)[KIND] = "pin"
+            self.recovered.add(step)
+            self.step_mark(step)[KIND] = "pin"
         elif event == "verdict" and phase == "pin" and line.get("verdict") == "PASS" and step:
-            step_mark(step).setdefault(KIND, "already-satisfied")
+            self.step_mark(step).setdefault(KIND, "already-satisfied")
         attempt_no = line.get("attempt", "")
-        attempt = attempt_in(phase, step, attempt_no)
+        attempt = self.attempt_in(phase, step, attempt_no)
         if event == "launch":
-            launched[(step, phase, attempt_no)] = line
-            step_mark(step).setdefault("leaf phases", set()).add(phase)
+            self.launched[(step, phase, attempt_no)] = line
+            self.step_mark(step).setdefault("leaf phases", set()).add(phase)
         if event == "exit":
-            awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
-                         reading(line, "awake"))
+            awake = span(reading(self.launched.get((step, phase, attempt_no)), "awake", self.clocked),
+                         reading(line, "awake", self.clocked))
             seconds = int(awake if awake is not None else (line.get("secs") or 0))
-            add_seconds(phase, step, line, "wall s", seconds)
+            self.add_seconds(phase, step, line, "wall s", seconds)
             if attempt is not None:
                 attempt[WALL] += seconds
             if phase == "refactor":
-                open_pass(step)[WALL] += seconds
+                self.open_pass(step)[WALL] += seconds
         elif event == "usage":
-            add_seconds(phase, step, line, "API s",
-                        int(line.get("duration_api_ms") or 0) // 1000)
-            add_cost(phase, step, line)
+            self.add_seconds(phase, step, line, "API s",
+                             int(line.get("duration_api_ms") or 0) // 1000)
+            self.add_cost(phase, step, line)
             dollars = float(line.get("total_cost_usd") or 0)
             if attempt is not None:
                 attempt[DOLLARS] += dollars
             if phase == "refactor":
-                open_pass(step)[DOLLARS] += dollars
+                self.open_pass(step)[DOLLARS] += dollars
             if line.get("actor") == "conductor":
-                conductor_counted = True
+                self.conductor_counted = True
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
-            rejected.append((step, phase, attempt))
+            self.rejected.append((step, phase, attempt))
         if event == "verdict" and phase == "refactor":
-            current = open_pass(step)
+            current = self.open_pass(step)
             current["verdict"] = line.get("verdict", "")
-            settle_pass(step, current)
+            self.settle_pass(step, current)
         if event == "verify-refactor-skipped" and step:
-            open_pass(step)["verdict"] = "skipped"
+            self.open_pass(step)["verdict"] = "skipped"
             if line.get("reason") == "switched-off":
-                switched_off += 1
+                self.switched_off += 1
         if event == "adjudicated":
             outcome = line.get("outcome")
-            adjudications[outcome] = adjudications.get(outcome, 0) + 1
+            self.adjudications[outcome] = self.adjudications.get(outcome, 0) + 1
         if event == "revise" and step:
-            per_phase = step_mark(step).setdefault("revise phases", {})
+            per_phase = self.step_mark(step).setdefault("revise phases", {})
             per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
             if phase == "refactor":
-                open_pass(step)["revise"] += 1
-            continue
+                self.open_pass(step)["revise"] += 1
+            return
         if event == "reroute" and step and line.get("kind") == "repair":
-            step_mark(step).setdefault("revise phases", {}).setdefault(phase, (0, line.get("budget", "")))
+            self.step_mark(step).setdefault("revise phases", {}).setdefault(phase, (0, line.get("budget", "")))
         if event == "refactor" and step:
-            mark = step_mark(step)
+            mark = self.step_mark(step)
             mark["transforms"] = line.get("transforms", "")
             mark["refactor"] = line.get("budget", "")
             mark["stopped"] = line.get("stopped", "")
-            current = open_pass(step)
-            passes[(step, line.get("pass", ""))] = (line, current)
+            current = self.open_pass(step)
+            self.passes[(step, line.get("pass", ""))] = (line, current)
             current["marked"] = True
-            settle_pass(step, current)
-            continue
+            self.settle_pass(step, current)
+            return
         if event in CELL_MARKS and step:
             column, attribute = CELL_MARKS[event]
-            step_mark(step)[column] = line.get(attribute, "")
-            continue
+            self.step_mark(step)[column] = line.get(attribute, "")
+            return
         if event == "launch":
             count = "attempts"
         elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
@@ -403,30 +404,88 @@ def render(issue, path, ledger):
         elif event == "relaunch" and line.get("cause") == "no-verdict":
             count = "no-verdict"
         else:
-            continue
+            return
         if phase and count in COUNTS:
-            tally(counts, phase, PHASE_COLUMNS, count)
-        model = model_row(line) if count in COUNTS else None
+            self.tally(self.counts, phase, PHASE_COLUMNS, count)
+        model = self.model_row(line) if count in COUNTS else None
         if model is not None:
             model[count] += 1
         if step:
-            tally(steps, step, STEP_COLUMNS, count)
+            self.tally(self.steps, step, STEP_COLUMNS, count)
 
-    for phase in counts:
-        row_in(lost, phase, LOST_COLUMNS)
+    def lost(self):
+        """Per phase, the wall seconds and dollars of rejected attempts of steps that later finished (rework)
+        and of every attempt of steps that never did (waste)."""
+        lost = {}
+        for phase in self.counts:
+            self.row_in(lost, phase, LOST_COLUMNS)
 
-    def lose(phase, attempt, wall_column, cost_column):
-        row_of = row_in(lost, phase, LOST_COLUMNS)
-        row_of[wall_column] += attempt[WALL]
-        row_of[cost_column] += attempt[DOLLARS]
+        def lose(phase, attempt, wall_column, cost_column):
+            row_of = self.row_in(lost, phase, LOST_COLUMNS)
+            row_of[wall_column] += attempt[WALL]
+            row_of[cost_column] += attempt[DOLLARS]
 
-    for step, phase, attempt in rejected:
-        if step in recovered:
-            lose(phase, attempt, REWORK_WALL, REWORK_COST)
+        for step, phase, attempt in self.rejected:
+            if step in self.recovered:
+                lose(phase, attempt, REWORK_WALL, REWORK_COST)
+        for (step, phase, _attempt_no), attempt in self.attempts_spent.items():
+            if step not in self.recovered:
+                lose(phase, attempt, WASTE_WALL, WASTE_COST)
+        return lost
 
-    for (step, phase, _attempt_no), attempt in attempts_spent.items():
-        if step not in recovered:
-            lose(phase, attempt, WASTE_WALL, WASTE_COST)
+
+@dataclasses.dataclass
+class Fold:
+    """What the report says, as plain data; `layout` prints it and reads nothing else."""
+    issue: str
+    marks: list                 # every event of the log
+    clocked: bool               # whether every timed event carries an awake-clock reading
+    models: dict                # (step, phase, attempt, actor) -> the model(s) that answered
+    opening: dict               # the last `resume` event, else the first event
+    recovered: set              # steps with a step-done or pin mark
+    phases: dict                # phase -> {PHASE_COLUMNS: number}
+    by_model: dict              # (role, model) -> {PHASE_COLUMNS: number}
+    lost: dict                  # phase -> {LOST_COLUMNS: number}
+    steps: dict                 # step -> {STEP_COLUMNS: number}
+    step_marks: dict            # step -> the marks its events left (budgets, kind, start/done events)
+    passes: list                # one dict per refactor pass: step, pass, mark, verdict, revise, wall, dollars
+    tier_runs: dict             # test tier -> [seconds as text, in run order]
+    adjudications: dict         # outcome -> count
+    switched_off: int           # refactor verifiers switched off
+    conductor_counted: bool     # whether the log carries the conductor's own usage event
+    total: dict                 # {COST_COLUMNS: number}, leaves only until the conductor is added
+    structural: object          # the structural-pass event, or None
+
+
+def fold(issue, path, ledger):
+    """Read the journal at `path` (and the ledger and files beside it) into a `Fold`; prints nothing."""
+    marks = read_events(path)
+    clocked = bool(marks) and all("awake" in mark for mark in marks if "ts" in mark)
+    models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
+              mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
+    tally = _Tally(models, clocked)
+    for line in marks:
+        tally.take(line)
+    passes = [{"step": step, "pass": index, "mark": mark, "verdict": spent_by["verdict"],
+               "revise": spent_by["revise"], "wall": spent_by[WALL], "dollars": spent_by[DOLLARS]}
+              for (step, index), (mark, spent_by) in tally.passes.items()]
+    return Fold(issue=issue, marks=marks, clocked=clocked, models=models, opening=tally.opening,
+                recovered=tally.recovered, phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
+                steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
+                adjudications=tally.adjudications, switched_off=tally.switched_off,
+                conductor_counted=tally.conductor_counted, total=tally.total, structural=tally.structural)
+
+
+def render(issue, path, ledger):
+    f = fold(issue, path, ledger)
+    marks, clocked, models = f.marks, f.clocked, f.models
+    opening, recovered, structural = f.opening, f.recovered, f.structural
+    counts, steps, by_model, lost, spent = f.phases, f.steps, f.by_model, f.lost, f.step_marks
+    passes, tier_runs, adjudications, switched_off = f.passes, f.tier_runs, f.adjudications, f.switched_off
+    conductor_counted, totals = f.conductor_counted, {"total": f.total}
+
+    def known(number):
+        return UNKNOWN if number is None else "%d" % number
 
     def row(cells):
         print("| " + " | ".join(cells) + " |")
@@ -441,7 +500,7 @@ def render(issue, path, ledger):
         return "%s/%s" % (mark.get("transforms", "?"), mark.get("budget", "?"))
 
     def step_wall(mark):
-        return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
+        return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done"), clocked))
 
     def budget_cells(mark):
         phases = mark.get("revise phases", {})
@@ -494,10 +553,10 @@ def render(issue, path, ledger):
     ending = ending or None
     print("### 📊 Metrics — issue %s" % issue)
     print()
-    wall_span, awake_span = wall_and_awake_spans(opening, ending)
+    wall_span, awake_span = wall_and_awake_spans(opening, ending, clocked)
     print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
           "there is none, to the mark that ended the run."
-          % known(awake_span_or_wall(opening, ending)))
+          % known(awake_span_or_wall(opening, ending, clocked)))
     if awake_span is not None and wall_span is not None:
         print("Seconds the machine was not running inside that span: %s s, excluded from it."
               % max(0, wall_span - awake_span))
@@ -612,9 +671,10 @@ def render(issue, path, ledger):
     if passes:
         table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
                    ["---:", "---:", "---", "---", "---:", "---:", "---:"])
-        for (step, index), (mark, spent_by) in passes.items():
-            row([step, index, refactor_spent(mark), mark["stopped"],
-                 spent_by["verdict"], str(spent_by["revise"])] + figures(spent_by, [WALL, DOLLARS]))
+        for each in passes:
+            mark = each["mark"]
+            row([each["step"], each["pass"], refactor_spent(mark), mark["stopped"],
+                 each["verdict"], str(each["revise"])] + ["%d" % each["wall"], "%.2f" % each["dollars"]])
     structural_marked = structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
@@ -643,8 +703,8 @@ def render(issue, path, ledger):
             print("Inconsistent mark: %s" % inconsistent)
     if passes or structural_marked:
         by_step = {}
-        for (step, _), (mark, _) in passes.items():
-            by_step.setdefault(step, []).append(mark)
+        for each in passes:
+            by_step.setdefault(each["step"], []).append(each["mark"])
 
         def totals_row(label, marks):
             moved = [mark.get("transforms", "") for mark in marks]
