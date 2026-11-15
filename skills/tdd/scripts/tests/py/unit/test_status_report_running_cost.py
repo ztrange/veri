@@ -2,10 +2,9 @@
 import importlib
 import json
 import os
-import subprocess
 
 
-def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_summed_from_usage_events(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_summed_from_usage_events(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -21,10 +20,7 @@ def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_
     events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": os.getpid(), "started": started},
               usage(1, 0.5), usage(2, 0.25)]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -33,7 +29,7 @@ def test_2750_report_running_block_shows_the_runs_cost_as_the_total_row_dollars_
     assert (code, ["0.75" in x for x in running if x.startswith("#2750")]) == (0, [True]), running
 
 
-def test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_label(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_label(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -49,10 +45,7 @@ def test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_
     events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": os.getpid(), "started": started},
               usage(1, 0.5), usage(2, 0.25)]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 

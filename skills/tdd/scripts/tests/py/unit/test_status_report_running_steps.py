@@ -2,10 +2,9 @@
 import importlib
 import json
 import os
-import subprocess
 
 
-def test_2750_report_running_block_shows_step_done_events_ticked_of_the_latest_plan_events_steps(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_block_shows_step_done_events_ticked_of_the_latest_plan_events_steps(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -21,10 +20,7 @@ def test_2750_report_running_block_shows_step_done_events_ticked_of_the_latest_p
               {"ts": 1793613780, "awake": 180, "event": "plan", "steps": "5"},
               {"ts": 1793613840, "awake": 240, "event": "step-done", "step": "2"}]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 

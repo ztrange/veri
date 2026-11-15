@@ -1,7 +1,6 @@
 """Small cases for veri.status --report: Waiting lists the bails since status-last."""
 import importlib
 import json
-import subprocess
 
 
 def main_log_answer(log):
@@ -9,7 +8,7 @@ def main_log_answer(log):
     return lambda line, **_: (0, log if "main" in line.split() else "", "")
 
 
-def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tmp_path, monkeypatch, run_cli):
+def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -26,8 +25,7 @@ def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tm
         (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
     journal(2750, 1793700000, "needs-user")
     journal(2751, 1793500000, "stuck")
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -36,7 +34,7 @@ def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tm
     assert (code, [l.split()[:2] for l in waiting if l]) == (0, [["#2750", "needs-user"]]), waiting
 
 
-def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_path, monkeypatch, run_cli):
+def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -52,8 +50,7 @@ def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_p
         (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
     journal(2750, 1793700000, "needs-user")
     journal(2751, 1793500000, "stuck")
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -64,7 +61,7 @@ def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_p
     assert (code, [l.split()[:2] for l in waiting if l]) == (0, [["#2750", "needs-user"], ["#2751", "stuck"]]), waiting
 
 
-def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch, run_cli):
+def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -82,8 +79,7 @@ def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch,
         (runs / ("%d.jsonl" % number)).write_text("".join(json.dumps(e) + "\n" for e in events))
     journal(2750, 99, False)
     journal(2751, 98, True)
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -92,7 +88,7 @@ def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch,
     assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
 
 
-def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips_done_without_pr(tmp_path, monkeypatch, run_cli):
+def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips_done_without_pr(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -108,8 +104,7 @@ def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips
               {"event": "done"}]
     lines = [dict(e, ts=1793600000 + 10 * i, awake=10 * i) for i, e in enumerate(events)]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in lines))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 

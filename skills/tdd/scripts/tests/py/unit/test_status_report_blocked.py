@@ -2,13 +2,12 @@
 import datetime
 import importlib
 import json
-import subprocess
 
 
 TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
 
 
-def fake_tags(monkeypatch, status, tags=TAGS):
+def fake_tags(fake_processes, tags=TAGS, answers=None):
     def run(args, *a, **k):
         fmt = "".join(x for x in args if x.startswith("--format="))
         if not fmt:
@@ -17,14 +16,15 @@ def fake_tags(monkeypatch, status, tags=TAGS):
             out = "".join("%d %s\n" % (unix, name) for name, unix, _ in tags)
         else:
             out = "".join("%s  %s\n" % (name, subject) for name, _, subject in tags)
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = fake_processes.answers(answers or {}, default=lambda line, **k: run(fake.argvs[-1]))
+    return fake
 
 
-def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_blocker(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_blocker(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    fake_tags(fake_processes)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
 
@@ -46,10 +46,10 @@ def test_2750_report_queue_lists_each_blocked_opted_in_issue_with_its_open_block
     assert (code, len(blocked), "#6" in " ".join(blocked)) == (0, 1, True), queue
 
 
-def test_2750_report_queue_omits_blocked_issues_that_are_closed_or_not_opted_in(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_omits_blocked_issues_that_are_closed_or_not_opted_in(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    fake_tags(fake_processes)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
 

@@ -2,10 +2,9 @@
 import importlib
 import json
 import os
-import subprocess
 
 
-def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, monkeypatch, run_cli):
+def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -18,8 +17,7 @@ def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, mo
     dead = tmp_path / ".tdd" / "wt" / "2761" / ".tdd"
     dead.mkdir(parents=True)
     (dead / "conductor.pid").write_text("%d\n" % (2 ** 22 + 7))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -27,7 +25,7 @@ def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, mo
     assert (code, [("2760" in n, "2761" in n) for n in notes]) == (0, [(True, False)]), (out, err)
 
 
-def test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal(tmp_path, monkeypatch, run_cli):
+def test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -41,8 +39,7 @@ def test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal(t
         (live / "conductor.pid").write_text("%d\n" % os.getpid())
     start = {"ts": 100, "issue": "2762", "event": "conductor-start", "pid": os.getpid(), "started": "x", "awake": 0}
     (runs / "2762.jsonl").write_text(json.dumps(start) + "\n")
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 

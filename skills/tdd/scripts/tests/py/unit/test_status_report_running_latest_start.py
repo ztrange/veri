@@ -2,10 +2,9 @@
 import importlib
 import json
 import os
-import subprocess
 
 
-def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dead_though_an_earlier_one_is_alive(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dead_though_an_earlier_one_is_alive(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -20,10 +19,7 @@ def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dea
               {"event": "conductor-start", "ts": "2026-11-02T11:00:00Z", "awake": 60,
                "pid": 2 ** 22 + 12345, "started": started}]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in starts))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -32,7 +28,7 @@ def test_2750_report_running_omits_a_run_whose_latest_conductor_start_pid_is_dea
     assert (code, listed) == (0, []), listed
 
 
-def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_by_other_events_and_a_blank_line(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_by_other_events_and_a_blank_line(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -47,10 +43,7 @@ def test_2750_report_running_lists_a_live_run_whose_conductor_start_is_followed_
               {"event": "step-start", "ts": "2026-11-02T10:05:00Z", "awake": 360}]
     text = json.dumps(events[0]) + "\n\n" + json.dumps(events[1]) + "\n\n"
     (runs / "2750.jsonl").write_text(text)
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 

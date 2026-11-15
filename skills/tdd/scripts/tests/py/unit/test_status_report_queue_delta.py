@@ -2,14 +2,12 @@
 import datetime
 import importlib
 import json
-import subprocess
 
 
-def test_2750_report_queue_count_carries_its_delta_against_the_counts_recorded_in_status_last(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_count_carries_its_delta_against_the_counts_recorded_in_status_last(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
 
@@ -30,11 +28,10 @@ def test_2750_report_queue_count_carries_its_delta_against_the_counts_recorded_i
     assert (code, any(line.split()[:3] == ["2", "agent-ok", "+1"] for line in queue if line)) == (0, True), queue
 
 
-def test_2750_report_queue_count_with_no_entry_in_status_last_prints_no_delta(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_count_with_no_entry_in_status_last_prints_no_delta(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
     issue = {"number": 1, "title": "t1", "state": "OPEN", "labels": [{"name": "agent-ok"}],
@@ -53,11 +50,10 @@ def test_2750_report_queue_count_with_no_entry_in_status_last_prints_no_delta(tm
     assert (code, counts) == (0, [["1", "agent-ok"]]), queue
 
 
-def test_2750_report_queue_with_status_last_holding_no_queue_key_prints_no_delta_and_exits_0(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_with_status_last_holding_no_queue_key_prints_no_delta_and_exits_0(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
     issue = {"number": 1, "title": "t1", "state": "OPEN", "labels": [{"name": "agent-ok"}],
