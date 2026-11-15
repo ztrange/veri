@@ -11,7 +11,7 @@ import entry
 import paths
 import run_dir
 from git import git
-from ledger import CRITERION_RE, decode_ledger, ledger_path, ledger_steps
+from ledger import CRITERION_RE, decode_ledger, ledger_steps
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
@@ -80,7 +80,7 @@ def copy_leaf_files(repo, step_ref, phase, attempt, mark):
 
 
 def ledger_step_index(repo, issue, step):
-    ledger = os.path.normpath(ledger_path(repo, issue))
+    ledger = os.path.normpath(run_dir.ledger(repo, issue))
     if not os.path.isfile(ledger):
         return step
     try:
