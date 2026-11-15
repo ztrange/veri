@@ -7,40 +7,10 @@ import sys
 
 import event
 import git
-import grade_prose
-import requirements
+from grade_prose import owed_listed
 from ledger import OPEN_STEP, carries_mark
 
 USAGE = "usage: prose-owed.sh <repo-root>"
-
-
-def graded_lines(graded):
-    if not os.path.exists(graded):
-        return
-    with open(graded, encoding="utf-8") as f:
-        for line in f.read().splitlines():
-            yield line.split(" ")
-
-
-def graded_signature(unit):
-    graded = grade_prose.graded_path(unit)
-    for fields in graded_lines(graded):
-        if fields[0] == unit and len(fields) > 1:
-            return fields[1]
-    return None
-
-
-def orphans(units):
-    for graded in requirements.tracked("GRADED"):
-        for fields in graded_lines(graded):
-            if fields[0] not in units:
-                yield fields[0]
-
-
-def owed_listed(path="REQUIREMENTS.md"):
-    listed = [(p, u) for p in requirements.lists(path) for u in requirements.listed_units(p)]
-    owed = [(p, u) for p, u in listed if graded_signature(u) != grade_prose.signature(p, u)]
-    return owed, list(orphans([u for _, u in listed]))
 
 
 def waive(ledger, owed):

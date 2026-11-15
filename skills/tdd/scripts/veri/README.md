@@ -521,10 +521,8 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 ## grade_prose
 - `main(argv)`: grades a prose unit and returns an exit code (2 on bad arguments); `--owed` and `--convert` are modes. `grade_unit(path, unit)`: the grading `main` does once parsed (0 PASS, 1 REJECT, 2 no answer), for `stale_rows` and `skill_edit_step`.
 - `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `read(file)`, `graded_path(unit)`: the unit's text, a file's text, its `GRADED` file path.
+- `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale; `prose_owed` imports it (`suite_red_resume` reads it as `prose_owed.owed_listed`). It lives here so `prose_owed` builds on `grade_prose` and not the reverse: `signer()` runs the tree's own `grade_prose.py` for the formula, so the stamp's functions stay in that one file.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
-
-## prose_owed
-- `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale.
 
 # Conductors and operator tools
 
