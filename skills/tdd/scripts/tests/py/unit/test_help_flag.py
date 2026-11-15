@@ -1,6 +1,5 @@
 """`--help` as the only argument prints a script's usage on stdout and exits 0."""
 import importlib
-import subprocess
 
 import pytest
 
@@ -14,36 +13,24 @@ def test_add_ledger_step_help_prints_usage_on_stdout_and_writes_nothing(run_cli,
     assert out.startswith("usage: add-ledger-step.sh")
 
 
-class Blocked(Exception):
-    pass
-
-
-def test_run_conductor_and_wait_ci_help_print_usage_on_stdout_and_write_nothing(run_cli, tmp_path, monkeypatch):
-    def refuse_to_wait(*args, **kwargs):
-        raise Blocked
-
+def test_run_conductor_and_wait_ci_help_print_usage_on_stdout_and_write_nothing(run_cli, tmp_path, fake_processes):
+    fake = fake_processes.answers({})
     seen = {}
     for module, name in ((run_conductor, "run-conductor.sh"), (wait_ci, "wait-ci.sh")):
-        with monkeypatch.context() as scope:
-            scope.setattr(module.subprocess, "run", refuse_to_wait)
-            try:
-                code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
-                seen[name] = (code, err, out.startswith("usage: " + name), list(tmp_path.iterdir()))
-            except Blocked:
-                seen[name] = "blocked on a process"
+        code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
+        seen[name] = (code, err, out.startswith("usage: " + name), list(tmp_path.iterdir()))
 
     assert seen == {
         "run-conductor.sh": (0, "", True, []),
         "wait-ci.sh": (0, "", True, []),
     }
+    assert fake.calls == []
 
 
 def test_stale_rows_stop_reason_stop_run_and_watch_runs_help_print_usage_on_stdout_and_write_nothing(
-    run_cli, tmp_path, monkeypatch
+    run_cli, tmp_path, fake_processes
 ):
-    def refuse_to_wait(*args, **kwargs):
-        raise Blocked
-
+    fake = fake_processes.answers({})
     seen = {}
     modules = (
         (stale_rows, "stale-rows.sh"),
@@ -52,15 +39,11 @@ def test_stale_rows_stop_reason_stop_run_and_watch_runs_help_print_usage_on_stdo
         (watch_runs, "watch-runs.sh"),
     )
     for module, name in modules:
-        with monkeypatch.context() as scope:
-            scope.setattr(subprocess, "run", refuse_to_wait)
-            try:
-                code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
-                seen[name] = (code, err, out.startswith("usage: " + name), list(tmp_path.iterdir()))
-            except Blocked:
-                seen[name] = "blocked on a process"
+        code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
+        seen[name] = (code, err, out.startswith("usage: " + name), list(tmp_path.iterdir()))
 
     assert seen == {name: (0, "", True, []) for _, name in modules}
+    assert fake.calls == []
 
 
 LISTED_SCRIPTS = (
@@ -72,36 +55,23 @@ LISTED_SCRIPTS = (
 
 @pytest.mark.parametrize("name", LISTED_SCRIPTS)
 def test_listed_script_help_prints_usage_on_stdout_and_starts_nothing_and_writes_nothing(
-    name, run_cli, tmp_path, monkeypatch
+    name, run_cli, tmp_path, fake_processes
 ):
-    def refuse_to_start(*args, **kwargs):
-        raise Blocked
-
+    fake = fake_processes.answers({})
     module = importlib.import_module("veri." + name.replace("-", "_"))
-    monkeypatch.setattr(subprocess, "Popen", refuse_to_start)
-    try:
-        code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
-        seen = (code, err, out.startswith("usage: " + name + ".sh"), list(tmp_path.iterdir()))
-    except Blocked:
-        seen = "blocked on a process"
+    code, out, err = run_cli(module, ["--help"], cwd=tmp_path)
 
-    assert seen == (0, "", True, [])
+    assert (code, err, out.startswith("usage: " + name + ".sh"), list(tmp_path.iterdir())) == (0, "", True, [])
+    assert fake.calls == []
 
 
 def test_restart_conductor_help_prints_usage_on_stdout_and_starts_nothing_and_writes_nothing(
-    run_cli, tmp_path, monkeypatch
+    run_cli, tmp_path, fake_processes
 ):
     from veri import restart_conductor
 
-    def refuse_to_start(*args, **kwargs):
-        raise Blocked
+    fake = fake_processes.answers({})
+    code, out, err = run_cli(restart_conductor, ["--help"], cwd=tmp_path)
 
-    monkeypatch.setattr(subprocess, "Popen", refuse_to_start)
-    monkeypatch.setattr(subprocess, "run", refuse_to_start)
-    try:
-        code, out, err = run_cli(restart_conductor, ["--help"], cwd=tmp_path)
-        seen = (code, err, out.startswith("usage: restart-conductor.sh"), list(tmp_path.iterdir()))
-    except Blocked:
-        seen = "blocked on a process"
-
-    assert seen == (0, "", True, [])
+    assert (code, err, out.startswith("usage: restart-conductor.sh"), list(tmp_path.iterdir())) == (0, "", True, [])
+    assert fake.calls == []

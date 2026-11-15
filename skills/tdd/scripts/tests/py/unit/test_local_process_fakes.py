@@ -51,7 +51,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_dispatch_issue_states.py": "not inventoried",
     "unit/test_event_journal.py": "not inventoried",
     "unit/test_grade_prose.py": "not inventoried",
-    "unit/test_help_flag.py": "not inventoried",
     "unit/test_orchestrate.py": "not inventoried",
     "unit/test_prose_owed_gate.py": "not inventoried",
     "unit/test_refresh_spec.py": "not inventoried",
