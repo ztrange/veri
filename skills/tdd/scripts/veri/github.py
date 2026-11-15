@@ -321,7 +321,7 @@ def gh_json_page(fixture, path, *args):
 
 class Pull(NamedTuple):
     """One pull request, whichever route answered. A record carrying both draft spellings reads isDraft. Fields the answer did not carry read as: draft None,
-    url, html_url and head_sha None, head_ref, body and state "", labels (). <url> and <html_url> are what
+    url and html_url None, head_sha None (an empty or null one reads ""), head_ref, body and state "", labels (). <url> and <html_url> are what
     the answer called them (a REST url is the API's; GraphQL has only url); <state> is upper-cased."""
     number: Optional[int]
     url: Optional[str]
@@ -332,6 +332,7 @@ class Pull(NamedTuple):
     body: str
     state: str
     labels: tuple
+    mergeable: Optional[bool] = None
 
 
 def _pull(raw):
@@ -339,9 +340,10 @@ def _pull(raw):
     draft = raw["isDraft"] if "isDraft" in raw else raw.get("draft")
     return Pull(number=raw.get("number"), url=raw.get("url"), html_url=raw.get("html_url"), draft=draft,
                 head_ref=raw.get("headRefName") or head.get("ref") or "",
-                head_sha=raw.get("headRefOid") or head.get("sha"),
+                head_sha=raw.get("headRefOid") or (head["sha"] or "" if "sha" in head else None),
                 body=raw.get("body") or "", state=str(raw.get("state", "")).upper(),
-                labels=tuple(label.get("name") for label in raw.get("labels") or []))
+                labels=tuple(label.get("name") for label in raw.get("labels") or []),
+                mergeable=raw.get("mergeable"))
 
 
 def pulls_in(text):
@@ -369,6 +371,17 @@ def open_pulls_text(fields, state="open", head=None, limit=10000, repo=None):
 def open_pulls(fields, state="open", head=None, limit=10000, repo=None):
     """The open pull requests (<state> "all" adds the closed) as Pull records; arguments as open_pulls_text."""
     return pulls_in(open_pulls_text(fields, state, head, limit, repo))
+
+
+def pull(url_or_number, repo=None):
+    """One pull request (its URL or number; <repo> owner/name, default this repository) as a Pull, read
+    over REST under every driver. NoAnswer whose detail is gh's stderr, which it does not echo, when the
+    read fails; ValueError when the answer is not JSON."""
+    path = "repos/%s/pulls/%s" % (repo or "{owner}/{repo}", str(url_or_number).rsplit("/pull/", 1)[-1])
+    run = gh_api(path, stderr=subprocess.PIPE)
+    if run.returncode != 0:
+        raise NoAnswer("", run.stderr or "")
+    return _pull(json.loads(run.stdout))
 
 
 def closed_issues(body, loose=False):

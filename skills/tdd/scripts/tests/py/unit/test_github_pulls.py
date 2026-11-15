@@ -117,3 +117,34 @@ def test_pulls_in_reads_back_to_back_documents_and_raises_a_value_error_on_text_
 ])
 def test_closed_issues_reads_the_issue_numbers_a_body_closes_in_order(github, body, loose, issues):
     assert github.closed_issues(body, loose=loose) == issues
+
+
+def test_pull_reads_one_pull_request_by_url_or_number_over_rest_into_the_same_record(github, fake_processes):
+    raw = dict(REST_SHAPED, mergeable=True)
+    fake = fake_processes.answers({"gh api": (0, json.dumps(raw), "")})
+    by_url = github.pull("https://github.com/o/r/pull/7", "o/r")
+    by_number = github.pull(7)
+    assert fake.calls == ["gh api repos/o/r/pulls/7", "gh api repos/{owner}/{repo}/pulls/7"]
+    assert by_url == by_number and by_url.mergeable is True
+    assert (by_url.number, by_url.draft, by_url.head_sha, by_url.body) == (7, True, "abc", "Closes #3")
+
+
+def test_pull_says_none_for_a_flag_the_answer_does_not_carry(github, fake_processes):
+    fake_processes.answers({"gh api": (0, '{"number": 7, "head": {}}', "")})
+    pull = github.pull(7)
+    assert (pull.draft, pull.mergeable, pull.head_sha) == (None, None, None)
+    fake_processes.answers({"gh api": (0, '{"number": 7, "head": {"sha": null}}', "")})
+    assert github.pull(7).head_sha == ""
+
+
+def test_pull_raises_no_answer_with_gh_s_stderr_as_its_detail_and_echoes_none_of_it(github, fake_processes, capsys):
+    fake_processes.answers({"gh api": (1, "", "HTTP 404: Not Found\n")})
+    with pytest.raises(github.NoAnswer) as refused:
+        github.pull(7)
+    assert (refused.value.detail, capsys.readouterr().err) == ("HTTP 404: Not Found\n", "")
+
+
+def test_pull_raises_a_value_error_on_an_answer_that_is_not_json(github, fake_processes):
+    fake_processes.answers({"gh api": (0, "<html>502</html>", "")})
+    with pytest.raises(ValueError):
+        github.pull(7)
