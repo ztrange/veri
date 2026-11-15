@@ -10,7 +10,6 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.di
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1
-import concurrent.futures
 import contextlib
 import fcntl
 import hashlib
@@ -331,6 +330,7 @@ def clear_case_directories(base):
         except OSError:
             pass
 
+    import concurrent.futures
     with concurrent.futures.ThreadPoolExecutor(CLEAR_THREADS) as pool:
         list(pool.map(remove, children))
 
