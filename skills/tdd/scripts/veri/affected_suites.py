@@ -7,17 +7,10 @@ import re
 import subprocess
 import sys
 
-try:
-    import entry
-    from git import git
-except ImportError:
-    from . import entry
-    from .git import git
+import entry
+from git import git
 
-try:
-    from . import markdown_sections
-except ImportError:
-    import markdown_sections
+import markdown_sections
 
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"

@@ -15,12 +15,8 @@ import requirements
 import skill_edit_guard
 import tunables
 
-try:
-    from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
-except ImportError:
-    from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+from event_log import read_events
+from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)

@@ -15,10 +15,7 @@ exists but cannot be opened (a directory, no permission) raises OSError.
 import json
 from pathlib import Path
 
-try:
-    from run_dir import run_file
-except ImportError:
-    from .run_dir import run_file
+from run_dir import run_file
 
 TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
                "cache_creation_input_tokens")

@@ -18,10 +18,7 @@ from extract_result import extract
 import leaf_log
 from paths import SCRIPTS
 
-try:
-    from veri import leaf
-except ImportError:
-    import leaf
+import leaf
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit>"
 GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "
