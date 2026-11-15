@@ -368,13 +368,174 @@ class World:
         return True
 
 
+class State:
+    """What one poll hands the next: the target, the last launch, the runs under watch and why, the queued merges,
+    the rate-limit pause, the skips already printed, when each silent exit was first seen, and when the queue was
+    last found with nothing launchable."""
+
+    def __init__(self, target, follows_role_state=False):
+        self.target = target
+        self.follows_role_state = follows_role_state  # re-read the target from the role state file each poll
+        self.previous = None  # the last issue launched
+        self.seen = []  # the runs under watch: live, absent or pending
+        self.absent = []  # gone with no worktree and no conductor process, for one poll so far
+        self.pending = []  # gone but not yet reportable: in preflight, restarting, or a silent exit under 30 s
+        self.merges = []  # the PR urls of the queued merges running at the last poll
+        self.resume_at = 0  # no queue read before this clock() time: a rate limit's reset
+        self.reported = set()  # the (issue, path, PR url) skips already printed
+        self.missing = {}  # issue: the clock() time its silent exit was first seen
+        self.held_at = None  # the clock() time the queue last had nothing launchable
+
+
+def _merge_failed(state, world):
+    """merge-failed <url> for a queued merge that ended with its PR neither merged nor unresolved."""
+    running = world.queued_merges()
+    for pr_url in state.merges:
+        if pr_url not in running and world.merge_state(pr_url) not in ("MERGED", "UNRESOLVED"):
+            world.say(f"merge-failed {pr_url}\n")
+            return 0
+    state.merges = running
+    return None
+
+
+def _exits(state, world, live):
+    """The vanish, restart, silent-exit and closing-line rules for each seen run no longer live."""
+    for issue in state.seen:
+        if issue in live:
+            continue
+        if not world.has_worktree(issue):
+            if world.conductor_alive(issue):
+                if issue in state.absent:
+                    state.absent.remove(issue)
+                if issue not in state.pending:
+                    state.pending.append(issue)
+                continue
+            state.pending = [p for p in state.pending if p != issue]
+            if issue in state.absent:
+                world.wait()
+                if world.has_worktree(issue):
+                    state.absent.remove(issue)
+                    state.pending.append(issue)
+                    continue
+                world.complain(f"run {issue} vanished: no worktree left behind\n")
+                return 2
+            state.absent.append(issue)
+            continue
+        if world.restarting(issue):
+            if issue not in state.pending:
+                state.pending.append(issue)
+            continue
+        line = world.closing_line(issue)
+        if line.startswith("silent-exit") and world.clock() - state.missing.setdefault(issue, world.clock()) < 30:
+            if issue not in state.pending:
+                state.pending.append(issue)
+            continue
+        world.say(line + "\n")
+        return 0
+    return None
+
+
+def _role_state_target(state, world):
+    """The target from the role state file: its last n= line, unless an unexpired timed-n line overrides it."""
+    lines = role_state.State(world.role_state())
+    try:
+        target = lines.last_n()
+        for value, expiry in lines.timed_ns():
+            if world.clock() < expiry:
+                target = value
+    except role_state.Malformed as why:
+        said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
+        world.complain(f"dispatch.sh: {said} in {world.role_state_file()}\n")
+        return 2
+    state.target = target
+    return None
+
+
+def _stalled(state, world):
+    """stalled <n> for the first seen run silent for the stall window whose issue is not closed."""
+    stall = int(stall_window())
+    states = None
+    for issue in state.seen:
+        last = world.last_activity(issue)
+        if last is not None and world.clock() - last >= stall:
+            if states is None:
+                try:
+                    states = world.issue_states(state.seen)
+                except watch_runs.QueueUnreadable as failure:
+                    world.complain(str(failure))
+                    return 2
+            if states.get(issue) == "CLOSED":
+                continue
+            world.say(f"stalled {issue}\n")
+            return 0
+    return None
+
+
+def _launch_into_a_free_slot(state, world, live):
+    """Launch the first launchable issue while fewer than the target runs hold a slot and nothing pauses launching."""
+    ledger = state.previous and world.has_ledger(state.previous)
+    held = len(live) + len(state.pending)
+    if held < state.target:
+        held = len(live) + len(set(state.pending) | {
+            i for i in world.run_worktrees()
+            if i not in live and world.restarting(i)})
+    if not (held < state.target and (state.previous is None or ledger)
+            and world.clock() >= state.resume_at
+            and (state.held_at is None or world.clock() - state.held_at >= int(overlap_poll()))):
+        return None
+    try:
+        queue = world.solvable()
+        changed = world.run_pr_paths()
+        free = [issue for issue in queue if launchable(issue, changed, state.reported, world)]
+        free = prioritize(free, world.role_state())
+    except role_state.Malformed as why:
+        world.complain(f"dispatch.sh: malformed override line in {world.role_state_file()}: {why.line}\n")
+        return 2
+    except watch_runs.QueueUnreadable as failure:
+        if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
+            state.resume_at = world.rate_limit_reset()
+        elif str(failure):
+            world.complain(str(failure))
+            return 2
+        elif not live:
+            world.say("queue-empty\n")
+            return 3
+        return None
+    state.held_at = world.clock() if not free and (queue or live) else None
+    if free:
+        state.previous = free[0]
+        world.launch(state.previous)
+    return None
+
+
+def step(state, world):
+    """One poll: (state, exit code), the code None while dispatch keeps watching. Each line is printed through
+    world.say or world.complain as it is decided, so a later failure in the same poll never swallows it."""
+    live = world.live_runs()
+    code = _merge_failed(state, world)
+    if code is None:
+        code = _exits(state, world, live)
+    if code is None and state.follows_role_state:
+        code = _role_state_target(state, world)
+    if code is None:
+        code = _stalled(state, world)
+    if code is not None:
+        return state, code
+    for issue in live:
+        state.missing.pop(issue, None)
+    state.absent = [issue for issue in state.absent if issue not in live]
+    state.pending = [issue for issue in state.pending if issue not in live and issue not in state.absent]
+    state.seen = live + state.absent + state.pending
+    return state, _launch_into_a_free_slot(state, world, live)
+
+
 def main(argv, world=None):
     """dispatch.sh: watch, decide and launch until a closing line or exit code; None when <world> says stop."""
     world = World() if world is None else world
     if not argv:
-        state = world.unreadable_role_state()
-        if state is not None:
-            world.complain(f"dispatch.sh: cannot read {state}\n")
+        path = world.unreadable_role_state()
+        if path is not None:
+            world.complain(f"dispatch.sh: cannot read {path}\n")
             return 2
     target = parse_args(argv) if argv else 0
     if target is None:
@@ -383,116 +544,12 @@ def main(argv, world=None):
     if not tunables.parses("VERI_DISPATCH_RETRY_SLEEP", tunables.get("VERI_DISPATCH_RETRY_SLEEP")):
         world.complain("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
         return 2
-    previous = None
-    seen = []
-    absent = []
-    pending = []
-    merges = []
-    resume_at = 0
-    reported = set()
-    missing = {}
-    held_at = None
+    state = State(target, follows_role_state=not argv)
     _reads.clear()
     while True:
-        live = world.live_runs()
-        running = world.queued_merges()
-        for pr_url in merges:
-            if pr_url not in running and world.merge_state(pr_url) not in ("MERGED", "UNRESOLVED"):
-                world.say(f"merge-failed {pr_url}\n")
-                return 0
-        merges = running
-        for issue in seen:
-            if issue not in live:
-                if not world.has_worktree(issue):
-                    if world.conductor_alive(issue):
-                        if issue in absent:
-                            absent.remove(issue)
-                        if issue not in pending:
-                            pending.append(issue)
-                        continue
-                    pending = [p for p in pending if p != issue]
-                    if issue in absent:
-                        world.wait()
-                        if world.has_worktree(issue):
-                            absent.remove(issue)
-                            pending.append(issue)
-                            continue
-                        world.complain(f"run {issue} vanished: no worktree left behind\n")
-                        return 2
-                    absent.append(issue)
-                    continue
-                if world.restarting(issue):
-                    if issue not in pending:
-                        pending.append(issue)
-                    continue
-                line = world.closing_line(issue)
-                if line.startswith("silent-exit") and world.clock() - missing.setdefault(issue, world.clock()) < 30:
-                    if issue not in pending:
-                        pending.append(issue)
-                    continue
-                world.say(line + "\n")
-                return 0
-        if not argv:
-            state = role_state.State(world.role_state())
-            try:
-                target = state.last_n()
-                for value, expiry in state.timed_ns():
-                    if world.clock() < expiry:
-                        target = value
-            except role_state.Malformed as why:
-                said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
-                world.complain(f"dispatch.sh: {said} in {world.role_state_file()}\n")
-                return 2
-        stall = int(stall_window())
-        states = None
-        for issue in seen:
-            last = world.last_activity(issue)
-            if last is not None and world.clock() - last >= stall:
-                if states is None:
-                    try:
-                        states = world.issue_states(seen)
-                    except watch_runs.QueueUnreadable as failure:
-                        world.complain(str(failure))
-                        return 2
-                if states.get(issue) == "CLOSED":
-                    continue
-                world.say(f"stalled {issue}\n")
-                return 0
-        for issue in live:
-            missing.pop(issue, None)
-        absent = [issue for issue in absent if issue not in live]
-        pending = [issue for issue in pending if issue not in live and issue not in absent]
-        seen = live + absent + pending
-        ledger = previous and world.has_ledger(previous)
-        held = len(live) + len(pending)
-        if held < target:
-            held = len(live) + len(set(pending) | {
-                i for i in world.run_worktrees()
-                if i not in live and world.restarting(i)})
-        if held < target and (previous is None or ledger) \
-            and world.clock() >= resume_at and (held_at is None or world.clock() - held_at >= int(overlap_poll())):
-            try:
-                queue = world.solvable()
-                changed = world.run_pr_paths()
-                free = [issue for issue in queue if launchable(issue, changed, reported, world)]
-                free = prioritize(free, world.role_state())
-            except role_state.Malformed as why:
-                world.complain(f"dispatch.sh: malformed override line in {world.role_state_file()}: {why.line}\n")
-                return 2
-            except watch_runs.QueueUnreadable as failure:
-                if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
-                    resume_at = world.rate_limit_reset()
-                elif str(failure):
-                    world.complain(str(failure))
-                    return 2
-                elif not live:
-                    world.say("queue-empty\n")
-                    return 3
-            else:
-                held_at = world.clock() if not free and (queue or live) else None
-                if free:
-                    previous = free[0]
-                    world.launch(previous)
+        state, code = step(state, world)
+        if code is not None:
+            return code
         if not world.wait():
             return None
 
