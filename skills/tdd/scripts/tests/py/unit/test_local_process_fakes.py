@@ -66,7 +66,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_help_flag.py": "not inventoried",
     "unit/test_merge_lock_gate.py": "not inventoried",
     "unit/test_merge_lock_owner.py": "not inventoried",
-    "unit/test_mutation_probe.py": "wraps the red fake, records text",
     "unit/test_orchestrate.py": "not inventoried",
     "unit/test_prose_owed_gate.py": "not inventoried",
     "unit/test_refresh_spec.py": "not inventoried",
