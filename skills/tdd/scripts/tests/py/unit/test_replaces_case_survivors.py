@@ -183,3 +183,23 @@ def test_main_exits_3_with_nothing_printed_when_the_quoted_clause_has_no_suite_a
     step = "the replacement takes over: replaces 'a', 'b' ⟦replaces-case⟧ ⟦criterion 2⟧"
 
     assert run_cli(survivors, [step]) == (3, "", "")
+
+
+def test_survivors_answers_code_stdout_and_stderr_text_for_each_outcome_without_printing(tmp_path, monkeypatch, capsys, survivors):
+    suite = tmp_path / "tests" / "demo.test.sh"
+    suite.parent.mkdir()
+    suite.write_text('verdict "stale first" 0\n')
+    monkeypatch.chdir(tmp_path)
+    live = "replaces 'stale first', 'gone' in tests/demo.test.sh ⟦replaces-case⟧ ⟦criterion 3⟧"
+    mixed = "the replacement takes over: replaces 'a', b, 'c' in t/x.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧"
+
+    found = survivors.survivors(live)
+    plain = survivors.survivors("an ordinary step")
+    refused = survivors.survivors(mixed)
+
+    assert found == (1, "still present in tests/demo.test.sh: stale first\n", "")
+    assert plain == (3, "", "")
+    assert refused[0] == 2 and refused[1] == "" and refused[2].endswith("\n") and mixed in refused[2]
+    suite.write_text("")
+    assert survivors.survivors(live) == (0, "", "")
+    assert capsys.readouterr() == ("", "")
