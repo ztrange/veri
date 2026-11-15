@@ -20,15 +20,16 @@ about twelve lines.
 
 # Groups
 
-- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, JSON/Markdown and test-source reading.
-- **Run state and journal**: Where a run lives on disk, its journal of events, whether it is live, stuck or ended, and how it is stopped.
-- **Ledger and plan**: The ledger of a run: reading and ticking steps, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself.
+- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading and the reading of test and requirements sources.
+- **Run state and journal**: Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped.
+- **Ledger and plan**: The ledger of a run: reading its steps and finding the next one to do, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself. Ticking a step is in Frozen tests and case history (`tick_ledger` imports `tests_frozen`, which this group may not).
 - **Leaf launch and supervision**: How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read.
 - **Prompts and leaf reports**: What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report).
 - **Verdicts and verification**: The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2.
 - **Budgets and cost**: The budgets (steps, time, refactor, context, affordability) and what leaves cost.
-- **Test suites and tiers**: Running, timing and choosing test suites (affected suites, fast and full tier, branch and rebased-tip suites, flakes, mutation probes), plus the pytest leg and its guard plugins.
-- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, and the git history of cases.
+- **Veri's own test runner**: How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler.
+- **Target suites and tiers**: Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes.
+- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases.
 - **GitHub and issues**: gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria.
 - **Branch, PR and merge**: Worktrees, pushing a branch, readying and merging the pull request, waiting for CI.
 - **Prose grading and requirements**: Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step.
@@ -39,34 +40,49 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Foundations imports only: nothing
 - Run state and journal imports only: Foundations
 - Ledger and plan imports only: Foundations; Run state and journal
-- Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; Frozen tests and case history
+- Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; Veri's own test runner; Frozen tests and case history
 - Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
-- Test suites and tiers imports only: Foundations; Run state and journal
+- Veri's own test runner imports only: Foundations
+- Target suites and tiers imports only: Foundations; Run state and journal
 - Budgets and cost imports only: Foundations; Run state and journal
 - Frozen tests and case history imports only: Foundations; Run state and journal; Ledger and plan
-- GitHub and issues imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers
-- Branch, PR and merge imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; GitHub and issues
+- GitHub and issues imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers
+- Branch, PR and merge imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; GitHub and issues
 - Prose grading and requirements imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; GitHub and issues
 - Nothing imports Conductors and operator tools
+
+### Refusing
+
+A refusal is exit 2 with its words on stderr. `entry.refuse(*lines, usage=None, prefix="")` is the shared way to write one and the call for a new script: about 100 calls in 23 modules (counted 2026-11-15). It is not the only way, and no audit checks the choice: about 98 sites in 80 modules write their `USAGE` to stderr themselves (`print(USAGE, file=sys.stderr)`, `entry.write(sys.stderr, USAGE)`), and a script whose refusal bytes a test pins keeps its own spelling, since `refuse` writes through the binary buffer and flushes around each line where `print` does not. A script that takes no arguments calls `entry.no_arguments(argv, USAGE)` first; `tests/py/unit/test_zero_argument_modules_refuse_an_argument.py` fails for a module whose `USAGE` shows no argument and whose `main` neither calls it nor tests `argv` itself.
 
 ### Adding a script
 
 An ungraded checklist; each step names the audit that fails when it is skipped (run it with `make test TESTS=…`).
 
-1. `veri/<name>.py`: a module docstring, `USAGE`, `main(argv)`, and `entry.run(main, argv)` as the one `__main__` path; sibling imports flat. Audits: `tests/py/unit/test_veri_interface_index.py` (docstring), `tests/py/unit/test_flat_sibling_imports.py`, `tests/py/test_shims.py` (`entry_bypass_problems`: `__main__` goes through `entry.run`).
+1. `veri/<name>.py`: a module docstring, `USAGE`, `main(argv)`, and `entry.run(main, argv)` as the one `__main__` path; sibling imports flat. A script that takes no argument calls `entry.no_arguments(argv, USAGE)` (see "Refusing"). Audits: `tests/py/unit/test_veri_interface_index.py` (docstring), `tests/py/unit/test_flat_sibling_imports.py`, `tests/py/test_shims.py` (`entry_bypass_problems`: `__main__` goes through `entry.run`), `tests/py/unit/test_zero_argument_modules_refuse_an_argument.py`; and `tests/py/unit/test_entry_start_cost.py` when the module is `entry` (no costly stdlib import at its top).
 2. `<name>.sh`: the canonical `/bin/sh` shim over that module, no Python in it, executable. Audit: `tests/py/test_shims.py` (`shim_problems`, and the executable bit).
 3. The shim's `# Usage:` header agrees with `USAGE`, and its flags are in the SCRIPTS.md synopsis. Audits: `tests/py/unit/test_shim_usage_matches_module.py`, `tests/py/unit/test_skill_reference_usage.py`.
 4. `--help` prints `USAGE` and exits 0 (`entry.run` does it). Audits: `tests/py/unit/test_every_shim_module_answers_help.py` (every shim-fronted module declares `USAGE`; `--help` exits 0, prints usage, starts no process), `tests/py/unit/test_help_flag.py`, `tests/py/unit/test_operator_scripts_help_guard.py`.
 5. The catalogue: a bullet for `$S/<name>.sh` in `skills/tdd/SCRIPTS.md` and its SC row in `skills/tdd/REQUIREMENTS.md` (both graded prose). Audit: `tests/py/unit/test_scripts_md_rows.py` (a script left out is named in its `UNCATALOGUED` ratchet).
-6. This file: the script's line in its group, a `## <module>` section once two other modules import it, and the group's direction still obeyed. Audit: `tests/py/unit/test_veri_interface_index.py`.
-7. A `VERI_*` read goes through `tunables.get(name)` with no literal default. Audits: `tests/py/unit/test_tunable_defaults_audit.py`, `tests/py/unit/test_tunable_reads.py`.
-8. Tests in `tests/py/unit/test_<name>.py`: no process, no repo listing; a case that starts a process carries `@pytest.mark.process("<boundary>")`, one that lists a repo directory `@pytest.mark.tree_audit("<sweep>")`. Audits: `tests/py/test_fast_tier_guard.py` (placement), `tests/py/unit/test_process_mark.py` with conftest's collection check (marks).
+6. This file: the script's line in its group, a `## <module>` section once two other modules import it (every name a sibling uses listed there, and every listed call with the parameters the module defines), and the group's direction still obeyed. Audits: `tests/py/unit/test_veri_interface_index.py`, `tests/py/unit/test_index_names_match_use.py`.
+7. A `VERI_*` read goes through `tunables.get(name)` with no literal default, and the name's one default sits in `tunables.TUNABLES`. Audits: `tests/py/unit/test_tunable_defaults_audit.py` (every `VERI_*` name, in the table or not), `tests/py/unit/test_tunable_reads.py`.
+8. Tests in `tests/py/unit/test_<name>.py`: no process, no repo listing; a case that starts a process carries `@pytest.mark.process("<boundary>")`, one that lists a repo directory `@pytest.mark.tree_audit("<sweep>")`. A tree audit reads the sources through the shared `tests_py_index` and `veri_modules_index` fixtures. Audits: `tests/py/test_fast_tier_guard.py` (placement), `tests/py/unit/test_process_mark.py` with conftest's collection check (marks), `tests/py/unit/test_tree_index_guard.py` (the fixtures).
 9. The test side's map: which tier and marks, which helper module or fixture fakes a process, a repository, the dispatch world or GitHub, and which audits check a test file. See `tests/py/README.md`; its index audit is `tests/py/unit/test_tests_py_readme.py`.
+
+#### Stated, not audited
+
+Rules this file states that no audit enforces; they rely on review.
+
+- Siblings are imported with no `try/except ImportError` fallback: `test_flat_sibling_imports.py` checks the import forms only (no site on 2026-11-15).
+- `entry.refuse` is the call for a new refusal (see "Refusing"); no audit counts which form a script uses.
+- Exit codes 1 and 2 are never collapsed: a clean negative is not a plan that failed to produce an answer.
+- A module's one-line description, a section's prose and a group's description say what the code does. The audits check names, parameter lists and group membership, not sentences.
+- A group's description names the concerns its modules hold; moving a module between groups needs its imports to obey the directions above, which the audit does check.
 
 # Foundations
 
-What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, JSON/Markdown and test-source reading. Builds on no other group; every other group may build on it.
+What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading and the reading of test and requirements sources. Builds on no other group; every other group may build on it.
 
 - `requirements.sh`: the prose units and requirement rows of a file.
 
@@ -86,7 +102,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `write(stream, text, *, before=True, after=True, end="\n")`: writes str or bytes to the stream's binary buffer, flushing before and after by default.
 - `refusal(main, exc)`: the one-line `<shim>: <Type>: <reason> (at file:line)` text for an exception.
 - `silence_stdout()`: points fd 1 at `/dev/null`; ignores failure.
-- `refuse(*lines, usage=None, prefix="")`: writes each str/bytes line (prefixed) and then the usage to stderr; returns 2. The one way to refuse.
+- `refuse(*lines, usage=None, prefix="")`: writes each str/bytes line (prefixed) and then the usage to stderr; returns 2. The shared way to refuse, not the only one (see "Refusing" below).
 - `no_arguments(argv, usage)`: for a script that takes none, `None` when `argv` is empty, else refuses (2) naming the first argument, then the usage.
 - `to_contract(code)`: the code when it is 0, 1, 2 or 3, else 2.
 - `whole_number(text, minimum=1)`: the int of `text` when it is ASCII digits only (leading zeros allowed; no sign, space or non-ASCII digit) and at least `minimum`, else `None`.
@@ -140,13 +156,13 @@ What every module stands on: the one `__main__` path and exit contract, script p
 The one reader of `VERI_*` and related environment variables.
 - `read(name, default="", unless_empty=None)`: the value as a string. `read_bytes(name, default=b"")`: as bytes.
 - `TUNABLES`: name to `Tunable(parse, default, refusal=None)`, every tunable once. `TABLE`: the entries that state a `refusal`. `tokens(raw)`: int, ValueError otherwise.
-- Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `set_but_empty(name)`, `get_bytes(name, unless_empty=False)` (`get`, as bytes). A reader of any `VERI_*` name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the exemptions it lists by name with a reason each (`VERI_POLL`, `VERI_MISSING_REROUTE_BUDGET`, `dispatch.py`, `parallel_conductors.py`, the run-context fields `VERI_ISSUE`/`VERI_STEP`). A name read at two defaults (`VERI_POLL`, `VERI_MISSING_REROUTE_BUDGET`) is not in `TUNABLES`.
+- Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `set_but_empty(name)`, `get_bytes(name, unless_empty=False)` (`get`, as bytes). A reader of any `VERI_*` name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the sites its `EXEMPT` dict names, a reason each; read that dict, this file does not copy it. Its kinds: a name read at two defaults (not in `TUNABLES`), a name whose script's argument handling is filed for the dev lane, and the run-context fields the conductor exports.
 - `environment()`, `with_values(**values)`, `without(name)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
 - `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`. `claude_bin()`: `CLAUDE_BIN`, `claude` when unset or empty.
 
 # Run state and journal
 
-Where a run lives on disk, its journal of events, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
+Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
 
 - `classify-bail.sh`: label a bail as a process or a system failure.
 - `ensure-run-state-ignored.sh`: keep the run's `.tdd/` state git-ignored.
@@ -173,7 +189,7 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 ## event_log
 - `path(run)`: the journal of a run directory, `<run>/.tdd/events.jsonl`.
 - `events(run, *kinds, skip_unreadable=False, errors="replace")`: the events of those kinds (all when none), in order; `[]` when the run has no journal; ValueError on an unreadable line unless skipped.
-- `last(run, kind)`: the last event of a kind, or `None`.
+- `last(run, kind, **tolerance)`: the last event of a kind, or `None`; `tolerance` is `events`' `skip_unreadable` and `errors`.
 - `read_events(path, skip_unreadable=False, mark_unreadable=False, errors="replace")`: one dict per non-blank line of an `events.jsonl`; `skip_unreadable` drops lines that are not a JSON object, `mark_unreadable` keeps them as `None`.
 - `usage_totals(events)`: `(dollars, tokens)` summed over the `usage` events.
 - `append_bytes(path, data)`: appends bytes to a file; raises OSError.
@@ -181,9 +197,9 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 
 ## mutation_record
 The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format (`<name> <size>\n<value>\n` fields, a blank line closing each entry, `old`/`new`/`context` base64-encoded under `<name>-b64`).
-- `path(run, issue)`: the record of an issue. `of_ledger(ledger_path)`: the record beside a ledger file. `is_record(name)`: whether a basename is `issue-<digits>-mutations.md`. `number(path)`: the issue number in its name.
+- `path(run, issue)`: the record of an issue. `of_ledger(ledger_path)`: the record beside a ledger file. `is_record(name)`: whether a basename is `issue-<digits>-mutations.md`. `number(record_path)`: the issue number in its name.
 - `paths(run="")`: the records present, sorted, relative when `run` is empty. `snapshot(run="")`: `{path: bytes}` of them.
-- `format_record(fields)`: the text of one entry from (name, value) pairs. `append(path, fields)`: add one entry to a record.
+- `format_record(fields)`: the text of one entry from (name, value) pairs. `append(record_path, fields)`: add one entry to a record.
 - `records(text)`: `[{name: value}]`, text fields decoded. `chunks(text)`: `[(raw, fields)]`, each entry's exact text with the blank lines after it and its undecoded fields; raises `MalformedRecord` (a `ValueError` whose `header` is the bad line).
 
 ## pid_file
@@ -230,7 +246,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 
 # Ledger and plan
 
-The ledger of a run: reading and ticking steps, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself. Builds on Run state and journal and Foundations.
+The ledger of a run: reading its steps and finding the next one to do, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself. Ticking a step is in Frozen tests and case history (`tick_ledger` imports `tests_frozen`, which this group may not). Builds on Run state and journal and Foundations.
 
 - `add-ledger-step.sh`: append a planned (`⟦added⟧`) step to the ledger.
 - `clear-refactor-pending.sh`: remove a step's `⟂ refactor pending` mark.
@@ -258,13 +274,13 @@ The one reading of a GitHub issue's markdown body: its `## <heading>` sections, 
 - `section(body, heading, *, prefix=False, occurrence="last")`: the text, `None` when the heading is absent. `occurrence` is `first`, `last` or `all`.
 - `criteria(body, *, prefix=False, occurrence="last")`: `[(index, line)]`, the unfenced checkbox lines (`ledger.STEP_RE`) under `## Acceptance criteria`; the k-th criterion is `[k - 1]`.
 - `blockers(body, repo)`: the issue numbers under the first `## Blocked by`, as `#<n>` or `https://github.com/<repo>/issues/<n>`; an empty `repo` reads any github.com issue URL as local.
-- `add_blocker(body, n)`: `body` with `- #<n>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
+- `add_blocker(body, new)`: `body` with `- #<new>` listed under `## Blocked by` (pinned by `test_coverage_blocker`: every section starting with it, every `None` line).
 
 A heading matches when it equals the heading once stripped (CRLF and trailing whitespace tolerated; `prefix=True` also accepts a suffix); a heading inside a fenced block is none; a section ends at the next unfenced `# ` or `## `; the last occurrence wins unless `first` or `all` is asked. Callers: `blocked_by`, `report_cache`, `tick_issue_criterion`, `ledger_steps`, `add_ledger_step`, `refresh_spec`.
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
-- Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (records of `(index, state, kind, pending, added, criterion, text)`), `items_at(rev, path)` (OSError when git cannot show it).
+- Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (one `Step` per step line, a named tuple `(number, state, kind, pending, added, criterion, text)`: `number` the 1-based position as a string, `state` `open` or `done`, `pending` `"1"` or `"0"`), `items_at(rev, path)` (OSError when git cannot show it).
 - Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_clear_pending(text, matcher)`, `tick_line(match)` (a `STEP_RE` match with its box ticked): the first three return `(changed, text)`.
 - A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `is_skill_edit`, `is_retired(text)`, `handed_out(record)`: predicates and parts of its text.
 - Resolving a reference: `step_at(steps, reference, *, text_matches=same_text, by_index=False)` is the `Step` a step number or a step's text names, `None` for "no such step". By default digits are a 1-based position (`"01"` is step 1, never looked up as text); `by_index=True` takes only a step's own `number` string and then falls back to text; `text_matches(reference, text)` is the text rule (equal, the first match wins). `supervise` (equal text, and prefix text for `⟦ci-repair⟧`) and `preserve_attempt` (`by_index`, text or text without its criterion tag) call it.
@@ -280,7 +296,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 
 # Leaf launch and supervision
 
-How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read. Builds on Run state and journal, Ledger and plan, Test suites and tiers, Frozen tests and case history and Foundations.
+How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read. Builds on Run state and journal, Ledger and plan, Target suites and tiers, Veri's own test runner, Frozen tests and case history and Foundations.
 
 - `detach-command.sh`: start a command detached and wait for it.
 - `detach-leaf.sh`: launch a leaf detached.
@@ -311,6 +327,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 ## leaf_timeout
 - `settled(root, issue)`: the run's pinned hard timeout (`<root>/.tdd/issue-<issue>-timeout`) as the digits written, `None` when unpinned; raises `Malformed` (`path`, `text`, `not_a_number`) for a pin that is not a whole number of seconds >= 1.
+
 ## leaf_model
 - `resolve(name)`: the model for a leaf, `None` when the name is invalid or the model has whitespace (message on stderr).
 - `leaf_model(name)`: the same as a string; `""` where `resolve` gives `None`.
@@ -384,30 +401,40 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 ## growth
 - `growth(records, baseline=None)`: tokens of context a session grew since its first usage record (or `baseline`), `None` when it has none.
 
-# Test suites and tiers
+# Veri's own test runner
 
-Running, timing and choosing test suites (affected suites, fast and full tier, branch and rebased-tip suites, flakes, mutation probes), plus the pytest leg and its guard plugins. Builds on Run state and journal and Foundations only.
+How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest leg's launcher and its plugins, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. Builds on Foundations only.
+
+- `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
+- `fast_tier_guard`: Fast-tier admission guard: names the lines of test files that start a process.
+- `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
+- `network_guard`: a pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp.
+- `private_tmp_path`: the pytest leg's tmp_path plugin: one fresh directory under the session basetemp, made without numbering.
+- `profile.sh`: per-case timing of suites.
+- `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
+- `pytest_leg`: the pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest.
+- `serial_seen`: the pytest leg's probe plugin: records in a file what each collection held, for the leg to plan its serial pass from.
+- `small_case_guard`: a pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/ module.
+
+## full_run_lock
+- `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER`), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
+- `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
+- `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
+
+# Target suites and tiers
+
+Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes. Builds on Run state and journal and Foundations only.
 
 - `affected-suites.sh`: the test suites a change touches.
 - `baseline-full-tier.sh`: run and record the baseline full tier.
 - `branch-suite.sh`: print `ci` or `local`: where the branch's full suite runs.
 - `detect-test-command.sh`: find the project's test commands.
-- `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
-- `fast_tier_guard`: Fast-tier admission guard: names the lines of test files that start a process.
-- `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `full-tier-time.sh`: how long the full tier takes, from recorded runs.
 - `mutation-parity.sh`: check the pairs of recorded mutations.
 - `mutation-probe.sh`: apply a mutation, run a command, restore.
-- `network_guard`: a pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp.
 - `pin-fast-tier.sh`: run the fast tier over the tree a pin would commit.
-- `private_tmp_path`: the pytest leg's tmp_path plugin: one fresh directory under the session basetemp, made without numbering.
-- `profile.sh`: per-case timing of suites.
-- `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
-- `pytest_leg`: the pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest.
 - `rebased-tip-suite.sh`: print `ci` or `local`: where the rebased tip's suite runs.
 - `rerun-alone.sh`: rerun each target of a red run alone.
-- `serial_seen`: the pytest leg's probe plugin: records in a file what each collection held, for the leg to plan its serial pass from.
-- `small_case_guard`: a pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/ module.
 - `suite-flakes.sh`: flaky targets across runs.
 - `tier-usual.sh`: the usual (median) time of a tier.
 - `timed-test-run.sh`: run a test command and journal one `test-run` event.
@@ -421,17 +448,12 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
 
-## full_run_lock
-- `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER`), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
-- `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
-- `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
-
 ## suite_mode
 - `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.
 
 # Frozen tests and case history
 
-The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
+The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
 
 - `case_identity`: when a case in the tree is the same case as a recorded one (moves, renames, refactors) and the digest of the helpers it calls; tests_frozen decides, this module only identifies.
 - `case_history`: the git history queries tests_frozen's record policy asks; it decides, this module only looks.
@@ -468,7 +490,7 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 
 # GitHub and issues
 
-gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria. Builds on Ledger and plan, Run state and journal, Test suites and tiers and Foundations.
+gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria. Builds on Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
 
 - `capture-spec.sh`: capture an issue as a spec file.
 - `comment-class.sh`: classify an issue comment.
@@ -500,7 +522,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `pull(url_or_number, repo=None)`: one pull request as a Pull record (adds `mergeable`), read over REST under every driver; `NoAnswer` with gh's stderr as `detail` (not echoed) when the read fails, `ValueError` on a non-JSON answer.
 - `closed_issues(body, loose=False)`: the issue numbers (strings) a PR body closes with `Closes #n`, in order; `loose` reads `[Cc]loses #n` anywhere, as `status --recover` does.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
-- `refusal_kind(stderr_text)` and `NoAnswer.kind` (of its `detail`, else its `answer`): what kind of refusal gh's words describe, `"rate-limit"` (`rate limit`, a `Retry-After` or exhausted `X-RateLimit-Remaining` header), `"transient"` (`HTTP 5…`, `error connecting to api.github.com`) or `"refused"`; a rate limit outranks a transient marker. The one marker set: callers ask it and keep their own waiting policy, never matching stderr words themselves. `VERI_GH_REFUSAL_RETRIES` is spent inside `github`'s own reads (60 s sleeps) and again by `dispatch` (waits for the reset), each layer counting on its own.
+- `refusal_kind(text)` and `NoAnswer.kind` (of its `detail`, else its `answer`): what kind of refusal gh's words describe, `"rate-limit"` (`rate limit`, a `Retry-After` or exhausted `X-RateLimit-Remaining` header), `"transient"` (`HTTP 5…`, `error connecting to api.github.com`) or `"refused"`; a rate limit outranks a transient marker. The one marker set: callers ask it and keep their own waiting policy, never matching stderr words themselves. `VERI_GH_REFUSAL_RETRIES` is spent inside `github`'s own reads (60 s sleeps) and again by `dispatch` (waits for the reset), each layer counting on its own.
 
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
@@ -508,7 +530,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 
 # Branch, PR and merge
 
-Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Test suites and tiers and Foundations.
+Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
 
 - `ci_decision`: what a polled CI state means for `wait-ci.sh`, as a pure `decide()` (values in, a decision out).
 - `ci_marks`: the `.tdd/ci-*` marks `wait-ci.sh` keeps for a head, with their file names and contents.
@@ -537,8 +559,9 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `stale-rows.sh`: requirements rows gone stale.
 
 ## grade_prose
-- `grade_unit(path, unit, read=None)`: grades a prose unit, its file's text answered by the reader passed as the third argument (None: the working tree; `stale_rows` passes the default branch's), for `stale_rows` and `skill_edit_step`. Returns a grading record (`code` 0 PASS, 1 REJECT, 2 no answer; `verdict`, `failing` row ids, `lines`, `cost`, `grading_id`; `out`, the bytes `grade-prose.sh` prints); on PASS it also signs `GRADED` and journals a `grading` event. The script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
-- `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `graded_path(unit)`: the unit's text, its `GRADED` file path.
+- `grade_unit(path, unit, read=None)`: grades a prose unit, its file's text answered by its `read` argument (None: the working tree; `stale_rows` passes the default branch's), for `stale_rows` and `skill_edit_step`. Returns a `Grading` named tuple whose `code` is 0 PASS, 1 REJECT, 2 no answer; `verdict`, `failing` row ids, `lines`, `cost`, `grading_id`; its property `out` is what `grade-prose.sh` prints; on PASS it also signs `GRADED` and journals a `grading` event. The script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
+- The `GRADED` file's line grammar (fields split on a single space: unit, signature, date, grading id, grader-template prefix) is read and written in this module alone, by graded_fields and graded_line (inverses), graded_lines and record_graded.
+- `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit, reader=None)`, `graded_path(unit)`: the unit's text (read through `reader`, the working tree when `None`), its `GRADED` file path.
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale; `prose_owed` imports it (`suite_red_resume` reads it as `prose_owed.owed_listed`). It lives here so `prose_owed` builds on `grade_prose` and not the reverse: `signer()` runs the tree's own `grade_prose.py` for the formula, so the stamp's functions stay in that one file.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
 
