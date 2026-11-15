@@ -16,8 +16,8 @@ from pathlib import Path
 import entry
 import event
 import mutation_record
+import run_dir
 from event_log import run_keeping_journal
-from ledger import ledger_path
 
 USAGE = "usage: pin-recheck.sh <base-sha> [--ledger <file>]"
 
@@ -72,7 +72,7 @@ def git_out(*args):
 
 def tick_commit(ledger):
     number = mutation_record.number(ledger)
-    return subprocess.run(["git", "log", "-1", "--format=%H", "--", ledger_path(".", number)],
+    return subprocess.run(["git", "log", "-1", "--format=%H", "--", run_dir.ledger(".", number)],
                           capture_output=True, text=True).stdout.strip()
 
 
