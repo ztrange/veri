@@ -172,6 +172,10 @@ def get(name, unless_empty=False):
     return read(name, fallback, unless_empty=fallback if unless_empty else None)
 
 
+def set_but_empty(name):
+    return name in os.environ and not os.environ[name]
+
+
 def resolve(name):
     """(value, None), or (None, (raw, must_be)) when the environment holds a bad value."""
     entry = TABLE[name]
