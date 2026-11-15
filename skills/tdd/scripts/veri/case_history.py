@@ -13,6 +13,9 @@ Interface:
   revisions(path, since=None)   the shas of the commits that touched `path`, newest first; with `since`,
                                 only those in since..HEAD. [] when git cannot log.
   subject(rev)                  `rev`'s commit subject plus its newline; "" when git cannot log.
+  changed_test_files()          test files that differ from HEAD (changed, then untracked), repo-relative, in
+                                git's order; OSError ("git <diff|ls-files> failed: ...") when a listing fails,
+                                since an empty answer would read as "no test files".
   first_revision_with(needle, path)
                                 the oldest commit whose change to `path` adds or removes an occurrence of
                                 `needle` (git log -S); "" when none does or git cannot log.
@@ -25,7 +28,7 @@ import os
 import subprocess
 
 import git
-from case_reader import cut_cases
+from case_reader import cut_cases, is_js_test_file, is_test_path
 
 
 def toplevel():
@@ -76,3 +79,18 @@ def first_revision_with(needle, path):
     listed = git.git("log", "--reverse", "--format=%H", "-S" + needle, "--", path,
                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     return next(iter(listed.stdout.decode().split()), "")
+
+
+def changed_test_files():
+    names = []
+    for command in (("diff", "--name-only", "--no-renames", "-z", "HEAD"),
+                    ("ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/")):
+        done = git.git(*command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if done.returncode != 0:
+            # A failed listing is no answer: an empty one would read as "no test files".
+            raise OSError("git %s failed: %s" % (command[0], " ".join(os.fsdecode(done.stderr).split())))
+        for raw in done.stdout.split(b"\0"):
+            name = os.fsdecode(raw)
+            if raw and (is_test_path(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
+                names.append(name)
+    return names
