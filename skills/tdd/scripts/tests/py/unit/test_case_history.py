@@ -180,7 +180,7 @@ def ledger_history(ledger_path, texts, tails=None):
 
 @pytest.fixture
 def ledger_path():
-    return importlib.import_module("veri.ledger").ledger_path(".", "7")
+    return importlib.import_module("veri.run_dir").ledger(".", "7")
 
 
 LEDGER = ["- [ ] a\n- [ ] b\n", "- [x] a\n- [ ] b\n", "- [x] a\n- [x] b\n"]
