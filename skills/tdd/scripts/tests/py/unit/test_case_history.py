@@ -165,3 +165,67 @@ def test_changed_test_files_raises_oserror_naming_the_failed_listing(case_histor
     runs({DIFF: (0, b"", b""), UNTRACKED: (128, b"", b"fatal: not a\n  repository\n")})
     with pytest.raises(OSError, match=r"^git ls-files failed: fatal: not a repository$"):
         case_history.changed_test_files()
+
+
+def ledger_history(ledger_path, texts, tails=None):
+    """Answers for a ledger committed as c1, c2, ...: its log, each revision's text, and rev-list ranges."""
+    revs = ["c%d" % (i + 1) for i in range(len(texts))]
+    answers = {("log", "--reverse", "--format=%H", "--", ledger_path): (0, ("\n".join(revs) + "\n").encode(), b"")}
+    for rev, text in zip(revs, texts):
+        answers[("show", "%s:%s" % (rev, ledger_path))] = (0, text.encode(), b"")
+    for (first, last), listed in (tails or {}).items():
+        answers[("rev-list", "%s..%s" % (first, last))] = (0, listed.encode(), b"")
+    return answers
+
+
+@pytest.fixture
+def ledger_path():
+    return importlib.import_module("veri.ledger").ledger_path(".", "7")
+
+
+LEDGER = ["- [ ] a\n- [ ] b\n", "- [x] a\n- [ ] b\n", "- [x] a\n- [x] b\n"]
+
+
+def test_step_commits_are_those_after_the_previous_tick_up_to_the_one_that_ticked_the_step(
+        case_history, runs, ledger_path):
+    runs(ledger_history(ledger_path, LEDGER, {("c2", "c3"): "c3\n"}))
+    assert case_history.step_commits("b", "7") == {"c3"}
+
+
+def test_step_commits_of_the_first_step_run_from_the_first_ledger_commit(case_history, runs, ledger_path):
+    runs(ledger_history(ledger_path, LEDGER, {("c1", "c2"): "x1\nx2\n"}))
+    assert case_history.step_commits("a", "7") == {"x1", "x2"}
+
+
+def test_step_commits_of_a_step_committed_but_not_ticked_run_to_head(case_history, runs, ledger_path):
+    runs(ledger_history(ledger_path, LEDGER[:2], {("c2", "HEAD"): "h1\n"}))
+    assert case_history.step_commits("b", "7") == {"h1"}
+
+
+def test_step_commits_raises_lookup_error_for_a_step_no_committed_ledger_line_holds(case_history, runs, ledger_path):
+    runs(ledger_history(ledger_path, LEDGER))
+    with pytest.raises(LookupError, match=r"^step zzz: no committed ledger line of it was found"):
+        case_history.step_commits("zzz", "7")
+
+
+def test_step_commits_raises_lookup_error_without_an_issue(case_history, runs):
+    runs({})
+    with pytest.raises(LookupError, match=r"^step b: no committed ledger line of it was found"):
+        case_history.step_commits("b", "")
+
+
+def test_step_commits_raises_oserror_when_the_ledger_log_fails(case_history, runs, ledger_path):
+    runs({})
+    with pytest.raises(OSError, match=r"^git log --reverse --format=%H -- .*failed: fatal: nope$"):
+        case_history.step_commits("b", "7")
+
+
+def test_commit_of_is_the_sha_the_revision_names(case_history, runs):
+    runs({("rev-parse", "--verify", "--quiet", "v1^{commit}"): (0, b"abc123\n", b"")})
+    assert case_history.commit_of("v1") == "abc123"
+
+
+def test_commit_of_raises_oserror_when_the_revision_names_no_commit(case_history, runs):
+    runs({})
+    with pytest.raises(OSError, match=r"^git rev-parse --verify --quiet v1\^\{commit\} failed: fatal: nope$"):
+        case_history.commit_of("v1")

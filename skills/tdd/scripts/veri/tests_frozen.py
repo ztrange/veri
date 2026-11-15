@@ -108,13 +108,6 @@ def _recorded_digests(record, name):
         return {}
 
 
-def _git_out(*argv):
-    done = subprocess.run(["git", *argv], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if done.returncode != 0:
-        raise OSError("git %s failed: %s" % (" ".join(argv), " ".join(os.fsdecode(done.stderr).split())))
-    return done.stdout.decode("utf-8", "replace")
-
-
 def _issue():
     """The issue whose ledger holds the step: VERI_ISSUE, else the number of a `tdd/<n>-…` branch."""
     issue = tunables.read("VERI_ISSUE")
@@ -125,48 +118,9 @@ def _issue():
     return found.group(1) if found else ""
 
 
-def _phases_done(text):
-    return bool(ledger.listed_phases(text)) and ledger.next_phase(text) is None
-
-
-def _ledger_items(rev, path):
-    return ledger.items_at(rev, path)
-
-
 def _step_commits(step):
-    """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
-    that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
-    ledger of the step's own issue is the only record of which commit belongs to which step; a ticked line
-    carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
-    issue = _issue()
-    step = ledger.unphased(step)
-    if issue:
-        path = ledger.ledger_path(".", issue)
-        revs = _git_out("log", "--reverse", "--format=%H", "--", path).split()
-        previous, last_tick, tick = set(), revs[:1], None
-        for rev in revs:
-            matched = _ledger_items(rev, path)
-            texts = {ledger.unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched}
-            ticked = {text for text, done in texts.items() if done}
-            if step in ticked:
-                tick = rev
-                pending = any(ledger.unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
-                              for m in matched)
-                for later in revs[revs.index(rev) + 1:] if pending else ():
-                    if any(ledger.unphased(m.group(2)) == step and not m.group(2).endswith(ledger.PENDING_MARK)
-                           for m in _ledger_items(later, path)):
-                        tick = later
-                        break
-                break
-            if step in texts:
-                tick = "HEAD"
-            if ticked != previous:
-                last_tick = [rev]
-            previous = ticked
-        if tick:
-            return set(_git_out("rev-list", "%s..%s" % (last_tick[0], tick)).split())
-    raise LookupError("step %s: no committed ledger line of it was found, so which commits are its own is unknown"
-                      % step)
+    """The commits that are `step`'s own (case_history.step_commits) in the issue VERI_ISSUE or the branch names."""
+    return case_history.step_commits(step, _issue())
 
 
 def _introduced_by(name, own):
@@ -535,7 +489,7 @@ def _is_suite_repair_green(lines, green):
     then may a frozen case's body at `green^` stand for its record. A suite-repair step ticked elsewhere in the
     ledger vouches for its own commits, never for another step's green; any lookup that fails refuses."""
     try:
-        sha = _git_out("rev-parse", "--verify", "--quiet", green + "^{commit}").strip()
+        sha = case_history.commit_of(green)
     except OSError:
         return False
     for line in lines:

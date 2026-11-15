@@ -16,6 +16,12 @@ Interface:
   changed_test_files()          test files that differ from HEAD (changed, then untracked), repo-relative, in
                                 git's order; OSError ("git <diff|ls-files> failed: ...") when a listing fails,
                                 since an empty answer would read as "no test files".
+  step_commits(step, issue)     the shas of the commits that are `step`'s own, from the committed ledger of
+                                `issue`: after the latest commit that ticked any line before the one that
+                                ticked `step`'s (HEAD for a step committed but not ticked). LookupError when
+                                no committed ledger line of the step is found (no issue included); OSError
+                                when a ledger log, show or rev-list fails.
+  commit_of(rev)                the sha of the commit `rev` names; OSError when it names none.
   first_revision_with(needle, path)
                                 the oldest commit whose change to `path` adds or removes an occurrence of
                                 `needle` (git log -S); "" when none does or git cannot log.
@@ -28,6 +34,7 @@ import os
 import subprocess
 
 import git
+import ledger
 from case_reader import cut_cases, is_js_test_file, is_test_path
 
 
@@ -94,3 +101,53 @@ def changed_test_files():
             if raw and (is_test_path(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
                 names.append(name)
     return names
+
+
+def _out(*argv):
+    done = git.git(*argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if done.returncode != 0:
+        raise OSError("git %s failed: %s" % (" ".join(argv), " ".join(os.fsdecode(done.stderr).split())))
+    return done.stdout.decode("utf-8", "replace")
+
+
+def commit_of(rev):
+    return _out("rev-parse", "--verify", "--quiet", rev + "^{commit}").strip()
+
+
+def _phases_done(text):
+    return bool(ledger.listed_phases(text)) and ledger.next_phase(text) is None
+
+
+def step_commits(step, issue):
+    """The commits that are `step`'s own: after the latest commit that ticked any ledger line before the one
+    that ticked `step`'s line, up to and including that one (HEAD for a step not ticked yet). The committed
+    ledger of the step's own issue is the only record of which commit belongs to which step; a ticked line
+    carries ledger.PENDING_MARK until its refactor passes, so lines are compared without it."""
+    step = ledger.unphased(step)
+    if issue:
+        path = ledger.ledger_path(".", issue)
+        revs = _out("log", "--reverse", "--format=%H", "--", path).split()
+        previous, last_tick, tick = set(), revs[:1], None
+        for rev in revs:
+            matched = ledger.items_at(rev, path)
+            texts = {ledger.unphased(m.group(2)): m.group(1) != " " or _phases_done(m.group(2)) for m in matched}
+            ticked = {text for text, done in texts.items() if done}
+            if step in ticked:
+                tick = rev
+                pending = any(ledger.unphased(m.group(2)) == step and m.group(2).endswith(ledger.PENDING_MARK)
+                              for m in matched)
+                for later in revs[revs.index(rev) + 1:] if pending else ():
+                    if any(ledger.unphased(m.group(2)) == step and not m.group(2).endswith(ledger.PENDING_MARK)
+                           for m in ledger.items_at(later, path)):
+                        tick = later
+                        break
+                break
+            if step in texts:
+                tick = "HEAD"
+            if ticked != previous:
+                last_tick = [rev]
+            previous = ticked
+        if tick:
+            return set(_out("rev-list", "%s..%s" % (last_tick[0], tick)).split())
+    raise LookupError("step %s: no committed ledger line of it was found, so which commits are its own is unknown"
+                      % step)
