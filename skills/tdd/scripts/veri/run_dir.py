@@ -22,17 +22,26 @@ class NoMainTree(Exception):
     """git gave no main working tree: not in a repository, git missing, or the directory unusable."""
 
 
-def main_tree(cwd=None):
+_RAISE = object()
+
+
+def main_tree(cwd=None, *, missing=_RAISE):
     """The repository's main working tree (the first `git worktree list --porcelain` entry), as a str.
 
-    Asks git from `cwd` (default: the current directory). Raises NoMainTree when git is
-    missing, `cwd` is unusable, or git names no worktree; never returns "" or bytes."""
+    Asks git from `cwd` (default: the current directory); a first line without the `worktree `
+    prefix is taken as the tree itself, as the copies this replaced did. When git is missing, `cwd` is
+    unusable or git names no worktree, raises NoMainTree, or returns `missing` (any value,
+    "" and None included) when the caller gave one; never returns bytes."""
     try:
         answer = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=cwd, capture_output=True, text=True)
     except OSError as error:
+        if missing is not _RAISE:
+            return missing
         raise NoMainTree(str(error)) from error
     first = answer.stdout.split("\n", 1)[0]
-    if answer.returncode or not first.startswith("worktree "):
+    if answer.returncode or not first:
+        if missing is not _RAISE:
+            return missing
         raise NoMainTree(f"git names no main working tree from {cwd or os.getcwd()}")
     return first.removeprefix("worktree ")
 

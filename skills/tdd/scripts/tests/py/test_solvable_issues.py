@@ -451,7 +451,7 @@ def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_direct
         def fake_run(args, *rest, **kwargs):
             if list(args) != ["git", "worktree", "list", "--porcelain"]:
                 raise AssertionError("unexpected command: %r" % (args,))
-            calls.append((kwargs.get("cwd") in (None, str(caller), caller), kwargs.get("stderr")))
+            calls.append((kwargs.get("cwd") in (None, str(caller), caller), kwargs.get("capture_output")))
             if isinstance(answer, BaseException):
                 raise answer
             return subprocess.CompletedProcess(args, *answer)
@@ -468,7 +468,7 @@ def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_direct
     assert run((128, "", "fatal: not a git repository\n")) == (0, unlocked)
     assert run((0, "", "")) == (0, unlocked)
     assert run(FileNotFoundError(2, "No such file or directory", "git")) == (0, unlocked)
-    assert calls == [(True, subprocess.DEVNULL)] * 5
+    assert calls == [(True, True)] * 5
 
 
 def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_widening_the_pool_and_returns_3_when_none_survive(tmp_path, monkeypatch, capsys, solvable_issues):

@@ -9,7 +9,7 @@ import time
 
 def test_3059_report_first_line_names_the_local_zone_with_its_utc_offset(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -31,7 +31,7 @@ def test_3059_report_first_line_names_the_local_zone_with_its_utc_offset(tmp_pat
 
 def test_3059_report_first_line_signs_a_zone_east_of_utc_with_plus(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -53,7 +53,7 @@ def test_3059_report_first_line_signs_a_zone_east_of_utc_with_plus(tmp_path, mon
 
 def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_local_zone(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -77,7 +77,7 @@ def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_lo
 
 def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -103,7 +103,7 @@ def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_
 def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_taggers_offset(tmp_path, monkeypatch, run_cli):
     import re
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     unix = 1768426200
     tagger = datetime.timezone(datetime.timedelta(hours=9))
 
@@ -146,7 +146,7 @@ def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_ta
 def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_its_own_zone(tmp_path, monkeypatch, run_cli):
     import re
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -196,7 +196,7 @@ def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_i
 
 def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
@@ -222,7 +222,7 @@ def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(
 
 def test_3198_report_zone_line_keeps_the_minutes_of_a_non_zero_offset(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))

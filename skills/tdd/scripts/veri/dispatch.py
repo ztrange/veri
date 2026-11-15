@@ -9,10 +9,12 @@ import sys
 import time
 from datetime import datetime
 
+import event_log
 import github
 import handoff_state
 import json_documents
 import paths
+import run_dir as layout
 from role_state import state_path
 import status
 import timed_n_format
@@ -40,7 +42,7 @@ def restart_pending(issue):
     a dead pid is a stale marker, so the exit is reported. A marker not yet
     holding a pid (restart-conductor.sh is mid-write) counts as in flight."""
     try:
-        with open(os.path.join(run_dir(issue), ".tdd", "restart-pending")) as f:
+        with open(layout.run_file(run_dir(issue), "restart-pending")) as f:
             text = f.read().strip()
     except FileNotFoundError:
         return False
@@ -59,18 +61,14 @@ def now():
     return datetime.now().isoformat(timespec="seconds")
 
 
-def tdd_dir():
-    return os.path.join(status.main_working_tree(), ".tdd")
-
-
 def run_dir(issue):
-    return os.path.join(tdd_dir(), "wt", issue)
+    return layout.worktree(layout.main_tree(missing=""), issue)
 
 
 def launch(issue):
     scripts = paths.scripts_of(__file__)
     for script, log_name in (("run-conductor.sh", f"conductor-{issue}.log"), ("restart-conductor.sh", f"restart-{issue}.log")):
-        with open(os.path.join(tdd_dir(), log_name), "ab") as out:
+        with open(layout.main_file(layout.main_tree(missing=""), log_name), "ab") as out:
             subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, script), issue],
                              stdin=subprocess.DEVNULL, stdout=out, stderr=out)
 
@@ -313,7 +311,7 @@ def lane():
 
 
 def state_file():
-    return state_path(status.main_working_tree(), "dev", lane())
+    return state_path(layout.main_tree(missing=""), "dev", lane())
 
 
 def main(argv):
@@ -393,13 +391,13 @@ def main(argv):
         stall = int(stall_window())
         states = None
         for issue in seen:
-            tdd = os.path.join(run_dir(issue), ".tdd")
-            events = os.path.join(tdd, "events.jsonl")
+            run = run_dir(issue)
+            events = event_log.path(run)
             if os.path.exists(events) and clock() - max(
                     os.path.getmtime(f)
-                    for f in (events, *glob.glob(os.path.join(tdd, "*.out")),
-                              *glob.glob(os.path.join(tdd, "*.log")),
-                              os.path.join(tdd, "conductor.pid"))
+                    for f in (events, *glob.glob(layout.run_file(run, "*.out")),
+                              *glob.glob(layout.run_file(run, "*.log")),
+                              layout.run_file(run, "conductor.pid"))
                     if os.path.exists(f)) >= stall:
                 if states is None:
                     try:
@@ -419,7 +417,7 @@ def main(argv):
         ledger = previous and ledger_path(run_dir(previous), previous)
         held = len(live) + len(pending)
         if held < target:
-            wt = os.path.join(tdd_dir(), "wt")
+            wt = layout.worktrees(layout.main_tree(missing=""))
             held = len(live) + len(set(pending) | {
                 i for i in (os.listdir(wt) if os.path.isdir(wt) else [])
                 if i not in live and restart_pending(i)})
@@ -447,7 +445,7 @@ def main(argv):
                 if free:
                     previous = free[0]
                     launch(previous)
-                    with open(os.path.join(tdd_dir(), "dispatch.log"), "a") as log:
+                    with open(layout.main_file(layout.main_tree(missing=""), "dispatch.log"), "a") as log:
                         log.write(f"launched {previous} {now()}\n")
         wait()
 

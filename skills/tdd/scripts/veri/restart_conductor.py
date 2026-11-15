@@ -12,6 +12,7 @@ import full_tier_time
 import growth
 import paths
 import pid_file
+import run_dir
 import status
 import stop_run as stop_run_module
 import tunables
@@ -24,20 +25,20 @@ def _positive_int(text):
     return text.isascii() and text.isdigit() and int(text) >= 1
 
 
-def _tdd_dir():
-    return os.path.join(full_tier_time.main_tree(os.getcwd()), ".tdd")
+def _main_tree():
+    return full_tier_time.main_tree(os.getcwd())
 
 
 def _run_dir(run):
-    return os.path.join(_tdd_dir(), "wt", run)
+    return run_dir.worktree(_main_tree(), run)
 
 
 def _run_file(run, name):
-    return os.path.join(_run_dir(run), ".tdd", name)
+    return run_dir.run_file(_run_dir(run), name)
 
 
 def _log_path(run):
-    return os.path.join(_tdd_dir(), f"conductor-{run}.log")
+    return run_dir.main_file(_main_tree(), f"conductor-{run}.log")
 
 
 def conductor_alive(run):
@@ -45,7 +46,7 @@ def conductor_alive(run):
 
 
 def _process_live(run):
-    root = os.path.dirname(_tdd_dir())
+    root = _main_tree()
     return any(issue == run and pid_file.is_inside(pid_file.cwd_of(pid), root) for pid, issue in pid_file.conductors())
 
 
@@ -60,7 +61,7 @@ def run_state(run):
 def _launch_env(run):
     env = {k: v for k, v in tunables.environment().items() if not k.startswith("VERI_")}
     try:
-        with open(os.path.join(_tdd_dir(), f"issue-{run}-launch-env")) as record:
+        with open(run_dir.issue_file(_main_tree(), run, "-launch-env")) as record:
             for line in record:
                 key, sep, value = line.rstrip("\n").partition("=")
                 if sep:

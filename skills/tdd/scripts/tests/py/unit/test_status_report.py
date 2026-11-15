@@ -31,7 +31,7 @@ def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_ord
     import re
     import time
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     tagger = datetime.timezone(datetime.timedelta(hours=9))
     tags = {"v0.2": (1768426200, "Second capability"), "v0.1": (1768339800, "First capability")}
 
@@ -76,7 +76,7 @@ def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_ord
 
 def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
 
     code, out, _ = run_cli(status, ["--report"])
@@ -91,7 +91,7 @@ def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_o
 
 def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status, tags=())
 
     code, out, _ = run_cli(status, ["--report"])
@@ -104,7 +104,7 @@ def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say
 
 def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
     tag_run = status.subprocess.run
 
@@ -127,7 +127,7 @@ def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_fi
 
 def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
@@ -151,7 +151,7 @@ def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tm
 
 def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     fake_tags(monkeypatch, status)
     tag_run = status.subprocess.run
 

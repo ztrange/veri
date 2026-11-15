@@ -30,7 +30,7 @@ def test_2545_a_run_whose_events_log_vanishes_between_the_check_and_the_read_is_
         (run / ".tdd" / "events.jsonl").unlink()
         return real_read_events(path, *args, **kwargs)
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "read_events", read_after_removal)
 
@@ -56,7 +56,7 @@ def test_2545_a_run_whose_ledger_vanishes_between_the_check_and_the_read_is_abse
             ledger.unlink()
         return found
 
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(os.path, "isfile", isfile_then_removal)
 
@@ -75,7 +75,7 @@ def test_2700_text_lists_a_run_with_events_but_no_ledger_whose_only_event_is_pre
     (run / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
          "cause": "preflight-refused", "classification": "system"}) + "\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     status.render(False, "", False)
@@ -92,7 +92,7 @@ def test_2700_text_lists_a_run_with_no_ledger_and_no_launch_or_end_mark_and_a_li
     (run / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-start"}) + "\n")
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     status.render(False, "", False)
@@ -106,7 +106,7 @@ def test_2700_json_scope_totals_attempted_equals_the_runs_listed_when_a_ledgerle
     run = tmp_path / ".tdd" / "wt" / "7"
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "events.jsonl").write_text("")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "solvable_count", lambda name: "0")
 
@@ -125,7 +125,7 @@ def test_2700_text_lists_a_run_with_no_ledger_and_a_live_conductor_whose_only_ev
         {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
          "cause": "preflight-refused", "classification": "system"}) + "\n")
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     status.render(False, "", False)
@@ -140,7 +140,7 @@ def test_2700_text_lists_a_run_with_no_ledger_and_no_launch_or_end_mark_and_no_l
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-start"}) + "\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     status.render(False, "", False)
@@ -156,7 +156,7 @@ def test_2700_text_lists_a_run_with_no_ledger_an_empty_events_log_and_a_live_con
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "events.jsonl").write_text("")
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     code = status.render(False, "", False)
@@ -172,7 +172,7 @@ def test_2700_json_lists_a_run_with_no_ledger_whose_only_event_is_preflight_refu
     (run / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
          "cause": "preflight-refused", "classification": "system"}) + "\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     _, out = status.json_document(read_states=False)
@@ -189,7 +189,7 @@ def test_2700_json_lists_a_run_with_no_ledger_no_launch_or_end_mark_and_a_live_c
     (run / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-start"}) + "\n")
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     _, out = status.json_document(read_states=False)
@@ -209,7 +209,7 @@ def test_2700_json_scope_totals_attempted_counts_a_ledgerless_refused_run_once_b
     (refused / ".tdd" / "events.jsonl").write_text(json.dumps(
         {"ts": 100, "issue": "7", "event": "preflight-refused", "check": "baseline",
          "cause": "preflight-refused", "classification": "system"}) + "\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "solvable_count", lambda name: "0")
 
@@ -224,7 +224,7 @@ def test_2700_json_scope_totals_attempted_counts_a_run_with_a_ledger_and_no_even
     run = tmp_path / ".tdd" / "wt" / "7"
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "issue-7.md").write_text("# Plan for #7 — t\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "solvable_count", lambda name: "0")
 
@@ -239,7 +239,7 @@ def test_2739_text_and_json_leave_unlisted_a_run_with_no_ledger_no_events_log_an
     for issue in ("7", "8"):
         (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
     (tmp_path / ".tdd" / "wt" / "8" / ".tdd" / "conductor.pid").write_text("99999999\n")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     status.render(False, "", False)
@@ -255,7 +255,7 @@ def test_2739_text_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log
     run = tmp_path / ".tdd" / "wt" / "7"
     (run / ".tdd").mkdir(parents=True)
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     code = status.render(False, "", False)
@@ -270,7 +270,7 @@ def test_2739_json_lists_a_run_with_a_live_conductor_no_ledger_and_no_events_log
     run = tmp_path / ".tdd" / "wt" / "7"
     (run / ".tdd").mkdir(parents=True)
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
 
     _, out = status.json_document(read_states=False)
@@ -286,7 +286,7 @@ def test_2739_json_lists_a_run_with_a_ledger_and_a_live_conductor_but_no_events_
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "issue-7.md").write_text("# Plan for #7 — My title\n- [x] one\n- [ ] two\n")
     live_conductor(monkeypatch, run / ".tdd", 7)
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(status, "branch_of", lambda run: "b")
     monkeypatch.setattr(status, "solvable_count", lambda name: "0")
 

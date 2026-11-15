@@ -1,8 +1,10 @@
 """One rule for whether a run has ended."""
 import os
 
+import event_log
 from event_log import read_events
 from pid_file import live_conductor
+from run_dir import run_file
 
 OUTAGE = ("Can't reach the API server", "ENOTFOUND")
 MARKS = {"done": "done", "bail": "bailed", "stop": "stopped",
@@ -10,10 +12,10 @@ MARKS = {"done": "done", "bail": "bailed", "stop": "stopped",
 
 
 def conductor_log(run_dir, issue):
-    own = os.path.join(run_dir, ".tdd", "conductor-%s.log" % issue)
+    own = run_file(run_dir, "conductor-%s.log" % issue)
     if os.path.isfile(own):
         return own
-    return os.path.join(".tdd", "conductor-%s.log" % issue)
+    return run_file("", "conductor-%s.log" % issue)
 
 
 def latest_result(path):
@@ -30,7 +32,7 @@ def latest_result(path):
 
 
 def _launch_cause(run_dir, issue):
-    tdd = os.path.join(run_dir, ".tdd")
+    tdd = run_file(run_dir, "")
     path = conductor_log(run_dir, issue)
     if not os.path.isfile(path):
         return None
@@ -50,7 +52,7 @@ def _launch_cause(run_dir, issue):
 def run_end(run_dir):
     """(ended, cause, standing mark) for the run at run_dir."""
     mark = {}
-    events = read_events(os.path.join(run_dir, ".tdd", "events.jsonl"))
+    events = read_events(event_log.path(run_dir))
     for event in events:
         if event.get("event") in MARKS:
             mark = event

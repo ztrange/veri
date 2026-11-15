@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_running_block_shows_the_model_each_role_ran_on_from_its_launch_events(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -40,7 +40,7 @@ def test_2750_report_running_block_shows_the_model_each_role_ran_on_from_its_lau
 
 def test_2750_report_running_block_skips_a_launch_event_with_no_model_field(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

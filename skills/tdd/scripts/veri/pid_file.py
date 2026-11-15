@@ -4,6 +4,8 @@ import os
 import re
 import subprocess
 
+import run_dir
+
 
 def conductors():
     listing = subprocess.run(["ps", "-axo", "pid=,command="], stdout=subprocess.PIPE, text=True).stdout
@@ -20,13 +22,15 @@ def is_inside(cwd, root):
 
 
 def conductor_processes():
-    import status
-    root = status.main_working_tree()
+    try:
+        root = run_dir.main_tree()
+    except run_dir.NoMainTree:
+        root = ""
     return [issue for pid, issue in conductors() if is_inside(cwd_of(pid), root)]
 
 
 def _with_run_directory(root):
-    return [(pid, issue) for pid, issue in conductors() if os.path.isdir(os.path.join(root, ".tdd", "wt", issue, ".tdd"))]
+    return [(pid, issue) for pid, issue in conductors() if os.path.isdir(run_dir.run_file(run_dir.worktree(root, issue), ""))]
 
 
 def runs_with_directory(root):
@@ -49,7 +53,7 @@ def number_in(file):
 
 
 def _pid_path(path):
-    return path + "/.tdd/conductor.pid"
+    return run_dir.run_file(path, "conductor.pid")
 
 
 def recorded_alive(path):

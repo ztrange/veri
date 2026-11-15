@@ -13,11 +13,12 @@ import sys
 import time
 
 import paths
+import event_log
 import run_end
 from pid_file import live_conductor
 from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
-from run_dir import run_file
+import run_dir
 import tunables
 from role_state import state_path
 from solvable_issues import priority_label, solvable
@@ -34,9 +35,8 @@ def run_activity(run, as_json=False, closed=False):
     """The activity line for one run."""
     last, attempts = None, 0
     newest = None
-    events_path = run_file(run, "events.jsonl")
-    events_path_exists = os.path.isfile(events_path)
-    events = read_events(events_path) if events_path_exists else []
+    events_path_exists = os.path.isfile(event_log.path(run))
+    events = event_log.events(run)
     dollars, tokens = usage_totals(events)
     ended, cause, end = run_end.run_end(run) if events_path_exists else (False, None, {})
     if end.get("event") in ("preflight-refused", "bail", "stop") and live_conductor(os.fspath(run)):
@@ -85,7 +85,7 @@ def scope_totals(name, solvable, runs, as_json=False, bare=0):
     dollars = 0.0
     for run in runs:
         try:
-            events = read_events(run_file(run, "events.jsonl"))
+            events = read_events(event_log.path(run))
             end = run_end.run_end(run)[2].get("event")
         except FileNotFoundError:
             continue
@@ -121,13 +121,6 @@ def run_object(issue, title, branch, step, activity, states):
     if run["issue_state"] == "closed":
         run["state"] = "closed"
     return json.dumps(run)
-
-
-def main_working_tree():
-    listed = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                            capture_output=True, text=True).stdout
-    first = listed.split("\n", 1)[0]
-    return first[len("worktree "):] if first.startswith("worktree ") else first
 
 
 def step_of_total(text):
@@ -181,8 +174,8 @@ def parse_args(argv):
 
 
 def render(as_json, scope, read_states=True):
-    main_tree = main_working_tree()
-    runs = sorted(glob.glob(os.path.join(main_tree, ".tdd", "wt", "*", ""))) if main_tree else []
+    main_tree = run_dir.main_tree(missing="")
+    runs = sorted(glob.glob(os.path.join(run_dir.worktrees(main_tree), "*", ""))) if main_tree else []
     if not runs:
         print('{"runs": [], "scope": null}' if as_json else "no runs")
         return 3
@@ -206,8 +199,7 @@ def render(as_json, scope, read_states=True):
             heading = heading[len("# Plan for #"):]
         parts = heading.split(" — ", 1)
         issue, title = parts[0], parts[-1]
-        events_path = run_file(run, "events.jsonl")
-        has_events = os.path.isfile(events_path)
+        has_events = os.path.isfile(event_log.path(run))
         if has_events or live_conductor(run):
             try:
                 activity = run_activity(run, as_json, states.get(issue) == "closed")
@@ -220,7 +212,7 @@ def render(as_json, scope, read_states=True):
             except (FileNotFoundError, ValueError):
                 activity = ""
                 if has_events:
-                    print("unreadable run %s: %s" % (run, events_path), file=sys.stderr)
+                    print("unreadable run %s: %s" % (run, event_log.path(run)), file=sys.stderr)
         elif has_ledger:
             bare += 1
         if not has_ledger:
@@ -261,7 +253,7 @@ def watch_loop(seconds, as_json, scope):
 
 
 def read_snapshot():
-    with open(os.path.join(main_working_tree(), ".tdd", "report-cache.json")) as f:
+    with open(run_dir.main_file(run_dir.main_tree(missing=""), "report-cache.json")) as f:
         return json.load(f)
 
 
@@ -324,7 +316,7 @@ def queue_counts():
 
 
 def status_last_path():
-    return os.path.join(main_working_tree(), ".tdd", "status-last")
+    return run_dir.main_file(run_dir.main_tree(missing=""), "status-last")
 
 
 def status_last():
@@ -345,7 +337,7 @@ def status_last_time():
 
 
 def landed_lines():
-    root = main_working_tree()
+    root = run_dir.main_tree(missing="")
     since = status_last_time()
     lines = git_tags(root, "%(refname:short)  %(creatordate:format-local:%Y-%m-%d %H:%M)  %(contents:subject)")
     if since is not None:
@@ -365,7 +357,7 @@ def tags_created_since(root, since):
 
 def journals():
     import event
-    sample = event.journal_path(main_working_tree(), "0")
+    sample = event.journal_path(run_dir.main_tree(missing=""), "0")
     for path in sorted(glob.glob(os.path.join(os.path.dirname(sample), "*.jsonl"))) if sample else []:
         events = []
         with open(path) as f:
@@ -445,7 +437,7 @@ def running_lines():
 
 
 def main_subjects():
-    return subprocess.run(["git", "-C", main_working_tree(), "log", "main", "--format=%s"],
+    return subprocess.run(["git", "-C", run_dir.main_tree(missing=""), "log", "main", "--format=%s"],
                           capture_output=True, text=True).stdout.splitlines()
 
 
@@ -474,7 +466,7 @@ def unjournaled_notes():
     from pid_file import recorded_alive
     seen = {os.path.basename(p)[:-len(".jsonl")] for p, _ in journals()}
     notes = []
-    for wt in sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*"))):
+    for wt in sorted(glob.glob(os.path.join(run_dir.worktrees(run_dir.main_tree(missing="")), "*"))):
         n = os.path.basename(wt)
         if n not in seen and recorded_alive(wt):
             notes.append("\nNote: #%s is running with no journal" % n)
@@ -519,7 +511,7 @@ RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending dec
 def recover_runs():
     from pid_file import recorded_alive
     lines = []
-    for run in glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")):
+    for run in glob.glob(os.path.join(run_dir.worktrees(run_dir.main_tree(missing="")), "*")):
         n = os.path.basename(run)
         try:
             with open(ledger_path(run, n)) as f:
@@ -574,7 +566,7 @@ def recover_lock():
 
 def read_role_state(role, lane=None):
     try:
-        with open(state_path(main_working_tree(), role, lane)) as f:
+        with open(state_path(run_dir.main_tree(missing=""), role, lane)) as f:
             return f.read().splitlines()
     except FileNotFoundError:
         return None

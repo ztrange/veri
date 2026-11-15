@@ -3,15 +3,17 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import re
 import signal
-import subprocess
 import sys
 import time
 
+import entry
 import paths
 import pid_file
+import run_dir
 import stop_modes
 import tunables
 
+PREFIX = "stop-run: "
 GONE = (ProcessLookupError, OverflowError)
 
 
@@ -20,13 +22,7 @@ def usage():
 
 
 def complain(message):
-    sys.stderr.buffer.write(os.fsencode("stop-run: " + message) + b"\n")
-
-
-def refuse(message):
-    complain(message)
-    sys.stderr.buffer.write(usage())
-    return 2
+    entry.refuse(message, prefix=PREFIX)
 
 
 def nothing_to_do(message):
@@ -34,23 +30,12 @@ def nothing_to_do(message):
     return 3
 
 
-def main_working_tree():
-    try:
-        git = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    except FileNotFoundError:
-        return b""
-    first = git.stdout.split(b"\n", 1)[0]
-    return first.removeprefix(b"worktree ")
-
-
 def holds(outer, inner):
     return inner == outer or inner.startswith(outer.rstrip(os.sep) + os.sep)
 
 
 def inside_own_scripts():
-    scripts = paths.resolved_scripts_of(__file__)
-    return holds(scripts, os.path.realpath(os.getcwd()))
+    return paths.inside_scripts(__file__)
 
 
 def on_one_path(main_tree):
@@ -74,7 +59,7 @@ def linked_git_dir(here):
 
 
 def stop_run(run, mode):
-    with open(run + "/.tdd/stop", "w") as stop:
+    with open(run_dir.run_file(run, "stop"), "w") as stop:
         stop.write(mode + "\n")
     sys.stdout.buffer.write(os.fsencode(run) + b"\n")
     if mode != "now":
@@ -112,7 +97,7 @@ def outlives_kill(group):
 
 
 def stop_leaves(run, killed=None):
-    tdd = run + "/.tdd/"
+    tdd = run_dir.run_file(run, "")
     termed = {}
     refused = []
     for entry in sorted(os.listdir(tdd)):
@@ -167,27 +152,30 @@ def main(argv):
         if arg == "--mode":
             mode = next(args, None)
             if mode is None:
-                return refuse(f"--mode needs a value — {stop_modes.modes_named()}")
+                return entry.refuse(f"--mode needs a value — {stop_modes.modes_named()}", prefix=PREFIX, usage=usage())
         elif arg == "--all":
             every = True
         else:
             issue = arg
     if not stop_modes.stop_mode_known(mode):
-        return refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'")
+        return entry.refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'", prefix=PREFIX, usage=usage())
     if issue and every:
-        return refuse("name an issue or --all, not both")
+        return entry.refuse("name an issue or --all, not both", prefix=PREFIX, usage=usage())
     if not issue and not every:
-        return refuse("name an issue, or --all")
+        return entry.refuse("name an issue, or --all", prefix=PREFIX, usage=usage())
     if not every and not re.fullmatch(r"[1-9][0-9]*", issue):
-        return refuse(f"<issue> must be a positive integer: '{issue}'")
+        return entry.refuse(f"<issue> must be a positive integer: '{issue}'", prefix=PREFIX, usage=usage())
     if inside_own_scripts():
-        return refuse("type this from the repository whose runs you mean, not from the skill's own scripts directory")
-    main_tree = main_working_tree()
+        return entry.refuse("type this from the repository whose runs you mean, not from the skill's own scripts directory", prefix=PREFIX, usage=usage())
+    try:
+        main_tree = run_dir.main_tree()
+    except run_dir.NoMainTree:
+        main_tree = ""
     if not main_tree:
-        return refuse("no main working tree here — type this inside the repository")
+        return entry.refuse("no main working tree here — type this inside the repository", prefix=PREFIX, usage=usage())
     if not on_one_path(main_tree):
-        return refuse(f"the main working tree '{os.fsdecode(main_tree)}' does not hold the directory this was typed from")
-    runs = os.fsdecode(main_tree) + "/.tdd/wt/"
+        return entry.refuse(f"the main working tree '{main_tree}' does not hold the directory this was typed from", prefix=PREFIX, usage=usage())
+    runs = run_dir.worktrees(main_tree) + "/"
     alive = pid_file.live_conductor if mode == "now" else pid_file.recorded_alive
     if every:
         stopped = 0
@@ -213,5 +201,4 @@ def main(argv):
 
 if __name__ == "__main__":
     os.chdir(tunables.read("VERI_CALLER_DIR") or ".")
-    import entry
     entry.run(main, sys.argv[1:])

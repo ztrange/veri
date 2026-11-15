@@ -6,7 +6,7 @@ import subprocess
 
 def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -33,7 +33,7 @@ def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tm
 
 def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -61,7 +61,7 @@ def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_p
 
 def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -89,7 +89,7 @@ def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch,
 
 def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips_done_without_pr(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -115,7 +115,7 @@ def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips
 
 def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -140,7 +140,7 @@ def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_wit
 
 def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -165,7 +165,7 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
 
 def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
@@ -191,7 +191,7 @@ def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_mai
 def _waiting_calls(tmp_path, monkeypatch, main_log):
     """Run waiting_lines() for a journal with a done PR; return (lines, argv of every process it ran)."""
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))

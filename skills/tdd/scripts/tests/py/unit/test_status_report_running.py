@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_running_lists_a_block_for_each_journal_whose_conductor_start_pid_is_alive_with_matching_start(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -38,7 +38,7 @@ def test_2750_report_running_lists_a_block_for_each_journal_whose_conductor_star
 
 def test_2750_report_running_omits_a_journal_whose_conductor_start_pid_is_alive_but_started_at_another_time(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

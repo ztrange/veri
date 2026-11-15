@@ -71,7 +71,7 @@ def test_main_waits_out_a_403_secondary_rate_limit_on_the_stall_check_issue_stat
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -113,7 +113,7 @@ def test_main_exits_2_naming_the_issue_body_read_when_a_403_secondary_rate_limit
             argv, 1, "", "HTTP 403: You have exceeded a secondary rate limit. Please wait a few minutes "
                          "before you try again. (https://api.github.com/repos/o/r/issues/12)\n")
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.watch_runs.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
@@ -163,7 +163,7 @@ def test_main_waits_out_a_403_marked_only_by_a_retry_after_header_on_the_stall_c
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -212,7 +212,7 @@ def test_main_waits_out_a_403_marked_only_by_a_mixed_case_retry_after_header_on_
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -261,7 +261,7 @@ def test_main_waits_out_a_429_marked_only_by_a_retry_after_header_on_the_stall_c
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -310,7 +310,7 @@ def test_main_waits_out_a_403_marked_only_by_an_x_ratelimit_remaining_zero_heade
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -359,7 +359,7 @@ def test_main_waits_out_a_429_marked_only_by_an_x_ratelimit_remaining_zero_heade
 
     monkeypatch.setenv("VERI_DISPATCH_STALL", "2")
     monkeypatch.setattr(dispatch.os, "kill", lambda pid, sig: None)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", lambda seconds: None)
     monkeypatch.setattr(dispatch, "clock", lambda: ticks.pop(0) if len(ticks) > 1 else ticks[0], raising=False)
@@ -510,7 +510,7 @@ def test_main_exits_2_on_the_first_issue_body_read_with_no_sleep_when_a_403_carr
             argv, 1, "", "HTTP 403: Resource not accessible by integration "
                          "(https://api.github.com/repos/o/r/issues/12)\n")
 
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.watch_runs.github.subprocess, "run", run)
     monkeypatch.setattr(dispatch.github.time, "sleep", sleeps.append)

@@ -10,7 +10,7 @@ import time
 
 def test_2750_report_writes_status_last_holding_the_report_time_and_its_queue_counts(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
@@ -36,7 +36,7 @@ def test_2750_report_writes_status_last_holding_the_report_time_and_its_queue_co
 
 def test_2750_report_that_failed_to_print_leaves_status_last_as_it_was(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
@@ -56,7 +56,7 @@ def test_2750_report_that_failed_to_print_leaves_status_last_as_it_was(tmp_path,
 
 def test_2750_report_starts_one_detached_refresh_when_the_snapshot_is_older_than_the_max_age(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     started = []
@@ -82,7 +82,7 @@ def test_2750_report_starts_one_detached_refresh_when_the_snapshot_is_older_than
 
 def test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_max_age(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     started = []
@@ -107,7 +107,7 @@ def test_2750_report_starts_no_refresh_when_the_snapshot_is_no_older_than_the_ma
 
 def test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_running(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     started = []
     sibling = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(status.__file__))), "report-cache.sh")
 

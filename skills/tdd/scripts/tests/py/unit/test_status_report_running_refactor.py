@@ -7,7 +7,7 @@ import subprocess
 
 def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_no_refactor_or_structural_pass_event(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -36,7 +36,7 @@ def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_n
 
 def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_that_landed_nothing(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -64,7 +64,7 @@ def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_t
 
 def test_3236_report_running_block_counts_string_transforms_as_event_sh_writes_them(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -89,7 +89,7 @@ def test_3236_report_running_block_counts_string_transforms_as_event_sh_writes_t
 
 def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_alongside_refactor_events(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -118,7 +118,7 @@ def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_al
 
 def test_3236_report_running_block_counts_a_structural_pass_event_without_transforms_as_one_pass_that_landed_nothing(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -144,7 +144,7 @@ def test_3236_report_running_block_counts_a_structural_pass_event_without_transf
 def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and_structural_pass_events_with_its_count(tmp_path, monkeypatch, run_cli):
     import re
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"
@@ -173,7 +173,7 @@ def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and
 
 def test_3236_report_running_block_adds_no_stop_reason_for_refactor_and_structural_pass_events_without_stopped(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     home = tmp_path / "home"

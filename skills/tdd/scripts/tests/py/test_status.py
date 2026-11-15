@@ -650,6 +650,10 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
         "    return [{'ts': 1000, 'event': 'launch', 'step': 'decoy step', 'phase': 'red',\n"
         "             'actor': 'developer', 'name': 'decoy-leaf'},\n"
         "            {'ts': 1077, 'event': 'usage'}]\n\n\n"
+        "def path(run):\n"
+        "    return str(run) + '/.tdd/events.jsonl'\n\n\n"
+        "def events(run):\n"
+        "    return read_events(path(run))\n\n\n"
         "def usage_totals(events):\n"
         "    return 3.0, 1234\n")
     real_event_log = sys.modules["event_log"]
@@ -1050,7 +1054,7 @@ def test_dispatch_main_keeps_watching_the_other_run_and_reports_its_done_line_wh
     live_conductor(monkeypatch, good / ".tdd", "42")
     fake_git(monkeypatch, tmp_path, {str(bad): "tdd/41-bad-log", str(good): "tdd/42-good-log"})
     at_ten_thousand(monkeypatch)
-    monkeypatch.setattr(dispatch.status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(dispatch.watch_runs, "_starting", lambda: [])
     monkeypatch.setattr(dispatch, "queued_merges", lambda: [])
     monkeypatch.setattr(dispatch, "launch", lambda issue: None)

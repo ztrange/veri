@@ -9,6 +9,7 @@ import time
 import github
 import paths
 import pid_file
+import run_dir
 import status
 import tunables
 
@@ -21,11 +22,11 @@ def _runs():
 
 
 def _starting():
-    return pid_file.starting_runs(status.main_working_tree())
+    return pid_file.starting_runs(run_dir.main_tree(missing=""))
 
 
 def _pid_filed():
-    wt = os.path.join(status.main_working_tree(), ".tdd", "wt")
+    wt = run_dir.worktrees(run_dir.main_tree(missing=""))
     return [issue for issue in (os.listdir(wt) if os.path.isdir(wt) else [])
             if pid_file.recorded_started(os.path.join(wt, issue))]
 
@@ -70,7 +71,7 @@ def clock():
 
 
 def _seen_path():
-    return os.path.join(status.main_working_tree(), ".tdd", "watch-seen-live")
+    return run_dir.main_file(run_dir.main_tree(missing=""), "watch-seen-live")
 
 
 def _seen():
@@ -99,7 +100,7 @@ def _report_exit(issue, state, live=()):
 
 def _restart_pending(issue):
     try:
-        path = os.path.join(status.main_working_tree(), ".tdd", "wt", issue, ".tdd", "restart-pending")
+        path = run_dir.run_file(run_dir.worktree(run_dir.main_tree(missing=""), issue), "restart-pending")
         with open(path) as f:
             os.kill(int(f.read().strip()), 0)
         return True
@@ -179,7 +180,7 @@ def main(argv):
                 if state == "running":
                     continue
                 if not state and pid_file.recorded_started(
-                        os.path.join(status.main_working_tree(), ".tdd", "wt", issue)):
+                        run_dir.worktree(run_dir.main_tree(missing=""), issue)):
                     continue
                 if not state:
                     if issue in pid_file.conductor_processes():

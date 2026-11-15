@@ -7,7 +7,7 @@ import subprocess
 
 def test_2750_report_queue_count_carries_its_delta_against_the_counts_recorded_in_status_last(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
@@ -32,7 +32,7 @@ def test_2750_report_queue_count_carries_its_delta_against_the_counts_recorded_i
 
 def test_2750_report_queue_count_with_no_entry_in_status_last_prints_no_delta(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
@@ -55,7 +55,7 @@ def test_2750_report_queue_count_with_no_entry_in_status_last_prints_no_delta(tm
 
 def test_2750_report_queue_with_status_last_holding_no_queue_key_prints_no_delta_and_exits_0(tmp_path, monkeypatch, run_cli):
     status = importlib.import_module("veri.status")
-    monkeypatch.setattr(status, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")

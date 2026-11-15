@@ -215,7 +215,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 
 ## run_dir
 Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` touches the disk.
-- `main_tree(cwd=None)`: the repository's main working tree; raises `NoMainTree` when git cannot name one.
+- `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
 - `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue.
 - `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
 
@@ -238,7 +238,7 @@ Where a run lives on disk; the module docstring draws the layout. Paths are str 
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`. `run_activity(run, as_json=False, closed=False)`: one run's activity line.
-- `main_working_tree()`: the first path of `git worktree list`. `read_role_state(role, lane=None)`: the role's state lines, `None` when missing.
+- `read_role_state(role, lane=None)`: the role's state lines, `None` when missing.
 
 ## stop_modes
 - `STOP_MODES`: `("at-ledger", "at-leaf", "now")`. `stop_mode_known(mode)`: bool. `modes_named()`: the modes as a phrase.

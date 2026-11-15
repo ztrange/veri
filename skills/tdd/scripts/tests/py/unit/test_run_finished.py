@@ -9,7 +9,7 @@ def test_main_reads_the_pr_body_over_the_rest_pulls_route_and_starts_no_gh_pr_19
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
     body = "Closes #4242\n\n- [ ] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧"
@@ -32,7 +32,7 @@ def test_main_reads_the_pr_body_from_the_gh_json_fixture_and_starts_no_gh_1974(t
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     fixtures = tmp_path / "gh"
     fixtures.mkdir()
@@ -58,7 +58,7 @@ def test_main_reads_the_pr_body_over_gh_pr_view_with_the_driver_graphql_and_answ
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
     body = "Closes #4242\n\n- [ ] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧"
@@ -79,7 +79,7 @@ def test_main_falls_back_to_the_rest_pulls_route_when_gh_pr_view_is_refused_with
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     body = "Closes #4242\n\n- [ ] a reviewer checks the page ⟦human-owed⟧ ⟦criterion 3⟧"
@@ -102,7 +102,7 @@ def test_main_exits_2_saying_the_pr_body_could_not_be_read_when_gh_answers_non_z
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     answers = {"refused": (1, "", "HTTP 403"), "not json": (0, "<html>oops</html>\n", ""),
                "no body": (0, json.dumps({"number": 7}) + "\n", "")}
@@ -122,7 +122,7 @@ def test_main_lists_a_pr_body_line_human_owed_only_for_a_leading_or_trailing_mar
     ledger.mkdir(parents=True)
     (ledger / "issue-4242.md").write_text("# Plan for #4242 — a title\n\n- [x] first step ⟦criterion 1⟧\n")
     run = {"issue": "4242", "state": "done", "pr": "https://github.com/o/r/pull/7"}
-    monkeypatch.setattr(run_finished, "main_working_tree", lambda: str(tmp_path))
+    monkeypatch.setattr(run_finished.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setattr(run_finished, "json_document", lambda scope=None: (0, json.dumps({"runs": [run]})))
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
     body = "\n".join(["Closes #4242", "", "- [ ] a ⟦human-owed⟧ x",
