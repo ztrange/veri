@@ -2,6 +2,7 @@
 import math
 import os
 import re
+import entry
 
 STOP_TIMEOUT_MAX = 100000000
 
@@ -57,9 +58,10 @@ def stop_timeout(raw):
 
 
 def tokens(raw):
-    if not re.fullmatch(r"[0-9]+", raw):
+    value = entry.whole_number(raw, 0)
+    if value is None:
         raise ValueError
-    return int(raw)
+    return value
 
 
 def positive_tokens(raw):
