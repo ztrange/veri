@@ -14,6 +14,7 @@ import github
 import handoff_state
 import json_documents
 import paths
+import pid_file
 import restart_marker
 import run_dir as layout
 from role_state import state_path
@@ -149,7 +150,7 @@ def answered(what, read, *args):
             detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
             if transient(detail) and retries < TRANSIENT_RETRY_BOUND:
                 retries += 1
-                github.time.sleep(int(tunables.get("VERI_DISPATCH_RETRY_SLEEP")))
+                time.sleep(int(tunables.get("VERI_DISPATCH_RETRY_SLEEP")))
                 continue
             unreadable = f"dispatch.sh: reading {what} failed: {detail}\n"
             if "rate limit" in detail:
@@ -336,7 +337,7 @@ def main(argv):
         for issue in seen:
             if issue not in live:
                 if not os.path.isdir(run_dir(issue)):
-                    if issue in watch_runs.pid_file.conductor_processes():
+                    if issue in pid_file.conductor_processes():
                         if issue in absent:
                             absent.remove(issue)
                         if issue not in pending:
@@ -421,7 +422,7 @@ def main(argv):
                 return 2
             except watch_runs.QueueUnreadable as failure:
                 if "rate limit" in str(failure) and not isinstance(failure, RateLimitPersists):
-                    resume_at = watch_runs.github.rate_limit_reset(subprocess.run)
+                    resume_at = github.rate_limit_reset(subprocess.run)
                 elif str(failure):
                     sys.stderr.write(str(failure))
                     return 2
