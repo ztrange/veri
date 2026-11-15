@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 
+import entry
 import tunables
 
 from event_log import read_events
@@ -158,7 +159,7 @@ def main(argv):
     except OSError as error:
         return unreadable(error)
     budget = tunables.get("VERI_STEP_GROWTH")
-    if not re.fullmatch("[0-9]+", budget):
+    if entry.whole_number(budget, 0) is None:
         print(f"ledger-growth.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}", file=sys.stderr)
         return 2
     try:
