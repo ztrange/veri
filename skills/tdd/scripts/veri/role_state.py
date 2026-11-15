@@ -1,7 +1,6 @@
 """role-state.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
-import json
 import os
 import re
 import sys
@@ -170,9 +169,9 @@ def do_recovered(path, argv):
 def launched_since(path, recovered):
     since = epoch(recovered)
     main = os.path.dirname(os.path.dirname(path))
-    journals = [event_log.path(main)] + sorted(glob.glob(event_log.path(os.path.join(run_dir.worktrees(main), "*"))))
-    events = [json.loads(l) for j in journals for l in (read(j) or "").splitlines()]
-    return any(e.get("event") in ("conductor-start", "merged") and e.get("ts", 0) > since for e in events)
+    runs = [main] + sorted(d for d in glob.glob(os.path.join(run_dir.worktrees(main), "*")) if os.path.isdir(d))
+    events = [e for run in runs for e in event_log.events(run, "conductor-start", "merged", skip_unreadable=True)]
+    return any(e.get("ts", 0) > since for e in events)
 
 
 def refusal(path, lines, stamp):
