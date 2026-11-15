@@ -57,19 +57,7 @@ def _refused_outside_repository():
     return True
 
 
-def differing_tests():
-    names = []
-    for command in (["git", "diff", "--name-only", "--no-renames", "-z", "HEAD"],
-                    ["git", "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/"]):
-        done = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if done.returncode != 0:
-            # A failed listing is no answer: an empty one would read as "no test files".
-            raise OSError("git %s failed: %s" % (command[1], " ".join(os.fsdecode(done.stderr).split())))
-        for raw in done.stdout.split(b"\0"):
-            name = os.fsdecode(raw)
-            if raw and (is_test_path(raw) or is_js_test_file(os.path.basename(name), os.path.dirname(name))):
-                names.append(name)
-    return names
+differing_tests = case_history.changed_test_files
 
 
 _FIXTURE_FILE = re.compile(r"repairs the fixture '[^']*' in (\S+?),")

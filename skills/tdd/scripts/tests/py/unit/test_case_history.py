@@ -145,3 +145,23 @@ def test_first_revision_with_is_the_oldest_commit_changing_the_occurrences_of_th
 def test_first_revision_with_is_empty_when_no_commit_changes_it(case_history, runs):
     runs({("log", "--reverse", "--format=%H", "-Sstep one", "--", "ledger.md"): (0, b"", b"")})
     assert case_history.first_revision_with("step one", "ledger.md") == ""
+
+
+DIFF = ("diff", "--name-only", "--no-renames", "-z", "HEAD")
+UNTRACKED = ("ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/")
+
+
+def test_changed_test_files_lists_changed_then_untracked_test_files_and_no_others(case_history, runs):
+    runs({DIFF: (0, b"src/test_a.py\0src/app.py\0", b""), UNTRACKED: (0, b"src/test_b.py\0notes.md\0", b"")})
+    assert case_history.changed_test_files() == ["src/test_a.py", "src/test_b.py"]
+
+
+def test_changed_test_files_is_empty_when_nothing_changed(case_history, runs):
+    runs({DIFF: (0, b"", b""), UNTRACKED: (0, b"", b"")})
+    assert case_history.changed_test_files() == []
+
+
+def test_changed_test_files_raises_oserror_naming_the_failed_listing(case_history, runs):
+    runs({DIFF: (0, b"", b""), UNTRACKED: (128, b"", b"fatal: not a\n  repository\n")})
+    with pytest.raises(OSError, match=r"^git ls-files failed: fatal: not a repository$"):
+        case_history.changed_test_files()
