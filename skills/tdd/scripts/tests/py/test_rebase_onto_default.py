@@ -47,7 +47,7 @@ def fake_git(monkeypatch, **overrides):
     answering each git call from a branch behind origin/main, its stdout only when piped;
     <overrides> maps a line to (exit code, stdout)."""
     answers = {
-        "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD": (0, "origin/main\n"),
+        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/main\n"),
         "git fetch -q origin": (0, ""),
         "git ls-remote origin refs/heads/main": (0, f"{ONTO}\trefs/heads/main\n"),
         "git rev-parse origin/main": (0, f"{ONTO}\n"),
@@ -63,7 +63,7 @@ def fake_git(monkeypatch, **overrides):
         calls.append(line)
         code, out = answers.get(line, (0, ""))
         return subprocess.CompletedProcess(
-            args, code, out if kwargs.get("stdout") == subprocess.PIPE else None, "")
+            args, code, out if kwargs.get("stdout") == subprocess.PIPE or kwargs.get("capture_output") else None, "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     return calls
@@ -98,7 +98,7 @@ def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ign
 def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and_keeps_its_refs_heads_name_whole(
         monkeypatch, cli):
     symref = "git ls-remote --symref origin HEAD"
-    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+    local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
 
     def run(answer, **overrides):
         calls = fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
@@ -107,7 +107,7 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
 
         def recording_run(args, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            stderrs[line] = kwargs.get("stderr")
+            stderrs[line] = kwargs.get("stderr") or kwargs.get("capture_output")
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", recording_run)
@@ -119,12 +119,12 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
     cli.readouterr()
     assert symref not in calls
 
-    code, out, calls, stderrs = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
+    code, out, calls, stderrs = run((0, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
                                     **{"git ls-remote origin refs/heads/trunk":
                                        (0, f"{ONTO}\trefs/heads/trunk\n"),
                                        "git rev-parse origin/trunk": (0, f"{ONTO}\n")})
     assert symref in calls
-    assert stderrs[symref] == subprocess.DEVNULL
+    assert stderrs[symref] is True
     after = calls[calls.index(symref) + 1:]
     assert after[:3] == ["git fetch -q origin", "git ls-remote origin refs/heads/trunk",
                          "git rev-parse origin/trunk"]
@@ -152,7 +152,7 @@ def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_defau
                "no default branch to rebase onto\n")
     symref = "git ls-remote --symref origin HEAD"
     calls = fake_git(monkeypatch, **{
-        "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD": (1, ""),
+        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (1, ""),
         symref: (0, f"{ONTO}\tHEAD\n")})
     code = cli.main([])
     captured = cli.readouterr()
@@ -181,7 +181,7 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
 
         def recording_run(args, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            stderrs[line] = kwargs.get("stderr")
+            stderrs[line] = kwargs.get("stderr") or kwargs.get("capture_output")
             return fake_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", recording_run)
@@ -395,7 +395,7 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
 
 def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
         monkeypatch, tmp_path, cli):
-    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+    local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
     symref = "git ls-remote --symref origin HEAD"
     rebase = f"git rebase -q {ONTO}"
     refused = ("error: Your local changes to the following files would be overwritten by checkout:\n"
@@ -471,7 +471,7 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
         monkeypatch, cli):
     refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
                "no default branch to rebase onto\n")
-    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+    local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
     symref = "git ls-remote --symref origin HEAD"
 
     def run(answer, **overrides):
