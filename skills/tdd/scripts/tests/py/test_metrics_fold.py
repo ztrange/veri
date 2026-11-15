@@ -67,3 +67,24 @@ def test_a_refactor_pass_carries_its_mark_its_verdict_its_revises_and_what_it_sp
     assert first["dollars"] == pytest.approx(1.39)
     assert (first["mark"]["transforms"], first["mark"]["budget"], first["mark"]["stopped"]) == ("2", "5", "candidates-done")
     assert (second["pass"], second["verdict"], second["revise"]) == ("2", "", 0)
+
+
+def test_the_header_facts_are_numbers_and_text_not_sentences(folded):
+    assert (folded.issue_wall, folded.asleep) == (4100, 0)
+    assert (folded.steps_done, folded.planned) == (4, 4)
+    assert folded.lane == "lane-x"
+    assert folded.flaked == ["a_test.py", "b_test.py"]
+    assert folded.pinned == "refactor,green"
+
+
+def test_the_outcome_is_the_run_ends_answer_and_its_ending_mark(folded):
+    assert folded.ended is True
+    assert folded.cause == "done"
+    assert folded.ending["event"] == "done"
+    assert folded.ending["pr"] == "https://github.com/ztrange/veri/pull/999"
+
+
+def test_the_requested_model_knobs_are_read_off_the_environment_in_report_order(folded):
+    assert list(folded.model_knobs) == ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]
+    assert (folded.model_knobs["VERI_MODEL"], folded.model_knobs["VERI_MODEL_DEVELOPER"]) == ("opus", "sonnet")
+    assert not folded.model_knobs["VERI_MODEL_VERIFIER"]
