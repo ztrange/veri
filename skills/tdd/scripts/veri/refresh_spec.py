@@ -2,12 +2,13 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-from capture_spec import capture, part
+import issue_body
+from capture_spec import capture
 from github import NoAnswer
 
 
 def boxes(spec):
-    return sum(1 for line in part(spec, "Acceptance criteria").split("\n") if line.startswith("- ["))
+    return len(issue_body.criteria(spec))
 
 
 def main(argv):

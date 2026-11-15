@@ -88,3 +88,15 @@ def test_main_2572_prints_a_usage_line_naming_refresh_spec_sh_and_exits_2_with_n
     code, out, err = run_cli(refresh_spec, [])
 
     assert (code, out, err.startswith("usage: refresh-spec.sh")) == (2, "", True)
+
+
+def test_boxes_counts_the_checkboxes_the_ticker_would_see_crlf_unfenced_last_heading_no_link_bullets(refresh_spec):
+    fence = "`" * 3
+    texts = {
+        "crlf": "## Acceptance criteria\r\n\r\n- [ ] a\r\n- [x] b\r\n",
+        "fenced": f"## Acceptance criteria\n- [ ] a\n{fence}\n- [ ] fake\n{fence}\n- [ ] b\n",
+        "link bullet": "## Acceptance criteria\n- [ ] a\n- [docs](http://x) are linked\n- [ ] b\n",
+        "second heading": "## Acceptance criteria\n- [ ] old\n## Notes\n## Acceptance criteria\n- [ ] a\n- [ ] b\n",
+    }
+
+    assert {name: refresh_spec.boxes(text) for name, text in texts.items()} == dict.fromkeys(texts, 2)
