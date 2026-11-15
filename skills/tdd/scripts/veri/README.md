@@ -108,6 +108,7 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 - `ensure-run-state-ignored.sh`: keep the run's `.tdd/` state git-ignored.
 - `event.sh`: append one event to a run's journal.
 - `event_roster`: every event name emitted under skills/, found by scanning for the shell and in-process emit calls.
+- `journal_schema`: what JOURNAL.md's table documents per event kind, and the literal kinds and fields writer calls pass, found with `ast`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
 - `stop-reason.sh`: why a run stopped.
