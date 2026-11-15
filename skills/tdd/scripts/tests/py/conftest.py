@@ -419,11 +419,23 @@ def fake_processes(monkeypatch):
         def call(args, *_, **kwargs):
             return answered(args, kwargs)[0]
 
+        def check_call(args, *_, **kwargs):
+            code = answered(args, kwargs)[0]
+            if code:
+                raise subprocess.CalledProcessError(code, args)
+            return 0
+
+        def check_output(args, *_, **kwargs):
+            code, out, err = answered(args, kwargs)
+            if code:
+                raise subprocess.CalledProcessError(code, args, out, err)
+            return out
+
         def refuse(args, *_, **__):
             raise AssertionError("unexpected process: %s" % line_of(args))
 
         for name in ("run", "Popen", "call", "check_call", "check_output"):
-            entry = record if answer is None else {"run": run, "call": call}.get(name, refuse)
+            entry = record if answer is None else {"run": run, "call": call, "check_call": check_call, "check_output": check_output}.get(name, refuse)
             monkeypatch.setattr(subprocess, name, entry)
         return calls
 
