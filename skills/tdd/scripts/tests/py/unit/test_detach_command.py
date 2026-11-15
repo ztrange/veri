@@ -607,7 +607,7 @@ def test_wait_alone_reruns_through_the_shared_rerun_alone_helper_so_breaking_it_
         tmp_path, run, detach_command, monkeypatch):
     (tmp_path / ".tdd" / "red.exit").write_text("1\n")
     (tmp_path / ".tdd" / "red.out").write_text("FAIL a.test.mjs\n")
-    monkeypatch.setattr(detach_command.rerun_alone, "main", lambda argv: 1)
+    monkeypatch.setattr(detach_command.rerun_alone, "rerun", lambda alone_cmd, red_file: 1)
 
     assert run("wait", "red", "--alone", "true") == (1, "1\n", "")
 

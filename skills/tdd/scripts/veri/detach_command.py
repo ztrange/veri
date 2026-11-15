@@ -7,6 +7,7 @@ import sys
 import time
 
 import detach
+import entry
 import pid_file as pid_file_module
 import rerun_alone
 import tunables
@@ -26,7 +27,7 @@ def _recorded(exit_file, alone=None):
     code = _read(exit_file)
     if code == "0":
         return 0
-    if alone and rerun_alone.main([alone, exit_file[:-5] + ".out"]) == 0:
+    if alone and rerun_alone.rerun(alone, exit_file[:-5] + ".out") == 0:
         return 0
     print(code)
     return 1
@@ -110,5 +111,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
