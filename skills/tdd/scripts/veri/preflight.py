@@ -8,8 +8,8 @@ import sys
 import tempfile
 import time
 
+import run_dir
 import tunables
-from ledger import ledger_path
 
 USAGE = "usage: preflight.sh <n> <slug>"
 
@@ -80,7 +80,7 @@ def issue_body(n, wt):
 
 
 def pending_in(wt, n):
-    return os.path.join(wt, ".tdd", "issue-%s-preflight-wait" % n)
+    return run_dir.issue_file(wt, n, "-preflight-wait")
 
 
 def save_pending(wt, n, *fields):
@@ -115,7 +115,7 @@ def check_environment():
 def start_fast(n, slug, detect, env):
     wt = checked(3, script("issue-worktree.sh"), n, slug).strip()
     checked(3, script("stop-requested.sh"), "--clear", cwd=wt, ok=(0, 3))
-    marker = os.path.join(wt, ".tdd", "ci-conflict-rebased")
+    marker = run_dir.run_file(wt, "ci-conflict-rebased")
     if os.path.exists(marker):
         os.remove(marker)
     checked(3, script("unlabel-issue.sh"), n, cwd=wt)
@@ -183,7 +183,7 @@ def finish(n, wt, baseline, full, fast, alone, began, reused, code):
              "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
              "model_revise_green=" + models[1], "model_verify_green=" + models[2], "timeout=" + timeout.strip()]
     text = "\n".join(lines) + "\n"
-    with open(os.path.join(wt, ".tdd", "issue-%s-preflight" % n), "w") as f:
+    with open(run_dir.issue_file(wt, n, "-preflight"), "w") as f:
         f.write(text)
     sys.stdout.write(text)
     return 0
@@ -201,12 +201,12 @@ def run(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     n, slug = argv
-    if os.path.exists(ledger_path(os.path.join(".tdd", "wt", n), n)):
+    if os.path.exists(run_dir.ledger(run_dir.worktree("", n), n)):
         sys.stderr.write("issue %s already holds a ledger: resume per RESUME.md\n" % n)
         return 2
     env = tunables.with_values(VERI_ISSUE=n)
     detect = script("detect-test-command.sh")
-    wt = os.path.abspath(os.path.join(".tdd", "wt", n))
+    wt = os.path.abspath(run_dir.worktree("", n))
     saved = load_pending(wt, n)
     if saved is not None and saved[0] == "full":
         baseline, full, fast, alone = int(saved[1]), saved[2], saved[3], saved[4]
