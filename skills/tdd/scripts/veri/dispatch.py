@@ -22,7 +22,6 @@ import role_state
 import timed_n_format
 import tunables
 import watch_runs
-from ledger import ledger_path
 
 USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
 
@@ -403,7 +402,7 @@ def main(argv):
         absent = [issue for issue in absent if issue not in live]
         pending = [issue for issue in pending if issue not in live and issue not in absent]
         seen = live + absent + pending
-        ledger = previous and ledger_path(run_dir(previous), previous)
+        ledger = previous and layout.ledger(run_dir(previous), previous)
         held = len(live) + len(pending)
         if held < target:
             wt = layout.worktrees(layout.main_tree(missing=""))
