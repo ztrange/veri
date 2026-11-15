@@ -24,6 +24,9 @@ def _is_veri_link(link, veri_skills):
     return os.path.islink(link) and os.readlink(link).startswith(veri_skills + os.sep)
 
 
+USAGE = "usage: install-links.sh [repo-root]"
+
+
 def main(argv):
     root = argv[0] if argv else os.getcwd()
     done = _common_dir(root)

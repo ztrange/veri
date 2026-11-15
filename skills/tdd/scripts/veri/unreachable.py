@@ -100,6 +100,9 @@ def listing(root):
     return out
 
 
+USAGE = "usage: unreachable.sh <repo-root>"
+
+
 def main(argv):
     if not argv or not argv[0]:
         print("usage: unreachable.sh <repo-root>", file=sys.stderr)

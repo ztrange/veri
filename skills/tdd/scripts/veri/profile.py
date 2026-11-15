@@ -68,6 +68,9 @@ def sort_lines(lines):
     return done.returncode if 0 <= done.returncode <= 3 else 2
 
 
+USAGE = "usage: profile.sh <suite>..."
+
+
 def main(argv):
     threshold = tunables.read("VERI_PROFILE_THRESHOLD") or "1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", threshold):

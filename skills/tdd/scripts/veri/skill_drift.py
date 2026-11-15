@@ -6,6 +6,7 @@ import sys
 
 import tunables
 from git import git
+import entry
 
 SUFFIX = re.compile(r"\(#(\d+)\)\s*$")
 
@@ -27,7 +28,13 @@ def unavailable(reason):
     return 0
 
 
+USAGE = "usage: skill-drift.sh"
+
+
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     commit = tunables.read("VERI_SKILL_COMMIT")
     if tunables.read("VERI_SKILL_UNPINNED") == "1" or not commit:
         return unavailable("run was not pinned to a skill commit")
@@ -66,5 +73,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

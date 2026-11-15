@@ -17,6 +17,9 @@ import ledger
 _refuse = functools.partial(entry.refuse, prefix="unlabel-issue.sh: ")
 
 
+USAGE = "usage: unlabel-issue.sh <issue-number>"
+
+
 def main(argv):
     if len(argv) != 1:
         return entry.refuse(usage="usage: unlabel-issue.sh <issue-number>")

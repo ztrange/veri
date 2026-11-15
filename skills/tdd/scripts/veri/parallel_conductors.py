@@ -169,6 +169,9 @@ def _inside_own_scripts():
     return here == scripts or here.startswith(scripts + os.sep)
 
 
+USAGE = "usage: parallel-conductors.sh [--repo owner/name] [--continue-on-bail]"
+
+
 def main(argv):
     if _inside_own_scripts():
         print("parallel-conductors: type this from the target repo's primary checkout,"

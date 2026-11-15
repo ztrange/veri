@@ -22,6 +22,9 @@ def limits():
     return 0, budget, ratio
 
 
+USAGE = "usage: time-budget.sh"
+
+
 def main(argv):
     code, budget, ratio = limits()
     if code == 0:

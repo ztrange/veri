@@ -6,6 +6,9 @@ import github
 import tunables
 
 
+USAGE = "usage: pr-ready.sh <pr-number> <sha>"
+
+
 def main(argv):
     if len(argv) != 2:
         print("usage: pr-ready.sh <pr-number> <sha>", file=sys.stderr)

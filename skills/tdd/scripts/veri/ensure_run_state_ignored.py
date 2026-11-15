@@ -48,6 +48,9 @@ def write_failed(error):
     return 2
 
 
+USAGE = "usage: ensure-run-state-ignored.sh [repo-root]"
+
+
 def main(argv):
     root = argv[0] if argv and argv[0] else "."
     if paths.inside_scripts(__file__, root):

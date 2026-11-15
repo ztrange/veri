@@ -11,6 +11,7 @@ import json_documents
 import tunables
 
 import status
+import entry
 
 
 def out(*args):
@@ -49,7 +50,13 @@ def parked_reason(run):
     return ""
 
 
+USAGE = "usage: handoff-state.sh"
+
+
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     sha = out("rev-parse", "main")
     tags = out("tag", "--sort=-v:refname").splitlines()
     tag = tags[0] if tags else "(none)"
@@ -78,5 +85,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

@@ -77,6 +77,9 @@ def drop_closing_fence(reason):
     return reason
 
 
+USAGE = "usage: parse-verdict.sh < leaf-output.txt"
+
+
 def main(argv):
     lines = read_lines(sys.stdin.read())
     vidx = last_verdict(lines)

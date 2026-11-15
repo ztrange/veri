@@ -9,6 +9,9 @@ def refactor_pending(record):
     return record[1] == "done" and record[3] == "1"
 
 
+USAGE = "usage: next-pending-refactor.sh (the ledger on stdin)"
+
+
 def main(argv):
     for record in ledger_steps(read_ledger_stdin()):
         if refactor_pending(record):

@@ -17,8 +17,7 @@ PREFIX = "stop-run: "
 GONE = (ProcessLookupError, OverflowError)
 
 
-def usage():
-    return f"usage: stop-run.sh [--mode {'|'.join(stop_modes.STOP_MODES)}] <issue> | --all\n".encode()
+USAGE = f"usage: stop-run.sh [--mode {'|'.join(stop_modes.STOP_MODES)}] <issue> | --all\n".encode()
 
 
 def complain(message):
@@ -141,9 +140,6 @@ def stop_leaves(run, killed=None):
 
 
 def main(argv):
-    if argv == ["--help"]:
-        sys.stdout.buffer.write(usage())
-        return 0
     mode = "at-ledger"
     issue = ""
     every = False
@@ -152,29 +148,29 @@ def main(argv):
         if arg == "--mode":
             mode = next(args, None)
             if mode is None:
-                return entry.refuse(f"--mode needs a value — {stop_modes.modes_named()}", prefix=PREFIX, usage=usage())
+                return entry.refuse(f"--mode needs a value — {stop_modes.modes_named()}", prefix=PREFIX, usage=USAGE)
         elif arg == "--all":
             every = True
         else:
             issue = arg
     if not stop_modes.stop_mode_known(mode):
-        return entry.refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'", prefix=PREFIX, usage=usage())
+        return entry.refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'", prefix=PREFIX, usage=USAGE)
     if issue and every:
-        return entry.refuse("name an issue or --all, not both", prefix=PREFIX, usage=usage())
+        return entry.refuse("name an issue or --all, not both", prefix=PREFIX, usage=USAGE)
     if not issue and not every:
-        return entry.refuse("name an issue, or --all", prefix=PREFIX, usage=usage())
+        return entry.refuse("name an issue, or --all", prefix=PREFIX, usage=USAGE)
     if not every and not re.fullmatch(r"[1-9][0-9]*", issue):
-        return entry.refuse(f"<issue> must be a positive integer: '{issue}'", prefix=PREFIX, usage=usage())
+        return entry.refuse(f"<issue> must be a positive integer: '{issue}'", prefix=PREFIX, usage=USAGE)
     if inside_own_scripts():
-        return entry.refuse("type this from the repository whose runs you mean, not from the skill's own scripts directory", prefix=PREFIX, usage=usage())
+        return entry.refuse("type this from the repository whose runs you mean, not from the skill's own scripts directory", prefix=PREFIX, usage=USAGE)
     try:
         main_tree = run_dir.main_tree()
     except run_dir.NoMainTree:
         main_tree = ""
     if not main_tree:
-        return entry.refuse("no main working tree here — type this inside the repository", prefix=PREFIX, usage=usage())
+        return entry.refuse("no main working tree here — type this inside the repository", prefix=PREFIX, usage=USAGE)
     if not on_one_path(main_tree):
-        return entry.refuse(f"the main working tree '{main_tree}' does not hold the directory this was typed from", prefix=PREFIX, usage=usage())
+        return entry.refuse(f"the main working tree '{main_tree}' does not hold the directory this was typed from", prefix=PREFIX, usage=USAGE)
     runs = run_dir.worktrees(main_tree) + "/"
     alive = pid_file.live_conductor if mode == "now" else pid_file.recorded_alive
     if every:

@@ -122,6 +122,9 @@ def option(args, flag):
     return args[1], args[2:]
 
 
+USAGE = 'usage: detect-test-command.sh [--tier fast|all|"one test file"] [--issue <body-file>] [repo-root]'
+
+
 def main(argv):
     tier, args = option(list(argv), "--tier")
     if tier is None:

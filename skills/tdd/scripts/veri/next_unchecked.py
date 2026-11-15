@@ -7,6 +7,9 @@ import tunables
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
 
+USAGE = "usage: next-unchecked.sh (the ledger on stdin)"
+
+
 def main(argv):
     text = read_ledger_stdin()
     for record in ledger_steps(text):

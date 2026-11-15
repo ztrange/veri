@@ -35,6 +35,9 @@ def prediction_file_content(argv):
         return handle.read().decode(errors="surrogateescape").strip()
 
 
+USAGE = "usage: red-divergence.sh [<prediction-file>] (a develop-red or revise-red report on stdin)"
+
+
 def main(argv):
     report = sys.stdin.buffer.read().decode(errors="surrogateescape")
     if report_read(report, ("AGAINST_UNMODIFIED",)).get("AGAINST_UNMODIFIED", "").strip() == "PASSES":

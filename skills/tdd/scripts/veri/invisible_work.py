@@ -67,6 +67,9 @@ def local_rows():
     return rows
 
 
+USAGE = "usage: invisible-work.sh"
+
+
 def main(argv):
     if git("ls-remote", "--heads", "origin", stdout=subprocess.DEVNULL).returncode != 0:
         print("invisible-work.sh: cannot reach origin", file=sys.stderr)

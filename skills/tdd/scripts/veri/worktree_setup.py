@@ -10,6 +10,9 @@ import run_dir
 MARKER = b"veri: setup:"
 
 
+USAGE = "usage: worktree-setup.sh <n>"
+
+
 def main(argv):
     if len(argv) != 1:
         sys.stderr.write("usage: worktree-setup.sh <n>\n")

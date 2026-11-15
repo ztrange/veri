@@ -65,6 +65,9 @@ def harvest(name, env):
     return entry.to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
 
 
+USAGE = "usage: harvest-usage.sh <leaf-name>"
+
+
 def main(argv):
     if not argv or not argv[0]:
         print("usage: harvest-usage.sh <leaf-name>", file=sys.stderr)

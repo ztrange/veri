@@ -23,6 +23,9 @@ def cannot_start(verifier, why):
     print(f"run-verdict.sh: cannot start the verifier: {verifier}{why}", file=sys.stderr)
 
 
+USAGE = "usage: run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+
+
 def main(argv):
     verifier = os.path.join(SCRIPTS, "verify.sh")
     if not os.access(verifier, os.X_OK):

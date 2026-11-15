@@ -22,6 +22,9 @@ NONE = re.compile(rb"^none\s*$")
 _refuse = functools.partial(entry.refuse, prefix="refactor-triage: ")
 
 
+USAGE = "usage: refactor-triage.sh < leaf-report.txt"
+
+
 def main(argv):
     structural = []
     candidates_seen = False

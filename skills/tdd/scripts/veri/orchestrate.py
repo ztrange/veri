@@ -16,7 +16,13 @@ SCRIPTS = paths.scripts_of(__file__)
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
 
+USAGE = "usage: orchestrate.sh"
+
+
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     budget = _tunable("VERI_CONDUCTOR_CTX_BUDGET")
     if budget is None:
         return 2

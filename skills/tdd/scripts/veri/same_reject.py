@@ -16,6 +16,9 @@ def reason_of(path):
     return None
 
 
+USAGE = "usage: same-reject.sh <previous-reason-file> <current-reason-file>"
+
+
 def main(argv):
     if len(argv) != 2:
         print("usage: same-reject.sh <previous-reason-file> <current-reason-file>", file=sys.stderr)

@@ -11,6 +11,9 @@ def boxes(spec):
     return len(issue_body.criteria(spec))
 
 
+USAGE = "usage: refresh-spec.sh <n> <spec-file>"
+
+
 def main(argv):
     if len(argv) != 2:
         print("usage: refresh-spec.sh <n> <spec-file>", file=sys.stderr)

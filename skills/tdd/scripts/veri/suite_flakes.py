@@ -6,6 +6,9 @@ import sys
 import event_log
 
 
+USAGE = "usage: suite-flakes.sh <run-dir> [<run-dir>...]"
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: suite-flakes.sh <run-dir> [<run-dir>...]\n")

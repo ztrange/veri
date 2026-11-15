@@ -7,6 +7,9 @@ from event_log import path, read_events
 WINDOW = 10
 
 
+USAGE = "usage: tier-usual.sh <tier>"
+
+
 def main(argv):
     if not argv:
         print("usage: tier-usual.sh <tier>", file=sys.stderr)

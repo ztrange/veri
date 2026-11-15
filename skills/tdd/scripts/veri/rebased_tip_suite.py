@@ -3,12 +3,18 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import sys
 
 import suite_mode
+import entry
+
+
+USAGE = "usage: rebased-tip-suite.sh"
 
 
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     return suite_mode.run("rebased-tip-suite.sh", "VERI_REBASED_TIP_SUITE")
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

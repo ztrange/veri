@@ -11,10 +11,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import entry
 import event
 import mutation_record
 from event_log import run_keeping_journal
 from ledger import ledger_path
+
+USAGE = "usage: pin-recheck.sh <base-sha> [--ledger <file>]"
 
 
 def current_wrapper(command):
@@ -156,8 +159,7 @@ def mutated_file_of(record):
 
 def recheck(argv, looks):
     if not argv or argv[1:] and (argv[1] != "--ledger" or len(argv) != 3):
-        sys.stderr.write("usage: pin-recheck.sh <base-sha> [--ledger <file>]\n")
-        return 2
+        return entry.refuse(usage=USAGE)
     touched = set(git_out("diff", "--name-only", f"{argv[0]}..HEAD").split())
     found = [(f, r) for f in mutation_record.paths() for r in mutation_record.records(Path(f).read_text())]
     for f, r in found:
@@ -316,5 +318,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

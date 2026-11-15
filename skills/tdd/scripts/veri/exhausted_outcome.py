@@ -22,6 +22,9 @@ def _print_lines(lines):
     sys.stdout.buffer.flush()
 
 
+USAGE = "usage: exhausted-outcome.sh < leaf-output.txt"
+
+
 def main(argv):
     lines = _read_stdin().replace(b"\0", b"").split(b"\n")
     if lines[-1] == b"":

@@ -7,6 +7,9 @@ import sys
 import event
 
 
+USAGE = "usage: pin-fast-tier.sh <fast-cmd>"
+
+
 def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write("usage: pin-fast-tier.sh <fast-cmd>\n")

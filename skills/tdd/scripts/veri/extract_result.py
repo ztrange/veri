@@ -23,6 +23,9 @@ def extract(data):
     return result if result.endswith("\n") else result + "\n"
 
 
+USAGE = "usage: extract-result.sh < leaf-stream.jsonl"
+
+
 def main(argv):
     sys.stdout.write(extract(sys.stdin.read()))
     return 0

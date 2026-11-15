@@ -7,6 +7,9 @@ import sys
 import event
 
 
+USAGE = "usage: rerun-alone.sh <alone-cmd> <red-output-file>"
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: rerun-alone.sh <alone-cmd> <red-output-file>\n")

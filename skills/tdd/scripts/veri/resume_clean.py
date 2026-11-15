@@ -7,6 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from ledger import OPEN_STEP, PENDING_MARK, TICKED_STEP
+import entry
 
 PATHSPEC = ["--", ".", ":!.tdd"]
 
@@ -79,7 +80,13 @@ def keep(appends):
     return 2
 
 
+USAGE = "usage: resume-clean.sh"
+
+
 def main(argv):
+    refused = entry.no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     try:
         return clean()
     except GitFailed as failed:
@@ -111,5 +118,4 @@ def clean():
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])

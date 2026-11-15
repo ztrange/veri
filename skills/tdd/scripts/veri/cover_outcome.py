@@ -6,6 +6,9 @@ from entry import write
 from report import report_read
 
 
+USAGE = "usage: cover-outcome.sh (the cover leaf's report on stdin)"
+
+
 def main(argv):
     report = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
     fields = report_read(report, ("COVERED", "CAUGHT_BY", "PROOF"))

@@ -40,6 +40,9 @@ def snapshot_made_for(recorded, worktree):
     return os.path.realpath(named) == os.path.realpath(worktree)
 
 
+USAGE = "usage: pinned-scripts.sh <n>"
+
+
 def main(argv):
     if not argv:
         print("usage: pinned-scripts.sh <n>", file=sys.stderr)
