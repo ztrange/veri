@@ -13,9 +13,8 @@ starts no process and is not a process fake: those files are not listed, however
 module (`sp = subprocess`) and a `from subprocess import run` name patched on the importer. `conftest.py` holds the
 fake_processes fixture itself and is the one file exempt.
 """
-import ast
-
 import pytest
+from process_fake_detection import installs_a_subprocess_fake
 
 # The test files (paths under tests/py, sorted, ONE per line) that still install their own fake on subprocess. Migrate a
 # file to conftest's fake_processes (see its docstring) and delete its line: a listed file that no longer installs one
@@ -113,53 +112,7 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_watch_runs.py": "not inventoried",
 }
 
-PROCESS_STARTERS = ("run", "Popen", "check_output", "check_call", "call", "getoutput", "getstatusoutput")
 EXEMPT = ("conftest.py",)
-
-
-def _is_subprocess_module(node):
-    return (isinstance(node, ast.Name) and node.id == "subprocess") or (
-        isinstance(node, ast.Attribute) and node.attr == "subprocess")
-
-
-def _names_a_starter_path(text):
-    parts = text.split(".")
-    return len(parts) >= 2 and parts[-2] == "subprocess" and parts[-1] in PROCESS_STARTERS
-
-
-def _string_target_installs(node):
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return _names_a_starter_path(node.value)
-    if isinstance(node, ast.JoinedStr):
-        head = node.values[0] if node.values else None
-        return (isinstance(head, ast.Constant) and isinstance(head.value, str) and head.value.endswith(".")
-                and head.value[:-1].split(".")[-1] == "subprocess")
-    return False
-
-
-def _installs_on_subprocess(call):
-    args = call.args
-    method = call.func.attr
-    if method == "setattr" and len(args) >= 2 and _is_subprocess_module(args[0]):
-        name = args[1]
-        return not (isinstance(name, ast.Constant) and isinstance(name.value, str)) or name.value in PROCESS_STARTERS
-    if method in ("setattr", "patch") and args and _string_target_installs(args[0]):
-        return True
-    if method == "object" and len(args) >= 2 and _is_subprocess_module(args[0]):
-        return isinstance(args[1], ast.Constant) and args[1].value in PROCESS_STARTERS
-    return False
-
-
-def installs_a_subprocess_fake(source):
-    """True when <source> replaces how subprocess starts a process (see the module docstring for what counts)."""
-    for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and _installs_on_subprocess(node):
-            return True
-        if isinstance(node, ast.Assign) and any(
-                isinstance(target, ast.Attribute) and target.attr in PROCESS_STARTERS
-                and _is_subprocess_module(target.value) for target in node.targets):
-            return True
-    return False
 
 
 def _files_installing_a_local_process_fake(tests_py_index):
@@ -227,7 +180,7 @@ def test_a_listed_file_that_no_longer_installs_a_fake_on_subprocess_is_removed_f
     assert not gone, f"{gone} no longer install a fake on subprocess: remove them from FILES_WITH_A_LOCAL_PROCESS_FAKE"
 
 
-def test_the_list_is_sorted_and_():
+def test_the_list_is_sorted():
     paths = list(FILES_WITH_A_LOCAL_PROCESS_FAKE)
 
     assert paths == sorted(paths)
