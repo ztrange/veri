@@ -434,6 +434,49 @@ class _Tally:
         return lost
 
 
+def structural_inconsistency(structural):
+    """What is self-contradictory in the structural-pass mark (a dict), or None when nothing is."""
+    if "stopped" not in structural:
+        return "the mark carries no stopped"
+    if "transforms" in structural:
+        if "budget" not in structural:
+            return "transforms=%s without a budget" % structural["transforms"]
+        if structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
+            return ("stopped=budget-spent, but transforms=%s is below budget=%s"
+                    % (structural["transforms"], structural["budget"]))
+        if structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
+            return ("stopped=%s is not one of candidates-done, budget-spent, nothing-structural"
+                    % structural["stopped"])
+    return None
+
+
+def refactor_total(label, marks):
+    """(label, passes, transforms landed or None, passes that landed nothing or None, [(stop reason, passes)])
+    over refactor marks; the two counts are None when a mark's transforms is not a number."""
+    moved = [mark.get("transforms", "") for mark in marks]
+    reasons = {}
+    for mark in marks:
+        reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
+    numeric = all(count.isdigit() for count in moved)
+    return (label, len(marks), sum(map(int, moved)) if numeric else None,
+            moved.count("0") if numeric else None, sorted(reasons.items()))
+
+
+def refactor_totals(passes, structural, structural_marked):
+    """One `refactor_total` per step that had a refactor pass, then one for the issue (the structural pass
+    counted when it was marked); [] when no pass and no structural mark exists."""
+    if not (passes or structural_marked):
+        return []
+    by_step = {}
+    for each in passes:
+        by_step.setdefault(each["step"], []).append(each["mark"])
+    every = [mark for marks in by_step.values() for mark in marks]
+    rows = [refactor_total(step, marks) for step, marks in by_step.items()]
+    if structural_marked:
+        every = every + [dict(structural, transforms=structural.get("transforms", ""))]
+    return rows + [refactor_total("issue", every)]
+
+
 @dataclasses.dataclass
 class Fold:
     """What the report says, as plain data; `layout` prints it and reads nothing else."""
@@ -478,6 +521,10 @@ class Fold:
     conductor_some_priced: bool
     conductor_estimated: bool   # some session has no result record yet
     operator_sessions: list     # (label, turns, cache tokens read, dollars) per coordinator / dev transcript found
+    step_walls: dict            # step -> seconds between its start and done marks, or None
+    structural_marked: bool     # the structural-pass event carries a stopped
+    structural_inconsistency: object   # what contradicts itself in the structural mark, or None
+    refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
 
 
 def fold(issue, path, ledger):
@@ -521,7 +568,17 @@ def fold(issue, path, ledger):
         found = session_spend(transcripts, command, first_event, done_at) if transcripts else None
         if found:
             operator_sessions.append((label,) + found)
-    return Fold(issue=issue, marks=marks, clocked=clocked, models=models, opening=tally.opening,
+    structural = tally.structural
+    structural_marked = structural is not None and "stopped" in structural
+    if structural is None and ending is not None and ending.get("event") == "done":
+        structural = {"stopped": "not marked"}
+    return Fold(issue=issue, marks=marks,
+                step_walls={step: awake_span_or_wall(tally.spent.get(step, {}).get("step-start"),
+                                                     tally.spent.get(step, {}).get("step-done"), clocked)
+                            for step in tally.steps},
+                structural_marked=structural_marked,
+                structural_inconsistency=None if structural is None else structural_inconsistency(structural),
+                refactor_totals=refactor_totals(passes, structural, structural_marked), clocked=clocked, models=models, opening=tally.opening,
                 ended=ended, cause=cause, ending=ending,
                 sessions=sessions, turn_rows=turn_rows, conductor_spend=spend,
                 conductor_turns=sum(r.get("num_turns") or 0 for r in sessions), conductor_model=model,
@@ -539,7 +596,7 @@ def fold(issue, path, ledger):
                 recovered=tally.recovered, phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
-                conductor_counted=tally.conductor_counted, total=tally.total, structural=tally.structural)
+                conductor_counted=tally.conductor_counted, total=tally.total, structural=structural)
 
 
 def render(issue, path, ledger):
@@ -565,9 +622,6 @@ def render(issue, path, ledger):
     def refactor_spent(mark):
         return "%s/%s" % (mark.get("transforms", "?"), mark.get("budget", "?"))
 
-    def step_wall(mark):
-        return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done"), clocked))
-
     def budget_cells(mark):
         phases = mark.get("revise phases", {})
         leaf_phases = mark.get("leaf phases")
@@ -584,7 +638,7 @@ def render(issue, path, ledger):
 
     def step_cells(step):
         mark = spent.get(step, {})
-        return [step_wall(mark)] + budget_cells(mark) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
+        return [known(f.step_walls[step])] + budget_cells(mark) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
 
     def heading_block(heading):
         print()
@@ -716,9 +770,6 @@ def render(issue, path, ledger):
             mark = each["mark"]
             row([each["step"], each["pass"], refactor_spent(mark), mark["stopped"],
                  each["verdict"], str(each["revise"])] + ["%d" % each["wall"], "%.2f" % each["dollars"]])
-    structural_marked = structural is not None and "stopped" in structural
-    if structural is None and ending is not None and ending.get("event") == "done":
-        structural = {"stopped": "not marked"}
     if structural is not None:
         stopped = structural.get("stopped", "?")
         if "transforms" not in structural:
@@ -727,42 +778,15 @@ def render(issue, path, ledger):
         else:
             table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
             row(["issue", refactor_spent(structural), stopped])
-        inconsistent = None
-        if "stopped" not in structural:
-            inconsistent = "the mark carries no stopped"
-        elif "transforms" in structural:
-            if "budget" not in structural:
-                inconsistent = "transforms=%s without a budget" % structural["transforms"]
-            elif structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
-                inconsistent = ("stopped=budget-spent, but transforms=%s is below budget=%s"
-                                % (structural["transforms"], structural["budget"]))
-            elif structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
-                inconsistent = ("stopped=%s is not one of candidates-done, budget-spent, nothing-structural"
-                                % structural["stopped"])
-        if inconsistent is not None:
+        if f.structural_inconsistency is not None:
             print()
-            print("Inconsistent mark: %s" % inconsistent)
-    if passes or structural_marked:
-        by_step = {}
-        for each in passes:
-            by_step.setdefault(each["step"], []).append(each["mark"])
-
-        def totals_row(label, marks):
-            moved = [mark.get("transforms", "") for mark in marks]
-            reasons = {}
-            for mark in marks:
-                reasons[mark["stopped"]] = reasons.get(mark["stopped"], 0) + 1
-            known = all(count.isdigit() for count in moved)
-            row([label, str(len(marks)), str(sum(map(int, moved))) if known else "?",
-                 str(moved.count("0")) if known else "?",
-                 ", ".join("%s %d" % item for item in sorted(reasons.items()))])
-
+            print("Inconsistent mark: %s" % f.structural_inconsistency)
+    if f.refactor_totals:
         table_head("#### Refactor totals", "step", ["passes", "transforms", "landed nothing", "stopped"],
                    ["---:", "---:", "---:", "---"])
-        for step, marks in by_step.items():
-            totals_row(step, marks)
-        every = [mark for marks in by_step.values() for mark in marks]
-        totals_row("issue", every + [dict(structural, transforms=structural.get("transforms", ""))] if structural_marked else every)
+        for label, passed, transforms, nothing, reasons in f.refactor_totals:
+            row([label, str(passed), "?" if transforms is None else str(transforms),
+                 "?" if nothing is None else str(nothing), ", ".join("%s %d" % item for item in reasons)])
     tier_section("#### Test-command seconds, by tier", "tier")
     section("#### Total", "run", COST_COLUMNS, totals)
 

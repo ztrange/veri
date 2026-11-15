@@ -116,3 +116,19 @@ def test_each_operator_session_in_the_transcripts_is_a_label_turns_cache_tokens_
     assert [(label, turns, cache) for label, turns, cache, _ in folded.operator_sessions] == [
         ("Coordinator", 2, 250000), ("Dev", 2, 250000)]
     assert folded.operator_sessions[0][3] == pytest.approx(0.48, abs=0.01)
+
+
+def test_a_steps_wall_is_the_seconds_between_its_start_and_done_marks_or_none_when_it_has_no_done(folded):
+    assert folded.step_walls == {"one": 690, "two": None, "three": 30, "five": 20}
+
+
+def test_the_structural_pass_is_marked_and_checked_against_its_own_budget(folded):
+    assert folded.structural_marked is True
+    assert folded.structural["transforms"] == "1"
+    assert folded.structural_inconsistency == "stopped=budget-spent, but transforms=1 is below budget=3"
+
+
+def test_refactor_totals_are_a_row_per_step_then_the_issue_each_with_counts_and_stop_reasons(folded):
+    assert folded.refactor_totals == [
+        ("one", 2, 3, 0, [("budget-spent", 1), ("candidates-done", 1)]),
+        ("issue", 3, 4, 0, [("budget-spent", 2), ("candidates-done", 1)])]
