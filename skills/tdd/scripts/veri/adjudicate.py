@@ -14,7 +14,7 @@ USAGE = "usage: adjudicate.sh --check-budget | left <n> | record <n> <cause> <le
 
 
 def budget():
-    return tunables.read("VERI_ADJUDICATE_BUDGET", "2")
+    return tunables.get("VERI_ADJUDICATE_BUDGET")
 
 
 def main(argv):
