@@ -453,7 +453,7 @@ def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
@@ -489,7 +489,7 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step.subprocess, "run", run)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
@@ -961,7 +961,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_three_times_by_defa
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\nA2: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     code, out, err = run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"])
 
@@ -996,7 +996,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
 
     monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\nA2: FAIL - no\n"))
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     code, out, err = run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"])
 
@@ -1035,7 +1035,7 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
 
     monkeypatch.setattr(skill_edit_step, "_grade", grade)
     monkeypatch.setattr(skill_edit_step, "_author", author)
-    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "main", lambda argv: 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: [])
 
     code, out, err = run_cli(skill_edit_step, [str(repo / "issue.md"), "unit.md"])
 

@@ -242,10 +242,12 @@ def _grade(path, unit):
 
 
 def _guard(unit, base, issue, pins, own=()):
-    code, out = _captured(skill_edit_guard.main, [unit, base, *pins])
-    if code == 2:
-        return 2, out
-    offending = [p for p in out.splitlines() if p != issue and p not in own]
+    try:
+        stray = skill_edit_guard.offending(unit, base, pins)
+    except skill_edit_guard.Refusal as refusal:
+        print(refusal, file=sys.stderr)
+        return 2, ""
+    offending = [p for p in stray if p != issue and p not in own]
     return int(bool(offending)), "".join(p + "\n" for p in offending)
 
 
