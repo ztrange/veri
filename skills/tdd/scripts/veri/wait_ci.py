@@ -10,7 +10,7 @@ from dataclasses import replace
 from datetime import datetime
 
 import github
-from github import NoAnswer, run_gh, gh_api, gh_rest_list
+from github import NoAnswer, run_gh, gh_api, gh_rest_list, pull
 from json_documents import documents
 import tunables
 import ci_marks
@@ -86,14 +86,16 @@ def ci_bound(repo, n=5):
 
 
 def pr_head(repo, pr, on_limit=None):
-    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]), stderr=subprocess.PIPE)
-    if run.returncode != 0:
-        sys.stderr.write(run.stderr or "")
+    try:
+        found = pull(pr, repo)
+    except NoAnswer as refused:
+        sys.stderr.write(refused.detail)
         if on_limit:
-            on_limit(run.stderr or "", False)
+            on_limit(refused.detail, False)
         return None, "", False
-    pull = json.loads(run.stdout)
-    return pull.get("mergeable"), pull["head"]["sha"] or "", bool(pull.get("draft"))
+    if found.head_sha is None:
+        raise KeyError("head.sha")
+    return found.mergeable, found.head_sha, found.draft is True
 
 
 def sha_state(repo, sha, on_limit=None, draft=False):
