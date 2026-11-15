@@ -22,20 +22,18 @@ UNDOCUMENTED_KINDS = {
 CONTEXT_KEYS = {"ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit"}
 
 
-def _writes():
+def _writes(index):
     """{(kind, field): 'file:line'} for every literal field a writer passes to a literal kind."""
-    from conftest import SCRIPTS
-
     found = {}
-    for source in sorted((SCRIPTS / "veri").glob("*.py")):
-        for line, kind, names in journal_schema.writer_calls(source.read_text(encoding="utf-8"), source.stem):
+    for module in index.names:
+        for line, kind, names in journal_schema.writer_calls(index.text(module), module):
             for name in names if kind else ():
-                found.setdefault((kind, name), f"{source.name}:{line}")
+                found.setdefault((kind, name), f"{module}.py:{line}")
     return found
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri and skills/tdd/JOURNAL.md")
-def test_every_literal_field_a_writer_passes_is_documented_for_its_literal_kind():
+def test_every_literal_field_a_writer_passes_is_documented_for_its_literal_kind(veri_modules_index):
     """Walks `event.mark`/`event.append`, `verify.mark`, `supervise.mark` and `push_branch.record` calls
     (and the bare `mark`/`record` inside the modules that define them) with `ast`, and fails when a call
     whose kind is a string literal passes a field written as a literal `"name=…"` that the kind's row in
@@ -48,7 +46,7 @@ def test_every_literal_field_a_writer_passes_is_documented_for_its_literal_kind(
 
     journal = (SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8")
     documented = journal_schema.kinds(journal)
-    gaps = {key: where for key, where in _writes().items()
+    gaps = {key: where for key, where in _writes(veri_modules_index).items()
             if key[0] in documented and key[1] not in journal_schema.fields(journal, key[0])
             and key[1] not in CONTEXT_KEYS}
 
@@ -60,23 +58,23 @@ def test_every_literal_field_a_writer_passes_is_documented_for_its_literal_kind(
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri")
-def test_the_walk_sees_the_writers_of_the_tree():
-    kinds = {kind for kind, _ in _writes()}
+def test_the_walk_sees_the_writers_of_the_tree(veri_modules_index):
+    kinds = {kind for kind, _ in _writes(veri_modules_index)}
 
     assert {"bail", "verdict", "launch", "merged", "test-run"} <= kinds
 
 
 @pytest.mark.tree_audit("skills/tdd/scripts/veri and skills/tdd/JOURNAL.md")
-def test_every_literal_kind_a_writer_passes_has_a_row_in_journal_md():
+def test_every_literal_kind_a_writer_passes_has_a_row_in_journal_md(veri_modules_index):
     """Same walk as above; a kind that is not a string literal or a module-level constant is invisible."""
     from conftest import SCRIPTS
 
     documented = journal_schema.kinds((SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8"))
     gaps = {}
-    for source in sorted((SCRIPTS / "veri").glob("*.py")):
-        for line, kind, _ in journal_schema.writer_calls(source.read_text(encoding="utf-8"), source.stem):
+    for module in veri_modules_index.names:
+        for line, kind, _ in journal_schema.writer_calls(veri_modules_index.text(module), module):
             if kind and kind not in documented:
-                gaps.setdefault(kind, f"{source.name}:{line}")
+                gaps.setdefault(kind, f"{module}.py:{line}")
 
     new = {kind: where for kind, where in gaps.items() if kind not in UNDOCUMENTED_KINDS}
     stale = sorted(kind for kind in UNDOCUMENTED_KINDS if kind not in gaps)
