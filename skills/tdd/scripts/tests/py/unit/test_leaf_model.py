@@ -480,6 +480,14 @@ def test_skill_md_preflight_leaf_model_calls_name_a_leaf_leaf_role_accepts(
     assert problems == []
 
 
+@pytest.mark.parametrize("leaf", ["conductor-x", "grade-prose", "author-skill-edit", "develop-red", "verify-green"])
+def test_main_with_no_model_variable_set_prints_sonnet_for_every_first_try_leaf_the_conductor_leaf_included(
+        capsys, leaf_model, leaf):
+    code = leaf_model.main([leaf])
+
+    assert (code, capsys.readouterr().out) == (0, "sonnet\n")
+
+
 def test_main_with_no_model_variable_set_prints_opus_for_an_adjudicate_leaf_and_the_shim_header_names_veri_model_adjudicator(
         capsys, leaf_model):
     code = leaf_model.main(["adjudicate-ci-timeout"])
