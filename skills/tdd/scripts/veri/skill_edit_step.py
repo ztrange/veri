@@ -301,8 +301,8 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     issue, unit, *pins = argv
-    budget = tunables.read("VERI_SKILL_EDIT_BUDGET", "3")
-    if not (budget.isdecimal() and int(budget) >= 1):
+    budget = tunables.get("VERI_SKILL_EDIT_BUDGET")
+    if not tunables.parses("VERI_SKILL_EDIT_BUDGET", budget):
         print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
         return 2
     refusal = _refusal(issue, unit)
