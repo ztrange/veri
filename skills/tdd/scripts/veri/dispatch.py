@@ -33,7 +33,7 @@ clock = time.time
 
 
 def stall_window():
-    return tunables.read("VERI_DISPATCH_STALL", "3600")
+    return tunables.get("VERI_DISPATCH_STALL")
 
 
 def restart_pending(issue):
@@ -158,7 +158,7 @@ def answered(what, read, *args, **kwargs):
 
 
 def overlap_poll():
-    return tunables.read("VERI_DISPATCH_OVERLAP_POLL", "60", unless_empty="60")
+    return tunables.get("VERI_DISPATCH_OVERLAP_POLL", unless_empty=True)
 
 
 # The overlap reads one dispatch process has made, emptied as main() starts: issue bodies per issue,

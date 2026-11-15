@@ -211,6 +211,8 @@ DEFAULTED = {
     "VERI_SLEEP_GAP": ("900", "900", None),
     "VERI_SNAPSHOT_MAX_AGE": ("60", "60", None),
     "VERI_WATCH_QUEUE_INTERVAL": ("60", "60", None),
+    "VERI_DISPATCH_STALL": ("3600", "3600", None),
+    "VERI_DISPATCH_OVERLAP_POLL": ("60", "60", None),
     "VERI_STEP_BUDGET": ("12", "12", None),
     "VERI_RUN_BUDGET": ("120", "120", None),
     "VERI_UNIT_BUDGET": ("10", "10", None),
