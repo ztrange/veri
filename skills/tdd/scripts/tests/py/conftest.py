@@ -960,7 +960,8 @@ def fake_processes(monkeypatch):
             "git log": [(0, "a", ""), (0, "b", "")]      successive calls; once spent the call fails loudly
             "gh ": FileNotFoundError(2, "no gh")         an exception instance is raised, as the OS would
             "git": lambda line, **kwargs: (0, "", "")    a callable is handed the line and the kwargs
-        A list may mix tuples, exception instances and callables. A call no prefix matches fails the case with
+        A callable needing the unjoined argv (an argument holding spaces) reads fake.argvs[-1]: the call is
+        recorded before it is answered. A list may mix tuples, exception instances and callables. A call no prefix matches fails the case with
         AssertionError("unexpected process: <line>") unless <default> (any of the above) answers it.
         fake.calls: the command lines, in order. fake.argvs: the same calls as argv lists. fake.seen: one (argv, kwargs) per call, argv as the caller
         passed it (full path kept) and kwargs as passed (cwd, env, input, capture_output, check ...).
