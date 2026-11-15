@@ -42,6 +42,11 @@ def wait_seconds(name, default, least):
     return int(raw)
 
 
+def refusal_retries():
+    """How many rate-limit refusals a read waits out (VERI_GH_REFUSAL_RETRIES)."""
+    return wait_seconds("VERI_GH_REFUSAL_RETRIES", tunables.default("VERI_GH_REFUSAL_RETRIES"), 0)
+
+
 def run_gh(*args, stderr=None):
     first_miss = None
     while True:
@@ -388,7 +393,7 @@ def _retry_refused(call, stream):
         marked = "rate limit" in text or "retry-after" in text.lower() or "x-ratelimit-remaining: 0" in text.lower()
         if done.returncode == 0 or not marked:
             return done
-        if refusals >= wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+        if refusals >= refusal_retries():
             return done
         refusals += 1
         time.sleep(wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))

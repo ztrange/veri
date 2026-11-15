@@ -88,7 +88,7 @@ def _read_after_rate_limit(read, path):
             detail = failure.detail or str(failure.answer)
             if "rate limit" not in detail:
                 raise
-            if waits >= github.wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+            if waits >= github.refusal_retries():
                 raise RateLimitPersists(f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n")
             reset = github.rate_limit_reset(subprocess.run)
             if reset is None:
@@ -161,12 +161,12 @@ def answered(what, read, *args):
             detail = " ".join((failure.detail or str(failure.answer)).split()) or "no answer"
             if transient(detail) and retries < TRANSIENT_RETRY_BOUND:
                 retries += 1
-                github.time.sleep(int(tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5")))
+                github.time.sleep(int(tunables.get("VERI_DISPATCH_RETRY_SLEEP")))
                 continue
             unreadable = f"dispatch.sh: reading {what} failed: {detail}\n"
             if "rate limit" in detail:
                 limited[what] = limited.get(what, 0) + 1
-                if limited[what] > github.wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+                if limited[what] > github.refusal_retries():
                     raise RateLimitPersists(unreadable)
             raise watch_runs.QueueUnreadable(unreadable)
 
@@ -324,7 +324,7 @@ def main(argv):
     if target is None:
         sys.stderr.write(USAGE + "\n")
         return 2
-    if not tunables.read("VERI_DISPATCH_RETRY_SLEEP", "5").isdigit():
+    if not tunables.parses("VERI_DISPATCH_RETRY_SLEEP", tunables.get("VERI_DISPATCH_RETRY_SLEEP")):
         sys.stderr.write("dispatch.sh: VERI_DISPATCH_RETRY_SLEEP must be a whole number of seconds\n")
         return 2
     previous = None

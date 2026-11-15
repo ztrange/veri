@@ -76,9 +76,10 @@ def text(raw):
 
 
 def isdigit_seconds(raw):
+    """str.isdigit, which accepts what int() refuses ('²'); returns the string so no int() runs here."""
     if not raw.isdigit():
         raise ValueError
-    return int(raw)
+    return raw
 
 
 def decimal_at_least_one(raw):
