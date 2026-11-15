@@ -6,7 +6,7 @@ import os
 import sys
 
 import github
-from ledger import OPEN_STEP, is_human_owed, ledger_path, ledger_steps
+from ledger import OPEN_STEP, is_human_owed, ledger_steps
 import run_dir as layout
 import status
 
@@ -36,7 +36,7 @@ def main(argv):
         return 2
     runs = json.loads(json_document()[1])["runs"]
     run = next((r for r in runs if r["issue"] == issue), None)
-    ledger = ledger_path(run_dir, issue)
+    ledger = layout.ledger(run_dir, issue)
     if run is None and not os.path.isfile(ledger):
         sys.stderr.write("run-finished.sh: cannot read %s\n" % ledger)
         return 2
