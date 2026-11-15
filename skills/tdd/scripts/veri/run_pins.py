@@ -49,10 +49,11 @@ def write_skip_verify(root, issue, listed):
         skip.write(listed + "\n" if listed else "")
 
 
-def skip_verify(issue, *roots):
+def skip_verify(issue, *roots, unreadable_raises=False):
     """The stripped phase list in the pin of the first of `roots` (a directory holding a `.tdd/`) that
-    has one, `""` for an empty pin, None when none does or the file is unreadable."""
-    return _read(issue, SKIP_VERIFY, roots, tolerant=True)
+    has one, `""` for an empty pin, None when none does. A pin that exists but cannot be read answers
+    None, or raises its OSError when `unreadable_raises`."""
+    return _read(issue, SKIP_VERIFY, roots, tolerant=not unreadable_raises)
 
 
 def write_conductor_model(root, issue, model):

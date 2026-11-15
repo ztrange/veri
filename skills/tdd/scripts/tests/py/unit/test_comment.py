@@ -4,6 +4,8 @@ import json
 import os
 import re
 
+import pytest
+
 from conftest import SCRIPTS
 
 def is_usage(err):
@@ -335,6 +337,22 @@ def test_done_carries_the_unverified_phases_line_when_skip_verify_is_non_empty_t
 
     assert code == 0
     assert "⚠️ Unverified phases: refactor" in posted[0][1].splitlines()
+
+
+def test_done_lets_an_unreadable_skip_verify_pin_raise_instead_of_reading_it_as_unpinned(
+        monkeypatch, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: "https://github.com/o/r/issues/7#issuecomment-5")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd" / "issue-7-skip-verify").mkdir(parents=True)
+    (tmp_path / ".tdd" / "events.jsonl").write_text(
+        json.dumps({"event": "done", "pr": "https://github.com/o/r/pull/12"}) + "\n")
+    (tmp_path / ".tdd" / "issue-7-metrics.md").write_text("### 📊 Metrics\n\n| phase | cost |\n|---|---|\n")
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(IsADirectoryError):
+        comment.main(["7", "done"])
 
 
 def test_the_posted_done_comment_passes_the_conductors_done_check_and_matches_the_done_metrics_family(

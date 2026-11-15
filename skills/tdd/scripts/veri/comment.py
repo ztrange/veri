@@ -63,7 +63,7 @@ def post_done(issue):
         code, metrics = render_metrics(issue)
         if code != 0 or not metrics.startswith("### 📊 Metrics"):
             metrics = f"metrics could not be rendered: metrics.sh exited {code}"
-    pinned = run_pins.skip_verify(issue, ".")
+    pinned = run_pins.skip_verify(issue, ".", unreadable_raises=True)
     if pinned:
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
     if os.path.isfile(run_dir.run_file(".", "stop")):
