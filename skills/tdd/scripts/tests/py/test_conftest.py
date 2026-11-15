@@ -50,7 +50,7 @@ def test_fake_processes_given_an_answer_hands_run_the_line_and_its_keyword_argum
 
     assert asked == [("touch %s" % (tmp_path / "run"), {"capture_output": True, "text": True})]
     assert (ran.returncode, ran.stdout, ran.stderr) == (3, "out", "err")
-    for entry in ("Popen", "check_call", "check_output"):
+    for entry in ("Popen",):
         line = "touch %s" % (tmp_path / entry)
         try:
             getattr(subprocess, entry)(["/usr/bin/touch", str(tmp_path / entry)])
@@ -190,12 +190,41 @@ def test_fake_processes_answers_call_returns_the_matched_return_code_and_records
         subprocess.call(["other"])
 
 
+def test_fake_processes_answers_check_call_returns_zero_and_raises_calledprocesserror_on_a_non_zero_code(fake_processes):
+    fake = fake_processes.answers({"tool ok": (0, "", ""), "tool bad": (7, "o", "e")})
+
+    assert subprocess.check_call(["tool", "ok"], cwd="/x") == 0
+    with pytest.raises(subprocess.CalledProcessError) as failed:
+        subprocess.check_call(["tool", "bad"])
+    assert (failed.value.returncode, failed.value.cmd) == (7, ["tool", "bad"])
+    assert fake.calls == ["tool ok", "tool bad"]
+    assert fake.seen[0] == (["tool", "ok"], {"cwd": "/x"})
+    with pytest.raises(AssertionError, match="unexpected process: other"):
+        subprocess.check_call(["other"])
+
+
+def test_fake_processes_answers_check_output_returns_stdout_in_the_calls_mode_and_raises_on_a_non_zero_code(fake_processes):
+    fake = fake_processes.answers({"tool ok": (0, "out\n", "err"), "tool bad": (7, "partial", "e")})
+
+    assert subprocess.check_output(["tool", "ok"]) == b"out\n"
+    assert subprocess.check_output(["tool", "ok"], text=True) == "out\n"
+    assert subprocess.check_output(["tool", "ok"], universal_newlines=True) == "out\n"
+    assert subprocess.check_output(["tool", "ok"], encoding="ascii") == "out\n"
+    assert subprocess.check_output(["tool", "ok"], stderr=subprocess.STDOUT, text=True) == "out\nerr"
+    with pytest.raises(subprocess.CalledProcessError) as failed:
+        subprocess.check_output(["tool", "bad"], text=True, input="in")
+    assert (failed.value.returncode, failed.value.output) == (7, "partial")
+    assert fake.seen[-1] == (["tool", "bad"], {"text": True, "input": "in"})
+    with pytest.raises(AssertionError, match="unexpected process: other"):
+        subprocess.check_output(["other"])
+
+
 def test_fake_processes_answers_hands_output_back_in_the_calls_mode_and_refuses_the_other_entry_points(fake_processes):
     fake_processes.answers({"tool": (0, "out", "err")})
 
     assert subprocess.run(["tool"], capture_output=True).stdout == b"out"
     assert subprocess.run(["tool"], capture_output=True, text=True).stdout == "out"
-    for entry in ("Popen", "check_call", "check_output"):
+    for entry in ("Popen",):
         with pytest.raises(AssertionError, match="unexpected process: tool"):
             getattr(subprocess, entry)(["tool"])
 
