@@ -39,7 +39,7 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "test_run_leaf.py": "not inventoried",
     "test_run_verdict.py": "not inventoried",
     "test_skill_edit_step_process.py": "not inventoried",
-    "test_solvable_issues.py": "22 inline worktree-list fakes, Popen too",
+    "test_solvable_issues.py": "one case (in_flight_2390) puts a recording fake in front of the real subprocess.run that starts a fake claude",
     "test_status.py": "worktree list faked, the rest real",
     "test_structural_predicate.py": "not inventoried",
     "test_supervise.py": "not inventoried",
