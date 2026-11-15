@@ -943,8 +943,9 @@ def fake_processes(monkeypatch):
         passed. Popen, call, check_call and check_output refuse, naming the command. With no <answer>, every
         entry point records and answers 0 with empty output. Returns the list of command lines run.
 
-    fake_processes.answers(table, default=None) -> fake    (the table-driven form: prefer it)
-        <table> maps a command-line prefix to what that command does; the longest matching prefix wins:
+    fake_processes.answers(table, default=None, exact=False) -> fake    (the table-driven form: prefer it)
+        <table> maps a command-line prefix to what that command does; the longest matching prefix wins
+        (exact=True: a key matches only the whole command line, so a longer command is unexpected):
             "git rev-parse": (0, "sha\\n", "")           one answer, every time
             "git log": [(0, "a", ""), (0, "b", "")]      successive calls; once spent the call fails loudly
             "gh ": FileNotFoundError(2, "no gh")         an exception instance is raised, as the OS would
@@ -997,12 +998,12 @@ def fake_processes(monkeypatch):
             monkeypatch.setattr(subprocess, name, entry)
         return calls
 
-    def answers(table, default=None):
+    def answers(table, default=None, exact=False):
         every = dict(table, **({} if default is None else {"": default}))
         remaining = {prefix: list(what) if isinstance(what, list) else what for prefix, what in every.items()}
 
         def answer(line, **kwargs):
-            matching = [prefix for prefix in remaining if line.startswith(prefix)]
+            matching = [prefix for prefix in remaining if line == prefix or not (exact and prefix) and line.startswith(prefix)]
             if not matching:
                 raise AssertionError("unexpected process: %s" % line)
             what = remaining[max(matching, key=len)]

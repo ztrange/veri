@@ -153,6 +153,23 @@ def test_fake_processes_answers_fails_an_unmatched_call_naming_its_command_line_
     assert fake.calls == ["curl -s http://x"]
 
 
+def test_fake_processes_answers_given_exact_matches_only_the_whole_command_line(fake_processes):
+    fake = fake_processes.answers({"vcs log": (0, "short", "")}, exact=True)
+
+    assert subprocess.run(["vcs", "log"], capture_output=True, text=True).stdout == "short"
+    with pytest.raises(AssertionError, match="unexpected process: vcs log -1"):
+        subprocess.run(["vcs", "log", "-1"], capture_output=True, text=True)
+    assert fake.calls == ["vcs log", "vcs log -1"]
+
+
+def test_fake_processes_answers_given_exact_still_lets_a_default_answer_what_no_key_matches(fake_processes):
+    fake_processes.answers({"vcs log": (0, "short", "")}, default=(3, "", "other"), exact=True)
+
+    other = subprocess.run(["vcs", "log", "-1"], capture_output=True, text=True)
+
+    assert (other.returncode, other.stderr) == (3, "other")
+
+
 def test_fake_processes_answers_given_a_default_answers_every_unmatched_call_with_it(fake_processes):
     fake = fake_processes.answers({"vcs": (0, "g", "")}, default=(1, "", "nope"))
 
