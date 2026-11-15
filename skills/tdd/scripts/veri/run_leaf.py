@@ -22,7 +22,7 @@ USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
 def leaf_argv(binary, model, extra):
-    argv = [binary or "claude", "-p",
+    argv = [binary, "-p",
             "--output-format", "stream-json", "--verbose"] + context_limits()
     tools = tunables.read("VERI_LEAF_TOOLS", DEFAULT_TOOLS)
     if tools is not None and "--tools" not in extra:
@@ -84,7 +84,7 @@ def main(argv):
             complain(git_path, error)
             return 2
         env = dict(os.environ)
-        binary = env.get("CLAUDE_BIN")
+        binary = tunables.claude_bin()
         model = tunables.read("VERI_LEAF_MODEL")
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path

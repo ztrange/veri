@@ -7,6 +7,7 @@ import sys
 import tempfile
 
 import launch_floor
+import tunables
 
 
 USAGE = "usage: leaf-launchable.sh"
@@ -15,7 +16,7 @@ USAGE = "usage: leaf-launchable.sh"
 def main(argv):
     if launch_floor.bash_refusal("leaf-launchable") or launch_floor.python_refusal("leaf-launchable"):
         return 2
-    leaf_bin = os.environ.get("CLAUDE_BIN") or "claude"
+    leaf_bin = tunables.claude_bin()
     with tempfile.TemporaryFile() as probe_err:
         try:
             status = subprocess.call([leaf_bin, "--version"], stdout=subprocess.DEVNULL, stderr=probe_err)
