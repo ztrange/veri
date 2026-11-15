@@ -1,14 +1,11 @@
 """handoff-state.sh's computation, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
-import re
 import sys
 
 from git import git
 
 import github
-import json_documents
-import tunables
 
 import status
 import entry
@@ -18,28 +15,8 @@ def out(*args):
     return git(*args, capture_output=True, text=True).stdout.strip()
 
 
-OPEN_PULLS = "repos/{owner}/{repo}/pulls?state=open&per_page=100"
-
-
-def with_draft_flag(pulls):
-    return [dict(pr, isDraft=pr.get("draft", pr.get("isDraft", False))) for pr in pulls]
-
-
-def open_prs(fields, *extra):
-    if tunables.read("VERI_GH_JSON"):
-        pulls = json.loads(github.gh_json("prs.json", OPEN_PULLS))
-        if extra:
-            pulls = [pr for pr in pulls if pr.get("head", {}).get("ref") == extra[-1]]
-        return with_draft_flag(pulls)
-    path = OPEN_PULLS
-    if extra:
-        path += "&head={owner}:" + extra[-1]
-    answer = github.gh_list(path, "pr", "list", *extra, "--state", "open", "--json", fields)
-    return with_draft_flag(json_documents.items(answer))
-
-
 def has_open_pr(branch):
-    return bool(open_prs("number", "--head", branch))
+    return bool(github.open_pulls("number", head=branch, limit=None))
 
 
 def parked_reason(run):
@@ -73,10 +50,10 @@ def main(argv):
             if run["state"] in ("bailed", "stopped", "stale") and has_open_pr(run.get("branch", "")):
                 lines.append(("#%s %s %s" % (run["issue"], run["state"], parked_reason(run))).rstrip())
         lines.append("## Ready to merge")
-        for pr in open_prs("number,isDraft,body"):
-            closes = re.search(r"\bCloses #(\d+)", pr["body"] or "")
-            if closes and not pr["isDraft"]:
-                lines.append("PR #%s closes #%s" % (pr["number"], closes.group(1)))
+        for pr in github.open_pulls("number,isDraft,body", limit=None):
+            closes = github.closed_issues(pr.body)
+            if closes and pr.draft is not True:
+                lines.append("PR #%s closes #%s" % (pr.number, closes[0]))
     except github.NoAnswer:
         print("handoff-state.sh: GitHub refused the open PR listing", file=sys.stderr)
         return 2

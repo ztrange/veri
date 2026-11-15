@@ -11,7 +11,6 @@ from datetime import datetime
 
 import event_log
 import github
-import handoff_state
 import json_documents
 import paths
 import pid_file
@@ -135,14 +134,14 @@ def transient(detail):
     return "HTTP 5" in detail or "error connecting to api.github.com" in detail
 
 
-def answered(what, read, *args):
+def answered(what, read, *args, **kwargs):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>. A rate limit waits for the reset
     (the caller's), but a read still rate-limited after VERI_GH_REFUSAL_RETRIES waits in a row is a RateLimitPersists."""
     retries = 0
     limited = _reads.setdefault("limited", {})
     while True:
         try:
-            answer = read(*args)
+            answer = read(*args, **kwargs)
             limited.pop(what, None)
             return answer
         except github.NoAnswer as failure:
@@ -182,14 +181,13 @@ def run_prs():
     listed = _reads.get("listed")
     if listed is None or clock() - listed[0] >= int(overlap_poll()):
         prs = []
-        for pr in answered("the open PR list", handoff_state.open_prs, "number,url,isDraft,headRefName,headRefOid,labels"):
-            head = pr.get("head") or {}
-            if "parked" in {label.get("name") for label in pr.get("labels") or []}:
+        for pr in answered("the open PR list", github.open_pulls, "number,url,isDraft,headRefName,headRefOid,labels", limit=None):
+            if "parked" in pr.labels:
                 continue
-            if pr["isDraft"] and (pr.get("headRefName") or head.get("ref") or "").startswith("tdd/"):
-                url = pr.get("url") or pr.get("html_url")
-                _reads.setdefault("heads", {})[url] = pr.get("headRefName") or head.get("ref")
-                prs.append((url, pr["number"], pr.get("headRefOid") or head.get("sha")))
+            if pr.draft is True and pr.head_ref.startswith("tdd/"):
+                url = pr.url or pr.html_url
+                _reads.setdefault("heads", {})[url] = pr.head_ref
+                prs.append((url, pr.number, pr.head_sha))
         listed = _reads["listed"] = (clock(), prs)
     return listed[1]
 
