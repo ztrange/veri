@@ -13,6 +13,7 @@ import tempfile
 import build_verify_prompt
 import entry
 import event
+import mutation_record
 import parse_verdict
 import preserve_attempt
 import renamed_case
@@ -431,7 +432,7 @@ def main(argv):
     relaunches = 0
     own_record = None
     if words[0] == "pin":
-        record = os.path.abspath(run_dir.issue_file(run, tunables.read("VERI_ISSUE"), "-mutations.md"))
+        record = os.path.abspath(mutation_record.path(run, tunables.read("VERI_ISSUE")))
         launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
         own_record = os.path.relpath(record, top or os.getcwd())
         record_before = file_bytes(record)
