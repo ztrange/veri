@@ -1,6 +1,5 @@
 """mutation-probe.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import base64
 import re
 import shlex
 import signal
@@ -8,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import mutation_record
 import tunables
 from event_log import run_keeping_journal
 
@@ -18,12 +18,7 @@ BEFORE_USAGE = "usage: mutation-probe.sh --before <sha> --keep <test-path> -- <c
 def append_record(fields):
     record = tunables.read("VERI_MUTATION_RECORD")
     if record:
-        with open(record, "a") as f:
-            for name, value in fields:
-                if name in ("old", "new", "context"):
-                    name, value = name + "-b64", base64.b64encode(value.encode()).decode()
-                f.write(f"{name} {len(value)}\n{value}\n")
-            f.write("\n")
+        mutation_record.append(record, fields)
 
 
 def run_with(contents, command):
@@ -82,7 +77,7 @@ def timed_stripped(command):
 
 
 def names_issue_ledger(record):
-    return re.fullmatch(r"issue-\d+-mutations\.md", Path(record).name) is not None
+    return mutation_record.is_record(record)
 
 
 def main(argv):
