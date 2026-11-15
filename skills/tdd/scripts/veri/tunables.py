@@ -71,6 +71,22 @@ def kill_poll(raw):
     return float(raw)
 
 
+def text(raw):
+    return raw
+
+
+def isdigit_seconds(raw):
+    if not raw.isdigit():
+        raise ValueError
+    return int(raw)
+
+
+def decimal_at_least_one(raw):
+    if not (raw.isdecimal() and int(raw) >= 1):
+        raise ValueError
+    return int(raw)
+
+
 def choice(*allowed):
     def parse(raw):
         if raw not in allowed:
@@ -103,6 +119,57 @@ TABLE = {
     "VERI_BRANCH_SUITE": Tunable(local_or_ci, "local", "local or ci"),
     "VERI_BASELINE_FULL_TIER": Tunable(baseline_full_tier, "reuse", "run or reuse"),
 }
+
+
+# Tunables whose readers keep their own refusal text, so they are not in TABLE (test_1313 pins
+# TABLE's one-line refusal). A reader asks `get`/`default`/`parses` and carries no literal default.
+# `text` parses anything: the name has no shape to refuse, or its readers disagree on one (see
+# VERI_NO_VERDICT_RETRIES, which verify.py and grade_prose.py parse differently).
+DEFAULTED = {
+    "VERI_REFACTOR_BUDGET": Tunable(tokens, "5", "a whole number >= 0"),
+    "VERI_ISSUE_REFACTOR_BUDGET": Tunable(tokens, "10", "a whole number >= 0"),
+    "VERI_STEP_GROWTH": Tunable(tokens, "5", "a whole number >= 0"),
+    "VERI_NO_VERDICT_RETRIES": Tunable(text, "1", "a non-negative integer"),
+    "VERI_SKILL_EDIT_BUDGET": Tunable(decimal_at_least_one, "3", "a whole number >= 1"),
+    "VERI_ADJUDICATE_BUDGET": Tunable(tokens, "2", "a non-negative whole number"),
+    "VERI_STUCK_RETRIES": Tunable(tokens, "1", "a number"),
+    "VERI_HEARTBEAT": Tunable(tokens, "180", "a number"),
+    "VERI_TOOL_IDLE": Tunable(tokens, "600", "a number"),
+    "VERI_TIMEOUT": Tunable(tokens, "900", "a number"),
+    "VERI_DISPATCH_RETRY_SLEEP": Tunable(isdigit_seconds, "5", "a whole number of seconds"),
+    "VERI_GH_REFUSAL_RETRIES": Tunable(tokens, "3", "a whole number"),
+    "VERI_LABEL": Tunable(text, "ready-for-agent", "a label"),
+    "VERI_MODEL": Tunable(text, "", "a model id or alias"),
+    "VERI_MODEL_DEVELOPER": Tunable(text, "sonnet", "a model id or alias"),
+    "VERI_MODEL_VERIFIER": Tunable(text, "sonnet", "a model id or alias"),
+    "VERI_MODEL_REVISE": Tunable(text, "opus", "a model id or alias"),
+    "VERI_MODEL_ADJUDICATOR": Tunable(text, "opus", "a model id or alias"),
+    "VERI_MODEL_CONDUCTOR": Tunable(text, "opus", "a model id or alias"),
+}
+
+
+def entry_of(name):
+    return TABLE[name] if name in TABLE else DEFAULTED[name]
+
+
+def default(name):
+    """The one default of a tunable named in TABLE or DEFAULTED."""
+    return entry_of(name).default
+
+
+def parses(name, raw):
+    """Whether `raw` is a value the tunable's parse accepts."""
+    try:
+        entry_of(name)(raw)
+    except ValueError:
+        return False
+    return True
+
+
+def get(name, unless_empty=False):
+    """The value of a tunable, its default when unset; `unless_empty` also takes the default for a set-but-empty one."""
+    fallback = default(name)
+    return read(name, fallback, unless_empty=fallback if unless_empty else None)
 
 
 def resolve(name):
