@@ -22,7 +22,8 @@ Keys a tick may carry, each with the default an empty world would answer:
     clock         seconds                                            the tick's index * 60
     reset         the rate-limit reset epoch                         0
 
-What it records: `said` (stdout text), `complained` (stderr text), `launched` (issues), `waits` (their count).
+What it records: `said` (stdout text), `complained` (stderr text), `launched` (issues), `waits` (their count),
+`launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called).
 """
 
 
@@ -37,6 +38,7 @@ class FakeWorld:
         self.complained = []
         self.launched = []
         self.waits = 0
+        self.launched_at_wait = []
 
     def _tick(self):
         return self.ticks[min(self.index, len(self.ticks) - 1)]
@@ -121,5 +123,6 @@ class FakeWorld:
 
     def wait(self):
         self.waits += 1
+        self.launched_at_wait.append(list(self.launched))
         self.index += 1
         return self.index < len(self.ticks)
