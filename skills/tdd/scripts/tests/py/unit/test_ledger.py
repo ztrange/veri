@@ -310,3 +310,66 @@ def test_a_step_record_reads_by_name_and_stays_the_tuple_ledger_steps_printed():
         "1", "done", "step", "1", "1", "2", "two cogs mesh ⟦added⟧ ⟦criterion 2⟧")
     assert record == ("1", "done", "step", "1", "1", "2", "two cogs mesh ⟦added⟧ ⟦criterion 2⟧")
     assert "\t".join(record) == "1\tdone\tstep\t1\t1\t2\ttwo cogs mesh ⟦added⟧ ⟦criterion 2⟧"
+
+
+STEPS_TEXT = (
+    "- [x] a cog exists ⟦criterion 1⟧\n"
+    "- [ ] two cogs mesh ⟦criterion 2⟧\n"
+    "- [ ] two cogs mesh ⟦criterion 2⟧\n"
+    "- [ ] 7\n"
+)
+
+
+def steps_of(ledger):
+    return ledger.ledger_steps(STEPS_TEXT)
+
+
+def test_step_at_names_the_step_a_number_reference_counts_to():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.step_at(steps_of(ledger), "2").text == "two cogs mesh ⟦criterion 2⟧"
+    assert ledger.step_at(steps_of(ledger), "2").number == "2"
+
+
+def test_step_at_answers_none_for_a_number_past_the_last_step_or_below_the_first_or_not_a_decimal():
+    ledger = importlib.import_module("veri.ledger")
+    steps = steps_of(ledger)
+
+    assert [ledger.step_at(steps, ref) for ref in ("0", "5", "99999999999999999999", "²")] == [None] * 4
+
+
+def test_step_at_reads_leading_zeros_as_the_number_they_spell():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.step_at(steps_of(ledger), "01").number == "1"
+
+
+def test_step_at_names_the_first_step_whose_text_is_the_reference_when_it_is_no_number():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.step_at(steps_of(ledger), "two cogs mesh ⟦criterion 2⟧").number == "2"
+    assert ledger.step_at(steps_of(ledger), "two cogs mesh") is None
+
+
+def test_step_at_never_looks_a_number_reference_up_as_text_unless_asked_to_by_index():
+    ledger = importlib.import_module("veri.ledger")
+    steps = steps_of(ledger)
+
+    assert ledger.step_at(steps, "7") is None
+    assert ledger.step_at(steps, "7", by_index=True).number == "4"
+
+
+def test_step_at_by_index_takes_an_index_only_as_the_digits_it_was_numbered_with():
+    ledger = importlib.import_module("veri.ledger")
+    steps = steps_of(ledger)
+
+    assert ledger.step_at(steps, "3", by_index=True).number == "3"
+    assert ledger.step_at(steps, "03", by_index=True) is None
+
+
+def test_step_at_takes_the_text_rule_as_a_parameter():
+    ledger = importlib.import_module("veri.ledger")
+
+    found = ledger.step_at(steps_of(ledger), "two cogs", text_matches=lambda reference, text: text.startswith(reference))
+
+    assert found.number == "2"
