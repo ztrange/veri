@@ -517,8 +517,8 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `stale-rows.sh`: requirements rows gone stale.
 
 ## grade_prose
-- `grade_unit(path, unit)`: grades a prose unit (0 PASS, 1 REJECT, 2 no answer), for `stale_rows` and `skill_edit_step`; the script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
-- `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `read(file)`, `graded_path(unit)`: the unit's text, a file's text, its `GRADED` file path.
+- `grade_unit(path, unit, read=None)`: grades a prose unit, its file's text answered by the reader passed as the third argument (None: the working tree; `stale_rows` passes the default branch's), for `stale_rows` and `skill_edit_step`. Returns a grading record (`code` 0 PASS, 1 REJECT, 2 no answer; `verdict`, `failing` row ids, `lines`, `cost`, `grading_id`; `out`, the bytes `grade-prose.sh` prints); on PASS it also signs `GRADED` and journals a `grading` event. The script itself takes `--owed` and `--convert` as modes and exits 2 on bad arguments.
+- `signature(path, unit)`: the sha256 that stamps a graded unit. `unit_text(unit)`, `graded_path(unit)`: the unit's text, its `GRADED` file path.
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale; `prose_owed` imports it (`suite_red_resume` reads it as `prose_owed.owed_listed`). It lives here so `prose_owed` builds on `grade_prose` and not the reverse: `signer()` runs the tree's own `grade_prose.py` for the formula, so the stamp's functions stay in that one file.
 - `modern_python_dir()`: the PATH directory holding a Python 3.12+ `python3` plus a trailing separator, `""` when none.
 
