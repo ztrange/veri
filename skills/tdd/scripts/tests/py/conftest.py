@@ -452,7 +452,7 @@ def fake_processes(monkeypatch):
                 if not what:
                     raise AssertionError("unexpected process: %s (every answer for it is spent)" % line)
                 what = what.pop(0)
-            if isinstance(what, BaseException):
+            if isinstance(what, BaseException) or isinstance(what, type) and issubclass(what, BaseException):
                 raise what
             return what(line, **kwargs) if callable(what) else what
 
