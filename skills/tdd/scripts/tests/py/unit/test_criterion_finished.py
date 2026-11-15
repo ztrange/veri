@@ -188,7 +188,7 @@ def test_main_reads_its_steps_through_the_ledger_module(monkeypatch, criterion_f
     monkeypatch.setattr(
         sys.modules["ledger"],
         "ledger_steps",
-        lambda text: [("1", "done", "step", "0", "0", "1", "finished in the module ⟦criterion 1⟧")],
+        lambda text: [sys.modules["ledger"].Step("1", "done", "step", "0", "0", "1", "finished in the module ⟦criterion 1⟧")],
     )
     fake_stdin(monkeypatch, "# Plan for #42\n\n- [ ] found open in the markdown ⟦criterion 1⟧\n".encode())
     assert criterion_finished.main(["1"]) == 0

@@ -29,17 +29,17 @@ def say(text):
 
 
 def answer(record):
-    return say(None if record is None else record[6])
+    return say(None if record is None else record.text)
 
 
 def current(records):
-    pending = [r for r in records if r[1] == "done" and r[3] == "1"]
+    pending = [r for r in records if r.state == "done" and r.pending == "1"]
     open_steps = [r for r in records if handed_out(r)]
     return answer(next(iter(pending + open_steps), None))
 
 
 def last_done(records):
-    done = [r for r in records if r[1] == "done"]
+    done = [r for r in records if r.state == "done"]
     return answer(done[-1] if done else None)
 
 
@@ -49,12 +49,12 @@ def current_or_last_done(records):
 
 
 def phase_next(records):
-    phases = (next_phase(r[6]) for r in records)
+    phases = (next_phase(r.text) for r in records)
     return say(next((phase for phase in phases if phase), None))
 
 
 def has_mark(records, name):
-    return 0 if any(carries_mark(trailing_markers(r[6]), name) for r in records) else 3
+    return 0 if any(carries_mark(trailing_markers(r.text), name) for r in records) else 3
 
 
 def criterion(text, k):

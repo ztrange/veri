@@ -260,7 +260,7 @@ def planned_steps(path):
         return None, 0
     steps = ledger_steps(text)
     records = "".join("\t".join(record) + "\n" for record in steps)
-    full_suite = sum(1 for record in steps if record[1] == "done" and record[2] == "full-suite")
+    full_suite = sum(1 for record in steps if record.state == "done" and record.kind == "full-suite")
     return counted(len(records.splitlines())), full_suite
 
 

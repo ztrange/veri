@@ -299,3 +299,14 @@ def test_added_file_is_the_added_md_sibling_of_a_ledger_file():
 def test_interface_phases_are_the_phases_of_an_interface_change():
     ledger = importlib.import_module("veri.ledger")
     assert ledger.INTERFACE_PHASES == ("expand", "cover-new", "migrate", "contract-a", "contract-b")
+
+
+def test_a_step_record_reads_by_name_and_stays_the_tuple_ledger_steps_printed():
+    ledger = importlib.import_module("veri.ledger")
+
+    [record] = ledger.ledger_steps("- [X] two cogs mesh ⟦added⟧ ⟦criterion 2⟧ ⟂ refactor pending")
+
+    assert (record.number, record.state, record.kind, record.pending, record.added, record.criterion, record.text) == (
+        "1", "done", "step", "1", "1", "2", "two cogs mesh ⟦added⟧ ⟦criterion 2⟧")
+    assert record == ("1", "done", "step", "1", "1", "2", "two cogs mesh ⟦added⟧ ⟦criterion 2⟧")
+    assert "\t".join(record) == "1\tdone\tstep\t1\t1\t2\ttwo cogs mesh ⟦added⟧ ⟦criterion 2⟧"

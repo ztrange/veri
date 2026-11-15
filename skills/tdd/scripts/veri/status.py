@@ -87,9 +87,9 @@ def run_object(issue, title, branch, step, activity, states):
 def step_of_total(text):
     """"<n> of <m>": the step pending refactor, else the first open step of the ledger's <m>, or <m> when none is open."""
     records = ledger_steps(text)
-    total = records[-1][0] if records else "0"
-    step = next((index for index, state, _kind, pending, *_ in records if pending == "1"), None) \
-        or next((index for index, state, *_ in records if state == "open"), total)
+    total = records[-1].number if records else "0"
+    step = next((r.number for r in records if r.pending == "1"), None) \
+        or next((r.number for r in records if r.state == "open"), total)
     return "%s of %s" % (step, total)
 
 

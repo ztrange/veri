@@ -51,8 +51,8 @@ def main(argv):
         return 2
     with open(ledger, encoding="utf-8") as f:
         steps = ledger_steps(f.read())
-    unmet = [("unchecked", r[6]) for r in steps if r[1] == "open"]
-    unmet += [("refactor-pending", r[6]) for r in steps if r[3] == "1"]
+    unmet = [("unchecked", r.text) for r in steps if r.state == "open"]
+    unmet += [("refactor-pending", r.text) for r in steps if r.pending == "1"]
     try:
         body = pr_body(pr)
     except github.NoAnswer:

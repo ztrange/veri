@@ -170,7 +170,7 @@ def post_plan(issue):
         with open(body_file, "w") as f:
             f.write(github.gh_issue_view(issue, "body"))
         command = detect_test_command.resolved("fast", body_file, ".")
-    listed = "".join(f"- {r[6]}\n" for r in steps)
+    listed = "".join(f"- {r.text}\n" for r in steps)
     return post_and_record(issue, "plan", f"### 🗺️ Plan\n\n{listed}\nTest command: {os.fsdecode(command)}\n")
 
 
@@ -182,7 +182,7 @@ def post_verify_plan(issue):
 
 def post_resuming(issue, note_file=None):
     steps = read_steps(issue)
-    pending = next((r[6] for r in steps if handed_out(r)), None)
+    pending = next((r.text for r in steps if handed_out(r)), None)
     heading = "### ▶️ Resuming\n" if pending is None else f"### ▶️ Resuming\n\n{pending}\n"
     return post_and_record(issue, "resuming", with_note(heading, note_file))
 
@@ -281,8 +281,8 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     issue = argv[0]
-    done = [r for r in read_steps(issue) if r[1] == "done"]
-    body = f"### ✅ Step done\n\n{done[-1][6]}\n"
+    done = [r for r in read_steps(issue) if r.state == "done"]
+    body = f"### ✅ Step done\n\n{done[-1].text}\n"
     return post_and_record(issue, "step-done", with_note(body, argv[3] if len(argv) > 3 else None), strip_url=True)
 
 

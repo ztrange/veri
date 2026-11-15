@@ -20,11 +20,11 @@ def main(argv):
         print("criterion-finished.sh: " + refusal, file=sys.stderr)
         return 2
     served = False
-    for _, state, _, pending, _, criterion, _ in steps:
-        if criterion != argv[0]:
+    for step in steps:
+        if step.criterion != argv[0]:
             continue
         served = True
-        if state != "done" or pending != "0":
+        if step.state != "done" or step.pending != "0":
             return 3
     return 0 if served else 3
 

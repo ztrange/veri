@@ -275,7 +275,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         if where == "before":
             out.append(line)
     kept = [line for line in lines if where != "instead-of" or not is_anchor_step(line, anchor)]
-    added = sum(record[4] == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
+    added = sum(record.added == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
     cap = bash_integer(budget)
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
