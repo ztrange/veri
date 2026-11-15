@@ -3,7 +3,8 @@ import subprocess
 
 import pytest
 
-from conftest import SCRIPTS, shim_problems
+from conftest import SCRIPTS
+from shim_audit import shim_problems
 
 
 @pytest.mark.process("stop-reason.sh run for real with no argument and for an issue with no run")
