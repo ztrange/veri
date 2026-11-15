@@ -61,7 +61,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_status_report_running_verdicts.py": "not inventoried",
     "unit/test_status_report_waiting.py": "not inventoried",
     "unit/test_status_report_zone.py": "not inventoried",
-    "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
 }
 
 EXEMPT = ("conftest.py",)
