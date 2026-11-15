@@ -456,7 +456,7 @@ def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_va
     import signal
     import threading
     import time
-    pytest_leg = importlib.import_module("veri.pytest_leg")
+    full_run_lock = importlib.import_module("veri.full_run_lock")
     scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     home, marks, work = tmp_path / "home", tmp_path / "marks", tmp_path / "work"
     for directory in (home, marks, work):
@@ -475,7 +475,7 @@ def test_main_hands_a_verify_leaf_veri_test_lock_0_and_a_develop_leaf_no_such_va
     script.write_text(VERIFIER_FULL_RUN % (scripts, os.path.join(scripts, "veri")))
 
     codes = []
-    with open(pytest_leg.full_lock_path(), "a+") as held:
+    with open(full_run_lock.path(), "a+") as held:
         fcntl.flock(held, fcntl.LOCK_EX)
         runner = threading.Thread(target=lambda: codes.append(
             supervise.main(["verify-red", sys.executable, str(script), str(marks), str(release)])))
@@ -562,7 +562,7 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
 
     def leaf(model, commit):
         return [{"VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": commit,
-                 "PYTEST_LEG_LOCK_WAIT_MARKER": supervise.lock_wait_path(os.getpid())}]
+                 "PYTEST_LEG_LOCK_WAIT_MARKER": importlib.import_module("veri.full_run_lock").wait_marker(os.getpid())}]
 
     def launch(model, commit):
         return [{"actor": "developer", "phase": "red", "attempt": "1", "model": model, "skill_commit": commit}]

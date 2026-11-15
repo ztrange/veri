@@ -391,6 +391,7 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 - `detect-test-command.sh`: find the project's test commands.
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
 - `fast_tier_guard`: Fast-tier admission guard: names the lines of test files that start a process.
+- `full_run_lock`: the one-full-run lock: at most one full `make test` runs per machine, and a waiter names the holder.
 - `full-tier-time.sh`: how long the full tier takes, from recorded runs.
 - `mutation-parity.sh`: check the pairs of recorded mutations.
 - `mutation-probe.sh`: apply a mutation, run a command, restore.
@@ -416,6 +417,11 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 ## detect_test_command
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
+
+## full_run_lock
+- `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER`), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
+- `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
+- `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
 
 ## suite_mode
 - `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.

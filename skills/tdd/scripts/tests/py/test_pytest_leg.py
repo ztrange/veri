@@ -1599,8 +1599,8 @@ def test_2195_a_subset_run_starts_its_suites_at_once_while_a_full_run_holds_the_
 
     started = []
     in_process_leg(pytest_leg, monkeypatch, lambda args: started.append(args) or pytest.ExitCode.OK)
-    os.makedirs(os.path.dirname(pytest_leg.full_lock_path()), exist_ok=True)
-    with open(pytest_leg.full_lock_path(), "w") as held:
+    os.makedirs(os.path.dirname(importlib.import_module("veri.full_run_lock").path()), exist_ok=True)
+    with open(importlib.import_module("veri.full_run_lock").path(), "w") as held:
         held.write("pid 1\ttree /elsewhere\n")
         held.flush()
         fcntl.flock(held, fcntl.LOCK_EX)
@@ -1614,14 +1614,14 @@ def test_2195_after_a_full_run_releases_the_lock_the_lock_file_names_no_pid(pyte
     seen = []
 
     def spy(args):
-        seen.append(open(pytest_leg.full_lock_path()).read())
+        seen.append(open(importlib.import_module("veri.full_run_lock").path()).read())
         return pytest.ExitCode.OK
 
     in_process_leg(pytest_leg, monkeypatch, spy)
 
     assert pytest_leg.main(["some/dir"]) == 0
     assert seen and all(("pid %d" % os.getpid()) in held for held in seen)
-    assert "pid" not in open(pytest_leg.full_lock_path()).read()
+    assert "pid" not in open(importlib.import_module("veri.full_run_lock").path()).read()
 
 
 def test_2386_on_macos_with_no_worker_count_the_budget_is_the_physical_core_count_less_the_live_legs_workers_and_at_least_1(pytest_leg, monkeypatch, tmp_path, fake_processes):

@@ -27,8 +27,10 @@ import sys
 import tempfile
 import time
 
+import full_run_lock
 import launch_floor
 import tunables
+from full_run_lock import legs_dir
 
 
 MANIFEST = "veri-manifest.json"
@@ -167,10 +169,6 @@ def worker_count(requested):
     return max(1, cores - registered_workers(legs_dir()))
 
 
-def legs_dir():
-    return tunables.read("VERI_PYTEST_LEGS") or os.path.join(os.path.expanduser("~"), ".veri-pytest-legs")
-
-
 def registered_workers(legs):
     if not legs or not os.path.isdir(legs):
         return 0
@@ -198,62 +196,6 @@ def claim():
         with open(entry, "w") as f:
             f.write(str(count))
     return count, entry
-
-
-def full_lock_path():
-    return legs_dir().rstrip("/") + "-full.lock"
-
-
-def lock_wait_path(key):
-    return "%s.wait-%d" % (full_lock_path(), key)
-
-
-def under_full_lock_holder():
-    holder = os.environ.get("PYTEST_LEG_FULL_LOCK_HOLDER", "")
-    try:
-        with open(full_lock_path()) as lock:
-            recorded = lock.readline().split("\t")[0]
-    except OSError:
-        return False
-    if not holder.isdigit() or recorded != "pid " + holder:
-        return False
-    try:
-        os.kill(int(holder), 0)
-    except PermissionError:
-        pass
-    except OSError:
-        return False
-    return True
-
-
-def acquire_full_lock():
-    lock = open(full_lock_path(), "a+")
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        lock.seek(0)
-        sys.stderr.write("waiting for the full run holding the lock: %s\n" % " ".join(lock.read().split("\n")[0].split("\t")))
-        sys.stderr.flush()
-        waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
-        try:
-            if waitfile:
-                open(waitfile, "w").close()
-        except OSError as error:
-            sys.stderr.write("cannot mark the lock wait, so it counts toward the leaf's timeout: %s\n" % error)
-            waitfile = ""
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-        finally:
-            try:
-                if waitfile:
-                    os.remove(waitfile)
-            except OSError:
-                pass
-    lock.seek(0)
-    lock.truncate()
-    lock.write("pid %d\ttree %s\n" % (os.getpid(), os.path.realpath(os.getcwd())))
-    lock.flush()
-    return lock
 
 
 def unregister(entry):
@@ -466,13 +408,10 @@ def main(argv):
     conftest = sys.modules.get("conftest")
     entry = None
     full_lock = None
-    holder = os.environ.get("PYTEST_LEG_FULL_LOCK_HOLDER")
-    locking = tunables.read("VERI_TEST_LOCK") != "0"
     subset = "--subset" in argv
     argv = [arg for arg in argv if arg != "--subset"]
-    if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and locking and not under_full_lock_holder():
-        full_lock = acquire_full_lock()
-        os.environ["PYTEST_LEG_FULL_LOCK_HOLDER"] = str(os.getpid())
+    if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
+        full_lock = full_run_lock.acquire()
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
         sweep_dead_runs()
@@ -526,13 +465,7 @@ def main(argv):
         if entry:
             unregister(entry)
         if full_lock:
-            if holder is None:
-                os.environ.pop("PYTEST_LEG_FULL_LOCK_HOLDER", None)
-            else:
-                os.environ["PYTEST_LEG_FULL_LOCK_HOLDER"] = holder
-            full_lock.seek(0)
-            full_lock.truncate()
-            full_lock.close()
+            full_lock.release()
         signal.signal(signal.SIGTERM, previous)
         signal.signal(signal.SIGHUP, previous_hup)
         if conftest is None:
