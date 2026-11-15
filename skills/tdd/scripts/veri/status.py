@@ -16,6 +16,7 @@ import paths
 import event_log
 import run_end
 from pid_file import live_conductor
+from run_activity import activity
 from event_log import read_events, usage_totals
 from ledger import ledger_path, ledger_steps
 import run_dir
@@ -33,50 +34,14 @@ except ImportError:
 
 def run_activity(run, as_json=False, closed=False):
     """The activity line for one run."""
-    last, attempts = None, 0
-    newest = None
-    events_path_exists = os.path.isfile(event_log.path(run))
-    events = event_log.events(run)
-    dollars, tokens = usage_totals(events)
-    ended, cause, end = run_end.run_end(run) if events_path_exists else (False, None, {})
-    if end.get("event") in ("preflight-refused", "bail", "stop") and live_conductor(os.fspath(run)):
-        ended, end = False, {}
-    for line in events:
-        newest = line
-        if line.get("event") == "launch":
-            if line.get("step") != (last or {}).get("step"):
-                attempts = 0
-            last = line
-            attempts += 1
-
-    now = int(time.time())
-    if end.get("event") == "done":
-        state = "done %s" % end.get("pr", "")
-    elif end.get("event") == "stop":
-        state = "stopped %s" % end.get("mode", "")
-    elif end.get("event") == "bail":
-        state = "bailed %s %s" % (end.get("phase", ""), end.get("classification", ""))
-    elif end.get("event") == "preflight-refused":
-        state = "refused %s" % end.get("check", "")
-    elif ended:
-        state = "stale"
-    else:
-        state = "running"
-    last = last or end or newest or {"ts": now}
-    if closed:
-        state = "closed"
-    phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
-    elapsed = now - int(last["ts"])
+    a = activity(run, closed)
     if as_json:
-        return json.dumps({"phase": phase, "actor": actor, "leaf": leaf, "elapsed_seconds": elapsed,
-                           "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
-                           "state": state.split(" ")[0], "pr": end.get("pr", ""),
-                           "bail_phase": end.get("phase", ""),
-                           "classification": end.get("classification", ""),
-                           "stop_mode": end.get("mode", ""),
-                           "cause": cause or ""})
-    return "%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (phase, actor, leaf, elapsed,
-           attempts, dollars, tokens, state)
+        return json.dumps({"phase": a.phase, "actor": a.actor, "leaf": a.leaf, "elapsed_seconds": a.elapsed_seconds,
+                           "attempts": a.attempts, "dollars": round(a.dollars, 2), "tokens": a.tokens,
+                           "state": a.state, "pr": a.pr, "bail_phase": a.bail_phase,
+                           "classification": a.classification, "stop_mode": a.stop_mode, "cause": a.cause})
+    return "%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (a.phase, a.actor, a.leaf, a.elapsed_seconds,
+           a.attempts, a.dollars, a.tokens, a.detail)
 
 
 def scope_totals(name, solvable, runs, as_json=False, bare=0):
