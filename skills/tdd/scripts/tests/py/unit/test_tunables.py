@@ -168,3 +168,62 @@ def test_3223_reset_growth_conductor_is_in_the_readers_table_defaulting_to_70000
     assert (entry.default, entry("1"), entry("70000")) == ("70000", 1, 70000)
     with pytest.raises(ValueError):
         entry("0")
+
+
+DEFAULTED = {
+    "VERI_REFACTOR_BUDGET": ("5", "0", "x"),
+    "VERI_ISSUE_REFACTOR_BUDGET": ("10", "0", "-1"),
+    "VERI_STEP_GROWTH": ("5", "0", "1.5"),
+    "VERI_NO_VERDICT_RETRIES": ("1", "010", None),
+    "VERI_SKILL_EDIT_BUDGET": ("3", "1", "0"),
+    "VERI_ADJUDICATE_BUDGET": ("2", "0", "-1"),
+    "VERI_STUCK_RETRIES": ("1", "0", "x"),
+    "VERI_HEARTBEAT": ("180", "1", "1.5"),
+    "VERI_TOOL_IDLE": ("600", "1", "1e3"),
+    "VERI_TIMEOUT": ("900", "1", " 7"),
+    "VERI_DISPATCH_RETRY_SLEEP": ("5", "0", "x"),
+    "VERI_GH_REFUSAL_RETRIES": ("3", "0", "-1"),
+    "VERI_LABEL": ("ready-for-agent", "ready-for-agent:mu", None),
+    "VERI_MODEL": ("", "opus", None),
+    "VERI_MODEL_DEVELOPER": ("sonnet", "opus", None),
+    "VERI_MODEL_VERIFIER": ("sonnet", "opus", None),
+    "VERI_MODEL_REVISE": ("opus", "sonnet", None),
+    "VERI_MODEL_ADJUDICATOR": ("opus", "sonnet", None),
+    "VERI_MODEL_CONDUCTOR": ("opus", "sonnet", None),
+}
+
+
+@pytest.mark.parametrize("name", sorted(DEFAULTED))
+def test_a_defaulted_tunable_states_its_one_default_and_its_parse_in_the_tunables_module(name):
+    tunables = importlib.import_module("veri.tunables")
+    default, good, bad = DEFAULTED[name]
+
+    assert tunables.default(name) == default
+    assert tunables.parses(name, good)
+    if bad is not None:
+        assert not tunables.parses(name, bad)
+
+
+@pytest.mark.parametrize("name", sorted(DEFAULTED))
+def test_get_reads_the_environment_and_falls_back_to_the_default_only_when_unset(monkeypatch, name):
+    tunables = importlib.import_module("veri.tunables")
+    default = DEFAULTED[name][0]
+    monkeypatch.delenv(name, raising=False)
+    assert tunables.get(name) == default
+    monkeypatch.setenv(name, "")
+    assert tunables.get(name) == ""
+    assert tunables.get(name, unless_empty=True) == default
+    monkeypatch.setenv(name, "7")
+    assert tunables.get(name) == tunables.get(name, unless_empty=True) == "7"
+
+
+def test_a_name_in_the_refusing_table_keeps_its_default_through_the_same_function():
+    tunables = importlib.import_module("veri.tunables")
+
+    assert (tunables.default("REVISE_BUDGET"), tunables.default("VERI_BASELINE_FULL_TIER")) == ("2", "reuse")
+
+
+def test_no_name_is_defined_in_both_tables():
+    tunables = importlib.import_module("veri.tunables")
+
+    assert not set(tunables.TABLE) & set(tunables.DEFAULTED)
