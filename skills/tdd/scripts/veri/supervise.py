@@ -473,10 +473,16 @@ def step_text(issue, step):
 
 
 def whole_number_refusal(var, value):
-    """`not_a_number`'s refusal as a value: the line it prints, or None."""
+    """The refusal of a `value` that is no whole number (ASCII digits only), or None."""
     if entry.whole_number(value, 0) is None:
         return Refusal(f"supervise: {var} is not a number: '{value}'")
     return None
+
+
+def not_a_number(var, value):
+    """`whole_number_refusal` performed: its line printed and 2, or None."""
+    refused = whole_number_refusal(var, value)
+    return None if refused is None else refused.perform()
 
 
 def launch_plan(argv):
