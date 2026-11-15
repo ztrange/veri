@@ -13,7 +13,7 @@ import growth
 import paths
 import pid_file
 import run_dir
-import status
+import run_activity
 import stop_run as stop_run_module
 import tunables
 
@@ -55,7 +55,7 @@ def stop_run(mode, run):
 
 
 def run_state(run):
-    return json.loads(status.run_activity(_run_dir(run), as_json=True))["state"]
+    return run_activity.state(_run_dir(run))
 
 
 def _launch_env(run):
