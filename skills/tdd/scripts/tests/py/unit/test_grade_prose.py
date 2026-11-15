@@ -12,39 +12,37 @@ def grade_prose():
 
 
 def test_a_grader_conf_model_value_that_names_no_version_makes_grade_prose_exit_2_before_anything_is_launched(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    launched = []
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv))
+    fake = fake_processes.answers({})
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    assert (code, launched) == (2, []), (code, launched, err)
+    assert (code, fake.argvs) == (2, []), (code, fake.argvs, err)
 
 
 def test_a_grader_conf_model_value_with_a_digit_but_no_version_makes_grade_prose_exit_2_before_anything_is_launched(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-x2\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
-    launched = []
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: launched.append(argv))
+    fake = fake_processes.answers({})
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    assert (code, launched) == (2, []), (code, launched, err)
+    assert (code, fake.argvs) == (2, []), (code, fake.argvs, err)
 
 
 def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with_the_verdict_line_inside_the_grades_block_1874(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -52,14 +50,15 @@ def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     rendered = []
 
-    def refuse(argv, *a, **k):
+    def refuse(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             rendered.append(f.read())
-        return subprocess.CompletedProcess(argv, 2)
+        return (2, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", refuse)
+    fake = fake_processes.answers({}, default=refuse)
 
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -70,7 +69,7 @@ def test_the_prompt_grade_prose_renders_carries_the_poc_grader_instructions_with
 
 
 def test_the_prompt_grade_prose_renders_states_that_an_empty_unit_is_graded_fail_on_every_row_without_reading_tools_2062(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("")
@@ -78,14 +77,15 @@ def test_the_prompt_grade_prose_renders_states_that_an_empty_unit_is_graded_fail
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     rendered = []
 
-    def refuse(argv, *a, **k):
+    def refuse(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             rendered.append(f.read())
-        return subprocess.CompletedProcess(argv, 2)
+        return (2, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", refuse)
+    fake = fake_processes.answers({}, default=refuse)
 
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -110,7 +110,7 @@ def test_a_unit_headed_section_with_a_tilde_fence_holding_a_hash_line_is_one_sec
 
 
 def test_a_unit_with_no_requirements_list_in_the_requirements_file_makes_grade_prose_exit_2_before_anything_is_launched_1874(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -122,21 +122,22 @@ def test_a_unit_with_no_requirements_list_in_the_requirements_file_makes_grade_p
         '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n')
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    assert (code, launched) == (2, []), (code, launched, err)
+    assert (code, fake.argvs) == (2, []), (code, fake.argvs, err)
 
 
 def test_a_grades_line_whose_grade_word_is_pass_ish_makes_grade_prose_exit_2_and_append_no_grading_event_1874(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -147,12 +148,13 @@ def test_a_grades_line_whose_grade_word_is_pass_ish_makes_grade_prose_exit_2_and
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS-ish — nearly\\nVERDICT: PASS\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -219,7 +221,7 @@ def test_a_units_signature_changes_when_the_grader_conf_model_changes_1725(
 
 
 def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_writes_no_graded_beside_the_unit_1911(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "skills" / "demo" / "prompts").mkdir(parents=True)
@@ -232,12 +234,13 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "skills/demo/prompts/x.md"], cwd=tmp_path)
 
@@ -248,7 +251,7 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
 
 
 def test_a_full_pass_writes_a_graded_line_naming_the_grader_template_after_unit_signature_date_and_grading_id_2474(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     import hashlib
     import re
 
@@ -264,12 +267,13 @@ def test_a_full_pass_writes_a_graded_line_naming_the_grader_template_after_unit_
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "skills/demo/x.md"], cwd=tmp_path)
 
@@ -283,7 +287,7 @@ def test_a_full_pass_writes_a_graded_line_naming_the_grader_template_after_unit_
 
 
 def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed_by_the_unit_and_its_signature_2121(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -294,12 +298,13 @@ def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
     monkeypatch.chdir(tmp_path)
     sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
 
@@ -313,7 +318,7 @@ def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed
 
 
 def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_writes_no_graded_line_2121(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -327,13 +332,14 @@ def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_wr
                   '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'}
     run = ["first"]
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
     run[0] = "second"
 
@@ -343,7 +349,7 @@ def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_wr
 
 
 def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_new_text_2121(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -357,13 +363,14 @@ def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_ne
                   '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'}
     run = ["first"]
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
     monkeypatch.chdir(tmp_path)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
     run[0] = "second"
@@ -378,7 +385,7 @@ def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_ne
 
 
 def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_that_lists_requirements_1911(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "skills" / "demo").mkdir(parents=True)
@@ -392,14 +399,15 @@ def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_th
         '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
     prompts = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             prompts.append(f.read())
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["--owed"], cwd=tmp_path)
 
@@ -408,7 +416,7 @@ def test_owed_grades_a_unit_listed_only_in_the_requirements_md_beside_it_with_th
 
 
 def test_a_grader_reply_with_no_grades_block_is_retried_once_by_default_and_a_valid_second_reply_exits_0_2062(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -420,15 +428,16 @@ def test_a_grader_reply_with_no_grades_block_is_retried_once_by_default_and_a_va
                     '"BEGIN GRADES\\nA1: PASS — blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -436,7 +445,7 @@ def test_a_grader_reply_with_no_grades_block_is_retried_once_by_default_and_a_va
 
 
 def test_with_two_retries_a_grader_that_never_writes_a_grades_block_is_launched_three_times_then_exits_2_with_the_same_message_2062(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -445,16 +454,17 @@ def test_with_two_retries_a_grader_that_never_writes_a_grades_block_is_launched_
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":"I will Read the file."}\n')
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "2")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -463,7 +473,7 @@ def test_with_two_retries_a_grader_that_never_writes_a_grades_block_is_launched_
 
 
 def test_a_non_integer_no_verdict_retries_makes_grade_prose_exit_2_naming_the_variable_and_launch_no_grader_2071(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -472,14 +482,15 @@ def test_a_non_integer_no_verdict_retries_makes_grade_prose_exit_2_naming_the_va
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "abc")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -488,7 +499,7 @@ def test_a_non_integer_no_verdict_retries_makes_grade_prose_exit_2_naming_the_va
 
 
 def test_a_negative_no_verdict_retries_makes_grade_prose_exit_2_naming_the_variable_and_launch_no_grader_2071(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -497,14 +508,15 @@ def test_a_negative_no_verdict_retries_makes_grade_prose_exit_2_naming_the_varia
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "-1")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -574,7 +586,7 @@ def test_a_file_with_no_final_newline_has_a_unit_text_byte_identical_to_what_mai
 
 
 def test_a_grades_block_naming_every_id_once_with_two_rows_swapped_out_of_file_order_is_a_pass_verdict_2208(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -587,12 +599,13 @@ def test_a_grades_block_naming_every_id_once_with_two_rows_swapped_out_of_file_o
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -605,7 +618,7 @@ def test_a_grades_block_naming_every_id_once_with_two_rows_swapped_out_of_file_o
 
 
 def test_a_grades_block_naming_every_id_once_with_a_fail_row_swapped_out_of_file_order_is_a_reject_verdict_2208(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -621,13 +634,14 @@ def test_a_grades_block_naming_every_id_once_with_a_fail_row_swapped_out_of_file
                     '{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -639,7 +653,7 @@ def test_a_grades_block_naming_every_id_once_with_a_fail_row_swapped_out_of_file
 
 
 def test_a_grades_block_that_leaves_out_one_requirement_id_makes_grade_prose_exit_2_naming_it_as_missing_and_append_no_grading_event_2208(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -653,18 +667,19 @@ def test_a_grades_block_that_leaves_out_one_requirement_id_makes_grade_prose_exi
         '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         if len(launched) > 1:
             (tmp_path / ".tdd" / "grade-prose.log").write_text(
                 '{"type":"result","subtype":"success","is_error":false,"result":'
                 '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n')
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -674,7 +689,7 @@ def test_a_grades_block_that_leaves_out_one_requirement_id_makes_grade_prose_exi
 
 
 def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_launches_the_grader_once_and_exits_2_naming_it_missing_2215(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -685,18 +700,19 @@ def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         rows = "A1: PASS - ok\\nA3: PASS - ok" if len(launched) == 1 else "A2: PASS - ok"
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":'
             '"BEGIN GRADES\\n' + rows + '\\nVERDICT: PASS\\nEND GRADES"}\n')
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -706,7 +722,7 @@ def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_
 
 
 def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2_naming_it_as_repeated_and_append_no_grading_event_2208(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -719,12 +735,13 @@ def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2
         '{"type":"result","subtype":"success","is_error":false,"result":'
         '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
-    def launch(argv, *a, **k):
-        return subprocess.CompletedProcess(argv, 0)
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
+        return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -734,7 +751,7 @@ def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2
 
 
 def test_a_grades_block_grading_every_wanted_id_and_an_id_outside_the_list_exits_0_with_the_on_list_verdict_naming_the_off_list_id_on_stderr_3295(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -747,15 +764,16 @@ def test_a_grades_block_grading_every_wanted_id_and_an_id_outside_the_list_exits
                     '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -765,7 +783,7 @@ def test_a_grades_block_grading_every_wanted_id_and_an_id_outside_the_list_exits
 
 
 def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_grader_launch_for_that_row_only_and_the_merged_passes_exit_0_2215(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -784,16 +802,17 @@ def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_gr
                     '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n'])
     prompts = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             prompts.append(f.read())
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -808,7 +827,7 @@ def test_a_first_reply_leaving_out_one_requirement_id_is_followed_by_a_second_gr
 
 
 def test_a_follow_up_reply_leaving_the_missing_requirement_id_out_again_makes_grade_prose_exit_2_naming_it_after_two_launches_and_append_no_grading_event_2215(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -825,15 +844,16 @@ def test_a_follow_up_reply_leaving_the_missing_requirement_id_out_again_makes_gr
              '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n')
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, empty))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -842,7 +862,7 @@ def test_a_follow_up_reply_leaving_the_missing_requirement_id_out_again_makes_gr
 
 
 def test_a_follow_up_reply_grading_the_missing_id_and_an_id_outside_its_list_keeps_the_merged_on_list_verdict_naming_the_off_list_id_3295(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -857,15 +877,16 @@ def test_a_follow_up_reply_grading_the_missing_id_and_an_id_outside_its_list_kee
                     '"BEGIN GRADES\\nA2: PASS - ok\\nA9: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -875,7 +896,7 @@ def test_a_follow_up_reply_grading_the_missing_id_and_an_id_outside_its_list_kee
 
 
 def test_an_off_list_row_graded_fail_beside_wanted_rows_all_graded_pass_leaves_the_verdict_pass_and_exits_0_3295(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -888,15 +909,16 @@ def test_an_off_list_row_graded_fail_beside_wanted_rows_all_graded_pass_leaves_t
                     '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nA9: FAIL - bad\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -906,7 +928,7 @@ def test_an_off_list_row_graded_fail_beside_wanted_rows_all_graded_pass_leaves_t
 
 
 def test_a_grades_block_missing_a_wanted_id_while_grading_an_off_list_id_exits_2_naming_the_missing_id_and_appends_no_grading_event_3295(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -921,15 +943,16 @@ def test_a_grades_block_missing_a_wanted_id_while_grading_an_off_list_id_exits_2
                     '"BEGIN GRADES\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -939,7 +962,7 @@ def test_a_grades_block_missing_a_wanted_id_while_grading_an_off_list_id_exits_2
 
 
 def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_that_row_printed_and_no_graded_line_2215(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -957,14 +980,15 @@ def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_
                     '{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -976,7 +1000,7 @@ def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_
 
 
 def test_a_fail_row_in_the_first_reply_makes_the_merged_verdict_reject_when_the_follow_up_passes_2215(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -994,14 +1018,15 @@ def test_a_fail_row_in_the_first_reply_makes_the_merged_verdict_reject_when_the_
                     '{"type":"result","subtype":"success","is_error":false,"result":'
                     '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1019,7 +1044,7 @@ def test_a_mid_line_splitlines_separator_stays_inside_its_line_of_the_units_sect
 
 
 def test_a_first_reply_whose_grades_block_names_one_requirement_id_twice_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1032,15 +1057,16 @@ def test_a_first_reply_whose_grades_block_names_one_requirement_id_twice_relaunc
                     '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1048,7 +1074,7 @@ def test_a_first_reply_whose_grades_block_names_one_requirement_id_twice_relaunc
 
 
 def test_a_first_reply_whose_grades_block_grades_every_wanted_id_plus_an_off_list_id_is_accepted_with_exactly_one_grader_launch_3295(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1059,15 +1085,16 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_plus_an_off_lis
                     '"BEGIN GRADES\\nA1: PASS - blue\\nZ9: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1077,7 +1104,7 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_plus_an_off_lis
 
 
 def test_a_first_reply_whose_grades_block_carries_a_grade_word_other_than_pass_or_fail_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1090,15 +1117,16 @@ def test_a_first_reply_whose_grades_block_carries_a_grade_word_other_than_pass_o
                     '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1106,7 +1134,7 @@ def test_a_first_reply_whose_grades_block_carries_a_grade_word_other_than_pass_o
 
 
 def test_a_first_reply_with_text_after_end_grades_relaunches_the_grader_and_a_well_formed_second_reply_exits_0_2300(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1119,15 +1147,16 @@ def test_a_first_reply_with_text_after_end_grades_relaunches_the_grader_and_a_we
                     '"BEGIN GRADES\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1135,7 +1164,7 @@ def test_a_first_reply_with_text_after_end_grades_relaunches_the_grader_and_a_we
 
 
 def test_with_two_retries_a_grader_whose_every_reply_names_one_requirement_id_twice_is_launched_three_times_then_exits_2_with_the_same_message_2300(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1144,17 +1173,18 @@ def test_with_two_retries_a_grader_whose_every_reply_names_one_requirement_id_tw
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":'
             '"BEGIN GRADES\\nA1: PASS - blue\\nA1: PASS - blue\\nVERDICT: PASS\\nEND GRADES"}\n')
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "2")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1165,7 +1195,7 @@ def test_with_two_retries_a_grader_whose_every_reply_names_one_requirement_id_tw
 
 
 def test_with_three_retries_a_well_formed_grades_block_grading_one_requirement_fail_launches_the_grader_once_for_the_full_list_and_exits_1_naming_it_2304(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1175,18 +1205,19 @@ def test_with_three_retries_a_well_formed_grades_block_grading_one_requirement_f
     (tmp_path / ".tdd").mkdir()
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         prompt = open(argv[-1], encoding="utf-8").read()
         launched.append(("A1" in prompt, "A2" in prompt))
         (tmp_path / ".tdd" / "grade-prose.log").write_text(
             '{"type":"result","subtype":"success","is_error":false,"result":'
             '"BEGIN GRADES\\nA1: PASS - blue\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n')
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "3")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1535,7 +1566,7 @@ def test_the_first_pass_prompt_and_the_confirming_re_grade_prompt_both_tell_the_
 
 
 def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous_run_is_asked_for_those_rows_only_and_exits_0_with_pass_3091(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     import re
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
@@ -1552,7 +1583,8 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
         body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
         return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             asked = re.findall(r"^(R\d+): Row ", f.read(), re.M)
         calls.append(asked)
@@ -1563,12 +1595,12 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
         else:
             out = reply(["%s: PASS - ok" % i for i in asked])
         (tmp_path / ".tdd" / "grade-prose.log").write_text(out)
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1579,7 +1611,7 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
 
 
 def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leaves_rows_ungraded_exits_2_naming_them_and_saying_the_follow_up_was_tried_3091(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     import re
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
@@ -1596,7 +1628,8 @@ def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leav
         body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
         return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         with open(argv[-1], encoding="utf-8") as f:
             asked = re.findall(r"^(R\d+): Row ", f.read(), re.M)
         calls.append(asked)
@@ -1607,12 +1640,12 @@ def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leav
         else:
             out = reply([])
         (tmp_path / ".tdd" / "grade-prose.log").write_text(out)
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1620,7 +1653,7 @@ def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leav
 
 
 def test_a_grades_block_grading_every_wanted_id_pass_with_a_reason_line_inside_it_exits_0_with_the_pass_verdict_3631(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1632,14 +1665,15 @@ def test_a_grades_block_grading_every_wanted_id_pass_with_a_reason_line_inside_i
                     '"BEGIN GRADES\\nR1: PASS - ok\\nREASON: The text is fine\\nR2: PASS - ok\\n'
                     'VERDICT: PASS\\nEND GRADES"}\n'])
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1649,7 +1683,7 @@ def test_a_grades_block_grading_every_wanted_id_pass_with_a_reason_line_inside_i
 
 
 def test_a_first_reply_whose_grades_block_grades_every_wanted_id_pass_with_a_reason_line_inside_it_is_accepted_with_exactly_one_grader_launch_3631(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1662,15 +1696,16 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_pass_with_a_rea
                     'VERDICT: PASS\\nEND GRADES"}\n'])
     launched = []
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         launched.append(argv)
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1680,7 +1715,7 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_pass_with_a_rea
 
 
 def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_exits_1_with_the_reject_verdict_naming_the_fail_row_3631(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1692,14 +1727,15 @@ def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_
                     '"BEGIN GRADES\\nR1: PASS - ok\\nREASON: The text is fine\\nR2: FAIL - not round\\n'
                     'VERDICT: REJECT\\nEND GRADES"}\n'] * 3)
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1709,7 +1745,7 @@ def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_
 
 
 def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it_exits_2_naming_the_grade_word_maybe_3631(
-        tmp_path, monkeypatch, run_cli, grade_prose):
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
@@ -1721,14 +1757,15 @@ def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it
                     '"BEGIN GRADES\\nREASON: The text is unclear\\nR1: MAYBE - blue\\nR2: PASS - ok\\n'
                     'VERDICT: PASS\\nEND GRADES"}\n'] * 3)
 
-    def launch(argv, *a, **k):
+    def launch(line, **kwargs):
+        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
-        return subprocess.CompletedProcess(argv, 0)
+        return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", launch)
+    fake = fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1736,14 +1773,14 @@ def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it
 
 
 def test_grade_unit_answers_like_main_for_the_same_path_and_unit_a_versionless_grader_model_exits_2_with_the_same_stderr(
-        tmp_path, monkeypatch, run_cli, capfd, grade_prose):
+        tmp_path, monkeypatch, run_cli, capfd, grade_prose, fake_processes):
     (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
     (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet\n")
     (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
     (tmp_path / "REQUIREMENTS.md").write_text(
         "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    monkeypatch.setattr(subprocess, "run", lambda argv, *a, **k: pytest.fail("launched"))
+    fake = fake_processes.answers({})
     monkeypatch.chdir(tmp_path)
 
     code = grade_prose.grade_unit("REQUIREMENTS.md", "unit.md")
@@ -1753,3 +1790,4 @@ def test_grade_unit_answers_like_main_for_the_same_path_and_unit_a_versionless_g
     assert via_main[0] == code == 2
     assert (captured.out, captured.err) == (via_main[1], via_main[2])
     assert "names no version" in captured.err
+    assert fake.calls == []
