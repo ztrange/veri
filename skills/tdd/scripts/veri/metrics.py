@@ -455,6 +455,17 @@ class Fold:
     conductor_counted: bool     # whether the log carries the conductor's own usage event
     total: dict                 # {COST_COLUMNS: number}, leaves only until the conductor is added
     structural: object          # the structural-pass event, or None
+    ended: bool                 # whether the run is over (run_end's answer)
+    cause: object               # why it ended without an ending mark: "usage-limit", "killed" or None
+    ending: object              # the mark that ended the run (done, stop or bail event), or None
+    issue_wall: object          # seconds from the opening mark to the ending, or None
+    asleep: object              # seconds of that span the machine was not running, or None
+    steps_done: object          # steps recovered plus ticked full-suite lines, or None when zero
+    planned: object             # steps the ledger plans, or None
+    lane: str                   # the label the run was opted in by
+    flaked: list                # files named by suite-flake events
+    pinned: str                 # the phases whose verifiers the run skipped (VERI_SKIP_VERIFY, pinned)
+    model_knobs: dict           # VERI_MODEL* knob -> its value, falsy when unset
 
 
 def fold(issue, path, ledger):
@@ -469,7 +480,25 @@ def fold(issue, path, ledger):
     passes = [{"step": step, "pass": index, "mark": mark, "verdict": spent_by["verdict"],
                "revise": spent_by["revise"], "wall": spent_by[WALL], "dollars": spent_by[DOLLARS]}
               for (step, index), (mark, spent_by) in tally.passes.items()]
+    ended, cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
+    ending = ending or None
+    wall_span, awake_span = wall_and_awake_spans(tally.opening, ending, clocked)
+    planned, full_suite = planned_steps(ledger)
+    pinned = ""
+    with contextlib.suppress(OSError):
+        with open(main_checkout_file(path, "issue-%s-skip-verify" % issue)) as recorded:
+            pinned = recorded.read().strip()
     return Fold(issue=issue, marks=marks, clocked=clocked, models=models, opening=tally.opening,
+                ended=ended, cause=cause, ending=ending,
+                issue_wall=awake_span_or_wall(tally.opening, ending, clocked),
+                asleep=None if awake_span is None or wall_span is None else max(0, wall_span - awake_span),
+                steps_done=counted(len(tally.recovered) + full_suite), planned=planned,
+                lane=tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent"),
+                flaked=[name for mark in marks if mark.get("event") == "suite-flake"
+                        for name in str(mark.get("files", "")).split(",")],
+                pinned=pinned,
+                model_knobs={knob: tunables.read(knob) for knob in
+                             ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]},
                 recovered=tally.recovered, phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
@@ -549,23 +578,20 @@ def render(issue, path, ledger):
         for tier, runs in tier_runs.items():
             row([tier] + runs + [""] * (width - len(runs)))
 
-    ended, cause, ending = run_end.run_end(os.path.dirname(os.path.dirname(os.path.abspath(path))))
-    ending = ending or None
+    ended, cause, ending = f.ended, f.cause, f.ending
     print("### 📊 Metrics — issue %s" % issue)
     print()
-    wall_span, awake_span = wall_and_awake_spans(opening, ending, clocked)
     print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
           "there is none, to the mark that ended the run."
-          % known(awake_span_or_wall(opening, ending, clocked)))
-    if awake_span is not None and wall_span is not None:
+          % known(f.issue_wall))
+    if f.asleep is not None:
         print("Seconds the machine was not running inside that span: %s s, excluded from it."
-              % max(0, wall_span - awake_span))
+              % f.asleep)
     if not clocked:
         print("Every figure in this report is wall-clock: the log carries no awake-clock reading, "
               "so time the machine spent asleep is counted in them.")
-    planned, full_suite = planned_steps(ledger)
     print("Steps done: %s of %s planned."
-          % (known(counted(len(recovered) + full_suite)), known(planned)))
+          % (known(f.steps_done), known(f.planned)))
     if not ended:
         print("Outcome: none yet — the run is still going.")
     elif ending is None and cause == "usage-limit":
@@ -583,11 +609,9 @@ def render(issue, path, ledger):
     else:
         print("Outcome: the run bailed — %s, a %s failure."
               % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
-    print("Lane: %s" % (tunables.read("VERI_LABEL", "ready-for-agent", unless_empty="ready-for-agent")))
-    flaked = [name for mark in marks if mark.get("event") == "suite-flake"
-              for name in str(mark.get("files", "")).split(",")]
-    if flaked:
-        print("Suite flakes: %s." % ", ".join(flaked))
+    print("Lane: %s" % f.lane)
+    if f.flaked:
+        print("Suite flakes: %s." % ", ".join(f.flaked))
     sessions, turn_rows = [], []
     total_estimated = False
     if not conductor_counted:
@@ -634,15 +658,10 @@ def render(issue, path, ledger):
             row([name, str(turns), str(tokens), "$%.2f" % dollars])
     if models:
         print("Models requested: %s; models that answered: %s."
-              % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
-                           for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]),
+              % (", ".join("%s %s" % (knob, value or "unset") for knob, value in f.model_knobs.items()),
                  ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
-    pinned = ""
-    with contextlib.suppress(OSError):
-        with open(main_checkout_file(path, "issue-%s-skip-verify" % issue)) as recorded:
-            pinned = recorded.read().strip()
-    if pinned:
-        print("⚠️ Unverified phases: %s" % pinned)
+    if f.pinned:
+        print("⚠️ Unverified phases: %s" % f.pinned)
     if switched_off:
         print("Verifiers switched off: refactor %d" % switched_off)
     transcripts = tunables.read("VERI_SESSION_TRANSCRIPTS")
