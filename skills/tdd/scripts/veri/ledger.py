@@ -267,6 +267,32 @@ def ledger_steps(text):
     return records
 
 
+def same_text(reference, text):
+    """step_at's default text rule: the reference is the step's whole text."""
+    return reference == text
+
+
+def step_at(steps, reference, *, text_matches=same_text, by_index=False):
+    """The Step a reference names, or None: the one answer to "no such step".
+
+    A reference is a step number or a step's text. Two things the callers differ on are parameters:
+    - text_matches(reference, text): which texts the reference names (default: equal; the first match wins).
+    - by_index: False (default) reads a reference of digits (str.isdigit) as a 1-based position, int-parsed
+      ("01" is step 1; none past the last or below the first; never looked up as text). True takes a reference
+      only as one of the steps' own `number` strings ("01" is none) and, when none is, looks it up as text.
+    """
+    if by_index:
+        found = next((step for step in steps if step.number == reference), None)
+        return found or next((step for step in steps if text_matches(reference, step.text)), None)
+    if reference.isdigit():
+        try:
+            position = int(reference)
+        except ValueError:
+            return None
+        return steps[position - 1] if 1 <= position <= len(steps) else None
+    return next((step for step in steps if text_matches(reference, step.text)), None)
+
+
 def multi_tag_refusal(steps):
     """The refusal for the first of steps carrying more than one criterion tag, or ""."""
     for *_, text in steps:
