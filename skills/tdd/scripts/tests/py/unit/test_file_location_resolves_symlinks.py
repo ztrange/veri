@@ -21,14 +21,18 @@ def names_file_unresolved(node):
 
 
 def unresolved_file_locations(source):
+    return unresolved_file_locations_in(ast.parse(source))
+
+
+def unresolved_file_locations_in(tree):
     # abspath collapses ".." textually, so wrapping it in realpath is too late:
     # any abspath over a path still holding __file__ unresolved is the bug.
-    return [node.lineno for node in ast.walk(ast.parse(source))
+    return [node.lineno for node in ast.walk(tree)
             if is_call(node, "abspath") and any(names_file_unresolved(a) for a in node.args)]
 
 
 @pytest.mark.tree_audit("reads the sources of skills/tdd/scripts/veri/*.py")
-def test_no_veri_module_locates_itself_through_abspath_of_file_3501():
-    found = {path.name: lines for path in sorted(VERI.glob("*.py"))
-             if (lines := unresolved_file_locations(path.read_text()))}
+def test_no_veri_module_locates_itself_through_abspath_of_file_3501(veri_modules_index):
+    found = {f"{name}.py": lines for name in veri_modules_index.names
+             if (lines := unresolved_file_locations_in(veri_modules_index.tree(name)))}
     assert found == {}
