@@ -42,10 +42,9 @@ def cli(run_cli):
     return Cli(run_cli)
 
 
-def fake_git(monkeypatch, **overrides):
-    """subprocess.run recording each command as one line, its program by basename, and
-    answering each git call from a branch behind origin/main, its stdout only when piped;
-    <overrides> maps a line to (exit code, stdout)."""
+def git_answers(fake_processes, **overrides):
+    """git faked as a process, answering each git call from a branch behind origin/main;
+    <overrides> maps a command line to (exit code, stdout). Returns the command lines run."""
     answers = {
         "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/main\n"),
         "git fetch -q origin": (0, ""),
@@ -56,23 +55,14 @@ def fake_git(monkeypatch, **overrides):
         f"git rebase -q {ONTO}": (0, ""),
     }
     answers.update(overrides)
-    calls = []
-
-    def fake_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        calls.append(line)
-        code, out = answers.get(line, (0, ""))
-        return subprocess.CompletedProcess(
-            args, code, out if kwargs.get("stdout") == subprocess.PIPE or kwargs.get("capture_output") else None, "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    return calls
+    return fake_processes.answers(
+        {line: (code, out, "") for line, (code, out) in answers.items()}, default=(0, "", "")).calls
 
 
 def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ignores_arguments(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     def run(argv, **overrides):
-        calls = fake_git(monkeypatch, **overrides)
+        calls = git_answers(fake_processes, **overrides)
         code = cli.main(argv)
         captured = cli.readouterr()
         assert code in range(0, 4)
@@ -96,12 +86,12 @@ def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ign
 
 
 def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and_keeps_its_refs_heads_name_whole(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     symref = "git ls-remote --symref origin HEAD"
     local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
 
     def run(answer, **overrides):
-        calls = fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
+        calls = git_answers(fake_processes, **{local: (1, ""), symref: answer}, **overrides)
         fake_run = subprocess.run
         stderrs = {}
 
@@ -114,7 +104,7 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
         code = cli.main([])
         return code, cli.readouterr().out, calls, stderrs
 
-    calls = fake_git(monkeypatch)
+    calls = git_answers(fake_processes)
     cli.main([])
     cli.readouterr()
     assert symref not in calls
@@ -147,11 +137,11 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
 
 
 def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_default_branch_resolves_or_git_cannot_start(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
                "no default branch to rebase onto\n")
     symref = "git ls-remote --symref origin HEAD"
-    calls = fake_git(monkeypatch, **{
+    calls = git_answers(fake_processes, **{
         "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (1, ""),
         symref: (0, f"{ONTO}\tHEAD\n")})
     code = cli.main([])
@@ -170,12 +160,12 @@ def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_defau
 
 
 def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_parse_echo_differs_from_its_first_field(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     ls_remote = "git ls-remote origin refs/heads/main"
     rev_parse = "git rev-parse origin/main"
 
     def run(**overrides):
-        calls = fake_git(monkeypatch, **overrides)
+        calls = git_answers(fake_processes, **overrides)
         fake_run = subprocess.run
         stderrs = {}
 
@@ -205,10 +195,10 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
 
 
 def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_passes_the_rebase_s_stderr_through(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     fetch = "git fetch -q origin"
     rebase = f"git rebase -q {ONTO}"
-    fake_git(monkeypatch)
+    git_answers(fake_processes)
     fake_run = subprocess.run
     speech = {fetch: ("fetch out\n", "fetch err\n"), rebase: ("rebase out\n", "rebase err\n")}
 
@@ -229,14 +219,14 @@ def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_pa
 
 
 def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_printing_the_abort_s_stdout_then_the_unmerged_files(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
 
     def run(present):
-        calls = fake_git(monkeypatch, **{
+        calls = git_answers(fake_processes, **{
             rebase: (1, ""),
             "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
@@ -265,8 +255,8 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
 
 
 def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_neither_rebase_directory(
-        monkeypatch, tmp_path, cli):
-    calls = fake_git(monkeypatch, **{
+        monkeypatch, tmp_path, cli, fake_processes):
+    calls = git_answers(fake_processes, **{
         f"git rebase -q {ONTO}": (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply":
             (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
@@ -278,7 +268,7 @@ def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_ne
 
 
 def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_unmerged_files_and_leaves_a_rebase_already_in_progress_alone(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
@@ -287,7 +277,7 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
                "I wonder if you are in the middle of another rebase.\n")
 
     def run(diff_answer, refuse=False, created=None):
-        calls = fake_git(monkeypatch, **{
+        calls = git_answers(fake_processes, **{
             rebase: (1, ""),
             "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
@@ -322,7 +312,7 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
 
 
 def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_runs_without_diffing_or_aborting(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
     abort = "git rebase --abort"
@@ -330,7 +320,7 @@ def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_
     refusal = ("fatal: It seems that there is already a rebase-merge directory, and\n"
                "I wonder if you are in the middle of another rebase.\n")
     merge.mkdir()
-    calls = fake_git(monkeypatch, **{
+    calls = git_answers(fake_processes, **{
         rebase: (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
@@ -353,7 +343,7 @@ def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_
 
 
 def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_directory_the_two_name_git_path_call_did_not_see(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     rebase = f"git rebase -q {ONTO}"
     two_names = "git rev-parse --git-path rebase-merge --git-path rebase-apply"
     diff = "git diff --name-only --diff-filter=U"
@@ -361,7 +351,7 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
 
     def run(present, diff_answer):
-        calls = fake_git(monkeypatch, **{
+        calls = git_answers(fake_processes, **{
             rebase: (1, ""),
             two_names: (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
@@ -394,7 +384,7 @@ def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_
 
 
 def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
     symref = "git ls-remote --symref origin HEAD"
     rebase = f"git rebase -q {ONTO}"
@@ -402,7 +392,7 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
                "\tfile.txt\nerror: could not detach HEAD\n")
 
     def run(**overrides):
-        calls = fake_git(monkeypatch, **{
+        calls = git_answers(fake_processes, **{
             "git rev-parse --git-path rebase-merge --git-path rebase-apply":
                 (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
@@ -443,12 +433,12 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
 
 
 def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_asks_for_the_rebase_directories_819(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     rebase = f"git rebase -q {ONTO}"
     merge = tmp_path / "rebase-merge"
     merge.mkdir()
     (merge / "head-name").write_text("refs/heads/caller\n")
-    calls = fake_git(monkeypatch, **{rebase: (1, "")})
+    calls = git_answers(fake_processes, **{rebase: (1, "")})
     fake_run = subprocess.run
 
     def git_path_run(args, **kwargs):
@@ -468,14 +458,14 @@ def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_a
 
 
 def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_absent(
-        monkeypatch, cli):
+        monkeypatch, cli, fake_processes):
     refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
                "no default branch to rebase onto\n")
     local = "git symbolic-ref --quiet --short refs/remotes/origin/HEAD"
     symref = "git ls-remote --symref origin HEAD"
 
     def run(answer, **overrides):
-        fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
+        git_answers(fake_processes, **{local: (1, ""), symref: answer}, **overrides)
         code = cli.main([])
         captured = cli.readouterr()
         return code, captured.out, captured.err
@@ -1631,8 +1621,8 @@ def test_main_removes_the_set_aside_appends_once_it_reapplies_them_so_the_next_r
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_failed_fetch_of_origin_1605(
-        monkeypatch, cli):
-    fake_git(monkeypatch, **{"git fetch -q origin": (1, "")})
+        monkeypatch, cli, fake_processes):
+    git_answers(fake_processes, **{"git fetch -q origin": (1, "")})
     assert cli.main([]) == 2
     err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
@@ -1641,8 +1631,8 @@ def test_main_exits_2_with_one_stderr_line_naming_the_failed_fetch_of_origin_160
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_failed_ls_remote_of_the_default_branch_1605(
-        monkeypatch, cli):
-    fake_git(monkeypatch, **{"git ls-remote origin refs/heads/main": (1, "")})
+        monkeypatch, cli, fake_processes):
+    git_answers(fake_processes, **{"git ls-remote origin refs/heads/main": (1, "")})
     assert cli.main([]) == 2
     err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
@@ -1651,8 +1641,8 @@ def test_main_exits_2_with_one_stderr_line_naming_the_failed_ls_remote_of_the_de
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_1605(
-        monkeypatch, cli):
-    fake_git(monkeypatch, **{"git rev-parse origin/main": (0, f"{PRE}\n")})
+        monkeypatch, cli, fake_processes):
+    git_answers(fake_processes, **{"git rev-parse origin/main": (0, f"{PRE}\n")})
     assert cli.main([]) == 2
     err = cli.readouterr().err
     assert len(err.splitlines()) == 1, err
@@ -1662,10 +1652,10 @@ def test_main_exits_2_with_one_stderr_line_naming_the_stale_remote_tracking_ref_
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress_1605(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
     merge.mkdir()
-    fake_git(monkeypatch, **{
+    git_answers(fake_processes, **{
         f"git rebase -q {ONTO}": (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
@@ -1679,9 +1669,9 @@ def test_main_exits_2_with_one_stderr_line_naming_the_rebase_already_in_progress
 
 
 def test_main_exits_2_with_one_stderr_line_naming_the_rebase_refused_without_a_conflict_1605(
-        monkeypatch, tmp_path, cli):
+        monkeypatch, tmp_path, cli, fake_processes):
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
-    fake_git(monkeypatch, **{
+    git_answers(fake_processes, **{
         f"git rebase -q {ONTO}": (1, ""),
         "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
