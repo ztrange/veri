@@ -166,7 +166,7 @@ def main(argv):
         replaces_red = "red" in (phase, revised_phase) and replaces_case
         if b"{{ISSUE_NUMBER}}" in text:
             issue = tunables.read("VERI_ISSUE") or ""
-            if not re.fullmatch(r"[0-9]+", issue):
+            if entry.whole_number(issue, 0) is None:
                 write(sys.stderr, "build-develop-prompt: a revise prompt needs VERI_ISSUE, the run's issue number",
                       before=False, after=False)
                 return 2
