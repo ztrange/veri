@@ -17,6 +17,7 @@ import event
 import event_log
 import harvest_usage
 import preserve_attempt
+import run_dir
 import tunables
 from case_reader import is_test_path
 from extract_result import extract
@@ -46,15 +47,9 @@ class Watch(NamedTuple):
     tool_idle: str = "600"
 
 
-def refuse(*lines):
-    for line in lines:
-        print(line, file=sys.stderr)
-    return 2
-
-
 def not_a_number(var, value):
     if not re.fullmatch(r"[0-9]+", value):
-        return refuse(f"supervise: {var} is not a number: '{value}'")
+        return entry.refuse(f"supervise: {var} is not a number: '{value}'")
     return None
 
 
@@ -290,9 +285,9 @@ def restore_production_files(before, role, env, name):
 
 
 def refuse_launch(role, env, name, reason):
-    write_line(f".tdd/{name}.exit", 2)
+    write_line(run_dir.run_file("", f"{name}.exit"), 2)
     mark(role or "actor=supervisor", env, "launch-refused", f"name={name}", f"reason={reason}")
-    return refuse(f"supervise: refusing to launch {name}: {reason}")
+    return entry.refuse(f"supervise: refusing to launch {name}: {reason}")
 
 
 def preserve_killed_attempt(name, attempt, env):
@@ -316,7 +311,7 @@ def still_alive_owner(ownerfile):
     fields = line.split(None, 1)
     owner_pid = fields[0] if fields else ""
     owner_name = fields[1].strip() if len(fields) > 1 else ""
-    if os.path.exists(f".tdd/{owner_name}.exit") or not re.fullmatch(r"0*[1-9][0-9]*", owner_pid):
+    if os.path.exists(run_dir.run_file("", f"{owner_name}.exit")) or not re.fullmatch(r"0*[1-9][0-9]*", owner_pid):
         return None
     try:
         os.kill(int(owner_pid), 0)
@@ -418,7 +413,7 @@ def trap(started, exitfile, kill_poll, ignored):
 def red_awaits_pass(step):
     last = None
     try:
-        for rec in event_log.read_events(".tdd/events.jsonl", skip_unreadable=True, errors="replace"):
+        for rec in event_log.events(".", "launch", "verdict", skip_unreadable=True):
             if str(rec.get("step")) != step or rec.get("phase") not in ("red", "pin"):
                 continue
             if rec.get("event") == "launch" and rec.get("phase") == "red":
@@ -455,29 +450,27 @@ def main(argv):
     if signal.SIGINT not in ignored:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     if not argv or not argv[0]:
-        return refuse(USAGE)
+        return entry.refuse(USAGE)
     if len(argv) < 2:
-        return refuse("supervise: missing <cmd>", USAGE)
+        return entry.refuse("supervise: missing <cmd>", USAGE)
     timeout = tunables.read("VERI_TIMEOUT")
     if timeout and (refused := not_a_number("VERI_TIMEOUT", timeout)):
         return refused
     issue = tunables.read("VERI_ISSUE")
     if not timeout and issue:
-        settled = f".tdd/issue-{issue}-timeout"
         top = answered("git", "rev-parse", "--show-toplevel")
-        if top is not None:
-            settled = f"{top}/{settled}"
+        settled = run_dir.issue_file("" if top is None else top, issue, "-timeout")
         if os.path.isfile(settled):
             with open(settled) as f:
                 timeout = f.read().rstrip("\n")
             if timeout and (refused := not_a_number(settled, timeout)):
                 return refused
             if not timeout or int(timeout, 10) < 1:
-                return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
+                return entry.refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
     kill_poll, bad = tunables.resolve("VERI_KILL_POLL")
     if bad:
-        return refuse(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
+        return entry.refuse(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
     heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
     if refused:
         return refused
@@ -492,7 +485,7 @@ def main(argv):
     if top := event.toplevel():
         os.chdir(top)
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
-    log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
+    log, rcfile, exitfile = (run_dir.run_file("", f"{name}.{ext}") for ext in ("log", "rc", "exit"))
     role = model = ""
     watched = not name.startswith("verdict-")
     if watched:
@@ -516,33 +509,34 @@ def main(argv):
         return refuse_launch(role, leaf_env, name, f"the prompt file {argv[2]} does not exist")
     if runs_leaf and os.path.isfile(argv[2]) and not os.path.getsize(argv[2]):
         return refuse_launch(role, leaf_env, name, f"the prompt file {argv[2]} is empty")
-    if os.path.isfile(".tdd/stop"):
-        with open(".tdd/stop") as f:
+    stopfile = run_dir.run_file("", "stop")
+    if os.path.isfile(stopfile):
+        with open(stopfile) as f:
             if (mode := f.read().strip()) in ("at-leaf", "now"):
                 return refuse_launch(role, leaf_env, name, f"a stop ({mode}) is pending")
     if name.startswith("develop-green") and step and red_awaits_pass(step) and not ci_repair_step(issue, step):
         write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
+        return entry.refuse(f"supervise: refusing to launch {name}: step {step} has no verify-red PASS after its latest red leaf")
     if name.startswith(("verify-red", "verify-green")) and not work_tree_hash():
         write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
+        return entry.refuse(f"supervise: refusing to launch {name}: the work-tree hash could not be computed")
     if name.startswith(("verify-red", "verify-green")) \
             and not ((text := step_text(issue, step) if step else None) is not None and pass_marker_current(text)):
         write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: step {step or '(unset)'} has no current check-earlier pass marker"
+        return entry.refuse(f"supervise: refusing to launch {name}: step {step or '(unset)'} has no current check-earlier pass marker"
                       " (run tests-frozen.sh check-earlier first)")
-    ownerfile = ".tdd/leaf.owner"
+    ownerfile = run_dir.run_file("", "leaf.owner")
     owner = still_alive_owner(ownerfile)
     if owner is not None:
         owner_pid, owner_name = owner
         if owner_name != name:
             write_line(exitfile, 2)
-        return refuse(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
+        return entry.refuse(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
                       " is still alive in this worktree")
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
     mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
-    pidfile = f".tdd/{name}.pid"
+    pidfile = run_dir.run_file("", f"{name}.pid")
     tolerated(name, "write", pidfile, record, pidfile, os.getpid())
     discard(exitfile)
     records = mutation_records() if name.startswith(("develop-", "revise-")) else None
