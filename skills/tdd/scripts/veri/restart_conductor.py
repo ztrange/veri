@@ -14,6 +14,7 @@ import paths
 import pid_file
 import restart_marker
 import run_dir
+import run_pins
 import run_activity
 import stop_run as stop_run_module
 import tunables
@@ -61,14 +62,7 @@ def run_state(run):
 
 def _launch_env(run):
     env = {k: v for k, v in tunables.environment().items() if not k.startswith("VERI_")}
-    try:
-        with open(run_dir.issue_file(_main_tree(), run, "-launch-env")) as record:
-            for line in record:
-                key, sep, value = line.rstrip("\n").partition("=")
-                if sep:
-                    env[key] = value
-    except FileNotFoundError:
-        pass
+    env.update(run_pins.launch_env(run, _main_tree()) or {})
     return env
 
 

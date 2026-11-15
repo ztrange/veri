@@ -156,7 +156,7 @@ def preflight_and_launch(argv):
         seed_path = os.path.join(run_state, ".gitignore")
         if not os.path.exists(seed_path):
             with open(seed_path, "w") as seed:
-                seed.write(".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-baseline-full-tier\nissue-*-conductor-model\nissue-*-launch-env\nconductor-*.log\nwt/\n")
+                seed.write(run_pins.gitignore_seed())
         if resuming:
             try:
                 with open(record) as recorded_file:
@@ -175,8 +175,7 @@ def preflight_and_launch(argv):
             if os.path.exists(released):
                 os.remove(released)
             run_pins.write_skip_verify(event.toplevel(), argv[0], tunables.get("VERI_SKIP_VERIFY"))
-            with open(run_dir.issue_file(event.toplevel(), argv[0], "-baseline-full-tier"), "w") as pin:
-                pin.write(tunables.get("VERI_BASELINE_FULL_TIER") + "\n")
+            run_pins.write_baseline_full_tier(event.toplevel(), argv[0], tunables.get("VERI_BASELINE_FULL_TIER"))
             if readable:
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
@@ -261,8 +260,7 @@ def launch(base, issue, commit, **exports):
         with open(run_dir.issue_file(event.toplevel(), issue, "-tmpdir-skill-commit"), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
         run_pins.write_conductor_model(event.toplevel(), issue, conductor_model())
-        with open(run_dir.issue_file(event.toplevel(), issue, "-launch-env"), "w") as record:
-            record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_") and kv[0] != "VERI_NEW_SKILL"))
+        run_pins.write_launch_env(event.toplevel(), issue, tunables.environment())
         exports["VERI_STATE_LABEL_ISSUE"] = issue
         return conduct(text, issue, dict(os.environ, **exports, TMPDIR=run_tmp))
     finally:

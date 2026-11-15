@@ -154,7 +154,7 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 - `journal_schema`: what JOURNAL.md's table documents per event kind, and the literal kinds and fields writer calls pass, found with `ast`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
-- `run_pins`: a run's per-issue pin files (skip-verify list, conductor model), written and read in one place.
+- `run_pins`: a run's per-issue pin files (skip-verify list, conductor model, launch environment, baseline full-tier mode) and the `.tdd/.gitignore` seed, written and read in one place.
 - `stop-reason.sh`: why a run stopped.
 - `stop-requested.sh`: whether a stop is requested.
 - `stop-run.sh`: request a run's stop.
@@ -215,6 +215,9 @@ Where a run lives on disk; the module docstring draws the layout. Paths are str 
 The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's writer and reader sit together. The hard-timeout pin is `leaf_timeout`'s.
 - `write_skip_verify(root, issue, listed)`, `skip_verify(issue, *roots)`: the VERI_SKIP_VERIFY list; the read answers the stripped text of the first root holding the pin, `None` when none does.
 - `write_conductor_model(root, issue, model)`, `conductor_model(issue, *roots)`: the conductor's model, read the same way.
+- `write_launch_env(root, issue, environment)`, `launch_env(issue, root)`: the `VERI_*` environment a restart relaunches with (VERI_NEW_SKILL left out); the read is `{name: value}`, `None` when the run recorded none.
+- `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
+- `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.

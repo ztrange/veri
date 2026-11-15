@@ -4,20 +4,39 @@ One owner per file: the function that writes a pin sits beside the one that read
 path comes from run_dir. File names and bytes are what runs pinned on an older skill snapshot
 already read, so they never change. (The hard-timeout pin is owned by leaf_timeout.)
 
-    issue-<n>-skip-verify       the VERI_SKIP_VERIFY list the run was launched with
-    issue-<n>-conductor-model   the model the conductor was launched on
+    issue-<n>-skip-verify         the VERI_SKIP_VERIFY list the run was launched with
+    issue-<n>-conductor-model     the model the conductor was launched on
+    issue-<n>-launch-env          the VERI_* environment a restarted conductor is relaunched with
+    issue-<n>-baseline-full-tier  the VERI_BASELINE_FULL_TIER mode the run was launched with
+
+A new pin's suffix is a constant below and joins IGNORED, which derives the `.tdd/.gitignore` seed.
 """
 import contextlib
 import os
 
 import run_dir
 
+SKIP_VERIFY = "-skip-verify"
+CONDUCTOR_MODEL = "-conductor-model"
+LAUNCH_ENV = "-launch-env"
+BASELINE_FULL_TIER = "-baseline-full-tier"
+SKILL_COMMIT = "-skill-commit"  # written by run_conductor, read by pinned_scripts
 
-def _read(issue, suffix, roots):
+# Seed order is part of the bytes older runs were seeded with.
+IGNORED = (SKILL_COMMIT, SKIP_VERIFY, BASELINE_FULL_TIER, CONDUCTOR_MODEL, LAUNCH_ENV)
+
+
+def gitignore_seed():
+    """The text a run's `.tdd/.gitignore` is seeded with: itself, every pin in IGNORED, the conductor logs, wt/."""
+    return "".join(f"{line}\n" for line in
+                   [".gitignore", *(f"issue-*{suffix}" for suffix in IGNORED), "conductor-*.log", "wt/"])
+
+
+def _read(issue, suffix, roots, *, tolerant):
     for root in roots:
         path = run_dir.issue_file(root, issue, suffix)
         if os.path.exists(path):
-            with contextlib.suppress(OSError):
+            with contextlib.suppress(OSError) if tolerant else contextlib.nullcontext():
                 with open(path) as recorded:
                     return recorded.read().strip()
             return None
@@ -26,22 +45,53 @@ def _read(issue, suffix, roots):
 
 def write_skip_verify(root, issue, listed):
     """Record the skipped verifier phases: `<listed>\\n`, or an empty file when none are listed."""
-    with open(run_dir.issue_file(root, issue, "-skip-verify"), "w") as skip:
+    with open(run_dir.issue_file(root, issue, SKIP_VERIFY), "w") as skip:
         skip.write(listed + "\n" if listed else "")
 
 
 def skip_verify(issue, *roots):
     """The stripped phase list in the pin of the first of `roots` (a directory holding a `.tdd/`) that
     has one, `""` for an empty pin, None when none does or the file is unreadable."""
-    return _read(issue, "-skip-verify", roots)
+    return _read(issue, SKIP_VERIFY, roots, tolerant=True)
 
 
 def write_conductor_model(root, issue, model):
     """Record the conductor's model: `<model>\\n`."""
-    with open(run_dir.issue_file(root, issue, "-conductor-model"), "w") as record:
+    with open(run_dir.issue_file(root, issue, CONDUCTOR_MODEL), "w") as record:
         record.write(model + "\n")
 
 
 def conductor_model(issue, *roots):
     """The stripped model in the pin of the first of `roots` that has one, None when none does."""
-    return _read(issue, "-conductor-model", roots)
+    return _read(issue, CONDUCTOR_MODEL, roots, tolerant=True)
+
+
+def write_launch_env(root, issue, environment):
+    """Record the launch environment: one `NAME=value` line per `VERI_*` name of `environment`
+    except VERI_NEW_SKILL (a relaunch must not re-pin the skill), sorted by name."""
+    with open(run_dir.issue_file(root, issue, LAUNCH_ENV), "w") as record:
+        record.write("".join("%s=%s\n" % kv for kv in sorted(environment.items())
+                             if kv[0].startswith("VERI_") and kv[0] != "VERI_NEW_SKILL"))
+
+
+def launch_env(issue, root):
+    """The recorded `{name: value}` of the run under `root`, None when it recorded none; lines without
+    an `=` are skipped. OSError other than a missing file propagates."""
+    try:
+        with open(run_dir.issue_file(root, issue, LAUNCH_ENV)) as record:
+            lines = list(record)
+    except FileNotFoundError:
+        return None
+    pairs = (line.rstrip("\n").partition("=") for line in lines)
+    return {key: value for key, sep, value in pairs if sep}
+
+
+def write_baseline_full_tier(root, issue, mode):
+    """Record the baseline full-tier mode: `<mode>\\n`."""
+    with open(run_dir.issue_file(root, issue, BASELINE_FULL_TIER), "w") as pin:
+        pin.write(mode + "\n")
+
+
+def baseline_full_tier(issue, root):
+    """The stripped mode the run pinned under `root`, None when it pinned none. OSError propagates."""
+    return _read(issue, BASELINE_FULL_TIER, (root,), tolerant=False)
