@@ -563,7 +563,7 @@ def test_3224_recover_round_trip_reports_every_value_role_state_wrote_verbatim_a
     status = importlib.import_module("veri.status")
     role_state = importlib.import_module("veri.role_state")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    monkeypatch.setattr(role_state, "main_tree", lambda _cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda _cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
 
     def run(args, *a, **k):

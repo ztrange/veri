@@ -9,7 +9,6 @@ import time
 
 import entry
 import event
-import full_tier_time
 import growth
 import paths
 import pid_file
@@ -28,7 +27,7 @@ def _positive_int(text):
 
 
 def _main_tree():
-    return full_tier_time.main_tree(os.getcwd())
+    return run_dir.main_tree_from_files(os.getcwd())
 
 
 def _run_dir(run):

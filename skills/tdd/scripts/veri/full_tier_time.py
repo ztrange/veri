@@ -6,31 +6,13 @@ import sys
 import tempfile
 
 import entry
+import run_dir
 
 USAGE = "usage: full-tier-time.sh [--record <seconds>] <command>"
 
 
-def main_tree(start):
-    directory = os.path.abspath(start)
-    while True:
-        dotgit = os.path.join(directory, ".git")
-        if os.path.isdir(dotgit):
-            return directory
-        if os.path.isfile(dotgit):
-            with open(dotgit) as f:
-                gitdir = f.read().strip().removeprefix("gitdir:").strip()
-            gitdir = os.path.join(directory, gitdir)
-            with open(os.path.join(gitdir, "commondir")) as f:
-                common = os.path.join(gitdir, f.read().strip())
-            return os.path.dirname(os.path.normpath(common))
-        parent = os.path.dirname(directory)
-        if parent == directory:
-            return os.path.abspath(start)
-        directory = parent
-
-
 def record_path():
-    return os.path.join(main_tree(os.getcwd()), ".tdd", "full-tier-time.json")
+    return os.path.join(run_dir.main_tree_from_files(os.getcwd()), ".tdd", "full-tier-time.json")
 
 
 def whole(value):

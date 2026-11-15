@@ -12,7 +12,7 @@ def test_no_argument_prints_usage_naming_role_growth_and_exits_2(run_cli):
 
 def test_records_session_and_transcript_of_the_session_id_in_the_role_state_file(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -27,7 +27,7 @@ def test_records_session_and_transcript_of_the_session_id_in_the_role_state_file
 
 def test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no_state(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -41,7 +41,7 @@ def test_a_role_that_is_neither_coord_nor_dev_prints_usage_exits_2_and_writes_no
 
 def test_a_wrongly_cased_role_with_a_lane_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, out, err = run_cli(role_growth, ["Coord", "--lane", "a"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
@@ -50,7 +50,7 @@ def test_a_wrongly_cased_role_with_a_lane_prints_usage_on_stderr_exits_2_and_pri
 
 def test_unset_session_id_exits_2_with_one_stderr_line_naming_it(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
 
     code, _, err = run_cli(role_growth, ["coord"], env={"HOME": str(tmp_path / "home")})
@@ -60,7 +60,7 @@ def test_unset_session_id_exits_2_with_one_stderr_line_naming_it(tmp_path, monke
 
 def test_session_with_no_transcript_exits_2_with_one_stderr_line_naming_the_missing_transcript(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     (home / ".claude" / "projects" / "-some-repo").mkdir(parents=True)
 
@@ -71,7 +71,7 @@ def test_session_with_no_transcript_exits_2_with_one_stderr_line_naming_the_miss
 
 def test_dev_with_a_lane_records_session_and_transcript_in_the_lane_state_file(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -86,7 +86,7 @@ def test_dev_with_a_lane_records_session_and_transcript_in_the_lane_state_file(t
 
 def test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_prints_nothing_and_records_no_baseline(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -103,7 +103,7 @@ def test_first_call_after_recovery_with_a_transcript_holding_no_usage_line_print
 
 def test_first_call_after_recovery_with_a_usage_line_records_its_context_as_baseline_and_prints_nothing(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -124,7 +124,7 @@ def test_first_call_after_recovery_with_a_usage_line_records_its_context_as_base
 
 def test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_and_keeps_baseline_at(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -144,7 +144,7 @@ def test_call_with_baseline_at_later_than_recovered_at_records_no_new_baseline_a
 
 def test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_the_baseline(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -165,7 +165,7 @@ def test_a_transcript_with_blank_lines_is_still_read_and_its_usage_line_becomes_
 
 def test_first_call_with_no_recovered_at_and_no_baseline_at_records_the_last_usage_context_as_baseline_and_now_as_baseline_at(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -186,7 +186,7 @@ def test_first_call_with_no_recovered_at_and_no_baseline_at_records_the_last_usa
 
 def test_growth_of_59500_against_the_baseline_prints_one_arm_line_naming_growth_knob_and_the_next_quiet_point(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -205,7 +205,7 @@ def test_growth_of_59500_against_the_baseline_prints_one_arm_line_naming_growth_
 
 def test_growth_of_59499_against_the_baseline_with_the_default_knob_prints_nothing_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -223,7 +223,7 @@ def test_growth_of_59499_against_the_baseline_with_the_default_knob_prints_nothi
 
 def test_growth_of_140000_against_the_baseline_with_the_default_knob_prints_one_reset_now_even_mid_task_line_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -241,7 +241,7 @@ def test_growth_of_140000_against_the_baseline_with_the_default_knob_prints_one_
 
 def test_growth_of_139999_against_the_baseline_with_the_default_knob_prints_the_arm_line_not_the_reset_now_line_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -260,7 +260,7 @@ def test_growth_of_139999_against_the_baseline_with_the_default_knob_prints_the_
 
 def test_coord_takes_its_knob_from_veri_reset_growth_coord_and_prints_the_arm_line_at_a_growth_of_850_against_1000(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -279,7 +279,7 @@ def test_coord_takes_its_knob_from_veri_reset_growth_coord_and_prints_the_arm_li
 
 def test_dev_takes_its_knob_from_veri_reset_growth_dev_and_prints_the_arm_line_at_a_growth_of_850_against_1000(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -298,7 +298,7 @@ def test_dev_takes_its_knob_from_veri_reset_growth_dev_and_prints_the_arm_line_a
 
 def test_at_the_arm_point_with_nothing_launched_since_recovery_prints_the_refusal_once_in_place_of_the_growth_line_and_records_refused_at(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -317,7 +317,7 @@ def test_at_the_arm_point_with_nothing_launched_since_recovery_prints_the_refusa
 
 def test_a_later_call_at_the_arm_point_with_refused_at_recorded_and_the_guard_still_refusing_prints_nothing_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -335,7 +335,7 @@ def test_a_later_call_at_the_arm_point_with_refused_at_recorded_and_the_guard_st
 
 def test_a_call_at_the_arm_point_with_refused_at_recorded_and_a_launch_since_recovery_prints_the_growth_line_again_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -354,7 +354,7 @@ def test_a_call_at_the_arm_point_with_refused_at_recorded_and_a_launch_since_rec
 
 def test_a_state_file_holding_a_line_that_is_not_a_field_exits_2_with_one_stderr_line_naming_the_state_file(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -370,7 +370,7 @@ def test_a_state_file_holding_a_line_that_is_not_a_field_exits_2_with_one_stderr
 
 def test_a_state_file_holding_message_override_and_timed_n_list_lines_is_not_malformed_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -391,7 +391,7 @@ def test_a_state_file_holding_message_override_and_timed_n_list_lines_is_not_mal
 
 def test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -410,7 +410,7 @@ def test_a_state_file_holding_a_dropped_decision_line_is_not_malformed_and_exits
 
 def test_a_veri_reset_growth_coord_that_is_not_a_whole_number_of_at_least_1_exits_2_with_one_stderr_line_naming_the_knob(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -428,7 +428,7 @@ def test_a_veri_reset_growth_coord_that_is_not_a_whole_number_of_at_least_1_exit
 
 def test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_line_naming_the_knob(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -446,7 +446,7 @@ def test_a_veri_reset_growth_coord_that_is_not_numeric_exits_2_with_one_stderr_l
 
 def test_a_transcript_that_is_not_valid_jsonl_exits_2_with_one_stderr_line_naming_the_transcript(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     home = tmp_path / "home"
     transcript = home / ".claude" / "projects" / "-some-repo" / "sess-42.jsonl"
     transcript.parent.mkdir(parents=True)
@@ -459,7 +459,7 @@ def test_a_transcript_that_is_not_valid_jsonl_exits_2_with_one_stderr_line_namin
 
 def test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_nothing_on_stdout(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, out, err = run_cli(role_growth, ["dev", "--lane"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 
@@ -468,7 +468,7 @@ def test_lane_flag_with_no_lane_value_prints_usage_on_stderr_exits_2_and_prints_
 
 def test_an_extra_argument_after_lane_and_its_value_prints_usage_on_stderr_and_exits_2(tmp_path, monkeypatch, run_cli):
     role_growth = importlib.import_module("veri.role_growth")
-    monkeypatch.setattr(role_growth, "main_tree", lambda cwd: str(tmp_path), raising=False)
+    monkeypatch.setattr(role_growth.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, out, err = run_cli(role_growth, ["dev", "--lane", "x", "extra"], env={"HOME": str(tmp_path), "CLAUDE_CODE_SESSION_ID": "sess-42"})
 

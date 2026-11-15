@@ -207,8 +207,9 @@ A run's `.tdd/restart-pending` marker, which says a conductor restart is in flig
 - `state(run)`: just that state word. No journal reads as `running`; a dead pid with no end mark is `stale`.
 
 ## run_dir
-Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` touches the disk.
+Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` and `main_tree_from_files` touches the disk.
 - `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
+- `main_tree_from_files(start=None)`: the same tree found by reading `.git` files, starting no process: walks up from `start` (default cwd) to the first `.git`; a linked worktree's `.git` file leads through its `commondir` to the main tree; no `.git` answers `start`; OSError when a linked gitdir has no `commondir`.
 - `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue.
 - `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
 
@@ -408,10 +409,6 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 ## detect_test_command
 - `resolved(tier, issue, root)`: the test command for a tier, `None` when none is found.
 - `Answer(command)`: the exception that carries a found command out of the search; `answer_from_file(path, marker)` raises it from a file's lines.
-
-## full_tier_time
-- `main_tree(start)`: the main working tree above `start`. `record_path()`: `<main tree>/.tdd/full-tier-time.json`.
-- `read_times(record)`: `{command: seconds}`; ValueError or OSError when the file is not a valid record.
 
 ## suite_mode
 - `run(script, variable)`: prints `ci` or `local` and returns 0; 2 with a message on a bad knob or a bad `VERI_CI_ON_PR`.

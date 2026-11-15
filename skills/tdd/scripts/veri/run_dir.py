@@ -12,7 +12,8 @@
 
 `<main>` is the repository's main working tree (main_tree()); `<run>` is any directory that
 holds a `.tdd/`, normally a worktree() but also the main tree itself. Paths are str; nothing
-here touches the disk except main_tree(), which asks git and raises NoMainTree when it cannot.
+here touches the disk except main_tree(), which asks git and raises NoMainTree when it cannot, and
+main_tree_from_files(), which reads `.git` files and starts no process.
 """
 import os
 import subprocess
@@ -44,6 +45,30 @@ def main_tree(cwd=None, *, missing=_RAISE):
             return missing
         raise NoMainTree(f"git names no main working tree from {cwd or os.getcwd()}")
     return first.removeprefix("worktree ")
+
+
+def main_tree_from_files(start=None):
+    """The main working tree above `start` (default: the current directory), found by reading `.git`
+    files, starting no process: walks up to the first `.git`; a directory is the tree itself, a file
+    names a gitdir whose `commondir` leads to the main tree. No `.git` up to the root answers
+    `start` itself. OSError when a linked gitdir has no readable `commondir`."""
+    start = os.getcwd() if start is None else start
+    directory = os.path.abspath(start)
+    while True:
+        dotgit = os.path.join(directory, ".git")
+        if os.path.isdir(dotgit):
+            return directory
+        if os.path.isfile(dotgit):
+            with open(dotgit) as f:
+                gitdir = f.read().strip().removeprefix("gitdir:").strip()
+            gitdir = os.path.join(directory, gitdir)
+            with open(os.path.join(gitdir, "commondir")) as f:
+                common = os.path.join(gitdir, f.read().strip())
+            return os.path.dirname(os.path.normpath(common))
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return os.path.abspath(start)
+        directory = parent
 
 
 def main_file(main, name):

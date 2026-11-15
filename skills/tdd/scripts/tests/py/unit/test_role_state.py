@@ -4,7 +4,7 @@ import importlib
 
 def test_dev_set_coordinator_records_the_session_id_in_the_dev_state_file(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, _, _ = run_cli(role_state, ["dev", "set", "coordinator", "sess-1234"])
 
@@ -14,7 +14,7 @@ def test_dev_set_coordinator_records_the_session_id_in_the_dev_state_file(tmp_pa
 
 def test_dev_drop_coordinator_removes_every_coordinator_line_and_keeps_the_rest(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     state = tmp_path / ".tdd" / "role-dev.state"
     state.write_text("n=2\ncoordinator=sess-old\nlane=mu\ncoordinator=sess-new\n")
@@ -26,7 +26,7 @@ def test_dev_drop_coordinator_removes_every_coordinator_line_and_keeps_the_rest(
 
 def test_dev_drop_coordinator_with_none_recorded_exits_3_and_leaves_the_file_unchanged(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     state = tmp_path / ".tdd" / "role-dev.state"
     state.write_text("n=2\nlane=mu\n")
@@ -38,7 +38,7 @@ def test_dev_drop_coordinator_with_none_recorded_exits_3_and_leaves_the_file_unc
 
 def test_issue_3648_lane_with_no_verb_prints_usage_and_exits_2(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, _, err = run_cli(role_state, ["coord", "--lane", "main"])
 
@@ -47,7 +47,7 @@ def test_issue_3648_lane_with_no_verb_prints_usage_and_exits_2(tmp_path, monkeyp
 
 def test_issue_3648_bare_role_with_no_verb_prints_usage_and_exits_2(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, _, err = run_cli(role_state, ["coord"])
 
@@ -56,7 +56,7 @@ def test_issue_3648_bare_role_with_no_verb_prints_usage_and_exits_2(tmp_path, mo
 
 def test_issue_3676_lane_flag_with_no_lane_prints_usage_and_exits_2_writing_no_state(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
 
     code, _, err = run_cli(role_state, ["coord", "--lane"])
 
@@ -65,7 +65,7 @@ def test_issue_3676_lane_flag_with_no_lane_prints_usage_and_exits_2_writing_no_s
 
 def test_issue_3752_add_numbers_items_only_from_list_lines_past_a_spaced_coordinator_line(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-dev.state").write_text("coordinator=veri coord\nmessage 1 2026-11-13T00:00:00 hello\n")
 
@@ -76,7 +76,7 @@ def test_issue_3752_add_numbers_items_only_from_list_lines_past_a_spaced_coordin
 
 def test_issue_3752_add_numbers_the_first_item_1_when_only_a_spaced_coordinator_line_is_present(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "role-dev.state").write_text("coordinator=veri coord\n")
 
@@ -87,7 +87,7 @@ def test_issue_3752_add_numbers_the_first_item_1_when_only_a_spaced_coordinator_
 
 def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file_and_exiting_0(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     fields = ["session", "transcript", "baseline", "baseline-at", "refused-at", "resetter"]
 
     codes = [run_cli(role_state, ["coord", "set", f, "v-" + f])[0] for f in fields]
@@ -98,7 +98,7 @@ def test_issue_3241_set_accepts_each_growth_field_appending_it_to_the_state_file
 
 def test_issue_3241_dev_request_reset_after_a_launch_since_recovery_records_the_time_and_writes_the_marker(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -116,7 +116,7 @@ def test_issue_3241_dev_request_reset_after_a_launch_since_recovery_records_the_
 
 def test_issue_3241_dev_request_reset_idle_writes_the_marker_holding_the_time_and_the_word_idle(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -131,7 +131,7 @@ def test_issue_3241_dev_request_reset_idle_writes_the_marker_holding_the_time_an
 
 def test_issue_3241_dev_lane_request_reset_writes_the_marker_with_the_lane_suffix_and_exits_0(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -146,7 +146,7 @@ def test_issue_3241_dev_lane_request_reset_writes_the_marker_with_the_lane_suffi
 
 def test_issue_3241_dev_request_reset_with_nothing_launched_merged_or_decided_since_recovery_exits_1_writing_nothing(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -164,7 +164,7 @@ def test_issue_3241_dev_request_reset_with_nothing_launched_merged_or_decided_si
 
 def test_issue_3241_dev_request_reset_accepts_when_only_a_merged_event_in_a_run_journal_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     run_tdd = tdd / "wt" / "7" / ".tdd"
@@ -180,7 +180,7 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_merged_event_in_a_run_
 
 def test_issue_3241_dev_request_reset_accepts_when_only_a_conductor_start_in_a_run_journal_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     run_tdd = tdd / "wt" / "7" / ".tdd"
@@ -196,7 +196,7 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_conductor_start_in_a_r
 
 def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_added_to_the_state_file_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -213,7 +213,7 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_added_to_the_
 
 def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_dropped_from_the_state_file_is_later_than_recovery(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T08:30:00")
@@ -232,7 +232,7 @@ def test_issue_3241_dev_request_reset_accepts_when_only_a_decision_dropped_from_
 
 def test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_since_recovery_but_accepts_once_a_decision_is_too(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T08:30:00")
@@ -254,7 +254,7 @@ def test_issue_3241_dev_request_reset_refuses_when_only_a_message_was_dropped_si
 
 def test_issue_3241_dev_request_reset_with_two_resets_in_the_last_hour_exits_1_writing_nothing_even_after_a_later_launch(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     monkeypatch.delenv("VERI_RESET_MAX_PER_HOUR", raising=False)
     tdd = tmp_path / ".tdd"
@@ -272,7 +272,7 @@ def test_issue_3241_dev_request_reset_with_two_resets_in_the_last_hour_exits_1_w
 
 def test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_old_and_one_recent_reset_are_accepted(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     monkeypatch.delenv("VERI_RESET_MAX_PER_HOUR", raising=False)
     tdd = tmp_path / ".tdd"
@@ -290,7 +290,7 @@ def test_issue_3241_dev_request_reset_ignores_a_reset_older_than_an_hour_so_one_
 
 def test_issue_3241_dev_request_reset_with_max_per_hour_1_and_one_reset_in_the_last_hour_exits_1_writing_nothing(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     monkeypatch.setenv("VERI_RESET_MAX_PER_HOUR", "1")
     tdd = tmp_path / ".tdd"
@@ -308,7 +308,7 @@ def test_issue_3241_dev_request_reset_with_max_per_hour_1_and_one_reset_in_the_l
 
 def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_the_other_roles(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     (tdd / "reset-request-dev").write_text("2026-11-12T10:00:00\n")
@@ -321,7 +321,7 @@ def test_issue_3241_dev_recovered_removes_the_roles_reset_marker_and_keeps_the_o
 
 def test_issue_3241_dev_recovered_clears_refused_at_from_the_state_file_and_keeps_its_other_lines(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
@@ -345,7 +345,7 @@ def test_issue_3241_usage_names_request_reset_and_every_set_field(run_cli):
 
 def test_issue_3241_dev_request_reset_with_no_recovered_at_does_not_crash_and_writes_the_marker(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
 
     code, _, err = run_cli(role_state, ["dev", "request-reset"])
@@ -356,7 +356,7 @@ def test_issue_3241_dev_request_reset_with_no_recovered_at_does_not_crash_and_wr
 
 def test_issue_3241_dev_request_reset_with_no_recovered_at_still_refuses_at_the_hourly_cap(tmp_path, monkeypatch, run_cli):
     role_state = importlib.import_module("veri.role_state")
-    monkeypatch.setattr(role_state, "main_tree", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
     monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
