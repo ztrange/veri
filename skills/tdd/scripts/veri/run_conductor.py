@@ -176,7 +176,7 @@ def preflight_and_launch(argv):
                 listed = tunables.read("VERI_SKIP_VERIFY", "")
                 skip.write(listed + "\n" if listed else "")
             with open(run_dir.issue_file(event.toplevel(), argv[0], "-baseline-full-tier"), "w") as pin:
-                pin.write(tunables.read("VERI_BASELINE_FULL_TIER", tunables.TABLE["VERI_BASELINE_FULL_TIER"].default) + "\n")
+                pin.write(tunables.get("VERI_BASELINE_FULL_TIER") + "\n")
             if readable:
                 worktree = run_worktree(argv[0])
                 os.makedirs(worktree, exist_ok=True)
@@ -236,7 +236,7 @@ def prompt(base, issue, commit):
 
 
 def conductor_model():
-    return tunables.read("VERI_MODEL_CONDUCTOR") or "opus"
+    return tunables.get("VERI_MODEL_CONDUCTOR", unless_empty=True)
 
 
 def launch(base, issue, commit, **exports):

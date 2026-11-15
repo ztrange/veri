@@ -27,6 +27,19 @@ def env_value(key):
     return "" if not value.strip(WHITESPACE) else value
 
 
+def shipped_default_knob(actor, revise, adjudicate):
+    """The knob whose shipped default a leaf runs on when no variable is set.
+
+    A conductor-* leaf is not the conductor: it takes the first-try default, as it always has,
+    while run_conductor.conductor_model() takes VERI_MODEL_CONDUCTOR's own (opus).
+    """
+    if revise:
+        return "VERI_MODEL_REVISE"
+    if adjudicate:
+        return "VERI_MODEL_ADJUDICATOR"
+    return "VERI_MODEL_VERIFIER" if actor == "verifier" else "VERI_MODEL_DEVELOPER"
+
+
 def resolve(name):
     role = leaf_role(name)
     if role is None:
@@ -37,7 +50,7 @@ def resolve(name):
     model = ((env_value("VERI_MODEL_REVISE") if revise else "")
              or env_value("VERI_MODEL_" + actor.upper()) or env_value("VERI_MODEL"))
     if not model:
-        model = "opus" if revise or adjudicate else "sonnet"
+        model = tunables.default(shipped_default_knob(actor, revise, adjudicate))
     if any(c in WHITESPACE for c in model):
         write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return None
