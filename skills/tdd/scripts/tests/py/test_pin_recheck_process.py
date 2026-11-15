@@ -2360,7 +2360,7 @@ def test_3323_a_pin_whose_test_survives_and_a_ledger_step_declares_retired_is_no
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired while its test file survives")
 def test_3323_a_retired_pin_gains_a_retired_line_with_the_reason_that_the_record_readers_still_parse(tmp_path):
-    from veri.pin_recheck import records
+    from veri.mutation_record import records
 
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
@@ -2390,7 +2390,7 @@ def test_3323_a_retired_pin_gains_a_retired_line_with_the_reason_that_the_record
 
 @pytest.mark.process("git, and pin-recheck.sh run over a range whose ledger step declares a pin retired in one of two record files")
 def test_3323_retiring_a_pin_in_one_record_file_leaves_the_other_record_file_untouched(tmp_path):
-    from veri.pin_recheck import records
+    from veri.mutation_record import records
 
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
