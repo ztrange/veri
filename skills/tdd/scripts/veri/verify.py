@@ -27,7 +27,8 @@ from leaf_model import env_value, resolve
 from entry import write
 from leaf_role import leaf_role
 from ledger import ledger_path
-from run_verdict import SCRIPTS, takes_a_value
+from paths import SCRIPTS
+from run_verdict import takes_a_value
 
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
              "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"]

@@ -82,3 +82,9 @@ def test_inside_scripts_defaults_to_the_current_directory(tmp_path, monkeypatch)
     assert inside_scripts(module)
     monkeypatch.chdir(tmp_path / "elsewhere")
     assert not inside_scripts(module)
+
+
+def test_SCRIPTS_is_the_scripts_directory_of_the_veri_modules_and_holds_supervise_sh():
+    from veri import paths
+    assert paths.SCRIPTS == scripts_of(os.path.join(os.path.dirname(paths.__file__), "sibling.py"))
+    assert os.path.isfile(os.path.join(paths.SCRIPTS, "supervise.sh"))
