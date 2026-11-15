@@ -118,3 +118,49 @@ def test_main_tree_ignores_missing_when_git_names_a_tree(monkeypatch, tmp_path):
     git_says(monkeypatch, tmp_path, code=0, out=PORCELAIN)
 
     assert run_dir.main_tree(missing="") == "/repo"
+
+
+def lay_out(tmp_path, pointer, commondir="../..", admin="main/.git/worktrees/linked"):
+    """A main tree with a `.git` directory and a linked tree whose `.git` file says `gitdir: <pointer>`."""
+    (tmp_path / "main" / ".git").mkdir(parents=True)
+    (tmp_path / admin).mkdir(parents=True)
+    (tmp_path / admin / "commondir").write_text(commondir + "\n")
+    (tmp_path / "linked" / "src" / "deep").mkdir(parents=True)
+    (tmp_path / "linked" / ".git").write_text("gitdir: %s\n" % pointer)
+
+
+def test_main_tree_from_files_in_a_plain_clone_is_the_directory_holding_the_git_directory_from_any_depth(tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / "a" / "b").mkdir(parents=True)
+
+    assert [run_dir.main_tree_from_files(tmp_path), run_dir.main_tree_from_files(tmp_path / "a" / "b")] == [
+        str(tmp_path), str(tmp_path)]
+
+
+def test_main_tree_from_files_in_a_linked_worktree_follows_the_gitdirs_commondir_to_the_main_tree(tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    lay_out(tmp_path, str(tmp_path / "main/.git/worktrees/linked"))
+
+    assert run_dir.main_tree_from_files(tmp_path / "linked") == str(tmp_path / "main")
+
+
+def test_main_tree_from_files_called_from_a_subdirectory_of_a_linked_worktree_answers_the_main_tree(tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    lay_out(tmp_path, str(tmp_path / "main/.git/worktrees/linked"))
+
+    assert run_dir.main_tree_from_files(tmp_path / "linked" / "src" / "deep") == str(tmp_path / "main")
+
+
+def test_main_tree_from_files_resolves_a_relative_gitdir_against_the_directory_holding_the_git_file(tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    lay_out(tmp_path, "../main/.git/worktrees/linked")
+
+    assert run_dir.main_tree_from_files(tmp_path / "linked" / "src") == str(tmp_path / "main")
+
+
+def test_main_tree_from_files_with_no_repository_above_start_answers_start_itself(tmp_path):
+    run_dir = importlib.import_module("veri.run_dir")
+    (tmp_path / "x").mkdir()
+
+    assert run_dir.main_tree_from_files(tmp_path / "x") == str(tmp_path / "x")
