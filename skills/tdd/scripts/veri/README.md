@@ -401,6 +401,7 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 
 The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
 
+- `case_identity`: when a case in the tree is the same case as a recorded one (moves, renames, refactors) and the digest of the helpers it calls; tests_frozen decides, this module only identifies.
 - `case_history`: the git history queries tests_frozen's record policy asks; it decides, this module only looks.
 - `pin-recheck.sh`: re-run the recorded pin mutations a range touches.
 - `pin-reject-route.sh`: route a rejected pin to a ledger step.
@@ -409,6 +410,13 @@ The tests-frozen rule: recording and checking that a step's tests are not change
 - `tests-frozen.sh`: record and check that a step's tests stay frozen.
 - `transform-touches-tests.sh`: whether a transform touched tests.
 - `wrong-test-route.sh`: route a wrong test to its repair.
+
+## case_history
+Every query runs in the current directory through `git.git`; a git failure becomes None, False or "" and only an unstartable git raises OSError.
+- `toplevel()`: the working tree's root, `None` outside a repository. `has_rev(rev)`: bool. `current_branch()`: the abbreviated HEAD.
+- `text_at(rev, path, quiet=False)`: the file's text at `rev`, `""` when git cannot show it. `cases_at(rev, path)`: `{case name: body}`; raises OSError when git cannot read `rev`.
+- `revisions(path, since=None)`: shas of the commits that touched `path`, newest first. `subject(rev)`: its subject plus a newline.
+- `changed_test_files()`: test files that differ from HEAD; raises OSError when a listing fails. `step_commits(step, issue)`, `commit_of(rev)`, `first_revision_with(needle, path)`: a step's own commits, a rev's sha, the oldest commit touching `needle`.
 
 ## frozen_record
 The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its pass marker.
@@ -422,6 +430,7 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 
 ## tests_frozen
 - `differing_tests()`: test files changed against HEAD; raises OSError when git cannot list.
+- `record(record_file, files, step=None)`, `check(record_file, step=None)`: the `record` and `check` subcommands with explicit arguments; each returns the exit code (0, 1 or 2) and speaks as the CLI does. `step=None` records or checks the files given; with a step it also covers the test files that differ from HEAD.
 - `is_diff_checked(line)`: bool for a `⟦diff-checked⟧` step. `rerecord_earlier(ledger, step)`, `rerecord_committed(step, root)`: re-record earlier steps' frozen cases; `rerecord_earlier` returns 3 for a step that is not diff-checked, 2 on an unreadable ledger or outside a repo.
 
 # GitHub and issues
