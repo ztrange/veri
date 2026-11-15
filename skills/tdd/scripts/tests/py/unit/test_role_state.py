@@ -473,3 +473,30 @@ def test_dev_set_n_zero_and_a_padded_number_are_written(tmp_path, monkeypatch, r
     codes = [run_cli(role_state, ["dev", "set", "n", value])[0] for value in ("0", "007")]
 
     assert (codes, (tmp_path / ".tdd" / "role-dev.state").read_text()) == ([0, 0], "n=0\nn=007\n")
+
+
+def test_request_reset_skips_a_torn_journal_line_and_still_sees_the_launch_after_it(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    monkeypatch.setattr(role_state, "now", lambda: "2026-11-12T10:00:00")
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "role-dev.state").write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 1, "event": "conductor-st\n{"ts": 4102444800, "event": "conductor-start", "issue": "7"}\n')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, err, (tdd / "reset-request-dev").exists()) == (0, "", True)
+
+
+def test_request_reset_with_only_a_torn_journal_line_since_recovery_refuses_as_nothing_launched(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "role-dev.state").write_text("recovered-at=2026-11-12T09:00:00\n")
+    (tdd / "events.jsonl").write_text('{"ts": 4102444800, "event": "conductor-st')
+
+    code, _, err = run_cli(role_state, ["dev", "request-reset"])
+
+    assert (code, err) == (1, "request-reset refused: nothing launched, merged or decided since the last recovery\n")
