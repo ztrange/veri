@@ -8,6 +8,8 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
+from entry import no_arguments
+
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 
 
@@ -26,6 +28,9 @@ USAGE = "usage: exhausted-outcome.sh < leaf-output.txt"
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     lines = _read_stdin().replace(b"\0", b"").split(b"\n")
     if lines[-1] == b"":
         lines.pop()

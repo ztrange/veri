@@ -53,7 +53,7 @@ def test_main_reads_markers_at_column_0_case_sensitively_strips_leading_whitespa
     }
 
 
-def test_main_prints_the_last_needs_user_and_every_later_line_returns_3_on_empty_stdin_drops_nul_and_ignores_arguments(monkeypatch, capsys, exhausted_outcome):
+def test_main_prints_the_last_needs_user_and_every_later_line_returns_3_on_empty_stdin_and_drops_nul(monkeypatch, capsys, exhausted_outcome):
     results = {}
     for text, argv in (
         ("NEEDS_USER: q\n\n\n", []),
@@ -61,7 +61,6 @@ def test_main_prints_the_last_needs_user_and_every_later_line_returns_3_on_empty
         ("NEEDS_USER:", []),
         ("", []),
         ("SPLIT: a\0b", []),
-        ("NEEDS_USER: q", ["extra", "args"]),
     ):
         monkeypatch.setattr(sys, "stdin", io.StringIO(text))
         code = exhausted_outcome.main(argv)
@@ -73,7 +72,6 @@ def test_main_prints_the_last_needs_user_and_every_later_line_returns_3_on_empty
         ("NEEDS_USER:",): (1, "\n", ""),
         ("",): (3, "", ""),
         ("SPLIT: a\0b",): (0, "ab\n", ""),
-        ("NEEDS_USER: q", "extra", "args"): (1, "q\n", ""),
     }
 
 
@@ -121,7 +119,11 @@ def test_a_split_report_exits_0_with_its_criteria_a_needs_user_report_exits_1_wi
     assert run_cli(exhausted_outcome, [], stdin=neither_report) == (3, "", "")
 
 
-def test_extra_arguments_are_ignored_and_nothing_is_ever_written_to_stderr(run_cli, exhausted_outcome):
-    assert run_cli(exhausted_outcome, ["extra", "args"], stdin="SPLIT: a") == (0, "a\n", "")
+def test_an_unexpected_argument_is_refused_naming_it_with_the_usage_exit_2_and_the_report_unread(run_cli, exhausted_outcome):
+    assert run_cli(exhausted_outcome, ["extra", "args"], stdin="SPLIT: a") == (
+        2, "", f"exhausted-outcome.sh: unexpected argument 'extra'\n{exhausted_outcome.USAGE}\n")
+
+
+def test_nothing_is_ever_written_to_stderr(run_cli, exhausted_outcome):
     for report in ("SPLIT: a", "NEEDS_USER: q", "neither"):
         assert run_cli(exhausted_outcome, [], stdin=report)[2] == ""
