@@ -46,6 +46,11 @@ def read_bytes(name, default=b""):
     return os.environb.get(os.fsencode(name), default)
 
 
+def claude_bin():
+    """The model binary a leaf runs: `CLAUDE_BIN`, `claude` when unset or empty."""
+    return read("CLAUDE_BIN") or "claude"
+
+
 def venv_dir():
     return read("VERI_VENV") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
 

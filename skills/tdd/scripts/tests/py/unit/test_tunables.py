@@ -261,3 +261,13 @@ def test_resolve_refuses_nothing_for_a_name_that_states_no_refusal_and_get_reads
     assert tunables.get("VERI_REFACTOR_BUDGET") == "x"
     with pytest.raises(KeyError):
         tunables.resolve("VERI_REFACTOR_BUDGET")
+
+
+@pytest.mark.parametrize("value,expected", [(None, "claude"), ("", "claude"), ("/opt/stub", "/opt/stub")])
+def test_claude_bin_is_the_environment_value_and_claude_when_unset_or_empty(monkeypatch, value, expected):
+    tunables = importlib.import_module("veri.tunables")
+    if value is None:
+        monkeypatch.delenv("CLAUDE_BIN", raising=False)
+    else:
+        monkeypatch.setenv("CLAUDE_BIN", value)
+    assert tunables.claude_bin() == expected

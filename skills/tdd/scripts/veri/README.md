@@ -144,7 +144,7 @@ The one reader of `VERI_*` and related environment variables.
 - `TUNABLES`: name to `Tunable(parse, default, refusal=None)`, every tunable once. `TABLE`: the entries that state a `refusal`. `tokens(raw)`: int, ValueError otherwise.
 - Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `set_but_empty(name)`. A reader of such a name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the exemptions it lists by name (`VERI_NO_VERDICT_RETRIES` in `verify.py`/`grade_prose.py`, whose parses of `010` disagree; `VERI_LABEL` in `status.py`). A name read at two defaults (`VERI_POLL`, `VERI_MISSING_REROUTE_BUDGET`) is not in `TUNABLES`.
 - `environment()`, `with_values(**values)`, `without(name)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
-- `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`.
+- `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`. `claude_bin()`: `CLAUDE_BIN`, `claude` when unset or empty.
 
 # Run state and journal
 
