@@ -12,6 +12,7 @@ import full_tier_time
 import growth
 import paths
 import pid_file
+import restart_marker
 import run_dir
 import run_activity
 import stop_run as stop_run_module
@@ -120,7 +121,7 @@ def _new_conductor_appears(run):
 
 
 def _clean_up_unstopped_exit(run, mark):
-    os.remove(_run_file(run, "restart-pending"))
+    restart_marker.clear(_run_dir(run))
     try:
         if _stop_mark(run) == mark:
             os.remove(_run_file(run, "stop"))
@@ -169,10 +170,7 @@ def main(argv):
                 print(f"restart-conductor.sh: cannot read conductor-{run}.log: {e}", file=sys.stderr)
                 return 2
             if not asked and g is not None and g >= 0.85 * int(knob):
-                pending = _run_file(run, "restart-pending")
-                os.makedirs(os.path.dirname(pending), exist_ok=True)
-                with open(pending, "w") as f:
-                    f.write(f"{os.getpid()}\n")
+                restart_marker.claim(_run_dir(run), os.getpid())
                 stop_run("at-ledger", run)
                 asked = True
                 mark = _stop_mark(run)
@@ -190,7 +188,7 @@ def main(argv):
         event.mark(_run_dir(run), event.context(tunables.environment()), "conductor-restart",
                    [f"growth={g}", f"knob={knob}"])
         appeared = _new_conductor_appears(run)
-        os.remove(_run_file(run, "restart-pending"))
+        restart_marker.clear(_run_dir(run))
         if not appeared:
             print(f"restart-conductor.sh: no conductor was recorded for run {run} within {LAUNCH_WAIT}s of its relaunch",
                   file=sys.stderr)
