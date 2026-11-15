@@ -1,3 +1,4 @@
+"""Sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import."""
 import os
 import sys
 

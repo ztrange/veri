@@ -1,3 +1,4 @@
+"""Which lines of a Markdown text sit in a code fence, and how to cut a section out by its heading."""
 def _run(line):
     indent = len(line) - len(line.lstrip())
     if indent <= 3:
