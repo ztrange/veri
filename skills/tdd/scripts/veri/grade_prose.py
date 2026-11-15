@@ -16,7 +16,7 @@ import tunables
 import markdown_sections
 from extract_result import extract
 import leaf_log
-from run_verdict import SCRIPTS
+from paths import SCRIPTS
 
 try:
     from veri import leaf

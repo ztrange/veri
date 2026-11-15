@@ -2,6 +2,8 @@
 
 Interface:
 
+SCRIPTS                    the scripts directory of the veri modules themselves (scripts_of this file).
+
 scripts_of(file)           the scripts directory two levels above file, with `..` resolved after any
                            symlink before it (the lexical path, not the real one); returns a str.
 resolved_scripts_of(file)  the same directory from realpath(file), every symlink resolved; returns a str.
@@ -27,6 +29,9 @@ def _abspath_dotdot_after_symlink(file):
 def scripts_of(file):
     """The scripts directory above file's module directory, `..` resolved after any symlink."""
     return os.path.dirname(os.path.dirname(_abspath_dotdot_after_symlink(file)))
+
+
+SCRIPTS = scripts_of(__file__)
 
 
 def resolved_scripts_of(file):

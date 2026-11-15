@@ -169,6 +169,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - `section(text, heading, bare=False)`: the lines from `heading` to the next heading of the same or higher level; raises StopIteration when `heading` is absent.
 
 ## paths
+- `SCRIPTS`: the scripts directory of the veri modules, defined once here.
 - `scripts_of(file)`: the `scripts/` directory above a file of `veri/`, `..` resolved after following symlinks.
 - `resolved_scripts_of(file)`: the same with the file's symlinks resolved first.
 - `inside_scripts(file, where=None)`: whether `where` (default: the current directory) is that scripts directory or inside it.
@@ -232,9 +233,6 @@ Where a run lives on disk; the module docstring draws the layout. Paths are str 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.
 - `latest_result(path)`: `(launched, latest result record or None)` of a conductor log. `conductor_log(run_dir, issue)`: its path.
-
-## run_verdict
-- `SCRIPTS`: the scripts directory. `takes_a_value(word)`: True for the options `--step`, `--fast-cmd`, `--supersede-base`.
 
 ## session_env
 - `strip_session_env(env)`: removes the Claude Code session variables, and values carrying a session id, from `env`.

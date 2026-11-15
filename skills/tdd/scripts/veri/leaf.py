@@ -2,7 +2,7 @@
 import os
 import subprocess
 
-from run_verdict import SCRIPTS
+from paths import SCRIPTS
 
 
 def launch(name, prompt, *args, env=None):
