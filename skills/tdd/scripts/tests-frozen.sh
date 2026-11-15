@@ -1,10 +1,12 @@
 #!/bin/sh
 # tests-frozen.sh — record a step's test files, then check that none of them has changed: a shim over veri/tests_frozen.py.
 #
-# usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>...
+# usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>...
 #        tests-frozen.sh check <record-file>|--step <step-text>
 #        tests-frozen.sh check-earlier <ledger> --step <step-text> [--except <case>]...
 #        tests-frozen.sh rerecord-earlier <ledger> --step <step-text>
+#        tests-frozen.sh rerecord-refactored <ledger> <green-sha>
+#        tests-frozen.sh rerecord-rebased <ledger> <pre-rebase-sha>
 #        tests-frozen.sh path <step-text>
 #
 # path prints the step's record file, .tdd/tests-frozen-<k>.record, where <k> is the first 16 hex

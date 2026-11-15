@@ -5,9 +5,9 @@
 # the developer leaf's rationale, and none may be added that could, so the author's reasoning physically cannot reach the verifier — the
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
-# usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
+# usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 # Usage:
-#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
 #   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' diff <issue-spec-file> <branch-base-sha> <step-base-sha>
 #     phase = red | green | refactor | pin | plan | rebase | transform | diff

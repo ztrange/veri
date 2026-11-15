@@ -15,7 +15,7 @@ from json_documents import documents
 import tunables
 from ci_on_pr import declared, trigger_lines
 
-USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
+USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>"
 PASSING = ("success", "neutral", "skipped")
 SLICE_CAP = 540
 CEILING = 600

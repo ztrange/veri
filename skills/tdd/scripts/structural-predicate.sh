@@ -3,7 +3,7 @@
 # `PREDICATE:` command to <record>: a shim over veri/structural_predicate.py.
 #
 # usage: structural-predicate.sh <record>
-#        structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>
+#        the leaf report is read from stdin, <record> being .tdd/issue-<n>-predicate
 #
 # exit:  0 the command was written; 1 the command already succeeds on the current tree,
 #        nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`,

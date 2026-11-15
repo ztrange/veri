@@ -7,7 +7,7 @@ import pytest
 from conftest import SCRIPTS
 
 USAGE = (
-    "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)\n"
+    "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)\n"
 )
 
 LEDGER = (
@@ -659,7 +659,7 @@ def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional
     for argv in ([], ["l.md", "after", "anchor"], ["--criterion", "2", "l.md", "after", "anchor"]):
         code = add_ledger_step.main(argv)
         out, err = capsys.readouterr()
-        assert (argv, code, out, err.count("\n"), err.startswith("usage: add-ledger-step.sh [--criterion <k>] <ledger-file> ")) == (argv, 2, "", 1, True)
+        assert (argv, code, out, err.count("\n"), err.startswith("usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> ")) == (argv, 2, "", 1, True)
 
 
 def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_planned_alongside_criterion_1579(capsys, add_ledger_step):

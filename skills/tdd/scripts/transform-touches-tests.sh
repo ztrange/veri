@@ -6,7 +6,7 @@
 # case_reader.is_test_path's rule: `tests/` directories, `*.test.*`, JS/TS `*.spec.*`, Go
 # `*_test.go`, and Python `test_*.py` or `*_test.py` anywhere.
 #
-# usage: transform-touches-tests.sh <base-sha> [<bound>]
+# usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]
 #
 # <bound> is a comma-separated file list; given one, a range that changed no test file is
 # checked next for files it changed outside the bound.

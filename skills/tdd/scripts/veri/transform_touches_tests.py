@@ -7,7 +7,7 @@ import sys
 import entry
 from case_reader import is_test_path
 
-USAGE = "usage: transform-touches-tests.sh <base-sha>"
+USAGE = "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]"
 REFACTOR_OWED = re.compile(rb"\.tdd/issue-[0-9]+-refactor-owed\.md")
 
 

@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]\n"
+USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>\n"
 
 
 @pytest.fixture

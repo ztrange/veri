@@ -27,7 +27,7 @@ def cksum(data):
     return "%d %d" % (crc ^ 0xFFFFFFFF, len(data))
 
 USAGE = [
-    ("3345015868 167", "add-ledger-step.sh", []),
+    ("3914217436 179", "add-ledger-step.sh", []),
     ("3115481657 48", "affected-suites.sh", []),
     ("1250444232 315", "build-develop-prompt.sh", []),
     ("1786216893 158", "build-verify-prompt.sh", []),
@@ -43,7 +43,7 @@ USAGE = [
     ("1964507760 39", "leaf-role.sh", []),
     ("1507644654 40", "metrics.sh", []),
     ("3513573825 54", "over-budget.sh", []),
-    ("3822748993 60", "refactor-touched.sh", []),
+    ("4065736600 81", "refactor-touched.sh", []),
     ("134802541 39", "run-conductor.sh", []),
     ("1042169812 59", "run-leaf.sh", []),
     ("4252593059 50", "supervise.sh", []),
@@ -51,10 +51,10 @@ USAGE = [
     ("3111273066 293", "tick-ledger.sh", []),
     ("3568418922 35", "tier-usual.sh", []),
     ("1826447128 65", "timed-test-run.sh", []),
-    ("2203537502 52", "transform-touches-tests.sh", []),
+    ("3094254233 81", "transform-touches-tests.sh", []),
     ("3750115868 145", "verify.sh", []),
     ("3132011146 48", "wait-leaf.sh", []),
-    ("3345015868 167", "add-ledger-step.sh", [".tdd/issue-1.md", "after", "anchor"]),
+    ("3914217436 179", "add-ledger-step.sh", [".tdd/issue-1.md", "after", "anchor"]),
     ("82452057 368", "build-develop-prompt.sh", ["green", "spec", "step"]),
     ("1786216893 158", "build-verify-prompt.sh", ["green"]),
     ("1786216893 158", "build-verify-prompt.sh", ["green", "spec"]),

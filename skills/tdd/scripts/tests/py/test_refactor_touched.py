@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-USAGE = "usage: refactor-touched.sh <commit> | --issue <base>\n"
+USAGE = "usage: refactor-touched.sh <commit> | --issue <base> [--candidate <text>]\n"
 SKILL_DIR = Path(__file__).resolve().parents[3]
 MISSING = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
