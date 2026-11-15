@@ -104,13 +104,10 @@ def test_2750_report_starts_no_refresh_when_a_report_cache_refresh_is_already_ru
     assert (code, started) == (0, []), (started, err)
 
 
-def test_report_reads_an_empty_snapshot_max_age_as_empty_and_fails_not_as_the_default_60(tmp_path, monkeypatch, run_cli):
+def test_report_reads_an_empty_snapshot_max_age_as_empty_and_fails_not_as_the_default_60(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
-    started = []
-    monkeypatch.setattr(status.subprocess, "Popen", lambda argv, *a, **k: started.append(list(argv)))
+    fake = fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("VERI_SNAPSHOT_MAX_AGE", "")
     stale = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=600)
     (tmp_path / ".tdd").mkdir()
@@ -119,4 +116,5 @@ def test_report_reads_an_empty_snapshot_max_age_as_empty_and_fails_not_as_the_de
 
     code, _out, err = run_cli(status, ["--report"])
 
+    started = [list(p.args) for p in fake.popens]
     assert (code, started, "ValueError" in err) == (2, [], True), err
