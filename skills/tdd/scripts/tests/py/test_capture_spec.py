@@ -17,43 +17,33 @@ def capture_spec():
     return importlib.import_module("veri.capture_spec")
 
 
-def fake_gh(monkeypatch, labels, body):
-    """subprocess.run answering `gh issue view <n> --json labels|body` with <labels>, <body>;
-    every subprocess call, run or Popen, recorded in the returned list."""
-    calls = []
+def fake_gh(fake_processes, labels, body):
+    """`gh issue view <n> --json labels|body` answered with <labels>, <body>; any other process, run or Popen,
+    fails the case. Returns the fake: its argvs are every call, in order."""
+    def view(line, **kwargs):
+        words = line.split()
+        if "labels" in words:
+            return 0, labels, ""
+        if "body" in words:
+            return 0, body, ""
+        raise AssertionError("unexpected command: %s" % line)
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args:
-            stdout = labels
-        elif list(args[:3]) == ["gh", "issue", "view"] and "body" in args:
-            stdout = body
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
-
-    def fake_popen(args, *rest, **kwargs):
-        calls.append(list(args))
-        raise AssertionError("unexpected Popen: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    return calls
+    return fake_processes.answers({"gh issue view": view})
 
 
-def test_main_refuses_a_missing_or_empty_issue_number_with_exit_2_and_answers_0_for_one(monkeypatch, capsys, capture_spec):
+def test_main_refuses_a_missing_or_empty_issue_number_with_exit_2_and_answers_0_for_one(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = fake_gh(monkeypatch, "enhancement\n", "lamps glow\n")
+    fake = fake_gh(fake_processes, "enhancement\n", "lamps glow\n")
 
     for argv in ([], [""]):
         code = capture_spec.main(argv)
         captured = capsys.readouterr()
-        assert (argv, code, captured.out, captured.err, calls) == (argv, 2, "", USAGE, [])
+        assert (argv, code, captured.out, captured.err, fake.argvs) == (argv, 2, "", USAGE, [])
 
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (0, "lamps glow\n", "")
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
     ]
@@ -77,9 +67,9 @@ bash 5.2 on macOS 15.6.
 """
 
 
-def test_main_appends_a_bug_section_naming_the_body_headings_for_a_bug_labelled_issue(monkeypatch, capsys, capture_spec):
+def test_main_appends_a_bug_section_naming_the_body_headings_for_a_bug_labelled_issue(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    fake_gh(monkeypatch, "bug\n", BUG_BODY)
+    fake_gh(fake_processes, "bug\n", BUG_BODY)
 
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
@@ -89,9 +79,9 @@ def test_main_appends_a_bug_section_naming_the_body_headings_for_a_bug_labelled_
     assert "\n## Bug\n" in captured.out[len(BUG_BODY) - 1:]
 
 
-def test_main_carries_each_bug_heading_text_once_in_the_body_and_names_the_headings_in_the_bug_section(monkeypatch, capsys, capture_spec):
+def test_main_carries_each_bug_heading_text_once_in_the_body_and_names_the_headings_in_the_bug_section(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    fake_gh(monkeypatch, "bug\n", BUG_BODY)
+    fake_gh(fake_processes, "bug\n", BUG_BODY)
 
     code = capture_spec.main(["7"])
     out = capsys.readouterr().out
@@ -102,39 +92,25 @@ def test_main_carries_each_bug_heading_text_once_in_the_body_and_names_the_headi
     assert (code, [out.count(t) for t in texts], [h in bug_section for h in headings]) == (0, [1, 1, 1, 1], [True] * 4)
 
 
-def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a_json_error_body(monkeypatch, capsys, capture_spec):
+def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a_json_error_body(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if list(args[:3]) == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 1, "", "")
-        if list(args[:2]) == ["gh", "api"]:
-            return subprocess.CompletedProcess(args, 1, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest","status":"404"}', None)
-        raise AssertionError("unexpected command: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake = fake_processes.answers({
+        "gh issue view": (1, "", ""),
+        "gh api": (1, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest","status":"404"}', None)})
 
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
 
     assert (code, captured.out) == (2, "")
-    assert calls == [
+    assert fake.argvs == [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "api", "repos/{owner}/{repo}/issues/7"],
     ]
 
 
-def test_main_returns_2_not_a_type_error_when_a_failing_gh_api_leaves_stderr_unset_3582(monkeypatch, capsys, capture_spec):
+def test_main_returns_2_not_a_type_error_when_a_failing_gh_api_leaves_stderr_unset_3582(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "rest")
-
-    def fake_run(args, **kwargs):
-        if list(args[:2]) == ["gh", "api"]:
-            return subprocess.CompletedProcess(args, 1, "", None)
-        raise AssertionError("unexpected command: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    fake_processes.answers({"gh api": (1, "", None)})
 
     code = capture_spec.main(["7"])
 
@@ -151,14 +127,14 @@ tick-ledger.sh grows a `--dry-run` flag.
 """
 
 
-def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_section_for_a_refactor_labelled_one(monkeypatch, capsys, capture_spec):
+def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_section_for_a_refactor_labelled_one(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
-    fake_gh(monkeypatch, "", PLAIN_BODY)
+    fake_gh(fake_processes, "", PLAIN_BODY)
     code = capture_spec.main(["113"])
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (0, PLAIN_BODY, "")
 
-    fake_gh(monkeypatch, "refactor\n", PLAIN_BODY)
+    fake_gh(fake_processes, "refactor\n", PLAIN_BODY)
     code = capture_spec.main(["499"])
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (0, PLAIN_BODY + (
@@ -167,36 +143,31 @@ def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_sect
     ), "")
 
 
-def refuse_graphql(monkeypatch, labels, body):
+def refuse_graphql(fake_processes, labels, body):
     """subprocess.run refusing every `gh issue view` with the 403 and answering
     `gh api repos/{owner}/{repo}/issues/<n>` with the issue's REST JSON, <body> None for null."""
     refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
 
-    def fake_run(args, **kwargs):
-        if list(args[:3]) == ["gh", "issue", "view"]:
-            if kwargs.get("stderr") is None:
-                sys.stderr.write(refusal)
-            return subprocess.CompletedProcess(args, 1, "", refusal)
-        if list(args[:2]) == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues/"):
-            n = args[2].rsplit("/", 1)[1]
-            issue = {"number": int(n), "body": body, "labels": [{"name": label} for label in labels]}
-            return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
-        raise AssertionError("unexpected command: %r" % (args,))
+    def view(line, **kwargs):
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(refusal)
+        return 1, "", refusal
 
-    def fake_popen(args, *rest, **kwargs):
-        raise AssertionError("unexpected Popen: %r" % (args,))
+    def api(line, **kwargs):
+        n = line.rsplit("/", 1)[1]
+        issue = {"number": int(n), "body": body, "labels": [{"name": label} for label in labels]}
+        return 0, json.dumps(issue), None
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    fake_processes.answers({"gh issue view": view, "gh api repos/{owner}/{repo}/issues/": api})
 
 
-def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh_does_a_null_body_reading_as_empty(monkeypatch, capsys, capture_spec):
+def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh_does_a_null_body_reading_as_empty(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     for labels, body, rest_body in ((["bug", "refactor"], BUG_BODY, BUG_BODY), ([], "", None)):
-        fake_gh(monkeypatch, "".join(label + "\n" for label in labels), body)
+        fake_gh(fake_processes, "".join(label + "\n" for label in labels), body)
         working = (capture_spec.main(["112"]), capsys.readouterr())
 
-        refuse_graphql(monkeypatch, labels, rest_body)
+        refuse_graphql(fake_processes, labels, rest_body)
         refused = (capture_spec.main(["112"]), capsys.readouterr())
 
         assert (labels, refused[0], refused[1].out, refused[1].err) == (labels, working[0], working[1].out, working[1].err)
@@ -206,10 +177,10 @@ def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh
 REFACTOR_SECTION = "\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n"
 
 
-def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extraction(monkeypatch, capsys, capture_spec):
+def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extraction(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     def spec(labels, body):
-        fake_gh(monkeypatch, labels, body)
+        fake_gh(fake_processes, labels, body)
         code = capture_spec.main(["7"])
         captured = capsys.readouterr()
         return (code, captured.out, captured.err)
@@ -245,138 +216,103 @@ def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extracti
     assert out.startswith(crlf) and "\n## Bug\n" in out[len(crlf) - 1:]
 
 
-def test_main_asks_labels_before_the_body_of_its_first_argument_and_fails_both_routes_with_exit_2_and_gh_apis_error_then_the_json_decode_line(monkeypatch, capsys, capture_spec):
+def test_main_asks_labels_before_the_body_of_its_first_argument_and_fails_both_routes_with_exit_2_and_gh_apis_error_then_the_json_decode_line(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
     unreachable = "error connecting to api.github.com\ncheck your internet connection or https://githubstatus.com\n"
     decode_line = "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
 
     def fake_gh_failing(labels_answer):
-        calls = []
-
-        def fake_run(args, **kwargs):
-            calls.append(list(args))
-            if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args and labels_answer is not None:
-                code, stdout, stderr = 0, labels_answer, ""
-            elif list(args[:3]) == ["gh", "issue", "view"]:
-                code, stdout, stderr = 1, "", refusal
-            elif list(args[:2]) == ["gh", "api"]:
-                code, stdout, stderr = 1, "", unreachable
-            else:
-                raise AssertionError("unexpected command: %r" % (args,))
+        def view(line, **kwargs):
+            if "labels" in line.split() and labels_answer is not None:
+                return 0, labels_answer, ""
             if kwargs.get("stderr") is None:
-                sys.stderr.write(stderr)
-            return subprocess.CompletedProcess(
-                args, code,
-                stdout if kwargs.get("stdout") == subprocess.PIPE else None,
-                stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+                sys.stderr.write(refusal)
+            return 1, "", refusal
 
-        def fake_popen(args, *rest, **kwargs):
-            calls.append(list(args))
-            raise AssertionError("unexpected Popen: %r" % (args,))
+        def api(line, **kwargs):
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(unreachable)
+            return 1, "", unreachable
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        monkeypatch.setattr(subprocess, "Popen", fake_popen)
-        return calls
+        return fake_processes.answers({"gh issue view": view, "gh api": api})
 
-    calls = fake_gh_failing(None)
+    fake = fake_gh_failing(None)
     code = capture_spec.main(["abc", "extra"])
     captured = capsys.readouterr()
-    assert (code, captured.out, captured.err, calls) == (2, "", unreachable + decode_line, [
+    assert (code, captured.out, captured.err, fake.argvs) == (2, "", unreachable + decode_line, [
         ["gh", "issue", "view", "abc", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "api", "repos/{owner}/{repo}/issues/abc"],
     ])
 
-    calls = fake_gh_failing("bug\n")
+    fake = fake_gh_failing("bug\n")
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
-    assert (code, captured.out, captured.err, calls) == (2, "", unreachable + decode_line, [
+    assert (code, captured.out, captured.err, fake.argvs) == (2, "", unreachable + decode_line, [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/7"],
     ])
 
 
-def test_main_reads_the_issue_through_gh_api_only_when_veri_gh_driver_is_unset_or_rest_1114(monkeypatch, capsys, capture_spec):
+def test_main_reads_the_issue_through_gh_api_only_when_veri_gh_driver_is_unset_or_rest_1114(monkeypatch, capsys, capture_spec, fake_processes):
     for driver in (None, "rest"):
         if driver is None:
             monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
         else:
             monkeypatch.setenv("VERI_GH_DRIVER", driver)
-        calls = []
+        def view(line, **kwargs):
+            return 0, "bug\n" if "labels" in line.split() else BUG_BODY, ""
 
-        def fake_run(args, **kwargs):
-            calls.append(list(args))
-            if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args:
-                return subprocess.CompletedProcess(args, 0, "bug\n", "")
-            if list(args[:3]) == ["gh", "issue", "view"] and "body" in args:
-                return subprocess.CompletedProcess(args, 0, BUG_BODY, "")
-            if list(args) == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
-                issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
-                return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
-            raise AssertionError("unexpected command: %r" % (args,))
-
-        def fake_popen(args, *rest, **kwargs):
-            calls.append(list(args))
-            raise AssertionError("unexpected Popen: %r" % (args,))
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        monkeypatch.setattr(subprocess, "Popen", fake_popen)
+        issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
+        fake = fake_processes.answers({"gh issue view": view,
+                                       "gh api repos/{owner}/{repo}/issues/7": (0, json.dumps(issue), None)})
 
         code = capture_spec.main(["7"])
         captured = capsys.readouterr()
 
-        assert (driver, code, captured.err, calls) == (driver, 0, "", [
+        assert (driver, code, captured.err, fake.argvs) == (driver, 0, "", [
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
         ])
         assert captured.out.startswith(BUG_BODY) and "\n## Bug\n" in captured.out
 
 
-def test_main_reads_the_issue_through_gh_issue_view_only_when_veri_gh_driver_is_graphql_and_a_graphql_failure_is_exit_2_with_no_gh_api_call_1114(monkeypatch, capsys, capture_spec):
+def test_main_reads_the_issue_through_gh_issue_view_only_when_veri_gh_driver_is_graphql_and_a_graphql_failure_is_exit_2_with_no_gh_api_call_1114(monkeypatch, capsys, capture_spec, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
-    calls = fake_gh(monkeypatch, "bug\n", BUG_BODY)
+    fake = fake_gh(fake_processes, "bug\n", BUG_BODY)
 
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
 
-    assert (code, captured.err, calls) == (0, "", [
+    assert (code, captured.err, fake.argvs) == (0, "", [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
     ])
     assert captured.out.startswith(BUG_BODY) and "\n## Bug\n" in captured.out
 
-    calls = []
-
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if list(args[:3]) == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 1, "", "")
-        if list(args) == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
-            issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
-            return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
-        raise AssertionError("unexpected command: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
+    fake = fake_processes.answers({"gh issue view": (1, "", ""),
+                                   "gh api repos/{owner}/{repo}/issues/7": (0, json.dumps(issue), None)})
 
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
 
-    assert (code, captured.out, calls) == (2, "", [
+    assert (code, captured.out, fake.argvs) == (2, "", [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
     ])
 
 
-def test_main_refuses_an_empty_or_unknown_veri_gh_driver_with_exit_2_nothing_on_stdout_a_stderr_line_naming_it_and_no_gh_process_1114(monkeypatch, capsys, capture_spec):
+def test_main_refuses_an_empty_or_unknown_veri_gh_driver_with_exit_2_nothing_on_stdout_a_stderr_line_naming_it_and_no_gh_process_1114(monkeypatch, capsys, capture_spec, fake_processes):
     for driver in ("", "bogus"):
         monkeypatch.setenv("VERI_GH_DRIVER", driver)
-        calls = fake_gh(monkeypatch, "bug\n", BUG_BODY)
+        fake = fake_gh(fake_processes, "bug\n", BUG_BODY)
 
         code = capture_spec.main(["7"])
         captured = capsys.readouterr()
 
         lines = captured.err.splitlines()
-        assert (driver, code, captured.out, calls, len(lines)) == (driver, 2, "", [], 1)
+        assert (driver, code, captured.out, fake.argvs, len(lines)) == (driver, 2, "", [], 1)
         assert "VERI_GH_DRIVER" in lines[0] and "'%s'" % driver in lines[0]
 
 
