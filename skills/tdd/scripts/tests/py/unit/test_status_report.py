@@ -2,14 +2,13 @@
 import datetime
 import importlib
 import json
-import os
-import subprocess
 
 
+GH_REFUSED = {"gh ": AssertionError("--report started gh")}
 TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
 
 
-def fake_tags(monkeypatch, status, tags=TAGS):
+def fake_tags(fake_processes, tags=TAGS, answers=None):
     def run(args, *a, **k):
         fmt = "".join(x for x in args if x.startswith("--format="))
         if not fmt:
@@ -18,8 +17,9 @@ def fake_tags(monkeypatch, status, tags=TAGS):
             out = "".join("%d %s\n" % (unix, name) for name, unix, _ in tags)
         else:
             out = "".join("%s  %s\n" % (name, subject) for name, _, subject in tags)
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = fake_processes.answers(answers or {}, default=lambda line, **k: run(fake.argvs[-1]))
+    return fake
 
 
 def landed(out):
@@ -27,7 +27,7 @@ def landed(out):
     return [tuple(line.split("  ", 1)) for line in lines[lines.index("Landed") + 1:lines.index("Running")]]
 
 
-def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_order(tmp_path, monkeypatch, run_cli):
+def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_order(tmp_path, monkeypatch, run_cli, fake_processes):
     import re
     import time
     status = importlib.import_module("veri.status")
@@ -56,8 +56,8 @@ def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_ord
     def run(args, *a, **k):
         fmt = "".join(x[len("--format="):] for x in args if x.startswith("--format="))
         out = "".join(expand(fmt, name) + "\n" for name in tags) if fmt else ""
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = fake_processes.answers({}, default=lambda line, **k: run(fake.argvs[-1]))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
 
@@ -74,10 +74,10 @@ def test_2750_report_exits_0_and_prints_landed_running_queue_waiting_in_that_ord
         [("v0.2", "2026-01-14 15:30  Second capability"), ("v0.1", "2026-01-13 15:30  First capability")])
 
 
-def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli):
+def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_other_sections(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    fake_tags(fake_processes)
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -89,10 +89,10 @@ def test_2750_report_without_snapshot_says_so_under_queue_and_still_prints_the_o
         0, ["Landed", "Running", "Queue", "Waiting"], True)
 
 
-def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli):
+def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say_none(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status, tags=())
+    fake_tags(fake_processes, tags=())
 
     code, out, _ = run_cli(status, ["--report"])
 
@@ -102,17 +102,10 @@ def test_2750_report_empty_landed_running_and_waiting_keep_their_heading_and_say
     assert (code, first_after) == (0, {"Landed": "none", "Running": "none", "Waiting": "none"})
 
 
-def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli):
+def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_first_line(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
-    tag_run = status.subprocess.run
-
-    def run_refusing_gh(args, *a, **k):
-        if os.path.basename(str(args[0])) == "gh":
-            raise AssertionError("--report started gh: %s" % (args,))
-        return tag_run(args, *a, **k)
-    monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
+    fake_tags(fake_processes, answers=GH_REFUSED)
     fetched = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=2, minutes=3)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
@@ -125,10 +118,10 @@ def test_2750_report_with_a_snapshot_states_its_age_from_fetched_at_on_queues_fi
     assert (code, "2h" in first, "no snapshot" in first.lower()) == (0, True, False), first
 
 
-def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
+    fake_tags(fake_processes)
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     fetched = datetime.datetime.now(datetime.timezone.utc)
 
@@ -149,17 +142,10 @@ def test_2750_report_queue_counts_the_snapshots_open_opted_in_issues_by_label(tm
     assert (code, any("2 agent-ok" in line for line in queue)) == (0, True), queue
 
 
-def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli):
+def test_2750_report_with_gh_refusing_exits_0_and_prints_the_same_report_as_with_gh_available(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    fake_tags(monkeypatch, status)
-    tag_run = status.subprocess.run
-
-    def run_refusing_gh(args, *a, **k):
-        if os.path.basename(str(args[0])) == "gh":
-            raise AssertionError("--report started gh: %s" % (args,))
-        return tag_run(args, *a, **k)
-    monkeypatch.setattr(status.subprocess, "run", run_refusing_gh)
+    fake_tags(fake_processes, answers=GH_REFUSED)
     fetched = datetime.datetime.now(datetime.timezone.utc)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(

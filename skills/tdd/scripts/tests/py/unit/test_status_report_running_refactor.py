@@ -2,10 +2,9 @@
 import importlib
 import json
 import os
-import subprocess
 
 
-def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_no_refactor_or_structural_pass_event(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_no_refactor_or_structural_pass_event(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -21,10 +20,7 @@ def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_n
                "name": "develop-red", "model": "sonnet"},
               {"ts": 1793613603, "awake": 3, "event": "verdict", "step": "1", "phase": "red", "verdict": "PASS"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -34,7 +30,7 @@ def test_3236_report_running_block_shows_no_refactor_text_when_the_journal_has_n
     assert (code, bool(block), "refactor" in block) == (0, True, False), (running, err)
 
 
-def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_that_landed_nothing(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_that_landed_nothing(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -49,10 +45,7 @@ def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_t
               {"ts": 1793613602, "awake": 2, "event": "refactor", "step": "1", "transforms": 2, "stopped": "budget"},
               {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 0, "stopped": "clean"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -62,7 +55,7 @@ def test_3236_report_running_block_shows_refactor_passes_transforms_and_passes_t
     assert (code, "refactor 2 passes 2 transforms 1 landed nothing" in block) == (0, True), (block, err)
 
 
-def test_3236_report_running_block_counts_string_transforms_as_event_sh_writes_them(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_counts_string_transforms_as_event_sh_writes_them(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -77,17 +70,14 @@ def test_3236_report_running_block_counts_string_transforms_as_event_sh_writes_t
               {"ts": 1793613602, "awake": 2, "event": "refactor", "step": "1", "transforms": "2", "stopped": "budget"},
               {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": "0", "stopped": "clean"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
     assert (code, "refactor 2 passes 2 transforms 1 landed nothing" in out) == (0, True), (out, err)
 
 
-def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_alongside_refactor_events(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_alongside_refactor_events(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -103,10 +93,7 @@ def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_al
               {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 0, "stopped": "clean"},
               {"ts": 1793613604, "awake": 4, "event": "structural-pass", "transforms": 0, "stopped": "clean"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -116,7 +103,7 @@ def test_3236_report_running_block_counts_a_structural_pass_event_as_one_pass_al
     assert (code, "refactor 3 passes 2 transforms 2 landed nothing" in block) == (0, True), (block, err)
 
 
-def test_3236_report_running_block_counts_a_structural_pass_event_without_transforms_as_one_pass_that_landed_nothing(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_counts_a_structural_pass_event_without_transforms_as_one_pass_that_landed_nothing(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -131,17 +118,14 @@ def test_3236_report_running_block_counts_a_structural_pass_event_without_transf
               {"ts": 1793613602, "awake": 2, "event": "refactor", "step": "1", "transforms": 2, "stopped": "budget"},
               {"ts": 1793613603, "awake": 3, "event": "structural-pass", "stopped": "nothing-structural"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
     assert (code, "refactor 2 passes 2 transforms 1 landed nothing" in out) == (0, True), (out, err)
 
 
-def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and_structural_pass_events_with_its_count(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and_structural_pass_events_with_its_count(tmp_path, monkeypatch, run_cli, fake_processes):
     import re
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -158,10 +142,7 @@ def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and
               {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 1, "stopped": "budget"},
               {"ts": 1793613604, "awake": 4, "event": "structural-pass", "transforms": 0, "stopped": "clean"}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 
@@ -171,7 +152,7 @@ def test_3236_report_running_block_names_each_stopped_reason_across_refactor_and
     assert (code, bool(re.search(r"budget\D{0,3}2\b", block)), bool(re.search(r"clean\D{0,3}1\b", block))) == (0, True, True), (block, err)
 
 
-def test_3236_report_running_block_adds_no_stop_reason_for_refactor_and_structural_pass_events_without_stopped(tmp_path, monkeypatch, run_cli):
+def test_3236_report_running_block_adds_no_stop_reason_for_refactor_and_structural_pass_events_without_stopped(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -187,10 +168,7 @@ def test_3236_report_running_block_adds_no_stop_reason_for_refactor_and_structur
               {"ts": 1793613603, "awake": 3, "event": "refactor", "step": "2", "transforms": 1, "stopped": "budget"},
               {"ts": 1793613604, "awake": 4, "event": "structural-pass", "transforms": 0}]
     (runs / "3236.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, err = run_cli(status, ["--report"])
 

@@ -3,19 +3,17 @@ import calendar
 import datetime
 import json
 import importlib
-import subprocess
 import time
 
 
-def test_3059_report_first_line_names_the_local_zone_with_its_utc_offset(tmp_path, monkeypatch, run_cli):
+def test_3059_report_first_line_names_the_local_zone_with_its_utc_offset(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -29,15 +27,14 @@ def test_3059_report_first_line_names_the_local_zone_with_its_utc_offset(tmp_pat
     assert (code, out.splitlines()[0]) == (0, "CST (UTC−6)"), (out, err)
 
 
-def test_3059_report_first_line_signs_a_zone_east_of_utc_with_plus(tmp_path, monkeypatch, run_cli):
+def test_3059_report_first_line_signs_a_zone_east_of_utc_with_plus(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("TZ", "Europe/Berlin")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -51,7 +48,7 @@ def test_3059_report_first_line_signs_a_zone_east_of_utc_with_plus(tmp_path, mon
     assert (code, out.splitlines()[0]) == (0, "CET (UTC+1)"), (out, err)
 
 
-def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_local_zone(tmp_path, monkeypatch, run_cli):
+def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_local_zone(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -60,8 +57,7 @@ def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_lo
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "status-last").write_text('{"time": "2026-01-14T22:30:00Z", "queue": {}}')
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -75,7 +71,7 @@ def test_3059_report_first_line_opens_with_the_window_from_status_last_in_the_lo
     assert (code, out.splitlines()[0]) == (0, "16:30 → 18:00 CST (UTC−6)"), (out, err)
 
 
-def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_path, monkeypatch, run_cli):
+def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -85,8 +81,7 @@ def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "report-cache.json").write_text('{"fetched_at": "2026-01-14T21:52:00Z", "issues": []}')
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -100,7 +95,7 @@ def test_3059_report_queue_snapshot_line_shows_fetched_at_in_the_local_zone(tmp_
     assert (code, "snapshot 2h 8m old, fetched 15:52" in out) == (0, True), (out, err)
 
 
-def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_taggers_offset(tmp_path, monkeypatch, run_cli):
+def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_taggers_offset(tmp_path, monkeypatch, run_cli, fake_processes):
     import re
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -126,8 +121,8 @@ def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_ta
     def run(args, *a, **k):
         fmt = "".join(x[len("--format="):] for x in args if x.startswith("--format="))
         out = expand(fmt) + "\n" if fmt else ""
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = fake_processes.answers({}, default=lambda line, **k: run(fake.argvs[-1]))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -143,7 +138,7 @@ def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_ta
     assert (code, landed.split()) == (0, ["v0.2", "2026-01-14", "15:30", "Second", "capability"]), (out, err)
 
 
-def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_its_own_zone(tmp_path, monkeypatch, run_cli):
+def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_its_own_zone(tmp_path, monkeypatch, run_cli, fake_processes):
     import re
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
@@ -177,8 +172,8 @@ def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_i
     def run(args, *a, **k):
         fmt = "".join(x[len("--format="):] for x in args if x.startswith("--format="))
         out = expand(fmt) + "\n" if fmt else ""
-        return subprocess.CompletedProcess([], 0, stdout=out, stderr="")
-    monkeypatch.setattr(status.subprocess, "run", run)
+        return 0, out, ""
+    fake = fake_processes.answers({}, default=lambda line, **k: run(fake.argvs[-1]))
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
@@ -194,11 +189,10 @@ def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_i
     assert (code, "CST (UTC−6)" in lines[0], zoned) == (0, True, []), (out, err)
 
 
-def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(tmp_path, monkeypatch, run_cli):
+def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     monkeypatch.setenv("TZ", "America/Chicago")
     time.tzset()
@@ -220,15 +214,14 @@ def test_3059_report_stores_status_last_time_as_utc_with_z_under_a_non_utc_zone(
     assert (code, written is not None and before - 2 <= written <= time.time() + 2) == (0, True), (stored, err)
 
 
-def test_3198_report_zone_line_keeps_the_minutes_of_a_non_zero_offset(tmp_path, monkeypatch, run_cli):
+def test_3198_report_zone_line_keeps_the_minutes_of_a_non_zero_offset(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = git@github.com:acme/widgets.git\n')
     monkeypatch.setenv("VERI_HOME", str(tmp_path / "home"))
     (tmp_path / "home" / "runs" / "acme-widgets").mkdir(parents=True)
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     monkeypatch.setattr(status.time, "time", lambda: 1768435200)
 
     offsets = {}

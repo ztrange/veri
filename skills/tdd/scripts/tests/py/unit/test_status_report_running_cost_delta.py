@@ -2,11 +2,10 @@
 import importlib
 import json
 import os
-import subprocess
 import time
 
 
-def test_2750_report_running_block_cost_carries_the_usage_dollars_after_the_status_last_time(tmp_path, monkeypatch, run_cli):
+def test_2750_report_running_block_cost_carries_the_usage_dollars_after_the_status_last_time(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -25,10 +24,7 @@ def test_2750_report_running_block_cost_carries_the_usage_dollars_after_the_stat
     events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": os.getpid(), "started": started},
               usage(1793613720, 0.5), usage(1793613840, 0.25)]
     (runs / "2750.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events))
-    tags = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    ps = subprocess.CompletedProcess([], 0, stdout=started + "\n", stderr="")
-    monkeypatch.setattr(status.subprocess, "run",
-                        lambda cmd, *a, **k: ps if cmd and cmd[0] == "ps" else tags)
+    fake_processes.answers({"ps ": (0, started + "\n", "")}, default=(0, "", ""))
 
     code, out, _ = run_cli(status, ["--report"])
 

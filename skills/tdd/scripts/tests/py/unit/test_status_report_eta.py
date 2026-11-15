@@ -2,10 +2,9 @@
 import datetime
 import importlib
 import json
-import subprocess
 
 
-def test_2750_report_queue_etas_all_read_no_rate_yet_when_the_journals_hold_fewer_than_three_finished_runs(tmp_path, monkeypatch, run_cli):
+def test_2750_report_queue_etas_all_read_no_rate_yet_when_the_journals_hold_fewer_than_three_finished_runs(tmp_path, monkeypatch, run_cli, fake_processes):
     status = importlib.import_module("veri.status")
     monkeypatch.setattr(status.run_dir, "main_tree", lambda **_: str(tmp_path))
     (tmp_path / ".git").mkdir()
@@ -20,8 +19,7 @@ def test_2750_report_queue_etas_all_read_no_rate_yet_when_the_journals_hold_fewe
                   {"ts": 1793617200, "awake": 3600, "event": "done", "pr": str(n)},
                   {"ts": 1793617300, "awake": 3700, "event": "merged"}]
         (runs / ("%d.jsonl" % n)).write_text("".join(json.dumps(e) + "\n" for e in events))
-    done = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-    monkeypatch.setattr(status.subprocess, "run", lambda *a, **k: done)
+    fake_processes.answers({}, default=(0, "", ""))
     fetched = datetime.datetime.now(datetime.timezone.utc)
     issue = {"number": 1, "title": "t1", "state": "OPEN", "labels": [{"name": "agent-ok"}],
              "closedAt": None, "updatedAt": "2026-11-01T00:00:00Z", "links": [], "blockedBy": []}
