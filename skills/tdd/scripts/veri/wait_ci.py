@@ -137,7 +137,7 @@ def wait_for_reset(stderr, key, draft, total, bound, slice_end=None):
     """On a rate-limit refusal in <stderr>, sleeps until GitHub's reset when it falls before the CI deadline
     (the key's mark, else the one made now and recorded unless a draft); raises NoAnswer("permanent") when it
     falls at or past it. An unknown reset, or any other refusal, returns for the caller's backoff retry."""
-    if "rate limit" not in stderr:
+    if github.refusal_kind(stderr) != "rate-limit":
         return
     reset = github.rate_limit_reset(subprocess.run)
     if reset is None:

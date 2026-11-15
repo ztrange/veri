@@ -484,6 +484,7 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `pull(url_or_number, repo=None)`: one pull request as a Pull record (adds `mergeable`), read over REST under every driver; `NoAnswer` with gh's stderr as `detail` (not echoed) when the read fails, `ValueError` on a non-JSON answer.
 - `closed_issues(body, loose=False)`: the issue numbers (strings) a PR body closes with `Closes #n`, in order; `loose` reads `[Cc]loses #n` anywhere, as `status --recover` does.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
+- `refusal_kind(stderr_text)` and `NoAnswer.kind` (of its `detail`, else its `answer`): what kind of refusal gh's words describe, `"rate-limit"` (`rate limit`, a `Retry-After` or exhausted `X-RateLimit-Remaining` header), `"transient"` (`HTTP 5…`, `error connecting to api.github.com`) or `"refused"`; a rate limit outranks a transient marker. The one marker set: callers ask it and keep their own waiting policy, never matching stderr words themselves. `VERI_GH_REFUSAL_RETRIES` is spent in `_retry_refused` (60 s sleeps, inside the read) and again by `dispatch` (waits for the reset), each layer counting on its own.
 
 ## solvable_issues
 - `solvable(label, priority="priority", repo=None)`: `(exit code, issue numbers)` in selection order; code 2 when the listing is unreadable.
