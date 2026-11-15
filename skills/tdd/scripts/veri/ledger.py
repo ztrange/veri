@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 from git import git
+from run_dir import ledger as run_ledger
 
 OPEN_STEP = "- [ ]"
 TICKED_STEP = "- [x]"
@@ -21,7 +22,7 @@ TRAILING_RUN_RE = re.compile(r"((?:(?:^| |(?<=⟧))⟦[^⟦⟧]*⟧)+)(?: ⟂ [^
 
 
 def ledger_path(run_dir, issue):
-    return os.path.join(run_dir, ".tdd", f"issue-{issue}.md")
+    return run_ledger(run_dir, issue)
 
 
 def receipt_refusal(ledger_file):
