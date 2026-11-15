@@ -234,3 +234,20 @@ def test_main_asked_to_record_creates_its_partial_file_next_to_the_record(
     run_cli(full_tier_time, ["--record", "42", "make test"], cwd=tmp_path)
 
     assert dirs == [str(tmp_path / ".tdd")]
+
+
+def test_main_asked_for_a_command_whose_stored_time_has_more_digits_than_an_int_can_be_read_from_exits_2_with_one_stderr_line(
+        tmp_path, run_cli, full_tier_time):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "full-tier-time.json").write_text(json.dumps({"make test": "9" * 5000}))
+
+    code, out, err = run_cli(full_tier_time, ["make test"], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), "unreadable record" in err) == (2, "", 1, True)
+
+
+def test_main_asked_to_record_seconds_with_more_digits_than_an_int_can_be_read_from_prints_the_usage_line_and_exits_2_recording_nothing(
+        tmp_path, run_cli, full_tier_time):
+    code, _, err = run_cli(full_tier_time, ["--record", "9" * 5000, "make test"], cwd=tmp_path)
+
+    assert (code, "usage: full-tier-time.sh" in err, (tmp_path / ".tdd" / "full-tier-time.json").exists()) == (2, True, False)

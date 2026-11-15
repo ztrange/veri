@@ -16,7 +16,7 @@ def record_path():
 
 
 def whole(value):
-    return isinstance(value, str) and value.isascii() and value.isdigit()
+    return isinstance(value, str) and entry.whole_number(value, 0) is not None
 
 
 def read_times(record):
@@ -47,7 +47,7 @@ def main(argv):
     if not argv:
         return entry.refuse(usage=USAGE)
     if argv[0] == "--record":
-        if len(argv) < 3 or not argv[1].isascii() or not argv[1].isdigit():
+        if len(argv) < 3 or not whole(argv[1]):
             return entry.refuse(usage=USAGE)
         record = record_path()
         os.makedirs(os.path.dirname(record), exist_ok=True)
