@@ -23,7 +23,8 @@ Keys a tick may carry, each with the default an empty world would answer:
     reset         the rate-limit reset epoch                         0
 
 What it records: `said` (stdout text), `complained` (stderr text), `launched` (issues), `waits` (their count),
-`launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called).
+`launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called),
+`reads` ((tick key, tick index) of every answer asked for, in order).
 """
 
 
@@ -39,11 +40,13 @@ class FakeWorld:
         self.launched = []
         self.waits = 0
         self.launched_at_wait = []
+        self.reads = []
 
     def _tick(self):
         return self.ticks[min(self.index, len(self.ticks) - 1)]
 
     def _answer(self, key, default):
+        self.reads.append((key, self.index))
         value = self._tick().get(key, default)
         if isinstance(value, BaseException):
             raise value
