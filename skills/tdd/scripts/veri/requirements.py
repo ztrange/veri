@@ -126,6 +126,10 @@ def lists(path="REQUIREMENTS.md"):
     return [p for p in [path] + [f for f in tracked("REQUIREMENTS.md") if f != path] if os.path.exists(p)]
 
 
+def list_path(unit):
+    return os.path.join(os.path.dirname(unit), "REQUIREMENTS.md")
+
+
 def fail(path, number, msg):
     raise ValueError("%s:%d: %s" % (path, number, msg))
 

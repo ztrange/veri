@@ -66,6 +66,8 @@ An ungraded checklist; each step names the audit that fails when it is skipped (
 
 What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, JSON/Markdown and test-source reading. Builds on no other group; every other group may build on it.
 
+- `requirements.sh`: the prose units and requirement rows of a file.
+
 ## case_reader
 - `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool).
 - `cut_cases(text)`: `[(case name, source)]` of a test source; raises `UnclosedCase` when a JS call never closes.
@@ -121,6 +123,13 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## renamed_case
 - `renamed_to(name, old_source, new_source, taken)`: the case of `new_source` with the same text as `name` but another name, else `None`.
 - `renamed_and_changed_to(name, old_source, new_source, taken)`: the case with the same def line but another name and a changed body.
+
+## requirements
+- `lists(path="REQUIREMENTS.md")`: the REQUIREMENTS.md files that exist. `tracked(name)`: git-tracked files of that name; RuntimeError when `git ls-files` fails.
+- `listed_units(path)`, `claims(path, unit)`: the units a list names; a unit's rows as `<id>\t<requirement>` lines (ValueError `path:line: reason` on a malformed table).
+- `read_lines(path)`, `requirements_lines(lines)`: a file's lines; `(heading, line)` pairs of its `## Requirements` section.
+- `split_cells(line)`, `table_cells(line)`: a table row's cells. `well_formed_row_id(row_id)`: bool. `malformed_row_id(lines)`: the first bad id, `None` when fine.
+- `list_path(unit)`: the `REQUIREMENTS.md` beside a unit.
 
 ## session_env
 - `strip_session_env(env)`: removes the Claude Code session variables, and values carrying a session id, from `env`.
@@ -503,10 +512,9 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 - `grade-prose.sh`: grade a unit's requirements rows with a leaf.
 - `graded-changed.sh`: whether graded prose changed in a range.
 - `prose-owed.sh`: the graded prose still owed grading.
-- `requirements.sh`: the prose units and requirement rows of a file.
 - `requirements-preflight.sh`: check an issue's requirements rows.
 - `skill-drift.sh`: block when the skill drifted from the pinned snapshot.
-- `skill-edit-guard.sh`: what a skill-edit author may change.
+- `skill-edit-guard.sh`: what a skill-edit author may change (`main(argv)`: 2 on a bad base or a missing unit).
 - `skill-edit-step.sh`: run a skill-edit step's author.
 - `stale-rows.sh`: requirements rows gone stale.
 
@@ -517,15 +525,6 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 
 ## prose_owed
 - `owed_listed(path="REQUIREMENTS.md")`: `(owed, orphans)`, with `owed` the `(list, unit)` pairs whose graded signature is stale.
-
-## requirements
-- `lists(path="REQUIREMENTS.md")`: the REQUIREMENTS.md files that exist. `tracked(name)`: git-tracked files of that name; RuntimeError when `git ls-files` fails.
-- `listed_units(path)`, `claims(path, unit)`: the units a list names; a unit's rows as `<id>\t<requirement>` lines (ValueError `path:line: reason` on a malformed table).
-- `read_lines(path)`, `requirements_lines(lines)`: a file's lines; `(heading, line)` pairs of its `## Requirements` section.
-- `split_cells(line)`, `table_cells(line)`: a table row's cells. `well_formed_row_id(row_id)`: bool. `malformed_row_id(lines)`: the first bad id, `None` when fine.
-
-## skill_edit_guard
-- `main(argv)`: exit code of skill-edit-guard.sh, 2 on a bad base or a missing unit. `list_path(unit)`: the unit's `REQUIREMENTS.md`.
 
 # Conductors and operator tools
 

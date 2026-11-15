@@ -171,7 +171,7 @@ def _held_texts(lines, unit):
 
 
 def apply(issue, unit):
-    path = skill_edit_guard.list_path(unit)
+    path = requirements.list_path(unit)
     moved = not _claimed(path, unit) and os.path.exists(unit) and _move_table(unit, path)
     rows = [r.replace("<reword>", "", 1) if row_id(r).endswith("<reword>") else r
             for r in unit_rows(issue, unit)]
@@ -318,7 +318,7 @@ def main(argv):
             print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
             return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
-    path = skill_edit_guard.list_path(unit)
+    path = requirements.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
     snapshot = _read_existing((path, unit, graded_file))
 
