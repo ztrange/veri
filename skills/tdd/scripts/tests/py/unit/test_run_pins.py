@@ -43,3 +43,39 @@ def test_write_conductor_model_then_conductor_model_round_trips_the_model_with_o
 
 def test_conductor_model_answers_none_when_the_run_recorded_none(tmp_path, run_pins):
     assert run_pins.conductor_model(7, str(tmp_path)) is None
+
+
+def test_write_launch_env_records_sorted_veri_pairs_but_not_veri_new_skill_nor_foreign_names(tmp_path, run_pins):
+    _tdd(tmp_path)
+    run_pins.write_launch_env(str(tmp_path), 7, {"VERI_B": "2", "HOME": "/h", "VERI_NEW_SKILL": "1", "VERI_A": "x=y"})
+
+    assert (tmp_path / ".tdd" / "issue-7-launch-env").read_bytes() == b"VERI_A=x=y\nVERI_B=2\n"
+
+
+def test_launch_env_answers_the_recorded_pairs_skipping_lines_without_an_equals_and_none_when_unpinned(tmp_path, run_pins):
+    assert run_pins.launch_env(7, str(tmp_path)) is None
+    (_tdd(tmp_path) / "issue-7-launch-env").write_text("VERI_STEP_GROWTH=18\nVERI_STRAY_LINE\nVERI_X=a=b\nVERI_E=\n")
+
+    assert run_pins.launch_env(7, str(tmp_path)) == {"VERI_STEP_GROWTH": "18", "VERI_X": "a=b", "VERI_E": ""}
+
+
+def test_baseline_full_tier_round_trips_the_mode_and_answers_none_when_unpinned(tmp_path, run_pins):
+    assert run_pins.baseline_full_tier(7, str(tmp_path)) is None
+    _tdd(tmp_path)
+    run_pins.write_baseline_full_tier(str(tmp_path), 7, "reuse")
+
+    assert ((tmp_path / ".tdd" / "issue-7-baseline-full-tier").read_bytes(),
+            run_pins.baseline_full_tier(7, str(tmp_path))) == (b"reuse\n", "reuse")
+
+
+def test_gitignore_seed_is_the_literal_bytes_runs_were_seeded_with(run_pins):
+    assert run_pins.gitignore_seed() == (
+        ".gitignore\nissue-*-skill-commit\nissue-*-skip-verify\nissue-*-baseline-full-tier\n"
+        "issue-*-conductor-model\nissue-*-launch-env\nconductor-*.log\nwt/\n")
+
+
+def test_gitignore_seed_lists_every_pin_suffix_the_module_names(run_pins):
+    named = {value for name, value in vars(run_pins).items()
+             if name.isupper() and isinstance(value, str) and value.startswith("-")}
+
+    assert named and all(f"issue-*{suffix}\n" in run_pins.gitignore_seed() for suffix in named)
