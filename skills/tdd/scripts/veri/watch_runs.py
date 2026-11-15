@@ -9,6 +9,7 @@ import time
 import github
 import paths
 import pid_file
+import restart_marker
 import run_dir
 import status
 import tunables
@@ -99,13 +100,12 @@ def _report_exit(issue, state, live=()):
 
 
 def _restart_pending(issue):
+    # An empty, non-digit or unreadable marker counts as dead: SCRIPTS.md's watch-runs entry.
     try:
-        path = run_dir.run_file(run_dir.worktree(run_dir.main_tree(missing=""), issue), "restart-pending")
-        with open(path) as f:
-            os.kill(int(f.read().strip()), 0)
-        return True
+        run = run_dir.worktree(run_dir.main_tree(missing=""), issue)
     except Exception:
         return False
+    return restart_marker.in_flight(run, unreadable=False)
 
 
 def _whole_number(text):
