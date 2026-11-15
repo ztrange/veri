@@ -101,7 +101,7 @@ def insert(ledger, branch_file):
     step = "fix the full-suite failure: " + "; ".join(reds) + " ⟦suite-repair⟧"
     if pinned:
         step = skill_edit_step(pinned[0], reds)
-    return add_ledger_step.main([ledger, where, anchor, step])
+    return add_ledger_step.add(ledger, where, anchor, [step])
 
 
 def flake(at, red_file, alone_file):
