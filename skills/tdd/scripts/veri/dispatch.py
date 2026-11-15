@@ -18,7 +18,6 @@ import restart_marker
 import run_dir as layout
 from role_state import state_path
 import role_state
-import timed_n_format
 import tunables
 import watch_runs
 
@@ -251,44 +250,13 @@ def parse_args(argv):
     return int(argv[1])
 
 
-class MalformedOverride(Exception):
-    pass
-
-
-class MalformedState(Exception):
-    pass
-
-
-def last_n(lines):
-    ns = [line for line in lines if line.startswith("n=")]
-    if not ns:
-        raise MalformedState("no n= line")
-    try:
-        return int(ns[-1][2:])
-    except ValueError:
-        raise MalformedState(f"malformed n line: {ns[-1]}")
-
-
-def timed_n(line):
-    try:
-        return timed_n_format.parse(line.split(None, 3)[3])
-    except (IndexError, ValueError):
-        raise MalformedState(f"malformed timed-n line: {line}")
-
-
 def prioritize(free, lines):
     named_before = set()
-    for line in lines:
-        if not line.startswith("override "):
-            continue
-        fields = line.split(None, 3)
-        if len(fields) < 4:
-            raise MalformedOverride(line)
-        named = re.search(r"\d+", fields[3])
-        if named and named.group() in free and named.group() not in named_before:
-            named_before.add(named.group())
-            free.remove(named.group())
-            free.insert(0, named.group())
+    for named in role_state.State(lines).override_numbers():
+        if named in free and named not in named_before:
+            named_before.add(named)
+            free.remove(named)
+            free.insert(0, named)
     return free
 
 
@@ -363,16 +331,15 @@ def main(argv):
                 say(line + "\n")
                 return 0
         if not argv:
-            lines = role_state.read_lines("dev", lane()) or []
+            state = role_state.State(role_state.read_lines("dev", lane()) or [])
             try:
-                target = last_n(lines)
-                for line in lines:
-                    if line.startswith("timed-n "):
-                        value, expiry = timed_n(line)
-                        if clock() < expiry:
-                            target = value
-            except MalformedState as why:
-                sys.stderr.write(f"dispatch.sh: {why} in {state_file()}\n")
+                target = state.last_n()
+                for value, expiry in state.timed_ns():
+                    if clock() < expiry:
+                        target = value
+            except role_state.Malformed as why:
+                said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
+                sys.stderr.write(f"dispatch.sh: {said} in {state_file()}\n")
                 return 2
         stall = int(stall_window())
         states = None
@@ -414,8 +381,8 @@ def main(argv):
                 changed = run_pr_paths()
                 free = [issue for issue in queue if launchable(issue, changed, reported)]
                 free = prioritize(free, role_state.read_lines("dev", lane()) or [])
-            except MalformedOverride as line:
-                sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {line}\n")
+            except role_state.Malformed as why:
+                sys.stderr.write(f"dispatch.sh: malformed override line in {state_file()}: {why.line}\n")
                 return 2
             except watch_runs.QueueUnreadable as failure:
                 if failure.kind == "rate-limit" and not isinstance(failure, RateLimitPersists):
