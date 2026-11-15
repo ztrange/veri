@@ -10,7 +10,6 @@ import time
 import entry
 import event
 import issue_body
-import issue_worktree
 import replaces_case
 import requirements
 import skill_edit_guard
@@ -160,7 +159,7 @@ NOT_DURABLE = "add-ledger-step.sh: the added step is not durable (uncommitted, s
 def commit_amendment(path):
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
-    if live is None or int(live) in issue_worktree.ancestors():
+    if live is None or int(live) in pid_file.ancestors():
         print(NOT_DURABLE, file=sys.stderr)
         return
     paths = [os.path.abspath(path), os.path.abspath(added_file(path))]

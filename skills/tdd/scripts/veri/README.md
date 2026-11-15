@@ -167,7 +167,7 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 - `number_in(file)`: the number on a pid file's first line, `None` when missing or malformed.
 - `live_conductor(path)`: the pid of the live conductor recorded in `path`, else `None`; `not_live_reason(path)` says why. `recorded_alive(path)`, `recorded_started(path)`, `start_recorded(file)`, `start_matches(file, pid)`: parts of that check. `record(path, pid)` writes a pid file.
 - `conductors()`: `[(pid, issue)]` of running `run_conductor.py` processes from `ps`. `conductor_processes()`, `starting_runs(root)`, `runs_with_directory(root)`: issues of running conductors by tree.
-- `ps_field(field, pid)`: a `ps` column, `None` when the pid is gone. `cwd_of(pid)` (via `lsof`), `is_inside(cwd, root)`, `detached(pid)`, `supervising(pid, name)`: probes of a process.
+- `ps_field(field, pid)`: a `ps` column, `None` when the pid is gone. `ancestors()`: the pids from this process up to pid 1. `cwd_of(pid)` (via `lsof`), `is_inside(cwd, root)`, `detached(pid)`, `supervising(pid, name)`: probes of a process.
 
 ## pinned_scripts
 - `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree.
@@ -470,10 +470,6 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 - `rebase-onto-default.sh`: rebase the branch onto the default branch.
 - `wait-ci.sh`: wait for a pull request's CI.
 - `worktree-setup.sh`: set up a worktree.
-
-## issue_worktree
-- `remote_issue_branch(issue)`: the `origin` branch named `<issue>-*`, `""` when none, `None` when `ls-remote` fails.
-- `ancestors()`: the pids from this process up to pid 1.
 
 # Prose grading and requirements
 

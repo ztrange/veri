@@ -485,3 +485,32 @@ def test_starting_runs_names_the_issue_of_a_run_conductor_script_started_under_b
     fake_processes.answers({"ps": (0, ps, "")}, default=(0, "n%s\n" % root, ""))
 
     assert pid_file.starting_runs(str(root)) == ["777"]
+
+
+def test_ancestors_names_this_process_and_every_parent_up_to_pid_1(fake_processes):
+    import os
+    pid_file = importlib.import_module("veri.pid_file")
+    me = os.getpid()
+    ps_answering(fake_processes, {
+        ("ps", "-o", "ppid=", "-p", str(me)): "700\n",
+        ("ps", "-o", "ppid=", "-p", "700"): "300\n",
+        ("ps", "-o", "ppid=", "-p", "300"): "1\n",
+    })
+
+    assert pid_file.ancestors() == {me, 700, 300}
+
+
+def test_ancestors_stops_at_a_parent_ps_cannot_read_and_at_a_cycle(fake_processes):
+    import os
+    pid_file = importlib.import_module("veri.pid_file")
+    me = os.getpid()
+    answers = {}
+    for name, table in [
+        ("vanished-parent", {("ps", "-o", "ppid=", "-p", str(me)): "700\n"}),
+        ("empty-field", {("ps", "-o", "ppid=", "-p", str(me)): "\n"}),
+        ("cycle", {("ps", "-o", "ppid=", "-p", str(me)): "700\n", ("ps", "-o", "ppid=", "-p", "700"): str(me) + "\n"}),
+    ]:
+        ps_answering(fake_processes, table)
+        answers[name] = pid_file.ancestors()
+
+    assert answers == {"vanished-parent": {me, 700}, "empty-field": {me}, "cycle": {me, 700}}

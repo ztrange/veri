@@ -1044,7 +1044,7 @@ def test_main_inserts_a_suite_repair_when_the_only_earlier_step_this_run_merely_
     from types import SimpleNamespace
 
     monkeypatch.setattr(add_ledger_step.pid_file, "recorded_started", lambda tree: "1")
-    monkeypatch.setattr(add_ledger_step.issue_worktree, "ancestors", lambda: set())
+    monkeypatch.setattr(add_ledger_step.pid_file, "ancestors", lambda: set())
     monkeypatch.setattr(add_ledger_step.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=0, stdout="abc1234\n"))
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(

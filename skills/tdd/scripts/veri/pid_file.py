@@ -75,6 +75,17 @@ def ps_field(field, pid):
     return ps.stdout.strip() if ps.returncode == 0 else None
 
 
+def ancestors():
+    """The pids from this process up to pid 1: this one and each parent `ps` can read."""
+    found = set()
+    pid = os.getpid()
+    while pid > 1 and pid not in found:
+        found.add(pid)
+        parent = ps_field("ppid", pid)
+        pid = int(parent) if parent and parent.isdigit() else 0
+    return found
+
+
 def record(path, pid):
     """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has."""
     started = ps_field("lstart", pid)
