@@ -4,7 +4,7 @@ import shlex
 
 import pytest
 
-from veri.pin_recheck import records
+from veri.mutation_record import records
 
 
 @pytest.fixture

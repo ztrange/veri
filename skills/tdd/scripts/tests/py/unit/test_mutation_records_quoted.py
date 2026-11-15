@@ -3,7 +3,7 @@ import re
 import pytest
 from conftest import ROOT
 
-from veri.pin_recheck import records
+from veri.mutation_record import records
 
 UNQUOTED_BASH_C = re.compile(r"bash -c(?! ?['\"])")
 
