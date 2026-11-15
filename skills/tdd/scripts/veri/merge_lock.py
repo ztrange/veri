@@ -9,7 +9,6 @@ import sys
 import tempfile
 import time
 
-import pid_file
 import tunables
 
 VERBS = ("take", "release", "holder", "gate")
@@ -52,7 +51,8 @@ def _owner(args):
 
 
 def _start_time(pid):
-    return "_".join(pid_file.started_as(pid).split())
+    out = subprocess.run(["ps", "-o", "lstart=", "-p", pid], stdout=subprocess.PIPE, text=True).stdout
+    return "_".join(out.split())
 
 
 def _read(record):
