@@ -53,10 +53,14 @@ def write(stream, text, *, before=True, after=True, end="\n"):
 
 
 def whole_number(text, minimum=1):
-    """The int of `text` when it is ASCII digits only (leading zeros allowed, no sign, space or other digits) and at least `minimum`, else None."""
+    """The int of `text` when it is ASCII digits only (leading zeros allowed, no sign, space or other digits) and at least `minimum`, else None.
+    Never raises: digits past the interpreter's int-conversion limit (4300 by default) are not an answer either, so None."""
     if not (text.isascii() and text.isdigit()):
         return None
-    value = int(text)
+    try:
+        value = int(text)
+    except ValueError:
+        return None
     return value if value >= minimum else None
 
 
