@@ -20,7 +20,7 @@ about twelve lines.
 
 # Groups
 
-- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git and JSON/Markdown reading.
+- **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, JSON/Markdown and test-source reading.
 - **Run state and journal**: Where a run lives on disk, its journal of events, whether it is live, stuck or ended, and how it is stopped.
 - **Ledger and plan**: The ledger of a run: reading and ticking steps, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself.
 - **Leaf launch and supervision**: How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read.
@@ -28,7 +28,7 @@ about twelve lines.
 - **Verdicts and verification**: The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2.
 - **Budgets and cost**: The budgets (steps, time, refactor, context, affordability) and what leaves cost.
 - **Test suites and tiers**: Running, timing and choosing test suites (affected suites, fast and full tier, branch and rebased-tip suites, flakes, mutation probes), plus the pytest leg and its guard plugins.
-- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, reading test files into cases, and the git history of cases.
+- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, and the git history of cases.
 - **GitHub and issues**: gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria.
 - **Branch, PR and merge**: Worktrees, pushing a branch, readying and merging the pull request, waiting for CI.
 - **Prose grading and requirements**: Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step.
@@ -38,14 +38,27 @@ Directions the tree obeys (checked by the same test; a group not named may impor
 
 - Foundations imports only: nothing
 - Run state and journal imports only: Foundations
+- Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; Frozen tests and case history
+- Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
 - Test suites and tiers imports only: Foundations; Run state and journal
-- Budgets and cost imports only: Foundations; Run state and journal; Leaf launch and supervision
+- Budgets and cost imports only: Foundations; Run state and journal
 - Frozen tests and case history imports only: Foundations; Run state and journal; Ledger and plan
+- GitHub and issues imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers
+- Branch, PR and merge imports only: Foundations; Run state and journal; Ledger and plan; Test suites and tiers; GitHub and issues
+- Prose grading and requirements imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; GitHub and issues
 - Nothing imports Conductors and operator tools
 
 # Foundations
 
-What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git and JSON/Markdown reading. Builds on no other group; every other group may build on it.
+What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, JSON/Markdown and test-source reading. Builds on no other group; every other group may build on it.
+
+## case_reader
+- `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool).
+- `cut_cases(text)`: `[(case name, source)]` of a test source; raises `UnclosedCase` when a JS call never closes.
+- `old_cut_cases_all(text, call_form_only=False)`: the earlier cutter, kept for comparing old and new records.
+- `defined_name(case, text, py_file, go_file)`: the def a case name resolves to, `None` if none. `defines_helper(name, text, py_file, go_file)`: bool.
+- `live_titles(case, text)`: the titles in `text` that match a JS case, ignoring comments. `js_title_pattern(case)`: that compiled pattern.
+- `cut_prefix(case)`: the case with its trailing `…`/`...` cut, `None` when it has none. `strip_param_suffix(name)`: the name without `[param]`.
 
 ## detach
 - `start(argv, stdin, stdout, stderr, xfsz=SIG_IGN)`: starts `argv` as leader of a new session and returns its pid without waiting.
@@ -71,6 +84,9 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `documents(text, strict=True)`: the JSON documents in `text`, in order; raises `json.JSONDecodeError` on a malformed one.
 - `items(text, strict=True)`: the elements of every document, as one list.
 
+## js_tests
+- `CALL`: regular-expression source that matches the opening of a JS `it(`/`test(` call.
+
 ## launch_floor
 - `bash_refusal(prefix)`: 0 when bash is 5+, else writes the refusal to stderr and returns its exit code.
 - `python_refusal(prefix)`: the same for the Python floor. `python_floor()`: the floor as `major.minor` read from `lib/venv-python.sh`.
@@ -87,6 +103,10 @@ What every module stands on: the one `__main__` path and exit contract, script p
 
 ## popen_command
 - `command_words(args)`: the argv list a `Popen` `args` names. `command_basename(args)`: the first word's basename, `""` for none.
+
+## renamed_case
+- `renamed_to(name, old_source, new_source, taken)`: the case of `new_source` with the same text as `name` but another name, else `None`.
+- `renamed_and_changed_to(name, old_source, new_source, taken)`: the case with the same def line but another name and a changed body.
 
 ## session_env
 - `strip_session_env(env)`: removes the Claude Code session variables, and values carrying a session id, from `env`.
@@ -218,12 +238,13 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 
 # Leaf launch and supervision
 
-How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read. Builds on Run state and journal, Ledger and plan, Test suites and tiers and Foundations.
+How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read. Builds on Run state and journal, Ledger and plan, Test suites and tiers, Frozen tests and case history and Foundations.
 
 - `detach-command.sh`: start a command detached and wait for it.
 - `detach-leaf.sh`: launch a leaf detached.
 - `diff-leaf-deviation.sh`: check a leaf's diff stayed within what its phase may change.
 - `extract-result.sh`: pick the result record out of a leaf's stream log.
+- `harvest-usage.sh`: turn a leaf log's usage into a `usage` event.
 - `leaf-launchable.sh`: probe whether a leaf can launch here.
 - `leaf-model.sh`: resolve the model a leaf runs on.
 - `leaf-role.sh`: map a leaf's name to its role.
@@ -265,7 +286,6 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
 - `pin-target.sh`: read a pin leaf's target from its report.
 - `red-divergence.sh`: read a red leaf's report on stdin.
-- `refactor-candidates.sh`: file the run's one candidates issue.
 - `refactor-owed.sh`: append, render and list refactor-owed items.
 - `refactor-touched.sh`: the files a refactor leaf touched.
 - `refactor-triage.sh`: read a refactor leaf's candidates.
@@ -290,7 +310,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 
 # Verdicts and verification
 
-The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2. Builds on Prompts and leaf reports, Leaf launch and supervision, Ledger and plan.
+The verifier and adjudicator legs: run the blind verifier, parse its verdict, compare rejects, adjudicate an exit 2. Builds on Prompts and leaf reports, Leaf launch and supervision, Ledger and plan, Run state and journal and Foundations.
 
 - `adjudicate.sh`: budget and record commands of the exit-2 adjudication.
 - `exhausted-outcome.sh`: transform a develop-exhausted leaf's outcome.
@@ -303,9 +323,8 @@ The verifier and adjudicator legs: run the blind verifier, parse its verdict, co
 
 # Budgets and cost
 
-The budgets (steps, time, refactor, context, affordability) and what leaves cost. Builds on Run state and journal and Leaf launch and supervision.
+The budgets (steps, time, refactor, context, affordability) and what leaves cost. Builds on Run state and journal and Foundations only.
 
-- `harvest-usage.sh`: turn a leaf log's usage into a `usage` event.
 - `over-budget.sh`: whether a time budget is exceeded.
 - `prices`: the price table and the helpers that read it.
 - `refactor-budget.sh`: compare transforms applied with `VERI_REFACTOR_BUDGET`.
@@ -366,7 +385,7 @@ Running, timing and choosing test suites (affected suites, fast and full tier, b
 
 # Frozen tests and case history
 
-The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, reading test files into cases, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
+The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
 
 - `case_history`: the git history queries tests_frozen's record policy asks; it decides, this module only looks.
 - `pin-recheck.sh`: re-run the recorded pin mutations a range touches.
@@ -377,14 +396,6 @@ The tests-frozen rule: recording and checking that a step's tests are not change
 - `transform-touches-tests.sh`: whether a transform touched tests.
 - `wrong-test-route.sh`: route a wrong test to its repair.
 
-## case_reader
-- `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool).
-- `cut_cases(text)`: `[(case name, source)]` of a test source; raises `UnclosedCase` when a JS call never closes.
-- `old_cut_cases_all(text, call_form_only=False)`: the earlier cutter, kept for comparing old and new records.
-- `defined_name(case, text, py_file, go_file)`: the def a case name resolves to, `None` if none. `defines_helper(name, text, py_file, go_file)`: bool.
-- `live_titles(case, text)`: the titles in `text` that match a JS case, ignoring comments. `js_title_pattern(case)`: that compiled pattern.
-- `cut_prefix(case)`: the case with its trailing `…`/`...` cut, `None` when it has none. `strip_param_suffix(name)`: the name without `[param]`.
-
 ## frozen_record
 The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its pass marker.
 - `record_path(step)`, `pass_marker_path(step)`, `step_key(step)`: paths under `.tdd/` and the 16-hex key of a step.
@@ -394,13 +405,6 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 - `write_record(path, out, opener=open)`: True, or False after a stderr message on OSError. `rewrite_records(earlier, rewrite, opener=open)`: rewrites earlier steps' records through `rewrite`.
 - `work_tree_hash()`: git tree hash of the work tree outside `.tdd/`, `""` when git fails.
 - `write_pass_marker(step, tree)`, `remove_pass_marker(step)`, `pass_marker_current(text)`: write, drop (never raises), and check (bool) the marker against HEAD and the tree.
-
-## js_tests
-- `CALL`: regular-expression source that matches the opening of a JS `it(`/`test(` call.
-
-## renamed_case
-- `renamed_to(name, old_source, new_source, taken)`: the case of `new_source` with the same text as `name` but another name, else `None`.
-- `renamed_and_changed_to(name, old_source, new_source, taken)`: the case with the same def line but another name and a changed body.
 
 ## tests_frozen
 - `differing_tests()`: test files changed against HEAD; raises OSError when git cannot list.
@@ -416,6 +420,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `invisible-work.sh`: sweep for work not visible on its issue.
 - `park-issue.sh`: park an issue with its cause and unblock.
 - `parked-issues.sh`: list the parked issues.
+- `refactor-candidates.sh`: file the run's one candidates issue.
 - `refresh-spec.sh`: re-capture an issue's spec.
 - `release-issue.sh`: release a parked, bailed or refused issue.
 - `report-cache.sh`: refresh the cached report data.
@@ -453,7 +458,7 @@ A heading matches when it equals the heading once stripped (CRLF and trailing wh
 
 # Branch, PR and merge
 
-Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues and every group below it.
+Worktrees, pushing a branch, readying and merging the pull request, waiting for CI. Builds on GitHub and issues, Ledger and plan, Run state and journal, Test suites and tiers and Foundations.
 
 - `issue-worktree.sh`: create or reuse the worktree of an issue's run.
 - `merge-lock.sh`: take, release and gate on the merge lock.
@@ -472,7 +477,7 @@ Worktrees, pushing a branch, readying and merging the pull request, waiting for 
 
 # Prose grading and requirements
 
-Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step. Builds on Leaf launch and supervision, Ledger and plan, GitHub and issues.
+Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step. Builds on Leaf launch and supervision, Ledger and plan, GitHub and issues, Run state and journal and Foundations.
 
 - `grade-prose.sh`: grade a unit's requirements rows with a leaf.
 - `graded-changed.sh`: whether graded prose changed in a range.
