@@ -1,7 +1,6 @@
 """In-process cases for veri/refresh_spec.py, the module refresh-spec.sh is a shim over."""
 import importlib
 import os
-import subprocess
 
 import pytest
 
@@ -67,20 +66,17 @@ def test_main_2572_exits_1_names_both_counts_and_leaves_the_file_when_the_checkb
 
 
 def test_main_2572_exits_2_and_leaves_the_file_untouched_when_gh_gives_no_answer(
-        monkeypatch, tmp_path, refresh_spec):
+        monkeypatch, fake_processes, tmp_path, refresh_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     spec = tmp_path / "issue-7-spec.md"
     old = "## Acceptance criteria\n\n- [ ] first\n- [ ] second\n"
     spec.write_text(old)
-
-    def failing_run(args, **kwargs):
-        return subprocess.CompletedProcess(args, 1, "", "")
-
-    monkeypatch.setattr(subprocess, "run", failing_run)
+    gh = fake_processes.answers({"gh ": (1, "", "")})
 
     code = refresh_spec.main(["7", str(spec)])
 
     assert (code, spec.read_bytes()) == (2, old.encode())
+    assert gh.calls and all(line.startswith("gh ") for line in gh.calls)
 
 
 def test_main_2572_prints_a_usage_line_naming_refresh_spec_sh_and_exits_2_with_no_argument(
