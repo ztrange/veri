@@ -106,7 +106,6 @@ FILES_WITH_A_LOCAL_PROCESS_FAKE = {
     "unit/test_tests_frozen.py": "not inventoried",
     "unit/test_tick_ledger.py": "detect-test-command, captures env",
     "unit/test_tick_ledger_already_holds.py": "records argv, returns bytes",
-    "unit/test_tick_ledger_detect_lookup.py": "records argv, empty output",
     "unit/test_unlabel_issue.py": "gh label read/claim log",
     "unit/test_wait_ci.py": "date +%s clock and sleep, bodies dict",
     "unit/test_watch_runs.py": "not inventoried",
