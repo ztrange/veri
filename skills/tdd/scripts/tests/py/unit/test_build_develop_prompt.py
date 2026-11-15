@@ -2190,3 +2190,21 @@ def test_main_renders_a_red_prompt_naming_the_test_command_once_3179(tmp_path, c
     out, _ = capsysbinary.readouterr()
     section = out.split(b"### The test command", 1)[1]
     assert (code, out.count(b"zorblat-suite --all"), b"zorblat-suite --all" in section) == (0, 1, True)
+
+
+@pytest.mark.parametrize("issue, accepted", [
+    ("0", True), ("007", True), ("9" * 30, True),
+    ("-1", False), ("+1", False), (" 7", False), ("7\n", False), ("1.5", False), ("\u00b2", False), ("\u0661", False)])
+def test_main_takes_the_revise_prompts_issue_number_only_of_ascii_digits_and_renders_it_as_given(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt, issue, accepted):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    monkeypatch.setenv("VERI_ISSUE", issue)
+
+    code = build_develop_prompt.main(["revise", "red", str(spec), "s", "make test", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, b".tdd/issue-" + issue.encode() + b".md" in re.sub(rb"\s+", b" ", out),
+            b"a revise prompt needs VERI_ISSUE" in err) == ((0, True, False) if accepted else (2, False, True))
