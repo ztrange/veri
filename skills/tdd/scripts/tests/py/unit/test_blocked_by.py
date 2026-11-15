@@ -87,3 +87,12 @@ def test_a_caller_gets_the_answers_with_no_gh_no_repository_and_no_child_process
                blockers(MIXED_BODY, ""), blockers(LATER_BODY, "acme/widgets")]
 
     assert (answers, spawned) == ([[12, 34], [], [], [1, 34], [1, 56, 34], [3]], [])
+
+
+def test_blockers_read_a_heading_with_trailing_whitespace_or_crlf_and_skip_a_fenced_heading():
+    fence = "`" * 3
+    answers = [blockers("## Blocked by  \n\n- #4\n", "acme/widgets"),
+               blockers("## Blocked by\r\n\r\n- #5\r\n", "acme/widgets"),
+               blockers("%s\n## Blocked by\n- #9\n%s\n## Blocked by\n- #6\n" % (fence, fence), "acme/widgets")]
+
+    assert answers == [[4], [5], [6]]
