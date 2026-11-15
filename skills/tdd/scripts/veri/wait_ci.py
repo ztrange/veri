@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 import traceback
 from dataclasses import replace
 from datetime import datetime
@@ -146,9 +147,9 @@ def wait_for_reset(stderr, key, draft, total, bound, slice_end=None):
         warn("GitHub rate limit resets at %s, past the CI deadline %s" % (reset, limit))
         raise NoAnswer("permanent")
     if slice_end is not None and reset > slice_end:
-        github.time.sleep(max(0, slice_end - epoch()))
+        time.sleep(max(0, slice_end - epoch()))
         raise NoAnswer("slice")
-    github.time.sleep(max(0, reset - epoch()))
+    time.sleep(max(0, reset - epoch()))
 
 
 def no_pull_request_workflow(repo, head):
