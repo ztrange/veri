@@ -10,7 +10,6 @@ import ledger
 import paths
 import tests_frozen
 from add_ledger_step import added_file
-from build_verify_prompt import INTERFACE_PHASES
 
 # A clause (cut at , ; . or a newline) that names the before-state and says green or pass, and says
 # nothing of failing, being red, negating or "after": "fails on the before-state and passes after" is not it.
@@ -18,7 +17,6 @@ _CLAUSE = r"(?:(?!\bfail|\bred\b|\bnot\b|n't|\bafter\b)[^,;.\n])*"
 BEFORE_STATE_GREEN = re.compile(
     r"(?:^|(?<=[,;.\n]))" + _CLAUSE
     + r"(?:before-state" + _CLAUSE + r"\b(?:green|pass)|\b(?:green|pass)" + _CLAUSE + r"before-state)")
-RETIRED_MARK = " ⟂ retired unpinnable"
 USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher> (--unpinnable and --already-holds drop every mutation record whose named test is absent from the tree)"
 
 
@@ -58,7 +56,7 @@ def changed_line(text, new):
 
 
 def tick_added(path, step_line):
-    target = ledger.STEP_RE.fullmatch(step_line).group(4).split(" ⟂ ", 1)[0]
+    target = ledger.body(ledger.STEP_RE.fullmatch(step_line).group(4))
     record = added_file(path)
     try:
         with open(record, "rb") as handle:
@@ -68,7 +66,7 @@ def tick_added(path, step_line):
     for i, line in enumerate(lines):
         match = ledger.STEP_RE.fullmatch(line)
         if match and match.group(2) == " " and match.group(4) == target:
-            lines[i] = f"{match.group(1)}[x]{line[match.end(2) + 1:]}"
+            lines[i] = ledger.tick_line(match)
             with open(record, "wb") as handle:
                 handle.write("\n".join(lines).encode(errors="surrogateescape"))
             return
@@ -112,11 +110,11 @@ def mutations_path(ledger_path):
 
 def main(argv):
     pending, phase, owed, reason_file, case = False, None, False, None, None
-    retired_mark, event_name = RETIRED_MARK, "unpinnable-step"
+    retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
     while True:
         if argv[:1] in (["--already-holds"], ["--unpinnable"]) and len(argv) > 1:
             if argv[0] == "--already-holds":
-                retired_mark, event_name = " ⟂ retired already holds", "already-holds-step"
+                retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
             reason_file, argv = argv[1], argv[2:]
             continue
         if argv[:1] == ["--case"] and len(argv) > 1:
