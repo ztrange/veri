@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 import time
-import traceback
 from dataclasses import replace
 from datetime import datetime
 
@@ -23,6 +22,11 @@ PASSING = ("success", "neutral", "skipped")
 SLICE_CAP = 540
 CEILING = 600
 RUN = ""
+
+
+def print_crash():
+    import traceback
+    traceback.print_exc()
 
 
 def warn(message):
@@ -229,7 +233,7 @@ def main(argv):
         try:
             total = ci_bound(repo)
         except Exception:
-            traceback.print_exc()
+            print_crash()
             total = span
     poll = tunables.read("VERI_POLL", unless_empty="10")
     options = Options(pr=pr, want=want, explicit=explicit, on_pr=on_pr, no_run_wait=int(no_run_wait),
@@ -251,7 +255,7 @@ def main(argv):
                 return 3
             head = ""
         except Exception:
-            traceback.print_exc()
+            print_crash()
             head = ""
         state = None
         failed = ""
@@ -266,7 +270,7 @@ def main(argv):
                 if str(error) == "slice":
                     return 3
             except Exception:
-                traceback.print_exc()
+                print_crash()
         if state is None:
             unread += 1
             key = want or head
