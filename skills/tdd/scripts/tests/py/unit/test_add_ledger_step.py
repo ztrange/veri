@@ -1785,3 +1785,19 @@ def test_main_3618_stderr_states_the_uncommitted_step_is_not_durable_when_no_con
     assert (code, out) == (0, "")
     assert b"- [ ] d four" in ledger.read_bytes()
     assert "not durable" in err.lower(), err
+
+
+def test_spec_criteria_reads_the_section_as_tick_issue_criterion_does_last_heading_unfenced_crlf_tolerant(tmp_path, add_ledger_step):
+    fence = "`" * 3
+    ledger = tmp_path / "issue-42.md"
+    spec = tmp_path / "issue-42-spec.md"
+    got = {}
+    for name, text in {
+        "crlf": "## Acceptance criteria\r\n\r\n- [x] c1\r\n- [ ] c2\r\n",
+        "fenced": f"## Acceptance criteria\n\n- [x] c1\n{fence}\n- [ ] fake\n{fence}\n- [ ] c2\n",
+        "second heading": "## Acceptance criteria\n\n- [ ] old\n\n## Notes\n\n## Acceptance criteria\n\n- [x] c1\n- [ ] c2\n",
+        "h1 ends": "## Acceptance criteria\n\n- [x] c1\n- [ ] c2\n\n# Other\n\n- [ ] stray\n",
+    }.items():
+        spec.write_text(text)
+        got[name] = add_ledger_step.spec_criteria(str(ledger))
+    assert got == {name: (2, {"1"}) for name in ("crlf", "fenced", "second heading", "h1 ends")}

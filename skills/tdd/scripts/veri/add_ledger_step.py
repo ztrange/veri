@@ -9,6 +9,7 @@ import time
 
 import entry
 import event
+import issue_body
 import issue_worktree
 import replaces_case
 import requirements
@@ -100,10 +101,8 @@ def spec_criteria(path):
             text = f.read().decode(errors=BYTES)
     except OSError:
         return None, set()
-    section = re.search(r"^## Acceptance criteria\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-    body = section.group(1) if section else ""
-    boxes = [line for line in body.split("\n") if ledger_steps(line)]
-    return len(boxes), {str(n) for n, line in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
+    boxes = issue_body.criteria(text)
+    return len(boxes), {str(n) for n, (_, line) in enumerate(boxes, 1) if STEP_RE.fullmatch(line).group(2) in "xX"}
 
 
 class MissingUnit(Exception):

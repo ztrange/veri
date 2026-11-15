@@ -4,6 +4,7 @@ import re
 import sys
 
 import entry
+import issue_body
 from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
 
 VERBS = {
@@ -58,14 +59,10 @@ def has_mark(records, name):
 
 
 def criterion(text, k):
-    kept, in_section = [], False
-    for line in text.split("\n"):
-        if line.startswith("## "):
-            in_section = line.startswith("## Acceptance criteria")
-        if in_section:
-            kept.append(line)
-    found = ledger_steps("\n".join(kept))
-    return answer(found[k - 1] if 1 <= k <= len(found) else None)
+    # prefix and every section: pinned by test_criterion_prints_the_kth_step_line_of_every_acceptance_criteria_section
+    found = issue_body.criteria(text, prefix=True, occurrence="all")
+    records = ledger_steps("\n".join(line for _, line in found))
+    return answer(records[k - 1] if 1 <= k <= len(records) else None)
 
 
 def main(argv):
