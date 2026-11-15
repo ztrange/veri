@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import math
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -66,7 +67,7 @@ def wait_on(name, wt, env):
 
 
 def detached(name, cmd, wt, env):
-    checked(3, DETACH, "start", name, cmd, cwd=wt, env=env)
+    checked(3, DETACH, "start", name, *shlex.split(cmd), cwd=wt, env=env)
     return wait_on(name, wt, env)
 
 
