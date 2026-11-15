@@ -111,3 +111,143 @@ def test_every_module_has_a_docstring():
             if not ast.get_docstring(ast.parse(source.read_text()))]
 
     assert not bare, f"modules of veri/ without a module docstring: {bare}"
+
+
+# ---- groups: the README maps every module to one concept, and the tree obeys the directions it states ----
+
+# The only imports that break a stated direction. A ratchet: the set may shrink, never grow; an entry that no longer
+# occurs fails the case that checks it, so it is removed when the import is.
+EXEMPT_DIRECTION_BREAKS = {
+    # event.sh imports github to mirror an event onto the issue; Run state and journal builds on Foundations only.
+    "event -> github",
+}
+
+# Import cycles the tree has. A ratchet like the list above; grade_prose asks prose_owed for what is owed, and
+# prose_owed grades through grade_prose.
+KNOWN_CYCLES = {frozenset({"grade_prose", "prose_owed"})}
+
+
+def _readme_lines():
+    from conftest import SCRIPTS
+
+    return (SCRIPTS / "veri" / "README.md").read_text().splitlines()
+
+
+def _module_named(token):
+    """The module a backticked list token names: `ledger` is ledger, `add-ledger-step.sh` is add_ledger_step."""
+    return token[: -len(".sh")].replace("-", "_") if token.endswith(".sh") else token
+
+
+def _readme_groups():
+    """{group: (names its list lines carry, names of its `## ` sections)}, in README order."""
+    groups, current, in_sections = {}, None, False
+    for number, line in enumerate(_readme_lines()):
+        if line.startswith("# ") and number > 0 and line[2:].strip() != "Groups":
+            current, in_sections = line[2:].strip(), False
+            groups[current] = (set(), set())
+        elif current and line.startswith("## "):
+            in_sections = True
+            groups[current][1].add(line[3:].strip().strip("`"))
+        elif current and not in_sections and line.startswith("- `") and "`:" in line:
+            groups[current][0].add(_module_named(line[3:line.index("`:")]))
+    return groups
+
+
+def _group_of():
+    """{module: [groups naming it, by list line or section]}."""
+    named = defaultdict(list)
+    for group, (listed, sections) in _readme_groups().items():
+        for name in listed | sections:
+            named[name].append(group)
+    return named
+
+
+def _stated_directions():
+    """({group: groups it may import}, groups nothing may import), from the README."""
+    only, closed = {}, set()
+    for line in _readme_lines():
+        if " imports only: " in line and line.startswith("- "):
+            group, _, allowed = line[2:].partition(" imports only: ")
+            only[group] = set() if allowed.strip() == "nothing" else {g.strip() for g in allowed.split(";")}
+        elif line.startswith("- Nothing imports "):
+            closed.add(line[len("- Nothing imports "):].strip())
+    return only, closed
+
+
+def _group_import_breaks():
+    group_of = _group_of()
+    modules = _modules()
+    only, closed = _stated_directions()
+    breaks = set()
+    for name, source in modules.items():
+        for target, _, _ in _sibling_imports(source, modules):
+            mine, theirs = group_of.get(name, [None])[0], group_of.get(target, [None])[0]
+            if mine == theirs or name == target:
+                continue
+            if theirs in closed or (mine in only and theirs not in only[mine]):
+                breaks.add(f"{name} -> {target}")
+    return breaks
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_every_module_is_in_exactly_one_group_of_the_index():
+    named = _group_of()
+    modules = set(_modules())
+
+    assert sorted(modules - set(named)) == [], "modules in no group of veri/README.md"
+    assert {name: groups for name, groups in named.items() if len(set(groups)) > 1} == {}, "modules in two groups"
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_every_name_a_group_lists_is_a_module():
+    named = set(_group_of())
+
+    assert sorted(named - set(_modules())) == [], "veri/README.md names modules that do not exist"
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_every_section_sits_in_the_group_that_lists_its_module():
+    stray = []
+    for group, (_, sections) in _readme_groups().items():
+        for module in sections:
+            elsewhere = [g for g, (listed, _) in _readme_groups().items() if module in listed and g != group]
+            if elsewhere:
+                stray.append(f"{module}: section in {group}, listed in {elsewhere}")
+
+    assert not stray, f"sections outside their module's group: {stray}"
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_the_directions_the_index_states_name_real_groups():
+    only, closed = _stated_directions()
+    groups = set(_readme_groups())
+
+    assert only and closed
+    assert (set(only) | closed | {g for allowed in only.values() for g in allowed}) <= groups
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_no_group_imports_against_the_directions_the_index_states():
+    breaks = _group_import_breaks()
+
+    assert not breaks - EXEMPT_DIRECTION_BREAKS, f"imports against veri/README.md's directions: {sorted(breaks - EXEMPT_DIRECTION_BREAKS)}"
+    assert not EXEMPT_DIRECTION_BREAKS - breaks, f"exemptions no longer needed, remove them: {sorted(EXEMPT_DIRECTION_BREAKS - breaks)}"
+
+
+@pytest.mark.tree_audit("every module of veri/")
+def test_the_only_import_cycles_are_the_known_ones():
+    modules = _modules()
+    reaches = {name: {t for t, _, _ in _sibling_imports(source, modules) if t != name} for name, source in modules.items()}
+
+    def closure(start):
+        seen, todo = set(), [start]
+        while todo:
+            for nxt in reaches[todo.pop()] - seen:
+                seen.add(nxt)
+                todo.append(nxt)
+        return seen
+
+    cycles = {frozenset({name} | {m for m in closure(name) if name in closure(m)})
+              for name in modules if name in closure(name)}
+
+    assert cycles == KNOWN_CYCLES
