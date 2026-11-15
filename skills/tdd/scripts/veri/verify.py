@@ -11,11 +11,13 @@ import sys
 import tempfile
 
 import build_verify_prompt
+import entry
 import event
 import parse_verdict
 import preserve_attempt
 import renamed_case
 import replaces_case_survivors
+import run_dir
 import tunables
 
 from case_reader import is_js_test_file
@@ -34,22 +36,12 @@ USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
          " <test-path> [<target-test-id>]")
 
 
-def refuse(*lines):
-    for line in lines + (USAGE,):
-        write(sys.stderr, line)
-    return 2
-
-
 def is_echo_flag(value):
     return len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:])
 
 
 def sibling(name):
     return os.path.join(SCRIPTS, name)
-
-
-def to_contract(code):
-    return code if code in (0, 1, 2, 3) else 2
 
 
 def start(args, **kwargs):
@@ -191,7 +183,7 @@ def unreadable_gitconfig(path, error):
 def save_diff(leaf, tree_before, tree_after):
     diff = git("diff", "--binary", "--no-ext-diff", "--no-textconv", "--no-color",
                "--src-prefix=a/", "--dst-prefix=b/", "-U3", tree_before, tree_after)
-    path = ".tdd/%s.diff" % leaf
+    path = run_dir.run_file("", "%s.diff" % leaf)
     if diff.returncode == 0 and not diff.stdout:
         return None
     try:
@@ -340,10 +332,10 @@ def main(argv):
     args = list(argv)
     while args and (takes_a_value(args[0]) or args[0] == "--supersede-base"):
         if len(args) < 2 or not args[1]:
-            return refuse("verify: %s needs a value" % args[0])
+            return entry.refuse("verify: %s needs a value" % args[0], usage=USAGE)
         args = args[2:]
     if len(args) < 3:
-        return refuse()
+        return entry.refuse(usage=USAGE)
     leaf = "verify-" + args[0]
     words = os.environ.get("VERIFY_LEAF_ARGS")
     flags = leaf_args(words)
@@ -361,9 +353,9 @@ def main(argv):
         options[words[0]] = words[1]
         words = words[2:]
     if not all(words[:3]):
-        return to_contract(build_verify_prompt.refuse())
+        return entry.to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
-        return to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
+        return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     base = ""
     if words[0] == "pin":
         base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
@@ -375,14 +367,14 @@ def main(argv):
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
                                             ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
-        return to_contract(code)
+        return entry.to_contract(code)
     if words[0] == "diff" and git("rev-parse", "--git-dir").returncode == 0:
         tip = "HEAD"
         if options["--supersede-base"]:
             tip = in_temp_index("write-tree")
         deleted = deleted_cases(words[2], words[3], tip)
         if deleted is None:
-            return refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]))
+            return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]), usage=USAGE)
         if deleted:
             taken = {other for _, other in pytest_cases(words[3])}
             changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
@@ -409,8 +401,9 @@ def main(argv):
             write(sys.stdout, failure)
             return 1
     top = event.toplevel()
-    run_state = os.path.join(top, ".tdd") if top and top != os.getcwd() else ".tdd"
-    prompt_path = "%s/%s.prompt" % (run_state, leaf)
+    run = top if top and top != os.getcwd() else ""
+    run_state = os.path.join(run, ".tdd")
+    prompt_path = run_dir.run_file(run, "%s.prompt" % leaf)
     os.makedirs(run_state, exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.rstrip(b"\n"))
@@ -437,7 +430,7 @@ def main(argv):
     relaunches = 0
     own_record = None
     if words[0] == "pin":
-        record = os.path.abspath("%s/issue-%s-mutations.md" % (run_state, tunables.read("VERI_ISSUE")))
+        record = os.path.abspath(run_dir.issue_file(run, tunables.read("VERI_ISSUE"), "-mutations.md"))
         launch_env = tunables.with_values(VERI_MUTATION_RECORD=record)
         own_record = os.path.relpath(record, top or os.getcwd())
         record_before = file_bytes(record)
@@ -516,7 +509,7 @@ def main(argv):
         preserve(issue, step, leaf, role["VERI_ATTEMPT"],
                  "no-verdict" if no_verdict else word.lower())
     write(sys.stdout, reason)
-    return to_contract(code)
+    return entry.to_contract(code)
 
 
 def survivors(step):
@@ -542,5 +535,4 @@ def parse(out):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
