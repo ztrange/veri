@@ -25,7 +25,7 @@ def main(argv):
         print(f"{argv[0]} is not inside a git work tree; the drop would go uncommitted", file=sys.stderr)
         return 2
     lines = ledger.read_ledger(argv[0]).split("\n")
-    index = reorder_ledger_steps._open_match(lines, argv[1], "cannot drop a ticked step")
+    index = reorder_ledger_steps.open_match(lines, argv[1], "cannot drop a ticked step")
     if index is None:
         return 1
     del lines[index]

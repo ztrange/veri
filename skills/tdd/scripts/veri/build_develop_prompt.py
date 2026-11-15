@@ -13,7 +13,7 @@ from ledger import carries_mark, trailing_markers
 from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
 from pin_reject_route import BEFORE_STATE_GREEN
-from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text
+from build_verify_prompt import INTERFACE_PHASES, IncludeRefused, expand_includes, has_heading, spec_text_of
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -112,7 +112,7 @@ def main(argv):
     optional = {}
     if phase in ("revise", "exhausted", "red-missing"):
         optional["REJECTION_REASON"] = args[3]
-    if _has_heading(_spec_text(spec), b"Bug"):
+    if has_heading(spec_text_of(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
     replaces_case = is_replaces_case_step(step)
     markers = trailing_markers(step)
@@ -166,10 +166,10 @@ def main(argv):
         values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
-        text = _expand(_read(paths[0]), prompts_b)
-        values["SHARED"] = _expand(_read(paths[1]), prompts_b)
+        text = expand_includes(_read(paths[0]), prompts_b)
+        values["SHARED"] = expand_includes(_read(paths[1]), prompts_b)
         def fragment(slot):
-            return _expand(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
+            return expand_includes(b"{{INCLUDE:_develop-" + slot + b".md}}", prompts_b)
         replaces_red = "red" in (phase, revised_phase) and replaces_case
         if b"{{ISSUE_NUMBER}}" in text:
             issue = tunables.read("VERI_ISSUE") or ""
@@ -208,8 +208,8 @@ def main(argv):
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
             if placeholder in marked:
-                values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
-    except _IncludeRefused as refusal:
+                values[placeholder] = expand_includes(b"\n\n" + values[placeholder], prompts_b)
+    except IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2
     named = parse_replaces_case(step) if "REPLACES_CASE" in marked else None
@@ -225,7 +225,7 @@ def main(argv):
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
     lazy = {}
     if freeze:
-        lazy["FREEZE_RULE"] = lambda: b"".join(_expand(b"\n\n" + _read(path), prompts_b) for path in freeze)
+        lazy["FREEZE_RULE"] = lambda: b"".join(expand_includes(b"\n\n" + _read(path), prompts_b) for path in freeze)
         if revised_phase == "green" and repair:
             lazy["TEST_REWRITE"] = lambda: lazy["FREEZE_RULE"]().lstrip(b"\n")
     if phase == "revise" and revised_phase == "green" and repair:
@@ -235,7 +235,7 @@ def main(argv):
         if name in lazy and placeholder in text:
             try:
                 value = lazy[name]()
-            except _IncludeRefused as refusal:
+            except IncludeRefused as refusal:
                 sys.stderr.buffer.write(refusal.args[0] + b"\n")
                 return 2
         text = text.replace(placeholder, value)

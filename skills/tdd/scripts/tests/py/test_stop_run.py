@@ -573,8 +573,8 @@ def recorded(pid):
 
 def fake_lstart(monkeypatch, stop_run, started="T0"):
     """pid_file's ps lstart read answers <started> for any pid; its other ps reads stay as they are."""
-    real = stop_run.pid_file._ps
-    monkeypatch.setattr(stop_run.pid_file, "_ps", lambda field, pid: started if field == "lstart" else real(field, pid))
+    real = stop_run.pid_file.ps_field
+    monkeypatch.setattr(stop_run.pid_file, "ps_field", lambda field, pid: started if field == "lstart" else real(field, pid))
 
 
 def reaped_pid():

@@ -12,13 +12,13 @@ import renamed_case
 import replaces_case
 import tunables
 import entry
-from frozen_record import (_body_digest, _body_line, _body_record, _helper_records, _pass_marker_path,
-                           _record_path, _remove_pass_marker, _step_key, _work_tree_hash,
-                           _write_pass_marker)
+from frozen_record import (body_digest, body_line, body_record, helper_records, pass_marker_path,
+                           record_path, remove_pass_marker, step_key, work_tree_hash,
+                           write_pass_marker)
 import event
 import frozen_record
 from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
-from case_reader import UnclosedCase, _cases, _old_cut_cases_all, is_js_test_file, is_test_path
+from case_reader import UnclosedCase, cut_cases, old_cut_cases_all, is_js_test_file, is_test_path
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> <test-file>... | "
          "check <record-file>|--step <step-text> | "
@@ -63,7 +63,7 @@ def _refused_outside_repository():
     return True
 
 
-def _differing_tests():
+def differing_tests():
     names = []
     for command in (["git", "diff", "--name-only", "--no-renames", "-z", "HEAD"],
                     ["git", "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/"]):
@@ -91,7 +91,7 @@ def _accepted_per_digest(digests, nows, olds):
     Same-named twins are matched by order, never through a dict, whose last twin would hide the others.
     When the counts differ (a step recorded only the twin it edited), a digest is accepted against any twin."""
     def accepted(*bodies):
-        return {_body_digest(body) for body in bodies if body is not None}
+        return {body_digest(body) for body in bodies if body is not None}
     if len(digests) == len(nows):
         return [accepted(now, olds[i] if i < len(olds) else None) for i, now in enumerate(nows)]
     return [accepted(*nows, *olds)] * len(digests)
@@ -106,7 +106,7 @@ def _cases_at(rev, name):
         if listed.returncode == 0 and not listed.stdout.strip():
             return {}
         raise OSError("git show %s:%s failed: %s" % (rev, name, " ".join(os.fsdecode(shown.stderr).split())))
-    return dict(_cases(shown.stdout.decode("utf-8", "replace")))
+    return dict(cut_cases(shown.stdout.decode("utf-8", "replace")))
 
 
 def _text_at(rev, name, stderr=None):
@@ -116,13 +116,13 @@ def _text_at(rev, name, stderr=None):
 
 def _head_cases_all(name):
     shown = subprocess.run(["git", "show", "HEAD:%s" % name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return _cases(shown.stdout.decode("utf-8", "replace"))
+    return cut_cases(shown.stdout.decode("utf-8", "replace"))
 
 
 def _head_and_new_cases(name):
     with open(name, encoding="utf-8", errors="replace") as handle:
         new = handle.read()
-    return _cases_at("HEAD", name), _cases(new)
+    return _cases_at("HEAD", name), cut_cases(new)
 
 
 def _added_cases(name):
@@ -139,7 +139,7 @@ def _added_cases(name):
 def _recorded_digests(record, name):
     try:
         with open(record, encoding="utf-8") as handle:
-            return {r[1]: r[2] for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name}
+            return {r[1]: r[2] for r in map(body_record, handle.read().splitlines()) if r and r[0] == name}
     except OSError:
         return {}
 
@@ -224,7 +224,7 @@ def _kept_cases(record, name, step=None, skip=()):
     held = _recorded_digests(record, name)
     with open(name, encoding="utf-8", errors="replace") as handle:
         text = handle.read()
-    new = _cases(text)
+    new = cut_cases(text)
     names = {case for case, _ in new}
     owned = names & set(held)
     consumed = set(owned)
@@ -241,10 +241,10 @@ def _kept_cases(record, name, step=None, skip=()):
 
 def _recorded_cases_intact(record, name):
     with open(record, encoding="utf-8") as handle:
-        held = [r for r in map(_body_record, handle.read().splitlines()) if r and r[0] == name]
+        held = [r for r in map(body_record, handle.read().splitlines()) if r and r[0] == name]
     with open(name, encoding="utf-8", errors="replace") as handle:
-        now = _cases(handle.read())
-    return bool(held) and all(digest in {_body_digest(body) for c, body in now if c == case} for _, case, digest in held)
+        now = cut_cases(handle.read())
+    return bool(held) and all(digest in {body_digest(body) for c, body in now if c == case} for _, case, digest in held)
 
 
 def _earlier_records(lines, step, strict=False):
@@ -252,9 +252,9 @@ def _earlier_records(lines, step, strict=False):
         match = ledger.ITEM_RE.match(line)
         if not match or match.group(1) == " " or match.group(2) == step:
             continue
-        path = _record_path(match.group(2))
+        path = record_path(match.group(2))
         if not os.path.exists(path):
-            path = _record_path(match.group(2).removesuffix(ledger.PENDING_MARK))
+            path = record_path(match.group(2).removesuffix(ledger.PENDING_MARK))
         try:
             with open(path, encoding="utf-8") as handle:
                 records = handle.read().splitlines()
@@ -280,7 +280,7 @@ def _root_variants(body):
 
 
 def _as_recorded(body, digests):
-    return next((v for v in _root_variants(body) if _body_digest(v) in digests), body)
+    return next((v for v in _root_variants(body) if body_digest(v) in digests), body)
 
 
 def _path_holding(case, digests, only=None):
@@ -291,7 +291,7 @@ def _path_holding(case, digests, only=None):
                 continue
             path = os.path.join(top, file)
             with open(path, encoding="utf-8", errors="replace") as handle:
-                if any(_body_digest(v) in digests for body in _bodies_of(handle.read(), case)
+                if any(body_digest(v) in digests for body in _bodies_of(handle.read(), case)
                        for v in _root_variants(body)):
                     return path
     return None
@@ -310,7 +310,7 @@ def _moved_path(name, case, digests):
 def _renamed_to(name, case, digest, text, consumed):
     for rev in _revisions(name):
         held = _cases_at(rev, name)
-        if case in held and _body_digest(held[case]) == digest:
+        if case in held and body_digest(held[case]) == digest:
             other = renamed_case.renamed_to(case, _text_at(rev, name), text, set(held) | consumed)
             if other:
                 consumed.add(other)
@@ -351,7 +351,7 @@ def _parse_replaces(step):
 def _check_earlier(ledger, step, exempt=(), sanctioned=()):
     root = _toplevel()
     if root is None:
-        _remove_pass_marker(step)
+        remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: not inside a git repository\n%s" % USAGE)
         return 2
     try:
@@ -359,7 +359,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
             lines = handle.read().splitlines()
     except OSError as error:
         os.chdir(root)
-        _remove_pass_marker(step)
+        remove_pass_marker(step)
         write(sys.stderr, "tests-frozen.sh: %s\n%s" % (error, USAGE))
         return 2
     os.chdir(root)
@@ -369,8 +369,8 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
     latest = {}
     helper_digests = {}
     for owner, _, records in _earlier_records(lines, step):
-        helper_digests.update(_helper_records(records))
-        bodies = [r for r in map(_body_record, records) if r]
+        helper_digests.update(helper_records(records))
+        bodies = [r for r in map(body_record, records) if r]
         marked = frozen_record.is_marked(records)
         for name, case, digest in bodies:
             held = latest.get((name, case))
@@ -384,7 +384,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
             with open(moved, encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             nows = _bodies_of(text, case)
-            olds = [body for c, body in _old_cut_cases_all(text, marked) if c == case]
+            olds = [body for c, body in old_cut_cases_all(text, marked) if c == case]
             if moved != name:
                 nows = [_as_recorded(b, digests) for b in nows]
                 olds = [_as_recorded(b, digests) for b in olds]
@@ -392,15 +392,15 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
             if not nows:
                 other = _renamed_to(name, case, digest, text, consumed)
                 if other:
-                    nows = olds = [dict(_cases(text))[other].replace(other, case, 1)]
+                    nows = olds = [dict(cut_cases(text))[other].replace(other, case, 1)]
                 elif not any(case in _cases_at(rev, name) for rev in _revisions(name)):
                     write(sys.stderr, "tests-frozen.sh: %s (%s, %s) is in no revision of this branch: skipped"
-                          % (case, owner, _record_path(owner)))
+                          % (case, owner, record_path(owner)))
                     continue
         except OSError:
             nows = olds = []
         except UnclosedCase as error:
-            _remove_pass_marker(step)
+            remove_pass_marker(step)
             write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
             return 2
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
@@ -417,22 +417,22 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
     if releg and not changed:
         def rewrite(_, record, name, case, __):
             if (name, case) in releg:
-                return record + "\n" + frozen_record._helpers_line(name, case, releg[(name, case)])
+                return record + "\n" + frozen_record.helpers_line(name, case, releg[(name, case)])
             return record
-        if not _rewrite_records(_earlier_records(lines, step), rewrite):
+        if not rewrite_records(_earlier_records(lines, step), rewrite):
             return 2
         for name, case in releg:
             write(sys.stderr, "tests-frozen.sh: %s (%s): its helpers digest was re-recorded from the legacy formula"
                   % (case, name))
     if not changed:
-        tree = _work_tree_hash()
+        tree = work_tree_hash()
         if not tree:
-            _remove_pass_marker(step)
+            remove_pass_marker(step)
             write(sys.stderr, "tests-frozen.sh: the work-tree hash could not be computed: git add -A or git write-tree failed")
             return 2
-        _write_pass_marker(step, tree)
+        write_pass_marker(step, tree)
     else:
-        _remove_pass_marker(step)
+        remove_pass_marker(step)
     return 1 if changed else 0
 
 
@@ -441,8 +441,8 @@ def is_diff_checked(line):
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
-_write_record = lambda path, out: frozen_record._write_record(path, out, open)
-_rewrite_records = lambda earlier, rewrite: frozen_record._rewrite_records(earlier, rewrite, open)
+write_record = lambda path, out: frozen_record.write_record(path, out, open)
+rewrite_records = lambda earlier, rewrite: frozen_record.rewrite_records(earlier, rewrite, open)
 
 
 def rerecord_earlier(ledger, step):
@@ -472,7 +472,7 @@ def rerecord_earlier(ledger, step):
         revs = subprocess.run(["git", "log", "--format=%H", base + "..HEAD", "--", name], stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL).stdout.decode().split()
         for rev in revs:
-            if _body_digest(_cases_at(rev, name).get(case, "")) == digest:
+            if body_digest(_cases_at(rev, name).get(case, "")) == digest:
                 return rev
         return base
 
@@ -485,12 +485,12 @@ def rerecord_earlier(ledger, step):
             head_text = _text_at("HEAD", name, subprocess.DEVNULL)
             body = "\n".join(_bodies_of(head_text, case))
             if not _helpers_in(head_text, body):
-                return _body_line(name, case, now)
-            return _body_line(name, case, now) + "\n" + frozen_record._helpers_line(
+                return body_line(name, case, now)
+            return body_line(name, case, now) + "\n" + frozen_record.helpers_line(
                 name, case, _helper_digest(head_text, body))
         return record
     try:
-        if not _rewrite_records(_earlier_records(lines, step), rewrite):
+        if not rewrite_records(_earlier_records(lines, step), rewrite):
             return 2
     except OSError as error:
         write(sys.stderr, "tests-frozen.sh: %s" % error)
@@ -508,14 +508,14 @@ def rerecord_committed(step, root):
 
 
 def _rerecord_committed(step):
-    path = _record_path(step)
+    path = record_path(step)
     if not os.path.exists(path):
         return 0
     with open(path, encoding="utf-8") as handle:
         records = handle.read().splitlines()
     held, out, changed = {}, [], False
     for record in records:
-        parsed = _body_record(record)
+        parsed = body_record(record)
         if parsed:
             name, case = parsed[0], parsed[1]
             if name not in held:
@@ -525,20 +525,20 @@ def _rerecord_committed(step):
                     tree = dict(_head_and_new_cases(name)[1])
                     if tree != at_head:
                         at_head, before = tree, _cases_at("HEAD", name)
-                recorded = {r[1] for r in map(_body_record, records) if r and r[0] == name}
+                recorded = {r[1] for r in map(body_record, records) if r and r[0] == name}
                 held[name] = (at_head, [c for c in at_head if c not in recorded and c not in before])
             at_head, fresh = held[name]
             if case not in at_head and fresh:
-                new = next((c for c in fresh if _body_digest(at_head[c].replace(c, case)) == parsed[2]), None)
+                new = next((c for c in fresh if body_digest(at_head[c].replace(c, case)) == parsed[2]), None)
                 if new is None and len(fresh) > 1:
                     write(sys.stderr, "tests-frozen.sh: %s: cannot pair %s with one of %d new cases" % (path, case, len(fresh)))
                     return 2
                 new = new or fresh[0]
                 fresh.remove(new)
-                record = _body_line(name, new, at_head[new])
+                record = body_line(name, new, at_head[new])
                 changed = True
         out.append(record + "\n")
-    return 0 if not changed or _write_record(path, out) else 2
+    return 0 if not changed or write_record(path, out) else 2
 
 
 def _squeezed(text):
@@ -550,11 +550,11 @@ def _assertion_lines(body):
 
 
 def _helper_digest(text, body, legacy=False):
-    return _body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body, legacy)))))
+    return body_digest("\n".join(sorted(_assertion_lines(_helpers_in(text, body, legacy)))))
 
 
 def _bodies_of(text, case):
-    return [b for c, b in _cases(text) if c == case]
+    return [b for c, b in cut_cases(text) if c == case]
 
 
 def _called_helpers(rev, name, body):
@@ -611,7 +611,7 @@ def rerecord_refactored(ledger, green):
 
     recorded_helpers = {}
     for _, __, records in _earlier_records(lines, ""):
-        recorded_helpers.update(_helper_records(records))
+        recorded_helpers.update(helper_records(records))
 
     def skip(name, case, record, reason):
         write(sys.stderr, "skipped: %s %s (%s)" % (name, case, reason))
@@ -638,12 +638,12 @@ def rerecord_refactored(ledger, green):
         head = nth("HEAD", name, case, k)
         green_text = _text_at(green, name, subprocess.DEVNULL)
         before = nth(green + "^", name, case, k) if repaired else None
-        if verified is None or head is None or digest not in {_body_digest(verified), _body_digest(head), *map(
-                _body_digest, (b for c, b in _old_cut_cases_all(green_text) if c == case)),
-                *([_body_digest(before)] if before else [])}:
+        if verified is None or head is None or digest not in {body_digest(verified), body_digest(head), *map(
+                body_digest, (b for c, b in old_cut_cases_all(green_text) if c == case)),
+                *([body_digest(before)] if before else [])}:
             return skip(name, case, record, "body digest matches neither green nor HEAD")
         green_helpers = _helper_digest(green_text, verified)
-        if (digest != _body_digest(head) or digest == _body_digest(verified)) and recorded_helpers.get(
+        if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), green_helpers) != green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = _called_helpers("HEAD", name, head)
@@ -660,9 +660,9 @@ def rerecord_refactored(ledger, green):
         if not verified_lines and _squeezed(head) != _squeezed(verified):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = _text_at("HEAD", name, subprocess.DEVNULL)
-        return _body_line(name, case, head) + "\n" + frozen_record._helpers_line(
+        return body_line(name, case, head) + "\n" + frozen_record.helpers_line(
             name, case, _helper_digest(head_text, "\n".join(_bodies_of(head_text, case))))
-    if not _rewrite_records(_earlier_records(lines, ""), rewrite):
+    if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
     return _check_earlier(ledger, "", sanctioned=exempt)
 
@@ -685,7 +685,7 @@ def rerecord_rebased(ledger, pre):
 
     latest_owner = {}
     for who, _, records in earlier:
-        for body in filter(None, map(_body_record, records)):
+        for body in filter(None, map(body_record, records)):
             latest_owner[(body[0], body[1])] = who
 
     def rewrite(owner, record, name, case, digest):
@@ -700,15 +700,15 @@ def rerecord_rebased(ledger, pre):
             missing.append("tests-frozen.sh: record %s names case %s, which %s does not hold at HEAD"
                            % (paths[0], case, name))
             return record
-        if _body_digest(head) == digest:
+        if body_digest(head) == digest:
             return record
-        if (_body_digest(_cases_at(pre, name).get(case, "")) != digest
+        if (body_digest(_cases_at(pre, name).get(case, "")) != digest
                 or head != _cases_at(upstream, name).get(case)):
             refused.append("%s (%s)" % (case, owner))
             return record
         stale = True
-        return _body_line(name, case, head)
-    if not _rewrite_records(earlier, rewrite):
+        return body_line(name, case, head)
+    if not rewrite_records(earlier, rewrite):
         return 2
     if missing:
         write(sys.stderr, "\n".join(missing))
@@ -746,7 +746,7 @@ def _take_red_case(files):
     path, _, case = value.partition("::")
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
-            present = case in dict(_cases(handle.read()))
+            present = case in dict(cut_cases(handle.read()))
     except FileNotFoundError:
         present = False
     if not present:
@@ -784,7 +784,7 @@ def _main(argv):
         write(sys.stderr, USAGE)
         return 2
     if mode == "path":
-        write(sys.stdout, _record_path(record))
+        write(sys.stdout, record_path(record))
         return 0
     by_step = record == "--step"
     if by_step:
@@ -794,7 +794,7 @@ def _main(argv):
             return 2
         if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS if mark != "fixture-repair"):
             return 0
-        argv = [mode, _record_path(step)] + argv[3:]
+        argv = [mode, record_path(step)] + argv[3:]
         record = argv[1]
     if mode == "record":
         files = argv[2:]
@@ -807,7 +807,7 @@ def _main(argv):
         if by_step:
             record, files = _enter_root(record, files)
             try:
-                differing = _differing_tests()
+                differing = differing_tests()
             except OSError as error:
                 write(sys.stderr, "tests-frozen.sh: %s" % error)
                 return 2
@@ -823,7 +823,7 @@ def _main(argv):
             lines += ["deleted  %s\n" % name for name in deleted]
             if by_step:
                 if files:
-                    lines.append(frozen_record._format_line())
+                    lines.append(frozen_record.format_line())
                 for name in files:
                     try:
                         added = _added_cases(name)
@@ -837,7 +837,7 @@ def _main(argv):
                               "with no renamed successor: nothing left to record\n" % (step, name))
                         return 2
                     for case, body in added + kept:
-                        lines += frozen_record._case_lines(name, case, body)
+                        lines += frozen_record.case_lines(name, case, body)
             with open(record, "w") as handle:
                 handle.writelines(lines)
         except (OSError, LookupError) as error:
@@ -886,7 +886,7 @@ def _main(argv):
                 exempt.add(fixture.group(1))
             exempt.update(subjects)
             try:
-                differing = _differing_tests()
+                differing = differing_tests()
             except OSError as error:
                 write(sys.stderr, "tests-frozen.sh: %s" % error)
                 return 2

@@ -17,13 +17,13 @@ def main(argv):
         return 2
     issue = argv[0]
     units = []
-    for heading, line in skill_edit_step._requirements_lines(issue):
+    for heading, line in skill_edit_step.issue_requirements_lines(issue):
         if line.startswith("### ") and heading not in units:
             units.append(heading)
     clashing = []
     for unit in units:
-        texts = skill_edit_step._listed_texts(skill_edit_guard.list_path(unit), unit)
-        clashing += [skill_edit_step._row_id(r) for r in skill_edit_step.clashes(skill_edit_step._issue_rows(issue, unit), texts)]
+        texts = skill_edit_step.listed_texts(skill_edit_guard.list_path(unit), unit)
+        clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(skill_edit_step.unit_rows(issue, unit), texts)]
     missing = []
     unitless = []
     if len(argv) > 1:
@@ -33,7 +33,7 @@ def main(argv):
             unit = ledger.unit_of(line) if line.startswith("- [") and marked else None
             if line.startswith("- [") and marked and not unit:
                 unitless.append(step)
-            if unit and not any(skill_edit_step._names_unit(h, unit) for h in units):
+            if unit and not any(skill_edit_step.names_unit(h, unit) for h in units):
                 missing.append(unit)
     for step in unitless:
         sys.stderr.write("no path-shaped unit for skill-edit step: %s\n" % step)

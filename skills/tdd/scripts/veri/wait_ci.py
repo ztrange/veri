@@ -11,13 +11,13 @@ from datetime import datetime
 
 try:
     from . import github
-    from .github import NoAnswer, _gh, gh_api, gh_rest_list
+    from .github import NoAnswer, run_gh, gh_api, gh_rest_list
     from .json_documents import documents
     from . import tunables
     from .ci_on_pr import declared, trigger_lines
 except ImportError:
     import github
-    from github import NoAnswer, _gh, gh_api, gh_rest_list
+    from github import NoAnswer, run_gh, gh_api, gh_rest_list
     from json_documents import documents
     import tunables
     from ci_on_pr import declared, trigger_lines
@@ -77,7 +77,7 @@ def fall_back(why):
 def ci_bound(repo, n=5):
     pages = ""
     for c in ("success", "failure"):
-        run = _gh("run", "list", "--repo", repo, "--workflow", "CI", "--status", c,
+        run = run_gh("run", "list", "--repo", repo, "--workflow", "CI", "--status", c,
                   "--limit", str(n), "--json", "databaseId,conclusion,startedAt,updatedAt")
         if run.returncode != 0:
             return fall_back("gh run list could not answer")

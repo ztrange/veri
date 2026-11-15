@@ -8,40 +8,40 @@ import tempfile
 from entry import write
 
 
-def _step_key(step):
+def step_key(step):
     return hashlib.sha256(os.fsencode(step)).hexdigest()[:16]
 
 
-def _record_path(step):
-    return ".tdd/tests-frozen-%s.record" % _step_key(step)
+def record_path(step):
+    return ".tdd/tests-frozen-%s.record" % step_key(step)
 
 
 def recorded_cases(step):
     try:
-        with open(_record_path(step), encoding="utf-8", errors="replace") as handle:
+        with open(record_path(step), encoding="utf-8", errors="replace") as handle:
             return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
     except OSError:
         return set()
 
 
-def _body_digest(body):
+def body_digest(body):
     return hashlib.sha256(body.encode()).hexdigest()
 
 
-def _body_line(name, case, body):
-    return "body: %s\t%s\t%s" % (name, case, _body_digest(body))
+def body_line(name, case, body):
+    return "body: %s\t%s\t%s" % (name, case, body_digest(body))
 
 
-def _helpers_line(name, case, digest):
+def helpers_line(name, case, digest):
     return "helpers: %s\t%s\t%s" % (name, case, digest)
 
 
-def _format_line():
+def format_line():
     return "format: 2\n"
 
 
-def _case_lines(name, case, body):
-    return ["case: %s\n" % case, _body_line(name, case, body) + "\n"]
+def case_lines(name, case, body):
+    return ["case: %s\n" % case, body_line(name, case, body) + "\n"]
 
 
 def is_marked(records):
@@ -54,11 +54,11 @@ def digest_entry(line):
     return line.rstrip("\n").split("  ", 1)
 
 
-def _body_record(line):
+def body_record(line):
     return line[6:].split("\t") if line.startswith("body: ") else None
 
 
-def _write_record(path, out, opener=open):
+def write_record(path, out, opener=open):
     try:
         with opener(path, "w", encoding="utf-8") as handle:
             handle.writelines(out)
@@ -68,19 +68,19 @@ def _write_record(path, out, opener=open):
     return True
 
 
-def _helper_records(records):
+def helper_records(records):
     for record in records:
         if record.startswith("helpers: "):
             name, case, digest = record[9:].split("\t")
             yield (name, case), digest
 
 
-def _rewrite_records(earlier, rewrite, opener=open):
+def rewrite_records(earlier, rewrite, opener=open):
     for owner, path, records in earlier:
         out = []
         replaced = False
         for record in records:
-            parsed = _body_record(record)
+            parsed = body_record(record)
             if parsed:
                 record = rewrite(owner, record, *parsed)
                 if record is None:
@@ -94,16 +94,16 @@ def _rewrite_records(earlier, rewrite, opener=open):
             else:
                 replaced = False
             out.append(record + "\n")
-        if not _write_record(path, out, opener):
+        if not write_record(path, out, opener):
             return False
     return True
 
 
-def _pass_marker_path(step):
-    return ".tdd/check-earlier-%s.pass" % _step_key(step)
+def pass_marker_path(step):
+    return ".tdd/check-earlier-%s.pass" % step_key(step)
 
 
-def _work_tree_hash():
+def work_tree_hash():
     # An ignored .tdd/ is already left out by `add -A`, and naming it in an exclude
     # pathspec makes git refuse ("paths are ignored"), so the exclude is passed only
     # when .tdd is not ignored as a whole (#2230).
@@ -120,29 +120,29 @@ def _work_tree_hash():
     return os.fsdecode(done.stdout).strip()
 
 
-def _write_pass_marker(step, tree):
+def write_pass_marker(step, tree):
     done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if done.returncode != 0:
         return
     os.makedirs(".tdd", exist_ok=True)
-    with open(_pass_marker_path(step), "w", encoding="utf-8") as handle:
+    with open(pass_marker_path(step), "w", encoding="utf-8") as handle:
         handle.write("step: %s\nhead: %s\ntree: %s\n" % (step, os.fsdecode(done.stdout).strip(), tree))
 
 
-def _remove_pass_marker(step):
+def remove_pass_marker(step):
     try:
-        os.remove(_pass_marker_path(step))
+        os.remove(pass_marker_path(step))
     except OSError:
         pass
 
 
 def pass_marker_current(text):
     try:
-        with open(_pass_marker_path(text), encoding="utf-8") as handle:
+        with open(pass_marker_path(text), encoding="utf-8") as handle:
             lines = handle.read().splitlines()
     except OSError:
         return False
     done = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     head = done.stdout.rstrip("\n") if done.returncode == 0 else None
     return (head is not None and f"step: {text}" in lines and f"head: {head}" in lines
-            and f"tree: {_work_tree_hash()}" in lines)
+            and f"tree: {work_tree_hash()}" in lines)

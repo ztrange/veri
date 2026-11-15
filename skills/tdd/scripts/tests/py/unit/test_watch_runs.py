@@ -542,7 +542,7 @@ def _starting_run(monkeypatch, tmp_path, watch_runs, pid_text, lstart, clock=Non
     (tmp_path / ".tdd" / "wt" / "5" / ".tdd" / "conductor.pid").write_text(pid_text % os.getpid())
     listings = iter([["5"]])
     ticks = iter([0, 1])
-    monkeypatch.setattr(watch_runs.pid_file, "_ps", lambda field, pid: lstart)
+    monkeypatch.setattr(watch_runs.pid_file, "ps_field", lambda field, pid: lstart)
     monkeypatch.setattr(watch_runs.status, "main_working_tree", lambda: str(tmp_path))
     monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings, []))
     monkeypatch.setattr(watch_runs, "run_state", lambda issue: "")

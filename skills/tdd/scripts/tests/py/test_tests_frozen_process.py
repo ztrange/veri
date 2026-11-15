@@ -3232,7 +3232,7 @@ def _plan_repo(repo, monkeypatch):
 
 
 def _names(repo, tests_frozen, step):
-    record = (repo / tests_frozen._record_path(step)).read_text()
+    record = (repo / tests_frozen.record_path(step)).read_text()
     return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
 
 
@@ -3314,14 +3314,14 @@ def test_rerecord_on_head_exits_2_naming_the_step_when_no_committed_ledger_line_
     _plan_repo(tmp_path, monkeypatch)
     suite.write_text(CASE % ("base", 0) + "\n\n" + CASE % ("one", 1))
     run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
-    before = (tmp_path / tests_frozen._record_path(step)).read_text()
+    before = (tmp_path / tests_frozen.record_path(step)).read_text()
     _commit(tmp_path, "one")
     suite.write_text(suite.read_text() + "\n\n" + CASE % ("later", 2))
     _commit(tmp_path, "later")
 
     code, _, err = run_cli(tests_frozen, ["record", "--step", step, "test_suite.py"], cwd=tmp_path)
 
-    assert (code, step in err, (tmp_path / tests_frozen._record_path(step)).read_text()) == (2, True, before)
+    assert (code, step in err, (tmp_path / tests_frozen.record_path(step)).read_text()) == (2, True, before)
 
 
 PHASED_STEP = STEPS[1] + " ⟦phases: expand, migrate⟧"
@@ -5204,7 +5204,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
 
-    assert (tests_frozen._body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
+    assert (tests_frozen.body_line("suite_test.go", "TestX", head_body).encode() + b"\n" in before,
             b"\nhelpers: " in before, code, _skip_lines(err, "suite_test.go TestX"),
             record.read_bytes() == before) == (True, True, 1, 1, True)
 
@@ -5234,8 +5234,8 @@ def test_rerecord_refactored_refreshes_the_helpers_line_of_a_go_case_already_rec
     (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
     head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
     record.write_text(record.read_text().replace(
-        tests_frozen._body_line("suite_test.go", "TestX", green_body),
-        tests_frozen._body_line("suite_test.go", "TestX", head_body)))
+        tests_frozen.body_line("suite_test.go", "TestX", green_body),
+        tests_frozen.body_line("suite_test.go", "TestX", head_body)))
     held = tests_frozen._helper_digest(suite.read_text(), head_body)
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
@@ -5273,7 +5273,7 @@ def test_rerecord_refactored_re_records_a_go_case_at_heads_body_whose_helpers_di
     head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
     older = "helpers: suite_test.go\tTestX\t%s\n" % ("6" * 64)
     record.write_text("".join(
-        tests_frozen._body_line("suite_test.go", "TestX", head_body) + "\n"
+        tests_frozen.body_line("suite_test.go", "TestX", head_body) + "\n"
         if line.startswith("body: ") else older if line.startswith("helpers: ") else line
         for line in record.read_text().splitlines(keepends=True)))
     held = tests_frozen._helper_digest(suite.read_text(), head_body)
@@ -5312,7 +5312,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
     heads = {case: tests_frozen._bodies_of(suite.read_text(), case)[0] for case in ("TestX", "TestY")}
     record.write_text("".join(
-        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen._body_line(
+        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen.body_line(
             "suite_test.go", line.split("\t")[1], heads[line.split("\t")[1]]), line.split("\t")[1], "6" * 64)
         if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
     x_lines = [line for line in record.read_text().splitlines() if "\tTestX\t" in line]
@@ -5352,7 +5352,7 @@ def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_helpers_digest_
     (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
     heads = {case: tests_frozen._bodies_of(suite.read_text(), case)[0] for case in ("TestX", "TestY")}
     record.write_text("".join(
-        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen._body_line(
+        "%s\nhelpers: suite_test.go\t%s\t%s\n" % (tests_frozen.body_line(
             "suite_test.go", line.split("\t")[1], heads[line.split("\t")[1]]), line.split("\t")[1], "6" * 64)
         if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
     x_lines = [line for line in record.read_text().splitlines() if "\tTestX\t" in line]
@@ -5483,7 +5483,7 @@ def test_rerecord_refactored_names_the_assertion_lines_guard_in_parentheses_on_t
     (tmp_path / ".tdd/verdict-refactor.exit").write_text("0")
     head = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
     record.write_text("".join(
-        "%s\nhelpers: suite_test.go\tTestX\t%s\n" % (tests_frozen._body_line("suite_test.go", "TestX", head), "6" * 64)
+        "%s\nhelpers: suite_test.go\tTestX\t%s\n" % (tests_frozen.body_line("suite_test.go", "TestX", head), "6" * 64)
         if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", ".tdd/issue-9.md", green], cwd=tmp_path)
@@ -5573,7 +5573,7 @@ def test_rerecord_refactored_leaves_one_helpers_line_from_head_for_a_go_case_who
     stale = "".join("helpers: suite_test.go\tTestX\t%s\n" % (digit * 64) for digit in "67")
     record.write_text("".join(
         line for line in record.read_text().splitlines(keepends=True) if not line.startswith("body: ")
-    ).replace("case: TestX\n", "case: TestX\n" + tests_frozen._body_line("suite_test.go", "TestX", head_body)
+    ).replace("case: TestX\n", "case: TestX\n" + tests_frozen.body_line("suite_test.go", "TestX", head_body)
               + "\n" + stale))
     held = tests_frozen._helper_digest(suite.read_text(), head_body)
 
@@ -6424,7 +6424,7 @@ def test_check_earlier_exits_0_for_a_python_case_whose_recorded_helpers_digest_i
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     ledger = tmp_path / ".tdd/ledger.md"
@@ -6451,7 +6451,7 @@ def test_check_earlier_leaves_one_helpers_line_equal_to_the_current_digest_after
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     ledger = tmp_path / ".tdd/ledger.md"
@@ -6480,7 +6480,7 @@ def test_check_earlier_exits_1_and_leaves_a_legacy_helpers_line_as_recorded_when
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     before = record.read_text()
@@ -6512,7 +6512,7 @@ def test_check_earlier_exits_1_and_leaves_a_legacy_helpers_line_as_recorded_when
     edited = text.replace("3 == 3", "3 == 4")
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + edited)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(edited))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(edited))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     legacy_line = "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy
     record.write_text("".join(kept) + legacy_line)
@@ -6541,7 +6541,7 @@ def test_check_earlier_names_the_case_on_stderr_saying_its_helpers_digest_was_re
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     ledger = tmp_path / ".tdd/ledger.md"
@@ -6568,7 +6568,7 @@ def test_a_second_check_earlier_after_the_legacy_re_record_exits_0_and_prints_no
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     ledger = tmp_path / ".tdd/ledger.md"
@@ -6597,7 +6597,7 @@ def test_check_earlier_exits_1_naming_the_case_and_leaves_the_record_untouched_w
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text.replace("    assert 1 == 1\n", "    pass\n"))
@@ -6626,7 +6626,7 @@ def test_check_earlier_exits_1_naming_the_case_when_an_assertion_is_deleted_from
     suite.write_text("def test_older_case():\n    assert True\n\n\n" + text)
     run_cli(tests_frozen, ["record", "--step", earlier, "tests/test_suite.py"], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    legacy = tests_frozen._body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
+    legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
     kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: tests/test_suite.py\ttest_a\t%s\n" % legacy)
     ledger = tmp_path / ".tdd/ledger.md"

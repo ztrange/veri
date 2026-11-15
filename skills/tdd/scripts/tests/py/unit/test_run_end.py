@@ -10,7 +10,7 @@ def fake_ps(monkeypatch, own, parent_line=""):
     """Answer pid_file's ps reads: this process runs <own>, its parent PARENT runs <parent_line>."""
     table = {("command", os.getpid()): own, ("ppid", os.getpid()): str(PARENT), ("command", PARENT): parent_line}
     for name in ("pid_file", "veri.pid_file"):
-        monkeypatch.setattr(importlib.import_module(name), "_ps",
+        monkeypatch.setattr(importlib.import_module(name), "ps_field",
                             lambda field, pid: table.get((field, int(pid)), ""), raising=True)
 
 

@@ -34,7 +34,7 @@ def _gh_api_said(path):
     return run
 
 
-def _wait_seconds(name, default, least):
+def wait_seconds(name, default, least):
     raw = tunables.read(name, default)
     if not re.fullmatch(r"[0-9]+", raw) or int(raw) < least:
         print("%s: invalid value %r" % (name, raw), file=sys.stderr)
@@ -42,16 +42,16 @@ def _wait_seconds(name, default, least):
     return int(raw)
 
 
-def _gh(*args, stderr=None):
+def run_gh(*args, stderr=None):
     first_miss = None
     while True:
         try:
             return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
         except FileNotFoundError:
-            retry_sleep = _wait_seconds("VERI_TOOL_RETRY_SLEEP", "15", 1)
-            fast_wait = _wait_seconds("VERI_TOOL_FAST_WAIT", "900", 0)
-            slow_sleep = _wait_seconds("VERI_TOOL_SLOW_SLEEP", "900", 1)
-            total_wait = _wait_seconds("VERI_TOOL_WAIT", "3600", 0)
+            retry_sleep = wait_seconds("VERI_TOOL_RETRY_SLEEP", "15", 1)
+            fast_wait = wait_seconds("VERI_TOOL_FAST_WAIT", "900", 0)
+            slow_sleep = wait_seconds("VERI_TOOL_SLOW_SLEEP", "900", 1)
+            total_wait = wait_seconds("VERI_TOOL_WAIT", "3600", 0)
             now = time.monotonic()
             if first_miss is None:
                 first_miss = now
@@ -80,20 +80,20 @@ def rate_limit_reset(run=subprocess.run):
 
 
 def gh_api(path, stderr=None):
-    return _gh("api", path, stderr=stderr)
+    return run_gh("api", path, stderr=stderr)
 
 
 def gh_api_delete(path):
-    return _gh("api", "-X", "DELETE", path, stderr=subprocess.PIPE)
+    return run_gh("api", "-X", "DELETE", path, stderr=subprocess.PIPE)
 
 
 def gh_label_create(name):
-    return _gh("label", "create", name, "--color", "ededed",
+    return run_gh("label", "create", name, "--color", "ededed",
                "--description", "Claimed by a veri run", stderr=subprocess.PIPE)
 
 
 def gh_api_add_label(path, name):
-    return _gh("api", "-X", "POST", "-f", "labels[]=%s" % name, path, stderr=subprocess.PIPE)
+    return run_gh("api", "-X", "POST", "-f", "labels[]=%s" % name, path, stderr=subprocess.PIPE)
 
 
 _ISSUES = "repos/{owner}/{repo}/issues"
@@ -125,7 +125,7 @@ def _comments(number):
 
 class GraphQLAdapter:
     def _run(self, *args):
-        run = _retry_refused(lambda: _gh(*args, stderr=subprocess.PIPE), "stderr")
+        run = _retry_refused(lambda: run_gh(*args, stderr=subprocess.PIPE), "stderr")
         if run.returncode != 0:
             raise NoAnswer("", run.stderr)
         return run.stdout
@@ -171,18 +171,18 @@ class RestAdapter:
         return (issue["body"] or "") + "\n"
 
     def issue_edit(self, number, body_file):
-        run = _gh("api", "-X", "PATCH", _issue(number), "-F", "body=@%s" % body_file)
+        run = run_gh("api", "-X", "PATCH", _issue(number), "-F", "body=@%s" % body_file)
         if run.returncode != 0:
             raise NoAnswer("")
 
     def issue_comment(self, number, body):
-        run = _gh("api", _issue(number) + "/comments", "-f", "body=%s" % body, "-q", ".html_url")
+        run = run_gh("api", _issue(number) + "/comments", "-f", "body=%s" % body, "-q", ".html_url")
         if run.returncode != 0:
             raise NoAnswer("")
         return run.stdout
 
     def issue_create(self, title, body, *labels):
-        run = _gh("api", _ISSUES, "-f", "title=%s" % title,
+        run = run_gh("api", _ISSUES, "-f", "title=%s" % title,
                   "-f", "body=%s" % body,
                   *[a for label in labels for a in ("-f", "labels[]=%s" % label)], "-q", ".html_url")
         if run.returncode != 0:
@@ -296,7 +296,7 @@ def gh_list(path, *args):
 
 def gh_issue_list(*args):
     _select("list")
-    run = _retry_refused(lambda: _gh("issue", "list", *args, stderr=subprocess.PIPE), "stderr")
+    run = _retry_refused(lambda: run_gh("issue", "list", *args, stderr=subprocess.PIPE), "stderr")
     if run.returncode != 0:
         raise NoAnswer(" ".join(run.stderr.split()))
     return run.stdout
@@ -312,7 +312,7 @@ def gh_json_page(fixture, path, *args):
 
 def gh_pr_diff_names(number):
     """The paths open PR <number> changes, from `gh pr diff --name-only`."""
-    run = _gh("pr", "diff", str(number), "--name-only", stderr=subprocess.PIPE)
+    run = run_gh("pr", "diff", str(number), "--name-only", stderr=subprocess.PIPE)
     if run.returncode != 0:
         raise NoAnswer(run.stderr)
     return run.stdout.split()
@@ -335,7 +335,7 @@ def gh_issue_comment(number, body):
 
 
 def gh_issue_add_label(number, label):
-    run = _gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
+    run = run_gh("api", _issue(number) + "/labels", "-f", "labels[]=%s" % label)
     if run.returncode != 0:
         raise NoAnswer("")
 
@@ -347,7 +347,7 @@ def gh_issue_remove_label(number, label):
 
 
 def gh_label_ensure(label):
-    run = _gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label, stderr=subprocess.PIPE)
+    run = run_gh("api", "repos/{owner}/{repo}/labels", "-f", "name=%s" % label, stderr=subprocess.PIPE)
     if run.returncode != 0 and "HTTP 422" not in run.stderr and "already_exists" not in run.stderr:
         sys.stderr.write(run.stderr)
         raise NoAnswer(" ".join(run.stderr.split()))
@@ -373,10 +373,10 @@ def _poll_sleep():
 
 
 def _api_graphql_ready(number):
-    node = _gh("api", "%s/%s" % (_PULLS, number), "-q", ".node_id")
+    node = run_gh("api", "%s/%s" % (_PULLS, number), "-q", ".node_id")
     if node.returncode != 0:
         return False
-    return _gh("api", "graphql", "-f", "query=" + _READY_MUTATION,
+    return run_gh("api", "graphql", "-f", "query=" + _READY_MUTATION,
                "-f", "id=" + node.stdout.rstrip("\n")).returncode == 0
 
 
@@ -388,14 +388,14 @@ def _retry_refused(call, stream):
         marked = "rate limit" in text or "retry-after" in text.lower() or "x-ratelimit-remaining: 0" in text.lower()
         if done.returncode == 0 or not marked:
             return done
-        if refusals >= _wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
+        if refusals >= wait_seconds("VERI_GH_REFUSAL_RETRIES", "3", 0):
             return done
         refusals += 1
-        time.sleep(_wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
+        time.sleep(wait_seconds("VERI_GH_REFUSAL_SLEEP", "60", 0))
 
 
 def _refuse_unpushed(number, head_sha):
-    ref = _gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
+    ref = run_gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.ref")
     branch = ref.stdout.rstrip("\n")
     listed =subprocess.run(["git", "ls-remote", "origin", "refs/heads/" + branch],
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
@@ -416,7 +416,7 @@ def gh_pr_ready(number, head_sha=""):
         raise NoAnswer("")
     tries = 0
     while head_sha:
-        read = _gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.sha")
+        read = run_gh("api", "%s/%s" % (_PULLS, number), "--jq", ".head.sha")
         if read.returncode != 0:
             raise NoAnswer("")
         head = read.stdout.rstrip("\n")
@@ -432,13 +432,13 @@ def gh_pr_ready(number, head_sha=""):
         _poll_sleep()
     gql_err = ccr_err = ""
     if _route_open(driver, "graphql"):
-        ready = _retry_refused(lambda: _gh("pr", "ready", number, stderr=subprocess.PIPE), "stderr")
+        ready = _retry_refused(lambda: run_gh("pr", "ready", number, stderr=subprocess.PIPE), "stderr")
         sys.stdout.write(ready.stdout)
         if ready.returncode == 0:
             return
         gql_err = ready.stderr.rstrip("\n")
     if _route_open(driver, "rest"):
-        ccr = _retry_refused(lambda: _gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number),
+        ccr = _retry_refused(lambda: run_gh("api", "-X", "POST", "%s/%s/ccr/ready_for_review" % (_PULLS, number),
                                          stderr=subprocess.STDOUT), "stdout")
         if ccr.returncode == 0:
             return

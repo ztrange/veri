@@ -120,7 +120,7 @@ def write_check_earlier_pass(directory, step):
     os.chdir(directory)
     try:
         tests_frozen = importlib.import_module("veri.tests_frozen")
-        tests_frozen._write_pass_marker(step, tests_frozen._work_tree_hash())
+        tests_frozen.write_pass_marker(step, tests_frozen.work_tree_hash())
     finally:
         os.chdir(here)
 

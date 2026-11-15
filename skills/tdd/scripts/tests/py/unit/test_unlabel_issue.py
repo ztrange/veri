@@ -174,7 +174,7 @@ def test_main_1974_removes_the_label_through_the_port_and_starts_no_gh_process_i
     def own_launch(args, **kwargs):
         raise AssertionError("unlabel_issue started a process itself: %s" % " ".join(map(str, args)))
 
-    monkeypatch.setattr(github, "_gh", port_launch)
+    monkeypatch.setattr(github, "run_gh", port_launch)
     monkeypatch.setattr(subprocess, "run", own_launch)
 
     code = unlabel_issue.main(["7"])

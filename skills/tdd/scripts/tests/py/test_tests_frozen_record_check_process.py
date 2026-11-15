@@ -172,8 +172,8 @@ def test_pass_marker_current_is_false_for_a_marker_at_the_steps_path_whose_step_
     _git(tmp_path, "commit", "-q", "-m", "base")
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, check=True, capture_output=True,
                           text=True).stdout.strip()
-    tree = frozen_record._work_tree_hash()
-    marker = tmp_path / frozen_record._pass_marker_path("step A")
+    tree = frozen_record.work_tree_hash()
+    marker = tmp_path / frozen_record.pass_marker_path("step A")
     marker.parent.mkdir()
     marker.write_text("step: step A\nhead: %s\ntree: %s\n" % (head, tree))
     assert frozen_record.pass_marker_current("step A") is True

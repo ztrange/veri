@@ -88,7 +88,7 @@ def stop_run(run, mode):
 
 
 def zombie(pid):
-    return (pid_file._ps("stat", pid) or "").startswith("Z")
+    return (pid_file.ps_field("stat", pid) or "").startswith("Z")
 
 
 def group_alive(group):

@@ -21,7 +21,7 @@ import tunables
 from case_reader import is_js_test_file
 from js_tests import CALL
 
-from leaf_model import _env, resolve
+from leaf_model import env_value, resolve
 from entry import write
 from leaf_role import leaf_role
 from ledger import ledger_path
@@ -350,7 +350,7 @@ def main(argv):
     if words:
         model = resolve(leaf)
         if (model and not is_echo_flag(model) and "--model" in flags
-                and (_env("VERI_MODEL_VERIFIER") or _env("VERI_MODEL"))):
+                and (env_value("VERI_MODEL_VERIFIER") or env_value("VERI_MODEL"))):
             write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
@@ -361,9 +361,9 @@ def main(argv):
         options[words[0]] = words[1]
         words = words[2:]
     if not all(words[:3]):
-        return to_contract(build_verify_prompt._refuse())
+        return to_contract(build_verify_prompt.refuse())
     if len(words) > 4:
-        return to_contract(build_verify_prompt._refuse("build-verify-prompt: too many arguments"))
+        return to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     base = ""
     if words[0] == "pin":
         base = git("merge-base", "HEAD", "origin/HEAD").stdout.decode().strip()
