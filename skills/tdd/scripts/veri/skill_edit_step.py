@@ -230,15 +230,15 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
-def _captured(main, argv):
+def _captured(call, *args):
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
-        code = main(argv)
+        code = call(*args)
     return code, out.getvalue()
 
 
 def _grade(path, unit):
-    return _captured(grade_prose.main, [path, unit])
+    return _captured(grade_prose.grade_unit, path, unit)
 
 
 def _guard(unit, base, issue, pins, own=()):
