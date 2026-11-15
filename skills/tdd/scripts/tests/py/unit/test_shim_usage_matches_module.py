@@ -1,5 +1,6 @@
 """A shim's `# Usage:` header and its module's `USAGE` (what `--help` and a refusal print) describe the same invocations."""
 import ast
+import pathlib
 import re
 
 import pytest
@@ -47,9 +48,9 @@ def _synopsis(text, name):
     return " ".join(" ".join(block).split())
 
 
-def _usage(module):
+def _usage(tree):
     """The module's `USAGE` literal, whitespace collapsed, `usage:` prefix dropped; None when it is not a literal."""
-    for node in ast.parse(module.read_text()).body:
+    for node in tree.body:
         if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "USAGE" for t in node.targets):
             try:
                 value = ast.literal_eval(node.value)
@@ -68,7 +69,7 @@ def _signature(text, name):
     return re.findall(r"--[a-z][\w-]*|<[^>]*>|(?<![\w<-])[a-z][a-z0-9-]*(?![\w>-])", text)
 
 
-def _pairs():
+def _pairs(index):
     from conftest import SCRIPTS
 
     for shim in sorted(SCRIPTS.glob("*.sh")):
@@ -76,24 +77,24 @@ def _pairs():
         match = SHIM_EXEC.search(text)
         if not match:
             continue
-        synopsis, usage = _synopsis(text, shim.name), _usage(SCRIPTS / match.group(1))
+        synopsis, usage = _synopsis(text, shim.name), _usage(index.tree(pathlib.PurePath(match.group(1)).stem))
         if synopsis and usage:
             yield shim.name, synopsis, usage
 
 
-def _differing():
-    return {name: (synopsis, usage) for name, synopsis, usage in _pairs()
+def _differing(index):
+    return {name: (synopsis, usage) for name, synopsis, usage in _pairs(index)
             if synopsis != usage and _signature(synopsis, name) != _signature(usage, name)}
 
 
 @pytest.mark.tree_audit("every shim of skills/tdd/scripts")
-def test_enough_shims_are_comparable_for_the_audit_to_mean_something():
-    assert len(list(_pairs())) >= 60
+def test_enough_shims_are_comparable_for_the_audit_to_mean_something(veri_modules_index):
+    assert len(list(_pairs(veri_modules_index))) >= 60
 
 
 @pytest.mark.tree_audit("every shim of skills/tdd/scripts")
-def test_a_shims_usage_header_and_its_modules_usage_name_the_same_invocations():
-    differing = _differing()
+def test_a_shims_usage_header_and_its_modules_usage_name_the_same_invocations(veri_modules_index):
+    differing = _differing(veri_modules_index)
 
     assert not set(differing) - set(EXEMPT), "\n".join(
         f"{name}:\n  shim:   {shim}\n  module: {module}" for name, (shim, module) in sorted(differing.items())
