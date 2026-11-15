@@ -28,6 +28,16 @@ def test_main_tree_paths_name_the_tdd_directory_the_runs_directory_and_one_run()
     ]
 
 
+def test_main_of_worktree_is_the_main_tree_a_run_directory_sits_under_and_none_for_any_other_directory():
+    run_dir = importlib.import_module("veri.run_dir")
+
+    assert [run_dir.main_of_worktree("/repo/.tdd/wt/42"),
+            run_dir.main_of_worktree("/repo/.tdd/wt/42/"),
+            run_dir.main_of_worktree("/repo"),
+            run_dir.main_of_worktree("/repo/.tdd/other/42"),
+            run_dir.main_of_worktree("/wt/42")] == ["/repo", "/repo", None, None, None]
+
+
 def test_issue_file_names_a_per_issue_file_of_a_run_and_the_ledger_is_its_md_form():
     run_dir = importlib.import_module("veri.run_dir")
 

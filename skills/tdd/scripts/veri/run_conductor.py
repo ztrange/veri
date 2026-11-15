@@ -11,6 +11,7 @@ import paths
 import pinned_scripts
 import pid_file as pids
 import run_dir
+import run_pins
 import requirements
 import calendar
 import json
@@ -173,9 +174,7 @@ def preflight_and_launch(argv):
                 out.write(commit + "\n")
             if os.path.exists(released):
                 os.remove(released)
-            with open(run_dir.issue_file(event.toplevel(), argv[0], "-skip-verify"), "w") as skip:
-                listed = tunables.get("VERI_SKIP_VERIFY")
-                skip.write(listed + "\n" if listed else "")
+            run_pins.write_skip_verify(event.toplevel(), argv[0], tunables.get("VERI_SKIP_VERIFY"))
             with open(run_dir.issue_file(event.toplevel(), argv[0], "-baseline-full-tier"), "w") as pin:
                 pin.write(tunables.get("VERI_BASELINE_FULL_TIER") + "\n")
             if readable:
@@ -261,8 +260,7 @@ def launch(base, issue, commit, **exports):
     try:
         with open(run_dir.issue_file(event.toplevel(), issue, "-tmpdir-skill-commit"), "w") as record:
             record.write("%s %d\n" % (run_tmp, os.getpid()))
-        with open(run_dir.issue_file(event.toplevel(), issue, "-conductor-model"), "w") as record:
-            record.write(conductor_model() + "\n")
+        run_pins.write_conductor_model(event.toplevel(), issue, conductor_model())
         with open(run_dir.issue_file(event.toplevel(), issue, "-launch-env"), "w") as record:
             record.write("".join("%s=%s\n" % kv for kv in sorted(tunables.environment().items()) if kv[0].startswith("VERI_") and kv[0] != "VERI_NEW_SKILL"))
         exports["VERI_STATE_LABEL_ISSUE"] = issue

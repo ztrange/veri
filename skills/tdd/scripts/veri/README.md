@@ -154,6 +154,7 @@ Where a run lives on disk, its journal of events, whether it is live, stuck or e
 - `journal_schema`: what JOURNAL.md's table documents per event kind, and the literal kinds and fields writer calls pass, found with `ast`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
+- `run_pins`: a run's per-issue pin files (skip-verify list, conductor model), written and read in one place.
 - `stop-reason.sh`: why a run stopped.
 - `stop-requested.sh`: whether a stop is requested.
 - `stop-run.sh`: request a run's stop.
@@ -207,8 +208,13 @@ A run's `.tdd/restart-pending` marker, which says a conductor restart is in flig
 Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` and `main_tree_from_files` touches the disk.
 - `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
 - `main_tree_from_files(start=None)`: the same tree found by reading `.git` files, starting no process: walks up from `start` (default cwd) to the first `.git`; a linked worktree's `.git` file leads through its `commondir` to the main tree; no `.git` answers `start`; OSError when a linked gitdir has no `commondir`.
-- `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue.
+- `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue. `main_of_worktree(run)`: the main tree a `<main>/.tdd/wt/<n>` directory sits under, from the layout alone, `None` for any other directory.
 - `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
+
+## run_pins
+The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's writer and reader sit together. The hard-timeout pin is `leaf_timeout`'s.
+- `write_skip_verify(root, issue, listed)`, `skip_verify(issue, *roots)`: the VERI_SKIP_VERIFY list; the read answers the stripped text of the first root holding the pin, `None` when none does.
+- `write_conductor_model(root, issue, model)`, `conductor_model(issue, *roots)`: the conductor's model, read the same way.
 
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.

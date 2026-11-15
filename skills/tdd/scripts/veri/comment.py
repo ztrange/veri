@@ -13,6 +13,7 @@ import metrics as metrics_module
 import paths
 import restart_marker
 import run_dir
+import run_pins
 from ledger import handed_out, ledger_steps
 
 USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped; --pr only with bailed)"
@@ -62,7 +63,7 @@ def post_done(issue):
         code, metrics = render_metrics(issue)
         if code != 0 or not metrics.startswith("### 📊 Metrics"):
             metrics = f"metrics could not be rendered: metrics.sh exited {code}"
-    pinned = read_or_empty(run_dir.issue_file(".", issue, "-skip-verify")).strip()
+    pinned = run_pins.skip_verify(issue, ".")
     if pinned:
         metrics = f"{metrics.rstrip()}\n⚠️ Unverified phases: {pinned}\n"
     if os.path.isfile(run_dir.run_file(".", "stop")):
