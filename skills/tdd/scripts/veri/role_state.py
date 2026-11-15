@@ -75,14 +75,13 @@ class State:
     def __init__(self, lines):
         self.lines = list(lines)
 
+    def fields(self):
+        """Every `key=value` line as a dict, the last of a key winning."""
+        return dict(line.partition("=")[::2] for line in self.lines)
+
     def field(self, name):
         """The value of the last `<name>=<value>` line, `None` when there is none."""
-        found = None
-        for line in self.lines:
-            key, _, value = line.partition("=")
-            if key == name:
-                found = value
-        return found
+        return self.fields().get(name)
 
     def items(self, *kinds):
         """The raw lines of the given item kinds, in file order."""
