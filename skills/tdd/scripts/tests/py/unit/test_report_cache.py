@@ -2006,3 +2006,11 @@ def test_refresh_whose_windowed_comments_read_also_fails_exits_2_naming_the_fail
     code, out, err = run_cli(report_cache, ["refresh"], cwd=tmp_path)
 
     assert (code, "window failed" in err, (tmp_path / ".tdd" / "report-cache.json").exists()) == (2, True, False)
+
+
+def test_blocked_by_reads_an_issue_url_as_solvable_issues_does_and_a_heading_with_trailing_whitespace():
+    report_cache = importlib.import_module("veri.report_cache")
+    url = "## Blocked by\n\n- #3\n- https://github.com/acme/widgets/issues/34\n\n## Notes\n\n#9\n"
+
+    assert (report_cache.blocked_by(url), report_cache.blocked_by("## Blocked by  \n\n- #5\n"),
+            report_cache.blocked_by(None), report_cache.blocked_by("no section #4")) == ([3, 34], [5], [], [])
