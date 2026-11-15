@@ -6,6 +6,7 @@ import re
 import sys
 import tempfile
 
+import entry
 import github
 
 USAGE = "usage: refactor-candidates.sh <issue> <owed-file>\n"
@@ -34,7 +35,7 @@ def grouped(owed):
 
 
 def main(argv):
-    if len(argv) != 2 or not re.fullmatch(r"[0-9]+", argv[0]):
+    if len(argv) != 2 or entry.whole_number(argv[0], 0) is None:
         sys.stderr.write(USAGE)
         return 2
     issue, owed_file = argv
