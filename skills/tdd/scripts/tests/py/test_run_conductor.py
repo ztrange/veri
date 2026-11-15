@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from test_supervise import checked_step, committed_head
+from test_supervise_process import checked_step, committed_head
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):

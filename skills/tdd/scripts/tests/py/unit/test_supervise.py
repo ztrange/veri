@@ -1,0 +1,149 @@
+"""In-process cases for veri/supervise.py, the module supervise.sh is a shim over."""
+import importlib
+import os
+import pathlib
+import subprocess
+import pytest
+
+
+SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
+USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
+
+
+@pytest.fixture
+def supervise():
+    return importlib.import_module("veri.supervise")
+
+
+def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_with_exit_2_its_usage_line_nothing_on_stdout_and_no_tdd(
+        monkeypatch, tmp_path, supervise, run_cli, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes()
+    usage = USAGE.decode()
+
+    answers = [(argv, run_cli(supervise, argv, cwd=tmp_path)) for argv in ([], [""], ["develop-red"])]
+
+    assert answers == [
+        ([], (2, "", usage)),
+        ([""], (2, "", usage)),
+        (["develop-red"], (2, "", "supervise: missing <cmd>\n" + usage)),
+    ]
+    assert calls == []
+    assert sorted(os.listdir(tmp_path)) == []
+
+
+SET_BY_CLEAN_ENV = set()
+
+
+REAL_WORK_TREE_HASH = importlib.import_module("frozen_record").work_tree_hash
+
+
+@pytest.fixture(autouse=True)
+def work_tree_hashes_to_tree(monkeypatch):
+    """A directory that is no git repository hashes to "tree"; a repository, as it really does."""
+    for name in ("frozen_record", "tests_frozen"):
+        monkeypatch.setattr(importlib.import_module(name), "work_tree_hash",
+                            lambda: REAL_WORK_TREE_HASH() if os.path.isdir(".git") else "tree")
+
+
+def clean_env(monkeypatch, **env):
+    """No VERI_* variable but the ones given."""
+    for key in list(os.environ):
+        if key in SET_BY_CLEAN_ENV:
+            monkeypatch.delenv(key)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+        SET_BY_CLEAN_ENV.add(key)
+
+
+def test_cli_refuses_a_kill_poll_that_is_not_a_number_through_run_cli_with_exit_2_one_stderr_line_naming_it_and_its_value_starting_nothing(
+        monkeypatch, tmp_path, supervise, run_cli, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes()
+    clean_env(monkeypatch, VERI_TIMEOUT="900")
+
+    answers = [run_cli(supervise, ["develop-red", "true"], env={"VERI_KILL_POLL": value}, cwd=tmp_path)
+               for value in ("fast", "1e3")]
+
+    assert answers == [
+        (2, "", "supervise: VERI_KILL_POLL must be a non-negative number: fast\n"),
+        (2, "", "supervise: VERI_KILL_POLL must be a non-negative number: 1e3\n"),
+    ]
+    assert calls == []
+    assert sorted(os.listdir(tmp_path)) == []
+
+
+def test_header_names_the_watchdogs_clock_source_and_why_it_pauses_while_the_machine_is_suspended_for_macos_and_linux_472():
+    import re
+    header = []
+    for line in (SCRIPTS / "supervise.sh").read_text().splitlines()[1:]:
+        if not line.startswith("#"):
+            break
+        header.append(re.sub(r"^# ?", "", line))
+    text = " ".join(header)
+    claims = {
+        "clock-source": r"monotonic",
+        "macos": r"macOS.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}macOS",
+        "linux": r"Linux.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}Linux",
+        "pauses-in-suspend": r"(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)",
+    }
+    assert [name for name, pattern in claims.items() if not re.search(pattern, text)] == []
+
+
+def test_red_awaits_pass_reads_an_events_log_holding_an_invalid_utf_8_byte_without_raising_and_still_reads_the_launch_and_verdict_lines_after_it(
+        supervise, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    log = tmp_path / ".tdd" / "events.jsonl"
+    launch = b'{"event": "launch", "phase": "red", "step": 1}\n'
+    verdict = b'{"event": "verdict", "phase": "red", "step": 1, "verdict": "PASS"}\n'
+
+    log.write_bytes(b'{"note": "bad \xff byte"}\n' + launch)
+    assert supervise.red_awaits_pass("1") is True
+
+    log.write_bytes(b'{"note": "bad \xff byte"}\n' + launch + verdict)
+    assert supervise.red_awaits_pass("1") is False
+
+
+def ps_answering(monkeypatch, supervise, rows):
+    def captured(*args):
+        assert args[0] == "ps", args
+        return subprocess.CompletedProcess(list(args), 0, "".join(f"{row}\n" for row in rows), "")
+    monkeypatch.setattr(supervise, "captured", captured)
+
+
+def test_tree_cpu_seconds_parses_ps_output_counting_a_leafs_descendants_but_not_claude_itself_nor_processes_outside_its_tree_2566(
+        monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        "    1     0   9:59:59.00 /sbin/launchd",
+        " 4242     1   0:00.10 /bin/sh",
+        " 4243  4242  50:00.00 /Users/someone/.local/bin/claude",
+        " 4244  4243   0:01.50 /bin/bash",
+        " 4245  4244   0:00.40 sleep",
+        " 5000     1  12:00.00 claude",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(1.9)
+
+
+def test_tree_cpu_seconds_reads_ps_d_hh_mm_ss_time_as_days_hours_minutes_seconds_alongside_mm_ss_and_hh_mm_ss_2566(
+        monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        " 4242     1   0:00.00 /bin/sh",
+        " 4244  4242   1-02:03:04 /bin/bash",
+        " 4245  4244   01:00:00 make",
+        " 4246  4244   2:30.50 python3",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(93784 + 3600 + 150.5)
+
+
+def test_tree_cpu_seconds_skips_a_ps_row_of_fewer_than_four_fields_instead_of_raising_2566(monkeypatch, supervise):
+    ps_answering(monkeypatch, supervise, [
+        " 4242     1   0:00.00 /bin/sh",
+        " 4244  4242   0:01.50 /bin/bash",
+        " 4245  4244   0:00.40",
+        "",
+    ])
+
+    assert supervise.tree_cpu_seconds(4242) == pytest.approx(1.5)

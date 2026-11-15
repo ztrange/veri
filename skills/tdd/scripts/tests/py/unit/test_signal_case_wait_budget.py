@@ -4,7 +4,7 @@ from pathlib import Path
 
 import leaf_waits
 
-SUITE = Path(__file__).resolve().parents[1] / "test_supervise.py"
+SUITE = Path(__file__).resolve().parents[1] / "test_supervise_process.py"
 CASE = (
     "test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_"
     "lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently"
