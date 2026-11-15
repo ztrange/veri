@@ -10,11 +10,11 @@ import tunables
 try:
     from .event_log import read_events
     from .add_ledger_step import added_file
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, is_added, read_ledger, replace_ledger
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
 except ImportError:
     from event_log import read_events
     from add_ledger_step import added_file
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, is_added, read_ledger, replace_ledger
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body, carries_mark, is_added, open_step_line, read_ledger, replace_ledger
 
 USAGE = ("usage: ledger-growth.sh <plan-ledger-file> <ledger-file> | plan-sha"
          " | record-existing <ledger-file> | record-rewrite <pre-rewrite-ledger-file> <ledger-file>"
@@ -26,7 +26,7 @@ def step_texts(text):
     for line in text.split("\n"):
         match = STEP_RE.fullmatch(line)
         if match:
-            steps.append((match.group(4) or "").split(" ⟂ ", 1)[0])
+            steps.append(body(match.group(4) or ""))
     return steps
 
 
@@ -66,7 +66,7 @@ def git_out(directory, *args):
 
 
 def record_lines(steps):
-    return "".join(f"- [ ] {step}\n" for step in steps).encode(errors="surrogateescape")
+    return "".join(open_step_line(step) + "\n" for step in steps).encode(errors="surrogateescape")
 
 
 def record_existing(ledger):
@@ -119,17 +119,17 @@ def reopen(ledger, needle, change):
             print(f"  {match.group(4)}", file=sys.stderr)
         return 2
     i, match = hits[0]
-    body = match.group(4).split(" ⟂ ", 1)[0]
-    if "⟦skill-edit⟧" not in body:
-        print(f"ledger-growth.sh: not a skill-edit step: {body}", file=sys.stderr)
+    step_body = body(match.group(4))
+    if not carries_mark(step_body, "skill-edit"):
+        print(f"ledger-growth.sh: not a skill-edit step: {step_body}", file=sys.stderr)
         return 2
     if match.group(2) == " ":
-        print(f"ledger-growth.sh: step is not ticked: {body}", file=sys.stderr)
+        print(f"ledger-growth.sh: step is not ticked: {step_body}", file=sys.stderr)
         return 3
-    head, tag, k = body.rpartition(" " + CRITERION_TAG)
+    head, tag, k = step_body.rpartition(" " + CRITERION_TAG)
     head = head.removesuffix(" " + ADDED_MARK)
     step = f"{head} change: {change} {ADDED_MARK}{tag}{k}"
-    lines[i] = f"- [ ] {step}"
+    lines[i] = open_step_line(step)
     replace_ledger(ledger, "\n".join(lines))
     with open(added_file(ledger), "ab") as f:
         f.write(record_lines([step]))
