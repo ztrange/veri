@@ -198,6 +198,58 @@ def red_gate_failure():
     return None
 
 
+def diff_gate(words, options):
+    """The exit code when the diff step deleted or renamed-and-changed an earlier pytest case, else None."""
+    if leaf_tree_guard.git("rev-parse", "--git-dir").returncode:
+        return None
+    tip = "HEAD"
+    if options["--supersede-base"]:
+        tip = leaf_tree_guard.in_temp_index("write-tree")
+    deleted = deleted_cases(words[2], words[3], tip)
+    if deleted is None:
+        return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]), usage=USAGE)
+    if deleted:
+        taken = {other for _, other in pytest_cases(words[3])}
+        changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
+        pairs = [(case, other) for case, other in changed if other]
+        if pairs:
+            write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
+                   + ", ".join("%s::%s -> %s" % (case + (other,)) for case, other in pairs))
+            return 1
+        write(sys.stdout, "step deleted pytest cases an earlier step added: "
+               + ", ".join("%s::%s" % case for case in deleted))
+        return 1
+    return None
+
+
+def rebase_gate(words, options):
+    """1 when the rebase committed conflict markers, else None."""
+    if leaf_tree_guard.git("rev-parse", "--git-dir").returncode:
+        return None
+    marked = added_markers(words[2])
+    if marked:
+        write(sys.stdout, "rebase committed conflict markers: "
+               + ", ".join("%s %s" % pair for pair in marked))
+        return 1
+    return None
+
+
+def red_gate(words, options):
+    """2 for a refusal of verify's own, 1 for a gate that fails on the Red's tree, else None."""
+    failure = red_gate_failure()
+    if failure and failure.startswith("verify: "):
+        write(sys.stderr, failure)
+        return 2
+    if failure:
+        write(sys.stdout, failure)
+        return 1
+    return None
+
+
+# A phase's gate runs before its prompt is written; adding one is one entry.
+PHASE_GATES = {"diff": diff_gate, "rebase": rebase_gate, "red": red_gate}
+
+
 def main(argv):
     options = {"--step": "", "--fast-cmd": "", "--supersede-base": ""}
     words = list(argv)
@@ -235,38 +287,10 @@ def main(argv):
                                             ledger=ledger, supersede_base=options["--supersede-base"])
     if code:
         return entry.to_contract(code)
-    if words[0] == "diff" and leaf_tree_guard.git("rev-parse", "--git-dir").returncode == 0:
-        tip = "HEAD"
-        if options["--supersede-base"]:
-            tip = leaf_tree_guard.in_temp_index("write-tree")
-        deleted = deleted_cases(words[2], words[3], tip)
-        if deleted is None:
-            return entry.refuse("verify: cannot read the test files at %s, %s or HEAD" % (words[2], words[3]), usage=USAGE)
-        if deleted:
-            taken = {other for _, other in pytest_cases(words[3])}
-            changed = [(case, changed_rename(case, words[3], taken, tip)) for case in deleted]
-            pairs = [(case, other) for case, other in changed if other]
-            if pairs:
-                write(sys.stdout, "step renamed and changed pytest cases, so the step must be split: "
-                       + ", ".join("%s::%s -> %s" % (case + (other,)) for case, other in pairs))
-                return 1
-            write(sys.stdout, "step deleted pytest cases an earlier step added: "
-                   + ", ".join("%s::%s" % case for case in deleted))
-            return 1
-    if words[0] == "rebase" and leaf_tree_guard.git("rev-parse", "--git-dir").returncode == 0:
-        marked = added_markers(words[2])
-        if marked:
-            write(sys.stdout, "rebase committed conflict markers: "
-                   + ", ".join("%s %s" % pair for pair in marked))
-            return 1
-    if words[0] == "red":
-        failure = red_gate_failure()
-        if failure and failure.startswith("verify: "):
-            write(sys.stderr, failure)
-            return 2
-        if failure:
-            write(sys.stdout, failure)
-            return 1
+    gate = PHASE_GATES.get(words[0])
+    refused = gate(words, options) if gate else None
+    if refused is not None:
+        return refused
     top = event.toplevel()
     run = top if top and top != os.getcwd() else ""
     run_state = os.path.join(run, ".tdd")
