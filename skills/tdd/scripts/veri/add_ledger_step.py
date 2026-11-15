@@ -17,10 +17,10 @@ import tunables
 
 try:
     from .event_log import read_events
-    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+    from .ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 except ImportError:
     from event_log import read_events
-    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, carries_mark, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
+    from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, body as step_body, carries_mark, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, trailing_markers, unit_of
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR)
@@ -200,7 +200,7 @@ def main(argv):
     for text in texts:
         if CRITERION_TAG in text:
             return entry.refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
-        if " ⟂ " in text:
+        if step_body(text) != text:
             return entry.refuse("add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text)
     try:
         lines = read_ledger(path).split("\n")
@@ -244,7 +244,7 @@ def main(argv):
         if restated:
             return entry.refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
     steps = [line for line in lines if ledger_steps(line)]
-    earlier = [line for line in steps if is_suite_repair(line) and "⟂ retired" not in line]
+    earlier = [line for line in steps if is_suite_repair(line) and not is_retired(line)]
     try:
         this_run = added_since_last_resume(path, steps) if earlier else False
     except UnreadableLog as unreadable:
