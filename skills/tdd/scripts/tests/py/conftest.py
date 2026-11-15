@@ -6,8 +6,10 @@ import io
 import json
 import os
 import pathlib
+import pwd
 import re
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -20,8 +22,8 @@ from case_size_guards import (  # noqa: F401  (the guards, registered through th
     RUNS_GIT_WITH_NO_CWD, STARTS_GIT_IN_REPOSITORY_EXEMPT, STARTS_PYTEST_EXEMPT, SUPERVISOR_POLL, SYSTEM_LOCATION_EXEMPT,
     at_or_under_root, caller_outside_pathlib, case_expects_no_system_location_unreadable_or_unwritable,
     case_forces_no_failure_through_permission_bits, case_starts_no_test_runner, case_tail, case_waits_no_default_push_backoff,
-    exempt_from, exemption_problems, fail_unbacked_push, in_repository_outside, meets_floor,
-    process_case_children_do_not_inherit_ignored_signals, process_case_shim_has_a_floor_interpreter,
+    exempt_from, exemption_problems, fail_unbacked_push, in_repository_outside,
+    process_case_children_do_not_inherit_ignored_signals,
     process_case_supervisor_polls_sub_second, process_case_waits_no_default_push_backoff, pytest_collection_modifyitems,
     reasonless_problems, register_markers, unmarked_case_lists_no_repository_directory,
     unmarked_case_reads_no_real_process_listing)
@@ -118,6 +120,46 @@ def veri_modules_index():
 
 
 REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
+
+
+# The floor guard stays here: tests patch conftest.REAL_RUN and conftest.SCRIPTS to count how meets_floor reaches its interpreter.
+_MEETS_FLOOR = {}
+
+
+def meets_floor(python):
+    real = os.path.realpath(python)
+    key = (real, os.stat(real).st_mtime_ns)
+    if key not in _MEETS_FLOOR:
+        floor = re.search(r"^VENV_FLOOR=(\d+)\.(\d+)", (SCRIPTS / "lib" / "venv-python.sh").read_text(), re.MULTILINE)
+        said = REAL_RUN([python, "-c", "import platform; print(platform.python_version())"],
+                        capture_output=True, text=True).stdout.strip()
+        version = re.match(r"(\d+)\.(\d+)", said)
+        _MEETS_FLOOR[key] = bool(floor and version) and (int(version.group(1)), int(version.group(2))) >= (int(floor.group(1)), int(floor.group(2)))
+    return _MEETS_FLOOR[key]
+
+
+@pytest.fixture(autouse=True)
+def process_case_shim_has_a_floor_interpreter(request, monkeypatch):
+    if request.node.get_closest_marker("process") is None or exempt_from(case_tail(request), BELOW_FLOOR_INTERPRETER_EXEMPT):
+        return
+    real = subprocess.Popen.__init__
+
+    def checked(self, args, *rest, **kwargs):
+        words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
+        shim = os.fsdecode(words[0]) if words else ""
+        if os.path.dirname(os.path.abspath(shim)) == str(SCRIPTS) and shim.endswith(".sh"):
+            env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
+            home = env["HOME"] if "HOME" in env else pwd.getpwuid(os.getuid()).pw_dir
+            venv = env.get("VERI_VENV") or home + "/.veri-tools/venv"
+            venv_python = os.path.join(venv, "bin", "python3")
+            on_path = shutil.which("python3", path=env.get("PATH", os.defpath))
+            if not ((os.access(venv_python, os.X_OK) and meets_floor(venv_python))
+                    or (on_path and meets_floor(on_path))):
+                raise AssertionError("%s launches %s with no python3 at the floor: VERI_VENV=%s, PATH's python3 is %s"
+                                     % (request.node.nodeid, os.path.basename(shim), env.get("VERI_VENV"), on_path))
+        return real(self, args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess.Popen, "__init__", checked)
 
 
 def interpreter_venv():

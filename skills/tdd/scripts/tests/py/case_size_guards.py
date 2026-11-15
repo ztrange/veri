@@ -7,7 +7,6 @@ import builtins
 import io
 import os
 import pathlib
-import pwd
 import re
 import shlex
 import shutil
@@ -21,7 +20,6 @@ import pytest
 # Computed here as conftest.py computes them: this module cannot import conftest, which imports it.
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 ROOT = SCRIPTS.parents[2]
-REAL_RUN = subprocess.run
 # conftest.py holds hermetic_environment's guard wrappers; a frame in either file belongs to a guard, not to the caller.
 GUARD_FILES = {__file__, os.path.join(os.path.dirname(__file__), "conftest.py")}
 
@@ -327,21 +325,6 @@ def case_starts_no_test_runner(request, monkeypatch):
     monkeypatch.setattr = guarded_setattr
 
 
-_MEETS_FLOOR = {}
-
-
-def meets_floor(python):
-    real = os.path.realpath(python)
-    key = (real, os.stat(real).st_mtime_ns)
-    if key not in _MEETS_FLOOR:
-        floor = re.search(r"^VENV_FLOOR=(\d+)\.(\d+)", (SCRIPTS / "lib" / "venv-python.sh").read_text(), re.MULTILINE)
-        said = REAL_RUN([python, "-c", "import platform; print(platform.python_version())"],
-                        capture_output=True, text=True).stdout.strip()
-        version = re.match(r"(\d+)\.(\d+)", said)
-        _MEETS_FLOOR[key] = bool(floor and version) and (int(version.group(1)), int(version.group(2))) >= (int(floor.group(1)), int(floor.group(2)))
-    return _MEETS_FLOOR[key]
-
-
 BELOW_FLOOR_INTERPRETER_EXEMPT = {
     "test_bash_version_guard_process.py::test_on_a_real_python3_below_the_floor_first_on_path_usr_bin_python3_leaf_launchable_sh_refuses_with_exit_2_naming_the_floor_and_its_version":
         "the shim's refusal of a below-floor python3 on PATH is the subject",
@@ -352,30 +335,6 @@ BELOW_FLOOR_INTERPRETER_EXEMPT = {
     "test_shims.py::test_issue_2106_shim_with_both_python3s_exiting_1_silently_exits_2_naming_each_interpreter_and_an_unknown_version":
         "the shim's refusal of interpreters reporting no version is the subject",
 }
-
-
-@pytest.fixture(autouse=True)
-def process_case_shim_has_a_floor_interpreter(request, monkeypatch):
-    if request.node.get_closest_marker("process") is None or exempt_from(case_tail(request), BELOW_FLOOR_INTERPRETER_EXEMPT):
-        return
-    real = subprocess.Popen.__init__
-
-    def checked(self, args, *rest, **kwargs):
-        words = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
-        shim = os.fsdecode(words[0]) if words else ""
-        if os.path.dirname(os.path.abspath(shim)) == str(SCRIPTS) and shim.endswith(".sh"):
-            env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
-            home = env["HOME"] if "HOME" in env else pwd.getpwuid(os.getuid()).pw_dir
-            venv = env.get("VERI_VENV") or home + "/.veri-tools/venv"
-            venv_python = os.path.join(venv, "bin", "python3")
-            on_path = shutil.which("python3", path=env.get("PATH", os.defpath))
-            if not ((os.access(venv_python, os.X_OK) and meets_floor(venv_python))
-                    or (on_path and meets_floor(on_path))):
-                raise AssertionError("%s launches %s with no python3 at the floor: VERI_VENV=%s, PATH's python3 is %s"
-                                     % (request.node.nodeid, os.path.basename(shim), env.get("VERI_VENV"), on_path))
-        return real(self, args, *rest, **kwargs)
-
-    monkeypatch.setattr(subprocess.Popen, "__init__", checked)
 
 
 PATHLIB_SOURCE = os.path.splitext(pathlib.__file__)[0].removesuffix("__init__")
