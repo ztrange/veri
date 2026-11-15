@@ -222,7 +222,7 @@ def exempt_from(tail, table):
 RUNS_GIT_WITH_NO_CWD = "the module under test runs git with no cwd while the process works in the repository; the case fakes the process or reads only the recorded call"
 
 STARTS_GIT_IN_REPOSITORY_EXEMPT = {
-    "test_supervise.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
+    "test_supervise_process.py": "supervise.py records the skill clone's own HEAD; the case only lets it run rev-parse HEAD there",
     "test_run_conductor.py": "run_conductor.py runs git -C <skill clone> and the cases fake every process, so the path only reaches the recorded call",
     "test_rebase_onto_default_process.py::test_main_run_through_a_symlink_from_another_directory_rebases_the_callers_clone_and_never_the_skills_repository":
         "the skills repository's own HEAD is read to prove it was never rebased",
