@@ -583,6 +583,119 @@ def main(argv):
     return code
 
 
+def record(record_file, files, step=None):
+    """`record`: freeze `files` (and the steps's cases when `step` is given) in `record_file`; the exit code.
+
+    `files` may hold `--red-case <test-id>`, which is taken off it. Without `step` it writes one digest line per file;
+    with it, it enters the repository root, adds the test files that differ from HEAD and records the step's cases."""
+    by_step = step is not None
+    files = list(files)
+    refused = _take_red_case(files)
+    if refused is not None:
+        return refused
+    if by_step and _refused_outside_repository():
+        return 2
+    deleted = []
+    if by_step:
+        record_file, files = _enter_root(record_file, files)
+        try:
+            differing = differing_tests()
+        except OSError as error:
+            write(sys.stderr, "tests-frozen.sh: %s" % error)
+            return 2
+        for name in differing:
+            if name in files or name in deleted:
+                continue
+            (files if os.path.exists(name) else deleted).append(name)
+    if not files and not deleted:
+        write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
+        return 2
+    try:
+        lines = ["%s  %s\n" % (_digest(name), name) for name in files]
+        lines += ["deleted  %s\n" % name for name in deleted]
+        if by_step:
+            if files:
+                lines.append(frozen_record.format_line())
+            for name in files:
+                try:
+                    added = _added_cases(name)
+                    if name in _guard_subjects(step):
+                        added = [c for c in added if c[0] not in _head_and_new_cases(name)[0]]
+                    kept = [c for c in _kept_cases(record_file, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
+                except UnclosedCase as error:
+                    raise LookupError("%s: %s" % (name, error))
+                if _recorded_digests(record_file, name) and not kept and not added:
+                    write(sys.stderr, "tests-frozen.sh: step %s: every case recorded for %s is gone from HEAD "
+                          "with no renamed successor: nothing left to record\n" % (step, name))
+                    return 2
+                for case, body in added + kept:
+                    lines += frozen_record.case_lines(name, case, body)
+        with open(record_file, "w") as handle:
+            handle.writelines(lines)
+    except (OSError, LookupError) as error:
+        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        return 2
+    return 0
+
+
+def check(record_file, step=None):
+    """`check`: the exit code of comparing `record_file`'s files with the tree (0 intact, 1 changed, 2 no answer),
+    naming each changed file on stdout; with `step`, also the test files that differ from HEAD and are not recorded."""
+    by_step = step is not None
+    if by_step and _refused_outside_repository():
+        return 2
+    if by_step and not _has_head():
+        write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
+        return 2
+    if by_step:
+        record_file, _ = _enter_root(record_file, [])
+    try:
+        with open(record_file) as handle:
+            entries = [entry for entry in map(frozen_record.digest_entry, handle) if entry]
+    except OSError:
+        write(sys.stderr, "tests-frozen.sh: record %s is missing" % record_file)
+        return 2
+    if not entries or any(len(entry) != 2 for entry in entries):
+        write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record_file)
+        return 2
+    fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
+    loose = fixture.group(1) if fixture else None
+    subjects = _guard_subjects(step) if by_step else []
+    changed = []
+    for expected, name in entries:
+        if expected == "deleted":
+            if os.path.exists(name):
+                changed.append(name)
+            continue
+        try:
+            if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record_file, loose)) and name not in subjects:
+                changed.append(name)
+        except OSError:
+            changed.append(name)
+        except UnclosedCase as error:
+            write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
+            return 2
+    if by_step:
+        recorded = {name for _, name in entries}
+        parsed = _parse_replaces(step)
+        exempt = {parsed[1]} if parsed else set()
+        if fixture:
+            exempt.add(fixture.group(1))
+        exempt.update(subjects)
+        try:
+            differing = differing_tests()
+        except OSError as error:
+            write(sys.stderr, "tests-frozen.sh: %s" % error)
+            return 2
+        changed += [name for name in differing
+                    if name not in recorded
+                    and (name not in exempt
+                         or (name in subjects and not os.path.exists(name)))]
+    for name in changed:
+        write(sys.stdout, name)
+    return 1 if changed else 0
+
+
 def _main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
@@ -598,124 +711,26 @@ def _main(argv):
     if mode == "check-earlier":
         write(sys.stderr, USAGE)
         return 2
-    record = argv[1] if len(argv) > 1 else ""
-    if not record:
+    record_file = argv[1] if len(argv) > 1 else ""
+    if not record_file:
         write(sys.stderr, USAGE)
         return 2
     if mode == "path":
-        write(sys.stdout, record_path(record))
+        write(sys.stdout, record_path(record_file))
         return 0
-    by_step = record == "--step"
-    if by_step:
+    step, files = None, argv[2:]
+    if record_file == "--step":
         step = argv[2] if len(argv) > 2 else ""
         if not step:
             write(sys.stderr, USAGE)
             return 2
         if any(carries_mark(trailing_markers(step), mark) for mark in REPAIR_MARKS if mark != "fixture-repair"):
             return 0
-        argv = [mode, record_path(step)] + argv[3:]
-        record = argv[1]
+        record_file, files = record_path(step), argv[3:]
     if mode == "record":
-        files = argv[2:]
-        refused = _take_red_case(files)
-        if refused is not None:
-            return refused
-        if by_step and _refused_outside_repository():
-            return 2
-        deleted = []
-        if by_step:
-            record, files = _enter_root(record, files)
-            try:
-                differing = differing_tests()
-            except OSError as error:
-                write(sys.stderr, "tests-frozen.sh: %s" % error)
-                return 2
-            for name in differing:
-                if name in files or name in deleted:
-                    continue
-                (files if os.path.exists(name) else deleted).append(name)
-        if not files and not deleted:
-            write(sys.stderr, "tests-frozen.sh: record needs at least one test file")
-            return 2
-        try:
-            lines = ["%s  %s\n" % (_digest(name), name) for name in files]
-            lines += ["deleted  %s\n" % name for name in deleted]
-            if by_step:
-                if files:
-                    lines.append(frozen_record.format_line())
-                for name in files:
-                    try:
-                        added = _added_cases(name)
-                        if name in _guard_subjects(step):
-                            added = [c for c in added if c[0] not in _head_and_new_cases(name)[0]]
-                        kept = [c for c in _kept_cases(record, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
-                    except UnclosedCase as error:
-                        raise LookupError("%s: %s" % (name, error))
-                    if _recorded_digests(record, name) and not kept and not added:
-                        write(sys.stderr, "tests-frozen.sh: step %s: every case recorded for %s is gone from HEAD "
-                              "with no renamed successor: nothing left to record\n" % (step, name))
-                        return 2
-                    for case, body in added + kept:
-                        lines += frozen_record.case_lines(name, case, body)
-            with open(record, "w") as handle:
-                handle.writelines(lines)
-        except (OSError, LookupError) as error:
-            write(sys.stderr, "tests-frozen.sh: %s" % error)
-            return 2
-        return 0
+        return record(record_file, files, step)
     if mode == "check":
-        if by_step and _refused_outside_repository():
-            return 2
-        if by_step and not _has_head():
-            write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
-            return 2
-        if by_step:
-            record, _ = _enter_root(record, [])
-        try:
-            with open(record) as handle:
-                entries = [entry for entry in map(frozen_record.digest_entry, handle) if entry]
-        except OSError:
-            write(sys.stderr, "tests-frozen.sh: record %s is missing" % record)
-            return 2
-        if not entries or any(len(entry) != 2 for entry in entries):
-            write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record)
-            return 2
-        fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
-        loose = fixture.group(1) if fixture else None
-        subjects = _guard_subjects(step) if by_step else []
-        changed = []
-        for expected, name in entries:
-            if expected == "deleted":
-                if os.path.exists(name):
-                    changed.append(name)
-                continue
-            try:
-                if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record, loose)) and name not in subjects:
-                    changed.append(name)
-            except OSError:
-                changed.append(name)
-            except UnclosedCase as error:
-                write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
-                return 2
-        if by_step:
-            recorded = {name for _, name in entries}
-            parsed = _parse_replaces(step)
-            exempt = {parsed[1]} if parsed else set()
-            if fixture:
-                exempt.add(fixture.group(1))
-            exempt.update(subjects)
-            try:
-                differing = differing_tests()
-            except OSError as error:
-                write(sys.stderr, "tests-frozen.sh: %s" % error)
-                return 2
-            changed += [name for name in differing
-                        if name not in recorded
-                        and (name not in exempt
-                             or (name in subjects and not os.path.exists(name)))]
-        for name in changed:
-            write(sys.stdout, name)
-        return 1 if changed else 0
+        return check(record_file, step)
     write(sys.stderr, USAGE)
     return 2
 

@@ -1523,3 +1523,116 @@ def test_record_whose_every_recorded_case_is_gone_exits_2_and_writes_a_refusal_e
 
     assert (code, [(e["event"], e["exit"], "nothing left to record" in e["reason"])
                    for e in _refusals(tmp_path)]) == (2, [("tests-frozen-refused", "2", True)])
+
+
+# record(...) and check(...) called with explicit arguments: they return the exit code and speak as the CLI does.
+
+def _in_repo(monkeypatch, tests_frozen, tmp_path, differing=()):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: str(tmp_path))
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: True)
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: list(differing))
+    monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: {})
+
+
+def test_record_function_writes_a_digest_line_per_file_and_returns_0_naming_nothing(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.test.sh").write_text("case one\n")
+
+    code = tests_frozen.record(str(tmp_path / "x.record"), ["a.test.sh"])
+
+    assert (code, (tmp_path / "x.record").read_text(), capfd.readouterr()) == (
+        0, "%s  a.test.sh\n" % hashlib.sha256(b"case one\n").hexdigest(), ("", ""))
+
+
+def test_record_function_without_a_test_file_returns_2_saying_so_and_writes_no_record(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+
+    code = tests_frozen.record(str(tmp_path / "x.record"), [])
+
+    assert (code, (tmp_path / "x.record").exists(), capfd.readouterr()) == (
+        2, False, ("", "tests-frozen.sh: record needs at least one test file\n"))
+
+
+def test_record_function_refuses_a_red_case_option_without_its_value_returning_2_with_the_usage(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+
+    code = tests_frozen.record(str(tmp_path / "x.record"), ["a.test.sh", "--red-case"])
+    out, err = capfd.readouterr()
+
+    assert (code, out, err.startswith("tests-frozen.sh: --red-case needs a <red-test-id>\nusage: ")) == (2, "", True)
+
+
+def test_record_function_returns_1_naming_a_red_case_that_no_longer_exists_and_writes_no_record(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.test.sh").write_text("case one\n")
+
+    code = tests_frozen.record(str(tmp_path / "x.record"), ["--red-case", "a.test.sh::gone", "a.test.sh"])
+
+    assert (code, (tmp_path / "x.record").exists(), capfd.readouterr()) == (
+        1, False, ("tests-frozen.sh: red case a.test.sh::gone no longer exists\n\n", ""))
+
+
+def test_record_function_by_step_outside_a_repository_returns_2_saying_so(tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(tests_frozen, "_toplevel", lambda: None)
+
+    code = tests_frozen.record(str(tmp_path / "x.record"), ["a.test.sh"], step="a step")
+
+    assert (code, capfd.readouterr()) == (2, ("", "tests-frozen.sh: not inside a git repository\n"))
+
+
+def test_check_function_returns_0_for_an_unchanged_file_and_1_naming_a_changed_or_deleted_one(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.test.sh").write_text("case one\n")
+    (tmp_path / "b.test.sh").write_text("case two\n")
+    record = str(tmp_path / "x.record")
+    tests_frozen.record(record, ["a.test.sh", "b.test.sh"])
+    capfd.readouterr()
+    unchanged = tests_frozen.check(record)
+    (tmp_path / "b.test.sh").write_text("case two, edited\n")
+    (tmp_path / "a.test.sh").unlink()
+
+    changed = tests_frozen.check(record)
+
+    assert (unchanged, changed, capfd.readouterr()) == (0, 1, ("a.test.sh\nb.test.sh\n", ""))
+
+
+def test_check_function_returns_2_for_a_missing_or_a_malformed_record_naming_it(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "bad.record").write_text("not a digest line\n")
+
+    answers = [(tests_frozen.check(str(tmp_path / name)), capfd.readouterr()[1]) for name in ("gone.record", "bad.record")]
+
+    assert answers == [(2, "tests-frozen.sh: record %s/gone.record is missing\n" % tmp_path),
+                       (2, "tests-frozen.sh: record %s/bad.record is malformed\n" % tmp_path)]
+
+
+def test_check_function_by_step_returns_2_when_the_repository_has_no_head_commit(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    _in_repo(monkeypatch, tests_frozen, tmp_path)
+    monkeypatch.setattr(tests_frozen, "_has_head", lambda: False)
+
+    code = tests_frozen.check(str(tmp_path / "x.record"), step="a step")
+
+    assert (code, capfd.readouterr()) == (2, ("", "tests-frozen.sh: repository has no HEAD commit\n"))
+
+
+def test_check_function_by_step_names_a_test_file_that_differs_from_head_and_is_not_in_the_record(
+        tmp_path, tests_frozen, monkeypatch, capfd):
+    _in_repo(monkeypatch, tests_frozen, tmp_path)
+    (tmp_path / "a.test.sh").write_text("case one\n")
+    record = str(tmp_path / "x.record")
+    tests_frozen.record(record, ["a.test.sh"], step="a step")
+    capfd.readouterr()
+    monkeypatch.setattr(tests_frozen, "differing_tests", lambda: ["b.test.sh"])
+
+    code = tests_frozen.check(record, step="a step")
+
+    assert (code, capfd.readouterr()) == (1, ("b.test.sh\n", ""))
