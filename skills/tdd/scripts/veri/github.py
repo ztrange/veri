@@ -14,6 +14,7 @@ import contextlib
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -202,29 +203,73 @@ def bounded(argv, run=None, **kwargs):
     limit = wait_seconds("VERI_GH_TIMEOUT", 1)
     with contextlib.ExitStack() as cleanup:
         if argv[0] == "gh":
-            argv = [_redacted_arg(arg, flag in ("-F", "--field"), cleanup) for flag, arg in zip([None] + argv, argv)]
+            argv = _redacted_argv(argv, cleanup)
         try:
             return (run or subprocess.run)(argv, timeout=limit, **kwargs)
         except subprocess.TimeoutExpired:
             return _timed_out(argv, limit, kwargs)
 
 
-def _redacted_arg(arg, typed, cleanup):
-    """<arg> of a gh command line, redacted; a <typed> field (after -F) `<field>=@<file>` whose file holds something to
-    redact names instead a redacted copy of it, removed when <cleanup> closes, and the file itself is left as it was."""
-    field, at, path = arg.partition("=@")
-    if not (typed and at) or path == "-" or not os.path.isfile(path):
-        return redact(arg)
-    with open(path, encoding="utf-8", errors="surrogateescape") as f:
-        text = f.read()
-    redacted = redact(text)
-    if redacted == text:
-        return redact(arg)
-    fd, copy = tempfile.mkstemp(prefix="veri-redacted-")
-    cleanup.callback(os.remove, copy)
-    with os.fdopen(fd, "w", encoding="utf-8", errors="surrogateescape") as f:
-        f.write(redacted)
-    return redact(field) + at + copy
+# The ways a gh command line names a file whose contents gh sends: an option and its value (`--input f`), a long
+# option glued with `=` (`--input=f`), and a typed field read from a file (`-F body=@f`, `-Fbody=@f`, `--field body=@f`,
+# `--field=body=@f`).
+_FILE_OPTIONS = ("--input", "--body-file")
+_FIELD_OPTIONS = ("-F", "--field")
+
+
+def _redacted_argv(argv, cleanup):
+    """<argv>, a gh command line, with every argument redacted, and every file it hands gh whose contents hold
+    something to redact replaced by a redacted copy in a private directory removed when <cleanup> closes; the files
+    themselves are left as they were."""
+    copies = _Copies(cleanup)
+    out = []
+    for flag, arg in zip([None] + list(argv), argv):
+        if flag in _FILE_OPTIONS:
+            out.append(copies.of(arg) or redact(arg))
+            continue
+        head, path = _named_file(arg, typed=flag in _FIELD_OPTIONS)
+        copy = copies.of(path) if path is not None else None
+        out.append(redact(head) + copy if copy else redact(arg))
+    return out
+
+
+def _named_file(arg, typed):
+    """(what precedes the file, the file) a single argument names, or (arg, None)."""
+    for option in _FILE_OPTIONS:
+        if arg.startswith(option + "="):
+            return option + "=", arg[len(option) + 1:]
+    for option in ("-F", "--field="):
+        if arg.startswith(option) and "=@" in arg[len(option):]:
+            field, _, path = arg[len(option):].partition("=@")
+            return option + field + "=@", path
+    if typed and "=@" in arg:
+        field, _, path = arg.partition("=@")
+        return field + "=@", path
+    return arg, None
+
+
+class _Copies:
+    """Redacted copies of files, in one directory of their own (mode 0700, made by mkdtemp), removed with it."""
+
+    def __init__(self, cleanup):
+        self.cleanup, self.directory = cleanup, None
+
+    def of(self, path):
+        """A redacted copy of <path>, or None when it is not a file or holds nothing to redact."""
+        if path == "-" or not os.path.isfile(path):
+            return None
+        with open(path, encoding="utf-8", errors="surrogateescape") as f:
+            text = f.read()
+        redacted = redact(text)
+        if redacted == text:
+            return None
+        if self.directory is None:
+            self.directory = tempfile.mkdtemp(prefix="veri-redacted-")
+            self.cleanup.callback(shutil.rmtree, self.directory, True)
+        copy = os.path.join(self.directory, "%d-%s" % (len(os.listdir(self.directory)), os.path.basename(path)))
+        with open(copy, "w", encoding="utf-8", errors="surrogateescape") as f:
+            f.write(redacted)
+        return copy
 
 
 def bounded_group(argv, limit_name="VERI_GH_TIMEOUT", **kwargs):
