@@ -1,0 +1,134 @@
+"""reset-cost.sh's logic, run in-process: what each recorded reset of a role cost, read from the files veri writes."""
+if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import json
+import os
+import sys
+from datetime import datetime
+
+import growth
+import prices
+import role_state
+import run_dir
+
+USAGE = "usage: reset-cost.sh dev [--lane <lane>] | conductor <n>\n"
+
+
+class Failure(Exception):
+    pass
+
+
+def _epoch(timestamp):
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp()
+
+
+def requests(records):
+    """Each request once (by message id) that carries usage, in record order."""
+    seen = set()
+    found = []
+    for record in records:
+        message = record.get("message") or {}
+        if not message.get("usage") or message.get("id") in seen:
+            continue
+        seen.add(message.get("id"))
+        found.append(record)
+    return found
+
+
+def units(record):
+    """The request's price in input-token units at its model's rates, None when the model has no price."""
+    message = record["message"]
+    model = prices.family(message.get("model") or "")
+    if model is None:
+        return None
+    rates = prices.PRICES[model]
+    usage = message["usage"]
+    dollars = (usage.get("input_tokens", 0) * rates["input"] + usage.get("cache_read_input_tokens", 0) * rates["cache_read"]
+               + usage.get("output_tokens", 0) * rates["output"]
+               + sum(tokens * rates[rate] for rate, tokens in prices.cache_write_tokens(usage).items()))
+    return dollars / rates["input"]
+
+
+def cost(window):
+    """The summed price of `window`'s requests, None when there is none or one is unpriced."""
+    each = [units(r) for r in window]
+    return None if not each or None in each else sum(each)
+
+
+def per_request(window):
+    """The mean context increase per request over `window`, by growth.growth; None under two requests."""
+    if len(window) < 2:
+        return None
+    return growth.growth(window) / (len(window) - 1)
+
+
+def _figure(value):
+    return "unknown" if value is None else "%d" % round(value)
+
+
+def _read_records(path):
+    try:
+        with open(path) as f:
+            return [json.loads(line) for line in f if line.strip()]
+    except (OSError, ValueError, UnicodeDecodeError):
+        raise Failure("reset-cost.sh: unreadable transcript %s\n" % path)
+
+
+def dev_resets(lines):
+    """(reset-at, recovered-at or None, next reset-at or None) for each reset the state lines record."""
+    resets = []
+    for line in lines:
+        key, _, value = line.partition("=")
+        if key == "reset-at":
+            resets.append([value, None])
+        elif key == "recovered-at" and resets and resets[-1][1] is None:
+            resets[-1][1] = value
+    return [(at, recovered, resets[i + 1][0] if i + 1 < len(resets) else None)
+            for i, (at, recovered) in enumerate(resets)]
+
+
+def dev(lane):
+    path = role_state.state_path(run_dir.main_tree_from_files(os.getcwd()), "dev", lane)
+    lines = (role_state.read(path) or "").splitlines()
+    resets = dev_resets(lines)
+    transcripts = list(dict.fromkeys(l.partition("=")[2] for l in lines if l.startswith("transcript=")))
+    records = sorted((r for t in transcripts for r in requests(_read_records(t)) if r.get("timestamp")),
+                     key=lambda r: _epoch(r["timestamp"]))
+    rows = []
+    for at, recovered, following in resets:
+        start = role_state.epoch(at)
+        end = role_state.epoch(following) if following else float("inf")
+        k = g = None
+        if recovered:
+            back = role_state.epoch(recovered)
+            after = [r for r in records if start < _epoch(r["timestamp"]) < end]
+            upto = next((i for i, r in enumerate(after) if _epoch(r["timestamp"]) >= back), None)
+            if upto is not None:
+                k = cost(after[:upto + 1])
+            g = per_request([r for r in after if _epoch(r["timestamp"]) >= back])
+        rows.append((at, k, g))
+    return rows
+
+
+def main(argv):
+    try:
+        return _main(argv)
+    except Failure as e:
+        sys.stderr.write(str(e))
+        return 2
+
+
+def _main(argv):
+    lane = None
+    if argv[1:2] == ["--lane"] and len(argv) == 3:
+        lane = argv[2]
+        argv = argv[:1]
+    if argv != ["dev"]:
+        raise Failure(USAGE)
+    for at, k, g in dev(lane):
+        print("%s K=%s g=%s" % (at, _figure(k), _figure(g)))
+    return 0
+
+
+if __name__ == "__main__":
+    import entry
+    entry.run(main, sys.argv[1:])
