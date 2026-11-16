@@ -34,8 +34,11 @@ REDACTED = "[redacted]"
 _TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22}|sk-ant-[A-Za-z0-9_-]{20}|AKIA[0-9A-Z]{16}")
 _RUN_ON = ((("github_pat_",), re.compile(r"[A-Za-z0-9_]*")), (("gh",), re.compile(r"[A-Za-z0-9]*")),
            (("sk-ant-",), re.compile(r"[A-Za-z0-9_-]*")), (("AKIA",), re.compile("")))
-# A line break, or its JSON string escape: a token wrapped across one is still a token.
-_BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n")
+# A line break or its JSON string escape, with the blanks before it and the next line's indent, or a zero-width
+# character (ZWSP, ZWNJ, ZWJ, BOM, soft hyphen): a token split by one is still a token.
+_BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n|[\u200b\u200c\u200d\ufeff\u00ad]")
+_BLANKS = re.compile(r"[ \t]*")
+_ZERO_WIDTH = "\u200b\u200c\u200d\ufeff\u00ad"
 # A base64 or base64url run long enough to encode the shortest secret (an 8-character value).
 _BASE64 = re.compile(r"[A-Za-z0-9+/_-]{12,}={0,2}")
 _URLSAFE = str.maketrans("-_", "+/")
@@ -45,11 +48,19 @@ def _unbroken(text):
     """<text> with every _BREAK removed, and where each piece of it starts in <text>: [(joined start, text start)]."""
     pieces, starts, at, joined = [], [], 0, 0
     for found in _BREAK.finditer(text):
-        if found.start() > at:
-            pieces.append(text[at:found.start()])
+        start, end = found.start(), found.end()
+        if found.group() not in _ZERO_WIDTH:
+            # The blanks before a line break and the next line's indent go with it; each blank is read once.
+            while start > at and text[start - 1] in " \t":
+                start -= 1
+            end = _BLANKS.match(text, end).end()
+        if end <= at:
+            continue
+        if start > at:
+            pieces.append(text[at:start])
             starts.append((joined, at))
-            joined += found.start() - at
-        at = found.end()
+            joined += start - at
+        at = max(at, end)
     pieces.append(text[at:])
     starts.append((joined, at))
     return "".join(pieces), starts
@@ -79,16 +90,18 @@ def _decodes_to_secret(run, values):
             decoded = base64.b64decode(aligned).decode("latin-1")
         except binascii.Error:
             continue
-        decoded = _BREAK.sub("", decoded)
+        decoded = _unbroken(decoded)[0]
         if _TOKEN_SHAPES.search(decoded) or any(value in decoded for value in values):
             return True
     return False
 
 
 def _listed_values():
-    """The values, 8 characters or more, of the variables VERI_REDACT_VARS names."""
-    values = (tunables.read(name) for name in tunables.get("VERI_REDACT_VARS").split())
-    return [value for value in values if len(value) >= 8]
+    """The values, 8 characters or more, of the variables VERI_REDACT_VARS names, each also as a JSON string escapes
+    it."""
+    values = [tunables.read(name) for name in tunables.get("VERI_REDACT_VARS").split()]
+    values = [value for value in values if len(value) >= 8]
+    return values + [json.dumps(value)[1:-1] for value in values if json.dumps(value)[1:-1] != value]
 
 
 def _secret_spans(text, values):
