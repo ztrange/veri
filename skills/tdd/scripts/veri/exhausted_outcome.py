@@ -45,11 +45,11 @@ def _refuse(why, line):
 
 
 def step_ahead(red_test_id):
-    own = os.fsencode(red_test_id).rpartition(b"::")[2]
+    red = os.fsencode(red_test_id)
     cases = []
     for line in _lines():
         marker = STEP_AHEAD_RE.match(line)
-        if not marker or marker.group(1).rpartition(b"::")[2] == own:
+        if not marker or (marker.group(1) if b"::" in red else marker.group(1).rpartition(b"::")[2]) == red:
             continue
         if b"::" not in marker.group(1):
             return _refuse("names no <file>::<case>", line)
