@@ -6,4 +6,4 @@
 - [x] *Rules* states exactly JD8's six rules ⟦criterion 4⟧
 - [x] the skill names no project fact, restates no other rule, names none of J1–J12 ⟦criterion 5⟧
 - [x] each rule has a REQUIREMENTS.md row whose Why cites a dated owner override from the re-run method ⟦criterion 6⟧
-- [ ] REQUIREMENTS.md and GRADED exist and the signature matches SKILL.md ⟦criterion 7⟧
+- [x] REQUIREMENTS.md and GRADED exist and the signature matches SKILL.md ⟦criterion 7⟧
