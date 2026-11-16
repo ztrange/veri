@@ -113,6 +113,7 @@
 | RD26 | When no commit can be resolved at all, the launch runs unpinned, says so on stderr, and hands the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4). (`## Launching the conductor`, paragraph 8.) | An unpinned run is visible, never silent. |
 | RD27 | `## Launching the conductor` is the section right after `## Install`. (Section order.) | The operator reads how to install before how to launch. |
 | RD28 | The paragraph on filing names `/vfile [bug\|refactor\|feature] [<one line>]`, says the kind is inferred from the line when omitted, and says `/vplan` turns an idea into a PRD of small sub-PRDs. | The current line would be false once the kind becomes optional. |
+| RD29 | The *The skill snapshot* paragraph says the snapshot is read-only: after extraction the write bits of its files and directories are removed, so a stray write into it fails, and that a leaf, running as the same user, can still restore them. (`## Launching the conductor`, *The skill snapshot* paragraph.) | A careless write into the skill a run executes fails loudly, and the paragraph does not overstate the protection. |
 
 ## CONTEXT.md
 
