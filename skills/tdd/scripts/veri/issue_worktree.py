@@ -14,7 +14,7 @@ import paths
 import pinned_scripts
 import run_dir
 import tunables
-from git import git, symref_default
+from git import default_branch, git, symref_default
 import github
 from github import NoAnswer
 from pid_file import ancestors, live_conductor
@@ -49,10 +49,9 @@ def origin_url():
 
 
 def default_branch_name(origin):
-    head = git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD",
-               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    if head.returncode == 0:
-        return head.stdout.rstrip("\n").removeprefix("origin/"), None
+    head = default_branch(remote=False)
+    if head:
+        return head, None
     if origin:
         answer = git("ls-remote", "--symref", "origin", "HEAD",
                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
