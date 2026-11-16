@@ -1,6 +1,7 @@
 """github-status.sh: whether GitHub's status page has an incident on the components veri needs, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
+import http.client
 import json
 import sys
 import time
@@ -48,17 +49,25 @@ def incidents(timeout):
     url = tunables.get("VERI_GITHUB_STATUS_URL") + FEED
     try:
         status, body = fetch(url, timeout)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, http.client.HTTPException) as error:
         raise NoAnswer("%s: no response within %d s (VERI_GITHUB_STATUS_TIMEOUT): %s" % (url, timeout, error))
     if status != 200:
         raise NoAnswer("%s: status %s" % (url, status))
     try:
         listed = json.loads(body)["incidents"]
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, KeyError, RecursionError):
         listed = None
-    if not isinstance(listed, list) or not all(isinstance(i, dict) for i in listed):
-        raise NoAnswer("%s: the body is not the feed's JSON (no incidents list)" % url)
+    if not isinstance(listed, list) or not all(well_formed(i) for i in listed):
+        raise NoAnswer("%s: the body is not the feed's JSON (no incidents list of incident objects)" % url)
     return listed
+
+
+def well_formed(incident):
+    """Whether an incident is an object whose `components`, when present, is a list of objects."""
+    if not isinstance(incident, dict):
+        return False
+    components = incident.get("components")
+    return components is None or isinstance(components, list) and all(isinstance(c, dict) for c in components)
 
 
 def started(incident):
