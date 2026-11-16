@@ -52,6 +52,8 @@ def step_ahead(red_test_id):
             continue
         if b"::" not in marker.group(1):
             return _refuse("names no <file>::<case>", line)
+        if not os.path.isfile(marker.group(1).rpartition(b"::")[0]):
+            return _refuse("names no existing file", line)
         cases.append(marker.group(1))
     if not cases:
         return 3
