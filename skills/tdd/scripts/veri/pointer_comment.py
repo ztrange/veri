@@ -2,6 +2,7 @@
 place otherwise, saying where the issue's run is."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
+import subprocess
 import sys
 
 import entry
@@ -10,6 +11,7 @@ import git
 import github
 import ledger
 import run_dir
+import tunables
 
 HEADING = "### 📍 Run state"
 USAGE = "usage: pointer-comment.sh <issue-number>"
@@ -55,6 +57,18 @@ def last_push(previous):
     return next((line.removeprefix(LAST_PUSH) for line in previous.splitlines() if line.startswith(LAST_PUSH)), "none")
 
 
+def machine():
+    """VERI_MACHINE_NAME, or what `hostname -s` prints when that is unset or empty."""
+    named = tunables.get("VERI_MACHINE_NAME")
+    if named:
+        return named
+    try:
+        short = subprocess.run(["hostname", "-s"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        short = ""
+    return short or "unknown"
+
+
 def render(issue, pushed_at):
     name = branch()
     return "\n".join([
@@ -65,6 +79,7 @@ def render(issue, pushed_at):
         "Step: %s" % step(issue),
         "Phase: %s" % phase(issue),
         LAST_PUSH + pushed_at,
+        "Machine: %s" % machine(),
         "Resume: $S/run-conductor.sh %s" % issue,
     ]) + "\n"
 

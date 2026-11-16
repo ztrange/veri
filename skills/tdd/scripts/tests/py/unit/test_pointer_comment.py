@@ -53,6 +53,21 @@ def test_veri_machine_name_is_a_tunable_parsed_as_text_with_an_empty_default():
     assert (entry is not None and entry.parse is tunables.text, entry and entry.default) == (True, "")
 
 
+def test_the_comment_states_the_machine_as_veri_machine_name_else_the_short_host_name_when_unset_or_empty(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    issue = FakeIssue(fake_processes, host="studio")
+    stated = {}
+    for case, value in (("named", "lab-1"), ("empty", ""), ("unset", None)):
+        if value is None:
+            monkeypatch.delenv("VERI_MACHINE_NAME", raising=False)
+        else:
+            monkeypatch.setenv("VERI_MACHINE_NAME", value)
+        _module().main(["7"])
+        stated[case] = next(line for line in issue.bodies()[0].splitlines() if line.startswith("Machine:"))
+
+    assert stated == {"named": "Machine: lab-1", "empty": "Machine: studio", "unset": "Machine: studio"}
+
+
 def _module():
     return importlib.import_module("veri.pointer_comment")
 
