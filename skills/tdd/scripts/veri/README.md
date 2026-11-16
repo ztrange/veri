@@ -88,7 +88,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `requirements.sh`: the prose units and requirement rows of a file.
 
 ## case_reader
-- `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool).
+- `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool). `JS_EXT`: the regex source matching a JavaScript or TypeScript file's extension.
 - `cut_cases(text)`: `[(case name, source)]` of a test source; raises `UnclosedCase` when a JS call never closes.
 - `old_cut_cases_all(text, call_form_only=False)`: the earlier cutter, kept for comparing old and new records.
 - `defined_name(case, text, py_file, go_file)`: the def a case name resolves to, `None` if none. `defines_helper(name, text, py_file, go_file)`: bool.
