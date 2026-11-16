@@ -30,6 +30,8 @@ BREAKS = {
     "LF": "\n", "CRLF": "\r\n", "JSON \\n": "\\n", "indent 1": "\n ", "indent 4": "\n    ", "indent 40": "\n" + " " * 40,
     "tab": "\n\t", "two trailing spaces": "  \n", "trailing backslash": "\\\n", "> ": "\n> ", "- ": "\n- ",
     "* ": "\n* ", "# ": "\n# ", "  > ": "\n  > ", "> > ": "\n> > ", "zero-width": "​",
+    "gh CI log line": "\nbuild\tRun make test\t2026-11-16T10:20:30.1234567Z ",
+    "ISO timestamp": "\n2026-11-16T10:20:30Z ",
 }
 
 

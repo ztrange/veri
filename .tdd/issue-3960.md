@@ -29,5 +29,5 @@
 - [x] SC217 names all three gh api calls the prose makes as not covered
 - [x] bounded redacts the input it hands gh on stdin
 - [x] a full-length token at a line's end leaves the next line byte-identical
-- [ ] a token folded across two lines of a gh CI log, or after a bare ISO timestamp, is redacted whole
+- [x] a token folded across two lines of a gh CI log, or after a bare ISO timestamp, is redacted whole
 - [ ] SCRIPTS.md and the docstring say exactly what may go with a token that ends a line

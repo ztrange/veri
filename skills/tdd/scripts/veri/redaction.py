@@ -25,7 +25,11 @@ _DOCUMENTED = {"github_pat_": 82, "sk-ant-": 101, "AKIA": 16, **{"gh%s_" % kind:
 # run of markdown prefixes (`> `, `>`, `- `, `* `, `+ `, `# `), so a secret wrapped into a quote or a list is still one.
 _BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n|[\u200b\u200c\u200d\ufeff\u00ad]")
 _ZERO_WIDTH = "\u200b\u200c\u200d\ufeff\u00ad"
-_LINE_START = re.compile(r"[ \t]*(?:(?:>[ \t]?|[-*+#][ \t])[ \t]*)*")
+# A continuation line may also start with a gh CI log's prefix, `<job>\t<step>\t<ISO timestamp>Z `, or a bare ISO
+# timestamp and a space: a token folded across two log lines is still one.
+# Each field is read at most 256 characters deep, so a break costs a bounded read and the pass stays linear.
+_LINE_START = re.compile(
+    r"(?:(?:[^\t\r\n]{0,256}\t[^\t\r\n]{0,256}\t)?\d{4}-\d\d-\d\dT[\d:.]{1,32}Z )?[ \t]*(?:(?:>[ \t]?|[-*+#][ \t])[ \t]*)*")
 # A base64 or base64url run long enough to encode the shortest secret (an 8-character value).
 _BASE64 = re.compile(r"[A-Za-z0-9+/_-]{12,}={0,2}")
 _URLSAFE = str.maketrans("-_", "+/")
