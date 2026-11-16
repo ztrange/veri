@@ -1,6 +1,6 @@
 # Plan for #3917 — PRD 029.3: an exhausted leaf can answer "a test-only step ahead"
 
-- [ ] after a reroute, a `CONTRADICTS:` case two test files define makes `wrong-test-route.sh` exit 2 with empty stdout and one stderr line naming the case and both files, no `TypeError` ⟦criterion 1⟧
+- [x] after a reroute, a `CONTRADICTS:` case two test files define makes `wrong-test-route.sh` exit 2 with empty stdout and one stderr line naming the case and both files, no `TypeError` ⟦criterion 1⟧
 - [ ] `exhausted-outcome.sh --step-ahead <red-test-id>` prints one `prep <file>::<case> …` line naming each `STEP_AHEAD:` case its file defines and exits 0 ⟦criterion 2⟧
 - [ ] `exhausted-outcome.sh --step-ahead <red-test-id>` skips a `STEP_AHEAD:` line naming the red case and exits 3 printing nothing when no line remains ⟦criterion 3⟧
 - [ ] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value has no `::` ⟦criterion 4⟧
