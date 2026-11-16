@@ -126,13 +126,19 @@ def verdict_file(phase):
     return read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip()
 
 
+def verdict_reason(phase):
+    if verdict_file(phase) == "skipped":
+        return ""
+    return read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason"))
+
+
 def verdict_word(phase):
     return {"1": "REJECT", "skipped": SWITCHED_OFF}.get(verdict_file(phase), "PASS")
 
 
 def post_verify(issue, kind):
     phase = kind.removeprefix("verify-")
-    reason = read_or_empty(run_dir.run_file(".", f"{kind}.reason"))
+    reason = verdict_reason(phase)
     verdict = verdict_word(phase)
     return post_and_record(issue, kind, f"### 🔎 {kind} — {verdict}\n\n{reason}")
 
@@ -162,7 +168,7 @@ def post_refactor(issue, note_file=None):
 
 
 def post_revised(issue, phase):
-    reason = read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason"))
+    reason = verdict_reason(phase)
     verdict = SWITCHED_OFF if verdict_file(phase) == "skipped" else "PASS"
     return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — {verdict}\n\n{reason}")
 
