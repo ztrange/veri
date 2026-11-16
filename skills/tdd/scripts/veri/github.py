@@ -86,7 +86,7 @@ def _decodes_to_secret(run, values):
 
 def _listed_values():
     """The values, 8 characters or more, of the variables VERI_REDACT_VARS names."""
-    values = (os.environ.get(name, "") for name in tunables.get("VERI_REDACT_VARS").split())
+    values = (tunables.read(name) for name in tunables.get("VERI_REDACT_VARS").split())
     return [value for value in values if len(value) >= 8]
 
 
