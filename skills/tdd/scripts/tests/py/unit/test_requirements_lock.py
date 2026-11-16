@@ -44,7 +44,8 @@ def test_requirements_dev_txt_locks_every_package_the_direct_pins_pull_in_each_w
     assert (len(direct), unhashed, sorted(pulled_in(r.name for r in direct) - pins.keys())) == (3, [], [])
     assert {canonicalize_name(r.name): str(r.specifier) for r in direct} == {
         name: "==" + pins[name] for name in (canonicalize_name(r.name) for r in direct)}
-    assert "requirements-dev.in" in header and "--generate-hashes" in header, header
+    assert [word in header for word in ("requirements-dev.in", "pip download", "shasum -a 256", "pip-compile")] == [
+        True, True, True, False], header
 
 
 def test_ci_keys_its_pip_cache_on_the_lock_issue_3967():
