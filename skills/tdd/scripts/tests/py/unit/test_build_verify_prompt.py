@@ -51,6 +51,15 @@ def split_closing(out, fragment=CLOSING):
     return out, False
 
 
+TOUCHING_SECTION = re.compile(rb"\n\n### Test cases touching the files the plan names(?:\n\n.*?)?(?=\||\n?\Z)", re.S)
+
+
+def without_touching_cases(body):
+    """The render with the plan phase's touching-cases section (#3919) cut out, so a case pinning the bytes
+    around the LEDGER slot holds whether or not the section is rendered."""
+    return TOUCHING_SECTION.sub(b"", body)
+
+
 def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phase_and_a_green_or_diff_call_without_fast_cmd_with_exit_2_and_its_message_then_the_usage_line(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
@@ -326,7 +335,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         body, ok = split_closing(out)
         if code == 0:
             closed.append(ok)
-        return (code, body, err)
+        return (code, without_touching_cases(body), err)
 
     assert [
         run(["--step", "step {{INCLUDE:_b.md}}", "red", str(bug_spec), "tp", "tid"]),
@@ -398,7 +407,7 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
             return (code, out, err)
         body, ok = split_closing(out)
         closed.append(ok)
-        return (code, body, err)
+        return (code, without_touching_cases(body), err)
 
     def block(step):
         return (b"### The step under judgement\n\n" + step + b"\n\n"
@@ -1626,3 +1635,4 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
         return code, out.rstrip(b"\n").endswith(fragment), out.count(fragment)
 
     assert {phase: verdict(argv) for phase, argv in argvs.items()} == dict.fromkeys(argvs, (0, True, 1))
+
