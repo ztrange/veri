@@ -372,12 +372,13 @@ def test_take_leaves_no_staging_directory_behind_when_an_invalid_poll_interval_r
     scratch_git(tmp_path, "init", "-q", "-b", "main")
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
-    (lock / "holder").write_text(f"{os.getpid()} {socket.gethostname()} Thu_Jan__1_00:00:00_1970\n")
+    (lock / "holder").write_text(f"{os.getpid()} {socket.gethostname()} {merge_lock._start_time(str(os.getpid()))}\n")
     monkeypatch.setenv("VERI_MERGE_LOCK_POLL", "not-a-number")
 
     taken = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
-    assert (taken[0] != 0, sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (True, [])
+    assert (taken[0] != 0, "stale" in taken[2], sorted(p.name for p in (tmp_path / ".tdd").glob(".merge.lock.*"))) == (
+        True, False, [])
 
 
 @pytest.mark.process("git init on a scratch repository, take run with bad VERI_MERGE_LOCK_WAIT values")
