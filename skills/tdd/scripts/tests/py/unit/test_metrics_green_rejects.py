@@ -114,3 +114,27 @@ def test_a_rows_check_cell_is_the_verdict_events_check_and_empty_for_an_event_wi
     rows = table(render(metrics, capsys), "#### Green rejects")
 
     assert [(r["reason"], r.get("check")) for r in rows] == [("a", "3"), ("b", ""), ("c", "1")]
+
+
+@pytest.mark.parametrize("checks, line", [
+    (["3", None, "1", "3", None, "5"], "Green rejects by check: 1 1, 3 2, 5 1, unnamed 2"),
+    (["2", "2"], "Green rejects by check: 2 2, unnamed 0"),
+    ([None], "Green rejects by check: unnamed 1"),
+])
+def test_under_the_route_line_one_line_counts_green_rejects_by_check_ascending_then_unnamed(
+        checks, line, tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [dict(verdict(str(at), "green", "1", "REJECT", "r"), **({"check": check} if check else {}))
+                         for at, check in enumerate(checks, 1)])
+    monkeypatch.chdir(tmp_path)
+
+    lines = render(metrics, capsys).split("\n")
+    by_route = next(at for at, text in enumerate(lines) if text.startswith("Green rejects by route: "))
+
+    assert lines[by_route + 1] == line
+
+
+def test_a_log_with_no_green_reject_prints_no_by_check_line(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [verdict("1", "green", "1", "PASS", "fine")])
+    monkeypatch.chdir(tmp_path)
+
+    assert [text for text in render(metrics, capsys).split("\n") if text.startswith("Green rejects by check")] == []
