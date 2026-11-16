@@ -560,7 +560,8 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             return 2
         if merges.stdout.strip():
             _say("the run's history holds a merge commit (%s) and must be linear: a rebase would flatten it; nothing"
-                 " pushed" % merges.stdout.split()[0])
+                 " pushed. Rebase the run's branch onto origin/%s so its history is linear, push it, and join again"
+                 % (merges.stdout.split()[0], stack))
             return 2
         rebase = _git(worktree, "rebase", "origin/" + stack)
         if rebase.returncode and not _rebasing(worktree):

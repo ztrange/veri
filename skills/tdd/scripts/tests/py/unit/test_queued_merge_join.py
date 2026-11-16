@@ -528,3 +528,13 @@ def test_the_clean_path_pushes_to_the_stack_the_sha_saved_right_after_the_conten
     code, _, err = join(run_cli, world)
 
     assert (code, [c.rsplit(" ", 1)[1] for c in world.stack_pushed()]) == (0, [REBASED + ":refs/heads/stack"]), err
+
+
+def test_the_merge_commit_refusal_says_what_to_do(tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> rev-list --merges": (0, "abcdef0\n", "")}).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    line = next(l for l in err.splitlines() if "merge commit" in l)
+    assert (code, "must be linear" in line, "Rebase the run's branch onto origin/stack" in line, "join again" in line) == (
+        2, True, True, True), err
