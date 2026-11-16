@@ -308,3 +308,13 @@ def test_a_stack_that_is_the_pull_requests_default_branch_as_github_reports_it_i
     code, _, err = join(run_cli, world)
 
     assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (2, [], []), err
+
+
+@pytest.mark.parametrize("first", ["none", {"state": "open", "merged": False}, {"base": "stack"}, {"base": {"ref": 7}}])
+def test_where_a_stack_is_named_an_unreadable_pull_request_base_is_exit_2_before_the_lock_never_the_merge_path(
+        tmp_path, fake_processes, monkeypatch, run_cli, first):
+    world = World(tmp_path, first=first).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c for c in world.calls if c.startswith("merge-lock.sh") or "wait-ci.sh" in c]) == (2, []), err
