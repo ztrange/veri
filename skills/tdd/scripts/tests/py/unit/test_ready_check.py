@@ -35,7 +35,7 @@ def holding(**overrides):
         "gh label list": (0, '[{"name": "ready-for-agent"}]', ""),
         "detect-test-command.sh": (0, "make test\n", ""),
         "gh api -i user": (0, "HTTP/2.0 200 OK\r\nX-Oauth-Scopes: repo, workflow\r\n\r\n{}", ""),
-        "git remote get-url origin": (0, "git@github.com:o/r.git\n", ""),
+        "git remote get-url --push origin": (0, "git@github.com:o/r.git\n", ""),
         "gh api repos/{owner}/{repo}/labels/": (0, "{}", ""),
         "gh api repos/{owner}/{repo}/actions/runs?per_page=1": (0, "{}", ""),
         "git rev-parse --git-common-dir": (0, ".git\n", ""),
@@ -92,25 +92,32 @@ def user_headers(scopes=None):
 
 
 def test_issue_4089_token_scopes_row_is_ok_when_the_header_lists_repo_and_origin_is_not_https(ready_check, fake_processes):
-    fake_processes.answers({"gh api -i user": user_headers("gist, repo"), "git remote get-url origin": SSH_ORIGIN}, exact=True)
+    fake_processes.answers({"gh api -i user": user_headers("gist, repo"), "git remote get-url --push origin": SSH_ORIGIN}, exact=True)
 
     assert ready_check.token_scopes_row() == ("token scopes", None)
 
 
 def test_issue_4089_token_scopes_row_over_an_https_origin_fails_without_workflow_its_fix_refreshing_that_scope(ready_check, fake_processes):
-    fake_processes.answers({"gh api -i user": user_headers("repo"), "git remote get-url origin": HTTPS_ORIGIN}, exact=True)
+    fake_processes.answers({"gh api -i user": user_headers("repo"), "git remote get-url --push origin": HTTPS_ORIGIN}, exact=True)
 
     assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s workflow")
 
 
 def test_issue_4089_token_scopes_row_over_an_https_origin_lacking_both_scopes_names_each_in_its_fix(ready_check, fake_processes):
-    fake_processes.answers({"gh api -i user": user_headers("gist"), "git remote get-url origin": HTTPS_ORIGIN}, exact=True)
+    fake_processes.answers({"gh api -i user": user_headers("gist"), "git remote get-url --push origin": HTTPS_ORIGIN}, exact=True)
 
     assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s repo,workflow")
 
 
+def test_issue_4089_token_scopes_row_reads_https_from_origins_push_url_not_its_fetch_url(ready_check, fake_processes):
+    fake_processes.answers({"gh api -i user": user_headers("repo"), "git remote get-url --push origin": HTTPS_ORIGIN,
+                            "git remote get-url origin": SSH_ORIGIN}, exact=True)
+
+    assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s workflow")
+
+
 def test_issue_4089_token_scopes_row_with_no_x_oauth_scopes_header_reads_not_verifiable(ready_check, fake_processes):
-    fake_processes.answers({"gh api -i user": user_headers(None), "git remote get-url origin": SSH_ORIGIN}, exact=True)
+    fake_processes.answers({"gh api -i user": user_headers(None), "git remote get-url --push origin": SSH_ORIGIN}, exact=True)
 
     name, verdict = ready_check.token_scopes_row()
 
@@ -229,7 +236,7 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
     (tmp_path / ".gitignore").write_text("")
     unwritable(monkeypatch, {os.path.realpath(tmp_path / ".gitignore"), os.path.realpath(common / "info" / "exclude")})
     fake = fake_processes.answers({
-        "gh api -i user": user_headers("gist"), "git remote get-url origin": HTTPS_ORIGIN,
+        "gh api -i user": user_headers("gist"), "git remote get-url --push origin": HTTPS_ORIGIN,
         "gh api repos/{owner}/{repo}/labels/": NOT_FOUND, **WITH_WORKFLOWS,
         ACTIONS_RUNS: (1, "", "gh: Resource not accessible by integration (HTTP 403)\n"),
         "git rev-parse --git-common-dir": (0, str(common) + "\n", "")})
