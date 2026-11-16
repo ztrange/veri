@@ -1,5 +1,6 @@
 """pinned-scripts.sh: the directory holding a run's pinned scripts."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import errno
 import hashlib
 import os
 import shutil
@@ -35,7 +36,10 @@ def make_read_only(tree):
 
 
 def remove_tree(tree):
-    """Give the owner back the write bit of every directory under <tree>, then remove it all."""
+    """Give the owner back the write bit of every directory under <tree>, then remove it all. Raises OSError,
+    touching nothing, unless <tree> itself is a real directory (a symlink to one is refused, never followed)."""
+    if not stat.S_ISDIR(os.lstat(tree).st_mode):
+        raise NotADirectoryError(errno.ENOTDIR, "not a real directory, so not removed", tree)
     writable_directories(tree)
     shutil.rmtree(tree)
 
