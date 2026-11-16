@@ -30,6 +30,15 @@ def test_launch_spec_argv_is_the_binary_the_stream_options_the_model_only_when_n
         assert argv == [binary, *head, *limits, *tools, *tail]
 
 
+def test_4013_veri_effort_verifier_adds_no_effort_to_a_leaf_the_caller_launched_without_one(run_leaf, monkeypatch):
+    """A develop-*, revise-* or adjudicate-* leaf is launched as supervise.sh <name> run-leaf.sh <prompt> <flags>,
+    with no --effort among the flags; run-leaf.sh must not add one from the verifier's knob."""
+    monkeypatch.setenv("VERI_EFFORT_VERIFIER", "low")
+    argv, _ = spec(run_leaf, {"PATH": "/usr/bin", "VERI_EFFORT_VERIFIER": "low"}, model="opus",
+                   extra=["--permission-mode", "bypassPermissions"])
+    assert "--effort" not in argv
+
+
 def test_launch_spec_leaves_a_model_flag_in_the_callers_arguments_alone(run_leaf):
     argv, _ = spec(run_leaf, model="sonnet", extra=["--model", "haiku"])
     assert argv.count("--model") == 1 and argv[-2:] == ["--model", "haiku"]
