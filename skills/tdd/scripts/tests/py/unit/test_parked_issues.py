@@ -1,4 +1,5 @@
 """In-process cases for veri/parked_issues.py, the reader of the parked set."""
+import fnmatch
 import importlib
 import json
 import subprocess
@@ -307,3 +308,191 @@ def test_main_3739_prints_waiting_when_gh_api_returns_a_completed_process_for_an
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out) == (0, "3711\tA parked issue\twaiting on upstream\t#3737 merges\twaiting\n")
+
+
+# main through run_cli as `parked-issues.sh`, gh faked at its process boundary. gh_stub answers each gh call as the shell stub
+# `for a in "$@"; do case "$a" in <pattern>) <answer>;; esac; done; echo '[]'` would: the first argument a pattern matches,
+# patterns tried in order, takes that pattern's answer; no match answers `[]`.
+
+def gh_stub(fake_processes, *cases):
+    def answer(line, **kwargs):
+        for arg in fake.argvs[-1][1:]:
+            for pattern, reply in cases:
+                if fnmatch.fnmatchcase(str(arg), pattern):
+                    return reply
+        return 0, "[]\n", ""
+
+    fake = fake_processes.answers({"gh": answer})
+    return fake
+
+
+def ok(value):
+    return 0, json.dumps(value) + "\n", ""
+
+
+NO_ANSWER = (1, "", "")
+PARKED = "### ⏸ Parked\n"
+ISSUE_7 = {"number": 7, "title": "Teach the verifier to refuse", "labels": [{"name": "parked"}]}
+ISSUE_8 = {"number": 8, "title": "Hold the PR", "labels": [{"name": "parked"}]}
+
+
+def comments(*bodies):
+    return ok([{"body": body} for body in bodies])
+
+
+def listing_7_with(*bodies):
+    return [("*page=[2-9]*", ok([])), ("*/issues/7/comments*", comments(*bodies)), ("*/issues*", ok([ISSUE_7]))]
+
+
+def two_issues_the_second(body_8):
+    return [("*/issues/7/comments*page=1", comments(PARKED + "Cause: bail on the verifier\nUnblock: a human reads the diff")),
+            ("*/issues/8/comments*page=1", comments(body_8)),
+            ("*/comments*", ok([])),
+            ("*/issues*page=1", ok([ISSUE_7, ISSUE_8]))]
+
+
+def test_parked_issues_prints_one_tab_separated_line_per_parked_issue_with_the_cause_and_unblock_of_its_parked_comment_and_exits_0(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *listing_7_with(PARKED + "Cause: first bail\nUnblock: old",
+                                             PARKED + "Cause: second bail on the verifier\nUnblock: a human reads the diff"))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
+
+
+def test_parked_issues_given_any_argument_prints_its_usage_line_on_stderr_and_exits_2_without_calling_gh(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    fake = gh_stub(fake_processes)
+
+    code, out, err = run_cli(parked_issues, ["--all"], cwd=tmp_path)
+
+    assert code == 2, err
+    assert "usage: parked-issues.sh" in err
+    assert first_four(out) == ""
+    assert fake.calls == []
+
+
+def test_parked_issues_when_the_final_comment_is_not_a_parked_comment_still_prints_the_cause_and_unblock_of_the_parked_comment(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *listing_7_with(PARKED + "Cause: second bail on the verifier\nUnblock: a human reads the diff",
+                                             "Still waiting on the human."))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
+
+
+def test_parked_issues_does_not_read_a_comment_that_quotes_the_parked_heading_mid_body_as_the_parked_comment(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *listing_7_with(PARKED + "Cause: second bail on the verifier\nUnblock: a human reads the diff",
+                                             "Quoting the old note:\n" + PARKED + "Cause: quoted cause\nUnblock: quoted unblock"))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tsecond bail on the verifier\ta human reads the diff\n"
+
+
+def test_parked_issues_when_an_issue_carries_several_parked_comments_prints_the_cause_and_unblock_of_the_latest(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *listing_7_with(PARKED + "Cause: first bail\nUnblock: old", "chatter",
+                                             PARKED + "Cause: held PR\nUnblock: the human merges",
+                                             PARKED + "Cause: third bail\nUnblock: fix the fixture", "Still waiting."))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tthird bail\tfix the fixture\n"
+
+
+def test_parked_issues_with_no_open_issue_labelled_parked_prints_nothing_and_exits_3(tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes)
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 3, err
+    assert first_four(out) == ""
+
+
+def test_parked_issues_exits_2_naming_the_listing_call_when_gh_gives_no_answer_to_it(tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, ("*", NO_ANSWER))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 2, err
+    assert "listing the issues" in err, err
+
+
+def test_parked_issues_exits_2_naming_the_comments_call_when_gh_answers_the_listing_but_not_an_issues_comments(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, ("*page=[2-9]*", ok([])), ("*/issues/7/comments*", NO_ANSWER), ("*/issues*", ok([ISSUE_7])))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 2, err
+    assert "reading the comments" in err, err
+
+
+def test_parked_issues_reads_the_parked_comment_served_on_the_second_page_of_an_issues_comments(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes,
+            ("*/issues/7/comments*page=1", comments("chatter on page one")),
+            ("*/issues/7/comments*page=2", comments(PARKED + "Cause: bail found on page two\nUnblock: a human reads page two")),
+            ("*page=[3-9]*", ok([])),
+            ("*/issues*page=1", ok([ISSUE_7])))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tbail found on page two\ta human reads page two\n"
+
+
+def test_parked_issues_prints_the_parked_issue_served_on_the_second_page_of_the_listing(tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes,
+            ("*/issues/7/comments*page=1", comments(PARKED + "Cause: bail on the first page\nUnblock: a human reads page one")),
+            ("*/issues/8/comments*page=1", comments(PARKED + "Cause: held PR on the second page\nUnblock: the human merges")),
+            ("*/comments*", ok([])),
+            ("*/issues*page=1", ok([ISSUE_7])),
+            ("*/issues*page=2", ok([ISSUE_8])))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert code == 0, err
+    assert first_four(out) == ("7\tTeach the verifier to refuse\tbail on the first page\ta human reads page one\n"
+                               "8\tHold the PR\theld PR on the second page\tthe human merges\n")
+
+
+def test_parked_issues_when_a_parked_issue_has_no_parked_comment_exits_2_naming_it_after_printing_the_issues_before_it(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *two_issues_the_second("just chatter"))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert "#8" in err, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
+    assert code == 2, err
+
+
+def test_parked_issues_when_a_parked_comment_lacks_its_unblock_line_exits_2_naming_the_issue_after_printing_the_issues_before_it(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *two_issues_the_second(PARKED + "Cause: held PR"))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert "#8" in err, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
+    assert code == 2, err
+
+
+def test_parked_issues_when_a_parked_comment_lacks_its_cause_line_exits_2_naming_the_issue_after_printing_the_issues_before_it(
+        tmp_path, parked_issues, run_cli, fake_processes):
+    gh_stub(fake_processes, *two_issues_the_second(PARKED + "Unblock: a human readies the PR"))
+
+    code, out, err = run_cli(parked_issues, [], cwd=tmp_path)
+
+    assert "#8" in err, err
+    assert first_four(out) == "7\tTeach the verifier to refuse\tbail on the verifier\ta human reads the diff\n"
+    assert code == 2, err
