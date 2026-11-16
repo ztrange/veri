@@ -11,9 +11,10 @@ import sys
 
 from entry import no_arguments
 from case_reader import file_defines
+from report import report_values
 
-MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
-STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")
+# The ASCII whitespace a marker's value is stripped of, the C locale's: a no-break space is kept.
+BLANKS = b" \t\n\r\f\v"
 # Every character of a step-ahead id reaches the diff verifier's --step, so the whole id is checked:
 # a path, one or more ::-separated identifiers, an optional [param] of word characters, dots and dashes.
 STEP_AHEAD_ID_RE = re.compile(rb"([\w./-]+)((?:::[A-Za-z_]\w*)+)(\[[\w.-]*\])?", re.ASCII)
@@ -40,6 +41,12 @@ def _lines():
     return lines
 
 
+def _after(line, key):
+    """The value of a `key:` line, stripped of leading BLANKS; None when `line` is no such line."""
+    value = report_values(line, key, occurrence="first", space="kept")
+    return None if value is None else value.lstrip(BLANKS)
+
+
 def _refuse(why, line):
     sys.stderr.flush()
     sys.stderr.buffer.write(b"exhausted-outcome.sh: " + why.encode() + b": " + line + b"\n")
@@ -60,14 +67,15 @@ def step_ahead(red_test_id):
     red = (_resolved(red_file, root) or red_file) + sep + red_rest if sep else red_test_id
     cases = []
     for line in _lines():
-        marker = STEP_AHEAD_RE.match(line)
-        if not marker:
+        value = _after(line, "STEP_AHEAD")
+        if value is None:
             continue
-        if b"::" not in marker.group(1):
-            if os.fsdecode(marker.group(1)) == red:
+        value = value.rstrip(BLANKS)
+        if b"::" not in value:
+            if os.fsdecode(value) == red:
                 continue
             return _refuse("names no <file>::<case>", line)
-        checked = STEP_AHEAD_ID_RE.fullmatch(marker.group(1))
+        checked = STEP_AHEAD_ID_RE.fullmatch(value)
         if not checked:
             return _refuse("is not a <path>::<name>[::<name>...][[param]] id", line)
         file = os.path.normpath(os.fsdecode(checked.group(1)))
@@ -100,13 +108,13 @@ def main(argv):
     lines = _lines()
     criteria, uidx = [], None
     for i, line in enumerate(lines):
-        marker = MARKER_RE.match(line)
-        if not marker:
+        split = _after(line, "SPLIT")
+        if split is not None:
+            criteria.append(split)
             continue
-        if marker.group(1) == b"SPLIT":
-            criteria.append(marker.group(2))
-        else:
-            uidx, utail = i, marker.group(2)
+        needs_user = _after(line, "NEEDS_USER")
+        if needs_user is not None:
+            uidx, utail = i, needs_user
     if criteria:
         _print_lines(criteria)
         return 0
