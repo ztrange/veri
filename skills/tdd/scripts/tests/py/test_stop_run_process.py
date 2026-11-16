@@ -87,7 +87,8 @@ def live_supervisor(run, name, started, stub_path):
 
 
 def start_time_of(pid):
-    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], stdout=subprocess.PIPE, text=True).stdout.strip()
+    """The start time as veri's writers record it (pid_file.started_as: ps under LC_ALL=C and TZ=UTC)."""
+    return importlib.import_module("veri.pid_file").started_as(pid)
 
 
 def recorded(pid):
@@ -385,8 +386,7 @@ def test_3375_stop_run_cli_mode_now_signals_a_detached_sh_c_only_when_its_record
     own = subprocess.Popen(["sh", "-c", 'trap "" TERM; sleep 60 & wait'], start_new_session=True)
     unrelated = subprocess.Popen(["sh", "-c", "sleep 60 & wait"], start_new_session=True)
     started.extend([own, unrelated])
-    own_started = subprocess.run(["ps", "-o", "lstart=", "-p", str(own.pid)],
-                                 stdout=subprocess.PIPE, text=True).stdout.strip()
+    own_started = start_time_of(own.pid)
     (run / ".tdd" / "fulltier.pid").write_text("%d\n%s\n" % (own.pid, own_started))
     (run / ".tdd" / "fasttier.pid").write_text("%d\nThu Jan  1 00:00:00 1970\n" % unrelated.pid)
     time.sleep(0.3)
