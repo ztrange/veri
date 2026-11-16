@@ -31,22 +31,26 @@ def triggers_on(event):
     return False
 
 
+def detect_tier(tier):
+    """detect-test-command.sh --tier <tier>'s exit code."""
+    detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
+    return subprocess.run([detect, "--tier", tier], capture_output=True).returncode
+
+
 def tier_row(tier):
     def check():
-        detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
-        found = subprocess.run([detect, "--tier", tier], capture_output=True)
-        if found.returncode == 2:
+        code = detect_tier(tier)
+        if code == 2:
             return f"{tier} tier", f"no answer was obtained (exit 2 from detect-test-command.sh --tier {tier})"
-        return f"{tier} tier", None if found.returncode != 3 else f"add a `veri: {tier} tests:` line to CLAUDE.md"
+        return f"{tier} tier", None if code != 3 else f"add a `veri: {tier} tests:` line to CLAUDE.md"
     return check
 
 
 def one_test_file_row():
-    detect = os.path.join(paths.resolved_scripts_of(__file__), "detect-test-command.sh")
-    found = subprocess.run([detect, "--tier", "one test file"], capture_output=True)
-    if found.returncode == 2:
+    code = detect_tier("one test file")
+    if code == 2:
         return "one test file", 'no answer was obtained (exit 2 from detect-test-command.sh --tier "one test file")'
-    return "one test file", None if found.returncode == 0 else (
+    return "one test file", None if code == 0 else (
         'add a `veri: one test file: <command>` line to CLAUDE.md, the command taking the test file as "$1"')
 
 
