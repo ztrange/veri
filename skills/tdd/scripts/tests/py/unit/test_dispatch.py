@@ -3284,3 +3284,16 @@ def test_exit_line_skips_an_untrusted_done_comment_after_a_trusted_bailed_one_an
     monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
 
     assert dispatch.exit_line("3969") == "bail 3969"
+
+
+@pytest.mark.parametrize("outcome", ["### ✅ Done — https://github.com/o/r/pull/666", "### ⛔ Bailed — green"])
+def test_exit_line_prints_silent_exit_when_the_only_outcome_comment_is_untrusted_issue_3969(monkeypatch, dispatch, outcome):
+    comments = [
+        _authored("OWNER", "### 🔧 Working on it\n\nbody", login="veri-operator"),
+        _authored("MEMBER", outcome),
+        _authored("NONE", "a stranger's note"),
+    ]
+    monkeypatch.setattr(dispatch.github, "authenticated_login", lambda: "veri-operator")
+    monkeypatch.setattr(dispatch.github, "gh_rest_list", lambda path, *args: json.dumps(comments), raising=False)
+
+    assert dispatch.exit_line("3969") == "silent-exit 3969"
