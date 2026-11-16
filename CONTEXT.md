@@ -269,18 +269,19 @@ _Avoid_: integration test (unqualified)
 **Implementation case**:
 A bash test case, in any suite, that sources a script or a `lib/` file it uses, stubs a
 function inside one, or asserts on the script's source text or on which bash library it
-sources — so it is bound to that script's bash implementation and cannot survive its port.
-It is defined by what it asserts about, not by the suite it lives in. ADR-0027 replaces each
-with a pytest case asserting the same behaviour, in its own commit before the port, planned
-as a **replaces-case step**.
+sources — so it is bound to that script's bash implementation and cannot survive its port; it
+is the bash port's term. It is defined by what it asserts about, not by the suite it lives in.
+ADR-0027 replaced each, during the bash port, with a pytest case asserting the same behaviour,
+in its own commit before the port, planned as a **replaces-case step**.
 _Avoid_: unit test (unqualified)
 
 **Replaces-case step**:
-A ledger step marked `⟦replaces-case⟧`, whose text names a bash suite's path and one
-**implementation case** by its exact name. It licenses deleting exactly that case, and only
-together with a pytest case asserting the same behaviour; its Red is that pytest case
-failing against the code before the change. The mark counts against `VERI_STEP_GROWTH`
-only when the step is also `⟦added⟧`. ADR-0027.
+A ledger step marked `⟦replaces-case⟧`, whose text names a test file's path, a pytest file
+included, and the case or cases it replaces by exact name; the named case need not be an
+**implementation case**. It licenses deleting exactly those cases, and only together with a
+pytest case asserting the same behaviour; its Red is that pytest case failing against the code
+before the change. The mark counts against `VERI_STEP_GROWTH` only when the step is also
+`⟦added⟧`. ADR-0027.
 _Avoid_: deletion step
 
 ## Scope ladder
