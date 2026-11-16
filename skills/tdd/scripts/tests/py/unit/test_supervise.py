@@ -147,3 +147,20 @@ def test_tree_cpu_seconds_skips_a_ps_row_of_fewer_than_four_fields_instead_of_ra
     ])
 
     assert supervise.tree_cpu_seconds(4242) == pytest.approx(1.5)
+
+
+def test_now_with_veri_wall_clock_set_runs_that_command_split_on_spaces_and_returns_its_stdout_through_bin_sh_when_it_is_not_executable_4129(
+        monkeypatch, supervise, fake_processes):
+    import errno
+    fake = fake_processes.answers({
+        "clock --at 1000": (0, "1000\n", ""),
+        "plain --at 2000": OSError(errno.ENOEXEC, "Exec format error"),
+        "sh plain --at 2000": (0, "2000\n", ""),
+    }, exact=True)
+
+    readings = []
+    for command in ("clock --at 1000", "plain --at 2000"):
+        monkeypatch.setenv("VERI_WALL_CLOCK", command)
+        readings.append(supervise.now())
+
+    assert (readings, fake.calls) == (["1000", "2000"], ["clock --at 1000", "plain --at 2000", "sh plain --at 2000"])
