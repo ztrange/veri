@@ -8,6 +8,6 @@
 - [x] It exits 2, writing no `ci-rerun` event, on bad arguments, an unreadable log, a head that is not 40 hex, or `gh` refusing the re-run ⟦criterion 6⟧
 - [x] It exits 2, making no re-run, when an alone run gets no answer within its bound, or the log holds a non-empty line without gh's prefix
 - [x] It exits 3, running nothing and writing no event, when issue `<n>`'s `ci-rerun` events since its last `conductor-start` number `VERI_CI_FLAKE_RERUNS` or more, or one names `<head-sha>` ⟦criterion 3⟧
-- [ ] With `REVISE_BUDGET=0`, `VERI_ADJUDICATE_BUDGET=0` and a ledger holding a `⟦ci-repair⟧` step it still re-runs and exits 0, making no `gh pr ready` call ⟦criterion 8⟧
+- [x] With `REVISE_BUDGET=0`, `VERI_ADJUDICATE_BUDGET=0` and a ledger holding a `⟦ci-repair⟧` step it still re-runs and exits 0, making no `gh pr ready` call ⟦criterion 8⟧
 - [ ] After a `ci-rerun` event for a head, `wait-ci.sh` on that head answers neither exit 0 nor exit 1 from a check run that completed before the event ⟦criterion 7⟧
 - [ ] `DRAFT-PR.md` sub-step 2, `SCRIPTS.md`'s `ci-flake.sh` entry and `CLAUDE.md`'s budgets invariant state the flake check, graded; DP52 dropped ⟦criterion 10⟧ ⟦criterion 11⟧
