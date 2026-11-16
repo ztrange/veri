@@ -469,6 +469,44 @@ def test_main_take_over_cuts_the_worktree_on_a_local_branch_from_origins_branch_
         0, "/srv/repo/.tdd/wt/7\n", [list(fetch), list(adopt)])
 
 
+def test_main_take_over_with_no_remote_tracking_ref_asks_origin_then_fetches_and_cuts_4080(fake_processes,
+        monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    registry = "worktree /srv/repo\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+    fetch = ("git", "fetch", "-q", "origin", "+refs/heads/tdd/7-slug:refs/remotes/origin/tdd/7-slug")
+    adopt = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", "/srv/repo/.tdd/wt/7", "origin/tdd/7-slug")
+    calls = routing_git(fake_processes, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug"): (1, "", ""),
+        ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, "1111111\trefs/heads/tdd/7-slug\n", ""),
+        fetch: (0, "", ""), adopt: (0, "", "")})
+    code = issue_worktree.main(["--take-over", "7", "slug"])
+
+    assert (code, capsys.readouterr().out, [c for c in calls if c[:2] == ["git", "fetch"] or c[:3] == ["git", "worktree", "add"]]) == (
+        0, "/srv/repo/.tdd/wt/7\n", [list(fetch), list(adopt)])
+
+
+def test_main_take_over_over_a_local_branch_that_differs_from_origins_after_the_fetch_exits_2_naming_both_shas_4080(
+        fake_processes, monkeypatch, capsys, issue_worktree):
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
+    registry = "worktree /srv/repo\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+    local, remote = "a" * 40, "b" * 40
+    calls = routing_git(fake_processes, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug"): (0, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug"): (0, "", ""),
+        ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*"): (0, remote + "\trefs/heads/tdd/7-slug\n", ""),
+        ("git", "fetch", "-q", "origin", "+refs/heads/tdd/7-slug:refs/remotes/origin/tdd/7-slug"): (0, "", ""),
+        ("git", "rev-parse", "--verify", "-q", "refs/heads/tdd/7-slug"): (0, local + "\n", ""),
+        ("git", "rev-parse", "--verify", "-q", "refs/remotes/origin/tdd/7-slug"): (0, remote + "\n", ""),
+        ("git", "worktree", "add", "-q", "/srv/repo/.tdd/wt/7", "tdd/7-slug"): (0, "", "")})
+    code = issue_worktree.main(["--take-over", "7", "slug"])
+
+    err = capsys.readouterr().err
+    assert (code, local in err and remote in err, [c for c in calls if c[:3] == ["git", "worktree", "add"]]) == (2, True, [])
+
+
 def test_main_take_over_whose_fetch_of_origins_branch_gets_no_answer_exits_2_naming_the_fetch_and_adds_no_worktree_4080(
         fake_processes, monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
