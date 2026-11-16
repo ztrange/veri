@@ -26,11 +26,7 @@ def main(argv):
         record = full_tier_time.record_path()
         times = full_tier_time.read_times(record)
         if argv[1] in times:
-            try:
-                recorded_at = full_tier_time.read_recorded_at(record).get(argv[1])
-            except (OSError, ValueError):
-                recorded_at = None
-            age = None if recorded_at is None else full_tier_time.now() - recorded_at
+            age = full_tier_time.age(record, argv[1])
             if age is not None and age <= max_days * 86400:
                 print("reuse " + times[argv[1]])
                 return 0
