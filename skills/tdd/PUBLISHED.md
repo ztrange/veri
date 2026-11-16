@@ -5,7 +5,7 @@ files; everything else it writes is private (see the end of this page).
 
 | File | Path | Written by | When |
 |---|---|---|---|
-| The journal | `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` | `event.sh` (`veri/event.py`) | As a run emits each event, one line per event |
+| The journal | `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` | `event.sh` (`veri/event.py`) | As an event is written whose line carries an issue: one line per such event (see which events never do, below) |
 | `report-owed.json` (**optional**) | `.tdd/report-owed.json` in the working tree `/vreport` runs in | `report.sh --store-owed` (`veri/prd_report.py`) | When `/vreport` stores a PRD's owed answer |
 
 ## The journal
@@ -25,7 +25,26 @@ Each line is one JSON object ended by a newline:
   `ts` and `awake`, in that order; then come the event's own keys, in the order its emitter gives
   them.
 
-The events and their keys are those [`JOURNAL.md`](JOURNAL.md) lists.
+The events and their keys are those [`JOURNAL.md`](JOURNAL.md) lists, but the journal holds only the
+lines whose writer gave them an issue: a line is appended to the journal of the issue in its own
+`issue` key, and a line with an empty `issue` goes only to the worktree's private event log,
+`.tdd/events.jsonl`. A writer that runs inside a run takes the issue from `VERI_ISSUE`, so its lines
+reach the journal when that is set.
+
+### Events that never reach the journal
+
+These writers give their lines no issue (or write the line themselves), so today these events are
+only ever in the worktree's event log, never in the journal:
+
+- `comment` (`comment.sh`)
+- `diff-leaf-deviation` (`diff-leaf-deviation.sh`)
+- `grading` (`grade-prose.sh`)
+- `pin-retired` (`pin-recheck.sh`)
+- `prose-owed-waived` (`prose-owed.sh`)
+- `rebase-refresh-retry` (`queued-merge.sh`)
+- `suite-flake` (`rerun-alone.sh` and `suite-red-resume.sh flake`)
+- `step-added` as `add-ledger-step.sh` writes it, one line per inserted step; the conductor's own
+  `step-added` mark, written through `event.sh` with `VERI_ISSUE` set, does reach the journal.
 
 ## `report-owed.json` (optional)
 
