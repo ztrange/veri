@@ -5,6 +5,7 @@ caller's locale, not the UTF-8 one: an invalid UTF-8 byte still matches, and onl
 ASCII whitespace is stripped after the colon, so a no-break space is kept.
 """
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import os
 import re
 import sys
 
@@ -36,7 +37,11 @@ def _lines():
 
 
 def step_ahead(red_test_id):
+    own = os.fsencode(red_test_id).rpartition(b"::")[2]
     cases = [m.group(1) for m in map(STEP_AHEAD_RE.match, _lines()) if m]
+    cases = [c for c in cases if c.rpartition(b"::")[2] != own]
+    if not cases:
+        return 3
     _print_lines([b" ".join([b"prep", *cases])])
     return 0
 
