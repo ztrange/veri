@@ -9,6 +9,7 @@ import re
 import socket
 import sys
 import tempfile
+import time
 import urllib.parse
 
 import git
@@ -170,7 +171,10 @@ def commit(run, issue):
         entries.append("100644 blob %s\t%s\n" % (blob, name))
     inner = _out("mktree", cwd=run, data="".join(entries).encode())
     outer = _out("mktree", cwd=run, data=("040000 tree %s\t.tdd\n" % inner).encode())
-    return _out("commit-tree", outer, "-m", "veri: run records of #%s" % issue, cwd=run, env=IDENTITY)
+    # The dates are UTC, so the local time zone does not travel with the records.
+    stamp = "%d +0000" % int(time.time())
+    return _out("commit-tree", outer, "-m", "veri: run records of #%s" % issue, cwd=run,
+                env={**IDENTITY, "GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp})
 
 
 def push(run, issue):
