@@ -1,6 +1,6 @@
 """A run's local records carried on origin's `refs/veri/runs/<n>`: a commit on no branch holding the issue's lines of
-`.tdd/events.jsonl`, its `.tdd/issue-<n>-skill-commit` and its `.tdd/issue-<n>-timeout`, so another machine's
-metrics and resume read them. Never committed on the run's branch: rebase-merge would carry them into main's history."""
+`.tdd/events.jsonl` (and those naming no issue) and its `.tdd/issue-<n>-skill-commit`, so another machine's
+metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
 import json
 import os
 import sys
@@ -46,17 +46,16 @@ def _first_file(roots, issue, suffix):
 
 
 def records(run, issue):
-    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin and timeout pin,
-    each read from the run, else from the main tree it sits under; a file the run lacks is left out."""
+    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin, read from the
+    run, else from the main tree it sits under; a file the run lacks is left out."""
     roots = [run] + [m for m in [run_dir.main_of_worktree(os.path.abspath(run))] if m]
     found = {}
     lines = _issue_lines(os.path.join(run, EVENTS), issue)
     if lines:
         found["events.jsonl"] = lines
-    for suffix in ("-skill-commit", "-timeout"):
-        content = _first_file(roots, issue, suffix)
-        if content is not None:
-            found["issue-%s%s" % (issue, suffix)] = content
+    pin = _first_file(roots, issue, "-skill-commit")
+    if pin is not None:
+        found["issue-%s-skill-commit" % issue] = pin
     return found
 
 
