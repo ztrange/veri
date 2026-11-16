@@ -41,8 +41,10 @@ merge needs).
 - **Exit 1, `unexplained`.** GitHub answered and nothing counts; nothing is written. Tell the
   human in one line that the PR's merge failed unexplained, with the `young` lines printed, if
   any.
-- **Exit 2.** No answer (the cause is printed); nothing is written, and an existing file stays.
-  Tell the human in one line that the status page gave no answer.
+- **Exit 2, `no answer from GitHub's status page: …`.** Nothing is written, and an existing file
+  stays. Tell the human in one line that the status page gave no answer, with the cause printed.
+- **Exit 2, `not a PR url: …`.** The url passed was not a PR url; nothing is read or written.
+  Report that, once, in one line, naming the url.
 
 ## While the file exists
 
@@ -66,8 +68,10 @@ When the background command exits, route what it printed:
 - **Exit 0, `ended 0`.** No counting incident is open: leave local mode (below).
 - **Exit 0, `ended 3`.** The incident is still open after an hour: arm the wait again. Nothing is
   told.
-- **Exit 0, `ended <any other code>`** (2 included). No read in that hour got an answer: tell the
-  human in one line, then arm the wait again.
+- **Exit 0, `ended 2`.** No read in that hour got an answer: tell the human in one line, then arm
+  the wait again.
+- **Exit 0, `ended <any other code>`** (137 is a kill). The wait ended without an answer of its
+  own: tell the human in one line, naming the code, then arm the wait again.
 - **Exit 2, `none`.** The wait died without an end: arm the wait again.
 - **Exit 3, `live`.** Its own time ran out with the wait still running: start the background
   command again.
@@ -75,10 +79,13 @@ When the background command exits, route what it printed:
 ## Starting, recovering or resuming
 
 A session that starts, recovers from a reset or resumes from a handoff runs
-`$S/github-outage.sh status`: exit 3, nothing to do. Exit 0: it runs no one-shot check; it runs
-`$S/github-outage.sh adopt --pid <driver>` and merges each url printed (merges this session or a
-dead one started and never settled) as step 2 below says; then, while the status says
-`mode on`, it arms the wait.
+`$S/github-outage.sh status --pid <driver>`: exit 3, nothing to do. Exit 0: it runs no one-shot
+check. Each `merging <url> live` line is a PR another live process claimed (after a handoff,
+the old session's): tell the human once, in one line, naming the urls, since until that process
+settles them or ends, every `take` exits 3 and local mode cannot end. Then it runs
+`$S/github-outage.sh adopt --pid <driver>` and merges each url printed (the `mine` and `orphan`
+ones: merges this session or a dead one started and never settled) as step 2 below says; then,
+while the status says `mode on`, it arms the wait.
 
 ## Leaving local mode
 
