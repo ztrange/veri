@@ -101,6 +101,18 @@ def snapshot_digest(snapshot):
     return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
 
 
+def first_change(recorded, snapshot):
+    """The first path under <snapshot>, sorted, whose digest line differs from the digest text <recorded>, a file
+    added or removed included, joined to <snapshot>; None when none does. OSError propagates."""
+    def files(text):
+        return {path: digest for digest, _, path in (line.partition(" ") for line in text.splitlines())}
+    before, now = files(recorded), files(snapshot_digest(snapshot))
+    for path in sorted(set(before) | set(now)):
+        if before.get(path) != now.get(path):
+            return os.path.join(snapshot, path)
+    return None
+
+
 def raise_error(error):
     raise error
 
