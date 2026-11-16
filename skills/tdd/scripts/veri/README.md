@@ -185,6 +185,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_DISPATCH_OVERLAP_POLL` | `60` | its readers' own words |
 | `VERI_DISPATCH_RETRY_SLEEP` | `5` | its readers' own words |
 | `VERI_DISPATCH_STALL` | `3600` | its readers' own words |
+| `VERI_EFFORT_VERIFIER` | "" | its readers' own words |
 | `VERI_FETCH_RETRY_SLEEP` | `1` | its readers' own words |
 | `VERI_GH_DRIVER` | `rest` | its readers' own words |
 | `VERI_GH_REFUSAL_RETRIES` | `3` | its readers' own words |

@@ -222,6 +222,7 @@ DEFAULTED = {
     "VERI_MODEL_VERIFIER": ("sonnet", "opus", None),
     "VERI_MODEL_REVISE": ("opus", "sonnet", None),
     "VERI_MODEL_REVISE_GREEN": ("", "sonnet", None),
+    "VERI_EFFORT_VERIFIER": ("", "low", "minimal"),
     "VERI_MODEL_ADJUDICATOR": ("opus", "sonnet", None),
     "VERI_MODEL_CONDUCTOR": ("opus", "sonnet", None),
 }
@@ -342,3 +343,11 @@ def test_4047_the_other_knobs_an_operator_sets_are_keys_of_tunables_with_their_r
     assert {name: tunables.default(name) for name in knobs if name in tunables.TUNABLES} == {
         "VERI_PARALLEL": "1", "VERI_RUN_TIMEOUT": "14400", "VERI_MAX_ISSUES": "", "VERI_SELF_UPDATE": "",
         "VERI_MUTATION_ADDRESS_DOMAIN": "", "VERI_SESSION_TRANSCRIPTS": ""}
+
+
+def test_4013_veri_effort_verifier_parses_exactly_the_five_effort_levels_the_cli_accepts():
+    tunables = importlib.import_module("veri.tunables")
+
+    accepted = [value for value in ("low", "medium", "high", "xhigh", "max", "", "LOW", " low", "minimal", "maximum")
+                if tunables.parses("VERI_EFFORT_VERIFIER", value)]
+    assert accepted == ["low", "medium", "high", "xhigh", "max"]
