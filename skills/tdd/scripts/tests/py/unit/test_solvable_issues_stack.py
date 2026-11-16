@@ -48,7 +48,7 @@ def world(tmp_path, fake_processes, monkeypatch, stack_line, joined, origin_url=
     })
 
 
-JOINED = [{"body": "Closes #5", "state": "MERGED", "baseRefName": "stack"},
+JOINED = [{"body": "Closes #5", "state": "MERGED", "baseRefName": "stack", "isCrossRepository": False},
           {"body": "Closes #6", "state": "closed", "merged_at": None, "base": {"ref": "stack"}}]
 
 
@@ -84,5 +84,16 @@ def test_with_repo_and_a_stack_named_an_origin_that_names_no_github_repository_i
 def test_a_pull_request_merged_into_any_branch_but_the_stack_claims_nothing(
         tmp_path, fake_processes, monkeypatch, run_cli, solvable_issues, elsewhere):
     world(tmp_path, fake_processes, monkeypatch, "veri: stack branch: stack\n", JOINED + [elsewhere])
+
+    assert run_cli(solvable_issues, [])[:2] == (0, "6\n")
+
+
+@pytest.mark.parametrize("fork", [{"body": "Closes #6", "state": "MERGED", "baseRefName": "stack", "isCrossRepository": True},
+                                  {"body": "Closes #6", "state": "closed", "merged_at": "2026-11-16T00:00:00Z",
+                                   "head": {"ref": "x", "repo": None}, "base": {"ref": "stack", "repo": {"full_name": "me/repo"}}}])
+def test_a_pull_request_from_another_repository_merged_into_the_stack_claims_nothing_3973(
+        tmp_path, fake_processes, monkeypatch, run_cli, solvable_issues, fork):
+    # GitHub lets a collaborator merge a fork's PR into the stack; its Closes #6 is a stranger's text and claims nothing.
+    world(tmp_path, fake_processes, monkeypatch, "veri: stack branch: stack\n", JOINED[:1] + [fork])
 
     assert run_cli(solvable_issues, [])[:2] == (0, "6\n")
