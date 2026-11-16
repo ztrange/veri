@@ -67,9 +67,16 @@ def test_fed_history_fails_the_case_naming_a_case_history_query_its_table_does_n
 
     with pytest.raises(BaseException) as raised:
         try:
-            tests_frozen.case_history.subject("HEAD")
+            tests_frozen.case_history.default_branch()
         except Exception:
             pass
 
     assert (type(raised.value) is pytest.fail.Exception, str(raised.value)) == (
-        True, "fed_history does not answer case_history.subject")
+        True, "fed_history does not answer case_history.default_branch")
+
+
+def test_fed_history_answers_subject_with_the_revisions_subject_as_git_log_prints_it(fed_history, tests_frozen):
+    fed_history(("base", "start", {"test_a.py": ONE}), ("next", "refactor: more", {"test_a.py": ONE + "\n\n" + TWO}))
+    history = tests_frozen.case_history
+
+    assert [history.subject(rev) for rev in ("HEAD", "HEAD~1", "base")] == ["refactor: more\n", "start\n", "start\n"]
