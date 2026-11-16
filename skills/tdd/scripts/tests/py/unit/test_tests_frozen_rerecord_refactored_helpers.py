@@ -697,3 +697,110 @@ def test_rerecord_refactored_does_not_take_a_let_or_return_line_for_a_typescript
     skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
 
     assert (len(skipped), checked) == (3, 1)
+
+
+def test_rerecord_refactored_does_not_count_the_assertions_of_a_function_following_the_shared_typescript_helper_as_the_helpers_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "function unrelated() {\n  expect(x).toBe(9);\n}\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+def test_rerecord_refactored_skips_every_case_and_check_earlier_exits_1_when_the_refactor_deletes_an_assertion_from_the_shared_typescript_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n}\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (len(skipped), checked) == (3, 1)
+
+
+def test_rerecord_refactored_skips_only_the_case_whose_helper_call_line_the_refactor_deleted_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+    shared = "".join("it('%s', () => {\n  const x = 1;\n%s});\n\n" % (n, "  sharedBase();\n" if n != "two" else "")
+                     for n in ("one", "two", "three"))
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper, shared)
+
+    assert (skipped, checked) == (["skipped: suite.test.ts two"], 1)
+
+
+def test_rerecord_refactored_does_not_let_a_non_arrow_const_before_the_shared_typescript_arrow_helper_swallow_it_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = ("const y = 2;\n"
+              "const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+def test_rerecord_refactored_does_not_count_the_assertions_of_a_non_arrow_const_following_the_shared_typescript_helper_as_the_helpers_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = ("const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+              "const unrelated = 3;\nexpect(x).toBe(9);\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+def test_rerecord_refactored_does_not_take_a_non_arrow_const_the_cases_call_for_a_typescript_helper_definition_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "const other = wrap(() => {\n  expect(x).toBe(9);\n});\n")
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n  other();\n});\n\n" % n
+                     for n in ("one", "two", "three"))
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper, shared)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.parametrize("opener", ["const sharedBase = async () => {", "const sharedBase = x => {"])
+def test_rerecord_refactored_takes_an_async_or_single_parameter_typescript_arrow_const_for_the_shared_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, opener):
+    helper = opener + "\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+@pytest.mark.parametrize("word", ["constants", "functional"])
+def test_rerecord_refactored_does_not_end_the_shared_typescript_helper_at_a_column_0_line_merely_starting_with_a_keyword_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, word):
+    helper = ("const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n%s\n  expect(x).toBe(3);\n};\n" % word)
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+def test_rerecord_refactored_does_not_take_a_typescript_arrow_const_the_cases_do_not_call_for_their_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    helper = ("function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+              "const other = () => {\n  expect(x).toBe(9);\n};\n")
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (skipped, checked) == ([], 0)
+
+
+def test_rerecord_refactored_then_check_earlier_exits_0_for_a_python_case_whose_refactor_moved_assertions_into_a_module_level_helper_before_a_second_case_2931(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    test_b = 'def test_b():\n    y = 2\n    assert y == 2\n    assert y != 3\n'
+    inline = ('def test_a():\n    x = 1\n    assert x == 1\n    assert x != 2\n\n\n' + test_b)
+    extracted = ('def assert_refused(x):\n    assert x == 1\n    assert x != 2\n\n\n'
+                 'def test_a():\n    x = 1\n    assert_refused(x)\n\n\n' + test_b)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, PY_SAMPLE, inline, extracted)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, "skipped:" in err, checked) == (0, False, (0, ""))
