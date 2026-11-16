@@ -492,7 +492,6 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria. Builds on Ledger and plan, Run state and journal, Target suites and tiers and Foundations.
 
 - `capture-spec.sh`: capture an issue as a spec file.
-- `comment-class.sh`: classify an issue comment.
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
 - `invisible-work.sh`: sweep for work not visible on its issue.
 - `park-issue.sh`: park an issue with its cause and unblock.

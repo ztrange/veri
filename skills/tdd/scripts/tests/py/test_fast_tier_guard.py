@@ -463,12 +463,6 @@ def test_the_importer_guard_suite_planted_outside_a_tiers_unit_is_named_as_guard
     assert _misplaced(tmp_path) == []
 
 
-def test_1668_the_comment_class_suite_whose_only_suite_looking_strings_are_prose_labels_lives_under_tests_py_unit_and_not_beside_it():
-    tier = SCRIPTS / "tests" / "py"
-    name = "test_comment_class.py"
-    assert ((tier / name).is_file(), (tier / "unit" / name).is_file()) == (False, True)
-
-
 def test_3263_the_journal_event_roster_suite_lives_under_tests_py_unit_and_not_beside_it():
     tier = SCRIPTS / "tests" / "py"
     name = "test_journal_event_roster.py"
