@@ -12,6 +12,7 @@ import time
 
 import entry
 import event
+import git
 import paths
 import run_dir
 import tunables
@@ -179,22 +180,27 @@ def _tag(worktree, message, pull, pr):
     if _git(worktree, "tag", "-a", name, "-m", message, target).returncode:
         _say("git tag failed; tag %s not published" % name)
         return False
+    oid = git.out("-C", worktree, "rev-parse", "--verify", "refs/tags/" + name)
     pushed = _network_git(worktree, "push", "origin", name)
     if pushed.returncode:
         failed = "git push failed (exit %d): %s;" % (pushed.returncode, (pushed.stderr or "").strip())
         published = "may have been published" if isinstance(pushed, TimedOut) else "not published"
-        deleted = _git(worktree, "tag", "-d", name)
-        if deleted.returncode:
-            _say("%s tag %s cut, %s, and git tag -d %s failed (exit %d): %s" % (
-                failed, name, published, name, deleted.returncode, deleted.stderr.strip()))
-        else:
-            _say("%s tag %s cut, %s, and removed" % (failed, name, published))
+        _say("%s tag %s cut, %s, and %s" % (failed, name, published, _untag(worktree, name, oid)))
         return False
     return name
 
 
-def _step(failed, what, cwd, *args, label=None, git=_git):
-    run = git(cwd, *args)
+def _untag(worktree, name, oid):
+    """Delete refs/tags/<name> only while it still points at <oid>, the object this run cut: what became of it, said."""
+    deleted = git.git("-C", worktree, "update-ref", "-d", "refs/tags/" + name, oid, capture_output=True, text=True)
+    if deleted.returncode:
+        return "tag %s left in the clone: git update-ref -d failed (exit %d): %s" % (
+            name, deleted.returncode, deleted.stderr.strip())
+    return "removed"
+
+
+def _step(failed, what, cwd, *args, label=None, runner=_git):
+    run = runner(cwd, *args)
     if run.returncode:
         _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
         failed.append(label or what)
@@ -223,7 +229,7 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if issue:
             event.mark(worktree, {"issue": issue.group(1)}, "merged",
                        ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
-    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch, git=_network_git)
+    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch, runner=_network_git)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
     if _release(pid, scripts, clone):

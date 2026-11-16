@@ -12,6 +12,8 @@ ARGV = [PR, "/wt", "feature", "the capability"]
 ORIGIN_SHA = "1111111"
 PUSHED_HEAD = "abc1234"
 MERGE_SHA = "fedcba9"
+TAG_OID = "7a90000"
+GUARDED_DELETE = "git -C /wt update-ref -d refs/tags/v0.11 %s" % TAG_OID
 PID = str(os.getpid())
 WAIT_CI = os.path.join(queued_merge.SCRIPTS, "wait-ci.sh")
 
@@ -77,6 +79,8 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, (PUSHED_HEAD if state["rebased"] else "0000000") + "\n", ""
         if "--git-common-dir" in line:
             return 0, "/main/.git\n", ""
+        if "rev-parse --verify refs/tags/" in line:
+            return 0, TAG_OID + "\n", ""
         if "tag --sort=-v:refname" in line:
             return 0, tags, ""
         if "gh api" in line and not is_put and not state["merged"]:
@@ -1449,17 +1453,17 @@ def test_3982_queued_merge_whose_tag_push_fails_deletes_the_local_tag_says_it_wa
 
     code, _, err = run_cli(queued_merge, ARGV)
 
-    deleted = [c for c in calls if " tag -d " in c]
+    deleted = [c for c in calls if "update-ref -d" in c]
     assert (code, deleted, "v0.11 cut, not published, and removed" in err, "merged, but cleanup failed: tag" in err) == (
-        2, ["git -C /wt tag -d v0.11"], True, True)
+        2, [GUARDED_DELETE], True, True)
 
 
 def test_3982_queued_merge_whose_tag_push_and_tag_delete_both_fail_names_the_failed_delete_and_exits_2_naming_tag(fake_processes, run_cli):
-    scenario(fake_processes, fail=("push origin v0.11", "tag -d v0.11"))
+    scenario(fake_processes, fail=("push origin v0.11", "update-ref -d refs/tags/v0.11"))
 
     code, _, err = run_cli(queued_merge, ARGV)
 
-    assert (code, "git tag -d v0.11 failed" in err, "and removed" in err, "merged, but cleanup failed: tag" in err) == (2, True, False, True)
+    assert (code, "tag v0.11 left in the clone" in err, "and removed" in err, "merged, but cleanup failed: tag" in err) == (2, True, False, True)
 
 
 @pytest.mark.parametrize("name", ["VERI_GIT_NETWORK_TIMEOUT", "VERI_GH_TIMEOUT"])
@@ -1499,7 +1503,7 @@ def test_3984_queued_merge_whose_tag_push_never_returns_ends_it_after_the_git_ne
     code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
-    assert (code, "push origin v0.11: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, first(calls, "tag -d v0.11") is not None,
+    assert (code, "push origin v0.11: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, first(calls, GUARDED_DELETE) is not None,
             "merged, but cleanup failed: tag" in err, len(released)) == (2, True, True, True, 1)
 
 
@@ -1555,3 +1559,19 @@ def test_3984_queued_merge_whose_fetch_after_the_merge_times_out_does_not_fetch_
     fetches = [c for c in calls if c == "git -C /wt fetch origin"]
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, fetches, "merged, but cleanup failed: tag" in err, len(released)) == (2, ["git -C /wt fetch origin"], True, 1)
+
+
+def test_3984_queued_merge_deletes_an_unpublished_tag_only_while_its_ref_still_points_at_the_object_this_run_cut_and_names_a_moved_one(fake_processes, run_cli):
+    def moved(answer):
+        def world(line, **kwargs):
+            if line == GUARDED_DELETE:
+                return 1, "", "error: cannot lock ref 'refs/tags/v0.11': is at 5555555 but expected %s" % TAG_OID
+            return answer(line, **kwargs)
+        return fake_processes(world)
+
+    calls = scenario(moved, fail=("push origin v0.11",))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    deletes = [c for c in calls if "update-ref -d" in c or " tag -d " in c]
+    assert (code, deletes, "tag v0.11 left in the clone" in err, "and removed" in err) == (2, [GUARDED_DELETE], True, False)
