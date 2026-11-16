@@ -8,6 +8,7 @@ already read, so they never change. (The hard-timeout pin is owned by leaf_timeo
     issue-<n>-conductor-model     the model the conductor was launched on
     issue-<n>-launch-env          the VERI_* environment a restarted conductor is relaunched with
     issue-<n>-baseline-full-tier  the VERI_BASELINE_FULL_TIER mode the run was launched with
+    issue-<n>-snapshot-digest     the digest of the skill snapshot the launch extracted (pinned_scripts.snapshot_digest)
 
 A new pin's suffix is a constant below and joins IGNORED, which derives the `.tdd/.gitignore` seed.
 """
@@ -21,9 +22,10 @@ CONDUCTOR_MODEL = "-conductor-model"
 LAUNCH_ENV = "-launch-env"
 BASELINE_FULL_TIER = "-baseline-full-tier"
 SKILL_COMMIT = "-skill-commit"  # written by run_conductor, read by pinned_scripts
+SNAPSHOT_DIGEST = "-snapshot-digest"
 
 # Seed order is part of the bytes older runs were seeded with.
-IGNORED = (SKILL_COMMIT, SKIP_VERIFY, BASELINE_FULL_TIER, CONDUCTOR_MODEL, LAUNCH_ENV)
+IGNORED = (SKILL_COMMIT, SKIP_VERIFY, BASELINE_FULL_TIER, CONDUCTOR_MODEL, LAUNCH_ENV, SNAPSHOT_DIGEST)
 
 
 def gitignore_seed():
@@ -96,3 +98,18 @@ def write_baseline_full_tier(root, issue, mode):
 def baseline_full_tier(issue, root):
     """The stripped mode the run pinned under `root`, None when it pinned none. OSError propagates."""
     return _read(issue, BASELINE_FULL_TIER, (root,), tolerant=False)
+
+
+def write_snapshot_digest(root, issue, digest):
+    """Record the digest of the launch's skill snapshot, as given."""
+    with open(run_dir.issue_file(root, issue, SNAPSHOT_DIGEST), "w") as record:
+        record.write(digest)
+
+
+def snapshot_digest(issue, root):
+    """The digest the run recorded under `root`, as written; None when it recorded none. OSError propagates."""
+    try:
+        with open(run_dir.issue_file(root, issue, SNAPSHOT_DIGEST)) as record:
+            return record.read()
+    except FileNotFoundError:
+        return None
