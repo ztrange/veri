@@ -236,6 +236,8 @@ the job, briefed to return at most 10 lines and to read the skill at
   above require:
   `PATH="${VERI_VENV:-$HOME/.veri-tools/venv}/bin:$PATH" perl -e 'alarm shift; exec @ARGV' 900 make unit < /dev/null`.
 - A hand fix runs `make unit` and every affected suite outside the fast tier before it pushes.
+- Every fix or tick note the subagent writes cites a commit's subject next to its sha: a rebase
+  merge rewrites shas, and the subject still finds the commit.
 - A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
   afresh before the merge.
 
