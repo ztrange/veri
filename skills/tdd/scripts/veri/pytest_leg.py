@@ -10,7 +10,8 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.di
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
 #            or VERI_PYTEST_WORKERS is not a whole number of at least 1, or any other exception escaped the leg (registering
-#            it, taking the full-run lock), one stderr line naming it in entry.refusal's form (#3985)
+#            it, taking the full-run lock, checking or recording the bytecode cache), one stderr line naming it in
+#            entry.refusal's form (#3985); a record that fails after failing suites leaves their 1
 import contextlib
 import fcntl
 import hashlib
