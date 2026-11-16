@@ -33,7 +33,7 @@ about twelve lines.
 - **GitHub and issues**: gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria.
 - **Branch, PR and merge**: Worktrees, pushing a branch, readying and merging the pull request, waiting for CI.
 - **Prose grading and requirements**: Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step.
-- **Conductors and operator tools**: The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports, handoff state).
+- **Conductors and operator tools**: The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports).
 
 Directions the tree obeys (checked by the same test; every group states what it may import except Conductors and operator tools, which may import any group and which nothing imports):
 
@@ -702,12 +702,11 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 
 # Conductors and operator tools
 
-The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports, handoff state). The top of the tree: no group builds on it.
+The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports). The top of the tree: no group builds on it.
 
 - `comment.sh`: post the run's Done or Bail comment on the issue.
 - `dispatch.sh`: the dev session's dispatch target and exits watch.
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
-- `handoff-state.sh`: the snapshot a session handoff carries.
 - `install-links.sh`: link veri's skills into a project.
 - `metrics.sh`: a run's metrics report.
 - `no-product-caller.sh`: scan for callers of a product name.
