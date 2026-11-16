@@ -10,5 +10,5 @@
 - [x] a test file under .git, .tdd, .venv or node_modules that touches a named file contributes no case ⟦criterion 5⟧
 - [x] the plan input check also refuses a .tdd test file's marker, --step text and a fourth positional, watched red with the walk's .tdd skip removed ⟦criterion 6⟧
 - [x] a touching test file that cannot be read, or whose case call never closes, contributes no case and the plan still renders
-- [ ] prompts/verify-plan.md explains the section and tells the verifier, in the older-cases check, to read those cases in the repository and apply the check to them ⟦skill-edit⟧ ⟦criterion 7⟧
-- [ ] SCRIPTS.md's build-verify-prompt.sh entry states the plan phase's touching cases, the matching rules, and VERI_PLAN_TOUCHING_CASES with its default ⟦skill-edit⟧ ⟦criterion 8⟧
+- [x] prompts/verify-plan.md explains the section and tells the verifier, in the older-cases check, to read those cases in the repository and apply the check to them ⟦skill-edit⟧ ⟦criterion 7⟧
+- [x] SCRIPTS.md's build-verify-prompt.sh entry states the plan phase's touching cases, the matching rules, and VERI_PLAN_TOUCHING_CASES with its default ⟦skill-edit⟧ ⟦criterion 8⟧
