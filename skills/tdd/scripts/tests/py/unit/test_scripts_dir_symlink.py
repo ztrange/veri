@@ -61,6 +61,7 @@ def test_run_conductor_and_solvable_issues_keep_the_symlinked_scripts_directory_
     monkeypatch.setattr(conductor.launch_floor, "bash_refusal", lambda name: None)
     monkeypatch.setattr(conductor.launch_floor, "python_refusal", lambda name: None)
     monkeypatch.setattr(conductor, "git", spy_git)
+    monkeypatch.setattr(conductor.run_records, "read", lambda issue, name, cwd: None)
     try:
         conductor.main(["1"])
     except Stop:
