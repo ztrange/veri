@@ -242,6 +242,14 @@ def authenticated_login():
 
 
 TRUSTED_ASSOCIATIONS = ("OWNER", "COLLABORATOR")
+_TRUSTING_LOGIN = {}
+
+
+def _trusting_login():
+    """The authenticated gh login trusted_comment compares against, read at most once per process."""
+    if "login" not in _TRUSTING_LOGIN:
+        _TRUSTING_LOGIN["login"] = authenticated_login()
+    return _TRUSTING_LOGIN["login"]
 
 
 def trusted_comment(comment):
@@ -250,7 +258,7 @@ def trusted_comment(comment):
     the body."""
     if comment.get("author_association") in TRUSTED_ASSOCIATIONS:
         return True
-    return comment["user"]["login"] == authenticated_login()
+    return comment["user"]["login"] == _trusting_login()
 
 
 def _quiet_write(*args):

@@ -38,3 +38,11 @@ def test_a_comment_is_trusted_by_its_owner_or_collaborator_association_and_never
 
 def test_a_member_whose_login_is_the_authenticated_gh_users_is_trusted(github):
     assert github.trusted_comment(comment("MEMBER", login="veri-operator", body=DONE)) is True
+
+
+def test_the_authenticated_login_is_read_at_most_once_per_process(github, monkeypatch):
+    reads = []
+    monkeypatch.setattr(github, "authenticated_login", lambda: reads.append("user") or "veri-operator")
+    answers = [github.trusted_comment(comment(association, login=login))
+               for association, login in (("NONE", "a"), ("MEMBER", "veri-operator"), ("CONTRIBUTOR", "b"))]
+    assert (answers, reads) == ([False, True, False], ["user"])

@@ -255,6 +255,9 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
     monkeypatch.setattr(tempfile, "tempdir", case_tmpdir)
     for name, value in offline.items():
         monkeypatch.setenv(name, value)
+    if "github" in sys.modules:
+        # github.trusted_comment reads the gh login once per process; a case must not inherit another case's.
+        monkeypatch.setattr(sys.modules["github"], "_TRUSTING_LOGIN", {})
 
     def refuse_inherited_tmpdir(path, frame):
         if not isinstance(path, (str, bytes, os.PathLike)):
