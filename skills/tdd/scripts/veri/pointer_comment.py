@@ -4,8 +4,11 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import sys
 
 import entry
+import event_log
 import git
 import github
+import ledger
+import run_dir
 
 HEADING = "### 📍 Run state"
 USAGE = "usage: pointer-comment.sh <issue-number>"
@@ -25,6 +28,22 @@ def pr_url(name):
     return next((p.get("html_url") or p.get("url") for p in pulls if (p.get("head") or {}).get("ref") == name), "none")
 
 
+def step(issue):
+    try:
+        with open(run_dir.ledger(".", issue), encoding="utf-8") as f:
+            steps = ledger.ledger_steps(f.read())
+    except FileNotFoundError:
+        return "none"
+    current = next((s.number for s in steps if s.state == "open"), str(len(steps)))
+    return "%s/%d" % (current, len(steps))
+
+
+def phase(issue):
+    named = [e["phase"] for e in event_log.events(".", skip_unreadable=True)
+             if str(e.get("issue", "")) == issue and e.get("phase")]
+    return named[-1] if named else "none"
+
+
 def render(issue):
     name = branch()
     return "\n".join([
@@ -32,6 +51,8 @@ def render(issue):
         "",
         "Branch: %s" % name,
         "PR: %s" % pr_url(name),
+        "Step: %s" % step(issue),
+        "Phase: %s" % phase(issue),
         "Resume: $S/run-conductor.sh %s" % issue,
     ]) + "\n"
 
