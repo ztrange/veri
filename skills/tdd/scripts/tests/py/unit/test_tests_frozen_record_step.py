@@ -280,23 +280,25 @@ def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_in
 
 
 def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_at_the_current_digest_2199(
-        tmp_path, run_cli, tests_frozen, fed_history):
+        tmp_path, run_cli, tests_frozen, fed_history, monkeypatch):
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests").mkdir()
-    base = {NEW: "def test_one():\n    assert 1\n"}
-    (tmp_path / NEW).write_text(base[NEW])
-    fed_history(("base", "base", base), root=tmp_path)
     step = "step one adds a case"
+    monkeypatch.setenv("VERI_ISSUE", "9")
+    base = {NEW: "def test_one():\n    assert 1\n", ".tdd/issue-9.md": "- [ ] %s\n" % step}
+    for path, text in base.items():
+        (tmp_path / path).write_text(text)
+    fed_history(("base", "base", base), root=tmp_path)
     (tmp_path / NEW).write_text("def test_one():\n    assert 1\n\n\ndef test_two():\n    assert 2\n")
     run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
     fed_history(("base", "base", base), ("red", "red", {NEW: (tmp_path / NEW).read_text()}), root=tmp_path)
     record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
     first = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
 
-    run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
+    code, _, err = run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
 
     again = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
-    assert (len(first), again) == (1, first)
+    assert (code, len(first), again) == (0, 1, first), err
 
 
 STEPS = ["step Z adds an early case", "step A adds the cases", "step B adds a later case"]
