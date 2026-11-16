@@ -81,3 +81,14 @@ def test_3965_a_group_writable_default_prefix_under_tmpdir_is_refused_and_no_pre
     monkeypatch.setenv("TMPDIR", str(tmp_path))
 
     assert run_prefix() is None
+
+
+def test_3965_on_a_refusal_veri_modules_compile_from_source_and_one_stderr_line_names_the_path_and_why(run_prefix, monkeypatch, tmp_path, capfd):
+    cache = cache_with_mode(tmp_path, 0o770)
+    monkeypatch.setenv("VERI_PYCACHE", str(cache))
+
+    used = run_prefix()
+    loader = sys.path_hooks[0](str(VERI)).find_spec("tunables").loader
+
+    assert (used, type(loader).__name__, capfd.readouterr().err) == (
+        None, "FromSource", "veri: not using the bytecode cache %s: it is group-writable; compiling veri's modules from source\n" % cache)
