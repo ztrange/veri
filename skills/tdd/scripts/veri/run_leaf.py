@@ -21,6 +21,11 @@ DEFAULT_TOOLS = "Bash,Read,Edit,Write,Grep,Glob"
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
+def claude_mds(directory):
+    """The two `CLAUDE.md` files Claude Code reads in `directory`."""
+    return [os.path.join(directory, "CLAUDE.md"), os.path.join(directory, "CLAUDE.local.md")]
+
+
 def above_top_level(toplevel):
     """`CLAUDE.md` and `CLAUDE.local.md` in every directory above `toplevel` up to the root; none for None."""
     if toplevel is None:
@@ -29,7 +34,7 @@ def above_top_level(toplevel):
     directory = toplevel
     while os.path.dirname(directory) != directory:
         directory = os.path.dirname(directory)
-        above += [os.path.join(directory, "CLAUDE.md"), os.path.join(directory, "CLAUDE.local.md")]
+        above += claude_mds(directory)
     return above
 
 
@@ -81,7 +86,7 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     if coerce_marker == "1":
         env.pop("VERI_SHIM_SET_COERCE", None)
         env.pop("PYTHONCOERCECLOCALE", None)
-    own = [] if own_dir is None else [os.path.join(own_dir, "CLAUDE.md"), os.path.join(own_dir, "CLAUDE.local.md")]
+    own = [] if own_dir is None else claude_mds(own_dir)
     return leaf_argv(binary, model, extra, own + above_top_level(toplevel)), env
 
 
