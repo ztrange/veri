@@ -266,3 +266,14 @@ def test_3989_a_lock_wait_marker_whose_pid_is_alive_under_another_start_time_is_
     assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\nMon Nov 16 10:00:00 2026\n",
                                          alive={4343}, started="Tue Nov 17 09:00:00 2026") == (
         "killed-stuck", "hard timeout 600s exceeded")
+
+
+def test_3989_an_empty_lock_wait_marker_an_older_legs_still_freezes_the_timers_so_the_leaf_finishes_past_the_hard_timeout(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "") == ("success", "")
+
+
+def test_3989_a_lock_wait_marker_whose_pid_is_alive_under_its_recorded_start_time_freezes_the_timers(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\nMon Nov 16 10:00:00 2026\n",
+                                         alive={4343}, started="Mon Nov 16 10:00:00 2026") == ("success", "")
