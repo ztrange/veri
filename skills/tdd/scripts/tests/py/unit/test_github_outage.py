@@ -295,3 +295,16 @@ def test_status_read_refuses_a_bad_poll_knob_before_any_read_so_enter_never_star
         outage.status_read()
 
     assert "VERI_GITHUB_STATUS_POLL" in str(refused.value)
+
+
+def test_take_drops_a_held_url_already_merging_so_a_crash_left_in_both_lists_is_never_taken_twice(tmp_path):
+    world = entered(tmp_path, 10)
+    (tmp_path / outage.MERGING).write_text("%s\t5\tstart-5\n" % (U % 1))
+
+    shown = outage.status(str(tmp_path), world)[1]
+    taken = outage.take(str(tmp_path), 6, world)
+
+    assert [line for line in shown if line.split()[1:2] == [U % 1]] == ["merging %s orphan" % (U % 1)]
+    assert taken == (0, [U % 10])
+    assert [e[0] for e in outage.merging_of(str(tmp_path))] == [U % 1, U % 10]
+    assert outage.held(outage.lines_of(str(tmp_path / outage.FILE))) == []

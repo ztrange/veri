@@ -192,13 +192,17 @@ def take(root, pid, world):
         lines = lines_of(path)
         if lines is None:
             return 3, []
-        urls = held(lines)
         merging = merging_of(root)
-        if urls:
-            write_merging(root, merging + [(urls[0], str(pid), world.started(pid))])
-            lines.remove(urls[0])
-            write(path, lines)
-            return 0, [urls[0]]
+        busy = {entry_[0] for entry_ in merging}
+        urls = [url for url in held(lines) if url not in busy]
+        taken = urls[:1]
+        if taken:
+            write_merging(root, merging + [(taken[0], str(pid), world.started(pid))])
+        kept = [line for line in lines if line not in busy and line not in taken]
+        if kept != lines:
+            write(path, kept)
+        if taken:
+            return 0, taken
         if merging:
             return 3, []
         os.unlink(path)
@@ -282,8 +286,9 @@ def status(root, world):
     """What a starting session, a handoff and the check read: mode, held PRs, merging PRs, the wait."""
     lines = lines_of(os.path.join(root, FILE))
     merging = merging_of(root)
+    busy = {entry_[0] for entry_ in merging}
     out = ["mode " + ("on" if lines is not None else "off")]
-    out += ["held " + url for url in held(lines or [])]
+    out += ["held " + url for url in held(lines or []) if url not in busy]
     out += ["merging %s %s" % (url, "live" if world.alive(pid, start) else "orphan") for url, pid, start in merging]
     out.append("wait " + wait_state(root, world))
     return (0 if lines is not None or merging else 3), out
