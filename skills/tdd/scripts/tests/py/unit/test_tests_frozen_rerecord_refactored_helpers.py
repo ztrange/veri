@@ -509,3 +509,191 @@ def test_rerecord_refactored_names_the_assertion_lines_guard_in_parentheses_on_t
     assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
                                and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
         1, 1, [True])
+
+
+def test_rerecord_refactored_names_the_helper_assertion_count_guard_in_parentheses_on_the_skipped_line_of_a_record_whose_case_body_is_unchanged_but_whose_helper_gained_an_assertion_2985(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    one = "\tif x != 1 {\n\t\tt.Fatal(\"bad 1\")\n\t}\n"
+    two = one + "\tif x != 2 {\n\t\tt.Fatal(\"bad 2\")\n\t}\n"
+    case = "func TestX(t *testing.T) {\n\tx := 1\n\tcheckX(t, x)\n}\n"
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE,
+                        "func checkX(t *testing.T, x int) {\n" + one + "}\n\n" + case,
+                        "func checkX(t *testing.T, x int) {\n" + two + "}\n\n" + case,
+                        message="A refactor adds an assertion to the helper")
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
+                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+        0, 1, [True])
+
+
+def test_rerecord_refactored_leaves_one_helpers_line_from_head_for_a_go_case_whose_record_held_two_stale_ones_so_check_earlier_exits_0_2998(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    suite = tmp_path / GO_SUITE
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, "func TestX(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        REQUIRE_ALL, message="A refactor moves the assertions into a helper")
+    record = _record_of(tmp_path)
+    head_body = tests_frozen._bodies_of(suite.read_text(), "TestX")[0]
+    stale = "".join("helpers: suite_test.go\tTestX\t%s\n" % (digit * 64) for digit in "67")
+    record.write_text("".join(
+        line for line in record.read_text().splitlines(keepends=True) if not line.startswith("body: ")
+    ).replace("case: TestX\n", "case: TestX\n" + tests_frozen.body_line("suite_test.go", "TestX", head_body)
+              + "\n" + stale))
+    held = tests_frozen._helper_digest(suite.read_text(), head_body)
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert ([l for l in record.read_text().splitlines() if l.startswith("helpers: ")], checked) == (
+        ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
+
+
+def test_rerecord_refactored_leaves_a_record_with_two_helpers_lines_byte_identical_for_a_case_it_skips_2998(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, "func TestX(t *testing.T) {\n\tx := 1\n}\n",
+                        "func TestX(t *testing.T) {\n\tx := 2\n}\n")
+    record = _record_of(tmp_path)
+    stale = "".join("helpers: suite_test.go\tTestX\t%s\n" % (digit * 64) for digit in "67")
+    record.write_text("".join(
+        line + stale if line.startswith("body: ") else line for line in record.read_text().splitlines(keepends=True)))
+    before = record.read_bytes()
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert (code, "skipped: suite_test.go TestX" in err, record.read_bytes()) == (1, True, before)
+
+
+def test_rerecord_refactored_keeps_a_helpers_line_of_a_later_case_that_does_not_follow_a_rewritten_body_2998(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, "func TestX(t *testing.T) {\n\tx := 1\n" + THREE + "}\n",
+                        REQUIRE_ALL, message="A refactor moves the assertions into a helper")
+    record = _record_of(tmp_path)
+    later = "case: TestY\nhelpers: suite_test.go\tTestY\t%s\n" % ("8" * 64)
+    record.write_text(record.read_text() + later)
+
+    run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+
+    assert record.read_text().endswith(later)
+
+
+def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_three_go_cases_sharing_a_helper_the_refactor_introduced_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    checks = "".join('\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m for m in "abc")
+    inline = "".join('func Test%s(t *testing.T) {\n\tx := 1\n%s}\n\n' % (n, checks)
+                     for n in ("One", "Two", "Three"))
+    shared = "".join('func Test%s(t *testing.T) {\n\tx := 1\n\tsharedBase(t, x)\n}\n\n' % n for n in ("One", "Two", "Three"))
+    helper = ('func sharedBase(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n\tif x != 1 {\n\t\tt.Fatal("b")\n\t}\n'
+              '\tif x != 1 {\n\t\tt.Fatal("c")\n\t}\n}\n')
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, shared + helper)
+
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+
+    assert (code, err, checked) == (0, "", (0, ""))
+
+
+TS_NAMES = ("one", "two", "three")
+TS_INLINE = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n});\n\n" % n
+                    for n in TS_NAMES)
+
+
+def _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, inline, refactored):
+    """Three TS cases recorded as `inline`, refactored to `refactored`; returns (rerecord code, its stderr,
+    check-earlier's (code, stdout))."""
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, TS_SUITE, inline, refactored)
+    code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
+    return code, err, checked
+
+
+def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_three_typescript_cases_sharing_a_function_helper_the_refactor_introduced_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in TS_NAMES)
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+
+    code, err, checked = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, TS_INLINE,
+                                        shared + helper)
+
+    assert (code, err, checked) == (0, "", (0, ""))
+
+
+def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_three_typescript_cases_sharing_a_function_helper_named_test_helper_the_refactor_introduced_2931(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  testHelper();\n});\n\n" % n for n in TS_NAMES)
+    helper = "function testHelper() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n}\n"
+
+    code, err, checked = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, TS_INLINE,
+                                        shared + helper)
+
+    assert (code, err, checked) == (0, "", (0, ""))
+
+
+def test_rerecord_refactored_then_check_earlier_exits_0_printing_no_skipped_for_three_typescript_cases_sharing_an_arrow_function_helper_the_refactor_introduced_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in TS_NAMES)
+    helper = "const sharedBase = () => {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+
+    code, err, checked = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, TS_INLINE,
+                                        shared + helper)
+
+    assert (code, err, checked) == (0, "", (0, ""))
+
+
+def test_rerecord_refactored_then_check_earlier_exits_1_naming_the_cases_when_the_refactor_adds_an_assertion_line_to_the_shared_typescript_helper_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    inline = "".join("it('%s', () => {\n  const x = 1;\n  expect(x).toBe(%d);\n});\n\n" % (n, i)
+                     for i, n in enumerate(TS_NAMES, 1))
+    shared = "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in TS_NAMES)
+    helper = "function sharedBase() {\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n  expect(x).toBe(4);\n}\n"
+
+    _, err, (checked, _) = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, inline,
+                                          shared + helper)
+
+    skipped = [line for line in err.splitlines() if line.startswith("skipped: suite.test.ts ")]
+    assert (bool(skipped), checked) == (True, 1)
+
+
+def test_rerecord_refactored_skips_only_the_go_case_whose_own_lines_the_shared_helper_exceeds_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+
+    def check(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+
+    inline = ("func TestX(t *testing.T) {\n\tx := 1\n" + check("a") + check("b") + "}\n\n"
+              "func TestY(t *testing.T) {\n\tx := 1\n" + check("a") + check("b") + check("c") + "}\n\n")
+    shared = "".join("func Test%s(t *testing.T) {\n\tx := 1\n\tsharedBase(t, x)\n}\n\n" % n for n in ("X", "Y"))
+    helper = "func sharedBase(t *testing.T, x int) {\n" + check("a") + check("b") + check("c") + "}\n"
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, inline, shared + helper)
+
+    err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[2]
+    checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
+
+    skipped = [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")]
+    assert (skipped, checked) == (["skipped: suite_test.go TestX"], 1)
+
+
+def _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper, shared=None):
+    """Three TS cases with inline expects, refactored into `shared` + `helper`; returns (skipped lines, check-earlier code)."""
+    shared = shared or "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in TS_NAMES)
+    _, err, (checked, _) = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, TS_INLINE,
+                                          shared + helper)
+    return [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")], checked
+
+
+@pytest.mark.parametrize("opener", ["let sharedBase = () => {", "return sharedBase = () => {"])
+def test_rerecord_refactored_does_not_take_a_let_or_return_line_for_a_typescript_helper_definition_and_check_earlier_exits_1_2942(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, opener):
+    helper = opener + "\n  expect(x).toBe(1);\n  expect(x).toBe(2);\n  expect(x).toBe(3);\n};\n"
+
+    skipped, checked = _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, helper)
+
+    assert (len(skipped), checked) == (3, 1)
