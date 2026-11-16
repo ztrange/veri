@@ -101,6 +101,7 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 # first. The leg's interpreter reads the prefix before any veri code runs, so the check is here.
 PYCACHE_GUARD := why=; listing="$$(ls -nd "$$pycache" 2>/dev/null)"; \
 	if [ -L "$$pycache" ]; then why="it is a symlink"; \
+	elif [ ! -d "$$pycache" ]; then why="it is not a directory"; \
 	elif [ "$$(printf '%s\n' "$$listing" | awk '{print $$3}')" != "$$(id -u)" ]; then why="it is owned by another user"; \
 	else case "$$listing" in ?????w*) why="it is group-writable" ;; ????????w*) why="it is other-writable" ;; esac; \
 	fi; \
@@ -115,7 +116,7 @@ test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@for e in $(PY_REFUSED); do printf 'refusing: %s selects no suite\n' "$$e" >&2; exit 2; done
-	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p -m 0700 "$$pycache"; \
+	@unset BASH_ENV ENV PYTHONDONTWRITEBYTECODE; pycache="$${VERI_PYCACHE:-$${TMPDIR:-/tmp}/veri-pycache-$$(id -u)}"; mkdir -p -m 0700 "$$pycache" 2>/dev/null; \
 	$(PYCACHE_GUARD); \
 	fail=0; git_bin="$$(mktemp -d)"; \
 	trap 'rm -rf "$$git_bin"' EXIT; \
