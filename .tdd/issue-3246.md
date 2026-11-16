@@ -6,4 +6,4 @@
 - [x] with no reset recorded it prints nothing and exits 3 ⟦criterion 4⟧
 - [x] an unreadable transcript or conductor log exits 2 naming it ⟦criterion 4⟧
 - [x] a role other than dev or conductor, a bad lane or a bad <n> exits 2 with a usage line ⟦criterion 4⟧
-- [ ] SKILL catalogue SCRIPTS.md has the reset-cost.sh entry, graded by SC220 ⟦criterion 5⟧
+- [x] SKILL catalogue SCRIPTS.md has the reset-cost.sh entry, graded by SC220 ⟦criterion 5⟧
