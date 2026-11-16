@@ -195,3 +195,58 @@ def test_a_transcript_line_that_is_not_a_json_object_is_skipped_and_counted_in_t
     lines = out.splitlines() + ["", "", "", ""]
     assert (code, lines[:2], "2 transcript lines that are not a JSON object skipped" in lines[3]) == (
         0, ["2026-11-13T10:00:00 K=28270 g=1000", "2026-11-13T12:00:00 K=26410 g=500"], True), (out, err)
+
+
+def test_a_request_with_an_unreadable_timestamp_is_skipped_counted_and_never_echoed(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, _ = two_resets(tmp_path)
+    bad = request("m9", "2026-11-13T11:30:00", cache_read=22500)
+    bad["timestamp"] = "SECRET-not-a-time"
+    transcript.write_text(transcript.read_text() + json.dumps(bad) + "\n")
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    lines = out.splitlines() + ["", "", "", ""]
+    assert (code, lines[:2], "1 request with an unreadable timestamp skipped" in lines[3], "SECRET" in out + err) == (
+        0, ["2026-11-13T10:00:00 K=28270 g=1000", "2026-11-13T12:00:00 K=26410 g=500"], True, False), (out, err)
+
+
+def test_a_negative_token_count_makes_its_reset_unknown_rather_than_a_negative_figure(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    transcript, _ = two_resets(tmp_path)
+    transcript.write_text(transcript.read_text().replace('"input_tokens": 5, "cache_read_input_tokens": 0,',
+                                                         '"input_tokens": -50000, "cache_read_input_tokens": 0,'))
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    assert (code, out.splitlines()[:2]) == (0, ["2026-11-13T10:00:00 K=28270 g=1000",
+                                                "2026-11-13T12:00:00 K=unknown g=500"]), (out, err)
+
+
+def test_reset_at_lines_out_of_order_make_their_resets_unknown_and_nothing_negative_is_printed(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    _, state = two_resets(tmp_path)
+    text = state.read_text()
+    first = "reset-at=2026-11-13T10:00:00\nrecovered-at=2026-11-13T10:05:00\n"
+    second = "reset-at=2026-11-13T12:00:00\nrecovered-at=2026-11-13T12:04:00\n"
+    state.write_text(text.replace(first, "@").replace(second, first).replace("@", second))
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    assert (code, out.splitlines()[:3]) == (0, ["2026-11-13T12:00:00 K=unknown g=unknown",
+                                                "2026-11-13T10:00:00 K=unknown g=unknown",
+                                                "median K=unknown g=unknown r=unknown optimum=unknown VERI_RESET_GROWTH_DEV=70000"]), (out, err)
+
+
+def test_an_unparseable_stamp_in_the_state_file_exits_2_printing_nothing_and_naming_the_field_and_line_not_its_value(tmp_path, monkeypatch, run_cli):
+    reset_cost = importlib.import_module("veri.reset_cost")
+    monkeypatch.setattr(reset_cost.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    _, state = two_resets(tmp_path)
+    state.write_text(state.read_text().replace("reset-at=2026-11-13T12:00:00", "reset-at=SECRET"))
+
+    code, out, err = run_cli(reset_cost, ["dev"])
+
+    assert (code, out, err) == (2, "", "reset-cost.sh: %s line 6: reset-at is not a local time stamp\n" % state)
