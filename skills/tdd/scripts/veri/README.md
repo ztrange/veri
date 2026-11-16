@@ -269,7 +269,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 
 ## event
 - `mark(directory, context, event, fields=(), ts=None)`: appends an event to the run journal; returns 0, or 2 after printing the refusal on any exception.
-- `append(directory, context, event, fields=(), ts=None)`: the same without the catch; returns 2 for an empty event name or a bad `structural-pass`, and, under `VERI_EVENT_STRICT=1`, for an event `event_table` does not allow (`strict_refusal(args)` says why).
+- `append(directory, context, event, fields=(), ts=None)`: the same without the catch; returns 2 for an empty event name or a bad `structural-pass`, and, under `VERI_EVENT_STRICT=1`, for an event or a value `event_table` does not allow (`strict_refusal(args, context)` says why).
 - `context(environ)`: the run's context fields (issue, step, …) read from an environment.
 - `line(args, context, ts, awake)`, `awake_reading()`, `toplevel()`: the JSON line (bytes); the uptime reading (bytes, or an int exit code on a failed clock); the repo top (`""` outside one).
 - `journal_path(clone, issue)`: the path of the shared journal, `None` when the clone's config is unreadable. `state_labels(event, issue)`: mirrors a bail, resume or start onto the issue's labels.
@@ -284,8 +284,8 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `run_keeping_journal(run)`: calls `run()` and puts the earlier `.tdd/events.jsonl` content back if it no longer starts with it; returns what `run()` returned.
 
 ## event_table
-- `EVENTS`, `CONTEXT`, `COMMON`, `CONTEXT_KEYS`, `FORMATS`: the table; `keys(event)`, `required(event)`: an event's keys in order and the required subset.
-- `format(event, key)`: `(format, empty allowed)`, the format a `FORMATS` name or a tuple of values; `valid(event, key, value)`: whether a value matches it.
+- `EVENTS`, `CONTEXT_KEYS`: the table and the run context's string keys; `keys(event)`, `required(event)`: an event's keys in order and the required subset.
+- `format(event, key)`: `(format, empty allowed)`, the format a `FORMATS` name or a tuple of values; `valid(event, key, value)`: whether a value matches it; `stated(event, key)`: the format in `JOURNAL.md`'s words.
 - `declaring(event, key)`: the table line to write to declare `key` for `event` (`event` None: the `CONTEXT` line).
 
 ## mutation_record
