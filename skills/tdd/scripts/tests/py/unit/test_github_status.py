@@ -79,3 +79,14 @@ def test_an_incident_opened_exactly_the_threshold_ago_counts_whatever_its_impact
 
     assert code == 1
     assert [line.split("\t")[0] for line in out.splitlines()] == ["Old enough"]
+
+
+def test_two_counting_incidents_exit_1_with_one_line_each_naming_it_its_matched_components_its_local_start_and_its_age(
+        page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 61.5, "Pull Requests", "Copilot", "Actions"),
+               incident("Git slow", 30, "Git Operations"))
+
+    code, out, _ = run_cli(page.module, [])
+
+    assert (code, out) == (1, "Incident with Pull Requests\tPull Requests, Actions\t2026-11-16 04:58\t61\n"
+                              "Git slow\tGit Operations\t2026-11-16 05:30\t30\n")
