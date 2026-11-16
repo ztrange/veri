@@ -139,6 +139,9 @@ def origin_is_https():
 def token_scopes_row():
     needed = ["repo", "workflow"] if origin_is_https() else ["repo"]
     user = gh("api", "-i", "user")
+    status = (user.stdout or "").lstrip().split("\n", 1)[0].strip()
+    if user.returncode != 0 and status.startswith("HTTP/"):
+        return "token scopes", f"GitHub answered {status} to gh api -i user"
     if user.returncode != 0:
         return "token scopes", f"no answer was obtained (gh api -i user exited {user.returncode})"
     granted = granted_scopes(user.stdout)
