@@ -5,6 +5,6 @@
 - [x] it exits 2, stderr naming the line, when the named branch is the repository's default branch ⟦criterion 2⟧
 - [x] it exits 2, stderr naming the line, when `git check-ref-format --branch` refuses the name ⟦criterion 2⟧
 - [x] stack-branch.sh is a /bin/sh shim over veri/stack_branch.py, its entry-point contract pinned by a process case ⟦criterion 3⟧
-- [ ] veri/README.md's module index lists stack_branch.py ⟦criterion 4⟧
+- [x] veri/README.md's module index lists stack_branch.py ⟦criterion 4⟧
 - [ ] SCRIPTS.md lists stack-branch.sh with its output and exit codes (SC195), graded ⟦criterion 5⟧
 - [ ] /vinstall asks for a stack branch during setup and writes the line on a name (VI5), graded ⟦criterion 6⟧
