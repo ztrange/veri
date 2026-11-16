@@ -1,5 +1,7 @@
 """ready-check.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
+import io
 import json
 import os
 import secrets
@@ -189,7 +191,8 @@ def writable(path):
 def run_state_ignore_row():
     common = git.git("rev-parse", "--git-common-dir", capture_output=True, text=True).stdout.strip()
     for path in (os.path.abspath(".gitignore"), os.path.join(os.path.abspath(common), "info", "exclude")):
-        present = ensure_run_state_ignored.has_rule(path)
+        with contextlib.redirect_stderr(io.StringIO()):
+            present = ensure_run_state_ignored.has_rule(path)
         if present is None:
             shown = " ".join("-e " + shlex.quote(line) for line in ensure_run_state_ignored.RULE)
             return "run-state ignore", Fix(f"grep -nF {shown} {shlex.quote(path)}",
