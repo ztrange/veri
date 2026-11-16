@@ -72,3 +72,23 @@ def test_the_comment_states_the_branch_the_pr_url_or_none_and_the_resume_command
 
     assert ("Branch: tdd/7-pointer" in stated, "PR: " + url in stated, "PR: none" in bare,
             "Resume: $S/run-conductor.sh 7" in stated) == (True, True, True, True)
+
+
+def test_the_comment_states_the_current_step_as_k_of_n_and_the_phase_of_the_issues_last_event_naming_one(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    issue = FakeIssue(fake_processes)
+    _module().main(["7"])
+    bare = issue.bodies()[0].splitlines()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] one\n- [ ] two\n- [ ] three\n")
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in [
+        {"issue": "7", "phase": "green", "event": "leaf-start"},
+        {"issue": "7", "phase": "red", "event": "leaf-start"},
+        {"issue": "8", "phase": "refactor", "event": "leaf-start"},
+        {"issue": "7", "phase": "", "event": "step-start"},
+    ]))
+    _module().main(["7"])
+    stated = issue.bodies()[0].splitlines()
+
+    assert ("Step: none" in bare, "Phase: none" in bare, "Step: 2/3" in stated, "Phase: red" in stated) == (
+        True, True, True, True)
