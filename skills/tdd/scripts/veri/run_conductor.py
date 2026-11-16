@@ -327,7 +327,7 @@ def snapshot_change(snapshot, issue, extracted):
         return os.path.relpath(changed, snapshot)
     try:
         recorded = run_pins.snapshot_digest(issue, event.toplevel())
-    except OSError:
+    except (OSError, ValueError):
         recorded = None
     if recorded != pinned_scripts.digest_text(extracted):
         return os.path.abspath(run_dir.issue_file(event.toplevel(), issue, run_pins.SNAPSHOT_DIGEST))

@@ -532,7 +532,7 @@ def snapshot_change(issue):
             return f"the skill snapshot {snapshot} has no recorded digest " \
                    f"{run_dir.issue_file(main, issue, run_pins.SNAPSHOT_DIGEST)}"
         changed = pinned_scripts.first_change(pinned_scripts.parse_digest(recorded), snapshot)
-    except OSError as error:
+    except (OSError, ValueError) as error:
         return f"the skill snapshot {snapshot} could not be checked: {error}"
     return changed and f"the skill snapshot {changed} changed since extraction"
 
