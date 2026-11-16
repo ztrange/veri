@@ -43,7 +43,7 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; Veri's own test runner; Frozen tests and case history
 - Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports
-- Veri's own test runner imports only: Foundations
+- Veri's own test runner imports only: Foundations; Run state and journal
 - Target suites and tiers imports only: Foundations; Run state and journal
 - Budgets and cost imports only: Foundations; Run state and journal
 - Frozen tests and case history imports only: Foundations; Run state and journal; Ledger and plan
