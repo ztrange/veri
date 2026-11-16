@@ -493,14 +493,36 @@ def _unchecked_steps(worktree, branch):
     return 0
 
 
-def _lost_patches(worktree, before):
-    """The commits of <before> whose patch the rebased HEAD lacks (`git cherry HEAD <before>` lines starting `+`),
-    space-separated; "" when none. A cherry that cannot run counts as losing <before> itself."""
-    after = _rev(worktree, "HEAD")
-    cherry = _git(worktree, "cherry", after, before)
-    if cherry.returncode or not after:
-        return before or "the run's tip"
-    return " ".join(line.split()[1] for line in cherry.stdout.splitlines() if line.startswith("+ "))
+def _content_differs(worktree, before, onto):
+    """None when the rebased HEAD's tree equals the tree of merging <before> (the run's pre-rebase tip) with <onto> (the
+    stack as fetched): complete by construction, since it compares content, not commits. Otherwise the refusal: a
+    merge-tree that fails or reports conflicts is named as that, a differing tree names the first paths that differ."""
+    merged = _git(worktree, "merge-tree", "--write-tree", before, onto)
+    if merged.returncode == 1:
+        return "git merge-tree --write-tree %s %s reports a conflict, so the rebased tip cannot be checked" % (before, onto)
+    expected = merged.stdout.split("\n", 1)[0].strip() if not merged.returncode else ""
+    if not expected:
+        return "git merge-tree --write-tree %s %s failed (exit %d): %s" % (
+            before, onto, merged.returncode, " ".join(merged.stderr.split())[:200])
+    actual = _rev(worktree, "HEAD^{tree}")
+    if not actual:
+        return "git rev-parse HEAD^{tree} failed on the rebased tip"
+    if actual == expected:
+        return None
+    names = _git(worktree, "diff", "--name-only", expected, actual).stdout.split()
+    return "the rebased tip's content is not the merge of the run's tip %s and origin's stack %s; differing: %s" % (
+        before, onto, " ".join(names[:5]) or "(git diff named no path)")
+
+
+def _put_back(worktree, before, message):
+    """Refuse with <message>, the local branch put back to the run's pre-rebase tip <before>, so the worktree agrees
+    with origin's run branch again; exit 2. A reset that fails is said, with the exact command to run."""
+    reset = git.git("-C", worktree, "reset", "--hard", before, capture_output=True, text=True)
+    if reset.returncode:
+        message += "; putting the branch back failed (%s): run git -C %s reset --hard %s" % (
+            " ".join(reset.stderr.split())[:200], worktree, before)
+    _say(message + "; nothing pushed")
+    return 2
 
 
 def _joined(pid, repo, pr, worktree, branch, stack):
@@ -532,6 +554,14 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         # A plain rebase: a join may never lose work. A commit rewound off the stack that the run still carries comes
         # back; the stack is only rewritten by a slice landing, which keeps every patch (git skips identical ones).
         before = _rev(worktree, "HEAD")
+        merges = _git(worktree, "rev-list", "--merges", "%s..%s" % (onto, before))
+        if merges.returncode:
+            _say("git rev-list --merges %s..%s failed (exit %d); nothing pushed" % (onto, before, merges.returncode))
+            return 2
+        if merges.stdout.strip():
+            _say("the run's history holds a merge commit (%s) and must be linear: a rebase would flatten it; nothing"
+                 " pushed" % merges.stdout.split()[0])
+            return 2
         rebase = _git(worktree, "rebase", "origin/" + stack)
         if rebase.returncode and not _rebasing(worktree):
             _say("git rebase onto origin/%s was refused without a conflict (exit %d); nothing pushed" % (
@@ -542,11 +572,9 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             _say("rebasing %s onto origin/%s conflicted (%s); aborted, nothing pushed" % (
                 branch, stack, " ".join((rebase.stdout + rebase.stderr).split())[:400]))
             return 1
-        lost = _lost_patches(worktree, before)
-        if lost:
-            _say("the rebase onto origin/%s would lose %s, a patch of the run origin/%s lacks; nothing pushed, the run"
-                 " branch untouched on origin" % (stack, lost, stack))
-            return 2
+        differs = _content_differs(worktree, before, onto)
+        if differs:
+            return _put_back(worktree, before, differs)
         pushed = git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
                              "origin", "HEAD:refs/heads/%s" % branch)
         if not pushed.returncode:
