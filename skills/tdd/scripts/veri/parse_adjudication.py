@@ -4,6 +4,8 @@ import os
 import re
 import sys
 
+from report import report_values
+
 USAGE = "usage: parse-adjudication.sh <leaf-output>"
 
 
@@ -15,12 +17,12 @@ def parse(path):
     """
     try:
         with open(path) as f:
-            lines = [l for l in f.read().splitlines() if l.startswith("ADJUDICATION:")]
+            answer = report_values(f.read(), "ADJUDICATION", occurrence="last", space="kept", splitlines=True)
     except FileNotFoundError:
         return None
-    if not lines:
+    if answer is None:
         return None
-    outcome, _, reason = lines[-1][len("ADJUDICATION:"):].strip().partition(" — ")
+    outcome, _, reason = answer.strip().partition(" — ")
     kind, _, token = outcome.partition(" ")
     doc = os.path.join(os.path.dirname(__file__), "..", "..", "ADJUDICATE.md")
     with open(doc) as f:
