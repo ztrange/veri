@@ -123,11 +123,23 @@ def ancestors():
 
 
 def record(path, pid):
-    """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has; returns the text written."""
+    """Write <pid> on line 1 and its start time on line 2, the form conductor.pid has; returns the text written.
+
+    The file is replaced by renaming a temporary file beside it, so a reader never sees a half-written one and a
+    failed write leaves the old text and no temporary file."""
     started = ps_field("lstart", pid)
     text = f"{pid}\n{started}\n" if started else f"{pid}\n"
-    with open(path, "w") as handle:
-        handle.write(text)
+    temporary = "%s.tmp.%d" % (path, os.getpid())
+    try:
+        with open(temporary, "w") as handle:
+            handle.write(text)
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.remove(temporary)
+        except FileNotFoundError:
+            pass
+        raise
     return text
 
 

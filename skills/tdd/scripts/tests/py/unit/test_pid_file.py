@@ -608,3 +608,24 @@ def test_commands_of_answers_ps_pid_and_command_lines_for_the_pids_in_one_call(f
     text = pid_file.commands_of(["31", "7"])
 
     assert (text, fake.argvs) == ("31 /s/report-cache.sh refresh\n", [["ps", "-p", "31,7", "-o", "pid=,command="]])
+
+
+def test_record_replaces_the_pid_file_only_by_rename_so_a_failed_write_leaves_the_old_text_and_no_other_file_3993(
+        tmp_path, fake_processes, monkeypatch):
+    pid_file = importlib.import_module("veri.pid_file")
+    ps_answering(fake_processes, {("ps", "-o", "lstart=", "-p", "77"): "Sun Nov 15 22:00:00 2026\n"})
+    path = tmp_path / "holder"
+    path.write_text("12\nSat Nov 14 10:00:00 2026\n")
+
+    def refused(source, target):
+        raise OSError(28, "No space left on device", target)
+
+    monkeypatch.setattr(pid_file.os, "replace", refused)
+    try:
+        pid_file.record(str(path), 77)
+        raised = False
+    except OSError:
+        raised = True
+
+    assert (raised, path.read_text(), sorted(p.name for p in tmp_path.iterdir())) == (
+        True, "12\nSat Nov 14 10:00:00 2026\n", ["holder"])
