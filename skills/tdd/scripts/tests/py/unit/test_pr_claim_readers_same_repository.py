@@ -19,7 +19,6 @@ EXEMPT = {
     "dispatch": "owed: PRD 022.16 (#3975) puts run_prs behind the rule",
     "github": "the home of the readers and of Pull.cross_repository; its own Closes #n readers are checked below",
     "invisible_work": "reports branches no PR names, by head ref only; it claims, launches and skips nothing",
-    "issue_worktree": "owed: PRD 022.15 (#3974) puts claiming_pr behind the rule",
     "parallel_conductors": "prints a finished run's outcome line; it claims, launches and skips nothing (not in PRD 022's set)",
     "status": "status.sh --recover prints the open PRs for the operator to read; it claims, launches and skips nothing",
 }
