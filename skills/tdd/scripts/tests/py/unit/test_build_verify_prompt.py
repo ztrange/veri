@@ -1685,3 +1685,14 @@ def test_3919_plan_lists_the_cases_touching_a_file_a_step_names_by_its_basename_
     section = touching_section(out) or ""
 
     assert (code, "tests/test_route.py" in section, "test_route_answers" in section) == (0, True, True)
+
+
+def test_3919_plan_counts_dash_and_underscore_alike_so_a_step_naming_wrong_test_route_sh_lists_a_file_mentioning_wrong_test_route(
+        tmp_path, run_cli, build_verify_prompt):
+    tree = {"scripts/wrong-test-route.sh": "#!/bin/sh\n",
+            "tests/test_reroute.py": "from veri import wrong_test_route\n\n\ndef test_reroutes_once():\n    pass\n"}
+    code, out, _ = plan_in_tree(tmp_path, run_cli, build_verify_prompt, tree,
+                                ["wrong-test-route.sh answers prep after the free reroute"])
+    section = touching_section(out) or ""
+
+    assert (code, "tests/test_reroute.py" in section, "test_reroutes_once" in section) == (0, True, True)
