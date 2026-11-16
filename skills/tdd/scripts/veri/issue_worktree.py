@@ -243,6 +243,12 @@ def take_over_cut(path, branch):
     return 0
 
 
+def created_meanwhile(stack):
+    """True when origin now holds refs/heads/<stack>: a push of it was refused because another machine created it."""
+    listed = git_module.network("ls-remote", "--heads", "origin", "refs/heads/" + stack)
+    return listed.returncode == 0 and bool(listed.stdout.strip())
+
+
 def stack_cut(path, branch, stack):
     """Cut <branch> at <path> from origin/<stack> as just fetched. Every network call is bounded by
     VERI_GIT_NETWORK_TIMEOUT."""
@@ -260,7 +266,7 @@ def stack_cut(path, branch, stack):
                                 " stale origin/%s" % (default, " ".join((fetched.stderr or "").split()), stack, default),
                                 prefix=PREFIX)
         pushed = git_module.network("push", "origin", "refs/remotes/origin/%s:refs/heads/%s" % (default, stack))
-        if pushed.returncode != 0:
+        if pushed.returncode != 0 and not created_meanwhile(stack):
             return entry.refuse("pushing the stack branch %s to origin at origin/%s was refused or got no answer (%s)"
                                 " — no branch and no worktree made"
                                 % (stack, default, " ".join((pushed.stderr or "").split())), prefix=PREFIX)
