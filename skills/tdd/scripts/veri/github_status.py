@@ -96,13 +96,38 @@ def positive(name):
     return entry.whole_number(tunables.get(name), 1)
 
 
+def no_answer(cause):
+    """Report a read that got no answer; 2."""
+    return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
+
+
+def wait(read_once, max_seconds, poll):
+    """(code, lines): 0 and the first read finding nothing counting; 3 and the last counting read's lines once
+    `max_seconds` pass, with no read after; 2 and no lines when no read in that time got an answer.
+    A read with no answer is reported and retried at the next poll."""
+    deadline = now() + datetime.timedelta(seconds=max_seconds)
+    answered = None
+    while True:
+        try:
+            answered = read_once()
+        except NoAnswer as cause:
+            no_answer(cause)
+        else:
+            if answered[0] == 0:
+                return answered
+        sleep(poll)
+        if now() >= deadline:
+            if answered is None:
+                return entry.refuse("github-status.sh: wait: no read got an answer in %s s" % max_seconds), []
+            return 3, answered[1]
+
+
 def main(argv):
     waiting = argv[:1] == ["wait"]
     if waiting:
         max_seconds = entry.whole_number(argv[1], 1) if len(argv) > 1 else None
         if max_seconds is None:
             return entry.refuse("github-status.sh: wait needs <max-seconds>, a positive integer", usage=USAGE)
-        deadline = now() + datetime.timedelta(seconds=max_seconds)
         argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
     knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT",
@@ -115,23 +140,17 @@ def main(argv):
             return entry.refuse("github-status.sh: %r is not a GitHub component; the components are: %s"
                                 % (name, ", ".join(COMPONENTS)), usage=USAGE)
     threshold = datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"])
-    answered = None
-    while True:
+
+    def read_once():
+        return read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+
+    if waiting:
+        code, lines = wait(read_once, max_seconds, knobs["VERI_GITHUB_STATUS_POLL"])
+    else:
         try:
-            code, lines = answered = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+            code, lines = read_once()
         except NoAnswer as cause:
-            entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
-            if not waiting:
-                return 2
-        else:
-            if not waiting or code == 0:
-                break
-        sleep(knobs["VERI_GITHUB_STATUS_POLL"])
-        if now() >= deadline:
-            if answered is None:
-                return entry.refuse("github-status.sh: wait: no read got an answer in %s s" % max_seconds)
-            code = 3
-            break
+            return no_answer(cause)
     for line in lines:
         print(line)
     return code
