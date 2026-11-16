@@ -22,6 +22,7 @@ from ledger import ledger_steps
 import run_dir
 import tunables
 import role_state
+import decision_log
 from solvable_issues import priority_label, solvable
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
@@ -422,6 +423,9 @@ def waiting_lines():
         numbers = {name, "#" + str(pr).rsplit("/", 1)[-1]}
         if pr is not None and not any(t.endswith("(%s)" % n) for t in subjects for n in numbers):
             lines.append("%s PR %s ready to merge" % (name, pr))
+    for record in decision_log.read(run_dir.main_tree(missing="")):
+        if decision_log.epoch(record) > since:
+            lines.append("decided: %(question)s → %(decision)s (rule: %(rule)s)" % record)
     return "\n".join(lines) or "none"
 
 
