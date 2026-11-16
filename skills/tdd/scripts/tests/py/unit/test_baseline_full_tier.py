@@ -172,6 +172,18 @@ def test_4017_a_bad_max_age_exits_2_naming_it_and_its_value_under_reuse_and_chan
     assert run == (0, "run\n", "")
 
 
+def test_4017_reuse_times_again_a_full_tier_time_recorded_in_the_future_naming_its_age_unknown(
+        tmp_path, run_cli, baseline_full_tier, monkeypatch):
+    full_tier_time = importlib.import_module("veri.full_tier_time")
+    monkeypatch.setattr(full_tier_time, "now", lambda: 1763300000)
+    _recorded(tmp_path, '{"make test": %d}' % (1763300000 + 3600))
+
+    code, out, err = run_cli(baseline_full_tier, ["4017", "make test"], env={"VERI_BASELINE_FULL_TIER": "reuse"},
+                             cwd=tmp_path)
+
+    assert (code, out.strip(), len(err.splitlines()), "unknown" in err) == (0, "run", 1, True)
+
+
 def test_4017_after_a_stale_run_recording_new_seconds_makes_the_next_call_print_reuse_with_the_new_seconds(
         tmp_path, run_cli, baseline_full_tier, monkeypatch):
     full_tier_time = importlib.import_module("veri.full_tier_time")
