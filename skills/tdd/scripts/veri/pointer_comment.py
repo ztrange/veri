@@ -100,8 +100,14 @@ def write(issue, pushed_at=None):
 
 
 def mirror(issue, pushed_at=None):
-    """write, for a caller whose own exit code the pointer comment never changes."""
-    write(issue, pushed_at)
+    """write, for a caller whose own exit code the pointer comment never changes: any exception it raises (a malformed
+    gh answer, a ledger it cannot parse) is one stderr line naming the issue; SystemExit and KeyboardInterrupt, not
+    Exceptions, still propagate."""
+    try:
+        write(issue, pushed_at)
+    except Exception as error:
+        sys.stderr.write("pointer-comment: #%s's pointer comment not written: %s: %s\n"
+                         % (issue, type(error).__name__, " ".join(str(error).split())))
 
 
 def after_push():
