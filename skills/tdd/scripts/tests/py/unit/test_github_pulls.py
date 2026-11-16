@@ -168,6 +168,13 @@ def test_a_rest_record_s_head_is_in_another_repository_unless_its_head_and_base_
     assert github.pulls_in(json.dumps([raw]))[0].cross_repository is expected
 
 
+def test_joined_issues_asks_gh_pr_list_for_the_field_that_says_where_a_pr_s_head_is_3973(github, fake_processes, monkeypatch):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    fake = fake_processes.answers({"gh pr list": (0, "[]", "")})
+    github.joined_issues("stack")
+    assert fake.calls == ["gh pr list --base stack --state merged --limit 10000 --json body,state,baseRefName,isCrossRepository"]
+
+
 @pytest.mark.parametrize("raw", [{"number": 1}, {"number": 1, "isCrossRepository": None}])
 def test_a_record_that_does_not_say_where_its_head_is_reads_as_another_repository(github, raw):
     assert github.pulls_in(json.dumps([raw]))[0].cross_repository is True

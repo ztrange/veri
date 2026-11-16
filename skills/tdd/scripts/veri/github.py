@@ -635,14 +635,15 @@ def pull(url_or_number, repo=None):
 def joined_issues(base, repo=None):
     """The issue numbers (ints) a `Closes #n` line names in the body of a pull request merged into <base>: closed pull
     requests against <base>, kept only when the answer itself names <base> as the base and says merged (GraphQL state
-    MERGED, REST merged_at set): the query's own filter is not trusted. The read is not bounded by the open issues it
+    MERGED, REST merged_at set), and its head is in this repository (Pull.cross_repository, PRD 022.14): the query's own
+    filter is not trusted, and a fork's PR a collaborator merged is a stranger's text. The read is not bounded by the open issues it
     can matter to: it grows with every pull request merged into <base>. NoAnswer
     when GitHub gave none; ValueError when the answer is not JSON."""
     path = "repos/%s/pulls?state=closed&base=%s&per_page=100" % (repo or "{owner}/{repo}", base)
     answer = gh_json("stack-prs.json", path, "pr", "list", "--base", base, "--state", "merged", "--limit", "10000",
-                     "--json", "body,state,baseRefName", *(["--repo", repo] if repo else []))
+                     "--json", "body,state,baseRefName,isCrossRepository", *(["--repo", repo] if repo else []))
     return {int(n) for raw in json_documents.items(answer)
-            if (raw.get("baseRefName") or (raw.get("base") or {}).get("ref")) == base
+            if (raw.get("baseRefName") or (raw.get("base") or {}).get("ref")) == base and not _pull(raw).cross_repository
             and (str(raw.get("state", "")).upper() == "MERGED" or raw.get("merged_at") or raw.get("mergedAt"))
             for n in closed_issues(raw.get("body") or "")}
 
