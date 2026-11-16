@@ -83,3 +83,13 @@ def test_a_comment_body_with_nothing_to_redact_reaches_gh_byte_identical_issue_3
     github.gh_issue_comment("7", body)
 
     assert fake.argvs[-1][4] == "body=" + body
+
+
+def test_gh_comment_post_and_gh_comment_edit_hand_gh_the_body_redacted_issue_3960(github, fake_processes):
+    token = "gho_" + FAKE * 3
+    fake = posted(fake_processes, (0, "{}", ""))
+
+    github.gh_comment_post("7", "posted %s" % token)
+    github.gh_comment_edit("99", "edited %s" % token)
+
+    assert [argv[-1] for argv in fake.argvs] == ["body=posted [redacted]", "body=edited [redacted]"]
