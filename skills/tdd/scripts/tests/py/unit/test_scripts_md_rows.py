@@ -38,6 +38,7 @@ UNCATALOGUED = frozenset(
     "ledger-steps.sh",
     "no-product-caller.sh",
     "parallel-conductors.sh",
+    "pointer-comment.sh",
     "preserve-attempt.sh",
     "production-frozen.sh",
     "profile.sh",
