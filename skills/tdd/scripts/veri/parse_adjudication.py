@@ -9,11 +9,12 @@ from report import report_values
 USAGE = "usage: parse-adjudication.sh <leaf-output>"
 
 
-def parse(path):
+def parse(path, cause=None):
     """Read the leaf output file at `path`; answer `(outcome, reason)` of its last ADJUDICATION: line.
 
     Answers None when no answer exists: the file is missing, holds no such line, or the
-    outcome is neither `retry`, `bail` nor `route <listed route>`. Prints nothing.
+    outcome is neither `retry`, `bail` nor `route <listed route>`, a route being listed when
+    ADJUDICATE.md lists it for `cause` (for any cause when `cause` is None). Prints nothing.
     """
     try:
         with open(path) as f:
@@ -26,7 +27,7 @@ def parse(path):
     kind, _, token = outcome.partition(" ")
     doc = os.path.join(os.path.dirname(__file__), "..", "..", "ADJUDICATE.md")
     with open(doc) as f:
-        eligible = re.findall(r"- `[^`]+`:(.*)$", f.read(), re.M)
+        eligible = [t for c, t in re.findall(r"- `([^`]+)`:(.*)$", f.read(), re.M) if cause in (None, c)]
     listed_route = kind == "route" and any(token in re.findall(r"`([^`]+)`", t) for t in eligible)
     if not listed_route and outcome not in ("retry", "bail"):
         return None

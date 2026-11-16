@@ -32,7 +32,7 @@ def main(argv):
                 spent += 1
         return 0 if spent < int(budget()) else 3
     if len(argv) == 4 and argv[0] == "record":
-        parsed = parse_adjudication.parse(argv[3])
+        parsed = parse_adjudication.parse(argv[3], argv[2])
         code = 2 if parsed is None else 0
         outcome, reason = ("unparsed", "no ADJUDICATION line") if parsed is None else parsed
         event.mark(".", event.context(tunables.with_values(VERI_ISSUE=argv[1])), "adjudicated",

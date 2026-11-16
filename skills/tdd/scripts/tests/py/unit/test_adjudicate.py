@@ -119,7 +119,7 @@ def test_record_on_a_route_answer_writes_one_adjudicated_event_prints_the_route_
 ):
     import json
 
-    monkeypatch.setattr(adjudicate.parse_adjudication, "parse", lambda path: ("route some-token", "the route fits"))
+    monkeypatch.setattr(adjudicate.parse_adjudication, "parse", lambda path, cause=None: ("route some-token", "the route fits"))
     (tmp_path / ".tdd").mkdir()
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "leaf.out")], cwd=tmp_path)
     assert (code, out) == (1, "route some-token\n")
@@ -186,3 +186,19 @@ def test_left_exits_3_with_a_budget_of_0_though_the_log_holds_no_adjudicated_eve
     (tmp_path / ".tdd" / "events.jsonl").write_text(json.dumps({"issue": "7", "event": "conductor-start"}) + "\n")
     code, out, err = run_cli(adjudicate, ["left", "7"], cwd=tmp_path)
     assert (code, out, err) == (3, "", "")
+
+
+def test_record_under_ci_timeout_on_route_rebase_which_adjudicate_md_lists_only_for_ci_conflict_writes_unparsed_and_exits_2(
+    run_cli, adjudicate, tmp_path
+):
+    import json
+
+    (tmp_path / ".tdd").mkdir()
+    leaf = tmp_path / "leaf.out"
+    leaf.write_text("ADJUDICATION: route rebase — the base moved again\n")
+    code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
+    assert (code, out) == (2, "unparsed\n")
+    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
+        ("ci-timeout", "unparsed")
+    ]
