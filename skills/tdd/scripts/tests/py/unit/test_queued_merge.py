@@ -1479,3 +1479,14 @@ def test_3984_queued_merge_whose_fetch_origin_never_returns_ends_it_after_the_gi
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, "fetch origin: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, len(released), first(calls, "rebase")) == (
         2, True, 1, None)
+
+
+def test_3984_queued_merge_whose_leased_push_never_returns_ends_it_after_the_git_network_timeout_exits_2_naming_it_and_the_limit_and_keeps_the_lock(fake_processes, run_cli):
+    push = "merge-lock.sh gate --keep --pid %s -- git -C /wt push --force-with-lease=feature:%s origin HEAD:refs/heads/feature" % (PID, ORIGIN_SHA)
+    calls = scenario(hanging(fake_processes, push))
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "HEAD:refs/heads/feature: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err, "lock kept" in err,
+            released, first(calls, "wait-ci.sh")) == (2, True, True, [], None)
