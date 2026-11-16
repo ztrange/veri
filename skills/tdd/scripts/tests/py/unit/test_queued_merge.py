@@ -954,7 +954,8 @@ def test_3022_queued_merge_whose_rebase_first_stops_on_a_phantom_would_be_overwr
 
     code, _, _ = run_cli(queued_merge, ARGV)
 
-    ran = [needle for c in calls for needle in ("update-index --really-refresh", "rebase --continue", "--force-with-lease") if needle in c]
+    ran = [needle for c in calls if "--delete" not in c
+           for needle in ("update-index --really-refresh", "rebase --continue", "--force-with-lease") if needle in c]
     assert (code, ran) == (0, ["update-index --really-refresh", "rebase --continue", "--force-with-lease"])
 
 
@@ -1552,12 +1553,12 @@ def test_3984_queued_merge_whose_tag_push_times_out_says_the_tag_may_have_been_p
 
 
 def test_3984_queued_merge_whose_branch_delete_never_returns_ends_it_after_the_git_network_timeout_as_a_failed_branch_delete_and_runs_the_rest(fake_processes, run_cli):
-    calls = scenario(hanging(fake_processes, "git -C /wt push origin --delete feature"))
+    calls = scenario(hanging(fake_processes, "git -C /wt push origin --delete feature --force-with-lease=feature:%s" % PUSHED_HEAD))
 
     code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GIT_NETWORK_TIMEOUT": "7"})
 
     ran = [first(calls, needle) is not None for needle in ("worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
-    assert (code, "push origin --delete feature: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err,
+    assert (code, "push origin --delete feature --force-with-lease=feature:%s: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" % PUSHED_HEAD in err,
             "merged, but cleanup failed: branch delete" in err, ran) == (2, True, True, [True] * 4)
 
 
@@ -1660,3 +1661,12 @@ def test_3984_queued_merge_whose_cut_tag_object_cannot_be_read_and_whose_push_fa
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
     assert (code, deletes, "tag v0.11 left in the clone: its object could not be read" in err, "merged, but cleanup failed: tag" in err,
             ran, len(released)) == (2, [], True, True, [True] * 5, 1)
+
+
+def test_the_merge_paths_branch_delete_is_leased_to_the_head_it_pushed_so_a_later_commit_is_never_dropped(fake_processes, run_cli):
+    calls = scenario(fake_processes)
+
+    code, _, _ = run_cli(queued_merge, ARGV)
+
+    deletes = [c for c in calls if c.startswith("git -C /wt push origin --delete feature")]
+    assert (code, deletes) == (0, ["git -C /wt push origin --delete feature --force-with-lease=feature:%s" % PUSHED_HEAD])
