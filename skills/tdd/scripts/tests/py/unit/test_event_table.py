@@ -27,3 +27,24 @@ def test_the_table_declares_the_five_events_journal_md_lacked_with_the_keys_thei
 
     assert {event: set(event_table.keys(event)) for event in written} == written
     assert event_table.required("suite-flake") == {"files"}
+
+
+def test_journal_md_lists_exactly_the_events_and_keys_the_table_declares():
+    from veri import event_table, journal_schema
+
+    page = (SCRIPTS.parent / "JOURNAL.md").read_text(encoding="utf-8")
+    drift = []
+    for event in sorted(set(event_table.EVENTS) | journal_schema.kinds(page)):
+        if event not in event_table.EVENTS:
+            drift.append(f"{event}: a JOURNAL.md row, not in veri/event_table.py's EVENTS")
+            continue
+        documented = journal_schema.fields(page, event)
+        if documented is None:
+            drift.append(f"{event}: in veri/event_table.py's EVENTS, no JOURNAL.md row")
+            continue
+        drift += [f"{event} key {key}: in veri/event_table.py's EVENTS, not in its JOURNAL.md row"
+                  for key in event_table.keys(event) if key not in documented]
+        drift += [f"{event} key {key}: in its JOURNAL.md row, not in veri/event_table.py's EVENTS"
+                  for key in documented if key not in event_table.keys(event)]
+
+    assert not drift, "skills/tdd/JOURNAL.md and veri/event_table.py differ:\n" + "\n".join(drift)
