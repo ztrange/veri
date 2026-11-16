@@ -84,11 +84,20 @@ def read(components, threshold, timeout):
     return (1, counting) if counting else (0, young or ["up"])
 
 
+def positive(name):
+    """The tunable's value as an int of at least 1, or None."""
+    return entry.whole_number(tunables.get(name), 1)
+
+
 def main(argv):
     components = tuple(argv) or DEFAULT_COMPONENTS
-    threshold = datetime.timedelta(minutes=int(tunables.get("VERI_GITHUB_OUTAGE_MIN")))
+    knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT")}
+    for name, value in knobs.items():
+        if value is None:
+            return entry.refuse("github-status.sh: %s=%r is not a positive integer" % (name, tunables.get(name)))
+    threshold = datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"])
     try:
-        code, lines = read(components, threshold, int(tunables.get("VERI_GITHUB_STATUS_TIMEOUT")))
+        code, lines = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
     except NoAnswer as cause:
         return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
     for line in lines:

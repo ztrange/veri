@@ -136,6 +136,19 @@ def test_no_answer_from_the_status_page_exits_2_naming_the_cause_and_never_0_or_
     assert page.calls[0][1] == 7
 
 
+@pytest.mark.parametrize("name", ["VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT"])
+@pytest.mark.parametrize("value", ["0", "-1", "abc", ""])
+def test_a_threshold_or_timeout_that_is_not_a_positive_integer_exits_2_naming_it_before_any_fetch(
+        page, run_cli, name, value):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, out, err = run_cli(page.module, [], env={name: value})
+
+    assert (code, out) == (2, "")
+    assert name in err
+    assert page.calls == []
+
+
 def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monkeypatch):
     import urllib.error
     import urllib.request
