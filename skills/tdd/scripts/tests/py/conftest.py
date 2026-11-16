@@ -1,6 +1,7 @@
 import builtins
 import contextlib
 import errno
+import gc
 import importlib
 import io
 import json
@@ -351,6 +352,21 @@ def run_cli(monkeypatch, capfd):
         return 0 if code is None else code, out, err
 
     return run
+
+
+@pytest.fixture
+def frozen_heap():
+    """Keeps the cost of a pytest session a case starts in-process independent of how much the run has loaded so far.
+
+    pytest ends every session with five full `gc.collect()` calls (its unraisable-exception plugin), each walking every
+    object the worker holds, so a nested leg's time grew with the suite: three sessions reached the 30 s case timeout on
+    CI. `gc.freeze()` moves what exists into the permanent generation, which a collection skips; what the nested
+    session allocates is still collected."""
+    gc.freeze()
+    try:
+        yield
+    finally:
+        gc.unfreeze()
 
 
 @pytest.fixture

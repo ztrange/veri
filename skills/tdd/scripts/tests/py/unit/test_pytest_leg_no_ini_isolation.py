@@ -5,6 +5,8 @@ import types
 
 import pytest
 
+pytestmark = pytest.mark.usefixtures("frozen_heap")
+
 
 def test_a_no_ini_subset_leg_started_beside_its_serial_case_is_unmoved_by_state_a_sibling_left_behind_3697(run_cli, tmp_path, monkeypatch):
     planted = tmp_path / "planted"
