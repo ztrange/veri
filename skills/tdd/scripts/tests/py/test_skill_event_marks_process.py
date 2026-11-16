@@ -24,7 +24,8 @@ def test_a_run_whose_skill_md_refactor_mark_is_present_renders_real_refactor_and
     tidied = "the step whose refactor mark was written"
     untidied = "the step that wrote no refactor mark"
     for old, new in (("$S", str(scripts)), ("<n>", "230"), ("<STEP>", tidied), ("<count>", "7"),
-                     ("<VERI_REFACTOR_BUDGET>", "5"), ("<reason>", "budget")):
+                     ("<VERI_REFACTOR_BUDGET>", "5"), ("<reason>", "budget"),
+                     ("\"$pass\"", "1")):  # the conductor's $pass: 1 on a step's first refactor pass (SKILL.md)
         call = call.replace(old, new)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-230.md").write_text(f"- [x] {tidied} ⟂ refactor pending\n- [ ] {untidied}\n")

@@ -6,7 +6,7 @@ The journal of a run is `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` (`VERI_HO
 
 Each key's format, after its name, says how to read its value: `whole` (decimal digits only), `decimal` (digits with at most one `.`), `url` (starts `https://` or `http://`), `sha` (7 to 40 lowercase hex digits), `json` (parses as JSON), `text` (any string), or `one of` a list of values, every value written out. A key's value is never empty unless its format ends `, or empty`. The table is declared in `skills/tdd/scripts/veri/event_table.py`, which a case keeps equal to this page.
 
-Run-context key formats: `issue` whole, or empty; `actor` text, or empty; `phase` text, or empty; `step` text, or empty; `event` text; `attempt` whole, or empty; `skill_commit` sha, or empty.
+Run-context key formats: `issue` whole, or empty; `actor` text, or empty; `phase` text, or empty; `step` text, or empty; `event` text; `attempt` whole, or empty; `skill_commit` text, or empty.
 
 Keys and events are append-only: a key or event is never removed or renamed, only added. No event carries a schema version key.
 
