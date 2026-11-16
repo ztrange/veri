@@ -15,13 +15,14 @@ import event
 import paths
 import run_dir
 import tunables
-from github import gh_api, gh_probe
+from github import TimedOut, bounded_group, gh_api, gh_probe
 
 USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
 REFRESH_RETRIES = 10
 SCRIPTS = paths.resolved_scripts_of(__file__)
 VERSION_TAG = re.compile(r"v[0-9]+\.[0-9]+")
+NETWORK = "VERI_GIT_NETWORK_TIMEOUT"
 
 RELEASE, LEAVE = "release", "leave"
 
@@ -42,6 +43,24 @@ def _script(name, *args, scripts=SCRIPTS, cwd=None):
 
 def _gate(pid, *cmd, keep=False):
     return _script("merge-lock.sh", "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd)
+
+
+def _bounded(argv, limit, **kwargs):
+    """<argv> under github.bounded_group, killed with its whole process group after <limit>'s seconds: a call that
+    timed out answers 2, its line naming the call and the limit on the stream the caller captures, else on ours."""
+    try:
+        run = bounded_group(argv, limit_name=limit, **kwargs)
+    except OSError as error:
+        return subprocess.CompletedProcess(argv, 2, "", str(error))
+    if isinstance(run, TimedOut):
+        run.returncode = 2
+    return run
+
+
+def _network_gate(pid, *cmd, keep=False):
+    """_gate for a git network call, bounded by VERI_GIT_NETWORK_TIMEOUT: the CompletedProcess, a TimedOut when killed."""
+    return _bounded([os.path.join(SCRIPTS, "merge-lock.sh"), "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd],
+                    NETWORK)
 
 
 def _gate_output(pid, *cmd):
@@ -284,9 +303,10 @@ def _rebasing(worktree):
 
 def _to_merge(pid, repo, pr, worktree, branch):
     """Fetch, rebase, push, wait for CI and check before the merge: (head, None) to merge, ("", (code, outcome)) to stop."""
-    code = _gate(pid, "git", "-C", worktree, "fetch", "origin")
-    if code:
-        return "", (code, LEAVE)
+    fetch = _network_gate(pid, "git", "-C", worktree, "fetch", "origin")
+    if fetch.returncode:
+        # A gate killed at the bound never released the lock its failure releases: main does.
+        return "", (fetch.returncode, RELEASE if isinstance(fetch, TimedOut) else LEAVE)
     lease, refusal = _before_rebase(repo, pr, worktree, branch)
     if refusal:
         return "", _refused(*refusal)
