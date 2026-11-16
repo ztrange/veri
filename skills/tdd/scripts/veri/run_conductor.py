@@ -546,7 +546,9 @@ def done_posted(issue):
                 "", "repos/{owner}/{repo}/issues/%s/comments?per_page=100&page=%d" % (issue, number)))
         except (github.NoAnswer, ValueError):
             return None
-        bodies = thread if isinstance(thread, list) else thread.get("comments", [])
+        bodies = thread.get("comments", []) if isinstance(thread, dict) else thread
+        if not isinstance(bodies, list):
+            return None
         if any(github.trusted_comment(c) and str(c.get("body", "")).startswith("### ✅ Done")
                and posted_at(c) >= since for c in bodies):
             return True
