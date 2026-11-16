@@ -5,7 +5,7 @@
 - [x] redact replaces an sk-ant- key with [redacted] ⟦criterion 1⟧
 - [x] redact replaces an AKIA access key id with [redacted] ⟦criterion 1⟧
 - [x] redact replaces every occurrence of the value of a variable VERI_REDACT_VARS names ⟦criterion 1⟧
-- [ ] redact leaves alone a listed variable's value shorter than 8 characters ⟦criterion 1⟧
+- [x] redact leaves alone a listed variable's value shorter than 8 characters ⟦criterion 1⟧
 - [ ] with VERI_REDACT_VARS unset GH_TOKEN's value is redacted, and set to another name that name's value is ⟦criterion 2⟧
 - [ ] gh_issue_comment hands gh the body redacted ⟦criterion 3⟧
 - [ ] a comment body with nothing to redact reaches gh byte-identical ⟦criterion 4⟧
