@@ -1,5 +1,6 @@
 """pinned-scripts.sh: the directory holding a run's pinned scripts."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import hashlib
 import os
 import shutil
 import stat
@@ -79,6 +80,29 @@ def change_mode(path, new_mode):
         os.fchmod(handle, new_mode(stat.S_IMODE(os.fstat(handle).st_mode)))
     finally:
         os.close(handle)
+
+
+def snapshot_digest(snapshot):
+    """Every file of <snapshot>, the marker excluded, as `<sha256 of its content> <path relative to it>` lines sorted by
+    path; a symlink's content is its target, never followed. Raises OSError on what it cannot read."""
+    lines = []
+    for root, dirs, files in os.walk(snapshot, onerror=raise_error):
+        for name in files + [name for name in dirs if os.path.islink(os.path.join(root, name))]:
+            path = os.path.join(root, name)
+            relative = os.path.relpath(path, snapshot)
+            if relative == SNAPSHOT_MARKER:
+                continue
+            if os.path.islink(path):
+                content = b"symlink " + os.fsencode(os.readlink(path))
+            else:
+                with open(path, "rb") as handle:
+                    content = handle.read()
+            lines.append((relative, hashlib.sha256(content).hexdigest()))
+    return "".join("%s %s\n" % (digest, relative) for relative, digest in sorted(lines))
+
+
+def raise_error(error):
+    raise error
 
 
 def snapshot_gone(recorded):
