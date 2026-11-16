@@ -1,6 +1,7 @@
 """In-process cases for github.redact, the one function every body veri hands gh passes through (#3960, #3968).
 
 Every token here is built from a documented shape with an obviously fake body; none is read from the environment."""
+import base64
 import importlib
 
 import pytest
@@ -115,3 +116,16 @@ def test_redact_replaces_a_token_inside_a_url_a_query_string_or_glued_to_text_is
     assert [github.redact(text) for text in texts] == [
         "https://x-access-token:[redacted]@github.com/o/r.git", "https://h/x?token=[redacted]&page=2",
         "abc[redacted]!", "[redacted]XY", "key[redacted]"]
+
+
+def test_redact_replaces_the_base64_of_a_token_or_of_a_listed_value_issue_3960(github, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    token = "ghr_" + FAKE * 3
+
+    def b64(text, urlsafe=False):
+        return (base64.urlsafe_b64encode if urlsafe else base64.b64encode)(text.encode()).decode()
+    texts = ("Authorization: Basic %s\n" % b64("x-access-token:" + token), "x=%s;" % b64(token),
+             "glued%s" % b64("prefix " + token), b64("::" + token, urlsafe=True), "v %s" % b64("fake-gh-token-value"))
+
+    assert [github.redact(text) for text in texts] == [
+        "Authorization: Basic [redacted]\n", "x=[redacted];", "[redacted]", "[redacted]", "v [redacted]"]
