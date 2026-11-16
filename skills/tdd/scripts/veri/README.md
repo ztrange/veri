@@ -442,9 +442,9 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `suite-reported.sh`: read a suite's reported result.
 
 ## candidates
-- `KEY`, `LINE`: the `CANDIDATES:` marker and the compiled pattern for the whole line.
+- `KEY`: the `CANDIDATES:` marker. `line(text)`: what follows it and any ASCII whitespace on one line (str or bytes), found through `report`; `None` for another line.
 - `CLASSES`: the four classes a candidate may name (`structural`, `cosmetic`, `test-only`, `out-of-scope`).
-- `candidate(cls)`: a compiled pattern for a `CANDIDATES: <cls> | <text>` line.
+- `candidate(text, cls)`: the text after the bar of a `CANDIDATES: <cls> | <text>` line, whitespace allowed around class and bar; `None` otherwise.
 
 ## prompt_template
 - `read(path)`: the file's bytes without trailing newlines; raises OSError. `spec_text_of(path)`: the same, `b""` when unreadable.
