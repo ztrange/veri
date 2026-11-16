@@ -194,6 +194,31 @@ TUNABLES = {
     "VERI_HOME": Tunable(text, ""),
 }
 
+# Every other VERI_* name read through `read`, `read_bytes` or `pop`, and why it is not a knob: `run state` (veri sets
+# it for its own child processes) or `test stand-in` (a test sets it in place of the machine's answer).
+NOT_KNOBS = {
+    "VERI_AWAKE_CLOCK": "test stand-in",
+    "VERI_BASH_MAJOR": "test stand-in",
+    "VERI_CI_ON_PR": "test stand-in",
+    "VERI_GH_JSON": "test stand-in",
+    "VERI_POLL": "test stand-in",
+    "VERI_PYTHON_VERSION": "test stand-in",
+    "VERI_SELF_UPDATE_FILE": "test stand-in",
+    "VERI_ISSUE": "run state",
+    "VERI_LEAF_MODEL": "run state",
+    "VERI_LEAF_TOOLS": "run state",
+    "VERI_MUTATION_RECORD": "run state",
+    "VERI_SHIM_DEFAULT_SIGNALS": "run state",
+    "VERI_SHIM_SET_COERCE": "run state",
+    "VERI_SKILL_CLONE": "run state",
+    "VERI_SKILL_COMMIT": "run state",
+    "VERI_SKILL_REF": "run state",
+    "VERI_SKILL_UNPINNED": "run state",
+    "VERI_STATE_LABEL_ISSUE": "run state",
+    "VERI_STEP": "run state",
+    "VERI_TEST_CMD": "run state",
+}
+
 # The entries that state a refusal, which `resolve` serves (test_1313 pins their one-line refusal).
 TABLE = {name: entry for name, entry in TUNABLES.items() if entry.refusal}
 
