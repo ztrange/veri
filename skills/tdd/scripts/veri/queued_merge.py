@@ -314,10 +314,12 @@ def _to_merge(pid, repo, pr, worktree, branch):
     code = _rebase(pid, worktree, ("rebase", "origin/main"))
     if code:
         return "", (code, LEAVE)
-    code = _gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
-                 "origin", "HEAD:refs/heads/%s" % branch, keep=True)
-    if code:
-        return "", (code, LEAVE)
+    push = _network_gate(pid, "git", "-C", worktree, "push", "--force-with-lease=%s:%s" % (branch, lease),
+                         "origin", "HEAD:refs/heads/%s" % branch, keep=True)
+    if isinstance(push, TimedOut):
+        _say("the leased push was killed at the bound; lock kept, clear it with merge-lock.sh release --force")
+    if push.returncode:
+        return "", (push.returncode, LEAVE)
     head = _rev(worktree, "HEAD")
     if not head:
         return "", _refused("the pushed head does not resolve")
