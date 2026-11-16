@@ -339,11 +339,25 @@ class _Tally:
             for row_of in rows:
                 row_of[heading] += amount
 
+    def route_green_rejects(self, event, step, line):
+        """Give each green REJECT still without a route the one this event is: a `reroute` of its step
+        (its kind), a `revise` of its step, or any `bail`."""
+        for each in self.green_rejects:
+            if each[2] is not None:
+                continue
+            if event == "reroute" and step == each[0]:
+                each[2] = line.get("kind", "")
+            elif event == "revise" and step == each[0]:
+                each[2] = "revise"
+            elif event == "bail":
+                each[2] = "bail"
+
     def take(self, line):
         """Fold one event of the log into the tables."""
         event = line.get("event", "")
         step = line.get("step", "")
         phase = line.get("phase", "")
+        self.route_green_rejects(event, step, line)
         if self.opening is None or event == "resume":
             self.opening = line
         if event == "structural-pass":
@@ -391,7 +405,7 @@ class _Tally:
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
             self.rejected.append((step, phase, attempt))
         if event == "verdict" and phase == "green" and line.get("verdict") == "REJECT":
-            self.green_rejects.append((step, attempt_no, "none", line.get("reason")))
+            self.green_rejects.append([step, attempt_no, None, line.get("reason")])
         if event == "verdict" and phase == "refactor":
             current = self.open_pass(step)
             current["verdict"] = line.get("verdict", "")
@@ -629,7 +643,8 @@ def fold(issue, path, ledger):
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
                 switched_off_pin=tally.switched_off_pin,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
-                green_rejects=tally.green_rejects)
+                green_rejects=[(step, attempt, "none" if route is None else route, reason)
+                               for step, attempt, route, reason in tally.green_rejects])
 
 
 def known(number):

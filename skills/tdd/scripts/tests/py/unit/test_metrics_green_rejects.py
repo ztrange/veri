@@ -50,3 +50,21 @@ def test_the_report_has_one_row_per_green_reject_in_log_order_and_none_for_other
 
     assert [(r["step"], r["attempt"], r["reason"]) for r in rows] == [
         ("2", "1", "the test is skipped"), ("1", "1", "no assertion")]
+
+
+def test_a_rows_route_is_the_first_later_reroute_kind_revise_or_bail_of_its_step_and_none_without_one(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, [verdict("1", "green", "1", "REJECT", "a"),
+                         verdict("2", "green", "1", "REJECT", "b"),
+                         {"event": "reroute", "step": "2", "phase": "green", "kind": "wrong-test"},
+                         {"event": "revise", "step": "1", "phase": "green", "budget": "3"},
+                         {"event": "reroute", "step": "1", "phase": "green", "kind": "later"},
+                         verdict("1", "green", "2", "REJECT", "c"),
+                         verdict("3", "green", "1", "REJECT", "d"),
+                         {"event": "bail", "step": "9", "cause": "budget"},
+                         verdict("3", "green", "2", "REJECT", "e")])
+    monkeypatch.chdir(tmp_path)
+
+    rows = table(render(metrics, capsys), "#### Green rejects")
+
+    assert [(r["reason"], r["route"]) for r in rows] == [
+        ("a", "revise"), ("b", "wrong-test"), ("c", "bail"), ("d", "bail"), ("e", "none")]
