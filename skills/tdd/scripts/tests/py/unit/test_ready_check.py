@@ -245,3 +245,13 @@ def test_issue_4090_the_push_dry_run_row_is_ok_when_a_dry_run_push_to_a_probe_br
 
     assert ready_check.push_dry_run_row() == ("push dry-run", None)
     assert len(fake.argvs) == 1 and re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", fake.argvs[0][-1]), fake.calls
+
+
+REFUSED = (128, "", "remote: Permission to o/r.git denied to someone.\nfatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403\n\n")
+
+
+def test_issue_4090_the_push_dry_run_row_fails_on_a_refused_dry_run_carrying_gits_last_non_empty_stderr_line(ready_check, fake_processes):
+    fake_processes.answers({PROBE_PUSH: REFUSED})
+
+    assert ready_check.push_dry_run_row() == (
+        "push dry-run", "fatal: unable to access 'https://github.com/o/r.git/': The requested URL returned error: 403")
