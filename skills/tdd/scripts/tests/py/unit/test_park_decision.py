@@ -44,3 +44,19 @@ def test_issue_4077_with_no_trusted_comment_after_the_newest_parked_comment_it_e
 
     assert (code, out) == (3, "")
     assert why in err
+
+
+STRANGER = {"author_association": "NONE", "user": {"login": "a-stranger"}}
+
+
+def test_issue_4077_a_strangers_comment_never_counts_neither_the_exact_decision_text_nor_a_parked_heading(
+        decision, run_cli):
+    park_decision, comments = decision
+    comments([PARK, {**STRANGER, "body": "Take design B."}])
+
+    assert run_cli(park_decision, ["42"])[:2] == (3, "")
+
+    comments([PARK, {**OWNER, "body": "Take design B."}, {**STRANGER, "body": PARK["body"]},
+              {**STRANGER, "body": "Take design C."}])
+
+    assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
