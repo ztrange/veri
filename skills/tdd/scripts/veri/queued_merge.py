@@ -314,13 +314,17 @@ def _locked(pid, repo, pr, worktree, branch, message):
             code = _gate(pid, *rest_merge, keep=True)
     else:
         code = _gate(pid, *rest_merge, keep=True)
-    pull = None
+    pull, answered = None, False
     for attempt in range(int(tunables.get("VERI_MERGE_SETTLE_READS", unless_empty=True))):
         if code or attempt:
             time.sleep(float(tunables.get("VERI_MERGE_SETTLE_SLEEP", unless_empty=True)))
-        pull = _merged(repo, pr)
-        if pull is not None:
+        read = _pull(repo, pr)
+        answered = answered or read is not None
+        if read and read.get("merged") is True:
+            pull = read
             break
+    if pull is None and not answered and not code:
+        return _refused("the merge call succeeded and the state of %s could not be read; nothing tagged or cleaned up" % pr)
     if pull is None and code:
         return _refused("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code), code)
     if pull is None:
