@@ -314,6 +314,7 @@ The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format
 ## pinned_scripts
 - `make_snapshot()`: a new empty snapshot directory. `write_snapshot_marker(snapshot, worktree)`: names its worktree.
 - `snapshot_gone(recorded)`, `snapshot_made_for(recorded, worktree)`: bool checks of a recorded path.
+- `make_read_only(tree)`: takes the write bits off every file and directory of a snapshot. `remove_tree(tree)`: gives the owner each directory's write bit back, then removes the tree (raises on what it cannot remove). `copy_writable(source, destination)`: the recovery copy, writable. `writable_directories(tree)`, `take_bits(path, bits)`, `change_mode(path, new_mode)`: their parts, each through a descriptor and never through a symlink.
 
 ## restart_marker
 A run's `.tdd/restart-pending` marker, which says a conductor restart is in flight.
