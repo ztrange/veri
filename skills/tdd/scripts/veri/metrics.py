@@ -86,6 +86,12 @@ COST_COLUMNS = [heading for heading, _ in COSTS]
 
 DOLLARS = "$"
 
+FIRST_TURN = [("first-turn cache creation", "first_turn_cache_creation_input_tokens"),
+              ("first-turn cache read", "first_turn_cache_read_input_tokens"),
+              ("first-turn input", "first_turn_input_tokens")]
+LEAVES = "leaves"
+LAUNCH_COLUMNS = [LEAVES] + [heading for heading, _ in FIRST_TURN]
+
 REWORK_WALL, REWORK_COST = "rework wall s", "rework $"
 WASTE_WALL, WASTE_COST = "waste wall s", "waste $"
 LOST_COLUMNS = [REWORK_WALL, REWORK_COST, WASTE_WALL, WASTE_COST]
@@ -290,6 +296,7 @@ class _Tally:
         self.structural = None
         self.launched = {}
         self.green_rejects = []
+        self.launch_costs = {}
 
     def step_mark(self, step):
         return self.spent.setdefault(step, {})
@@ -403,6 +410,11 @@ class _Tally:
                 self.open_pass(step)[DOLLARS] += dollars
             if line.get("actor") == "conductor":
                 self.conductor_counted = True
+            elif all(field in line for _, field in FIRST_TURN):
+                launch = self.row_in(self.launch_costs, (line.get("actor", ""), line.get("model", "")), LAUNCH_COLUMNS)
+                launch[LEAVES] += 1
+                for heading, field in FIRST_TURN:
+                    launch[heading] += int(line[field])
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
             self.rejected.append((step, phase, attempt))
         if event == "verdict" and phase == "green" and line.get("verdict") == "REJECT":
@@ -576,6 +588,7 @@ class Fold:
     refactor_totals: list       # refactor_total rows: each step with a pass, then the issue
     green_rejects: list         # (step, attempt, route, reason) per green REJECT verdict, in log order
     green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
+    launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
 
 
 def fold(issue, path, ledger):
@@ -649,7 +662,8 @@ def fold(issue, path, ledger):
                 switched_off_pin=tally.switched_off_pin,
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
                 green_rejects=green_rejects,
-                green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])))
+                green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
+                launch_costs=tally.launch_costs)
 
 
 def known(number):
@@ -870,6 +884,10 @@ def layout(f):
             row([step, attempt, route, UNKNOWN if reason is None else reason.replace("|", "\\|")])
     print()
     print("Green rejects by route: " + (", ".join("%s %d" % item for item in f.green_reject_routes) or "none"))
+    if f.launch_costs:
+        table_head("#### Launch cost, by role", "role", ["model"] + LAUNCH_COLUMNS, ["---"] + ["---:"] * len(LAUNCH_COLUMNS))
+        for (role, model), tokens in f.launch_costs.items():
+            row([role, model] + figures(tokens, LAUNCH_COLUMNS))
 
 
 def render(issue, path, ledger):
