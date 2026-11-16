@@ -51,9 +51,27 @@ def _load(path):
         return json.load(f)
 
 
+class _Malformed(Exception):
+    """The stored owed file, or an entry of it, is not of the shape --store-owed writes."""
+
+
 def _owed():
+    """The stored answers, {} when no file is stored; _Malformed, naming the file, for one of another shape."""
     path = _owed_path()
-    return _load(path) if os.path.exists(path) else {}
+    if not os.path.exists(path):
+        return {}
+    try:
+        stored = _load(path)
+    except (OSError, ValueError):
+        raise _Malformed("%s is unreadable or not JSON" % path)
+    if not isinstance(stored, dict):
+        raise _Malformed("%s is not a JSON object" % path)
+    for prd, entry in stored.items():
+        if not (isinstance(entry, dict) and isinstance(entry.get("updatedAt"), str)
+                and ("answer" not in entry or _answer_shape(entry["answer"]))
+                and isinstance(entry.get("computedAt", ""), str)):
+            raise _Malformed("%s: the entry for PRD %s is malformed" % (path, prd))
+    return stored
 
 
 def _stale(stored, nnn, issue):
@@ -78,10 +96,12 @@ def _answer(path):
         answer = _load(path)
     except (OSError, ValueError):
         return None
-    if not (isinstance(answer, dict) and type(answer.get("count")) is int and answer["count"] >= 0
-            and isinstance(answer.get("sections"), list) and all(isinstance(s, str) for s in answer["sections"])):
-        return None
-    return answer
+    return answer if _answer_shape(answer) else None
+
+
+def _answer_shape(answer):
+    return (isinstance(answer, dict) and type(answer.get("count")) is int and answer["count"] >= 0
+            and isinstance(answer.get("sections"), list) and all(isinstance(s, str) for s in answer["sections"]))
 
 
 def _store_owed(prd, path):
@@ -205,17 +225,25 @@ def _print_report():
         print("no snapshot: %s is missing" % CACHE, file=sys.stderr)
         return 2
     snapshot = _load(CACHE)
+    stored = _owed()
     now = datetime.datetime.now(datetime.timezone.utc)
     hours = int((now - _utc(snapshot["fetched_at"])).total_seconds() // 3600)
     print("snapshot age: %d hours" % hours)
     opened = [o for o in snapshot["issues"] if o["state"] == "OPEN"]
-    stored = _owed()
     for nnn, issue in _ordered_heads(opened):
         _print_prd(snapshot, opened, stored, nnn, issue, now)
     return 0
 
 
 def main(argv):
+    try:
+        return _main(argv)
+    except _Malformed as malformed:
+        print(malformed, file=sys.stderr)
+        return 2
+
+
+def _main(argv):
     if argv == ["--stale"]:
         return _print_stale()
     if not argv:
