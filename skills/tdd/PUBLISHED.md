@@ -25,7 +25,11 @@ Each line is one JSON object ended by a newline:
   `ts` and `awake`, in that order; then come the event's own keys, in the order its emitter gives
   them.
 
-The events and their keys are those [`JOURNAL.md`](JOURNAL.md) lists, but the journal holds only the
+Each key has a format, stated in [`JOURNAL.md`](JOURNAL.md) after the key's name, that says how to
+read its value (a whole number, a URL, a sha, one of a list of values, …) and whether it may be
+empty.
+
+The events and their keys are those `JOURNAL.md` lists, but the journal holds only the
 lines whose writer gave them an issue: a line is appended to the journal of the issue in its own
 `issue` key, and a line with an empty `issue` goes only to the worktree's private event log,
 `.tdd/events.jsonl`. A writer that runs inside a run takes the issue from `VERI_ISSUE`, so its lines
@@ -56,10 +60,13 @@ to be absent, or old.
 
 ## Rules
 
-- **Append-only.** Events and keys are only ever added; none is ever removed or renamed.
+- **Append-only.** Events and keys are only ever added; none is ever removed or renamed. A key whose
+  format is a list of values may gain values the same way.
 - **No schema version.** No line carries one; the append-only rule stands in for it.
-- **A reader tolerates.** It ignores an event or a key it does not know, and survives a line that is
-  not valid JSON (a line cut short, bytes that are not UTF-8): it skips that line and reads on.
+- **A reader tolerates.** It ignores an event or a key it does not know, and treats a value it does
+  not know (one its key's list does not hold yet) as it treats a key it does not know. It survives
+  a line that is not valid JSON (a line cut short, bytes that are not UTF-8): it skips that line and
+  reads on.
 
 ## Private
 
