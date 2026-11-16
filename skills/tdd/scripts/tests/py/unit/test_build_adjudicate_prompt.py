@@ -163,3 +163,19 @@ def test_ci_conflict_prompt_carries_rebase_as_its_route_tokens(run_cli, build_ad
     )
     assert (code, err) == (0, "")
     assert "Routes: rebase\n" in out
+
+
+@pytest.mark.parametrize("cause", ["pr-ready-failed"])
+def test_a_cause_listed_with_no_route_exits_0_its_prompt_carrying_routes_none(
+    run_cli, build_adjudicate_prompt, tmp_path, cause
+):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [ ] the current step\n")
+    stderr_file = tmp_path / "leaf.err"
+    stderr_file.write_text("the request was refused\n")
+    code, out, err = run_cli(
+        build_adjudicate_prompt, ["7", cause, "2", str(stderr_file), "some-script.sh", "42"], cwd=tmp_path
+    )
+    assert (code, err) == (0, "")
+    assert f"Cause: {cause}\n" in out
+    assert "Routes: none\n" in out
