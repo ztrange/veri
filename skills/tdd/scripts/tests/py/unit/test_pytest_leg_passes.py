@@ -46,6 +46,20 @@ def test_a_leg_driven_in_process_on_a_tree_with_its_own_conftest_leaves_the_conf
     assert after is before
 
 
+def test_two_legs_driven_in_process_on_trees_planting_the_same_module_basename_each_collect_and_pass_their_own(run_cli, tmp_path):
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1", "VERI_PYTEST_WORKERS": "1"}
+    results = []
+    for name in ("first", "second"):
+        planted = tmp_path / name
+        planted.mkdir()
+        (planted / "test_planted_twice.py").write_text("def test_%s():\n    pass\n" % name)
+
+        code, out, err = run_cli(importlib.import_module("veri.pytest_leg"), ["-q", "-p", "no:cacheprovider", str(planted)], env=env)
+        results.append((code, out.count("1 passed"), "import file mismatch" in out + err))
+
+    assert results == [(0, 1, False), (0, 1, False)]
+
+
 def test_the_serial_probe_collecting_after_its_run_directory_vanished_neither_raises_nor_aborts_the_session_2099(monkeypatch, tmp_path):
     serial_seen = importlib.import_module("veri.serial_seen")
     monkeypatch.setenv("PYTEST_LEG_SERIAL_SEEN", str(tmp_path / "veri-pytest-gone" / "serial-seen"))
