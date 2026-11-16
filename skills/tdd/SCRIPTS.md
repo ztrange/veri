@@ -101,7 +101,10 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   A verifier leaf is launched with the developer's `--tools` list and no `--disallowedTools`; its
   `--settings` carry a `PreToolUse` hook matching `Write|Edit|MultiEdit|NotebookEdit` that blocks
   such a call (exit 2, saying the verifier may not modify files). A verifier that changes the tree
-  another way (through `Bash`) is still restored, relaunched and then refused (exit **2**).
+  another way (through `Bash`) is still restored, relaunched and then refused (exit **2**). The
+  hook's limits: it bans only those four write tools, a write through `Bash` is caught by the
+  tree-change guard inside the repository only, and a hook that outlives the CLI's hook timeout
+  does not block.
   `VERI_EFFORT_VERIFIER` sets the verifier's effort: set to `low`, `medium`, `high`, `xhigh` or
   `max`, every verifier leaf is launched with `--effort <value>`; unset or empty, with no
   `--effort`; any other value stops preflight (exit 2), and `verify.sh` itself exits **2** on one,
