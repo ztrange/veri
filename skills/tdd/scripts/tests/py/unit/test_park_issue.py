@@ -2,6 +2,7 @@
 and main through run_cli with gh faked at its process boundary."""
 import fnmatch
 import importlib
+import re
 
 import pytest
 
@@ -434,3 +435,24 @@ def test_issue_4076_a_question_file_lacking_one_heading_exits_2_naming_it_and_wr
     assert code == 2
     assert heading in err
     assert (calls, edited) == ([], [])
+
+
+def test_issue_4076_a_question_too_long_for_one_comment_is_cut_in_the_middle_and_the_comment_says_how_much(
+        park, run_cli, monkeypatch, tmp_path):
+    park_issue, calls, edited = park
+    comments = []
+    monkeypatch.setattr(park_issue.github, "gh_issue_comment", lambda number, body: comments.append(body))
+    long_question = QUESTION.replace("#### Found\n", "#### Found\n" + "leaf output line\n" * 5000)
+    question = tmp_path / "question.md"
+    question.write_text(long_question)
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--question-file", str(question)])
+
+    assert (code, err) == (0, "")
+    [comment] = comments
+    assert len(comment) <= 65536
+    assert comment.startswith("### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n#### Question\nKeep the shim or drop it?\n")
+    assert comment.endswith("#### Recommendation\nKeep it.\n")
+    marker = re.search(r"\n\[(\d+) characters of the question file cut here[^\n]*\]\n", comment)
+    full = "### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n" + long_question
+    assert len(comment) == len(full) - int(marker.group(1)) + len(marker.group(0))
