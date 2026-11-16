@@ -21,6 +21,7 @@ USAGE = "usage: queued-merge.sh <pr-url> <worktree> <branch> <tag-message|->"
 FETCH_ATTEMPTS = 5
 REFRESH_RETRIES = 10
 SCRIPTS = paths.resolved_scripts_of(__file__)
+VERSION_TAG = re.compile(r"v[0-9]+\.[0-9]+")
 
 RELEASE, LEAVE = "release", "leave"
 
@@ -142,7 +143,7 @@ def _tag(worktree, message, pull, pr):
     target = _merge_commit(worktree, pull, pr)
     if not target:
         return False
-    tags = _git(worktree, "tag", "--sort=-v:refname").stdout.split()
+    tags = [t for t in _git(worktree, "tag", "--sort=-v:refname").stdout.split() if VERSION_TAG.fullmatch(t)]
     if not tags:
         _say("no vN.M tag to bump from; no tag cut")
         return False
