@@ -543,7 +543,7 @@ The tests-frozen rule: recording and checking that a step's tests are not change
 
 ## case_history
 Every query runs in the current directory through `git.git`; a git failure becomes None, False or "" and only an unstartable git raises OSError.
-- `toplevel()`: the working tree's root, `None` outside a repository. `has_rev(rev)`: bool. `current_branch()`: the abbreviated HEAD.
+- `toplevel()`: the working tree's root, `None` outside a repository. `has_rev(rev)`: bool. `current_branch()`: the abbreviated HEAD. `default_branch()`: origin's default branch as `refs/remotes/origin/HEAD` names it, asking no remote; raises `git.GitFailed` when it names none.
 - `text_at(rev, path, quiet=False)`: the file's text at `rev`, `""` when git cannot show it. `cases_at(rev, path)`: `{case name: body}`; raises OSError when git cannot read `rev`.
 - `revisions(path, since=None)`: shas of the commits that touched `path`, newest first. `subject(rev)`: its subject plus a newline.
 - `changed_test_files()`: test files that differ from HEAD; raises OSError when a listing fails. `step_commits(step, issue)`, `commit_of(rev)`, `first_revision_with(needle, path)`: a step's own commits, a rev's sha, the oldest commit touching `needle`.
