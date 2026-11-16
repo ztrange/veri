@@ -177,3 +177,13 @@ def test_3917_step_ahead_exits_2_naming_the_line_when_a_value_has_no_double_colo
     result = run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
 
     assert _refused(result, line), result
+
+
+def test_3917_step_ahead_exits_2_naming_the_line_when_a_value_names_no_existing_file(run_cli, tmp_path, exhausted_outcome):
+    red = _suite(tmp_path)
+    line = "STEP_AHEAD: tests/py/test_gone.py::test_prints_usage"
+    report = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n" + line + "\n"
+
+    result = run_cli(exhausted_outcome, ["--step-ahead", red], stdin=report, cwd=tmp_path)
+
+    assert _refused(result, line), result

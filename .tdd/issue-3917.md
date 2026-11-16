@@ -4,7 +4,7 @@
 - [x] `exhausted-outcome.sh --step-ahead <red-test-id>` prints one `prep <file>::<case> …` line naming each `STEP_AHEAD:` case its file defines and exits 0 ⟦criterion 2⟧
 - [x] `exhausted-outcome.sh --step-ahead <red-test-id>` skips a `STEP_AHEAD:` line naming the red case and exits 3 printing nothing when no line remains ⟦criterion 3⟧
 - [x] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value has no `::` ⟦criterion 4⟧
-- [ ] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value names no existing file ⟦criterion 4⟧
+- [x] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value names no existing file ⟦criterion 4⟧
 - [ ] `exhausted-outcome.sh --step-ahead <red-test-id>` exits 2 with empty stdout and a stderr line naming the line when a `STEP_AHEAD:` value names a case its file does not define ⟦criterion 4⟧
 - [ ] run without `--step-ahead`, `exhausted-outcome.sh` prints and exits as today on input holding `STEP_AHEAD:` lines, alone and beside `SPLIT:` or `NEEDS_USER:` lines ⟦criterion 5⟧
 - [ ] `JOURNAL.md`'s `reroute` row lists the `at` field ⟦criterion 6⟧
