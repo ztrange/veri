@@ -675,7 +675,8 @@ def fold(issue, path, ledger):
                         for name in str(mark.get("files", "")).split(",")],
                 pinned=pinned,
                 model_knobs={knob: tunables.read(knob) for knob in
-                             ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]},
+                             ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE",
+                              "VERI_MODEL_REVISE_GREEN"]},
                 phases=tally.counts, by_model=tally.by_model, lost=tally.lost(),
                 steps=tally.steps, step_marks=tally.spent, passes=passes, tier_runs=tally.tier_runs,
                 adjudications=tally.adjudications, switched_off=tally.switched_off,
@@ -871,7 +872,7 @@ def layout(f):
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
-          "VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.")
+          "VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER, VERI_MODEL_REVISE and VERI_MODEL_REVISE_GREEN.")
     if f.passes:
         table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
                    ["---:", "---:", "---", "---", "---:", "---:", "---:"])
