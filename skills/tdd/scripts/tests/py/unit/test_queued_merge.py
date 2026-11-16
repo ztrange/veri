@@ -1510,3 +1510,20 @@ def test_3984_queued_merge_whose_branch_delete_never_returns_ends_it_after_the_g
     ran = [first(calls, needle) is not None for needle in ("worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
     assert (code, "push origin --delete feature: no answer after 7s (VERI_GIT_NETWORK_TIMEOUT)" in err,
             "merged, but cleanup failed: branch delete" in err, ran) == (2, True, True, [True] * 4)
+
+
+def test_3984_queued_merge_whose_merge_call_lands_and_never_returns_ends_it_after_the_gh_timeout_and_the_settle_window_holding_the_lock_reads_it_merged(fake_processes, run_cli):
+    def landed_then_hangs(answer):
+        def world(line, **kwargs):
+            got = answer(line, **kwargs)
+            return HANGS if "-X PUT repos/o/r/pulls/7/merge" in line else got
+        return fake_processes(world)
+
+    calls = scenario(landed_then_hangs)
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_GH_TIMEOUT": "5", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    released = [i for i, c in enumerate(calls) if c.startswith("merge-lock.sh release")]
+    tagged = first(calls, " tag -a v0.11 ")
+    assert (code, "pulls/7/merge -f merge_method=rebase -f sha=%s: no answer after 5s (VERI_GH_TIMEOUT)" % PUSHED_HEAD in err,
+            tagged is not None, len(released), bool(released) and tagged is not None and released[0] > tagged) == (0, True, True, 1, True)
