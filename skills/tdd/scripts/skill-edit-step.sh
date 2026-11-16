@@ -6,7 +6,9 @@
 #          --change runs an author even on a unit already graded PASS; the prose must differ afterwards, else exit 1
 # Env:     VERI_SKILL_EDIT_BUDGET author attempts, a whole number >= 1 (default 3)
 # Exit:    0 list and GRADED committed after an author attempt; 1 the grader rejects every attempt;
-#          2 bad arguments, budget or heading, or no answer; 3 nothing left to commit, without --change: the list
+#          2 bad arguments, budget or heading, or no answer, or, before any author runs, a path changed since
+#          HEAD beyond the unit, its list, GRADED, the pins, the ledger files and the issue-body file (each
+#          printed on stderr; nothing launched, unit, list and GRADED unchanged); 3 nothing left to commit, without --change: the list
 #          and GRADED were committed with no author run, or there was no list and none was stated
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/skill_edit_step.py" "$@"
