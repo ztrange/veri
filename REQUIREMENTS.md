@@ -77,6 +77,7 @@
 | CM154 | The same section says the signature is a sha256 over the unit's text, its requirement rows and the grader model, so a change to any of the three makes the unit owe a grade. (`## Graded prose`, the signature sentence.) | It is why an unrelated-looking edit turns `make unit` red. |
 | CM155 | The same section says a unit's rows live in the `REQUIREMENTS.md` beside its `GRADED` file, under a heading naming the unit, and that a unit under `skills/<x>/` is signed in `skills/<x>/GRADED`, any other in its own directory's `GRADED`. (`## Graded prose`, the where-to-look sentence.) | A reader holding either file can find the other. |
 | CM156 | The same section says `prose-owed.sh`, run by `make unit` and `make test`, exits 1 listing each unit that owes a grade and each orphan `GRADED` line, and that a `⟦skill-edit⟧` step regrades a unit. (`## Graded prose`, last paragraph.) | What fails, and the way out of it. |
+| CM85 | Where it describes the `hermetic_environment` fixture, it says the fixture sets `VERI_EVENT_STRICT=1`, so a case that writes an event `veri/event_table.py` does not allow gets exit 2, and that a run's conductor never carries the variable. | A case reddened by an undeclared event must point at the table, and a reader must not mistake the strict exit for a run's. |
 
 ## README.md
 
