@@ -1,6 +1,7 @@
 """In-process cases for veri/ci_flake.py, the module ci-flake.sh is a shim over."""
 import importlib
 import json
+import pathlib
 
 import pytest
 
@@ -14,6 +15,20 @@ RED_LOG = "".join(PREFIX % i + text + "\n" for i, text in enumerate([
     "##[error]Process completed with exit code 1.",
 ]))
 TARGETS = ["skills/a/test_x.py::test_one", "skills/a/test_y.py::test_two"]
+
+
+REAL_LOG = pathlib.Path(__file__).parents[2] / "fixtures" / "ci-failed-log" / "run-43927348629.log"
+REAL_TARGET = ("skills/tdd/scripts/tests/py/unit/test_local_process_fakes.py::"
+               "test_no_test_file_outside_the_list_installs_its_own_fake_on_subprocess")
+
+
+def test_4018_a_real_gh_failed_log_with_its_byte_order_mark_before_the_first_timestamp_yields_its_one_failed_target(
+        tmp_path, run_cli, fake_processes, ci_flake):
+    fake = fake_processes.answers({"sh -c": (1, "", "")})
+
+    code, _, err = run_cli(ci_flake, ["4018", HEAD, "43927348629", ALONE, str(REAL_LOG)], cwd=tmp_path)
+
+    assert (code, fake.argvs, err) == (1, [["sh", "-c", ALONE, "sh", REAL_TARGET]], "")
 
 
 @pytest.fixture
