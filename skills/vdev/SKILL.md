@@ -156,10 +156,11 @@ On each conductor exit, read the facts — the issue's last comment only
 (`gh issue view <n> --json comments --jq '.comments[-1].body'`, never the whole comment
 thread), the committed ledger, the PR — never the exit code alone, and route:
 
-- **Last comment ✅ Done.** Review it, and on OK merge it through `vmerge`.
-  A run that ended with an open question for the human is never merged. While
-  `.tdd/github-outage` exists, a run whose review is OK is not merged: it is handled as
-  `voutage` says.
+- **Last comment ✅ Done.** Review it, and on OK run `$S/github-outage.sh hold <pr-url>` first:
+  exit 3 (`.tdd/github-outage` does not exist) merges it through `vmerge`; exit 0 holds it
+  instead, since a GitHub outage holds merges, and it is then handled as `voutage` says; exit 2
+  is reported once and nothing is merged. A run that ended with an open question for the human
+  is never merged.
 
   **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
   the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
