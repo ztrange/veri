@@ -336,6 +336,11 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 - `write_baseline_full_tier(root, issue, mode)`, `baseline_full_tier(issue, root)`: the baseline full-tier mode, `None` when unpinned.
 - `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
+## run_records
+A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holding `.tdd/events.jsonl` (the issue's lines only), `.tdd/issue-<n>-skill-commit` and `.tdd/issue-<n>-timeout`, each pin read from the run, else from the main tree it sits under. git errors raise `git.GitFailed`.
+- `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.
+- `delete(issue, cwd)`: deletes the ref on origin; a ref origin lacks counts as deleted.
+
 ## run_end
 - `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events.
 - `latest_result(path)`: `(launched, latest result record or None)` of a conductor log. `conductor_log(run_dir, issue)`: its path.
