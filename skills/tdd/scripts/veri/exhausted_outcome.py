@@ -10,7 +10,7 @@ import re
 import sys
 
 from entry import no_arguments
-from wrong_test_route import file_defines
+from case_reader import file_defines
 
 MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 STEP_AHEAD_RE = re.compile(rb"^STEP_AHEAD:\s*(.*?)\s*$")

@@ -1,6 +1,7 @@
 """Which paths are test files, and how a test source is cut into its cases."""
 import ast
 import fnmatch
+import os
 import re
 
 from js_tests import CALL
@@ -228,3 +229,15 @@ def defines_helper(name, text, py_file, go_file):
     else:
         pattern = r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped)
     return re.search(pattern, text, re.M) is not None
+
+
+def file_defines(path, case):
+    """True when the test file at path defines case, by the rules wrong-test-route.sh searches with."""
+    root, name = os.path.split(path)
+    py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
+    if not (py_file or go_file or js_file or name.endswith(".test.sh")):
+        return False
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        text = handle.read()
+    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
+                or name.endswith(".test.sh") and ('name="%s"' % case) in text)

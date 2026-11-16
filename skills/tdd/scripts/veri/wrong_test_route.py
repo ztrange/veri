@@ -2,7 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import event_log
 import frozen_record
-from case_reader import _js_title_pattern, cut_prefix, defined_name, defines_helper, live_titles, strip_param_suffix, is_go_test_file, is_js_test_file, is_test_file
+from case_reader import _js_title_pattern, cut_prefix, defined_name, defines_helper, file_defines, live_titles, strip_param_suffix, is_go_test_file, is_js_test_file, is_test_file
 import ledger as ledger_file
 import os
 import re
@@ -31,18 +31,6 @@ def _test_files():
         js = is_js_test_file(name, root)
         if py or go or js or name.endswith(".test.sh"):
             yield root, name, py, go, js
-
-
-def file_defines(path, case):
-    """True when the test file at path defines case, by the rules _defining_files searches with."""
-    root, name = os.path.split(path)
-    py_file, go_file, js_file = is_test_file(name), is_go_test_file(name), is_js_test_file(name, root)
-    if not (py_file or go_file or js_file or name.endswith(".test.sh")):
-        return False
-    with open(path, encoding="utf-8", errors="replace") as handle:
-        text = handle.read()
-    return bool(defined_name(case, text, py_file, go_file) or js_file and case in live_titles(case, text)
-                or name.endswith(".test.sh") and ('name="%s"' % case) in text)
 
 
 def _defining_files(case):
