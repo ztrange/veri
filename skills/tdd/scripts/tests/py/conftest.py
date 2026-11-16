@@ -483,7 +483,7 @@ def issues_listing(numbers, label="ready-for-agent", priority=()):
     """The open-issue listing text selecting <numbers> (None: a listing the selection cannot read)."""
     if numbers is None:
         return "not json"
-    return json.dumps([{"number": number, "title": "an issue", "state": "OPEN", "body": "",
+    return json.dumps([{"number": number, "title": "an issue", "state": "OPEN", "body": "", "author_association": "OWNER",
                         "labels": [{"name": label}] + ([{"name": "priority"}] if number in priority else [])}
                        for number in numbers])
 

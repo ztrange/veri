@@ -93,7 +93,7 @@ def fake_git_answering_nothing(fake_processes):
 
 
 def opted_in(number):
-    return {"number": number, "title": "issue %d" % number, "state": "OPEN",
+    return {"number": number, "title": "issue %d" % number, "state": "OPEN", "author_association": "OWNER",
             "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}
 
 
@@ -321,6 +321,23 @@ def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an
     (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), state=None)]))
     with pytest.raises(AttributeError):
         solvable_issues.main([])
+
+
+@pytest.mark.parametrize("association, printed", [
+    ("OWNER", "5\n"), ("MEMBER", "5\n"), ("COLLABORATOR", "5\n"),
+    ("CONTRIBUTOR", ""), ("FIRST_TIME_CONTRIBUTOR", ""), ("FIRST_TIMER", ""), ("NONE", ""),
+])
+def test_main_takes_an_opted_in_issue_only_when_its_author_is_owner_member_or_collaborator_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues, association, printed):
+    # A stranger's issue carrying the opt-in label must not be selected (PRD 022.4, AU1): the rule is on the author.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), author_association=association)]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    solvable_issues.main([])
+
+    assert capsys.readouterr().out == printed
 
 
 def test_main_claims_an_issue_only_by_an_open_pr_whose_head_is_in_this_repository_3973(fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):

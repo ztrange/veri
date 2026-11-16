@@ -118,7 +118,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"),
 def selection_asked(args):
     """Whether the gh command <args> is the solvable selection's own listing, which the shim on PATH answers."""
     fields = args[args.index("--json") + 1] if "--json" in args else ""
-    return fields in ("number,title,labels,body,state", "body,state,headRefName,isDraft") or (
+    return fields in ("number,title,labels,body,state", "body,state,headRefName,isDraft,isCrossRepository") or (
         args[1:2] == ["api"] and "&page=" not in args[2])
 
 
@@ -1620,7 +1620,7 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
     decoy_before = decoy_exclude.read_bytes() if decoy_exclude.is_file() else None
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
-        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": ""}]))
+        "number": 7, "title": "issue 7", "author_association": "OWNER", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": ""}]))
 
     ran = []
     real_popen = subprocess.Popen
@@ -1660,13 +1660,13 @@ def test_a_launch_run_through_a_symlink_to_the_skills_directory_from_another_cwd
     (tmp_path / "skills").symlink_to(copy, target_is_directory=True)
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
-        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "number": 7, "title": "issue 7", "author_association": "OWNER", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
         "body": "## Blocked by\n\nNone.\n"}]))
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
 echo "start $n" >> "$VERI_STUB_RECORD"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '{"body": "Closes #%s", "isCrossRepository": false, "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
 printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
 mkdir -p ".tdd/wt/$n/.tdd"
 echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"
@@ -1708,12 +1708,12 @@ def test_an_in_place_launch_leaves_the_conductors_event_log_holding_done_for_the
     shutil.copytree(SCRIPTS.parent, copy / "tdd", symlinks=True, ignore=shutil.ignore_patterns("tests", "__pycache__"))
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
-        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "number": 7, "title": "issue 7", "author_association": "OWNER", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
         "body": "## Blocked by\n\nNone.\n"}]))
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '{"body": "Closes #%s", "isCrossRepository": false, "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
 printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
 mkdir -p ".tdd/wt/$n/.tdd"
 echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"
@@ -1741,12 +1741,12 @@ def test_an_in_place_launch_on_a_short_filesystem_with_the_environment_stripped_
     shutil.copytree(SCRIPTS.parent, copy / "tdd", symlinks=True, ignore=shutil.ignore_patterns("tests", "__pycache__"))
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
-        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "number": 7, "title": "issue 7", "author_association": "OWNER", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
         "body": "## Blocked by\n\nNone.\n"}]))
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '{"body": "Closes #%s", "isCrossRepository": false, "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
 printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
 mkdir -p ".tdd/wt/$n/.tdd"
 echo '{"event": "done"}' >> ".tdd/wt/$n/.tdd/events.jsonl"

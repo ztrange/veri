@@ -23,7 +23,7 @@ def solvable_issues():
 
 
 def opted_in(number):
-    return {"number": number, "title": "issue %d" % number, "state": "OPEN",
+    return {"number": number, "title": "issue %d" % number, "state": "OPEN", "author_association": "OWNER",
             "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}
 
 
