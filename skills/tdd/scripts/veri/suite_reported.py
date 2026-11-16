@@ -9,6 +9,7 @@ import leaf_role
 import paths
 import tunables
 import report_formats
+from report import report_values
 
 USAGE = "usage: suite-reported.sh <leaf-name>"
 
@@ -42,15 +43,19 @@ def main(argv):
         return 2
     try:
         with open(f".tdd/{argv[0]}.out", encoding="utf-8", errors="replace") as out:
-            lines = out.read().splitlines()
-        if any(line.startswith("SUITE:") for line in lines):
+            text = out.read()
+
+        def reports(key):
+            return report_values(text, key, occurrence="first", space="kept", splitlines=True) is not None
+
+        if reports("SUITE"):
             return 0
         exempt = _exempt_keys(argv[0])
         if exempt is None:
             print(f"suite-reported.sh: no prompt file found for {argv[0]}", file=sys.stderr)
             return 2
         for keys in exempt:
-            if all(any(line.startswith(key) for line in lines) for key in keys):
+            if all(reports(key.removesuffix(":")) for key in keys):
                 return 0
     except OSError:
         pass
