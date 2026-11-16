@@ -10,7 +10,7 @@
 # Both windows count only time the machine spent awake. The clock is Python's
 # clock_gettime(CLOCK_UPTIME_RAW), else the monotonic clock (CLOCK_MONOTONIC): on macOS that is mach_absolute_time(), which does not advance while the
 # Mac is asleep, and on Linux it is CLOCK_MONOTONIC, which does not advance while the machine
-# is suspended. The wall clock (`date +%s`) keeps running through a suspend, so an hour with
+# is suspended. The wall clock (`time.time()`) keeps running through a suspend, so an hour with
 # the lid closed would read as an hour of silence and kill a leaf that never hung — the
 # heartbeat slides by whatever the wall clock moved across one poll beyond this clock, and the
 # hard timeout is measured on this clock alone.
