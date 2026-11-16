@@ -7,6 +7,7 @@ import sys
 import pytest
 
 from conftest import receipt_leaver
+from repo_builder import new_repo
 
 
 @pytest.fixture
@@ -26,7 +27,7 @@ def test_check_step_exits_1_naming_a_modified_test_file_red_did_not_record_and_n
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_other.py", "lib.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", "lib.py")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -48,7 +49,7 @@ def test_check_step_run_from_a_subdirectory_still_exits_1_naming_a_test_file_red
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_other.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -71,7 +72,7 @@ def test_check_step_run_from_a_subdirectory_exits_1_naming_an_untracked_test_fil
     (tmp_path / "sub").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -93,7 +94,7 @@ def test_check_step_exits_1_naming_a_test_file_red_did_not_record_that_was_delet
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_other.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -113,7 +114,7 @@ def test_check_step_exits_0_when_the_only_change_outside_the_record_is_a_test_fi
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_gone.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -133,7 +134,7 @@ def test_check_step_exits_1_naming_a_test_file_the_record_holds_as_deleted_that_
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_gone.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -154,7 +155,7 @@ def test_check_step_exits_1_naming_a_test_file_deleted_after_record_step_held_an
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_gone.py", "tests/test_later.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -174,7 +175,7 @@ def test_check_step_exits_1_naming_an_untracked_test_file_red_did_not_record_173
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -196,7 +197,7 @@ def test_check_step_exits_0_printing_nothing_when_only_non_test_files_changed_17
     (tmp_path / "tests/test_new.py").write_text("one\n")
     for name in ("lib.py", "gone.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", "lib.py", "gone.py")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -218,7 +219,7 @@ def test_record_step_holds_a_helper_test_file_red_changed_beside_its_test_path_s
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/helper.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -238,7 +239,7 @@ def test_check_step_exits_0_on_a_replaces_case_step_when_only_the_suite_it_names
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/old.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "⟦replaces-case⟧ replaces 'old case' in tests/old.test.sh"
@@ -258,7 +259,7 @@ def test_check_step_on_a_replaces_case_step_exits_1_naming_another_unrecorded_te
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/old.test.sh", "tests/test_other.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "⟦replaces-case⟧ replaces 'old case' in tests/old.test.sh"
@@ -279,7 +280,7 @@ def test_check_step_still_exits_0_on_a_repair_step_when_an_unrecorded_test_file_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_other.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "Repair the red CI run %s" % mark
@@ -297,7 +298,7 @@ def test_record_step_lists_by_name_the_pytest_function_red_added_to_a_test_file_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -317,7 +318,7 @@ def test_record_step_lists_by_name_the_bash_case_red_added_to_a_test_sh_suite_17
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a bash case"
@@ -340,7 +341,7 @@ def test_record_step_lists_by_name_the_pytest_function_red_edited_and_not_the_on
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_edited_by_red_1765():\n    assert 1 == 2\n\n\n"
         "def test_left_alone_1765():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one edits a case"
@@ -364,7 +365,7 @@ def test_record_step_lists_only_the_bash_case_red_added_before_the_finish_traile
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text('name="first case"\ncheck_first\nok\n\n'
                      'name="last case"\ncheck_last\nok\n\nfinish\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case before finish"
@@ -387,7 +388,7 @@ def test_record_step_lists_only_the_pytest_function_red_inserted_at_file_start_a
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("\ndef test_older_case_1861():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a case above the older one"
@@ -409,7 +410,7 @@ def test_record_step_lists_only_the_pytest_function_red_inserted_above_an_older_
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("LIMIT = 1\n\ndef test_older_case_1861():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a case above the older one"
@@ -432,7 +433,7 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("import pytest\n\n\nclass TestSuite:\n    def test_first_1861(self):\n        assert True\n\n"
                      "    def test_older_case_1861(self):\n        assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a method above the older one"
@@ -455,7 +456,7 @@ def test_record_step_lists_only_the_bash_case_red_inserted_above_an_older_one_wh
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text('setup\n\nname="older case"\ncheck_older\nok\n\nfinish\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a bash case above the older one"
@@ -477,7 +478,7 @@ def test_record_step_lists_only_the_pytest_function_red_appended_after_an_older_
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case_1861():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one appends a case after the older one"
@@ -499,7 +500,7 @@ def test_record_step_lists_only_the_bash_case_red_appended_at_the_end_of_a_suite
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text('name="older case"\ncheck_older\nok\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one appends a bash case with no trailer"
@@ -523,7 +524,7 @@ def test_record_step_lists_only_the_case_red_appended_to_a_real_copy_of_a_bash_s
     real = (Path(__file__).resolve().parents[1] / "fixtures" / "tests-frozen" / "run-finished.test.sh.txt").read_text()
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text(real)
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one appends a case to a real suite"
@@ -544,7 +545,7 @@ def test_record_step_lists_only_the_pytest_function_red_inserted_above_an_older_
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case_1861():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a case above the one on line one"
@@ -566,7 +567,7 @@ def test_record_step_lists_only_the_pytest_method_red_inserted_above_an_older_me
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("class TestSuite:\n    def test_older_case_1861(self):\n        assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one inserts a method under the class line"
@@ -589,7 +590,7 @@ def test_record_step_lists_the_last_bash_case_red_edited_below_a_heredoc_finish_
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text('name="first case"\ncheck_first\nok\n\n'
                      'name="heredoc case"\ncat > script.sh <<\'EOF\'\nfinish\nEOF\ncheck_heredoc one\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one edits the last case below a heredoc finish with no trailer"
@@ -611,7 +612,7 @@ def test_record_step_lists_the_bash_case_red_edited_below_an_indented_finish_lin
     suite = tmp_path / "tests/suite.test.sh"
     suite.write_text('name="first case"\ncheck_first\nok\n\n'
                      'name="finishing case"\nif true; then\n  finish_up\n  finish\nfi\ncheck_finishing one\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one edits below an indented finish inside a case"
@@ -632,7 +633,7 @@ def test_check_step_run_from_a_subdirectory_exits_1_naming_a_tracked_test_file_g
     (tmp_path / "sub").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -652,7 +653,7 @@ def test_record_and_check_by_step_key_an_unmarked_steps_record_by_path_and_rejec
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "a.test.sh"
     suite.write_text("case one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "a.test.sh")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds case one"
@@ -670,7 +671,7 @@ def test_an_unmarked_step_quoting_a_repair_mark_in_its_prose_is_still_frozen_158
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "a.test.sh"
     suite.write_text("case one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "a.test.sh")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "A `⟦ci-repair⟧` step's verify-green judges only the CI log ⟦added⟧ ⟦criterion 2⟧"
@@ -715,7 +716,7 @@ def test_check_step_in_a_repository_with_no_commits_exits_2_with_stderr_naming_t
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     step = "step one adds a case"
     run_cli(tests_frozen, ["record", "--step", step, "tests/test_new.py"], cwd=tmp_path)
     (tmp_path / "tests/test_other.py").write_text("one, weakened\n")
@@ -733,7 +734,7 @@ def test_record_step_for_a_red_whose_only_test_change_deletes_a_tracked_test_fil
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_old.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one deletes a test file"
@@ -752,7 +753,7 @@ def test_check_step_exits_1_naming_the_old_name_when_green_restores_a_test_file_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_old.py").write_text("one\ntwo\nthree\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one renames a test file"
@@ -775,7 +776,7 @@ def test_record_step_lists_the_pytest_function_red_edited_below_a_finish_line_in
     body = ('def test_first():\n    assert True\n\n\n'
             'def test_last():\n    text = """\nfinish\n"""\n    assert text == {!r}\n')
     suite.write_text(body.format("one"))
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one edits a function below a string finish"
@@ -795,7 +796,7 @@ def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_test_file_that_is_
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/test_other.py", "tests/conftest.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'db' in tests/conftest.py, "
@@ -818,7 +819,7 @@ def test_check_step_on_a_fixture_repair_step_exits_0_silently_when_only_its_fixt
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/conftest.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'db' in tests/conftest.py, "
@@ -839,7 +840,7 @@ def test_check_step_on_a_fixture_repair_step_exits_1_naming_the_fixture_file_whe
     (tmp_path / ".tdd").mkdir()
     fixture = tmp_path / "tests/test_fixture.py"
     fixture.write_text("def helper():\n    return 1\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'helper' in tests/test_fixture.py, "
@@ -860,7 +861,7 @@ def test_check_step_on_a_fixture_repair_step_exits_0_when_green_changed_the_fixt
     (tmp_path / ".tdd").mkdir()
     fixture = tmp_path / "tests/test_fixture.py"
     fixture.write_text("def helper():\n    return 1\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'helper' in tests/test_fixture.py, "
@@ -881,7 +882,7 @@ def test_check_step_on_a_fixture_repair_step_exits_1_naming_a_fixture_file_the_r
     (tmp_path / ".tdd").mkdir()
     fixture = tmp_path / "tests/fixture_data.py"
     fixture.write_text("TABLE = [1]\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'TABLE' in tests/fixture_data.py, "
@@ -902,7 +903,7 @@ def test_check_step_on_a_step_without_the_fixture_repair_mark_exits_1_naming_the
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/conftest.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = ("the case passes: repairs the fixture 'db' in tests/conftest.py, "
@@ -923,7 +924,7 @@ def test_check_step_exits_0_when_a_green_edit_touches_the_guard_subject_the_step
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a guard ⟦guard-subject: tests/no-thing.test.sh⟧"
@@ -943,7 +944,7 @@ def test_check_step_exits_0_when_a_green_edit_touches_both_guard_subjects_the_st
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh", "tests/lib-helper.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step two ⟦guard-subject: tests/no-thing.test.sh⟧ ⟦guard-subject: tests/lib-helper.sh⟧"
@@ -964,7 +965,7 @@ def test_check_step_exits_1_naming_an_unrecorded_test_file_other_than_the_guard_
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh", "tests/test_other.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a guard ⟦guard-subject: tests/no-thing.test.sh⟧"
@@ -985,7 +986,7 @@ def test_check_step_exits_1_naming_the_recorded_test_file_even_with_the_guard_su
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a guard ⟦guard-subject: tests/no-thing.test.sh⟧"
@@ -1006,7 +1007,7 @@ def test_check_step_exits_1_naming_only_the_recorded_file_the_marker_does_not_na
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/conftest.py"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦guard-subject: tests/conftest.py⟧"
@@ -1026,7 +1027,7 @@ def test_check_step_exits_1_naming_a_recorded_guard_subject_deleted_since_the_re
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/conftest.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦guard-subject: tests/conftest.py⟧"
@@ -1045,7 +1046,7 @@ def test_check_step_exits_0_for_a_recorded_guard_subject_whose_content_changed_s
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/conftest.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦guard-subject: tests/conftest.py⟧"
@@ -1065,7 +1066,7 @@ def test_check_step_exits_1_naming_the_file_of_a_guard_subject_marker_quoted_in_
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "A step quoting `⟦guard-subject: tests/no-thing.test.sh⟧` in its prose ⟦added⟧ ⟦criterion 4⟧"
@@ -1085,7 +1086,7 @@ def test_check_step_exits_1_naming_a_test_file_the_steps_prose_names_as_plain_te
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "A step fixing tests/no-thing.test.sh, named as plain text ⟦added⟧ ⟦criterion 4⟧"
@@ -1105,7 +1106,7 @@ def test_check_step_exits_1_naming_a_test_file_under_a_directory_a_trailing_guar
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/lib/harness.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦guard-subject: tests/lib⟧"
@@ -1125,7 +1126,7 @@ def test_check_step_exits_1_naming_a_test_file_a_trailing_guard_subject_glob_wou
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/lib/harness.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦guard-subject: tests/*⟧"
@@ -1145,7 +1146,7 @@ def test_check_step_exits_1_naming_a_test_file_a_trailing_phases_marker_names_17
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/lib/harness.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a helper ⟦phases: tests/lib/harness.sh⟧"
@@ -1165,7 +1166,7 @@ def test_check_step_exits_1_naming_the_guard_subject_a_green_deleted_1775(
     (tmp_path / ".tdd").mkdir()
     for name in ("tests/test_new.py", "tests/no-thing.test.sh"):
         (tmp_path / name).write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one fixes a guard ⟦guard-subject: tests/no-thing.test.sh⟧"
@@ -1184,7 +1185,7 @@ def test_check_step_from_a_subdirectory_exits_1_naming_an_untracked_test_file_a_
     (tmp_path / "tests").mkdir()
     (tmp_path / "sub/.tdd").mkdir(parents=True)
     (tmp_path / "lib.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "lib.py")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -1203,7 +1204,7 @@ def test_check_earlier_exits_1_naming_the_case_an_earlier_step_recorded_and_the_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -1227,7 +1228,7 @@ def test_check_earlier_exits_0_printing_nothing_for_an_earlier_steps_case_rename
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two renames it"
@@ -1254,7 +1255,7 @@ def test_check_earlier_exits_1_naming_the_old_case_and_its_step_when_an_earlier_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two renames and weakens it"
@@ -1285,7 +1286,7 @@ def test_check_earlier_exits_1_naming_a_changed_case_in_a_file_whose_path_only_e
     (tmp_path / ".tdd").mkdir()
     for name in (subject, other):
         (tmp_path / name).write_text("def test_existing_3443():\n    assert 1 == 1\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", "projects")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier = "step one ⟦guard-subject: %s⟧" % subject
@@ -1314,7 +1315,7 @@ def test_check_earlier_exits_1_naming_exactly_one_case_when_two_identical_earlie
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds two cases", "step two folds them into one"
@@ -1343,7 +1344,7 @@ def test_check_earlier_exits_1_naming_exactly_the_third_of_three_identical_earli
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds three cases", "step two folds them into two"
@@ -1373,7 +1374,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_the_case_or_its
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -1400,7 +1401,7 @@ def test_check_earlier_exits_0_printing_nothing_when_the_current_step_only_adds_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, unrecorded, current = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -1422,7 +1423,7 @@ def test_check_earlier_except_exempts_each_case_named_and_still_exits_1_for_a_ch
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds cases", "step two adds another"
@@ -1460,7 +1461,7 @@ def test_check_earlier_without_except_exempts_the_cases_a_replaces_case_step_nam
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier = "step one adds cases"
@@ -1492,7 +1493,7 @@ def test_check_earlier_without_except_exempts_the_cases_a_replaces_case_step_nam
 @pytest.mark.process("a real git repository under tmp_path, asked for its top level")
 def test_check_earlier_prints_usage_naming_check_earlier_and_exits_2_without_a_ledger_or_step_or_with_an_unreadable_ledger_2125(
         tmp_path, run_cli, tests_frozen):
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     ledger = tmp_path / "ledger.md"
     ledger.write_text("- [ ] step\n")
 
@@ -1516,7 +1517,7 @@ def test_check_earlier_exits_0_printing_nothing_when_a_later_step_re_recorded_a_
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_a():\n    assert 0\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     one, two, three = "step one", "step two", "step three"
@@ -1549,7 +1550,7 @@ def test_check_earlier_exits_0_printing_nothing_for_a_later_step_that_leaves_alo
         (repo / ".tdd").mkdir()
         suite = repo / "tests/test_suite.py"
         suite.write_text("def test_a():\n    assert 0\n")
-        git(repo, "init", "-q")
+        new_repo(repo)
         git(repo, "add", "tests")
         git(repo, "commit", "-q", "-m", "base")
         one, three = "step one", "step three adds test_c"
@@ -1587,7 +1588,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_a_line_below_an
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a bash case", "step two adds another"
@@ -1610,7 +1611,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_a_decorator_is_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a first case", "step two adds a second case"
@@ -1635,7 +1636,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_a_decorator_is_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a last case", "step two adds another"
@@ -1658,7 +1659,7 @@ def test_check_earlier_exits_1_naming_a_python_def_case_whose_format_2_record_di
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a def case", "step two adds a sibling"
@@ -1682,7 +1683,7 @@ def test_check_earlier_exits_0_printing_nothing_for_a_case_the_current_step_reco
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     current = "step one adds a case"
@@ -1705,7 +1706,7 @@ def test_check_earlier_exits_0_printing_nothing_for_a_record_written_with_the_ol
     import hashlib
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     earlier, current = "step one adds a case", "step two adds a decorated case"
     (tmp_path / "tests/test_suite.py").write_text(
         "def test_first_2177():\n    assert 1 == 2\n\n\n@pytest.mark.timeout(60)\n"
@@ -1729,7 +1730,7 @@ def test_check_earlier_exits_1_naming_a_case_changed_since_a_record_written_with
     import hashlib
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     earlier, current = "step one adds a case", "step two adds a decorated case"
     old_body = "def test_first_2177():\n    assert 1 == 2\n\n\n@pytest.mark.timeout(60)"
     digest = hashlib.sha256(old_body.encode()).hexdigest()
@@ -1753,7 +1754,7 @@ def test_check_earlier_exits_0_printing_nothing_when_a_helper_function_is_insert
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds two bash cases", "step two adds another"
@@ -1777,7 +1778,7 @@ def test_check_earlier_exits_0_printing_nothing_when_an_uncommented_one_line_hel
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/suite.test.sh").write_text('name="older case"\ncheck_older\nok\n')
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds two bash cases", "step two adds another"
@@ -1801,7 +1802,7 @@ def test_check_earlier_exits_1_naming_the_case_and_its_step_when_only_the_record
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a decorated case", "step two adds another"
@@ -1825,7 +1826,7 @@ def test_check_earlier_exits_0_printing_nothing_when_a_module_level_helper_is_in
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds two cases", "step two adds another"
@@ -1849,7 +1850,7 @@ def test_check_earlier_exits_0_printing_nothing_when_a_later_step_appends_a_deco
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds a decorated case"
@@ -1871,7 +1872,7 @@ def test_check_earlier_exits_0_printing_nothing_when_a_later_step_appends_a_deco
 def test_check_earlier_exit_0_writes_a_pass_marker_under_tdd_naming_the_step_and_the_head_it_checked_2206(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "a.txt").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "a.txt")
     git(tmp_path, "commit", "-q", "-m", "first")
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
@@ -1892,7 +1893,7 @@ def test_check_earlier_exit_1_removes_the_pass_marker_of_that_step_and_leaves_an
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current, other = "step one adds a case", "step two adds another", "step three adds more"
@@ -1920,7 +1921,7 @@ def test_check_earlier_exit_2_for_an_unreadable_ledger_removes_the_pass_marker_o
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     current, other = "step two adds another", "step three adds more"
@@ -1945,7 +1946,7 @@ def test_check_earlier_exit_2_outside_any_git_repository_removes_the_pass_marker
     (repo / ".tdd").mkdir(parents=True)
     (plain / ".tdd").mkdir(parents=True)
     (repo / "a.txt").write_text("one\n")
-    git(repo, "init", "-q")
+    new_repo(repo)
     git(repo, "add", "a.txt")
     git(repo, "commit", "-q", "-m", "first")
     step = "add the second case"
@@ -1967,7 +1968,7 @@ def test_check_earlier_pass_marker_differs_after_a_work_tree_edit_and_is_the_sam
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
     (tmp_path / "lib.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", "lib.py")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -1994,13 +1995,13 @@ def test_check_earlier_pass_marker_differs_after_a_work_tree_edit_and_is_the_sam
     assert "step: %s\nhead: " % current in edited[1]
 
 
-@pytest.mark.process("a real git repository under tmp_path holding a nested repository made by git init")
+@pytest.mark.process("a real git repository under tmp_path holding a nested repository made by new_repo")
 def test_check_earlier_exits_2_naming_the_work_tree_hash_and_writes_no_pass_marker_for_an_untracked_nested_repo_with_no_commits_2230(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -2008,7 +2009,7 @@ def test_check_earlier_exits_2_naming_the_work_tree_hash_and_writes_no_pass_mark
     ledger = tmp_path / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
     (tmp_path / "nested").mkdir()
-    git(tmp_path / "nested", "init", "-q")
+    new_repo(tmp_path / "nested")
 
     code, out, err = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
 
@@ -2023,7 +2024,7 @@ def test_check_earlier_exits_0_and_writes_a_pass_marker_when_the_repository_giti
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
     (tmp_path / ".gitignore").write_text(".tdd/\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", ".gitignore")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -2042,7 +2043,7 @@ def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_a
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("def test_one():\n    assert 1\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -2065,7 +2066,7 @@ def test_rerecord_earlier_for_a_diff_checked_step_rewrites_the_changed_case_so_a
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -2102,7 +2103,7 @@ def test_rerecord_earlier_derives_the_step_base_from_its_own_commits_so_a_later_
         (repo / ".tdd").mkdir()
         (repo / "tests/test_suite.py").write_text(older)
         (repo / "notes.txt").write_text("a\n")
-        git(repo, "init", "-q", "-b", "tdd/9-x")
+        new_repo(repo, branch="tdd/9-x")
         git(repo, "add", "tests", "notes.txt")
         git(repo, "commit", "-q", "-m", "base")
         (repo / "tests/test_suite.py").write_text(pinned % "1 == 2")
@@ -2150,7 +2151,7 @@ def test_rerecord_earlier_derives_the_step_base_from_its_own_commits_when_an_ear
         (repo / ".tdd").mkdir()
         (repo / "tests/test_suite.py").write_text(older)
         (repo / "notes.txt").write_text("a\n")
-        git(repo, "init", "-q", "-b", "tdd/9-x")
+        new_repo(repo, branch="tdd/9-x")
         git(repo, "add", "tests", "notes.txt")
         git(repo, "commit", "-q", "-m", "base")
         ledger = repo / ".tdd/issue-9.md"
@@ -2197,7 +2198,7 @@ def test_a_changed_frozen_case_of_a_step_not_diff_checked_is_not_rerecorded_and_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two edits it", "step three adds another"
@@ -2224,7 +2225,7 @@ def test_rerecord_earlier_keeps_the_record_of_a_case_edited_in_a_commit_before_t
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -2254,7 +2255,7 @@ def test_rerecord_earlier_leaves_the_ticked_steps_own_record_byte_for_byte_and_r
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧"
@@ -2287,7 +2288,7 @@ def test_rerecord_earlier_keeps_the_record_of_a_frozen_case_edited_only_in_the_w
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 6⟧", "step three adds another"
@@ -2313,7 +2314,7 @@ def _diff_checked_repo(tmp_path, run_cli, tests_frozen, commit_ledger=True):
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     steps = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -2402,7 +2403,7 @@ def test_check_step_exits_2_with_gits_stderr_when_git_cannot_list_the_differing_
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_new.py").write_text("one\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     step = "step one adds a case"
@@ -2431,7 +2432,7 @@ def test_rerecord_rebased_re_records_an_earlier_case_changed_only_upstream_so_ch
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2479,7 +2480,7 @@ def test_rerecord_rebased_keeps_every_non_body_line_of_the_record_and_rewrites_o
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2531,7 +2532,7 @@ def test_rerecord_rebased_run_from_a_subdirectory_re_records_the_same_upstream_o
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2577,7 +2578,7 @@ def test_rerecord_rebased_refuses_a_stale_case_the_branch_changed_since_its_reco
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    a = %d\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % (1, 1))
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2621,7 +2622,7 @@ def test_rerecord_rebased_refuses_a_stale_case_the_branch_and_origin_both_edited
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    a = %d\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % (1, 1))
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2667,7 +2668,7 @@ def test_rerecord_rebased_refuses_a_stale_case_whose_head_body_differs_from_orig
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    a = %d\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % (1, 1))
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2713,7 +2714,7 @@ def test_rerecord_rebased_exits_1_naming_only_the_refused_case_while_re_recordin
     suites = {name: repo / ("tests/test_%s.py" % name) for name in ("kept", "refused")}
     for name, suite in suites.items():
         suite.write_text(case % (name, 1, 1))
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2767,7 +2768,7 @@ def test_rerecord_rebased_exits_3_and_rewrites_no_record_when_no_earlier_recorde
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2809,7 +2810,7 @@ def test_rerecord_rebased_exits_3_printing_nothing_for_a_case_whose_older_owners
     suite = repo / "tests/test_suite.py"
     case = "def test_config_3150():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2853,7 +2854,7 @@ def test_rerecord_rebased_exits_1_naming_the_latest_owning_step_and_not_the_olde
     suite = repo / "tests/test_suite.py"
     case = "def test_config_3150():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2898,7 +2899,7 @@ def test_rerecord_rebased_re_records_the_latest_owners_record_and_leaves_the_old
     suite = repo / "tests/test_suite.py"
     case = "def test_config_3150():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2944,7 +2945,7 @@ def test_rerecord_rebased_exits_2_naming_an_unreadable_ledger_on_stderr_and_writ
     (repo / ".tdd").mkdir()
     suite = repo / "tests/test_suite.py"
     suite.write_text("def test_config_2552():\n    assert f() == 1\n")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2972,7 +2973,7 @@ def test_rerecord_rebased_with_no_ledger_file_exits_3_with_no_output_and_rewrite
     (repo / "tests").mkdir(parents=True)
     (repo / ".tdd").mkdir()
     (repo / "tests/test_suite.py").write_text("def test_config_2718():\n    assert f() == 1\n")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -2999,7 +3000,7 @@ def test_rerecord_rebased_exits_2_and_rewrites_no_record_when_the_pre_rebase_sha
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -3038,7 +3039,7 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_an_earlier_steps_record
     (repo / ".tdd").mkdir()
     suite = repo / "tests/test_suite.py"
     suite.write_text("def test_config_2552():\n    assert f() == 1\n")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -3068,7 +3069,7 @@ def test_rerecord_rebased_skips_a_ticked_earlier_step_with_no_record_file_and_st
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -3110,7 +3111,7 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -3160,7 +3161,7 @@ def test_rerecord_rebased_exits_2_naming_the_record_when_writing_a_stale_cases_r
     suite = repo / "tests/test_suite.py"
     case = "def test_config_2552():\n    assert f() == %d\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -3226,7 +3227,7 @@ def _plan_repo(repo, monkeypatch):
     (repo / "test_suite.py").write_text(CASE % ("base", 0))
     _ledger(repo)
     (repo / ".tdd/issue-8.md").write_text("- [x] %s\n" % STEPS[1])
-    git(repo, "init", "-q")
+    new_repo(repo)
     git(repo, "add", "test_suite.py", ".tdd/issue-9.md", ".tdd/issue-8.md")
     git(repo, "commit", "-q", "-m", "plan")
 
@@ -4963,7 +4964,7 @@ def test_rerecord_rebased_exits_2_naming_the_record_and_the_title_when_an_earlie
     (repo / ".tdd").mkdir()
     suite = repo / "tests/test_suite.py"
     suite.write_text("def test_other_2825():\n    assert f() == 0\n")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -5590,7 +5591,7 @@ def test_rerecord_earlier_leaves_one_helpers_line_from_head_for_a_go_case_whose_
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "suite_test.go"
     asserts = "".join("\tif x != %d {\n\t\tt.Fatal(\"bad %d\")\n\t}\n" % (n, n) for n in (1, 2, 3))
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "base.txt").write_text("base\n")
     git(tmp_path, "add", "base.txt")
     git(tmp_path, "commit", "-q", "-m", "base")
@@ -5686,7 +5687,7 @@ def test_rerecord_rebased_drops_a_recorded_case_never_committed_on_the_branch_in
     kept = "def test_kept_2994():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == 1\n"
     ghost = "\n\ndef test_ghost_2994():\n    assert f() == 2\n"
     suite.write_text("")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -5729,7 +5730,7 @@ def test_rerecord_rebased_drops_the_helpers_line_of_a_recorded_go_case_never_com
     kept = "func TestKept(t *testing.T) {\n\tx := 1\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
     ghost = "\nfunc TestGhost(t *testing.T) {\n\tx := 2\n\tif x != 2 {\n\t\tt.Fatal(\"bad\")\n\t}\n}\n"
     suite.write_text("")
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -5777,7 +5778,7 @@ def test_rerecord_rebased_drops_only_the_never_committed_case_and_still_re_recor
     case = "def test_config_2994():\n    assert f() == %d\n"
     ghost = "\n\ndef test_ghost_2994():\n    assert f() == 9\n"
     suite.write_text(case % 1)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -5823,7 +5824,7 @@ def test_rerecord_rebased_still_exits_2_for_a_recorded_case_committed_at_the_pre
     kept = "def test_kept_2994():\n    a = 1\n    b = 0\n    c = 0\n    d = 0\n    assert f() == 1\n"
     ghost = "\n\ndef test_ghost_2994():\n    assert f() == 2\n"
     suite.write_text(kept)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     git(repo, "add", "tests")
     git(repo, "commit", "-q", "-m", "base")
     git(tmp_path, "clone", "-q", "--bare", str(repo), "origin.git")
@@ -6349,7 +6350,7 @@ def test_rerecord_earlier_rewrites_body_and_helpers_lines_together_from_head_whe
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -6384,7 +6385,7 @@ def test_rerecord_earlier_leaves_no_helpers_line_for_a_case_that_calls_no_helper
     (tmp_path / ".tdd").mkdir()
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, edit, later = "step one adds a case", "step two ⟦diff-checked⟧ ⟦criterion 1⟧", "step three adds another"
@@ -6417,7 +6418,7 @@ def test_check_earlier_exits_0_for_a_python_case_whose_recorded_helpers_digest_i
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6444,7 +6445,7 @@ def test_check_earlier_leaves_one_helpers_line_equal_to_the_current_digest_after
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6473,7 +6474,7 @@ def test_check_earlier_exits_1_and_leaves_a_legacy_helpers_line_as_recorded_when
             "def test_b():\n    assert 3 == 3\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6503,7 +6504,7 @@ def test_check_earlier_exits_1_and_leaves_a_legacy_helpers_line_as_recorded_when
             "def test_b():\n    assert 3 == 3\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6534,7 +6535,7 @@ def test_check_earlier_names_the_case_on_stderr_saying_its_helpers_digest_was_re
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6561,7 +6562,7 @@ def test_a_second_check_earlier_after_the_legacy_re_record_exits_0_and_prints_no
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6590,7 +6591,7 @@ def test_check_earlier_exits_1_naming_the_case_and_leaves_the_record_untouched_w
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6619,7 +6620,7 @@ def test_check_earlier_exits_1_naming_the_case_when_an_assertion_is_deleted_from
             "def other():\n    assert 2 == 2\n")
     suite = tmp_path / "tests/test_suite.py"
     suite.write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds nothing"
@@ -6646,7 +6647,7 @@ def test_check_earlier_exits_1_naming_a_case_whose_test_file_was_git_mv_ed_with_
     (tmp_path / "tests/unit").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -6672,7 +6673,7 @@ def test_check_earlier_exits_0_for_a_case_whose_test_file_was_git_mv_ed_with_its
     (tmp_path / "tests/unit").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -6699,7 +6700,7 @@ def test_check_earlier_matches_a_moved_file_only_to_a_visible_copy_holding_the_c
     moved = "def test_moved_3284():\n    assert 1 == 1\n"
     gone = "def test_gone_3284():\n    assert 2 == 2\n"
     (tmp_path / "tests/test_older.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds two cases", "step two adds another"
@@ -6727,7 +6728,7 @@ def test_check_earlier_exits_0_for_a_case_whose_test_file_was_git_mv_ed_to_a_dif
     (tmp_path / "tests/unit").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -6751,7 +6752,7 @@ def test_check_earlier_exits_0_for_a_moved_case_whose_only_change_is_its_parents
     (tmp_path / "tests/unit").mkdir(parents=True)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds a case", "step two adds another"
@@ -6777,7 +6778,7 @@ def test_3434_check_earlier_exits_0_with_except_for_a_rewritten_rerouted_case_an
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_base():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one adds cases", "step two adds another"
@@ -6813,7 +6814,7 @@ def test_check_earlier_exits_0_for_a_later_step_changing_a_non_red_case_in_an_ea
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_red.py").write_text("def test_older_red():\n    assert True\n")
     (tmp_path / "tests/test_guard.py").write_text("def test_guarded():\n    assert True, 'a'\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one ⟦guard-subject: tests/test_guard.py⟧", "step two"
@@ -6843,7 +6844,7 @@ def test_record_step_freezes_only_the_red_case_of_each_of_two_prefix_sharing_gua
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_guard.py").write_text("def test_guarded_one():\n    assert True, 'a'\n")
     (tmp_path / "tests/test_guard_more.py").write_text("def test_guarded_two():\n    assert True, 'a'\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = ("step one ⟦guard-subject: tests/test_guard.py⟧ ⟦guard-subject: tests/test_guard_more.py⟧",
@@ -6881,7 +6882,7 @@ def test_check_earlier_exempts_a_guard_subjects_non_red_case_but_not_a_non_subje
     (tmp_path / "projects/x/tests/test_guard.py").write_text("def test_subject_case():\n    assert True, 'a'\n")
     (tmp_path / "tests/test_guard.py").write_text("def test_other_case():\n    assert True, 'a'\n")
     (tmp_path / "projects/x/tests/test_guard.py.bak").write_text("def test_bak_case():\n    assert True, 'a'\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests", "projects")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier, current = "step one ⟦guard-subject: projects/x/tests/test_guard.py⟧", "step two"
@@ -7173,7 +7174,7 @@ def test_check_earlier_exits_1_naming_an_edited_case_a_replaces_case_marker_nami
     (tmp_path / "tests").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / "tests/test_suite.py").write_text("def test_older_case():\n    assert True\n")
-    git(tmp_path, "init", "-q")
+    new_repo(tmp_path)
     git(tmp_path, "add", "tests")
     git(tmp_path, "commit", "-q", "-m", "base")
     earlier = "step one adds cases"
