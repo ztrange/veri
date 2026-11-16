@@ -49,7 +49,6 @@ USAGE = [
     ("4252593059 50", "supervise.sh", []),
     ("3650033748 63", "tick-issue-criterion.sh", []),
     ("3111273066 293", "tick-ledger.sh", []),
-    ("3568418922 35", "tier-usual.sh", []),
     ("1826447128 65", "timed-test-run.sh", []),
     ("3094254233 81", "transform-touches-tests.sh", []),
     ("3750115868 145", "verify.sh", []),
