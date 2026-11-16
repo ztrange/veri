@@ -152,6 +152,11 @@ def _take(lock, record, args):
                 text, holder = _read_pid(record)
             except (OSError, ValueError, IndexError) as err:
                 if not os.path.isdir(lock):
+                    if _clock() - started >= limit:
+                        found = "a regular file" if os.path.isfile(lock) else "no lock directory it could take"
+                        print(f"merge-lock.sh: {lock} is {found} after VERI_MERGE_LOCK_WAIT={limit} seconds; not taken",
+                              file=sys.stderr)
+                        return 2
                     _poll_wait()
                     continue
                 if isinstance(err, FileNotFoundError):

@@ -246,3 +246,30 @@ def test_review_take_reads_a_live_holder_recorded_in_the_pinned_or_the_callers_l
     code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(me)])
 
     assert (code, len(waits)) == expected
+
+
+def test_review_take_on_a_merge_lock_that_is_a_regular_file_exits_2_at_veri_merge_lock_wait_naming_what_it_found(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(merge_lock, "_start_time", lambda pid: "t")
+    monkeypatch.setenv("VERI_MERGE_LOCK_WAIT", "100")
+    now = [1000.0]
+    polls = []
+
+    def sleep(_seconds):
+        polls.append(1)
+        if len(polls) > 20:
+            raise _StillPolling
+        now[0] += 30
+
+    monkeypatch.setattr(merge_lock, "time", SimpleNamespace(sleep=sleep))
+    monkeypatch.setattr(merge_lock, "_clock", lambda: now[0])
+    lock = tmp_path / "tdd" / "merge.lock"
+    lock.parent.mkdir(parents=True)
+    lock.write_text("not a directory\n")
+    try:
+        code = merge_lock._take(str(lock), str(lock / "holder"), ["--pid", str(os.getpid())])
+    except _StillPolling:
+        code = "still polling"
+    err = capsys.readouterr().err
+    assert (code, len(err.splitlines()), str(lock) in err, "regular file" in err, lock.read_text(),
+            sorted(p.name for p in lock.parent.glob(".merge.lock.*"))) == (2, 1, True, True, "not a directory\n", [])
