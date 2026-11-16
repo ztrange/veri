@@ -1194,11 +1194,11 @@ When `next-unchecked.sh` hands over a step carrying `⟦suite-repair⟧`, `Read`
    verify-refactor PASS whose verdict carries no flags: 6's PASS branch runs with the
    leaf's flags only.
    **Switched off:** when `refactor` is listed in `.tdd/issue-<n>-skip-verify` and a refactor
-   landed, launch **no** verify-refactor either. Record
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh verify-refactor-skipped reason=switched-off`,
-   post `### 🔎 verify-refactor — SKIPPED (switched off)`, write `skipped` to
-   `.tdd/verdict-refactor.exit`, and take 6's PASS branch, `pin-recheck.sh` and the
-   pending-mark clear included. Otherwise:
+   landed, launch **no** verify-refactor either. Record the same event (same `VERI_STEP`) as
+   `verify-refactor-skipped reason=switched-off`, write `skipped` to
+   `.tdd/verdict-refactor.exit`, then post `### 🔎 verify-refactor — SKIPPED (switched off)` once,
+   by running `$S/comment.sh <n> verify-refactor` (6 posts it no second time), and take 6's PASS branch,
+   `pin-recheck.sh` and the pending-mark clear included. Otherwise:
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
