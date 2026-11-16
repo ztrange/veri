@@ -34,9 +34,10 @@ SET_NAMES = frozenset(("GIT_CONFIG_GLOBAL", "PYTHONDONTWRITEBYTECODE", "FORCE_PR
                        "BASH_DEFAULT_TIMEOUT_MS", "BASH_MAX_TIMEOUT_MS"))
 
 
-def leaf_passes(name):
-    """Whether the allow-list (or launch_spec's own names) lets `name` into a leaf's environment."""
-    return name in LEAF_ENV_NAMES or name in SET_NAMES or name.startswith(LEAF_ENV_PREFIXES)
+def leaf_passes(name, added=()):
+    """Whether the allow-list, the names `added` (VERI_LEAF_ENV's) or launch_spec's own names let `name` into a
+    leaf's environment."""
+    return name in LEAF_ENV_NAMES or name in SET_NAMES or name in added or name.startswith(LEAF_ENV_PREFIXES)
 
 
 def claude_mds(directory):
@@ -116,15 +117,15 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
                 own_dir=None):
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
-    `env` holds only the names of `environ` the allow-list passes (`leaf_passes`), stripped of the conductor's
-    session variables, with the leaf's private git
-    config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
+    `env` holds only the names of `environ` the allow-list or its `VERI_LEAF_ENV` passes (`leaf_passes`), stripped
+    of the conductor's session variables, with the leaf's private git config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
     `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose project memory files are not
     loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number;
     UnmergeableSettings for a caller's `--settings` that is not a JSON object (`callers_settings`)."""
-    env = {name: value for name, value in environ.items() if leaf_passes(name)}
+    added = environ.get("VERI_LEAF_ENV", tunables.default("VERI_LEAF_ENV")).split()
+    env = {name: value for name, value in environ.items() if leaf_passes(name, added)}
     strip_session_env(env)
     env["GIT_CONFIG_GLOBAL"] = git_path
     env["PYTHONDONTWRITEBYTECODE"] = "1"

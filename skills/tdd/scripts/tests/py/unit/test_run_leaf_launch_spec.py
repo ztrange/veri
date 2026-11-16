@@ -134,6 +134,11 @@ def test_3976_launch_spec_passes_only_allow_listed_names_and_drops_every_credent
         name: value for name, value in ALLOWED.items() if name != "PATH"}
 
 
+def test_3976_veri_leaf_env_adds_its_names_to_the_allow_list_and_no_other(run_leaf):
+    _, env = spec(run_leaf, {"VERI_LEAF_ENV": "JAVA_HOME", "JAVA_HOME": "/jdk", "GH_TOKEN": "g"})
+    assert (env.get("JAVA_HOME"), "GH_TOKEN" in env) == ("/jdk", False)
+
+
 def leaf_settings(argv):
     """Every --settings value of a leaf's argv, parsed."""
     return [json.loads(argv[at + 1]) for at, word in enumerate(argv) if word == "--settings"]
