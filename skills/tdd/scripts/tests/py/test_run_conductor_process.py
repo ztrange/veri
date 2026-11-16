@@ -783,7 +783,7 @@ def test_main_resolves_the_pin_ref_through_origin_head_else_origins_default_from
     }
 
 
-def fake_pin(monkeypatch, commit, accepted, carried=None, ancestor=True):
+def fake_pin(monkeypatch, commit, accepted, carried=None, ancestor=True, carried_timeout=None):
     """git faked as a process: no origin, `rev-parse HEAD` resolves to `commit`, `cat-file -e`
     accepts only `accepted`, and `for-each-ref` names a run branch so a kept record stays; `carried`
     is the skill commit origin's refs/veri/runs/4242 records, None for no such ref."""
@@ -797,6 +797,8 @@ def fake_pin(monkeypatch, commit, accepted, carried=None, ancestor=True):
             code = 0 if carried is not None else 128
         elif args[:2] == ["git", "show"] and args[2:] == ["refs/veri/runs/4242:.tdd/issue-4242-skill-commit"]:
             code, out = (0, carried + "\n") if carried is not None else (128, "")
+        elif args[:2] == ["git", "show"] and args[2:] == ["refs/veri/runs/4242:.tdd/issue-4242-timeout"]:
+            code, out = (0, carried_timeout) if carried_timeout is not None else (128, "")
         elif args[:1] == ["git"] and args[3:5] == ["merge-base", "--is-ancestor"]:
             code = 0 if ancestor else 1
         elif args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
@@ -938,6 +940,41 @@ def test_main_whose_carried_skill_pin_is_rejected_runs_update_veri_as_a_fresh_la
     capfdbinary.readouterr()
 
     assert [call[0].rsplit("/", 1)[-1] for call in calls if str(call[0]).endswith("update-veri.sh")] == ["update-veri.sh"]
+
+
+def test_main_on_a_first_launch_restores_the_carried_timeout_pin_into_the_runs_worktree(tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head = "1" * 40
+    fake_pin(monkeypatch, head, {head + "^{commit}"}, carried_timeout="3600\n")
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+
+    pin = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "issue-4242-timeout"
+    assert (pin.read_text() if pin.is_file() else None) == "3600\n"
+
+
+@pytest.mark.parametrize("carried_timeout", ["0\n", "ten\n", "\n"])
+def test_main_ignores_a_carried_timeout_pin_that_is_not_a_whole_number_of_seconds_naming_it_on_stderr(
+        tmp_path, monkeypatch, capfdbinary, carried_timeout):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head = "1" * 40
+    fake_pin(monkeypatch, head, {head + "^{commit}"}, carried_timeout=carried_timeout)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+    err = capfdbinary.readouterr().err.decode()
+
+    pin = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "issue-4242-timeout"
+    said = [line for line in err.splitlines() if "issue-4242-timeout" in line]
+    assert (pin.exists(), len(said)) == (False, 1)
 
 
 def test_main_on_a_fresh_launch_with_skip_verify_refactor_writes_the_list_refactor_to_the_skip_verify_file_beside_the_skill_commit_pin(

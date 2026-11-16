@@ -156,7 +156,8 @@ def seeded_log_set_aside(path):
     names = []
     if os.path.isdir(tdd) and os.listdir(path) == [".tdd"]:
         found = os.listdir(tdd)
-        if set(found) <= {"events.jsonl", "conductor.pid"}:
+        # A launch may seed the run directory with its journal, its pid and the timeout pin it restored from origin.
+        if all(name in ("events.jsonl", "conductor.pid") or re.fullmatch(r"issue-\d+-timeout", name) for name in found):
             names = found
             aside = tempfile.mkdtemp()
             for name in names:

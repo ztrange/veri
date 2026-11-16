@@ -47,9 +47,14 @@ def settled(root, issue):
         return None
     with open(path) as f:
         text = f.read().rstrip("\n")
-    if entry.whole_number(text, 1) is None:
+    if not valid_pin(text):
         raise Malformed(path, text)
     return text
+
+
+def valid_pin(text):
+    """Whether <text>, trailing newlines dropped, is a timeout pin settled() accepts: a whole number of seconds >= 1."""
+    return entry.whole_number(text.rstrip("\n"), 1) is not None
 
 
 def record(timeout):

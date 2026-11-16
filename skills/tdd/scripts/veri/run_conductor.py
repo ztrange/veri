@@ -34,6 +34,7 @@ import event
 import event_log
 import github
 import launch_floor
+import leaf_timeout
 import run_end
 import tunables
 from git import symref_default
@@ -111,7 +112,10 @@ def preflight_and_launch(argv):
             if word and word not in ("refactor", "pin", "green", "red", "diff"):
                 sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red and diff can)\n" % word)
                 return 2
-    carried = carried_pin(argv[0]) if mode == "first" and not os.path.lexists(record) else None
+    carried = None
+    if mode == "first" and not os.path.lexists(record):
+        restore_carried_timeout(argv[0])
+        carried = carried_pin(argv[0])
     if carried:
         mode, resuming = "resume", True
     if not resuming:
@@ -202,6 +206,25 @@ def update_veri(here):
         subprocess.run([os.path.join(here, "update-veri.sh")])
     except OSError:
         pass
+
+
+def restore_carried_timeout(issue):
+    """Write the run's timeout pin (in its worktree, where leaf_timeout.settled reads it) from the one origin's
+    refs/veri/runs/<issue> carries, when the run has none of its own; a carried value settled() would refuse is named in
+    one stderr line and ignored, so the run settles its timeout as a fresh one does."""
+    pin = leaf_timeout.pin_path(run_worktree(issue), issue)
+    if os.path.lexists(pin):
+        return
+    carried = run_records.read(issue, "issue-%s-timeout" % issue, event.toplevel() or ".")
+    if carried is None:
+        return
+    if not leaf_timeout.valid_pin(carried):
+        sys.stderr.write("run-conductor: the carried issue-%s-timeout holds '%s', not a whole number of seconds >= 1"
+                         " — ignored\n" % (issue, " ".join(carried.split())))
+        return
+    os.makedirs(os.path.dirname(pin), exist_ok=True)
+    with open(pin, "w") as out:
+        out.write(carried.rstrip("\n") + "\n")
 
 
 def carried_pin(issue):
