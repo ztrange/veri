@@ -1,6 +1,7 @@
 """report.sh's renderer, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -93,11 +94,18 @@ def _store_owed(prd, path):
         print("%s: the answer must be a JSON object holding count, a whole number of 0 or more, and sections, "
               "a list of strings; nothing stored" % path, file=sys.stderr)
         return 2
-    stored = _owed()
-    stored[prd] = {"updatedAt": heads[prd]["updatedAt"], "answer": answer,
-                   "computedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     owed = _owed_path()
     os.makedirs(os.path.dirname(owed), exist_ok=True)
+    # Read, modify and replace under one lock on a file beside it, never removed, so parallel stores all land.
+    with open(owed + ".lock", "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _replace_owed(owed, prd, heads[prd]["updatedAt"], answer)
+
+
+def _replace_owed(owed, prd, updated, answer):
+    stored = _owed()
+    stored[prd] = {"updatedAt": updated, "answer": answer,
+                   "computedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     fd, temp = tempfile.mkstemp(dir=os.path.dirname(owed), prefix="report-owed.json.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as f:

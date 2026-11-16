@@ -52,3 +52,34 @@ def test_report_with_gh_refusing_and_a_snapshot_present_exits_0_and_prints_the_r
     assert lines[0] == "snapshot age: 3 hours"
     assert "PRD 014 (#5) — PRD 014: reports" in lines
     assert "owed: none" in lines
+
+
+@pytest.mark.process("ten report.sh --store-owed shims run at once against one owed file in a scratch tree")
+def test_review_ten_parallel_store_owed_runs_each_exit_0_and_every_entry_is_in_the_owed_file(tmp_path):
+    import json
+
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    (work / ".git").mkdir()
+    prds = ["%03d" % n for n in range(100, 110)]
+    issues = [{"number": i + 1, "title": "PRD %s: x" % prd, "state": "OPEN", "labels": [], "closedAt": None,
+               "updatedAt": "2026-11-01T10:00:00Z", "body": "", "blockedBy": [], "links": [], "wallSeconds": 0,
+               "lane": None} for i, prd in enumerate(prds)]
+    (work / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": issues}))
+    (work / "answer.json").write_text(json.dumps({"count": 1, "sections": ["Alpha"]}))
+
+    stores = [subprocess.Popen([str(SCRIPTS / "report.sh"), "--store-owed", prd, "answer.json"], cwd=work,
+                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+              for prd in prds]
+    codes = []
+    for store in stores:
+        try:
+            store.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            store.kill()
+        store.communicate()
+        codes.append(store.returncode)
+
+    stored = json.loads((work / ".tdd" / "report-owed.json").read_text())
+    assert (codes, sorted(stored)) == ([0] * len(prds), prds)

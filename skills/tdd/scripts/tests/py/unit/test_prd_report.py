@@ -1,8 +1,10 @@
 """Cases for veri/prd_report.py."""
 import datetime
+import fcntl
 import importlib
 import json
 import re
+from types import SimpleNamespace
 
 
 def test_report_with_a_snapshot_states_the_snapshots_age_on_its_first_line(run_cli, tmp_path, monkeypatch):
@@ -789,7 +791,7 @@ def test_4021_store_owed_whose_rename_fails_leaves_the_owed_file_byte_identical_
 
     assert (code, (tmp_path / ".tdd" / "report-owed.json").read_text(),
             sorted(p.name for p in (tmp_path / ".tdd").iterdir()), "Traceback" in err) == (
-        2, before, ["report-cache.json", "report-owed.json"], False)
+        2, before, ["report-cache.json", "report-owed.json", "report-owed.json.lock"], False)
 
 
 def test_4021_store_owed_stale_and_report_use_the_main_working_trees_owed_file_from_a_linked_worktree_or_a_subdirectory(
@@ -871,3 +873,25 @@ def test_4021_store_owed_of_an_answer_of_the_wrong_shape_exits_2_naming_the_answ
                          (tmp_path / ".tdd" / "report-owed.json").read_text() == before)
 
     assert answers == {text: (2, True, False, True) for text in wrong}
+
+
+def test_review_store_owed_reads_the_owed_file_only_once_it_holds_the_lock_so_a_store_finished_before_it_is_kept(
+        run_cli, tmp_path, monkeypatch):
+    """The injected lock stands for another --store-owed that held it: it stores PRD 016's entry and releases."""
+    prd_report = importlib.import_module("veri.prd_report")
+    _owed_tree(tmp_path, "{}")
+    (tmp_path / "answer.json").write_text(json.dumps({"count": 1, "sections": ["Alpha"]}))
+    other = {"updatedAt": "2026-10-20T09:00:00Z", "answer": {"count": 7, "sections": ["x"]}}
+    locked = []
+
+    def flock(handle, operation):
+        if operation == fcntl.LOCK_EX:
+            locked.append(handle.name)
+            (tmp_path / ".tdd" / "report-owed.json").write_text(json.dumps({"016": other}))
+
+    monkeypatch.setattr(prd_report, "fcntl", SimpleNamespace(flock=flock, LOCK_EX=fcntl.LOCK_EX), raising=False)
+
+    code, _, _ = run_cli(prd_report, ["--store-owed", "014", "answer.json"], cwd=tmp_path)
+
+    stored = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
+    assert (code, sorted(stored), locked) == (0, ["014", "016"], [str(tmp_path / ".tdd" / "report-owed.json.lock")])
