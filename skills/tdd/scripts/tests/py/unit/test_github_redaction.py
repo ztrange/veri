@@ -99,6 +99,16 @@ def test_gh_comment_post_and_gh_comment_edit_hand_gh_the_body_redacted_issue_396
     assert [argv[-1] for argv in fake.argvs] == ["body=posted [redacted]", "body=edited [redacted]"]
 
 
+def test_gh_issue_create_hands_gh_the_title_and_the_body_redacted_issue_3968(github, fake_processes):
+    token = "ghp_" + FAKE * 3
+    fake = posted(fake_processes, (0, "https://github.com/o/r/issues/8\n", ""))
+
+    github.gh_issue_create("Refactor candidates: %s" % token, "found %s in output" % token, "refactor")
+
+    assert (fake.argvs[-1][4], fake.argvs[-1][6]) == ("title=Refactor candidates: [redacted]",
+                                                      "body=found [redacted] in output")
+
+
 def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_escape_issue_3960(github, monkeypatch):
     monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
     token = "ghp_" + FAKE * 3 + "Zz"
