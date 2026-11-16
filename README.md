@@ -225,4 +225,4 @@ step outcome — a blind verify-pin instead of a doomed red (#31).
 
 Rung 2 of the [scope ladder](./CONTEXT.md) is `/tdd <scope>` (#41): drain every
 *solvable* issue one after another. Next: rung 3, several conductors in parallel, each in
-its own worktree (#43 laid the ground). Demo materials live in [`fixtures/`](./fixtures).
+its own worktree (#43 laid the ground).
