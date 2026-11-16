@@ -1828,3 +1828,12 @@ def test_3919_plan_lists_only_test_files_git_tracks_not_an_untracked_one_nor_one
 
     assert (code, "test_route_answers" in section, re.findall(r"test_(?:untracked|ignored)_case", section)) == (
         0, True, [])
+
+
+def test_3919_plan_exits_2_with_one_stderr_line_naming_git_ls_files_and_no_prompt_when_git_ls_files_fails(
+        tmp_path, run_cli, build_verify_prompt, fake_processes):
+    fake_processes.answers({"git ls-files": (128, "", "fatal: not a git repository\n")})
+    code, out, err = plan_in_tree(tmp_path, run_cli, build_verify_prompt, ROUTE_TREE, ["route.py answers"])
+
+    assert (code, out, len(err.splitlines()), "build-verify-prompt:" in err, "git ls-files" in err,
+            "not a git repository" in err) == (2, "", 1, True, True, True)
