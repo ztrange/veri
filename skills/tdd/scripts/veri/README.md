@@ -179,7 +179,6 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_CI_RETRY_BACKOFF` | `1` | its readers' own words |
 | `VERI_COMMENT_CHUNK` | `25` | a whole number >= 1 |
 | `VERI_CONDUCTOR_CTX_BUDGET` | `120000` | a whole number of tokens |
-| `VERI_CONDUCTOR_STOP_TIMEOUT` | `10` | a positive number of seconds |
 | `VERI_DISPATCH_OVERLAP_POLL` | `60` | its readers' own words |
 | `VERI_DISPATCH_RETRY_SLEEP` | `5` | its readers' own words |
 | `VERI_DISPATCH_STALL` | `3600` | its readers' own words |
