@@ -191,6 +191,7 @@ def preflight_and_launch(argv):
                 return status if status <= 3 else 2
             pinned_scripts.write_snapshot_marker(snapshot, run_worktree(argv[0]))
             pinned_scripts.make_read_only(snapshot)
+            run_pins.write_snapshot_digest(event.toplevel(), argv[0], pinned_scripts.snapshot_digest(snapshot))
             keep_pinned_scripts(snapshot, argv[0])
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:

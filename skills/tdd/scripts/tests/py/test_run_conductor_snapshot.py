@@ -62,3 +62,12 @@ def test_main_makes_a_write_into_a_file_of_the_fresh_snapshot_fail_with_a_permis
             tried.append(type(error).__name__)
 
     assert (launched(tmp_path, monkeypatch, capfdbinary, write_into), tried) == ((0, []), ["PermissionError"])
+
+
+def test_main_writes_the_digest_of_the_extracted_snapshot_to_the_main_trees_issue_snapshot_digest_file_3964(
+        tmp_path, monkeypatch, capfdbinary):
+    seen = []
+
+    assert launched(tmp_path, monkeypatch, capfdbinary, lambda snapshot: seen.append(
+        pinned_scripts.snapshot_digest(snapshot))) == (0, [])
+    assert (tmp_path / ".tdd" / "issue-4242-snapshot-digest").read_text() == seen[0] != ""
