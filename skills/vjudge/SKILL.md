@@ -24,13 +24,21 @@ Run it on every question before it reaches the human.
 
 1. **Is it on the *Always surface* list below?** Then surface it to the human (P4, P21), and stop
    here.
-2. **Is there a recommendation whose evidence you can name?** If there is none, or you cannot say
+2. **Was the same question decided before?** Read the issue's comments, for a question about one
+   issue, and `.tdd/decisions.jsonl` in the main working tree, for a question about no issue. Two
+   questions are the same only when they concern the same issue (or both no issue) and ask for the
+   same choice: the same words about another issue, or another question about the same issue, are
+   not. Of several decisions of it, the newest counts, and one the owner made or overrode beats
+   any judge's decision. Follow it, stating it as step 4 does, unless a fact it rested on changed.
+   When one did, when in doubt whether it answers this question, or when a record cannot be read,
+   no earlier decision holds: go on to step 3.
+3. **Is there a recommendation whose evidence you can name?** If there is none, or you cannot say
    what it rests on, investigate once: one subagent on the cheapest adequate model, briefed to
    return at most 10 lines. Then decide on what it found.
-3. **Decide by the *Rules* below**, and act. State it in one line naming the rule applied and the
+4. **Decide by the *Rules* below**, and act. State it in one line naming the rule applied and the
    option not taken:
    `Decided: filed the defect as an issue (veri fixes veri through a filed issue); not a hand fix.`
-4. **Still not clear-cut after the one investigation?**
+5. **Still not clear-cut after the one investigation?**
    - A question about one issue: park that issue with `$S/park-issue.sh`, and take the next issue.
      Pass it `--question-file <path>`, a file holding the whole question under the headings
      `#### Question`, `#### Options` (each option stating its cost), `#### Found` (what the one
@@ -41,7 +49,7 @@ Run it on every question before it reaches the human.
 
 ## Recording
 
-Record every decision of step 3 where the owner audits it, the one line it states included:
+Record every decision of step 4 where the owner audits it, the one line it states included:
 
 - **A decision about one issue** is a comment on that issue naming the rule applied and the option
   not taken.
