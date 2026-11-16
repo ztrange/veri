@@ -384,6 +384,14 @@ def fake_processes(monkeypatch):
     return process_fakes.installer(monkeypatch)
 
 
+@pytest.fixture
+def fed_history(monkeypatch, tmp_path):
+    """Answers case_history's git queries from a table of named revisions:
+    `fed_history((name, subject, {path: text}), ..., root=tmp_path, branch="main")`; see fed_history.py."""
+    import fed_history as table
+    return table.feeder(monkeypatch, tmp_path)
+
+
 def _starts_event_sh(args):
     return isinstance(args, (list, tuple)) and any(os.path.basename(str(a)) == "event.sh" for a in args)
 
