@@ -44,7 +44,8 @@ cost-capped night) are better off trading it away, and there was no way to do th
 
 - Each phase lands separately (PRD 018.1–018.5, refactor first), because each is coupled to
   different machinery.
-- A run whose verify-green is skipped loses the `wrong-test-route.sh` reroutes, since they are
-  verify-green REJECT outcomes.
-- Mechanical checks that are not verifier leaves keep running: `pin-recheck.sh` and the full
-  suite. Whether `mutation-parity.sh` keeps running is decided in 018.2 (recommended: yes).
+- A run whose verify-green is skipped loses only the `wrong-test-route.sh` routes read from a
+  verify-green reason (`missing`, `later`); the routes read from the green leaf's own report, and
+  a `mutation-parity.sh` REJECT's `missing`, still fire.
+- Mechanical checks that are not verifier leaves keep running: `pin-recheck.sh`, the full
+  suite and `mutation-parity.sh` (decided in 018.2).
