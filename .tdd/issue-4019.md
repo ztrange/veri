@@ -6,4 +6,4 @@
 - [x] `JOURNAL.md` states every key's format and a case fails, naming the event and key, when it differs from the table's, the page read by `journal_schema.formats` ⟦criterion 4⟧
 - [x] a case fails, naming the event and key, for a `JOURNAL.md` row whose list ends with `…`; `bail`'s `cause` list is written out ⟦criterion 5⟧
 - [x] a case fails naming each cause in one of `bail`'s `cause` values and `classify_bail.CATEGORIES` and not the other, and its `classification` values are exactly `process` and `system` ⟦criterion 6⟧
-- [ ] `PUBLISHED.md` states that each key has a format stated in `JOURNAL.md`, that a list may gain values, and that a reader treats an unknown value as an unknown key ⟦criterion 7⟧
+- [x] `PUBLISHED.md` states that each key has a format stated in `JOURNAL.md`, that a list may gain values, and that a reader treats an unknown value as an unknown key ⟦criterion 7⟧
