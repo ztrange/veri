@@ -20,7 +20,7 @@ def _preflight_refused(number, labels, opt_in):
     if opt_in in labels or not any(name.startswith("taken:") for name in labels):
         return False
     try:
-        return any(github.trusted_comment(c) and "### ⛔ Preflight refused" in (c.get("body") or "")
+        return any(github.trusted_comment(c) and (c.get("body") or "").startswith("### ⛔ Preflight refused")
                    for c in github.issue_comments(number))
     except github.NoAnswer:
         return False

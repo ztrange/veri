@@ -296,3 +296,15 @@ def test_an_issue_whose_only_preflight_refused_comment_is_untrusted_is_nothing_t
 
     assert (code, err, writes(calls)) == (
         3, "release-issue.sh: #3971 is neither parked, bailed nor preflight-refused; nothing to release\n", [])
+
+
+def test_a_trusted_comment_holding_the_preflight_refused_heading_other_than_at_its_start_is_nothing_to_release_3971(
+        release, run_cli, monkeypatch):
+    release_issue, calls, labels = release
+    labels[:] = ["bug", "taken:main"]
+    quoted = "Why did the run stop? It said:\n\n" + REFUSAL
+    serve_comments(monkeypatch, release_issue, labels, [authored("OWNER", quoted, login="veri-operator")])
+
+    code, out, err = run_cli(release_issue, ["3971"])
+
+    assert (code, writes(calls)) == (3, [])
