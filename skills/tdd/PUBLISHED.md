@@ -6,7 +6,7 @@ files; everything else it writes is private (see the end of this page).
 | File | Path | Written by | When |
 |---|---|---|---|
 | The journal | `$VERI_HOME/runs/<owner>-<repo>/<issue>.jsonl` | `event.sh` (`veri/event.py`) | As an event is written whose line carries an issue: one line per such event (see which events never do, below) |
-| `report-owed.json` (**optional**) | `.tdd/report-owed.json` in the working tree `/vreport` runs in | `report.sh --store-owed` (`veri/prd_report.py`) | When `/vreport` stores a PRD's owed answer |
+| `report-owed.json` (**optional**) | `.tdd/report-owed.json` in the main working tree, whichever directory `/vreport` runs in | `report.sh --store-owed` (`veri/prd_report.py`) | When `/vreport` stores a PRD's owed answer |
 
 ## The journal
 
@@ -52,11 +52,29 @@ only ever in the worktree's event log, never in the journal:
 
 ## `report-owed.json` (optional)
 
-Its path is `.tdd/report-owed.json`, relative to the working tree `/vreport` runs in. It is one JSON
-object keyed by PRD number; each entry holds `updatedAt`, the PRD's `updatedAt` when its answer was
-computed, and `answer`, the owed work found for that PRD. It is written only when someone runs
-`/vreport` and a PRD's stored answer is missing or older than the PRD, so a reader must expect it
-to be absent, or old.
+Its path is `.tdd/report-owed.json` in the main working tree, whichever directory or linked worktree
+`/vreport` runs in. Only `report.sh --store-owed`, run by `/vreport`, writes it, and it replaces the
+whole file at once (a temporary file renamed over it), so a reader never sees half of it.
+
+It is one JSON object keyed by PRD number; each entry holds `updatedAt`, the PRD issue's `updatedAt`
+when its answer was computed, `answer`, the owed work found for that PRD (`count`, a whole number of
+0 or more, and `sections`, a list of strings), and `computedAt`, the UTC time the answer was computed
+and stored. An entry written before `computedAt` existed lacks it.
+
+```json
+{
+  "014": {
+    "updatedAt": "2026-11-02T10:00:00Z",
+    "answer": {"count": 2, "sections": ["Alpha section", "Beta section"]},
+    "computedAt": "2026-11-07T10:00:00Z"
+  }
+}
+```
+
+It is written only when someone runs `/vreport`, so a reader must expect it to be absent or old. A
+missing file means no answer is stored yet. An entry is current only while its `updatedAt` equals the
+PRD issue's `updatedAt` on GitHub; otherwise it is stale: the PRD changed after its answer was
+computed.
 
 ## Rules
 
