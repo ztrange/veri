@@ -104,7 +104,7 @@ def _normalized(text):
     return text.replace("\\\\/", "/").replace("\\/", "/").replace("\\\\", "/").casefold()
 
 
-BONJOUR = ("Mariox-Studio", "Studio de Mariox")
+BONJOUR = ("Plum-Studio", "Studio de Pl\u00fcm")  # names that do not hold the account name, so <user> cannot mask them
 
 
 def _an_account(tmp_path, monkeypatch, host=HOST):
@@ -169,6 +169,44 @@ def test_another_users_path_and_paths_that_only_contain_tmp_are_left_alone(tmp_p
 
     assert carried["paths"][1:3] == ["/tmpfoo/y", "/usr/tmp/z"] and carried["paths"][0].endswith("mariox2/x") \
         and not carried["paths"][0].startswith("~")
+
+
+def test_keys_that_redact_to_the_same_text_are_all_kept_suffixed_so_no_value_is_lost(tmp_path, monkeypatch, run_records):
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    line = {"issue": "7", "event": "note", "~": 1, str(home): 2, "/System/Volumes/Data" + str(home): 3}
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+
+    carried = json.loads(run_records.records(str(run), "7")["events.jsonl"])
+
+    assert sorted((k, v) for k, v in carried.items() if k not in ("issue", "event")) == [("~", 1), ("~-2", 2), ("~-3", 3)]
+
+
+def test_a_value_encoded_seven_times_is_decoded_until_it_stops_changing_and_one_past_fifty_passes_is_replaced_whole(
+        tmp_path, monkeypatch, run_records):
+    import urllib.parse
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    seven = "/mariox"
+    for _ in range(7):
+        seven = urllib.parse.quote(seven, safe="")
+    endless = "%" + "25" * 60 + "x"
+    line = {"issue": "7", "event": "note", "seven": "at " + seven, "endless": endless, "plain": "plain"}
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+
+    carried = json.loads(run_records.records(str(run), "7")["events.jsonl"])
+
+    assert (carried["seven"], carried["endless"], carried["plain"]) == ("<redacted>", "<redacted>", "plain")
+
+
+@pytest.mark.parametrize("spelled", ["Studio+de+Pl%C3%BCm", "Studio de Plüm", "Studio de Pl​üm"])
+def test_a_computer_name_form_encoded_decomposed_or_split_by_a_zero_width_character_is_replaced_whole(
+        tmp_path, monkeypatch, run_records, spelled):
+    home, run, temp = _an_account(tmp_path, monkeypatch)
+    line = {"issue": "7", "event": "note", "where": "on " + spelled + " today", "plain": "plain"}
+    (run / ".tdd" / "events.jsonl").write_text(json.dumps(line) + "\n")
+
+    carried = json.loads(run_records.records(str(run), "7")["events.jsonl"])
+
+    assert (carried["where"], carried["plain"]) == ("<redacted>", "plain")
 
 
 def test_a_value_only_the_fail_closed_layer_catches_is_replaced_whole_while_its_siblings_survive(tmp_path, monkeypatch,
