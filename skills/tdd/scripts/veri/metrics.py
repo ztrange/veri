@@ -11,7 +11,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
-             adjudications, switched_off, switched_off_pin, total
+             adjudications, switched_off, switched_off_pin, total, green_rejects (+ green_reject_routes)
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -20,6 +20,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   raw        marks (the event log)
 A number that cannot be known is None; layout prints it as "unknown" or "?"."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import collections
 import contextlib
 import dataclasses
 import datetime
@@ -615,9 +616,7 @@ def fold(issue, path, ledger):
             operator_sessions.append((label,) + found)
     green_rejects = [(step, attempt, "none" if route is None else route, reason)
                      for step, attempt, route, reason in tally.green_rejects]
-    routes = {}
-    for _step, _attempt, route, _reason in green_rejects:
-        routes[route] = routes.get(route, 0) + 1
+    routes = collections.Counter(route for _step, _attempt, route, _reason in green_rejects)
     structural = tally.structural
     structural_marked =structural is not None and "stopped" in structural
     if structural is None and ending is not None and ending.get("event") == "done":
