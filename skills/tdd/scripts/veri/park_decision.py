@@ -43,7 +43,8 @@ def main(argv):
     if not parks:
         sys.stderr.write("park-decision.sh: issue #%s has no parked comment\n" % number)
         return 3
-    after = [words for words in (own_words(c["body"]) for c in comments[parks[-1] + 1:]) if words.strip()]
+    answers = [c["body"] for c in comments[parks[-1] + 1:] if not c["body"].startswith(github.VERI_COMMENT_PREFIXES)]
+    after = [words for words in (own_words(body) for body in answers) if words.strip()]
     if not after:
         sys.stderr.write("park-decision.sh: issue #%s has no trusted comment after its newest parked comment\n" % number)
         return 3

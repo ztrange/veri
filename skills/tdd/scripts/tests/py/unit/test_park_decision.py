@@ -98,3 +98,32 @@ def test_issue_4077_text_in_a_quote_or_a_code_fence_is_not_a_decision_and_a_comm
               {**OWNER, "body": "> #### Recommendation\n> Take design A.\n\nTake design B.\n~~~sh\nrm -rf x\n~~~\n"}])
 
     assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
+
+
+VERIS_OWN = [
+    "### ▶️ Resuming\n\n- [ ] step 3\n",
+    "### ⛔ Bailed — green (process failure)\n\nCause: x\n",
+    "### ✅ Done — https://github.com/o/r/pull/9\n\n### 📊 Metrics\n",
+    "### ✅ Step done\n\n- [x] step 2\n",
+    "### 📍 Run state\n\nBranch: tdd/42-x\n",
+    "### ⏹️ Stopped — at-leaf\n\nat=red\n",
+    "### ⛔ Preflight refused — baseline\n",
+    "### 🔎 verify-green — PASS\n\nok\n",
+    "needs-user: the conductor stopped without a verdict.\n\n> last words\n",
+]
+
+
+@pytest.mark.parametrize("body", VERIS_OWN)
+def test_issue_4077_a_comment_veri_itself_posts_after_the_park_is_not_a_decision_even_from_the_trusted_gh_user(
+        decision, run_cli, body):
+    park_decision, comments = decision
+    comments([PARK, {"author_association": "NONE", "user": {"login": "veri-bot"}, "body": body}])
+
+    assert run_cli(park_decision, ["42"])[:2] == (3, "")
+
+
+def test_issue_4077_an_owner_answer_followed_by_a_resuming_comment_prints_only_the_answer(decision, run_cli):
+    park_decision, comments = decision
+    comments([PARK, {**OWNER, "body": "Take design B."}, {**OWNER, "body": VERIS_OWN[0]}])
+
+    assert run_cli(park_decision, ["42"]) == (0, "Take design B.\n", "")
