@@ -42,7 +42,7 @@ cost-capped night) are better off trading it away, and there was no way to do th
 
 ## Consequences
 
-- Each phase lands separately (PRD 018.1–018.4, refactor first), because each is coupled to
+- Each phase lands separately (PRD 018.1–018.5, refactor first), because each is coupled to
   different machinery.
 - A run whose verify-green is skipped loses the `wrong-test-route.sh` reroutes, since they are
   verify-green REJECT outcomes.
