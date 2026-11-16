@@ -9,6 +9,7 @@ import github
 import stack_branch
 
 USAGE = "usage: stack-green.sh"
+ENDS_READ = 20  # the newest issue ends whose check runs are read, one read each; an older one is never cut at
 _TRAILING = re.compile(r"((?:\s*\(#\d+\))+)\s*$")
 
 
@@ -50,10 +51,18 @@ def main(argv):
         return entry.refuse(usage=USAGE)
     stack, default, commits = stack_branch.ahead(".")
     ends = issue_ends([subject for _, subject in commits])
-    for (sha, _), end in reversed(list(zip(commits, ends))):
-        if end and tested(github.check_runs(sha)):
+    candidates = [sha for (sha, _), end in reversed(list(zip(commits, ends))) if end]
+    for sha in candidates[:ENDS_READ]:
+        if tested(github.check_runs(sha)):
             sys.stdout.write(sha + "\n")
             return 0
+    if len(candidates) > ENDS_READ:
+        said = "none of the newest %d of %d issue ends on origin/%s is tested; the %d older ones were not read" % (
+            ENDS_READ, len(candidates), stack, len(candidates) - ENDS_READ)
+    else:
+        said = "no issue end among the %d commits of origin/%s..origin/%s is tested (%d read)" % (
+            len(commits), default, stack, len(candidates))
+    print("stack-green: " + said, file=sys.stderr)
     return 3
 
 
