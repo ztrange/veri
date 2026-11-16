@@ -636,8 +636,9 @@ def revise_green_outcomes(marks, models):
 
 def launched_efforts(marks):
     """The efforts the run's verifier leaves were launched at, as their `launch` events record them: sorted, joined by
-    commas, empty when none carries one."""
-    return ",".join(sorted({mark["effort"] for mark in marks if mark.get("event") == "launch" and mark.get("effort")}))
+    commas, empty when none carries one; an effort that is not a string is skipped."""
+    return ",".join(sorted({mark["effort"] for mark in marks if mark.get("event") == "launch"
+                            and isinstance(mark.get("effort"), str) and mark["effort"]}))
 
 
 def fold(issue, path, ledger):
