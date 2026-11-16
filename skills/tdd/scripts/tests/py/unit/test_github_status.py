@@ -25,9 +25,17 @@ class Page:
         self.module = importlib.import_module("veri.github_status")
         self.calls = []
         self.answers = []
+        self.at = NOW
+        self.read_at = []
+        self.sleeps = []
         monkeypatch.setattr(self.module, "fetch", self.fetch)
-        monkeypatch.setattr(self.module, "now", lambda: NOW)
+        monkeypatch.setattr(self.module, "now", lambda: self.at)
         monkeypatch.setattr(self.module, "local_zone", lambda: CST)
+        monkeypatch.setattr(self.module, "sleep", self.sleep, raising=False)
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.at += datetime.timedelta(seconds=seconds)
 
     def serve(self, *incidents, body=None, status=200, error=None):
         if body is None:
@@ -37,6 +45,7 @@ class Page:
 
     def fetch(self, url, timeout):
         self.calls.append((url, timeout))
+        self.read_at.append(self.at)
         status, body, error = self.answers[min(len(self.calls), len(self.answers)) - 1]
         if error is not None:
             raise error
@@ -174,3 +183,14 @@ def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monk
     module = importlib.import_module("veri.github_status")
 
     assert module.fetch("https://status.example/feed", 3) == (503, b"")
+
+
+def test_wait_whose_reads_find_a_counting_incident_then_none_exits_0_after_the_read_that_found_none_sleeping_the_poll_between(
+        page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests")).serve()
+
+    code, out, _ = run_cli(page.module, ["wait", "600"], env={"VERI_GITHUB_STATUS_POLL": "60"})
+
+    assert (code, out) == (0, "up\n")
+    assert len(page.calls) == 2
+    assert page.sleeps == [60]

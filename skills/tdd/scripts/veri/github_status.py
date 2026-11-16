@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import datetime
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -27,6 +28,9 @@ def fetch(url, timeout):
             return response.status, response.read()
     except urllib.error.HTTPError as error:
         return error.code, b""
+
+
+sleep = time.sleep
 
 
 def now():
@@ -92,8 +96,12 @@ def positive(name):
 
 
 def main(argv):
+    waiting = argv[:1] == ["wait"]
+    if waiting:
+        argv = argv[2:]
     components = tuple(argv) or DEFAULT_COMPONENTS
-    knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT")}
+    knobs = {name: positive(name) for name in ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT",
+                                               "VERI_GITHUB_STATUS_POLL")}
     for name, value in knobs.items():
         if value is None:
             return entry.refuse("github-status.sh: %s=%r is not a positive integer" % (name, tunables.get(name)))
@@ -102,10 +110,14 @@ def main(argv):
             return entry.refuse("github-status.sh: %r is not a GitHub component; the components are: %s"
                                 % (name, ", ".join(COMPONENTS)), usage=USAGE)
     threshold = datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"])
-    try:
-        code, lines = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
-    except NoAnswer as cause:
-        return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
+    while True:
+        try:
+            code, lines = read(components, threshold, knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+        except NoAnswer as cause:
+            return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
+        if not waiting or code == 0:
+            break
+        sleep(knobs["VERI_GITHUB_STATUS_POLL"])
     for line in lines:
         print(line)
     return code
