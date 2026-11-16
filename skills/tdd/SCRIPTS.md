@@ -78,6 +78,16 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   `BASH_DEFAULT_TIMEOUT_MS` and `BASH_MAX_TIMEOUT_MS` to the leaf's effective timeout, the one
   `supervise.sh` enforces (`VERI_TIMEOUT`, else the run's `.tdd/issue-<n>-timeout`, else 900 s),
   unless the caller already set them.
+  Besides the names it sets itself, the leaf's environment holds only allow-listed names
+  (`LEAF_ENV_NAMES` in `run_leaf.py`): `PATH`, `HOME`, `TMPDIR`, `PWD`, `USER`, `LOGNAME`, `LANG`,
+  every `LC_*`, every `VERI_*`, `CLAUDE_BIN`, `REVISE_BUDGET`, `VERIFY_LEAF_ARGS`,
+  `PYTHONCOERCECLOCALE`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_BASE_URL`,
+  `CLAUDE_CONFIG_DIR`, `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS` and
+  `PYTEST_LEG_LOCK_WAIT_MARKER` (which `supervise.sh` sets for the leaf); any other name, `GH_TOKEN`
+  and cloud keys included, is dropped. Tunable: `VERI_LEAF_ENV` (default empty) — space-separated
+  names added to the allow-list, for a test command that needs one. A name it adds that
+  `VERI_REDACT_VARS` also names passes, and `run-leaf.sh` prints one stderr line naming it, never
+  its value.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase|replaces-report|red-contradicted|red-repair|red-missing|red-supersede|expand|beside|cover-new|dual-stub|migrate|contract-a|contract-b> …` — assemble a **developer** leaf's prompt from a
