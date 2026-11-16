@@ -143,20 +143,20 @@ def test_2372_queued_merge_whose_take_fails_stops_with_takes_code_and_touches_no
     assert (code, [c.split()[1] for c in calls]) == (take, ["take"])
 
 
-@pytest.mark.parametrize("merged, gh_code", [
-    (json.dumps({"merged": None}), 0),
-    (json.dumps({"state": "closed"}), 0),
-    (json.dumps({"merged": "true"}), 0),
-    ("not json", 0),
-    ("", 1),
+@pytest.mark.parametrize("merged, gh_code, expected", [
+    (json.dumps({"merged": None}), 0, 1),
+    (json.dumps({"state": "closed"}), 0, 1),
+    (json.dumps({"merged": "true"}), 0, 1),
+    ("not json", 0, 2),
+    ("", 1, 1),
 ])
-def test_2372_queued_merge_proceeds_to_tag_and_cleanup_only_on_an_observed_merged_true(fake_processes, run_cli, merged, gh_code):
+def test_2372_queued_merge_proceeds_to_tag_and_cleanup_only_on_an_observed_merged_true(fake_processes, run_cli, merged, gh_code, expected):
     calls = scenario(fake_processes, merged=merged, gh_code=gh_code)
 
     code, _, err = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "2", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
     released = [c for c in calls if c.startswith("merge-lock.sh release")]
-    assert (code, PR in err, cleaned(calls), len(released)) == (1, True, [], 1)
+    assert (code, PR in err, cleaned(calls), len(released)) == (expected, True, [], 1)
 
 
 @pytest.mark.parametrize("failing, named", [
@@ -587,6 +587,15 @@ def test_3979_queued_merge_whose_merge_call_exits_0_and_whose_first_read_gets_no
     code, _, _ = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_SLEEP": "0"})
 
     assert (code, len(cleaned(calls))) == (0, 3)
+
+
+def test_3979_queued_merge_whose_merge_call_exits_0_and_whose_window_gets_no_answer_exits_2_saying_so_releases_the_lock_once_and_cleans_nothing(fake_processes, run_cli):
+    calls = settling(fake_processes, 0, ["fail"])
+
+    code, _, err = run_cli(queued_merge, ARGV, env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
+
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, "merge call succeeded" in err and "could not be read" in err, len(released), cleaned(calls)) == (2, True, 1, [])
 
 
 def test_3500_queued_merge_with_no_settle_tunables_set_rereads_an_open_pr_ten_times_each_after_a_three_second_wait(fake_processes, run_cli, monkeypatch):
