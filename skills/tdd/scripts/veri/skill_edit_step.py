@@ -12,6 +12,7 @@ import tunables
 import requirements
 
 import leaf
+from paths import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
@@ -207,11 +208,16 @@ _pins = [()]
 _change = [None]
 
 
+def _untrusted_text():
+    with open(os.path.join(SCRIPTS, "prompts", "_leaf-safety.md")) as f:
+        return f.read().split("\n\n")[2].strip()
+
+
 def _author(unit, path, reasons):
     rows = "".join("%s: %s\n" % tuple(r.split("\t", 1)) for r in requirements.claims(path, unit).splitlines())
-    text = ("You edit the prose of %s so that it satisfies every requirement below.\n\nUnit: %s\n\n%s\n\n"
+    text = ("You edit the prose of %s so that it satisfies every requirement below.\n\n%s\n\nUnit: %s\n\n%s\n\n"
             "Requirements:\n%s\nGrader FAIL reasons:\n%s\n"
-            % (unit, unit, grade_prose.unit_text(unit), rows, reasons))
+            % (unit, _untrusted_text(), unit, grade_prose.unit_text(unit), rows, reasons))
     if _change[0]:
         text += "\nChange to make: %s\n" % _change[0]
     if _pins[0]:
