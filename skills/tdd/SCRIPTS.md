@@ -569,7 +569,11 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   later), a no-loss check complete by construction since it compares content, not commits; a differing tree is exit
   **2** naming up to 5 differing paths, and a merge-tree that fails or reports a conflict is exit **2** naming that
   command. Such a refusal puts the local branch back to the pre-rebase tip (`git reset --hard`; a reset that fails is
-  named with the command to run), so the worktree agrees with origin's untouched run branch. It makes no `wait-ci.sh` call and no merge call, cuts no tag and closes no issue: the issue
+  named with the command to run), so the worktree agrees with origin's untouched run branch. The tip that passed the check is saved
+  then, and it alone is pushed, to the run branch and to the stack: when the fast tier or `prose-owed.sh` moved HEAD
+  or left the worktree dirty (`git status --porcelain` not empty), the join exits **2** naming both shas, nothing
+  pushed to the stack. A merge-commit refusal tells the operator to rebase the run's branch onto `origin/<stack>`, push
+  it and join again. It makes no `wait-ci.sh` call and no merge call, cuts no tag and closes no issue: the issue
   closes, and its tag is cut, when the slice holding it lands on the default branch. A ledger line left unticked is
   refused before anything is pushed, except a `⟦full-suite⟧` line, which a stacked run never ticks (CI on the stack's tip
   is that run). Every git network call is bounded by `VERI_GIT_NETWORK_TIMEOUT`. After the push to the stack the pull
