@@ -442,10 +442,12 @@ def main(argv):
     if refusal:
         print(refusal, file=sys.stderr)
         return 2
-    limit = tunables.get("VERI_GIT_NETWORK_TIMEOUT", unless_empty=True)
-    if entry.whole_number(limit, 1) is None:
-        print("VERI_GIT_NETWORK_TIMEOUT is '%s': expected a whole number of seconds of at least 1" % limit, file=sys.stderr)
-        return 2
+    # Read as github.wait_seconds reads them when the call is bounded: set but empty is refused, not the default.
+    for name in (NETWORK, "VERI_GH_TIMEOUT"):
+        limit = tunables.get(name)
+        if entry.whole_number(limit, 1) is None:
+            print("%s is '%s': expected a whole number of seconds of at least 1" % (name, limit), file=sys.stderr)
+            return 2
     repo = _repo(pr)
     pid = str(os.getpid())
     code = _script("merge-lock.sh", "take", "--pid", pid)
