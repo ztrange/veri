@@ -197,6 +197,7 @@ TUNABLES = {
 # it for its own child processes) or `test stand-in` (a test sets it in place of the machine's answer).
 NOT_KNOBS = {
     "VERI_AWAKE_CLOCK": "test stand-in",
+    "VERI_WALL_CLOCK": "test stand-in",
     "VERI_BASH_MAJOR": "test stand-in",
     "VERI_CI_ON_PR": "test stand-in",
     "VERI_GH_JSON": "test stand-in",
