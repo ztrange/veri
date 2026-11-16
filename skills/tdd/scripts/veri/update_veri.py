@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+import git as shared_git
 import paths
 import tunables
 
@@ -39,7 +40,7 @@ def main(argv):
         if answer != "yes":
             return refuse("self-update record holds neither yes nor no", 2)
     branch = git("symbolic-ref", "HEAD").stdout.strip().removeprefix("refs/heads/")
-    default = git("symbolic-ref", "refs/remotes/origin/HEAD").stdout.strip().removeprefix("refs/remotes/origin/")
+    default = shared_git.default_branch(cwd=paths.resolved_scripts_of(__file__), remote=False) or ""
     if branch != default:
         return refuse(f"clone is on {branch}, not its upstream default branch {default}")
     if git("status", "--porcelain").stdout.strip():
