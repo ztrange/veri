@@ -17,8 +17,8 @@ USAGE = "usage: ready-check.sh [repo-root]"
 
 
 def default_tip():
-    head = git.git("symbolic-ref", "refs/remotes/origin/HEAD", capture_output=True, text=True)
-    return head.stdout.strip() if head.returncode == 0 else "main"
+    name = git.default_branch(remote=False)
+    return "refs/remotes/origin/" + name if name else "main"
 
 
 def triggers_on(event):
