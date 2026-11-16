@@ -20,7 +20,9 @@ needed, and name none from memory.
 
 - No argument — **the sweep** (below): every open issue that does not carry the opt-in label
   (bare or scoped), except PRD trackers (titled `PRD <nnn>: …`). Every other label, the bug
-  label included, leaves an issue in scope.
+  label included, leaves an issue in scope, save one: the sweep leaves out every issue carrying a
+  `taken:` label (any lane), which a run holds in place of the opt-in label, and reports none of
+  them.
 - `<issue>...` — groom exactly those issues.
 - `--refactor-owed` — consolidate the refactor-owed items (see below).
 
