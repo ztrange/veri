@@ -77,13 +77,20 @@ def modern_python_dir():
     return ""
 
 
-def grader_model():
+def grader_conf():
+    """grader.conf's `key=value` lines as {key: value}, the first of a repeated key kept; comments skipped."""
+    settings = {}
     with open(os.path.join(SCRIPTS, "..", "grader.conf"), encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#"):
-                return line.split("=", 1)[-1].strip().strip("'\"")
-    return ""
+                key, _, value = line.partition("=")
+                settings.setdefault(key.strip(), value.strip().strip("'\""))
+    return settings
+
+
+def grader_model():
+    return grader_conf().get("model", "")
 
 
 def read(file):
