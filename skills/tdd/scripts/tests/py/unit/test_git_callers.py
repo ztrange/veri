@@ -37,7 +37,6 @@ MODULES_RUNNING_GIT_DIRECTLY = {
     "refactor_touched": "git rev-parse, diff --name-only and ls-files, through subprocess",
     "report_cache": "git -C <root>, through subprocess",
     "requirements": "git ls-files -z, through subprocess",
-    "resume_clean": "its own git helper and GitFailed; git show and git apply (PRD 025.15)",
     "run_conductor": "its own git helper; keeps its own read of the default branch (PRD 025.14)",
     "run_dir": "git worktree list, through subprocess",
     "skill_edit_guard": "git calls on built argument lists, through subprocess",

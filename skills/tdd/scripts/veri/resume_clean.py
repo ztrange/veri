@@ -8,21 +8,9 @@ from pathlib import Path
 
 from ledger import OPEN_STEP, PENDING_MARK, TICKED_STEP
 import entry
+import git
 
 PATHSPEC = ["--", ".", ":!.tdd"]
-
-
-class GitFailed(Exception):
-    def __init__(self, message, reported=False):
-        super().__init__(message)
-        self.reported = reported
-
-
-def git(*args, text=True):
-    done = subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=text)
-    if done.returncode:
-        raise GitFailed("git " + " ".join(args))
-    return done.stdout
 
 
 TICK = TICKED_STEP + " "
@@ -34,8 +22,7 @@ def step_text(line):
 
 
 def unseen_ticks(ledger):
-    shown = subprocess.run(["git", "show", f"HEAD:{ledger.as_posix()}"], stdout=subprocess.PIPE,
-                           stderr=subprocess.DEVNULL, text=True)
+    shown = git.git("show", f"HEAD:{ledger.as_posix()}", stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     held = {}
     for line in shown.stdout.splitlines(True):
         if line.startswith((TICK, OPEN_STEP + " ")):
@@ -62,7 +49,7 @@ def untick_ledgers():
 
 
 def save(appends):
-    kept = Path(git("rev-parse", "--git-path", "kept-tdd-appends.diff").strip())
+    kept = Path(git.out("rev-parse", "--git-path", "kept-tdd-appends.diff").strip())
     n = 0
     while kept.exists():
         n += 1
@@ -89,27 +76,35 @@ def main(argv):
         return refused
     try:
         return clean()
-    except GitFailed as failed:
-        sys.stderr.write(f"resume-clean: {failed}{'' if failed.reported else ' failed'}\n")
+    except git.GitFailed as failed:
+        sys.stderr.write(f"resume-clean: {named(failed)} failed\n")
         return 2
 
 
+def named(failed):
+    return "git " + " ".join(failed.args_)
+
+
 def clean():
-    appends = git("diff", "--binary", "HEAD", "--", ".tdd", text=False)
-    stray = git("status", "--porcelain", "-uall", *PATHSPEC)
+    diff = ("diff", "--binary", "HEAD", "--", ".tdd")
+    done = git.git(*diff, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if done.returncode:
+        raise git.GitFailed(diff, done.returncode, "")
+    appends = done.stdout
+    stray = git.out("status", "--porcelain", "-uall", *PATHSPEC)
+    stray += "\n" if stray else ""
     try:
-        git("reset", "--hard", "HEAD")
-        git("clean", "-fd", "-e", ".tdd")
-    except GitFailed as failed:
-        if appends:
-            kept = save(appends)
-            paths = " ".join(line[3:] for line in stray.splitlines())
-            raise GitFailed(f"{failed} failed; appends saved in {kept.resolve()}; stray: {paths}",
-                            reported=True)
-        raise
+        git.out("reset", "--hard", "HEAD")
+        git.out("clean", "-fd", "-e", ".tdd")
+    except git.GitFailed as failed:
+        if not appends:
+            raise
+        kept = save(appends)
+        paths = " ".join(line[3:] for line in stray.splitlines())
+        sys.stderr.write(f"resume-clean: {named(failed)} failed; appends saved in {kept.resolve()}; stray: {paths}\n")
+        return 2
     if appends:
-        applied = subprocess.run(["git", "apply", "--unidiff-zero", "-"], input=appends,
-                                 stderr=subprocess.DEVNULL)
+        applied = git.git("apply", "--unidiff-zero", "-", input=appends, stderr=subprocess.DEVNULL)
         if applied.returncode:
             return keep(appends)
     untick_ledgers()
