@@ -315,6 +315,24 @@ def test_main_adds_the_first_assistant_records_cache_creation_cache_read_and_inp
         "first_turn_input_tokens": "3"}])
 
 
+def test_main_skips_an_assistant_record_whose_message_is_not_an_object_and_reads_the_first_turn_from_a_later_one_lc2(
+        tmp_path, monkeypatch, harvest_usage, events):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(
+        json.dumps({"type": "assistant", "message": "text"}) + "\n"
+        + json.dumps({"type": "assistant", "message": ["a", "b"]}) + "\n"
+        + _turn({"input_tokens": 1, "cache_creation_input_tokens": 2, "cache_read_input_tokens": 3})
+        + _result_record())
+    monkeypatch.chdir(tmp_path)
+
+    events.refuse_event_sh()
+    code = harvest_usage.main(["verify-green"])
+
+    assert (code, [{key: r.get(key) for key in FIRST_TURN} for r in events.records()]) == (0, [{
+        "first_turn_cache_creation_input_tokens": "2", "first_turn_cache_read_input_tokens": "3",
+        "first_turn_input_tokens": "1"}])
+
+
 def test_main_on_a_log_whose_assistant_records_carry_no_usage_appends_todays_usage_event_without_first_turn_fields_lc2(
         tmp_path, monkeypatch, harvest_usage, events):
     (tmp_path / ".tdd").mkdir()
