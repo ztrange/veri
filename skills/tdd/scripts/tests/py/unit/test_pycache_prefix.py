@@ -65,6 +65,15 @@ def test_3965_a_veri_pycache_path_that_is_a_symlink_even_to_a_closed_directory_o
     assert run_prefix() is None
 
 
+def test_3965_a_symlink_named_with_a_trailing_slash_is_still_refused_as_a_symlink(run_prefix, monkeypatch, tmp_path, capfd):
+    link = tmp_path / "link"
+    link.symlink_to(cache_with_mode(tmp_path, 0o700))
+    monkeypatch.setenv("VERI_PYCACHE", str(link) + "//")
+
+    assert (run_prefix(), capfd.readouterr().err) == (
+        None, "veri: not using the bytecode cache %s: it is a symlink; compiling veri's modules from source\n" % link)
+
+
 def test_3965_a_closed_veri_pycache_directory_owned_by_another_user_is_refused(run_prefix, monkeypatch, tmp_path):
     cache = cache_with_mode(tmp_path, 0o700)
     monkeypatch.setenv("VERI_PYCACHE", str(cache))

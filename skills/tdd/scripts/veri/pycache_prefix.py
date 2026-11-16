@@ -69,6 +69,7 @@ else:
         sys.pycache_prefix = None
         default = os.path.join(os.environ.get("TMPDIR") or "/tmp", "veri-pycache-%d" % os.getuid())
         prefix = tunables.get("VERI_PYCACHE") or default
+    prefix = prefix.rstrip("/") or "/"  # with a trailing slash lstat would follow a symlink
     reason = refusal(prefix)
     if reason is None:
         sys.pycache_prefix = prefix

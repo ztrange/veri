@@ -417,6 +417,22 @@ def test_3966_a_prefix_that_is_a_regular_file_makes_make_unit_and_make_test_exit
     assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is not a directory")] * 2
 
 
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming a symlink with a trailing slash")
+def test_3966_a_symlink_prefix_named_with_a_trailing_slash_makes_make_unit_and_make_test_exit_2_as_a_symlink(tmp_path):
+    target = tmp_path / "target"
+    target.mkdir()
+    target.chmod(0o700)
+    cache = tmp_path / "cache"
+    cache.symlink_to(target)
+    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
+    answers = []
+    for name in ("unit", "test"):
+        code, ran, output = make(tree, log, name, VERI_PYCACHE=str(cache) + "/")
+        answers.append((code, ran, "== pytest" in output, [line for line in output.splitlines() if str(cache) in line]))
+    assert answers == [refusal(cache, "it is a symlink")] * 2
+
+
 def closed_cache_under(tmp_path, parent_mode):
     parent = tmp_path / "parent"
     parent.mkdir()
