@@ -1,4 +1,8 @@
-"""github-status.sh: whether GitHub's status page has an incident on the components veri needs, run in-process."""
+"""github-status.sh: whether GitHub's status page has an incident on the components veri needs, run in-process.
+
+One read is bounded by VERI_GITHUB_STATUS_TIMEOUT per socket operation (connect, and each receive) and by MAX_BODY
+bytes; its total time is not bounded: urllib has no whole-request deadline, and a server trickling bytes inside each
+timeout could stretch it. Bounding the total would need a thread or a process, which this module does not start."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
 import http.client
@@ -6,6 +10,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import entry
@@ -14,6 +19,7 @@ import tunables
 USAGE = ("usage: github-status.sh [<component>…]\n"
          "       github-status.sh wait <max-seconds> [<component>…]")
 FEED = "/api/v2/incidents/unresolved.json"
+MAX_BODY = 1024 * 1024
 DEFAULT_COMPONENTS = ("Git Operations", "Pull Requests", "API Requests", "Issues", "Actions")
 COMPONENTS = ("Git Operations", "Webhooks", "API Requests", "Issues", "Pull Requests", "Actions", "Packages", "Pages",
               "Copilot", "Codespaces", "Copilot AI Model Providers")
@@ -27,7 +33,7 @@ def fetch(url, timeout):
     """(status, body) of one GET of `url`; an HTTP error status is answered, not raised."""
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
-            return response.status, response.read()
+            return response.status, response.read(MAX_BODY + 1)
     except urllib.error.HTTPError as error:
         return error.code, b""
 
@@ -56,6 +62,8 @@ def incidents(timeout):
         raise NoAnswer("%s: no response: %s: %s" % (url, type(reason).__name__, reason))
     if status != 200:
         raise NoAnswer("%s: status %s" % (url, status))
+    if len(body) > MAX_BODY:
+        raise NoAnswer("%s: the body is larger than %d bytes" % (url, MAX_BODY))
     try:
         listed = json.loads(body)["incidents"]
     except (ValueError, TypeError, KeyError, RecursionError):
@@ -147,6 +155,9 @@ def main(argv):
     for name, value in knobs.items():
         if value is None:
             return entry.refuse("github-status.sh: %s=%r is not a positive integer" % (name, tunables.get(name)))
+    base = tunables.get("VERI_GITHUB_STATUS_URL")
+    if urllib.parse.urlsplit(base).scheme not in ("http", "https"):
+        return entry.refuse("github-status.sh: VERI_GITHUB_STATUS_URL=%r is not an http or https URL" % base)
     for name in components:
         if name not in COMPONENTS:
             return entry.refuse("github-status.sh: %r is not a GitHub component; the components are: %s"
