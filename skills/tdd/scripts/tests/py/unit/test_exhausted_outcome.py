@@ -209,6 +209,15 @@ def test_3917_step_ahead_checks_a_parametrized_case_by_its_name_without_the_suff
         0, "prep tests/py/test_solvable.py::test_prints_usage[x-y]\n", "")
 
 
+def test_3917_step_ahead_with_no_id_or_an_empty_one_exits_2_with_the_usage_line(run_cli, tmp_path, exhausted_outcome):
+    _suite(tmp_path)
+    report = "STEP_AHEAD: tests/py/test_status.py::test_status_lists_runs\n"
+
+    for argv in (["--step-ahead"], ["--step-ahead", ""]):
+        code, stdout, stderr = run_cli(exhausted_outcome, argv, stdin=report, cwd=tmp_path)
+        assert (code, stdout, exhausted_outcome.USAGE in stderr) == (2, "", True), (argv, stderr)
+
+
 def _refused(result, line):
     code, stdout, stderr = result
     return code == 2 and stdout == "" and len(stderr.splitlines()) == 1 and line in stderr
