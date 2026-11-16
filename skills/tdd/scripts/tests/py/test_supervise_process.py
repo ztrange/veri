@@ -5326,3 +5326,77 @@ def test_cli_launches_the_leaf_as_usual_while_a_stop_at_ledger_is_pending_refusi
     assert bool(started) is True, err
     assert (tmp_path / ".tdd" / "develop-red.exit").read_text() == "0\n"
     assert [r for r in events.records(tmp_path) if r["event"] == "launch-refused"] == []
+
+
+LOCK_WAIT_TIMEOUT = "600"  # the hard timeout VERI_TIMEOUT=600 hands attempt_once
+
+
+def outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, marker_text, alive=(), started=None):
+    """attempt_once on a leaf that writes `marker_text` to its lock-wait marker at launch and finishes only at t=5000,
+    under a 600 s hard timeout and no silence window: (status, reason). `alive` are the pids `kill 0` answers,
+    `started` the start time `ps -o lstart=` prints for them."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    wait = tmp_path / "wait"
+    clock = {"t": 1000}
+
+    class Leaf:
+        pid = 4242
+
+        def poll(self):
+            return None
+
+        def wait(self):
+            return 0
+
+    def popen(*_a, **_k):
+        wait.write_text(marker_text)
+        return Leaf()
+
+    def pause(_poll):
+        clock["t"] += 30
+        if clock["t"] >= 5000:
+            (tmp_path / ".tdd" / "develop-red.rc").write_text("0\n")
+
+    def kill(pid, sig):
+        assert sig == 0, "only kill 0 is expected"
+        if pid not in alive:
+            raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(supervise.subprocess, "Popen", popen)
+    monkeypatch.setattr(supervise, "now", lambda: str(clock["t"]))
+    monkeypatch.setattr(supervise, "awake_seconds", lambda: clock["t"])
+    monkeypatch.setattr(supervise, "pause", pause)
+    monkeypatch.setattr(supervise, "kill_tree", lambda leaf, _poll: None)
+    monkeypatch.setattr(supervise, "recover_finished_leaf", lambda *_: None)
+    monkeypatch.setattr(os, "kill", kill)
+    monkeypatch.setattr(importlib.import_module("veri.pid_file"), "ps_field",
+                        lambda field, pid: started if field == "lstart" and int(pid) in alive else None)
+    watch = supervise.Watch(False, LOCK_WAIT_TIMEOUT, "180", "1", 0.0)
+    status, reason, _rc, _a0 = supervise.attempt_once(
+        [], "develop-red", ["leaf"], ".tdd/develop-red.log", ".tdd/develop-red.rc",
+        {"PYTEST_LEG_LOCK_WAIT_MARKER": str(wait)}, None, watch)
+    return status, reason
+
+
+def test_3989_a_lock_wait_marker_naming_a_dead_pid_is_ignored_so_the_hard_timeout_fires(monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "999999\nMon Nov 16 10:00:00 2026\n") == (
+        "killed-stuck", "hard timeout 600s exceeded")
+
+
+def test_3989_a_lock_wait_marker_whose_pid_is_alive_under_another_start_time_is_ignored_so_the_hard_timeout_fires(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\nMon Nov 16 10:00:00 2026\n",
+                                         alive={4343}, started="Tue Nov 17 09:00:00 2026") == (
+        "killed-stuck", "hard timeout 600s exceeded")
+
+
+def test_3989_an_empty_lock_wait_marker_an_older_legs_still_freezes_the_timers_so_the_leaf_finishes_past_the_hard_timeout(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "") == ("success", "")
+
+
+def test_3989_a_lock_wait_marker_whose_pid_is_alive_under_its_recorded_start_time_freezes_the_timers(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\nMon Nov 16 10:00:00 2026\n",
+                                         alive={4343}, started="Mon Nov 16 10:00:00 2026") == ("success", "")
