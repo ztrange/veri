@@ -27,3 +27,12 @@ def test_published_md_states_the_journal_path_and_the_veri_home_default_event_py
 
     assert f"`{path}`" in text, f"PUBLISHED.md does not state the journal path event.py builds, `{path}`"
     assert f"`{default}`" in text, f"PUBLISHED.md does not state VERI_HOME's default event.py uses, `{default}`"
+
+
+def test_journal_md_opens_with_the_journal_path_a_link_to_published_md_and_the_runs_own_copy(tmp_path, monkeypatch):
+    path, _ = journal_path_and_default(tmp_path, monkeypatch)
+    opening = JOURNAL.read_text(encoding="utf-8").split("\n|")[0]
+
+    assert f"`{path}`" in opening, f"JOURNAL.md's text above its table does not hold the journal path `{path}`"
+    assert "](PUBLISHED.md)" in opening, "JOURNAL.md's text above its table does not link PUBLISHED.md"
+    assert "`.tdd/events.jsonl`" in opening, "JOURNAL.md's text above its table no longer names the run's own copy"
