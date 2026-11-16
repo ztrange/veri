@@ -26,8 +26,14 @@ Run it in order, at the site where the eligible exit 2 came back.
 
 1. **Check the budget.** `$S/adjudicate.sh left <n>` reads `VERI_ADJUDICATE_BUDGET`. Exit 0:
    budget is left, go on. Exit 3: it is spent, so bail with the original cause and class.
+   Every bail that follows a launched adjudicator (any answer, or its own no-answer) is written
+   by a bare command in a Bash call of its own, never by a line guarded by a shell variable set
+   in an earlier call: the conductor's Bash calls share no variables, and the leaf's launch and
+   wait take calls of their own.
 2. **Build the prompt.** `$S/build-adjudicate-prompt.sh <n> <cause> <exit-code> <stderr-file> <command…>
-   > .tdd/adjudicate-<cause>.prompt`.
+   > .tdd/adjudicate-<cause>.prompt`. Each site names its `<stderr-file>` and `<command…>`; at every
+   `report-missing` site they are `.tdd/suite-reported.err` and `suite-reported.sh <leaf>`, `<leaf>`
+   the leaf whose report was checked (`develop-green` in `SKILL.md`).
 3. **Launch the leaf** `adjudicate-<cause>` through `supervise.sh`, detached, then wait in the
    foreground (on an exit 3 call the wait again). Remove the cause's completion and pid files
    first, as *Launching a leaf* in `SKILL.md` does, so a second adjudication of one cause never

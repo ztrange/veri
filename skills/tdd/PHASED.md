@@ -13,7 +13,7 @@ phase. On REJECT, revise under `REVISE_BUDGET` as `REVISE.md` sets out (when a v
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
 After a phase leaf's wait exits 0, `$S/suite-reported.sh develop-<phase> 2> .tdd/suite-reported.err` runs before its verifier is
-launched: exit 2 means no `SUITE:` line, so launch no verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file (`Read` `<base directory>/ADJUDICATE.md`), then on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch (`Read` `<base directory>/BAIL.md`).
+launched: exit 2 means no `SUITE:` line, so launch no verifier; if `$S/adjudicate.sh left <n>` exits 0, launch `adjudicate-report-missing` through `supervise.sh` with `.tdd/suite-reported.err` as the stderr file, its prompt built by `$S/build-adjudicate-prompt.sh <n> report-missing 2 .tdd/suite-reported.err suite-reported.sh develop-<phase>` (`Read` `<base directory>/ADJUDICATE.md`); on that `left` call's exit 3, or on any answer, `retry` included, **bail** as a system failure with cause `report-missing`, with no verifier, no second `suite-reported.sh` call and no relaunch, the bail event written by `BAIL.md`'s step 3 command with that cause, never a line guarded by a shell variable (`Read` `<base directory>/BAIL.md`).
 
 The whole step spends one refactor of the budget, not one per phase: wherever
 `refactor-budget.sh <count>` counts the transforms already landed, a phased step adds one to
