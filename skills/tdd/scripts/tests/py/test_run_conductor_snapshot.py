@@ -1,5 +1,6 @@
 """run_conductor.main's skill snapshot on disk: read-only while the run executes it, removed at exit (#3963)."""
 import importlib
+import json
 import os
 
 import pytest
@@ -71,3 +72,30 @@ def test_main_writes_the_digest_of_the_extracted_snapshot_to_the_main_trees_issu
     assert launched(tmp_path, monkeypatch, capfdbinary, lambda snapshot: seen.append(
         pinned_scripts.snapshot_digest(snapshot))) == (0, [])
     assert (tmp_path / ".tdd" / "issue-4242-snapshot-digest").read_text() == seen[0] != ""
+
+
+def test_main_on_a_snapshot_a_leaf_edited_says_so_logs_snapshot_changed_and_exits_2_removing_the_snapshot_3964(
+        tmp_path, monkeypatch, capfdbinary):
+    run_conductor = importlib.import_module("veri.run_conductor")
+    errors = []
+    real = run_conductor.main
+
+    def main_keeping_stderr(argv):
+        code = real(argv)
+        errors.append(capfdbinary.readouterr().err)
+        return code
+    monkeypatch.setattr(run_conductor, "main", main_keeping_stderr)
+
+    def edit(snapshot):
+        script = os.path.join(snapshot, "scripts", "status.sh")
+        pinned_scripts.change_mode(script, lambda mode: mode | 0o200)
+        with open(script, "a") as handle:
+            handle.write("echo edited\n")
+
+    answer = launched(tmp_path, monkeypatch, capfdbinary, edit)
+    log = tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+    assert (answer, errors, [(e["event"], e.get("path")) for e in events]) == (
+        (2, []), [b"run-conductor: the skill snapshot changed during the run\n"],
+        [("snapshot-changed", "scripts/status.sh")])

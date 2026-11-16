@@ -71,6 +71,7 @@ EVENTS = {
     "revise": "budget:whole",
     "skill-edit-no-author": "unit:text",
     "skill-repin": "commit:sha",
+    "snapshot-changed": "path:text",
     "step-added": "anchor?:text added?:whole",
     "step-done": "",
     "step-escalated": "anchor:text at?:(over-budget)",
