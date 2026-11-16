@@ -49,11 +49,16 @@ def cut_socket_timeout(response, seconds):
         sock.settimeout(seconds)
 
 
+def opener():
+    """The opener the feed is fetched with."""
+    return urllib.request.build_opener()
+
+
 def fetch(url, timeout, deadline):
     """(status, body) of one GET of `url`, the body at most MAX_BODY + 1 bytes, the whole read ended at `deadline`
     (monotonic) with NoAnswer; an HTTP error status is answered, not raised."""
     try:
-        response = urllib.request.urlopen(url, timeout=min(timeout, left(url, deadline)))
+        response = opener().open(url, timeout=min(timeout, left(url, deadline)))
     except urllib.error.HTTPError as error:
         return error.code, b""
     with response:

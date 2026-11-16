@@ -39,6 +39,11 @@ class Page:
         self.wall_frozen = False
         monkeypatch.setattr(self.module, "monotonic", lambda: self.mono, raising=False)
 
+    def respond(self, monkeypatch, answer):
+        """Drive the real fetch, its opener answering every URL with `answer(url)`."""
+        monkeypatch.setattr(self.module, "fetch", self.real_fetch)
+        monkeypatch.setattr(self.module, "opener", lambda: Opener(answer))
+
     def sleep(self, seconds):
         self.sleeps.append(seconds)
         if len(self.sleeps) > 50:
@@ -60,6 +65,18 @@ class Page:
         if error is not None:
             raise error
         return status, body
+
+
+class Opener:
+    """The real fetch's opener, answering each URL it opens with `answer(url)` (a response, or an error raised)."""
+
+    def __init__(self, answer):
+        self.answer = answer
+        self.opened = []
+
+    def open(self, url, timeout):
+        self.opened.append(url)
+        return self.answer(url)
 
 
 @pytest.fixture
@@ -182,17 +199,13 @@ def test_a_component_argument_that_is_not_one_of_githubs_names_exits_2_naming_it
     assert page.calls == []
 
 
-def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(monkeypatch):
-    import urllib.error
-    import urllib.request
-
-    def refused(url, timeout):
+def test_the_real_fetch_answers_an_http_error_status_rather_than_raising_it(page, monkeypatch):
+    def refused(url):
         raise urllib.error.HTTPError(url, 503, "Service Unavailable", {}, None)
 
-    monkeypatch.setattr(urllib.request, "urlopen", refused)
-    module = importlib.import_module("veri.github_status")
+    page.respond(monkeypatch, refused)
 
-    assert module.fetch("https://status.example/feed", 3, float("inf")) == (503, b"")
+    assert page.module.fetch("https://status.example/feed", 3, float("inf")) == (503, b"")
 
 
 def test_wait_whose_reads_find_a_counting_incident_then_none_exits_0_after_the_read_that_found_none_sleeping_the_poll_between(
@@ -348,16 +361,13 @@ class Oversized:
         return b"x" * (size if amount is None or amount < 0 else min(amount, size))
 
 
-def test_a_body_larger_than_the_cap_is_no_answer_and_never_read_whole(monkeypatch, run_cli):
-    import urllib.request
+def test_a_body_larger_than_the_cap_is_no_answer_and_never_read_whole(page, monkeypatch, run_cli):
+    page.respond(monkeypatch, lambda url: Oversized())
 
-    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout: Oversized())
-    module = importlib.import_module("veri.github_status")
-
-    code, out, err = run_cli(module, [])
+    code, out, err = run_cli(page.module, [])
 
     assert (code, out) == (2, "")
-    assert "larger than %d bytes" % module.MAX_BODY in err
+    assert "larger than %d bytes" % page.module.MAX_BODY in err
 
 
 @pytest.mark.parametrize("url", ["file:///etc/passwd", "ftp://status.example", "status.example"])
@@ -514,10 +524,7 @@ class Dripping:
 ], ids=["one-shot-timeout", "wait-deadline"])
 def test_a_dripping_server_is_cut_off_at_the_reads_deadline_on_the_monotonic_clock(
         page, run_cli, monkeypatch, argv, env, bound):
-    import urllib.request
-
-    monkeypatch.setattr(page.module, "fetch", page.real_fetch)
-    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout: Dripping(page))
+    page.respond(monkeypatch, lambda url: Dripping(page))
     start = page.mono
 
     code, out, err = run_cli(page.module, argv, env=env)
