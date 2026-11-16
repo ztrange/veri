@@ -17,3 +17,13 @@ def test_the_table_module_imports_no_other_veri_module():
     siblings = sorted(name for name in imported if name == "veri" or (SCRIPTS / "veri" / f"{name}.py").exists())
 
     assert not siblings, f"veri/event_table.py imports veri modules {siblings}; it must be readable alone"
+
+
+def test_the_table_declares_the_five_events_journal_md_lacked_with_the_keys_their_writers_pass():
+    from veri import event_table
+
+    written = {"grading": {"unit", "verdict", "failing", "cost_usd", "id"}, "unpinnable-missing": {"step"},
+               "prose-owed-waived": {"unit", "step"}, "suite-flake": {"at", "files"}, "skill-edit-no-author": {"unit"}}
+
+    assert {event: set(event_table.keys(event)) for event in written} == written
+    assert event_table.required("suite-flake") == {"files"}
