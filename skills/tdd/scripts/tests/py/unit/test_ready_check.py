@@ -197,3 +197,40 @@ def test_issue_4089_ready_check_prints_the_new_rows_and_counts_a_not_verifiable_
     assert [line for line in lines if line.startswith("fail")] == [
         "fail  push: add a workflow under .github/workflows/ that triggers on push to the default branch"], lines
     assert (code, lines[-1]) == (1, "not ready — 1 rows to fix")
+
+
+def tree_state(root):
+    return {os.path.join(d, f): open(os.path.join(d, f), "rb").read() for d, _, files in os.walk(root) for f in files}
+
+
+WRITING_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
+
+
+def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git_write_no_file_and_name_one_command_or_settings_key_each(ready_check, fake_processes, tmp_path, monkeypatch):
+    common = tmp_path / "common.git"
+    (common / "info").mkdir(parents=True)
+    (common / "info" / "exclude").write_text("")
+    (tmp_path / ".gitignore").write_text("")
+    unwritable(monkeypatch, {os.path.realpath(tmp_path / ".gitignore"), os.path.realpath(common / "info" / "exclude")})
+    fake = fake_processes.answers({
+        "gh api -i user": user_headers("gist"), "git remote get-url origin": HTTPS_ORIGIN,
+        "gh api repos/{owner}/{repo}/labels/": NOT_FOUND, **WITH_WORKFLOWS,
+        ACTIONS_RUNS: (1, "", "gh: Resource not accessible by integration (HTTP 403)\n"),
+        "git rev-parse --git-common-dir": (0, str(common) + "\n", "")})
+    before = tree_state(tmp_path)
+
+    rows = [row() for row in (ready_check.token_scopes_row, ready_check.priority_label_row, ready_check.bug_label_row,
+                              ready_check.actions_read_row, ready_check.run_state_ignore_row)]
+
+    assert tree_state(tmp_path) == before
+    assert {argv[0] for argv in fake.argvs} == {"gh", "git"}, fake.calls
+    for argv in (a for a in fake.argvs if a[0] == "gh"):
+        assert argv[1] == "api" and "graphql" not in argv, argv
+        assert not any(flag in argv for flag in WRITING_FLAGS), argv
+        methods = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg in ("-X", "--method")]
+        assert set(methods) <= {"GET"}, argv
+    assert all(fix for _, fix in rows), rows
+    for name, fix in rows:
+        one_command = "\n" not in fix and fix.split(" ")[0] in ("gh", "chmod") and not any(c in fix for c in ";&|")
+        settings_key = "\n" not in fix and fix.count("`") == 2
+        assert one_command or settings_key, (name, fix)

@@ -10,4 +10,4 @@
 - [x] with no `.github/workflows/` at the default branch's tip the `actions read` row reads `skipped` ⟦criterion 4⟧
 - [x] the `run-state ignore` row is `ok` when `.gitignore` and the common git directory's `info/exclude` each carry the run-state rule or are writable, and `fail` naming the one that is not ⟦criterion 5⟧
 - [x] ready-check.sh prints the new rows, and a `not verifiable` or `skipped` row counts as no fail ⟦criterion 2⟧ ⟦criterion 4⟧
-- [ ] across failing answers, every gh call the new rows make is a REST read, none GraphQL, no file is written, every call is gh or git, and each fix is one command or a named settings key ⟦criterion 6⟧ ⟦criterion 7⟧
+- [x] across failing answers, every gh call the new rows make is a REST read, none GraphQL, no file is written, every call is gh or git, and each fix is one command or a named settings key ⟦criterion 6⟧ ⟦criterion 7⟧
