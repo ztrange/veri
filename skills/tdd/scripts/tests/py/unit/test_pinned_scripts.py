@@ -11,7 +11,7 @@ ROOT_IGNORES_WRITE_BITS = pytest.mark.skipif(os.geteuid() == 0, reason="uid 0 wr
 def skill_tree(top):
     (top / "scripts").mkdir(parents=True)
     (top / "SKILL.md").write_text("# skill\n")
-    (top / "scripts" / "status.sh").write_text("#!/bin/sh\n")
+    (top / "scripts" / "status.sh").write_text("echo status\n")
     return top
 
 
@@ -45,7 +45,7 @@ def test_snapshot_digest_changes_with_one_files_content_and_not_with_the_marker_
 
     (tree / ".veri-snapshot").write_text("/another/worktree\n")
     marker_only = pinned_scripts.snapshot_digest(str(tree))
-    (tree / "scripts" / "status.sh").write_text("#!/bin/sh\necho edited\n")
+    (tree / "scripts" / "status.sh").write_text("echo edited\n")
     edited = pinned_scripts.snapshot_digest(str(tree))
 
     assert (marker_only == before, edited == before, "scripts/status.sh" in before) == (True, False, True)
