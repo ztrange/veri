@@ -136,6 +136,18 @@ def test_gh_issue_edit_hands_gh_a_body_file_whose_contents_are_redacted_the_call
     assert (read, body_file.read_text()) == (["## Problem\nleaked [redacted]\n"], "## Problem\nleaked %s\n" % token)
 
 
+@pytest.mark.parametrize("kind", [str, bytes])
+def test_bounded_hands_gh_its_stdin_input_redacted_issue_3960(github, fake_processes, kind):
+    token = "ghs_" + FAKE * 3
+    fake = posted(fake_processes, (0, "{}", ""))
+    body = '{"body": "leaked %s"}' % token
+
+    github.bounded(["gh", "api", "x", "--input", "-"], input=body if kind is str else body.encode(),
+                   capture_output=True, text=kind is str)
+
+    assert fake.seen[-1][1]["input"] == (lambda t: t if kind is str else t.encode())('{"body": "leaked [redacted]"}')
+
+
 FILE_FORMS = {"--input": lambda p: ["api", "x", "--input", p], "--body-file": lambda p: ["issue", "create", "--body-file", p],
               "-Fbody=@": lambda p: ["api", "x", "-Fbody=@" + p], "--field=body=@": lambda p: ["api", "x", "--field=body=@" + p],
               "--input=": lambda p: ["api", "x", "--input=" + p], "--body-file=": lambda p: ["pr", "edit", "--body-file=" + p]}

@@ -27,4 +27,4 @@
 - [x] SC213 says exactly which comments are redacted
 - [x] a secret split at any position by any line break, indent, markdown prefix, trailing backslash or zero-width character is redacted whole, and prose with no secret is left byte-identical
 - [ ] SC217 names all three gh api calls the prose makes as not covered
-- [ ] bounded redacts the input it hands gh on stdin
+- [x] bounded redacts the input it hands gh on stdin
