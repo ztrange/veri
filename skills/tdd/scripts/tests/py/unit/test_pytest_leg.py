@@ -920,3 +920,29 @@ def test_2397_on_a_mac_whose_sysctl_exits_0_with_non_numeric_stdout_the_worker_c
     monkeypatch.setattr(os, "cpu_count", lambda: 8)
     fake_processes.answers({"sysctl": (0, "not a number\n", "")})
     assert pytest_leg.worker_count(None) == 8
+
+
+def launched_with_lock_raising(pytest_leg, monkeypatch, capfd, prefix=None):
+    """Runs the leg the way `make test` does, through `launch`, with taking the full-run lock raising OSError."""
+    raised = []
+
+    def unlockable():
+        raised.append(OSError(13, "Permission denied", "/legs-full.lock"))
+        raise raised[-1]
+
+    monkeypatch.setattr(pytest_leg.full_run_lock, "acquire", unlockable)
+    monkeypatch.setattr(sys, "pycache_prefix", prefix)
+    for name, value in leg_env().items():
+        monkeypatch.setenv(name, value)
+    code = pytest_leg.launch([])
+    out, err = capfd.readouterr()
+    return code, out, err, raised
+
+
+def test_3985_an_oserror_taking_the_full_run_lock_makes_the_leg_exit_2_with_one_refusal_line_naming_it_and_no_traceback(pytest_leg, monkeypatch, capfd):
+    import entry
+
+    code, out, err, raised = launched_with_lock_raising(pytest_leg, monkeypatch, capfd)
+    assert (code, out) == (2, "")
+    assert err == entry.refusal(pytest_leg.main, raised[0])
+    assert "Traceback" not in err and err.count("\n") == 1

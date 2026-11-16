@@ -9,7 +9,8 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("os").path.di
 #            `<n> unselected: named cases that neither pass ran (<targets>)`; cases the run's own -m/-k deselects from a
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
-#            or VERI_PYTEST_WORKERS is not a whole number of at least 1
+#            or VERI_PYTEST_WORKERS is not a whole number of at least 1, or any other exception escaped the leg (registering
+#            it, taking the full-run lock), one stderr line naming it in entry.refusal's form (#3985)
 import contextlib
 import fcntl
 import hashlib
@@ -27,6 +28,7 @@ import sys
 import tempfile
 import time
 
+import entry
 import full_run_lock
 import launch_floor
 import tunables
@@ -410,10 +412,10 @@ def main(argv):
     full_lock = None
     subset = "--subset" in argv
     argv = [arg for arg in argv if arg != "--subset"]
-    if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
-        full_lock = full_run_lock.acquire()
     serial_seen = os.environ.get("PYTEST_LEG_SERIAL_SEEN")
     try:
+        if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
+            full_lock = full_run_lock.acquire()
         sweep_dead_runs()
         with run_directory() as run:
             base = os.path.join(run, "base")
@@ -476,13 +478,18 @@ def main(argv):
     return 0 if pytest.ExitCode.OK in statuses and set(statuses) <= passed else 1
 
 
-if __name__ == "__main__":
-    sys.path[0] = os.getcwd()
+def launch(argv):
+    """The leg as `make test` runs it: main's code, an exception escaping it exit 2 in entry.refusal's form, between the
+    bytecode cache's check and its record."""
     prefix = sys.pycache_prefix
     cache_run = check_bytecode_cache(prefix) if prefix and os.path.isdir(prefix) else None
     try:
-        status = main(sys.argv[1:])
+        return entry.exit_code(main, argv)
     finally:
         if cache_run:
             record_bytecode_cache(prefix, cache_run)
-    sys.exit(status)
+
+
+if __name__ == "__main__":
+    sys.path[0] = os.getcwd()
+    sys.exit(launch(sys.argv[1:]))
