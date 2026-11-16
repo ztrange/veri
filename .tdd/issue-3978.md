@@ -5,5 +5,5 @@
 - [x] a `VERI_CI_HEAD_WAIT` that is not a non-negative whole number makes `wait-ci.sh` exit 2 before any read, naming the variable ⟦criterion 2⟧
 - [x] `queued-merge.sh` whose `wait-ci.sh` exits 2 on a never-matching head exits 2 with the lock released and no merge call made ⟦criterion 3⟧
 - [x] a read finding the PR's head equal to the expected sha removes the `head` mark and waits on; a later mismatch writes a new one ⟦criterion 4⟧
-- [ ] `wait-ci.sh --fresh-window <sha>` removes `.tdd/ci-head-<sha>` ⟦criterion 5⟧
+- [x] `wait-ci.sh --fresh-window <sha>` removes `.tdd/ci-head-<sha>` ⟦criterion 5⟧
 - [ ] the `wait-ci.sh` and `queued-merge.sh` entries of `skills/tdd/SCRIPTS.md` state the head wait, its knob, the `--fresh-window` removal and the merge's exit 2 ⟦criterion 6⟧

@@ -2645,6 +2645,19 @@ def test_main_fresh_window_removes_one_shas_marks_reads_no_checks_and_exits_0(wa
         0, "", [], sorted(f"ci-{k}-{other}" for k in ("deadline", "queued", "none")))
 
 
+def test_main_fresh_window_removes_the_head_mark_of_its_sha_and_no_other_issue_3978(wait_ci, fake_processes, run_cli, tmp_path):
+    other = "f" * 40
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    for sha in (SHA, other):
+        (tdd / f"ci-head-{sha}").write_text("1000\n")
+    fake_processes(lambda line, **_: (1, "", f"unexpected: {line}\n"))
+
+    code, _, _ = run_cli(wait_ci, ["--fresh-window", SHA], cwd=tmp_path)
+
+    assert (code, sorted(p.name for p in tdd.iterdir())) == (0, [f"ci-head-{other}"])
+
+
 def test_main_fresh_window_with_some_marks_absent_exits_0_and_a_wrong_argument_count_removes_nothing(wait_ci, fake_processes, run_cli, tmp_path):
     tdd = tmp_path / ".tdd"
     tdd.mkdir()

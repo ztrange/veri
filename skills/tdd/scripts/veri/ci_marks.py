@@ -1,7 +1,8 @@
 """The marks wait-ci.sh keeps under a run's `.tdd/` for a pull request head, so calls remember what an earlier one saw.
 
-Three kinds, each `ci-<kind>-<sha>` holding a decimal and a newline: `deadline` (when the wait for the head's checks
-ends), `queued` (when its checks were first seen queued) and `none` (when it was first seen with no check at all).
+Four kinds, each `ci-<kind>-<sha>` holding a decimal and a newline: `deadline` (when the wait for the head's checks
+ends), `queued` (when its checks were first seen queued), `none` (when it was first seen with no check at all) and
+`head` (when the pull request was first seen reporting a head other than the wanted sha).
 `run` is the directory holding the `.tdd/`; "" is the current directory, whose paths read `.tdd/ci-…`."""
 import os
 import sys
@@ -9,7 +10,7 @@ from dataclasses import dataclass
 
 import run_dir
 
-KINDS = ("deadline", "queued", "none")
+KINDS = ("deadline", "queued", "none", "head")
 
 
 @dataclass(frozen=True)
