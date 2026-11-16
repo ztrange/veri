@@ -185,9 +185,22 @@ def start_recorded(file):
         return f.readline().decode().strip()
 
 
+def same_start(started, pid):
+    """Whether <started> is <pid>'s start time: as read now under the pinned environment, or, only when that differs,
+    under the caller's own (the text an older snapshot recorded before the read was pinned)."""
+    if started == ps_field("lstart", pid):
+        return True
+    try:
+        caller = subprocess.run(["ps", "-o", "lstart=", "-p", str(int(pid))], stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, text=True)
+    except OSError:
+        return False
+    return caller.returncode == 0 and started == caller.stdout.strip()
+
+
 def start_matches(file, pid):
     started = start_recorded(file)
-    return not started or started == ps_field("lstart", pid)
+    return not started or same_start(started, pid)
 
 
 def _reading(path):

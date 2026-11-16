@@ -52,3 +52,19 @@ def test_2750_report_running_block_labels_the_summed_dollars_with_the_total_row_
     lines = [line.strip() for line in out.splitlines()]
     running = lines[lines.index("Running") + 1:lines.index("Queue")]
     assert (code, ["| total | $0.75" in x for x in running if x.startswith("#2750")]) == (0, [True]), running
+
+
+def test_a_conductor_start_event_holding_the_start_time_an_older_snapshot_read_in_the_callers_environment_reads_alive_3988(
+        monkeypatch, fake_processes):
+    status = importlib.import_module("veri.status")
+    monkeypatch.setenv("TZ", "Europe/Lisbon")
+
+    def ps(line, **kwargs):
+        env = kwargs.get("env") or os.environ
+        return 0, ("Mon Nov  2 09:00:00 2026\n" if env.get("TZ") == "UTC" else "Mon Nov  2 10:00:00 2026\n"), ""
+
+    fake_processes.answers({"ps": ps})
+
+    assert [status.conductor_alive({"pid": os.getpid(), "started": text})
+            for text in ("Mon Nov  2 10:00:00 2026", "Mon Nov  2 09:00:00 2026", "Mon Jan  1 00:00:00 2024")] == [
+        True, True, False]

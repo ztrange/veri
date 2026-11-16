@@ -427,6 +427,24 @@ def test_a_start_time_read_under_two_timezones_and_locales_is_the_same_text_3988
     assert seen == ["Thu Nov 11 09:00:00 2026 UTC C"] * 4
 
 
+def test_a_pid_file_holding_the_start_time_an_older_snapshot_read_in_the_callers_environment_reads_live_3988(
+        tmp_path, fake_processes, monkeypatch):
+    pid_file = importlib.import_module("veri.pid_file")
+    monkeypatch.setenv("TZ", "Europe/Lisbon")
+
+    def ps(line, **kwargs):
+        env = kwargs.get("env") or os.environ
+        return 0, ("Thu Nov 11 09:00:00 2026\n" if env.get("TZ") == "UTC" else "Thu Nov 11 10:00:00 2026\n"), ""
+
+    fake_processes.answers({"ps": ps})
+    unpinned, pinned, other = (tmp_path / name for name in ("unpinned", "pinned", "other"))
+    unpinned.write_text("4242\nThu Nov 11 10:00:00 2026\n")
+    pinned.write_text("4242\nThu Nov 11 09:00:00 2026\n")
+    other.write_text("4242\nMon Jan  1 00:00:00 2024\n")
+
+    assert [pid_file.start_matches(str(f), 4242) for f in (unpinned, pinned, other)] == [True, True, False]
+
+
 def test_ps_answers_a_ps_that_could_not_be_run_apart_from_no_such_process_and_an_empty_field_2537(fake_processes):
     pid_file = importlib.import_module("veri.pid_file")
     ps = {}
