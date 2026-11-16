@@ -192,7 +192,10 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   when the live conductors, counted fresh with `kill -0`, number fewer than N (an unexpired timed
   N included); otherwise it is held, and the next freed slot goes to it ahead of the solvable
   queue: `dispatch.sh` fills a freed slot only from that queue and never sees a held resume, so
-  launch the held resume before restarting `dispatch.sh`. None of the three: route it as a bail.
+  launch the held resume before restarting `dispatch.sh`. It also runs only when no process is
+  inside the run's worktree (`lsof +D .tdd/wt/<n>` lists none but the shell running the check and
+  `lsof` itself); otherwise it is held to the next slot decision. None of the three: route it as
+  a bail.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
