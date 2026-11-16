@@ -190,6 +190,7 @@ def preflight_and_launch(argv):
             if status != 0:
                 return status if status <= 3 else 2
             pinned_scripts.write_snapshot_marker(snapshot, run_worktree(argv[0]))
+            pinned_scripts.make_read_only(snapshot)
             keep_pinned_scripts(snapshot, argv[0])
             return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
@@ -307,7 +308,7 @@ def keep_pinned_scripts(snapshot, issue):
     if is_registered_worktree(issue) and os.path.isdir(os.path.join(snapshot, "scripts")):
         if os.path.lexists(kept):
             pinned_scripts.remove_tree(kept)
-        shutil.copytree(os.path.join(snapshot, "scripts"), kept)
+        pinned_scripts.copy_writable(os.path.join(snapshot, "scripts"), kept)
         with open(os.path.join(kept, ".gitignore"), "w") as ignore:
             ignore.write("*\n")
         with open(os.path.join(kept, ".snapshot-dir"), "w") as where:

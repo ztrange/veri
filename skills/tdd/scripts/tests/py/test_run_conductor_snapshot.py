@@ -2,6 +2,8 @@
 import importlib
 import os
 
+import pytest
+
 import pinned_scripts
 from test_run_conductor_process import fake_pin, fake_snapshot, past_the_guards, scratch_tmpdir
 
@@ -44,3 +46,19 @@ def test_main_replaces_a_read_only_pinned_scripts_copy_the_last_launch_left_on_t
 
     assert (first, second, (kept / "status.sh").read_text(), (kept / ".gitignore").read_text()) == (
         (0, []), (0, []), "#!/bin/sh\necho second\n", "*\n")
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="uid 0 writes through missing write bits")
+def test_main_makes_a_write_into_a_file_of_the_fresh_snapshot_fail_with_a_permission_error_3963(
+        tmp_path, monkeypatch, capfdbinary):
+    tried = []
+
+    def write_into(snapshot):
+        try:
+            with open(os.path.join(snapshot, "scripts", "status.sh"), "a") as script:
+                script.write("echo stray\n")
+            tried.append("written")
+        except OSError as error:
+            tried.append(type(error).__name__)
+
+    assert (launched(tmp_path, monkeypatch, capfdbinary, write_into), tried) == ((0, []), ["PermissionError"])
