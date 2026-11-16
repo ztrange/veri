@@ -5407,3 +5407,15 @@ def test_3989_a_lock_wait_marker_whose_pid_is_alive_under_its_recorded_start_tim
         monkeypatch, tmp_path, supervise):
     assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\nMon Nov 16 10:00:00 2026\n",
                                          alive={4343}, started="Mon Nov 16 10:00:00 2026") == ("success", "")
+
+
+def test_3989_a_lock_wait_marker_naming_pid_0_is_ignored_so_the_hard_timeout_fires(monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "0\nMon Nov 16 10:00:00 2026\n",
+                                         alive={0}, started="Mon Nov 16 10:00:00 2026") == (
+        "killed-stuck", "hard timeout 600s exceeded")
+
+
+def test_3989_a_lock_wait_marker_whose_waiters_start_time_cannot_be_read_is_ignored_so_the_hard_timeout_fires(
+        monkeypatch, tmp_path, supervise):
+    assert outcome_with_lock_wait_marker(monkeypatch, tmp_path, supervise, "4343\n", alive={4343}, started=None) == (
+        "killed-stuck", "hard timeout 600s exceeded")
