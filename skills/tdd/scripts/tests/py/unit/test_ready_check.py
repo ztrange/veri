@@ -93,3 +93,9 @@ def test_issue_4089_token_scopes_row_over_an_https_origin_fails_without_workflow
     fake_processes.answers({"gh api -i user": user_headers("repo"), "git remote get-url origin": HTTPS_ORIGIN}, exact=True)
 
     assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s workflow")
+
+
+def test_issue_4089_token_scopes_row_over_an_https_origin_lacking_both_scopes_names_each_in_its_fix(ready_check, fake_processes):
+    fake_processes.answers({"gh api -i user": user_headers("gist"), "git remote get-url origin": HTTPS_ORIGIN}, exact=True)
+
+    assert ready_check.token_scopes_row() == ("token scopes", "gh auth refresh -s repo,workflow")
