@@ -38,6 +38,9 @@ from full_run_lock import legs_dir
 
 MANIFEST = "veri-manifest.json"
 PINNED_TMPDIR = "/tmp"
+# Whether the last main()'s passes ran and were red, set before its teardown, so launch keeps their 1 when the
+# teardown raises (#3985).
+PASSES_RED = [False]
 
 
 def pyc_files(prefix):
@@ -369,6 +372,7 @@ def refuse_below_floor(floor, numbers, subject, version):
 
 
 def main(argv):
+    PASSES_RED[0] = False
     floor = launch_floor.python_floor()
     version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
     numbers = [int(part) for part in re.findall("[0-9]+", version)[:2]]
@@ -451,6 +455,7 @@ def main(argv):
                 if unrun:
                     sys.stdout.write("%d unselected: named cases that neither pass ran (%s)\n" % (len(unrun), " ".join(targets)))
                     statuses.append(pytest.ExitCode.TESTS_FAILED)
+            PASSES_RED[0] = not (pytest.ExitCode.OK in statuses and set(statuses) <= {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED})
             if combined:
                 sys.stdout.write(combined)
             if pytest.ExitCode.INTERNAL_ERROR in statuses:
@@ -482,7 +487,8 @@ def main(argv):
 def launch(argv):
     """The leg as `make test` runs it: main's code, an exception escaping it exit 2 in entry.refusal's form, between the
     bytecode cache's check and its record. A check that raises is exit 2 before any pass; a record that raises is one
-    such line too, and turns a green leg's 0 into 2 while leaving a failing leg's 1 as it is."""
+    such line too, and turns a green leg's 0 into 2 while leaving a failing leg's 1 as it is; so does an exception main's
+    teardown raises after its passes ran (the run directory's removal, the lock's release, the registry entry's)."""
     prefix = sys.pycache_prefix
     try:
         cache_run = check_bytecode_cache(prefix) if prefix and os.path.isdir(prefix) else None
@@ -492,6 +498,8 @@ def launch(argv):
     code = None
     try:
         code = entry.exit_code(main, argv)
+        if code == 2 and PASSES_RED[0]:
+            code = 1  # the passes ran red; what failed after them is the one line exit_code wrote, not the answer
     finally:
         if cache_run:
             try:

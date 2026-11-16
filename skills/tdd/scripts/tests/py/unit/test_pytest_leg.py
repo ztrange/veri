@@ -1003,3 +1003,36 @@ def test_3985_a_bytecode_cache_record_that_raises_after_green_passes_makes_the_l
 def test_3985_a_bytecode_cache_record_that_raises_after_a_failing_case_keeps_the_legs_exit_1_and_says_so_in_one_line(pytest_leg, monkeypatch, capfd, tmp_path):
     code, err, passes = launched_over_a_cache(pytest_leg, monkeypatch, capfd, tmp_path, pytest.ExitCode.TESTS_FAILED, record=unreadable_cache)
     assert (code, err.count("\n"), "PermissionError" in err, "Traceback" in err) == (1, 1, True, False)
+
+
+def busy(*_args, **_kwargs):
+    raise OSError(16, "Resource busy")
+
+
+TEARDOWN_SITES = {
+    "the run directory's removal": lambda pytest_leg, monkeypatch: monkeypatch.setattr(pytest_leg, "clear_case_directories", busy),
+    "the full-run lock's release": lambda pytest_leg, monkeypatch: monkeypatch.setattr(pytest_leg.full_run_lock.Lock, "release", busy),
+    "the leg registry's unregister": lambda pytest_leg, monkeypatch: monkeypatch.setattr(pytest_leg, "unregister", busy),
+}
+
+
+@pytest.mark.parametrize("status, code", [(pytest.ExitCode.TESTS_FAILED, 1), (pytest.ExitCode.OK, 2)], ids=["red", "green"])
+@pytest.mark.parametrize("site", sorted(TEARDOWN_SITES))
+def test_3985_a_teardown_that_raises_after_the_passes_is_one_line_and_keeps_a_red_legs_1_and_turns_a_green_ones_0_into_2(
+        pytest_leg, monkeypatch, capfd, tmp_path, site, status, code):
+    monkeypatch.setattr(pytest, "main", lambda args: status)
+    monkeypatch.setattr(sys, "pycache_prefix", None)
+    monkeypatch.setattr(sys, "path", list(sys.path))  # main puts veri's directories first on sys.path
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: {0, 1}, raising=False)
+    monkeypatch.delenv("VERI_PYTEST_WORKERS", raising=False)
+    monkeypatch.delenv("VERI_TEST_LOCK", raising=False)
+    monkeypatch.delenv("PYTEST_LEG_FULL_LOCK_HOLDER", raising=False)
+    for name, value in leg_env().items():
+        monkeypatch.setenv(name, value)
+    TEARDOWN_SITES[site](pytest_leg, monkeypatch)
+
+    got = pytest_leg.launch(["-q"])
+    err = capfd.readouterr().err
+
+    assert (got, err.count("\n"), "OSError: [Errno 16] Resource busy" in err, "Traceback" in err) == (code, 1, True, False)
