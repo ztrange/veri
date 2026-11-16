@@ -105,3 +105,16 @@ def test_a_second_new_repo_in_one_worker_makes_its_repository_without_an_init_ca
 
     assert [args for args in calls if "init" in args] == []
     assert run(tmp_path / "second", "symbolic-ref", "--short", "HEAD").stdout.strip() == "main"
+
+
+@pytest.mark.process("git init for a worker's first template, then the repositories new_repo copies read back with git")
+def test_a_workers_first_and_second_new_repo_each_return_what_git_init_makes_on_the_branch(tmp_path, monkeypatch):
+    monkeypatch.setattr(repo_builder, "TEMPLATE_ROOT", tmp_path / "fresh-worker-templates")
+
+    for name in ("first", "second"):
+        repo = repo_builder.new_repo(tmp_path / name, branch="trunk")
+
+        assert run(repo, "symbolic-ref", "--short", "HEAD").stdout.strip() == "trunk", name
+        assert run(repo, "rev-parse", "--verify", "-q", "HEAD").returncode == 1, f"{name} has a commit"
+        assert run(repo, "config", "--local", "--get-regexp", "^user\\.").returncode == 1, f"{name} has an identity"
+        assert run(repo, "status", "--porcelain").stdout == "", name
