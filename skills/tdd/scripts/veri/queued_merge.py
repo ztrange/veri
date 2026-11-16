@@ -180,8 +180,15 @@ def _tag(worktree, message, pull, pr):
     if _git(worktree, "tag", "-a", name, "-m", message, target).returncode:
         _say("git tag failed; tag %s not published" % name)
         return False
-    oid = git.out("-C", worktree, "rev-parse", "--verify", "refs/tags/" + name)
-    pushed = _network_git(worktree, "push", "origin", name)
+    oid = ""
+    try:
+        oid = git.out("-C", worktree, "rev-parse", "--verify", "refs/tags/" + name)
+        pushed = _network_git(worktree, "push", "origin", name)
+    except Exception as error:
+        # Raised after the cut: the tag this run cut must not outlive it unnamed.
+        _say("publishing tag %s raised %s: %s; tag %s cut, may have been published, and %s" % (
+            name, type(error).__name__, error, name, _untag(worktree, name, oid)))
+        return False
     if pushed.returncode:
         failed = "git push failed (exit %d): %s;" % (pushed.returncode, (pushed.stderr or "").strip())
         published = "may have been published" if isinstance(pushed, TimedOut) else "not published"
@@ -191,8 +198,14 @@ def _tag(worktree, message, pull, pr):
 
 
 def _untag(worktree, name, oid):
-    """Delete refs/tags/<name> only while it still points at <oid>, the object this run cut: what became of it, said."""
-    deleted = git.git("-C", worktree, "update-ref", "-d", "refs/tags/" + name, oid, capture_output=True, text=True)
+    """Delete refs/tags/<name> only while it still points at <oid>, the object this run cut: what became of it, said.
+    Never raises; with no <oid> read, nothing is deleted."""
+    if not oid:
+        return "tag %s left in the clone: its object could not be read" % name
+    try:
+        deleted = git.git("-C", worktree, "update-ref", "-d", "refs/tags/" + name, oid, capture_output=True, text=True)
+    except Exception as error:
+        return "tag %s left in the clone: git update-ref -d raised %s: %s" % (name, type(error).__name__, error)
     if deleted.returncode:
         return "tag %s left in the clone: git update-ref -d failed (exit %d): %s" % (
             name, deleted.returncode, deleted.stderr.strip())
