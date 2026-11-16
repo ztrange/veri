@@ -104,13 +104,16 @@ def main(argv):
         sys.stderr.write("ci-flake: an alone run got no answer (not done within VERI_TIMEOUT, or killed by a signal)\n")
         return 2
     rerun = github.gh_run_rerun_failed(run_id)
+    # The attempt is counted whatever gh answered: a refusal may come after the re-run started (a timeout), and an
+    # uncounted attempt could re-run the head again.
+    written = event.mark(".", event.context(tunables.with_values(VERI_ISSUE=n)), "ci-rerun",
+                         ["head=" + head, "run=" + run_id, "files=" + ",".join(targets)])
     if rerun.returncode != 0:
         sys.stderr.write("ci-flake: gh run rerun %s --failed refused (exit %d): %s\n"
                          % (run_id, rerun.returncode, (rerun.stderr or "").strip()))
         return 2
     ci_marks.fresh_window("", head)
-    if event.mark(".", event.context(tunables.with_values(VERI_ISSUE=n)), "ci-rerun",
-                  ["head=" + head, "run=" + run_id, "files=" + ",".join(targets)]):
+    if written:
         sys.stderr.write("ci-flake: run %s was re-run but its ci-rerun event was not written\n" % run_id)
         return 2
     print("\n".join(targets))
