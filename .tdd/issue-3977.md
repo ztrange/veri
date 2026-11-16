@@ -8,6 +8,6 @@
 - [x] each opted-in issue the author rule alone removes gets one stderr skip line ⟦criterion 5⟧
 - [x] a record with no `author_association` is refused as `unknown` unless it carries the override label ⟦criterion 6⟧
 - [x] every otherwise-solvable issue refused exits 3 with empty stdout ⟦criterion 7⟧
-- [ ] a ratchet: every module of veri/ listing issues to take decides their author through `github.trusted_author`
+- [x] a ratchet: every module of veri/ listing issues to take decides their author through `github.trusted_author`
 - [ ] the `solvable-issues.sh` entry of SCRIPTS.md states the author rule, `VERI_AUTHOR_LABEL` and the skip line ⟦criterion 9⟧
 - [ ] the root CLAUDE.md's selection invariant adds the author rule to the filters before the bands ⟦criterion 10⟧
