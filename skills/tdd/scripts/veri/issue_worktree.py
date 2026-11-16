@@ -94,6 +94,11 @@ def worktree_add(*args):
 
 
 def main(argv):
+    take_over = argv[:1] == ["--take-over"]
+    if take_over:
+        argv = argv[1:]
+    if take_over and argv[:1] == ["--remove"]:
+        return entry.refuse(usage=USAGE)
     if len(argv) < 2 or not argv[0] or not argv[1] or not positive_whole(argv[1] if argv[0] == "--remove" else argv[0]):
         return entry.refuse(usage=USAGE)
     if paths.inside_scripts(__file__):
@@ -140,7 +145,7 @@ def main(argv):
                          " — another conductor owns it\n" % (branch, holder))
         return 2
     with seeded_log_set_aside(path):
-        return cut(path, branch)
+        return cut(path, branch, take_over)
 
 
 @contextlib.contextmanager
@@ -195,7 +200,7 @@ def origin_issue_branches(issue):
     return issue_branches(issue, "remotes", "origin")
 
 
-def cut(path, branch):
+def cut(path, branch, take_over=False):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
@@ -212,6 +217,12 @@ def cut(path, branch):
         if len(names) > 1:
             return entry.refuse("%s exist for the issue — cannot pick one for the requested %s"
                                 % (", ".join(names), branch), prefix=PREFIX)
+        if on_origin and take_over:
+            code = worktree_add("--no-track", "-b", branch, path, "origin/" + branch)
+            if code != 0:
+                return entry.to_contract(code)
+            sys.stdout.write(path + "\n")
+            return 0
         if on_origin and remote_issue_branch("tdd/" + issue_of(branch)):
             sys.stderr.write("issue-worktree: %s is already on origin — another run holds it;"
                              " to take it over run: git branch %s origin/%s\n" % (branch, branch, branch))
