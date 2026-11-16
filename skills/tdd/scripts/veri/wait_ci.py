@@ -101,21 +101,26 @@ def pr_head(repo, pr, on_limit=None):
 
 
 def since_rerun(sha, check_runs):
-    """<check_runs> less every one that completed before the last `ci-rerun` event of <sha> (ci-flake.sh's re-run of
-    its failed jobs), so a re-run is answered by its own runs, never the failed attempt; all of them with no such event.
-    A completed run whose completion time cannot be read counts as completed before."""
-    reruns = [int(e["ts"]) for e in event_log.events(RUN, "ci-rerun") if e.get("head") == sha]
+    """(<check_runs> less every one of the re-run's own CI run that completed before the last `ci-rerun` event of <sha>,
+    whether that dropped all of them). A check run is the re-run's when its `details_url` holds
+    `/actions/runs/<run>/`, <run> the event's; any other run's checks, of another workflow or app, are kept, so their
+    red is still read. A completed run of the re-run whose completion time cannot be read counts as before.
+    With no such event: (<check_runs>, False)."""
+    reruns = [e for e in event_log.events(RUN, "ci-rerun") if e.get("head") == sha]
     if not reruns:
-        return check_runs
+        return check_runs, False
+    at, marker = int(reruns[-1]["ts"]), "/actions/runs/%s/" % reruns[-1].get("run")
 
-    def before(run):
+    def stale(run):
+        if run.get("status") != "completed" or marker not in (run.get("details_url") or ""):
+            return False
         try:
-            done = calendar.timegm(time.strptime(run.get("completed_at") or "", "%Y-%m-%dT%H:%M:%SZ"))
+            return calendar.timegm(time.strptime(run.get("completed_at") or "", "%Y-%m-%dT%H:%M:%SZ")) < at
         except ValueError:
             return True
-        return done < max(reruns)
 
-    return [r for r in check_runs if r.get("status") != "completed" or not before(r)]
+    kept = [r for r in check_runs if not stale(r)]
+    return kept, bool(check_runs) and not kept
 
 
 def sha_state(repo, sha, on_limit=None, draft=False):
@@ -135,7 +140,9 @@ def sha_state(repo, sha, on_limit=None, draft=False):
     statuses = status.stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
-    check_runs = since_rerun(sha, [r for p in docs[:-1] for r in p.get("check_runs") or []])
+    check_runs, emptied = since_rerun(sha, [r for p in docs[:-1] for r in p.get("check_runs") or []])
+    if emptied:
+        return "pending", "", False
     outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in check_runs]
     failed = [r.get("name", "") for r in check_runs
               if r.get("conclusion") and r["conclusion"].lower() not in PASSING]
