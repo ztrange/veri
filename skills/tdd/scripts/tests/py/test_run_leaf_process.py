@@ -183,7 +183,8 @@ def test_4009_a_leaf_in_a_git_working_tree_excludes_claude_md_and_claude_local_m
     excluded = _launched_excludes(run_leaf, monkeypatch, capfd)
 
     assert excluded == [os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md"),
-                        *(os.path.join(d, name) for d in above for name in ("CLAUDE.md", "CLAUDE.local.md"))]
+                        *(os.path.join(d, name) for d in above
+                          for name in ("CLAUDE.md", "CLAUDE.local.md", os.path.join(".claude", "CLAUDE.md")))]
 
 
 def test_4009_a_leaf_in_a_linked_worktree_whose_git_is_a_file_excludes_the_ancestors_claude_md_and_keeps_its_own(
@@ -249,7 +250,7 @@ def test_4010_the_grader_leaf_grade_unit_launches_excludes_claude_md_and_claude_
     argv = launches[0]
     assert json.loads(argv[argv.index("--settings") + 1])["claudeMdExcludes"] == [
         os.path.join(os.environ["HOME"], ".claude", "CLAUDE.md"),
-        str(work / "CLAUDE.md"), str(work / "CLAUDE.local.md")]
+        str(work / "CLAUDE.md"), str(work / "CLAUDE.local.md"), str(work / ".claude" / "CLAUDE.md")]
 
 
 def test_4010_a_leaf_launched_without_the_graders_request_keeps_its_working_directorys_claude_md_and_claude_local_md(
