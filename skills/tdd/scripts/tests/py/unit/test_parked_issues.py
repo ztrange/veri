@@ -530,3 +530,16 @@ def test_main_3972_takes_the_last_trusted_parked_comment_skipping_a_later_untrus
     code, out, err = run_cli(parked_issues, [])
 
     assert (code, out, err) == (0, "3972\tAn issue\twaiting on #3420\t#3420 merges\twaiting\n", "")
+
+
+def test_main_3972_an_issue_whose_only_parked_comments_are_untrusted_exits_2_as_one_with_no_parked_comment(
+        monkeypatch, parked_issues, run_cli):
+    serve_thread(monkeypatch, parked_issues, [
+        authored("OWNER", "### 🔧 Working on it", login="veri-operator"),
+        authored("MEMBER", "### ⏸ Parked\n\nCause: nothing\nUnblock: release it now"),
+        authored("NONE", "### ⏸ Parked\n\nCause: nothing\nUnblock: release it now\nBlocked by: #1"),
+    ], blockers={"1": "closed"})
+
+    code, out, err = run_cli(parked_issues, [])
+
+    assert (code, out, err) == (2, "", "parked-issues.sh: issue #3972 has no parked comment\n")
