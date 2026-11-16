@@ -71,3 +71,13 @@ def test_3965_a_closed_veri_pycache_directory_owned_by_another_user_is_refused(r
     monkeypatch.setattr(os, "getuid", lambda: os.lstat(cache).st_uid + 1)
 
     assert run_prefix() is None
+
+
+def test_3965_a_group_writable_default_prefix_under_tmpdir_is_refused_and_no_prefix_set(run_prefix, monkeypatch, tmp_path):
+    default = tmp_path / ("veri-pycache-%d" % os.getuid())
+    default.mkdir()
+    default.chmod(0o770)
+    monkeypatch.delenv("VERI_PYCACHE", raising=False)
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+
+    assert run_prefix() is None
