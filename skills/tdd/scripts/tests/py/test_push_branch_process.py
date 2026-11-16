@@ -72,6 +72,31 @@ def test_a_push_that_lands_leaves_the_branch_on_the_remote_at_the_commit_head_is
     assert remote_at(remote) == git(repo, "rev-parse", "HEAD")
 
 
+@pytest.mark.process("git push of a branch and a side ref to a bare repository")
+def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_holding_the_runs_records_for_issue_n(
+        tmp_path, run_cli, push_branch):
+    remote = bare(tmp_path / "origin.git")
+    repo = run_repo(tmp_path / "records", remote)
+    lines = ['{"issue": "191", "event": "start"}', '{"issue": "192", "event": "start"}', '{"issue": "191", "event": "step-start"}']
+    (repo / ".tdd" / "events.jsonl").write_text("".join(line + "\n" for line in lines))
+    (repo / ".tdd" / "issue-191-skill-commit").write_text("abc1234\n")
+    (repo / ".tdd" / "issue-191-timeout").write_text("3600\n")
+
+    code, _, _ = run_cli(push_branch, [], env=LANDED_ENV, cwd=repo)
+
+    ref = "refs/veri/runs/191"
+    shown = {name: subprocess.run(["git", "-C", str(remote), "show", "%s:.tdd/%s" % (ref, name)],
+                                  capture_output=True, text=True).stdout
+             for name in ("events.jsonl", "issue-191-skill-commit", "issue-191-timeout")}
+    on_a_branch = subprocess.run(["git", "-C", str(remote), "branch", "--contains", ref],
+                                 capture_output=True, text=True).stdout.strip()
+    assert (code, shown, on_a_branch) == (0, {
+        "events.jsonl": lines[0] + "\n" + lines[2] + "\n",
+        "issue-191-skill-commit": "abc1234\n",
+        "issue-191-timeout": "3600\n",
+    }, "")
+
+
 def test_a_non_fast_forward_rejection_exits_1_after_one_attempt_naming_the_remote_sha_and_recording_push_rejected(
         tmp_path, run_cli, push_branch, events, fake_processes):
     (tmp_path / ".git").mkdir()

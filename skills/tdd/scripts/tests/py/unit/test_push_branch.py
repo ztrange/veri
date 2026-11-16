@@ -15,6 +15,8 @@ def after_push(monkeypatch):
     landed = []
     pointer_comment = importlib.import_module("veri.pointer_comment")
     monkeypatch.setattr(pointer_comment, "after_push", lambda: landed.append("pointer"), raising=False)
+    run_records = importlib.import_module("veri.run_records")
+    monkeypatch.setattr(run_records, "after_push", lambda: None, raising=False)
     return landed
 
 

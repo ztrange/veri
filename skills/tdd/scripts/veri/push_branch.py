@@ -11,6 +11,7 @@ import sys
 
 import event
 import pointer_comment
+import run_records
 import tunables
 
 SCRIPTS = paths.scripts_of(__file__)
@@ -85,6 +86,7 @@ def main(argv):
         if pushed.returncode == 0:
             if leased_push:
                 os.remove(lease_file)
+            run_records.after_push()
             pointer_comment.after_push()
             return 0
         out = pushed.stdout.rstrip("\n")

@@ -2,7 +2,6 @@
 place otherwise, saying where the issue's run is."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import datetime
-import re
 import subprocess
 import sys
 
@@ -108,15 +107,9 @@ def mirror(issue, pushed_at=None):
     write(issue, pushed_at)
 
 
-def run_issue(name):
-    """The issue a run's branch `tdd/<n>-<slug>` names, or None for any other branch."""
-    found = re.fullmatch(r"tdd/(\d+)-.+", name)
-    return found.group(1) if found else None
-
-
 def after_push():
     """The pointer comment of the issue the current branch names, stamped with this push; nothing on another branch."""
-    issue = run_issue(branch())
+    issue = run_dir.branch_issue(branch())
     if issue:
         mirror(issue, pushed_at=now())
 

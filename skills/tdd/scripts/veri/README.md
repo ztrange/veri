@@ -264,6 +264,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `journal_sample`: prints `fixtures/journal/sample.jsonl`, one invented line per event `event_table` declares, every key carried, built through `event.line`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
+- `run_records`: a run's records (its journal lines, skill pin and timeout pin) carried on origin's `refs/veri/runs/<n>`, a commit on no branch.
 - `run_pins`: a run's per-issue pin files (skip-verify list, conductor model, launch environment, baseline full-tier mode) and the `.tdd/.gitignore` seed, written and read in one place.
 - `stop-reason.sh`: why a run stopped.
 - `stop-requested.sh`: whether a stop is requested.
@@ -324,7 +325,7 @@ A run's `.tdd/restart-pending` marker, which says a conductor restart is in flig
 Where a run lives on disk; the module docstring draws the layout. Paths are str and nothing but `main_tree` and `main_tree_from_files` touches the disk.
 - `main_tree(cwd=None, *, missing=)`: the repository's main working tree; when git cannot name one it raises `NoMainTree`, or returns `missing` (any value, `""` included) if the caller gave one.
 - `main_tree_from_files(start=None)`: the same tree found by reading `.git` files, starting no process: walks up from `start` (default cwd) to the first `.git`; a linked worktree's `.git` file leads through its `commondir` to the main tree; no `.git` answers `start`; OSError when a linked gitdir has no `commondir`.
-- `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue. `main_of_worktree(run)`: the main tree a `<main>/.tdd/wt/<n>` directory sits under, from the layout alone, `None` for any other directory.
+- `main_file(main, name)`: `<main>/.tdd/<name>`. `worktrees(main)`: `<main>/.tdd/wt`. `worktree(main, issue)`: the run of an issue. `main_of_worktree(run)`: the main tree a `<main>/.tdd/wt/<n>` directory sits under, from the layout alone, `None` for any other directory. `branch_issue(name)`: the issue a run's branch `tdd/<n>-<slug>` names, `None` for any other name.
 - `run_file(run, name)`: `<run>/.tdd/<name>`. `issue_file(run, issue, suffix="")`: `<run>/.tdd/issue-<n><suffix>`. `ledger(run, issue)`: the run's ledger.
 
 ## run_pins
