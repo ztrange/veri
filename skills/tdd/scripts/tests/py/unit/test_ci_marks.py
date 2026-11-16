@@ -18,7 +18,8 @@ def test_record_writes_the_value_and_a_newline_to_ci_kind_sha_under_the_run(run,
         ci_marks.record(run, kind, SHA, 1234)
 
     assert {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()} == {
-        f"ci-deadline-{SHA}": "1234\n", f"ci-queued-{SHA}": "1234\n", f"ci-none-{SHA}": "1234\n"}
+        f"ci-deadline-{SHA}": "1234\n", f"ci-queued-{SHA}": "1234\n", f"ci-none-{SHA}": "1234\n",
+        f"ci-head-{SHA}": "1234\n"}
 
 
 def test_an_empty_run_names_marks_relative_to_the_current_directory():
@@ -57,7 +58,7 @@ def test_a_deadline_file_that_exists_but_cannot_be_read_reads_as_empty_text(run,
     assert (ci_marks.deadline_text(run, SHA), ci_marks.exists(run, "deadline", SHA)) == ("", True)
 
 
-def test_remove_of_an_absent_mark_is_silent_and_fresh_window_drops_all_three(run, tmp_path):
+def test_remove_of_an_absent_mark_is_silent_and_fresh_window_drops_every_kind(run, tmp_path):
     ci_marks.remove(run, "none", SHA)
     for kind in ci_marks.KINDS:
         ci_marks.record(run, kind, SHA, 1)
