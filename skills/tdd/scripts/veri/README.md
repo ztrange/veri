@@ -525,7 +525,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): the pytest
 - `small_case_guard`: a pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/ module.
 
 ## full_run_lock
-- `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER`), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
+- `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
 - `held_by_ancestor()`: True when `PYTEST_LEG_FULL_LOCK_HOLDER` names the live pid the lock file records, so a nested run skips the lock. `enabled()`: False when `VERI_TEST_LOCK` is 0.
 - `wait_marker(key)`: the path a waiting run marks its wait at. `legs_dir()`: the registry directory the lock file sits beside.
 
