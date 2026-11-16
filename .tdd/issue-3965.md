@@ -9,6 +9,6 @@
 - [x] on a refusal veri's modules compile from source through the `FromSource` finder and one stderr line names the path and why ⟦criterion 3⟧
 - [x] a prefix path that is a regular file is refused, not used
 - [x] a prefix that cannot be created or read is refused, not a traceback
-- [x] CLAUDE.md's bytecode-cache paragraph says the prefix is used only when the user's own and closed to others (CM160), graded ⟦criterion 4⟧
+- [x] CLAUDE.md's bytecode-cache paragraph says the prefix is used only when the user's own and closed to others (CM169), graded ⟦criterion 4⟧
 - [x] a prefix the caller exported as PYTHONPYCACHEPREFIX is checked too, and a planted .pyc there never runs (review)
 - [x] a prefix whose parent group or others can write without the sticky bit is refused; a refused run writes no bytecode (review)
