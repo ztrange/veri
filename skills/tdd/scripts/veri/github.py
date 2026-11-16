@@ -26,6 +26,14 @@ import tunables
 from redaction import redact
 
 PARKED_HEADING = "### ⏸ Parked"
+# How every comment veri posts on an issue begins, whichever module posts it (comment.py's kinds, park_issue,
+# pointer_comment, preflight_refused, run_conductor's needs-user note): a reader that wants a human's words, not veri's
+# own, skips a body starting with one. tests/py/unit/test_veri_comment_prefixes.py fails on a posted heading not here.
+VERI_COMMENT_PREFIXES = (
+    PARKED_HEADING, "### ▶️ Resuming", "### ⛔ Bailed", "### ✅ Done", "### ✅ Step done", "### 📍 Run state",
+    "### ⏹️ Stopped", "### ⛔ Preflight refused", "### 🔴 Red", "### 🟢 Green", "### 🛠️ Refactor", "### 🔎 ",
+    "### 🗺️ ", "### 📊 Metrics", "needs-user: the conductor stopped without a verdict.",
+)
 
 
 class NoAnswer(Exception):
