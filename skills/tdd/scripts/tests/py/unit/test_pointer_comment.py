@@ -1,6 +1,7 @@
 """In-process cases for veri/pointer_comment.py, the module pointer-comment.sh is a shim over."""
 import importlib
 import json
+import re
 
 HEADING = "### 📍 Run state"
 
@@ -92,3 +93,18 @@ def test_the_comment_states_the_current_step_as_k_of_n_and_the_phase_of_the_issu
 
     assert ("Step: none" in bare, "Phase: none" in bare, "Step: 2/3" in stated, "Phase: red" in stated) == (
         True, True, True, True)
+
+
+def test_the_comment_states_a_push_time_with_its_offset_and_a_write_with_no_push_keeps_the_last_one(tmp_path, monkeypatch, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    issue = FakeIssue(fake_processes)
+    module = _module()
+    module.main(["7"])
+    never = issue.bodies()[0].splitlines()
+    module.write("7", pushed_at=module.now())
+    pushed = next(line for line in issue.bodies()[0].splitlines() if line.startswith("Last push: "))
+    module.main(["7"])
+    kept = issue.bodies()[0].splitlines()
+
+    assert ("Last push: none" in never, bool(re.fullmatch(r"Last push: \d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d", pushed)),
+            pushed in kept) == (True, True, True)

@@ -1,6 +1,7 @@
 """pointer-comment.sh's logic: the one `### 📍 Run state` comment on an issue, posted when it has none and edited in
 place otherwise, saying where the issue's run is."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import datetime
 import sys
 
 import entry
@@ -12,6 +13,7 @@ import run_dir
 
 HEADING = "### 📍 Run state"
 USAGE = "usage: pointer-comment.sh <issue-number>"
+LAST_PUSH = "Last push: "
 
 
 def branch():
@@ -44,7 +46,16 @@ def phase(issue):
     return named[-1] if named else "none"
 
 
-def render(issue):
+def now():
+    """The current local time, ISO-8601 to the second with its UTC offset."""
+    return datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def last_push(previous):
+    return next((line.removeprefix(LAST_PUSH) for line in previous.splitlines() if line.startswith(LAST_PUSH)), "none")
+
+
+def render(issue, pushed_at):
     name = branch()
     return "\n".join([
         HEADING,
@@ -53,13 +64,15 @@ def render(issue):
         "PR: %s" % pr_url(name),
         "Step: %s" % step(issue),
         "Phase: %s" % phase(issue),
+        LAST_PUSH + pushed_at,
         "Resume: $S/run-conductor.sh %s" % issue,
     ]) + "\n"
 
 
-def write(issue):
-    body = render(issue)
+def write(issue, pushed_at=None):
+    """Post or edit issue <issue>'s pointer comment; <pushed_at> is the push just made, else the comment keeps its own."""
     held = [c for c in github.issue_comments(issue) if (c.get("body") or "").startswith(HEADING)]
+    body = render(issue, pushed_at or last_push(held[0]["body"] if held else ""))
     if held:
         github.gh_comment_edit(held[0]["id"], body)
     else:
