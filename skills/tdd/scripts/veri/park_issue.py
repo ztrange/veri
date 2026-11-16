@@ -11,6 +11,7 @@ import github
 
 USAGE = ("usage: park-issue.sh <issue-number> <cause> <unblock> [<pr-number|PR-URL>] [--blocked-by <n>[,<n>…]]"
          " [--question-file <path>]\n")
+QUESTION_HEADINGS = ("#### Question", "#### Options", "#### Found", "#### Recommendation")
 
 
 def origin_slug():
@@ -57,6 +58,10 @@ def split_question(argv):
 def main(argv):
     argv, question_file = split_question(argv)
     question = "\n" + open(question_file).read() if question_file else ""
+    missing = [h for h in QUESTION_HEADINGS if question_file and h not in question.splitlines()]
+    if missing:
+        sys.stderr.write("park-issue.sh: the question file lacks the heading %s\n" % ", ".join(missing))
+        return 2
     argv, blocker = split_blocker(argv)
     if argv is None:
         sys.stderr.write("park-issue.sh: --blocked-by takes a comma-separated list <n>[,<n>…]\n")

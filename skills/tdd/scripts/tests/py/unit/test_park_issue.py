@@ -420,3 +420,17 @@ def test_issue_4076_a_question_file_goes_verbatim_into_the_parked_comment_after_
 
     assert (code, err) == (0, "")
     assert comments == ["### ⏸ Parked\nCause: cause\nUnblock: unblock\n\n" + QUESTION]
+
+
+@pytest.mark.parametrize("heading", ["#### Question", "#### Options", "#### Found", "#### Recommendation"])
+def test_issue_4076_a_question_file_lacking_one_heading_exits_2_naming_it_and_writes_nothing(
+        park, run_cli, tmp_path, heading):
+    park_issue, calls, edited = park
+    question = tmp_path / "question.md"
+    question.write_text(QUESTION.replace(heading + "\n", "In prose, not a heading: %s\n" % heading))
+
+    code, out, err = run_cli(park_issue, ["42", "cause", "unblock", "--blocked-by", "9", "--question-file", str(question)])
+
+    assert code == 2
+    assert heading in err
+    assert (calls, edited) == ([], [])
