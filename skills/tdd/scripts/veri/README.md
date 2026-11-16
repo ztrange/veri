@@ -736,7 +736,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `state_path(tree, role, lane=None)`: `.tdd/role-<role>[-<lane>].state` under `tree`. `read(path)`: text, `None` when missing.
 - `read_lines(role, lane=None)`: the role's state lines in the main tree, `None` when missing.
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`, `check()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`, `state`); each caller words it.
-- `append(path, text)`, `now()`, `epoch(stamp)`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
+- `append(path, text)`, `now()`, `epoch(stamp)`, `STAMP`: append (written through a temp file and renamed); the stamp; a stamp's epoch seconds, read as local time; the stamp's strftime format. `refusal(path, lines, stamp)`: why a reset request is refused, `None` when allowed.
 
 ## status
 - `json_document(scope=None, read_states=True)`: `(exit code, --json document)`.
