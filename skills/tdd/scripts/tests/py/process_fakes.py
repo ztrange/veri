@@ -17,6 +17,9 @@ fake_processes.answers(table, default=None, exact=False) -> fake
         "gh ": FileNotFoundError(2, "no gh")         an exception instance, or a class, is raised as the OS would raise it
         "git": lambda line, **kwargs: (0, "", "")    a callable is handed the command line and the keyword arguments the
                                                      caller passed (cwd, env, input, capture_output, check ...)
+        "git ls-remote": HANGS                       a child that never finishes: run raises TimeoutExpired when given a
+                                                     timeout; Popen hands back a hanging FakePopen (below); with no
+                                                     timeout to bound it either way, the case fails with NeverReturns
     A list may mix tuples, exception instances and callables. A callable needing the unjoined argv (an argument holding
     spaces) reads fake.argvs[-1]: the call is recorded before it is answered. A call no prefix matches fails the case with
     AssertionError("unexpected process: <line>") unless <default> (any of the answers above) answers it.
@@ -45,7 +48,10 @@ FakePopen models: pid (fixed, 4242); returncode (None until poll/wait/communicat
     mode) when asked as PIPE, else None; stdin a writer when asked as PIPE, whose text stays on .stdin.written after close
     (and communicate(input=) appends to it); kill/terminate/send_signal appended to .signals, nothing else happens; a
     with-block waits on exit.
-    NOT modelled: a running or hanging child, timeouts (the timeout argument is ignored), a signal changing returncode,
+    A hanging FakePopen (a HANGS answer) is the one exception: until it is signalled, communicate/wait given a timeout raise
+    TimeoutExpired and without one raise NeverReturns; once signalled they finish with returncode -<signal> and empty
+    output. A signal reaches it through kill/terminate/send_signal; a case faking os.killpg forwards it by pid itself.
+    NOT modelled: a running child, timeouts on a finished child (the timeout argument is ignored), a signal changing returncode,
     fileno() on the streams (a caller using os.read on them needs a process case), preexec_fn/start_new_session effects,
     pass_fds, a real pid. There is no real-process passthrough: a case needing one is a `process` case with its own setup.
 
@@ -60,6 +66,13 @@ import io
 import os
 import signal
 import subprocess
+
+HANGS = object()
+
+
+class NeverReturns(BaseException):
+    """A hanging fake child waited on with no timeout: the caller would hang without bound. A BaseException, so no
+    `except Exception` in the code under test can swallow it."""
 
 
 class _Written:
@@ -85,9 +98,9 @@ class FakePopen:
     """The Popen object fake_processes.answers hands back: already finished, see this module's docstring."""
     pid = 4242
 
-    def __init__(self, args, kwargs, code, out, err):
+    def __init__(self, args, kwargs, code, out, err, hangs=False):
         self.args, self.returncode, self.signals = args, None, []
-        self._code = code
+        self._code, self._hangs = code, hangs
         text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
         stream = io.StringIO if text else io.BytesIO
         piped = {name: kwargs.get(name) == subprocess.PIPE for name in ("stdin", "stdout", "stderr")}
@@ -97,20 +110,28 @@ class FakePopen:
         self.stdout = stream(self._out) if self._out is not None else None
         self.stderr = stream(self._err) if self._err is not None else None
 
-    def _finish(self):
+    def _finish(self, timeout=None):
+        if self._hangs and not self.signals:
+            if timeout is None:
+                raise NeverReturns("%r never returns, and no timeout bounds it" % (self.args,))
+            raise subprocess.TimeoutExpired(self.args, timeout)
+        if self._hangs:
+            self._code = -self.signals[-1]
         self.returncode = self._code
         return self._code
 
     def communicate(self, input=None, timeout=None):
         if input is not None and self.stdin is not None:
             self.stdin.write(input)
-        self._finish()
+        self._finish(timeout)
         return self._out, self._err
 
     def wait(self, timeout=None):
-        return self._finish()
+        return self._finish(timeout)
 
     def poll(self):
+        if self._hangs and not self.signals:
+            return None
         return self._finish()
 
     def send_signal(self, signum):
@@ -160,8 +181,12 @@ def installer(monkeypatch):
             return subprocess.CompletedProcess(args, 0, "", "")
 
         def answered(args, kwargs, rest=()):
-            """What the answer table says <args> did: (returncode, stdout, stderr) in the caller's mode."""
-            code, out, err = answer(line_of(args, kwargs, rest), **kwargs)
+            """What the answer table says <args> did: (returncode, stdout, stderr) in the caller's mode; HANGS for a
+            child that never finishes."""
+            got = answer(line_of(args, kwargs, rest), **kwargs)
+            if got is HANGS:
+                return HANGS
+            code, out, err = got
             encoding = kwargs.get("encoding") or "utf-8"
             text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
 
@@ -177,28 +202,42 @@ def installer(monkeypatch):
                 out, err = out + err, None
             return code, out, err
 
+        def finished(args, kwargs, rest=()):
+            """answered, for an entry point that waits for the child: a HANGS child times out, or never returns."""
+            got = answered(args, kwargs, rest)
+            if got is HANGS:
+                if kwargs.get("timeout") is None:
+                    raise NeverReturns("%r never returns, and no timeout bounds it" % (list(args),))
+                raise subprocess.TimeoutExpired(list(args), kwargs["timeout"])
+            return got
+
         def run(args, *rest, **kwargs):
-            code, out, err = answered(args, kwargs, rest)
+            code, out, err = finished(args, kwargs, rest)
             if kwargs.get("check") and code:
                 raise subprocess.CalledProcessError(code, args, out, err)
             return subprocess.CompletedProcess(args, code, out, err)
 
         def call(args, *rest, **kwargs):
-            return answered(args, kwargs, rest)[0]
+            return finished(args, kwargs, rest)[0]
 
         def popen(args, *rest, **kwargs):
-            child = FakePopen(args, kwargs, *answered(args, kwargs, rest))
+            got = answered(args, kwargs, rest)
+            if got is HANGS:
+                empty = "" if kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines") else b""
+                child = FakePopen(args, kwargs, None, empty, empty, hangs=True)
+            else:
+                child = FakePopen(args, kwargs, *got)
             popens.append(child)
             return child
 
         def check_call(args, *rest, **kwargs):
-            code = answered(args, kwargs, rest)[0]
+            code = finished(args, kwargs, rest)[0]
             if code:
                 raise subprocess.CalledProcessError(code, args)
             return 0
 
         def check_output(args, *rest, **kwargs):
-            code, out, err = answered(args, kwargs, rest)
+            code, out, err = finished(args, kwargs, rest)
             if code:
                 raise subprocess.CalledProcessError(code, args, out, err)
             return out
