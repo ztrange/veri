@@ -2559,6 +2559,44 @@ def test_main_keeps_waiting_with_default_tunables_when_a_none_heads_check_run_ap
     assert observed == [(3, False), (3, False), (3, False), (0, False)]
 
 
+def head_world(fake_processes, clock, reported):
+    """A PR whose pull read reports head <reported["sha"]>, its checks pending, the clock at <clock["now"]>."""
+    def answer(line, **_):
+        if line == "date +%s":
+            return 0, f"{clock['now']}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        sha = reported["sha"]
+        if line == PULL:
+            return 0, json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": True, "head": {"sha": sha}}), ""
+        base = f"gh api repos/o/r/commits/{sha}"
+        if line == f"{base}/status":
+            return 0, json.dumps({"state": "pending", "sha": sha, "total_count": 0, "statuses": []}), ""
+        if line == f"{base}/check-runs?page=1":
+            return 0, json.dumps({"total_count": 1, "check_runs": [check_run("gates", sha, "in_progress")]}), ""
+        if line.startswith(f"{base}/check-runs?page="):
+            return 0, json.dumps({"total_count": 1, "check_runs": []}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    return fake_processes(answer)
+
+
+def test_main_given_a_head_sha_the_pr_never_reports_writes_a_head_mark_and_exits_2_naming_both_shas_600_seconds_later_issue_3978(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    other = "fedcba9876543210fedcba9876543210fedcba98"
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    clock = {"now": 1000}
+    head_world(fake_processes, clock, {"sha": other})
+
+    first = run_cli(wait_ci, [PR, "0", "", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+    mark = (work / ".tdd" / f"ci-head-{FULL_SHA}").read_text()
+    clock["now"] = 1600
+    later = run_cli(wait_ci, [PR, "540", "", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    assert (first[0], mark, later[0], FULL_SHA in later[2] and other in later[2]) == (3, "1000\n", 2, True)
+
+
 def test_main_fresh_window_removes_one_shas_marks_reads_no_checks_and_exits_0(wait_ci, fake_processes, run_cli, tmp_path):
     other = "f" * 40
     tdd = tmp_path / ".tdd"
