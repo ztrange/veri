@@ -94,6 +94,18 @@ jobs:
       - name: make install-dev
         run: make install-dev
 
+      # The bytecode cache (PRD 023.2). What is cached: VERI_PYCACHE, the pycache prefix `make test`
+      # runs under — every veri module compiled and every test module pytest rewrote, plus the leg's
+      # manifest of the sha256 each .pyc was compiled from. Without it every run compiles all of them.
+      # Why mtimes are set from content: Python and pytest accept a cached .pyc only when its header's
+      # source mtime and size match the file's, and a fresh checkout gives every file a new mtime, so a
+      # restored cache would be voided whole. content_mtimes.py sets each tracked file's mtime from its
+      # blob id: unchanged content gets the mtime it had when the cache was saved, changed content a
+      # different one. The manifest stays the guard against a stale .pyc either way.
+      # Only a push to main saves (after a green make test): a PR's cache is readable only by that PR,
+      # and each save spends the repo's 10 GB cache allowance. A PR run restores the newest main cache
+      # and never saves. Cost: no runner minutes beyond the restore and the save themselves (the repo
+      # is public); a miss restores nothing and the run compiles from source as before.
       - name: stamp mtimes from content
         run: python3 skills/tdd/scripts/veri/content_mtimes.py
 
