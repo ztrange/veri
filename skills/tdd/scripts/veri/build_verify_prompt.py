@@ -113,7 +113,8 @@ def _touching_cases(ledger):
         names = [name for name, _ in case_reader.cut_cases(text)]
         if names:
             lines += [path, *(f"- {name}" for name in names), ""]
-    return TOUCHING_HEADING + b"\n\n" + "\n".join(lines).rstrip("\n").encode()
+    listing = "\n".join(lines).rstrip("\n") or "No test case touches a file the plan names."
+    return TOUCHING_HEADING + b"\n\n" + listing.encode()
 
 
 def _refused(message=None):
