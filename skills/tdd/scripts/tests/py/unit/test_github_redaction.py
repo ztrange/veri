@@ -34,3 +34,10 @@ def test_redact_replaces_an_sk_ant_key_with_redacted_issue_3960(github):
 
 def test_redact_replaces_an_akia_access_key_id_with_redacted_issue_3960(github):
     assert github.redact("id=AKIAFAKE0123FAKE0123 ok") == "id=[redacted] ok"
+
+
+def test_redact_replaces_every_occurrence_of_a_listed_variables_value_issue_3960(github, monkeypatch):
+    monkeypatch.setenv("VERI_REDACT_VARS", "FAKE_SECRET")
+    monkeypatch.setenv("FAKE_SECRET", "not-a-real-secret")
+
+    assert github.redact("a not-a-real-secret b not-a-real-secret") == "a [redacted] b [redacted]"

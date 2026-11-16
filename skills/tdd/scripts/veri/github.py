@@ -30,8 +30,14 @@ _TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{
 
 
 def redact(text):
-    """<text> with every token-shaped string replaced by [redacted]."""
-    return _TOKEN_SHAPES.sub(REDACTED, text)
+    """<text> with every token-shaped string, and every value of a variable VERI_REDACT_VARS names, replaced by
+    [redacted]."""
+    text = _TOKEN_SHAPES.sub(REDACTED, text)
+    for name in tunables.get("VERI_REDACT_VARS").split():
+        value = os.environ.get(name, "")
+        if value:
+            text = text.replace(value, REDACTED)
+    return text
 
 
 class NoAnswer(Exception):
