@@ -103,3 +103,11 @@ def test_only_incidents_younger_than_the_threshold_exit_0_printing_a_young_line_
                incident("Slow issues", 5, "Issues"))
 
     assert run_cli(page.module, [])[:2] == (0, "young 12 Slow PRs\nyoung 5 Slow issues\n")
+
+
+def test_an_incident_with_empty_or_absent_components_never_counts_however_old(page, run_cli):
+    absent = incident("Something somewhere", 600)
+    del absent["components"]
+    page.serve(incident("Unnamed trouble", 600), absent)
+
+    assert run_cli(page.module, [])[:2] == (0, "up\n")
