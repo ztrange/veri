@@ -65,7 +65,7 @@ def take_lock(lock):
         except FileExistsError:
             pass
         if tries <= 0:
-            sys.stderr.write("workqueue.sh: could not take the lock %s\n" % lock)
+            sys.stderr.write("workqueue.sh: could not take the lock %s; %s\n" % (lock, holder_of(lock)))
             raise SystemExit(2)
         tries -= 1
         time.sleep(0.05)
@@ -73,6 +73,21 @@ def take_lock(lock):
 
 def holder_path(lock):
     return os.path.join(lock, "holder")
+
+
+def holder_of(lock):
+    """`holder <pid> alive` or `holder <pid> dead` for the pid the lock's holder file records, `holder unrecorded`
+    when it records none."""
+    pid = pid_file.number_in(holder_path(lock))
+    if pid is None:
+        return "holder unrecorded"
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return "holder %s dead" % pid
+    except PermissionError:
+        pass
+    return "holder %s alive" % pid
 
 
 def release_lock(lock):
