@@ -12,8 +12,16 @@ def coverage_blocker():
     return importlib.import_module("veri.coverage_blocker")
 
 
+@pytest.fixture
+def cover_report(tmp_path, monkeypatch):
+    """The working directory moved to tmp_path, holding a cover report that says `COVERED: no` with no `MUTATION:` line (#3943)."""
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
+    monkeypatch.chdir(tmp_path)
+
+
 def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when_the_body_has_no_blocked_by_heading(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     original = "## Problem\n\nx"
     written = {}
 
@@ -33,7 +41,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
 
 def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when_the_blocked_by_heading_has_no_none_or_list_line(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     original = "## Problem\n\nx\n\n## Blocked by\n\nWaiting on the design.\n\n## Notes\n\ny"
     written = {}
 
@@ -53,7 +61,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
 
 def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when_the_only_heading_is_blocked_by_with_a_colon(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     original = "## Problem\n\nx\n\n## Blocked by:\n\nWaiting on the design.\n\n## Notes\n\ny"
     written = {}
 
@@ -73,7 +81,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_and_every_line_kept_when
 
 
 def test_main_1262_exits_0_with_the_new_issue_a_blocker_when_the_heading_carries_none_replaced_or_list_lines_kept(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     written = {}
 
     def fake_edit(n, path):
@@ -97,7 +105,7 @@ def test_main_1262_exits_0_with_the_new_issue_a_blocker_when_the_heading_carries
 
 
 def test_main_1262_writes_nothing_exits_2_and_names_the_issue_on_stderr_when_the_create_answers_no_issue_number(
-        monkeypatch, capsys, coverage_blocker):
+        cover_report, monkeypatch, capsys, coverage_blocker):
     edits = []
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -111,7 +119,7 @@ def test_main_1262_writes_nothing_exits_2_and_names_the_issue_on_stderr_when_the
 
 
 def test_main_1262_writes_nothing_and_exits_2_when_the_new_issue_is_numbered_but_the_body_it_would_write_still_reads_as_unblocked(
-        monkeypatch, capsys, coverage_blocker):
+        cover_report, monkeypatch, capsys, coverage_blocker):
     edits = []
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -127,7 +135,7 @@ def test_main_1262_writes_nothing_and_exits_2_when_the_new_issue_is_numbered_but
 
 
 def test_main_1262_writes_the_blocker_directly_under_a_heading_followed_by_prose_and_keeps_every_byte_of_the_prose(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     written = {}
 
     def fake_edit(n, path):
@@ -147,7 +155,7 @@ def test_main_1262_writes_the_blocker_directly_under_a_heading_followed_by_prose
 
 
 def test_main_3721_files_a_cover_issue_whose_body_opens_with_a_problem_heading_over_the_refusal_text(
-        monkeypatch, coverage_blocker):
+        cover_report, monkeypatch, coverage_blocker):
     created = []
 
     monkeypatch.setattr(coverage_blocker, "gh_rest_list", lambda path: "[]")
@@ -301,7 +309,7 @@ def test_main_3721_files_a_cover_issue_carrying_the_opt_in_label_of_the_run(
 
 
 def test_main_3721_files_a_cover_issue_carrying_filed_by_the_lane_after_the_last_colon_of_the_label_or_main(
-        monkeypatch, tmp_path, coverage_blocker):
+        cover_report, monkeypatch, tmp_path, coverage_blocker):
     monkeypatch.chdir(tmp_path)
     seen = {}
     current = []
@@ -359,7 +367,7 @@ def test_main_3721_files_a_cover_issue_without_the_opt_in_label_when_the_probe_g
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
 
     labels = {name: _label_run(monkeypatch, tmp_path / name, coverage_blocker, report)
-              for name, report in (("none", None), ("nomut", "COVERED: no\nCAUGHT_BY: NONE\n"))}
+              for name, report in (("none", ""), ("nomut", "COVERED: no\nCAUGHT_BY: NONE\n"))}
 
     assert {k: ("ready-for-agent:mu" in v, "filed-by:mu" in v) for k, v in labels.items()} == {
         "none": (False, True), "nomut": (False, True)}

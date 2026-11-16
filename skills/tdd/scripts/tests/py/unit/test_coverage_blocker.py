@@ -14,6 +14,14 @@ def coverage_blocker():
     return importlib.import_module("veri.coverage_blocker")
 
 
+@pytest.fixture
+def cover_report(tmp_path, monkeypatch):
+    """The working directory moved to tmp_path, holding a cover report that says `COVERED: no` with no `MUTATION:` line (#3943)."""
+    (tmp_path / ".tdd").mkdir(exist_ok=True)
+    (tmp_path / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture(autouse=True)
 def default_driver(monkeypatch):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
@@ -39,7 +47,7 @@ def _install(fake_processes, fake_run):
     return fake
 
 
-def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     seen = {}
 
     def fake_run(args, **kwargs):
@@ -67,7 +75,7 @@ def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(tmpdi
     assert list(tmpdir_env.iterdir()) == []
 
 
-def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_collapsed_to_one(tmpdir_env, monkeypatch, coverage_blocker, fake_processes):
+def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_collapsed_to_one(cover_report, tmpdir_env, monkeypatch, coverage_blocker, fake_processes):
     calls = []
     seen = {}
 
@@ -97,7 +105,7 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
     assert seen["body"] == "## Parent\n\n#1\n\n## Blocked by\n\n- #77\n"
 
 
-def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch, coverage_blocker, fake_processes):
+def test_main_leaves_no_temp_file_when_the_patch_raises(cover_report, tmpdir_env, monkeypatch, coverage_blocker, fake_processes):
     class PatchDied(Exception):
         pass
 
@@ -123,7 +131,7 @@ def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch,
     assert list(tmpdir_env.iterdir()) == []
 
 
-def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empty_number_and_2_when_the_create_fails(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empty_number_and_2_when_the_create_fails(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     def refuse(args, **kwargs):
         raise AssertionError("unexpected subprocess call: %r" % (args,))
 
@@ -146,7 +154,7 @@ def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empt
     assert (code, capsys.readouterr().out) == (2, "")
 
 
-def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_null_body_as_one_newline(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_null_body_as_one_newline(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     def run_with_rest_answer(rest_answer):
         seen = {}
 
@@ -172,7 +180,7 @@ def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_nul
     assert run_with_rest_answer('{"body": null}') == (0, "## Blocked by\n\n- #77\n", "")
 
 
-def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and_returns_0(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and_returns_0(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     calls = []
     seen = {}
 
@@ -207,7 +215,7 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
     assert (code, captured.out, captured.err) == (0, "https://github.com/owner/name/issues/77\n", "")
 
 
-def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserting_after_the_last_blocker(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserting_after_the_last_blocker(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     def run_with_body(body):
         seen = {}
 
@@ -238,7 +246,7 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
     assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n\n## Blocked by\n\n- #77\n")
 
 
-def test_main_replaces_only_the_none_line_under_blocked_by_leaving_a_none_line_in_another_section_unchanged(tmpdir_env, monkeypatch, run_cli, coverage_blocker, fake_processes):
+def test_main_replaces_only_the_none_line_under_blocked_by_leaving_a_none_line_in_another_section_unchanged(cover_report, tmpdir_env, monkeypatch, run_cli, coverage_blocker, fake_processes):
     seen = {}
 
     def fake_run(args, **kwargs):
@@ -264,7 +272,7 @@ def test_main_replaces_only_the_none_line_under_blocked_by_leaving_a_none_line_i
     assert seen["body"] == "## What to build\n\nNone of the callers change.\n\n## Blocked by\n\n- #77\n"
 
 
-def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_passes_a_failed_create_stderr_through(tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
+def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_passes_a_failed_create_stderr_through(cover_report, tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
     def run(argv, create_answer, create_code=0):
         calls = []
         seen = {}
@@ -317,7 +325,7 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
     assert "HTTP 422: Validation Failed" in err
 
 
-def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_and_returns_2_with_the_json_error_when_both_fail(tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
+def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_and_returns_2_with_the_json_error_when_both_fail(cover_report, tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
     def run(rest_code, rest_answer, rest_err):
         calls = []
         seen = {}
@@ -366,7 +374,7 @@ def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_a
     assert all(call[0] == "gh" and call[1:3] not in (["issue", "create"], ["issue", "edit"]) for call in calls)
 
 
-def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_issue_prints_the_first_url_and_blocks_on_it_777(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_issue_prints_the_first_url_and_blocks_on_it_777(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     issues = {60: {"title": "Refactor something", "body": "## Blocked by\n\nNone\n", "state": "open"}}
     read_fails = {"on": True}
     seen = {}
@@ -418,7 +426,7 @@ def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_iss
         0, "https://github.com/owner/name/issues/77\n", 1, "## Blocked by\n\n- #77\n")
 
 
-def test_main_reads_the_body_over_rest_only_with_no_issue_view_call_when_veri_gh_driver_is_unset(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_reads_the_body_over_rest_only_with_no_issue_view_call_when_veri_gh_driver_is_unset(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
     calls = []
     seen = {}
@@ -450,7 +458,7 @@ def test_main_reads_the_body_over_rest_only_with_no_issue_view_call_when_veri_gh
         0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #77\n")
 
 
-def test_main_falls_back_from_a_refused_issue_view_to_the_rest_read_and_patches_the_body_it_answers_under_veri_gh_driver_auto(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_falls_back_from_a_refused_issue_view_to_the_rest_read_and_patches_the_body_it_answers_under_veri_gh_driver_auto(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = []
     seen = {}
@@ -482,7 +490,7 @@ def test_main_falls_back_from_a_refused_issue_view_to_the_rest_read_and_patches_
         0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #12\n- #77\n")
 
 
-def test_main_returns_2_with_no_patch_and_no_traceback_when_the_rest_read_exits_nonzero_with_a_json_error_body_and_no_body_key(tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
+def test_main_returns_2_with_no_patch_and_no_traceback_when_the_rest_read_exits_nonzero_with_a_json_error_body_and_no_body_key(cover_report, tmpdir_env, monkeypatch, capfd, coverage_blocker, fake_processes):
     calls = []
 
     def fake_run(args, **kwargs):
@@ -507,7 +515,7 @@ def test_main_returns_2_with_no_patch_and_no_traceback_when_the_rest_read_exits_
     assert (code, captured.out, "Traceback" in captured.err) == (2, "", False)
 
 
-def test_main_pages_the_open_issue_lookup_until_an_empty_page_and_blocks_on_a_coverage_issue_found_on_page_2_without_creating_one(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_pages_the_open_issue_lookup_until_an_empty_page_and_blocks_on_a_coverage_issue_found_on_page_2_without_creating_one(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     lookup = "repos/{owner}/{repo}/issues?state=open&per_page=100&page="
     pages = {
         "1": [{"number": 70, "title": "Something else", "html_url": "https://github.com/owner/name/issues/70"}],
@@ -547,7 +555,7 @@ def test_main_pages_the_open_issue_lookup_until_an_empty_page_and_blocks_on_a_co
         0, "https://github.com/owner/name/issues/88\n", "## Blocked by\n\n- #88\n")
 
 
-def test_main_files_the_issue_as_when_no_match_is_found_when_a_later_lookup_page_fails_ignoring_a_match_on_the_pages_before_it(tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
+def test_main_files_the_issue_as_when_no_match_is_found_when_a_later_lookup_page_fails_ignoring_a_match_on_the_pages_before_it(cover_report, tmpdir_env, monkeypatch, capsys, coverage_blocker, fake_processes):
     lookup = "repos/{owner}/{repo}/issues?state=open&per_page=100&page="
     page_1 = [{"number": 88, "title": "Cover the behaviour #60 refactors", "html_url": "https://github.com/owner/name/issues/88"}]
     lookups = []
@@ -581,7 +589,7 @@ def test_main_files_the_issue_as_when_no_match_is_found_when_a_later_lookup_page
         0, "https://github.com/owner/name/issues/99\n", "## Blocked by\n\n- #99\n")
 
 
-def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_and_the_rest_get_and_post_answer_but_the_patch_fails_with_a_5xx(tmpdir_env, monkeypatch, run_cli, coverage_blocker, fake_processes):
+def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_and_the_rest_get_and_post_answer_but_the_patch_fails_with_a_5xx(cover_report, tmpdir_env, monkeypatch, run_cli, coverage_blocker, fake_processes):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
     refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"

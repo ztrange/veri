@@ -33,6 +33,9 @@ def test_the_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_
     view.write_text(json.dumps({"body": "## What to build\n\nExtract the parser.\n\n## Blocked by\n\nNone (can start immediately).\n"}))
     (tmp_path / "linked-skill").symlink_to(scripts.parent, target_is_directory=True)
     (tmp_path / "elsewhere").mkdir()
+    for cwd in (tmp_path, tmp_path / "elsewhere"):
+        (cwd / ".tdd").mkdir()
+        (cwd / ".tdd" / "develop-cover.out").write_text("COVERED: no\n")
     env = {k: v for k, v in os.environ.items() if k != "VERI_GH_DRIVER"}
     env.update(PATH="%s:%s" % (bin_dir, os.environ["PATH"]), FAKE_VIEW=str(view))
 
