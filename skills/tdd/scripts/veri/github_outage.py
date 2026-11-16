@@ -107,6 +107,8 @@ def write(path, lines):
     temporary = "%s.tmp.%d" % (path, os.getpid())
     with open(temporary, "w") as handle:
         handle.write("".join(line + "\n" for line in lines))
+        handle.flush()
+        os.fsync(handle.fileno())
     os.replace(temporary, path)
 
 
