@@ -12,7 +12,7 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
              pinned, model_knobs, models
   tables     phases, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
              adjudications, switched_off, switched_off_pin, total, green_rejects (+ green_reject_routes),
-             launch_costs (+ launch_cost_missing)
+             launch_costs (+ launch_cost_missing), gradings
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -299,6 +299,7 @@ class _Tally:
         self.green_rejects = []
         self.launch_costs = {}
         self.launch_cost_missing = 0
+        self.gradings = {"count": 0, "PASS": 0, "REJECT": 0, DOLLARS: 0.0, "efforts": set()}
 
     def step_mark(self, step):
         return self.spent.setdefault(step, {})
@@ -433,6 +434,14 @@ class _Tally:
                 self.switched_off += 1
         if event == "verify-pin-skipped" and line.get("reason") == "switched-off":
             self.switched_off_pin += 1
+        if event == "grading":
+            gradings = self.gradings
+            gradings["count"] += 1
+            if line.get("verdict") in ("PASS", "REJECT"):
+                gradings[line["verdict"]] += 1
+            gradings[DOLLARS] += float(line.get("cost_usd") or 0)
+            if line.get("effort"):
+                gradings["efforts"].add(line["effort"])
         if event == "adjudicated":
             outcome = line.get("outcome")
             self.adjudications[outcome] = self.adjudications.get(outcome, 0) + 1
@@ -594,6 +603,7 @@ class Fold:
     green_reject_routes: list   # (route, count) over green_rejects, by count descending, then route
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
+    gradings: dict              # the grading events: count, PASS, REJECT, $ (summed cost_usd), efforts (a set)
 
 
 def fold(issue, path, ledger):
@@ -668,7 +678,8 @@ def fold(issue, path, ledger):
                 conductor_counted=tally.conductor_counted, total=tally.total, structural=structural,
                 green_rejects=green_rejects,
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
-                launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing)
+                launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
+                gradings=tally.gradings)
 
 
 def known(number):
@@ -896,6 +907,12 @@ def layout(f):
         if f.launch_cost_missing:
             print()
             print("Leaf usage events without first-turn figures, not in the table: %d" % f.launch_cost_missing)
+    gradings = f.gradings
+    if gradings["count"]:
+        print()
+        print("Gradings: %d, PASS %d, REJECT %d, cost $%.2f, efforts %s"
+              % (gradings["count"], gradings["PASS"], gradings["REJECT"], gradings[DOLLARS],
+                 ", ".join(sorted(gradings["efforts"])) or UNKNOWN))
 
 
 def render(issue, path, ledger):
