@@ -9,11 +9,12 @@
 #          merged (lock released); a merge call that exited non-zero whose window's reads answered and
 #          never said merged exits with its code (a merge call killed after VERI_GH_TIMEOUT s is one
 #          that exited 2); a rebase conflict or refused push exits with git's code (lock kept);
-#          2 no answer — bad arguments, settle tunables or VERI_GIT_NETWORK_TIMEOUT (before the lock),
-#          a window in which no read answered, a wait-ci.sh exit 2 (a PR head that never matched the
-#          pushed sha; lock released), a git network call killed after VERI_GIT_NETWORK_TIMEOUT s
-#          (default 600; the first fetch: lock released; the leased push: lock kept; the tag push or
-#          branch delete: a failed cleanup step), an error raised before the merge call (lock
+#          2 no answer — bad arguments, settle tunables, VERI_GIT_NETWORK_TIMEOUT or VERI_GH_TIMEOUT
+#          (empty included; before the lock), a window in which no read answered, a wait-ci.sh exit 2
+#          (a PR head that never matched the pushed sha; lock released), a git network call killed
+#          after VERI_GIT_NETWORK_TIMEOUT s (default 600; the first fetch: lock released; the leased
+#          push: lock kept; the fetch after the merge, not retried, or the tag push: a failed tag
+#          step; the branch delete: a failed cleanup step), an error raised before the merge call (lock
 #          released, kept while a rebase is stopped), a PR already merged, closed unmerged,
 #          unreadable or with its head already on origin/main (refused before any rebase or push), an
 #          unresolvable ref, a worktree lacking a commit origin/<branch> has (nothing pushed), or a
