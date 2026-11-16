@@ -9,7 +9,7 @@ import pinned_scripts
 from test_run_conductor_process import fake_pin, fake_snapshot, past_the_guards, scratch_tmpdir
 
 COMMIT = "1" * 40
-SKILL = {"SKILL.md": "# skill\n", "scripts/status.sh": "#!/bin/sh\n"}
+SKILL = {"SKILL.md": "# skill\n", "scripts/status.sh": "echo status\n"}
 
 
 def launched(tmp_path, monkeypatch, capfdbinary, probe, issue="4242", files=SKILL):
@@ -43,10 +43,10 @@ def test_main_replaces_a_read_only_pinned_scripts_copy_the_last_launch_left_on_t
     pinned_scripts.make_read_only(str(kept))
 
     second = launched(tmp_path, monkeypatch, capfdbinary, lambda snapshot: None,
-                      files={"SKILL.md": "# skill\n", "scripts/status.sh": "#!/bin/sh\necho second\n"})
+                      files={"SKILL.md": "# skill\n", "scripts/status.sh": "echo second\n"})
 
     assert (first, second, (kept / "status.sh").read_text(), (kept / ".gitignore").read_text()) == (
-        (0, []), (0, []), "#!/bin/sh\necho second\n", "*\n")
+        (0, []), (0, []), "echo second\n", "*\n")
 
 
 @pytest.mark.skipif(os.geteuid() == 0, reason="uid 0 writes through missing write bits")
