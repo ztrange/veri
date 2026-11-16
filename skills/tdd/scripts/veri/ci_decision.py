@@ -119,17 +119,17 @@ def decide(obs, marks, now, loop, opts):
     if state in ("none", "skipped") and obs.mergeable is False:
         return Decision(Exit(2, "", _warn("%s conflicts with its base branch; no workflow will start until it is rebased" % opts.pr)), (), loop)
     mismatched = bool(opts.want and head != opts.want)
+    cleared = (Remove("head", opts.want),) if opts.want and marks.head is not None else ()
+    matched = () if mismatched else cleared
     if state == "none" and opts.on_pr == "0" and not mismatched:
-        return Decision(Exit(0, "", _warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % opts.pr)), (), loop)
+        return Decision(Exit(0, "", _warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % opts.pr)), matched, loop)
     if state == "none" and not opts.explicit:
         if obs.no_workflow is None:
             return Decision(Need("workflow"), (), loop)
         if obs.no_workflow:
-            return Decision(Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come" % opts.pr)), (), loop)
+            return Decision(Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come" % opts.pr)), cleared, loop)
     none = state == "none"
-    effects = [] if none else [Remove("none", head)]
-    if opts.want and not mismatched and marks.head is not None:
-        effects.append(Remove("head", opts.want))
+    effects = ([] if none else [Remove("none", head)]) + list(matched)
     if state == "skipped" or mismatched:
         state = "pending"
 
