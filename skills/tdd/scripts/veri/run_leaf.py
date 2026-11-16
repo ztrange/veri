@@ -20,6 +20,23 @@ import tunables
 GUARD = os.path.join(paths.scripts_of(__file__), "leaf-guard")
 DEFAULT_TOOLS = "Bash,Read,Edit,Write,Grep,Glob"
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
+# The one allow-list of a leaf's environment (PRD 022.5): a name neither here, nor under a prefix here, nor set by
+# launch_spec itself is dropped, so a credential no list names (GH_TOKEN, a cloud key) never reaches a leaf.
+LEAF_ENV_NAMES = frozenset((
+    "PATH", "HOME", "TMPDIR", "PWD", "USER", "LOGNAME", "LANG",
+    "CLAUDE_BIN", "REVISE_BUDGET", "VERIFY_LEAF_ARGS", "PYTHONCOERCECLOCALE",
+    "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR",
+    "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "NODE_EXTRA_CA_CERTS",
+))
+LEAF_ENV_PREFIXES = ("VERI_", "LC_")
+SET_NAMES = frozenset(("GIT_CONFIG_GLOBAL", "PYTHONDONTWRITEBYTECODE", "FORCE_PROMPT_CACHING_5M",
+                       "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "SHELL", "CLAUDE_CODE_SHELL",
+                       "BASH_DEFAULT_TIMEOUT_MS", "BASH_MAX_TIMEOUT_MS"))
+
+
+def leaf_passes(name):
+    """Whether the allow-list (or launch_spec's own names) lets `name` into a leaf's environment."""
+    return name in LEAF_ENV_NAMES or name in SET_NAMES or name.startswith(LEAF_ENV_PREFIXES)
 
 
 def claude_mds(directory):
@@ -99,14 +116,15 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
                 own_dir=None):
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
-    `env` is a copy of `environ` stripped of the conductor's session variables, with the leaf's private git
+    `env` holds only the names of `environ` the allow-list passes (`leaf_passes`), stripped of the conductor's
+    session variables, with the leaf's private git
     config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
     PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
     PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
     `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose project memory files are not
     loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number;
     UnmergeableSettings for a caller's `--settings` that is not a JSON object (`callers_settings`)."""
-    env = dict(environ)
+    env = {name: value for name, value in environ.items() if leaf_passes(name)}
     strip_session_env(env)
     env["GIT_CONFIG_GLOBAL"] = git_path
     env["PYTHONDONTWRITEBYTECODE"] = "1"

@@ -10,7 +10,7 @@ from conftest import INTERPRETER_VENV
 
 SCRIPTS = Path(__file__).resolve().parents[2]
 STUB = """#!/bin/sh
-{ printf '%s\\n' "$@"; cat; } > "$STUB_RECORD"
+{ printf '%s\\n' "$@"; cat; } > "$VERI_TEST_STUB_RECORD"
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
 """
 REQUIREMENTS = """## guide/unit.md
@@ -27,9 +27,9 @@ def rows_stub(fails):
     """A grader that answers exactly the rows its prompt asks about: FAIL with its reason for each id in fails, PASS for the rest."""
     arms = "".join('    %s) body="$body\\n$id: FAIL - %s"; verdict=REJECT ;;\n' % (i, r) for i, r in fails.items())
     return """#!/bin/sh
-{ printf '%s\\n' "$@"; cat; } > "$STUB_RECORD"
+{ printf '%s\\n' "$@"; cat; } > "$VERI_TEST_STUB_RECORD"
 body=""; verdict=PASS
-for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_RECORD"); do
+for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$VERI_TEST_STUB_RECORD"); do
   case "$id" in
 """ + arms + """    *) body="$body\\n$id: PASS - ok" ;;
   esac
@@ -50,7 +50,7 @@ def test_a_whole_file_unit_sends_the_stub_claude_the_unit_text_and_every_require
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert [PROSE in received, "A1" in received, "The widget is blue." in received,
@@ -70,7 +70,7 @@ def test_the_prompt_sent_to_the_stub_claude_contains_no_text_from_any_why_cell(t
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert ["The widget never hums." in received, "zebra-rationale" in received, "quokka-rationale" in received] \
@@ -93,7 +93,7 @@ def test_a_unit_graded_in_a_repo_with_history_gets_a_prompt_carrying_no_diff_and
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
-                   capture_output=True, env={**env, "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                   capture_output=True, env={**env, "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert [PROSE in received, "quokka-commit-message" in received, "green-old-wording" in received,
@@ -114,7 +114,7 @@ def test_a_section_unit_sends_only_that_sections_text_from_its_heading_to_the_ne
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert ["## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n" in received,
@@ -135,7 +135,7 @@ def test_a_section_units_text_ends_at_the_next_heading_of_higher_level_as_well_a
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert ["## Colour\nThe widget is painted a deep blue.\nIt stays silent.\n" in received,
@@ -156,7 +156,7 @@ def test_a_line_starting_with_hash_inside_a_fenced_code_block_never_starts_or_en
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md#Colour"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert ["# comment-line-zebra\npaint --blue\n```\nIt stays silent.\n" in received,
@@ -175,7 +175,7 @@ def test_the_grader_leaf_is_launched_under_a_leaf_role_distinct_from_every_devel
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     launches = [json.loads(line) for line in events.read_text().splitlines() if '"event": "launch"' in line] \
@@ -199,7 +199,7 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record),
                                              "VERI_MODEL": "env-model-zebra", "VERI_MODEL_VERIFIER": "env-model-quokka"})
 
     args = (record.read_text() if record.exists() else "").splitlines()
@@ -219,7 +219,7 @@ def test_the_command_the_stub_claude_receives_carries_the_same_tool_limits_a_ver
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     args = (record.read_text() if record.exists() else "").splitlines()
     settings = json.loads(args[args.index("--settings") + 1]) if "--settings" in args else None
@@ -241,7 +241,7 @@ def test_a_reply_whose_final_grades_block_has_every_id_line_pass_and_verdict_pas
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     assert done.returncode == 0, (done.returncode, done.stderr)
 
@@ -259,7 +259,7 @@ def test_a_reply_whose_final_grades_block_has_a_fail_line_and_verdict_reject_mak
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     assert [done.returncode, "A2" in done.stdout, "the widget hums quokka-loudly" in done.stdout,
             "A1" in done.stdout] == [1, True, True, False], (done.returncode, done.stdout, done.stderr)
@@ -272,15 +272,15 @@ def test_a_fail_row_is_regraded_twice_against_only_the_failed_rows_and_one_faili
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
     claude.write_text(rows_stub({"A2": "the widget hums quokka-loudly"}).replace(
-        '> "$STUB_RECORD"\n', '> "$STUB_RECORD"\n'
-        'sed -n \'/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p\' "$STUB_RECORD" | tr \'\\n\' \' \' >> "$STUB_LOG"; echo >> "$STUB_LOG"\n', 1))
+        '> "$VERI_TEST_STUB_RECORD"\n', '> "$VERI_TEST_STUB_RECORD"\n'
+        'sed -n \'/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p\' "$VERI_TEST_STUB_RECORD" | tr \'\\n\' \' \' >> "$VERI_TEST_STUB_LOG"; echo >> "$VERI_TEST_STUB_LOG"\n', 1))
     claude.chmod(0o755)
     log = tmp_path / "log.txt"
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_LOG": str(log)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_LOG": str(log)})
 
     asked = [l.split() for l in log.read_text().splitlines()] if log.exists() else []
     assert [done.returncode, "A2" in done.stdout, "A1" in done.stdout, asked] == [
@@ -295,8 +295,8 @@ def test_a_first_grade_fail_row_that_reads_pass_in_either_regrade_is_not_printed
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 cat > /dev/null
-echo call >> "$STUB_CALLS"
-n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+echo call >> "$VERI_TEST_STUB_CALLS"
+n=$(wc -l < "$VERI_TEST_STUB_CALLS" | tr -d ' ')
 a1="A1: PASS - ok"; v=REJECT
 if [ "$n" != 2 ]; then a1="A1: FAIL - flaky-teal"; fi
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\n'"$a1"'\\nA2: FAIL - hums-quokka\\nVERDICT: REJECT\\nEND GRADES"}'
@@ -306,7 +306,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_CALLS": str(tmp_path / "calls.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt")})
 
     assert [done.returncode, "A2" in done.stdout, "hums-quokka" in done.stdout, "A1" in done.stdout,
             "flaky-teal" in done.stdout] == [1, True, True, False, False], (done.returncode, done.stdout, done.stderr)
@@ -320,8 +320,8 @@ def test_when_every_first_grade_fail_row_reads_pass_in_a_regrade_the_unit_passes
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 cat > /dev/null
-echo call >> "$STUB_CALLS"
-n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+echo call >> "$VERI_TEST_STUB_CALLS"
+n=$(wc -l < "$VERI_TEST_STUB_CALLS" | tr -d ' ')
 case $n in
 1) body='A1: FAIL - flaky-teal\\nA2: PASS - ok\\nVERDICT: REJECT' ;;
 2) body='A1: PASS - ok\\nVERDICT: PASS' ;;
@@ -334,7 +334,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_CALLS": str(tmp_path / "calls.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
@@ -358,7 +358,7 @@ def test_a_reply_with_two_or_more_fail_lines_prints_every_failing_id_with_its_re
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     assert [done.returncode, "A1" in done.stdout, "teal-zebra" in done.stdout, "A3" in done.stdout,
             "square-quokka" in done.stdout, "A2" in done.stdout] == [1, True, True, True, True, False], \
@@ -379,7 +379,7 @@ def test_a_reply_with_no_grades_block_makes_grade_prose_exit_2_and_name_the_miss
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     assert [done.returncode, "GRADES" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
 
@@ -397,7 +397,7 @@ def test_a_reply_with_text_after_end_grades_makes_grade_prose_exit_2_and_name_th
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     assert [done.returncode, "quokka-epilogue" in done.stderr] == [2, True], (done.returncode, done.stdout, done.stderr)
 
@@ -413,7 +413,7 @@ def test_a_grades_block_with_a_missing_requirement_id_makes_grade_prose_exit_2_a
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"),
                                "VERI_NO_VERDICT_RETRIES": "0"})
 
     assert (done.returncode, "A2" in done.stderr) == (2, True), (done.returncode, done.stderr)
@@ -433,7 +433,7 @@ def test_a_grades_block_whose_verdict_disagrees_with_its_lines_makes_grade_prose
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
                               env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                                   "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[defect] = (done.returncode, "VERDICT" in done.stderr)
 
     assert outcomes == {"all-pass-but-reject": (2, True), "fail-but-pass": (2, True)}, outcomes
@@ -451,7 +451,7 @@ def test_a_grades_block_with_no_verdict_line_makes_grade_prose_exit_2_and_name_t
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "VERDICT" in done.stderr) == (2, True), (done.returncode, done.stderr)
 
@@ -468,7 +468,7 @@ def test_a_grades_line_whose_grade_word_is_other_than_exactly_pass_or_fail_makes
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "PASSABLE" in done.stderr) == (2, True), (done.returncode, done.stderr)
 
@@ -480,14 +480,14 @@ def test_a_malformed_grade_word_on_every_launch_is_named_after_retries_plus_one_
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
     claude.write_text(STUB.replace("A2: PASS - ok", "A2: PASSABLE - ok")
-                      .replace("#!/bin/sh\n", "#!/bin/sh\necho call >> \"$STUB_CALLS\"\n", 1))
+                      .replace("#!/bin/sh\n", "#!/bin/sh\necho call >> \"$VERI_TEST_STUB_CALLS\"\n", 1))
     claude.chmod(0o755)
     calls = tmp_path / "calls.txt"
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"), "STUB_CALLS": str(calls)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_CALLS": str(calls)})
 
     made = len(calls.read_text().splitlines()) if calls.exists() else 0
     assert (done.returncode, made, "PASSABLE" in done.stderr) == (2, 2, True), (done.returncode, made, done.stderr)
@@ -507,7 +507,7 @@ def test_a_reply_holding_two_grades_blocks_is_graded_on_the_final_one_only(tmp_p
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     assert (done.returncode, "quokka-first-thought" in done.stdout) == (0, False), \
         (done.returncode, done.stdout, done.stderr)
@@ -585,7 +585,7 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
@@ -606,7 +606,7 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
@@ -627,7 +627,7 @@ def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
@@ -652,7 +652,7 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
@@ -679,7 +679,7 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record), "VERI_HEARTBEAT": "abc"})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record), "VERI_HEARTBEAT": "abc"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
@@ -703,7 +703,7 @@ def test_1874_a_reply_in_the_poc_shape_with_the_verdict_line_inside_the_grades_b
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
                               env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                                   "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
         outcomes[name] = (done.returncode, "the widget hums quokka-loudly" in done.stdout)
 
     assert outcomes == {"all-pass": (0, False), "one-fail": (1, True)}, outcomes
@@ -721,7 +721,7 @@ def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if '"grading"' in l]
@@ -741,7 +741,7 @@ def test_1874_the_grader_leaf_is_launched_with_no_tools_the_stub_claude_receives
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     argv = (record.read_text() if record.exists() else "").split("\n")
     following = argv[argv.index("--tools") + 1] if "--tools" in argv else None
@@ -764,7 +764,7 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                    capture_output=True, env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                             "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record),
+                                             "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record),
                                              "VERI_MODEL_GRADER": "env-model-narwhal"})
 
     args = (record.read_text() if record.exists() else "").splitlines()
@@ -787,7 +787,7 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     gradings = [json.loads(l) for l in (events.read_text().splitlines() if events.exists() else [])
@@ -821,7 +821,7 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                    capture_output=True, text=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     lines = graded.read_text().splitlines()
     mine = [l for l in lines if l.startswith("skills/guide/unit.md ")]
@@ -847,7 +847,7 @@ def test_a_reject_and_an_exit_2_leave_graded_byte_identical(tmp_path):
         done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "skills/guide/unit.md"], cwd=tmp_path,
                               capture_output=True, text=True,
                               env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                                   "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                                   "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
         seen[name] = (done.returncode, graded.read_text() == before)
 
     assert seen == {"reject": (1, True), "no verdict": (2, True)}, seen
@@ -864,14 +864,14 @@ def test_grade_prose_owed_grades_exactly_the_non_orphan_units_prose_owed_prints_
         REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/one.md") + "\n"
         + REQUIREMENTS.replace("## guide/unit.md", "## skills/guide/two.md"))
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$STUB_RECORD"',
-                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$STUB_RECORD"'))
+    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$VERI_TEST_STUB_RECORD"',
+                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$VERI_TEST_STUB_RECORD"'))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
     subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True,
                    env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                        "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                        "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert re.findall(r"^Unit: (\S+)$", received, re.M) == ["skills/guide/one.md", "skills/guide/two.md"], received
@@ -894,14 +894,14 @@ def test_grade_prose_owed_grades_the_owed_unit_and_neither_the_unit_whose_signat
     (skill / "GRADED").write_text("skills/guide/current.md %s 2026-01-01 g1\nskills/guide/gone.md %s 2026-01-01 g2\n"
                                   % (current, current))
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$STUB_RECORD"',
-                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$STUB_RECORD"'))
+    claude.write_text(STUB.replace('{ printf \'%s\\n\' "$@"; cat; } > "$VERI_TEST_STUB_RECORD"',
+                                   '{ printf \'%s\\n\' "$@"; cat; } >> "$VERI_TEST_STUB_RECORD"'))
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
 
     ran = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "--owed"], cwd=tmp_path, capture_output=True, text=True,
                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                              "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     received = record.read_text() if record.exists() else ""
     assert (ran.returncode, re.findall(r"^Unit: (\S+)$", received, re.M)) == (0, ["skills/guide/owed.md"]), ran.stderr
@@ -935,7 +935,7 @@ def spy_on_grade_prose(tmp_path):
     spy.mkdir()
     calls = tmp_path / "calls.txt"
     wrapper = spy / "grade-prose.sh"
-    wrapper.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$SPY_CALLS"\nexec "$REAL_SCRIPTS/grade-prose.sh" "$@"\n')
+    wrapper.write_text('#!/bin/sh\nprintf \'%s\\n\' "$*" >> "$VERI_TEST_SPY_CALLS"\nexec "$VERI_TEST_REAL_SCRIPTS/grade-prose.sh" "$@"\n')
     wrapper.chmod(0o755)
     return spy, calls
 
@@ -971,8 +971,8 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
 
     spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
-                              "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")})
+                         env={**env, "S": str(spy), "VERI_TEST_REAL_SCRIPTS": str(SCRIPTS), "VERI_TEST_SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     record = tmp_path / "record.txt"
     graded = re.findall(r"^Unit: (\S+)$", record.read_text(), re.M) if record.exists() else []
@@ -980,12 +980,12 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_a_branch_that_signed_
 
 
 REJECT_THEN_PASS_STUB = """#!/bin/sh
-{ printf '%s\\n' "$@"; cat; } > "$STUB_DIR/in.$$"
-sed -n '/^Requirements:$/,$ p' "$STUB_DIR/in.$$" | grep -q '^A2: ' && grep '^Unit: ' "$STUB_DIR/in.$$" >> "$STUB_DIR/graded.txt"
-unit=$(sed -n 's/^Unit: //p' "$STUB_DIR/in.$$")
+{ printf '%s\\n' "$@"; cat; } > "$VERI_TEST_STUB_DIR/in.$$"
+sed -n '/^Requirements:$/,$ p' "$VERI_TEST_STUB_DIR/in.$$" | grep -q '^A2: ' && grep '^Unit: ' "$VERI_TEST_STUB_DIR/in.$$" >> "$VERI_TEST_STUB_DIR/graded.txt"
+unit=$(sed -n 's/^Unit: //p' "$VERI_TEST_STUB_DIR/in.$$")
 body=""; verdict=PASS
-for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_DIR/in.$$"); do
-  if [ "$unit" = "$(head -1 "$STUB_DIR/graded.txt" | sed 's/^Unit: //')" ] && [ "$id" = A1 ]; then
+for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$VERI_TEST_STUB_DIR/in.$$"); do
+  if [ "$unit" = "$(head -1 "$VERI_TEST_STUB_DIR/graded.txt" | sed 's/^Unit: //')" ] && [ "$id" = A1 ]; then
     body="$body\\n$id: FAIL - no"; verdict=REJECT
   else
     body="$body\\n$id: PASS - ok"
@@ -1026,8 +1026,8 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with
 
     spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
-                              "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir)})
+                         env={**env, "S": str(spy), "VERI_TEST_REAL_SCRIPTS": str(SCRIPTS), "VERI_TEST_SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_DIR": str(stub_dir)})
 
     graded_file = stub_dir / "graded.txt"
     graded = re.findall(r"^Unit: (\S+)$", graded_file.read_text(), re.M) if graded_file.exists() else []
@@ -1036,13 +1036,13 @@ def test_2037_the_draft_pr_regrade_block_run_as_written_on_two_signed_units_with
 
 
 PER_UNIT_STUB = """#!/bin/sh
-{ printf '%s\\n' "$@"; cat; } > "$STUB_DIR/in.$$"
-unit=$(sed -n 's/^Unit: //p' "$STUB_DIR/in.$$")
-case "$unit" in alpha/*) answer=$ANSWER_ALPHA ;; *) answer=$ANSWER_BETA ;; esac
+{ printf '%s\\n' "$@"; cat; } > "$VERI_TEST_STUB_DIR/in.$$"
+unit=$(sed -n 's/^Unit: //p' "$VERI_TEST_STUB_DIR/in.$$")
+case "$unit" in alpha/*) answer=$VERI_TEST_ANSWER_ALPHA ;; *) answer=$VERI_TEST_ANSWER_BETA ;; esac
 case "$answer" in
   2) printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"no grades here"}' ;;
   1) body=""; verdict=PASS
-     for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$STUB_DIR/in.$$"); do
+     for id in $(sed -n '/^Requirements:$/,$ s/^\\([A-Z][0-9]*\\): .*/\\1/p' "$VERI_TEST_STUB_DIR/in.$$"); do
        if [ "$id" = A1 ]; then body="$body\\n$id: FAIL - no"; verdict=REJECT; else body="$body\\n$id: PASS - ok"; fi
      done
      printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES'"$body"'\\nVERDICT: '"$verdict"'\\nEND GRADES"}' ;;
@@ -1085,9 +1085,9 @@ def test_2089_the_draft_pr_regrade_block_run_as_written_exits_with_the_highest_c
 
     spy, calls = spy_on_grade_prose(tmp_path)
     ran = subprocess.run(["bash", "-c", block], cwd=tmp_path, capture_output=True, text=True,
-                         env={**env, "S": str(spy), "REAL_SCRIPTS": str(SCRIPTS), "SPY_CALLS": str(calls),
-                              "CLAUDE_BIN": str(claude), "STUB_DIR": str(stub_dir),
-                              "ANSWER_ALPHA": first, "ANSWER_BETA": second})
+                         env={**env, "S": str(spy), "VERI_TEST_REAL_SCRIPTS": str(SCRIPTS), "VERI_TEST_SPY_CALLS": str(calls),
+                              "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_DIR": str(stub_dir),
+                              "VERI_TEST_ANSWER_ALPHA": first, "VERI_TEST_ANSWER_BETA": second})
 
     assert (ran.returncode, convert_calls(calls)) == (expected, ["--convert"]), (
         answers, ran.returncode, ran.stdout + ran.stderr)
@@ -1099,15 +1099,15 @@ def test_2338_a_grade_with_no_fail_row_launches_the_grader_exactly_once_and_exit
     (tmp_path / "guide" / "unit.md").write_text(PROSE)
     (tmp_path / "REQUIREMENTS.md").write_text(REQUIREMENTS)
     claude = tmp_path / "claude"
-    claude.write_text(STUB.replace("\n", "\nprintf x >> \"$STUB_LAUNCHES\"\n", 1))
+    claude.write_text(STUB.replace("\n", "\nprintf x >> \"$VERI_TEST_STUB_LAUNCHES\"\n", 1))
     claude.chmod(0o755)
     launches = tmp_path / "launches.txt"
 
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
-                               "STUB_LAUNCHES": str(launches)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"),
+                               "VERI_TEST_STUB_LAUNCHES": str(launches)})
 
     assert (done.returncode, len(launches.read_text()) if launches.exists() else 0) == (0, 1), done.stdout + done.stderr
 
@@ -1124,8 +1124,8 @@ def test_2338_a_regrade_that_returns_no_verdict_makes_grade_prose_exit_2_with_no
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 cat > /dev/null
-echo call >> "$STUB_CALLS"
-n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+echo call >> "$VERI_TEST_STUB_CALLS"
+n=$(wc -l < "$VERI_TEST_STUB_CALLS" | tr -d ' ')
 if [ "$n" != 1 ]; then
 """ + regrade + """
   exit 0
@@ -1137,8 +1137,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True, timeout=25,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
-                               "STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"),
+                               "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
@@ -1154,8 +1154,8 @@ def test_2338_a_regrade_block_that_leaves_out_an_asked_fail_row_makes_grade_pros
     claude = tmp_path / "claude"
     claude.write_text("""#!/bin/sh
 cat > /dev/null
-echo call >> "$STUB_CALLS"
-n=$(wc -l < "$STUB_CALLS" | tr -d ' ')
+echo call >> "$VERI_TEST_STUB_CALLS"
+n=$(wc -l < "$VERI_TEST_STUB_CALLS" | tr -d ' ')
 if [ "$n" != 1 ]; then
   printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
   exit 0
@@ -1167,8 +1167,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                           capture_output=True, text=True, timeout=25,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt"),
-                               "STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"),
+                               "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
     graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
@@ -1196,7 +1196,7 @@ def test_2483_a_unit_graded_on_a_tree_carrying_its_own_signature_formula_is_stil
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
 
     graded = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
@@ -1227,7 +1227,7 @@ def test_2483_a_passing_grade_whose_tree_formula_cannot_be_obtained_writes_no_li
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
 
     graded = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
@@ -1253,7 +1253,7 @@ def test_2483_convert_on_a_tree_whose_signature_raises_exits_2_naming_the_disagr
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
     signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
     assert signed.returncode == 0, signed.stderr
@@ -1288,7 +1288,7 @@ def test_2483_convert_resigns_the_listed_unit_under_the_trees_formula_and_leaves
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
     signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
     assert signed.returncode == 0, signed.stderr
@@ -1327,7 +1327,7 @@ def test_2483_convert_leaves_a_listed_units_stale_graded_line_byte_identical_and
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
     signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
     assert signed.returncode == 0, signed.stderr
@@ -1376,7 +1376,7 @@ def test_2483_convert_resigns_a_unit_listed_only_in_a_per_directory_requirements
     claude.write_text(STUB)
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-           "CLAUDE_BIN": str(claude), "STUB_RECORD": str(tmp_path / "record.txt")}
+           "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")}
     signed = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "guide/REQUIREMENTS.md", "guide/unit.md"], cwd=tmp_path,
                             capture_output=True, text=True, timeout=25, env=env)
     assert signed.returncode == 0, signed.stderr
@@ -1436,7 +1436,7 @@ def test_a_pass_on_a_root_unit_listed_in_the_root_requirements_writes_its_signat
     done = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "./REQUIREMENTS.md", "CLAUDE.md"], cwd=tmp_path,
                           capture_output=True, text=True,
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
-                               "CLAUDE_BIN": str(claude), "STUB_RECORD": str(record)})
+                               "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     graded = tmp_path / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []

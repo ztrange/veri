@@ -1341,7 +1341,7 @@ def test_cli_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_
     _write_prompt(work, "do the step\n")
     stub = tmp_path / "claude"
     stub.write_text("#!/usr/bin/env bash\n"
-                    'trap -p PIPE XFSZ > "$DISP_OUT"\n'
+                    'trap -p PIPE XFSZ > "$VERI_TEST_DISP_OUT"\n'
                     "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
     stub.chmod(0o755)
     monkeypatch.setenv("CLAUDE_BIN", str(stub))
@@ -1353,7 +1353,7 @@ def test_cli_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them_at_default_
                 signal.signal(name, signal.SIG_IGN)
             out = tmp_path / f"disp-{caller}"
             code, _, _ = run_cli(run_leaf, ["prompt.txt"], env={
-                "DISP_OUT": str(out), "VERI_SHIM_DEFAULT_SIGNALS": shim})
+                "VERI_TEST_DISP_OUT": str(out), "VERI_SHIM_DEFAULT_SIGNALS": shim})
             seen[caller] = (code, out.read_text())
     finally:
         for name, handler in saved.items():
@@ -1376,7 +1376,7 @@ def test_cli_run_leaf_sh_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them
         tmp_path, monkeypatch, run_cli):
     work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
     stub = _executable(tmp_path / "claude", "#!/usr/bin/env bash\n"
-                       'trap -p PIPE XFSZ > "$DISP_OUT"\n' + _OK_RESULT_LINE)
+                       'trap -p PIPE XFSZ > "$VERI_TEST_DISP_OUT"\n' + _OK_RESULT_LINE)
     seen = {}
     for handed in ("SIG_DFL", "SIG_IGN"):
         out = tmp_path / f"disp-{handed}"
@@ -1391,7 +1391,7 @@ def test_cli_run_leaf_sh_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them
                     stderr=subprocess.DEVNULL).returncode
 
         code, _, _ = run_cli(_Caller, ["prompt.txt"], cwd=work,
-                             env={"CLAUDE_BIN": str(stub), "DISP_OUT": str(out)})
+                             env={"CLAUDE_BIN": str(stub), "VERI_TEST_DISP_OUT": str(out)})
         seen[handed] = (code, out.read_text() if out.exists() else None)
 
     assert seen == {"SIG_DFL": (0, ""),
@@ -1412,7 +1412,7 @@ def test_cli_under_a_leaf_a_python_module_mutated_and_reverted_at_the_same_whole
     py = shlex.quote(sys.executable)
     stub.write_text(
         "#!/bin/sh\n"
-        'cd "$MOD_DIR" || exit 2\n'
+        'cd "$VERI_TEST_MOD_DIR" || exit 2\n'
         "same_second='import os, sys; open(\"mod.py\", \"w\").write(sys.argv[1]); "
         "os.utime(\"mod.py\", (1700000100, 1700000100))'\n"
         f"{py} -c 'import mod; print(mod.ANSWER)' > before\n"
@@ -1426,7 +1426,7 @@ def test_cli_under_a_leaf_a_python_module_mutated_and_reverted_at_the_same_whole
     monkeypatch.delenv("PYTHONPYCACHEPREFIX", raising=False)
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
-                         env={"CLAUDE_BIN": str(stub), "MOD_DIR": str(pyc)})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_MOD_DIR": str(pyc)})
 
     assert (code, [(pyc / name).read_text().strip() for name in ("before", "mutated", "after")]) == (
         0, ["1", "2", "1"])
@@ -1462,7 +1462,7 @@ def test_cli_a_python_process_under_a_leaf_writes_no_pyc_into_the_tree_it_import
     stub = tmp_path / "claude"
     stub.write_text(
         "#!/bin/sh\n"
-        'cd "$MOD_DIR" || exit 2\n'
+        'cd "$VERI_TEST_MOD_DIR" || exit 2\n'
         f"{shlex.quote(sys.executable)} -c 'import mod, pkg.sub; print(mod.ANSWER + pkg.sub.ANSWER)' > ../answer\n"
         "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
     stub.chmod(0o755)
@@ -1470,7 +1470,7 @@ def test_cli_a_python_process_under_a_leaf_writes_no_pyc_into_the_tree_it_import
     monkeypatch.delenv("PYTHONPYCACHEPREFIX", raising=False)
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
-                         env={"CLAUDE_BIN": str(stub), "MOD_DIR": str(tree)})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_MOD_DIR": str(tree)})
 
     assert (code, (tmp_path / "answer").read_text().strip(), sorted(tree.rglob("*.pyc"))) == (0, "3", [])
 
@@ -1500,12 +1500,12 @@ def test_cli_refuses_a_leafs_pkill_and_killall_before_they_signal_anything_namin
     for tool in ("pkill", "killall"):
         _executable(tools / tool, f'#!/bin/sh\nprintf "%s\\n" "$*" > "{tmp_path}/{tool}-ran"\n')
     stub = _leaf_stub(tmp_path,
-                      "pkill -n -f 'exp-sleep 60' > \"$SIG_DIR/pkill-out\" 2>&1\n"
-                      "killall exp-sleep > \"$SIG_DIR/killall-out\" 2>&1\n")
+                      "pkill -n -f 'exp-sleep 60' > \"$VERI_TEST_SIG_DIR/pkill-out\" 2>&1\n"
+                      "killall exp-sleep > \"$VERI_TEST_SIG_DIR/killall-out\" 2>&1\n")
     monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
-                         env={"CLAUDE_BIN": str(stub), "SIG_DIR": str(tmp_path)})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_SIG_DIR": str(tmp_path)})
 
     problems = []
     for tool in ("pkill", "killall"):
@@ -1529,12 +1529,12 @@ def test_cli_refuses_a_leafs_kill_of_a_pgrep_substitution_naming_the_rule_while_
     _executable(tmp_path / "suite.sh",
                 f'#!/bin/sh\npgrep -g 0\nprintf "%s\\n" "$?" > "{tmp_path}/suite-exit"\n')
     stub = _leaf_stub(tmp_path,
-                      "{ kill $(pgrep -f 'exp-sleep 60'); } > \"$PG_DIR/kill-out\" 2>&1\n"
-                      "\"$PG_DIR/suite.sh\"\n")
+                      "{ kill $(pgrep -f 'exp-sleep 60'); } > \"$VERI_TEST_PG_DIR/kill-out\" 2>&1\n"
+                      "\"$VERI_TEST_PG_DIR/suite.sh\"\n")
     monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
-                         env={"CLAUDE_BIN": str(stub), "PG_DIR": str(tmp_path)})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_PG_DIR": str(tmp_path)})
 
     ran = (tmp_path / "pgrep-ran").read_text().splitlines() if (tmp_path / "pgrep-ran").exists() else []
     said = (tmp_path / "kill-out").read_text().lower()
@@ -1550,13 +1550,13 @@ def test_cli_a_leaf_can_still_kill_a_pid_it_started_and_recorded(tmp_path, monke
     _write_prompt(work, "do the step\n")
     stub = _leaf_stub(tmp_path,
                       "bash -c 'sleep 30 & pid=$!\n"
-                      "env kill \"$pid\" 2> \"$OWN_DIR/kill-err\"; status=$?\n"
-                      "printf \"%s\\n\" \"$status\" > \"$OWN_DIR/kill-exit\"\n"
+                      "env kill \"$pid\" 2> \"$VERI_TEST_OWN_DIR/kill-err\"; status=$?\n"
+                      "printf \"%s\\n\" \"$status\" > \"$VERI_TEST_OWN_DIR/kill-exit\"\n"
                       "[ \"$status\" = 0 ] || /bin/kill \"$pid\"\n"
-                      "wait \"$pid\"; printf \"%s\\n\" \"$?\" > \"$OWN_DIR/wait-exit\"'\n")
+                      "wait \"$pid\"; printf \"%s\\n\" \"$?\" > \"$VERI_TEST_OWN_DIR/wait-exit\"'\n")
 
     code, _, _ = run_cli(run_leaf, ["prompt.txt"],
-                         env={"CLAUDE_BIN": str(stub), "OWN_DIR": str(tmp_path)})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_OWN_DIR": str(tmp_path)})
 
     assert (code, [(tmp_path / name).read_text().strip() for name in ("kill-exit", "wait-exit")]) == (
         0, ["0", "143"])
@@ -1599,7 +1599,7 @@ def test_cli_passes_the_prompt_to_claude_via_dash_p_in_stream_json(tmp_path, mon
 @pytest.mark.process("the run-leaf.sh entry point handing its arguments to a real stub claude")
 def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run_cli):
     work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
-    stub = _leaf_stub(tmp_path, 'printf "%s\\n" "$@" > "$ARGV_OUT"\n')
+    stub = _leaf_stub(tmp_path, 'printf "%s\\n" "$@" > "$VERI_TEST_ARGV_OUT"\n')
 
     class _EntryPoint:
         @staticmethod
@@ -1607,7 +1607,7 @@ def test_cli_passes_extra_arguments_through_to_claude(tmp_path, monkeypatch, run
             return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL).returncode
 
     code, _, _ = run_cli(_EntryPoint, ["prompt.txt", "--allowed-tools", "Read,Bash"], cwd=work,
-                         env={"CLAUDE_BIN": str(stub), "ARGV_OUT": str(tmp_path / "argv")})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_ARGV_OUT": str(tmp_path / "argv")})
 
     assert (code, (tmp_path / "argv").read_text().splitlines()[-2:]) == (
         0, ["--allowed-tools", "Read,Bash"])
@@ -1624,7 +1624,7 @@ def test_cli_launches_a_prompt_larger_than_arg_max_and_the_child_receives_it_who
         tmp_path, monkeypatch, run_cli):
     prompt = ("line of a very large revise prompt, padding padding padding\n" * (2 * os.sysconf("SC_ARG_MAX") // 60)).rstrip("\n")
     work = _prompt_workspace(tmp_path, monkeypatch, prompt)
-    stub = _leaf_stub(tmp_path, 'cat > "$STDIN_OUT"\n')
+    stub = _leaf_stub(tmp_path, 'cat > "$VERI_TEST_STDIN_OUT"\n')
 
     class _EntryPoint:
         @staticmethod
@@ -1632,7 +1632,7 @@ def test_cli_launches_a_prompt_larger_than_arg_max_and_the_child_receives_it_who
             return subprocess.run([str(SCRIPTS / "run-leaf.sh"), *argv], stdin=subprocess.DEVNULL).returncode
 
     code, _, _ = run_cli(_EntryPoint, ["prompt.txt"], cwd=work,
-                         env={"CLAUDE_BIN": str(stub), "STDIN_OUT": str(tmp_path / "stdin")})
+                         env={"CLAUDE_BIN": str(stub), "VERI_TEST_STDIN_OUT": str(tmp_path / "stdin")})
 
     received = (tmp_path / "stdin").read_bytes() if (tmp_path / "stdin").exists() else b""
     assert (code, len(received), received.rstrip(b"\n") == prompt.encode()) == (0, len(prompt), True)
@@ -1702,8 +1702,8 @@ def test_cli_run_leaf_sh_under_a_zsh_login_shell_hands_claude_a_shell_that_split
     work = _prompt_workspace(tmp_path, monkeypatch, "Verify the test for issue 3.")
     out = tmp_path / "seen"
     stub = _executable(tmp_path / "claude", "#!/bin/sh\n"
-                       "\"$SHELL\" -c 'x=\"make unit\"; set -- $x; echo $#' > \"$OUT_DIR.count\"\n"
-                       "\"$SHELL\" -c 'true | { exit 3; }; echo later' > \"$OUT_DIR.later\"\n"
+                       "\"$SHELL\" -c 'x=\"make unit\"; set -- $x; echo $#' > \"$VERI_TEST_OUT_DIR.count\"\n"
+                       "\"$SHELL\" -c 'true | { exit 3; }; echo later' > \"$VERI_TEST_OUT_DIR.later\"\n"
                        + _OK_RESULT_LINE)
 
     class _Launcher:
@@ -1713,7 +1713,7 @@ def test_cli_run_leaf_sh_under_a_zsh_login_shell_hands_claude_a_shell_that_split
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
 
     code, _, _ = run_cli(_Launcher, ["prompt.txt"], cwd=work,
-                         env={"CLAUDE_BIN": str(stub), "SHELL": "/bin/zsh", "OUT_DIR": str(out)})
+                         env={"CLAUDE_BIN": str(stub), "SHELL": "/bin/zsh", "VERI_TEST_OUT_DIR": str(out)})
     read = lambda suffix: (out.parent / f"seen.{suffix}").read_text() if (out.parent / f"seen.{suffix}").exists() else None
 
     assert (code, read("count"), read("later")) == (0, "2\n", "later\n")

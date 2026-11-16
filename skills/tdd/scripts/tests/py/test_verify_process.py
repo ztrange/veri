@@ -838,7 +838,7 @@ def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked, origin=True):
                        check=True)
     (tmp_path / "spec.md").write_text(SPEC)
     claude = tmp_path / "claude-mutate"
-    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
+    claude.write_text('#!/bin/sh\neval "${VERI_TEST_FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${VERI_TEST_FAKE_OUT_TEXT:-}"\nexit 0\n')
     claude.chmod(0o755)
     return repo, claude
 
@@ -850,7 +850,7 @@ def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked, origin=True):
     ('git commit -q -a -m "the verifier committed the developer\'s work"', None, 2, "HEAD"),
     ('b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke this\\n" > src.txt; cp "$b" src.txt; rm -f "$b"',
      None, 0, "full suite are green"),
-    ('printf "%s\\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\\n" > src.txt',
+    ('printf "%s\\n" "$@" > "$VERI_TEST_LEAFARGS_OUT"; printf "the verifier rewrote this\\n" > src.txt',
      "--permission-mode bypassPermissions --disallowedTools Write", 2, "src.txt"),
 ])
 def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_exit_2_naming_it_and_restores_what_it_was_handed(
@@ -859,9 +859,9 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
     (repo / "src.txt").write_text("the developer is still editing this\n")
     (repo / "new.txt").write_text("the developer has not committed this yet\n")
     leafargs_out = tmp_path / "leafargs"
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
-           "LEAFARGS_OUT": str(leafargs_out), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_TEST_LEAFARGS_OUT": str(leafargs_out), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     if leaf_args is not None:
         env["VERIFY_LEAF_ARGS"] = leaf_args
     env.update(checked_head(repo))
@@ -884,8 +884,8 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
     (repo / "tool.sh").chmod(0o755)
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 tool.sh",
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": "chmod 644 tool.sh",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -900,8 +900,8 @@ def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_changed_only_a_track
 def test_verify_sh_accepts_a_pass_from_a_verifier_leaf_that_made_a_committed_100644_file_executable_and_restores_100644_3087(
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tool.sh": "#!/bin/sh\n"})
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 755 tool.sh",
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": "chmod 755 tool.sh",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -920,8 +920,8 @@ def test_verify_sh_restores_the_mode_of_a_tracked_file_with_a_non_ascii_name_and
     (repo / "\u00e9.sh").chmod(0o755)
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make it executable"], check=True)
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 \u00e9.sh",
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": "chmod 644 \u00e9.sh",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -940,8 +940,8 @@ def test_verify_sh_still_refuses_a_verifier_leaf_that_turned_a_tracked_file_into
     (repo / "tool.sh").chmod(0o755)
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "rm tool.sh; ln -s src.txt tool.sh",
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": "rm tool.sh; ln -s src.txt tool.sh",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -958,8 +958,8 @@ def test_verify_sh_exits_2_naming_the_cause_when_restoring_a_mode_raises_3087(ru
     (repo / "tool.sh").chmod(0o755)
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": "chmod 644 tool.sh",
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": "chmod 644 tool.sh",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -983,8 +983,8 @@ def test_verify_sh_still_refuses_a_verifier_leaf_that_changed_both_the_mode_and_
     subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "make tool executable"], check=True)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
-           "FAKE_MUTATE": 'chmod 644 tool.sh; printf "the verifier rewrote this\\n" > tool.sh',
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_TEST_FAKE_MUTATE": 'chmod 644 tool.sh; printf "the verifier rewrote this\\n" > tool.sh',
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     env.update(checked_head(repo))
     verify = importlib.import_module("veri.verify")
@@ -1000,8 +1000,8 @@ def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unre
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     mutation = 'printf "the verifier rewrote this\\n" > src.txt; printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1016,8 +1016,8 @@ def test_verify_sh_restores_a_tracked_file_the_leaf_edited_when_it_refuses_for_a
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     mutation = 'printf "the verifier rewrote this\\n" > src.txt; printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1032,8 +1032,8 @@ def test_verify_sh_names_the_unreadable_file_on_stderr_when_it_refuses_for_one_t
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     mutation = 'printf "the verifier rewrote this\\n" > src.txt; printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1048,8 +1048,8 @@ def test_verify_sh_removes_a_file_the_leaf_added_when_it_refuses_for_an_unreadab
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     mutation = 'printf "added\\n" > added.txt; printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1065,8 +1065,8 @@ def test_verify_sh_keeps_an_untracked_file_that_predates_the_leaf_when_it_refuse
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     (repo / "notes.txt").write_text("the developer has not committed this yet\n")
     mutation = 'printf "secret\\n" > hidden.txt; chmod 000 hidden.txt'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1081,8 +1081,8 @@ def test_verify_sh_pin_in_a_repository_with_no_origin_refuses_with_exit_2_naming
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n", {}, origin=False)
     launch_mark = tmp_path / "leaf-launched"
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": f'touch "{launch_mark}"',
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": f'touch "{launch_mark}"',
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1099,8 +1099,8 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_rewrote_
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2764-mutations.md\n",
                                   {".tdd/issue-2764-mutations.md": "mutation one\n"})
     mutation = 'printf "rewritten\\n" > .tdd/issue-2764-mutations.md; chmod 000 .tdd/issue-2764-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1118,8 +1118,8 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_left_a_r
                                   {".tdd/issue-2764-mutations.md": "mutation one\n"})
     subprocess.run(["chmod", "000", str(repo / ".tdd" / "issue-2764-mutations.md")], check=True)
     mutation = 'rm -f .tdd/issue-2764-mutations.md; printf "mutation one\\n" > .tdd/issue-2764-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1135,8 +1135,8 @@ def test_verify_sh_accepts_a_pass_from_a_pin_verifier_leaf_that_created_the_muta
     monkeypatch.setenv("VERI_ISSUE", "2764")
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2764-mutations.md\n", {})
     mutation = 'mkdir -p .tdd; printf "mutation one\\n" > .tdd/issue-2764-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2764")}
     verify = importlib.import_module("veri.verify")
 
@@ -1155,8 +1155,8 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     (repo / ".tdd").mkdir(exist_ok=True)
     (repo / ".tdd" / "issue-2772-mutations.md").symlink_to(tmp_path / "elsewhere.md")
     mutation = 'rm -f .tdd/issue-2772-mutations.md; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 
@@ -1180,7 +1180,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unre
     (repo / "hidden.txt").write_text("secret\n")
     subprocess.run(["chmod", "000", str(repo / "hidden.txt")], check=True)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", "LC_ALL": "de_DE.UTF-8",
            "PATH": "%s:%s" % (wrapper, os.environ["PATH"]), **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
@@ -1201,8 +1201,8 @@ def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_sa
     (tmp_path / ".gitconfig").write_text(
         "[diff]\n\texternal = %s\n[color]\n\tui = always\n[diff \"shout\"]\n\ttextconv = tr a-z A-Z <\n" % driver)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude),
-           "FAKE_MUTATE": 'printf "the verifier rewrote this\\n" > src.txt',
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "VERI_TEST_FAKE_MUTATE": 'printf "the verifier rewrote this\\n" > src.txt',
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1239,7 +1239,7 @@ def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_re
     repo, claude = tamper_scratch(tmp_path, monkeypatch, (SCRIPTS.parents[2] / ".gitignore").read_bytes(), tracked)
     ignored = [subprocess.run(["git", "-C", str(repo), "check-ignore", "--no-index", "-q", path]).returncode == 0
                for path in (".tdd/issue-569.md", ".tdd/issue-569-spec.md")]
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation, "FAKE_OUT_TEXT": verdict,
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation, "VERI_TEST_FAKE_OUT_TEXT": verdict,
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
 
@@ -1256,8 +1256,8 @@ def test_verify_sh_relaunches_a_verifier_that_left_an_untracked_file_and_returns
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
     mutation = '[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "stray\\n" > riting.ts; }'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
@@ -1281,8 +1281,8 @@ def test_verify_sh_relaunches_a_verifier_that_edited_a_tracked_file_and_returns_
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
     mutation = '[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "the verifier rewrote this\\n" > src.txt; }'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
@@ -1304,8 +1304,8 @@ def test_verify_sh_relaunches_a_verifier_that_moved_head_and_restores_head_and_t
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
     mutation = ('[ -e .tdd/second-launch ] || { : > .tdd/second-launch; printf "the verifier committed this\\n" > src.txt;'
                 ' git commit -q -a -m "the verifier committed"; }')
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
@@ -1324,8 +1324,8 @@ def test_verify_sh_refuses_a_verifier_that_left_an_untracked_file_without_a_rela
         run_cli, tmp_path, monkeypatch):
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     mutation = 'echo launch >> .tdd/launches; printf "stray\\n" > riting.ts'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
@@ -1344,8 +1344,8 @@ def test_verify_sh_writes_one_tree_change_relaunch_then_refuses_when_every_launc
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "1")
     mutation = 'echo launch >> .tdd/launches; printf "stray\\n" > "riting-$(wc -l < .tdd/launches).ts"'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo)}
     verify = importlib.import_module("veri.verify")
     before = git_state(repo)
@@ -1420,11 +1420,11 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
         subprocess.run(["git", "-C", str(repo), "update-ref", BLOCKER, "HEAD"], check=True)
     if leaf != "answers":
         claude = tmp_path / ("claude-" + leaf)
-        claude.write_text({"fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
+        claude.write_text({"fails": "#!/bin/sh\nprintf '%s' \"$VERI_TEST_FAKE_OUT_TEXT\"\nexit 1\n",
                            "hangs": HUNG_LEAF}[leaf])
         claude.chmod(0o755)
     step = checked_head(repo, issue=env["VERI_ISSUE"], step=int(env["VERI_STEP"])) if "VERI_STEP" in env else {}
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_OUT_TEXT": text,
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_OUT_TEXT": text,
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **step, **env}
     if leaf == "hangs":
         env.update(VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0")
@@ -2589,8 +2589,8 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
     (repo / ".tdd" / "issue-2772-mutations.md").mkdir(parents=True)
     mutation = 'rmdir .tdd/issue-2772-mutations.md; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 
@@ -2606,8 +2606,8 @@ def test_verify_sh_still_accepts_a_pass_from_a_pin_verifier_leaf_that_created_a_
     monkeypatch.setenv("VERI_ISSUE", "2772")
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
     mutation = 'mkdir -p .tdd; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
-    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
-           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
+           "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **checked_head(repo, issue="2772")}
     verify = importlib.import_module("veri.verify")
 

@@ -104,18 +104,34 @@ def test_launch_spec_drops_the_shims_locale_marker_and_pythoncoerceclocale_only_
 def test_launch_spec_removes_the_conductors_session_variables_and_values_carrying_its_session_id(run_leaf):
     _, env = spec(run_leaf, {"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "abc123", "CLAUDE_PID": "9",
                              "CLAUDE_AUTO_BACKGROUND_TASKS": "1", "CARRIER": "x-abc123-y",
-                             "VERI_KEEP": "abc123", "CLAUDE_BIN": "abc123", "KEEP": "ok", "PATH": "/p"})
+                             "VERI_KEEP": "abc123", "CLAUDE_BIN": "abc123", "HOME": "ok", "PATH": "/p"})
     assert sorted(env) == ["BASH_DEFAULT_TIMEOUT_MS", "BASH_MAX_TIMEOUT_MS",
                            "CLAUDE_BIN", "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS", "CLAUDE_CODE_SHELL",
-                           "FORCE_PROMPT_CACHING_5M", "GIT_CONFIG_GLOBAL", "KEEP", "PATH",
+                           "FORCE_PROMPT_CACHING_5M", "GIT_CONFIG_GLOBAL", "HOME", "PATH",
                            "PYTHONDONTWRITEBYTECODE", "SHELL", "VERI_KEEP"]
 
 
-def test_launch_spec_passes_every_other_variable_through_and_leaves_the_incoming_environment_untouched(run_leaf):
+def test_launch_spec_passes_an_allow_listed_variable_through_and_leaves_the_incoming_environment_untouched(run_leaf):
     held = {"VERI_TEST_CMD": "make", "CLAUDE_CODE_SESSION_ID": "s", "VERI_SHIM_SET_COERCE": "1", "PATH": "/p"}
     before = dict(held)
     _, env = spec(run_leaf, held, coerce_marker="1")
     assert env["VERI_TEST_CMD"] == "make" and held == before
+
+
+ALLOWED = {"PATH": "/usr/bin", "HOME": "/h", "TMPDIR": "/t", "PWD": "/w", "USER": "u", "LOGNAME": "u",
+           "LANG": "C", "LC_ALL": "C", "LC_CTYPE": "C", "VERI_TEST_CMD": "make", "CLAUDE_BIN": "/c",
+           "REVISE_BUDGET": "3", "VERIFY_LEAF_ARGS": "--x", "PYTHONCOERCECLOCALE": "0",
+           "ANTHROPIC_API_KEY": "k", "CLAUDE_CODE_OAUTH_TOKEN": "o", "ANTHROPIC_BASE_URL": "b",
+           "CLAUDE_CONFIG_DIR": "d", "HTTPS_PROXY": "p", "HTTP_PROXY": "p", "NO_PROXY": "n",
+           "NODE_EXTRA_CA_CERTS": "c"}
+
+
+def test_3976_launch_spec_passes_only_allow_listed_names_and_drops_every_credential_no_list_names(run_leaf):
+    _, env = spec(run_leaf, {**ALLOWED, "GH_TOKEN": "g", "GITHUB_TOKEN": "g", "AWS_SECRET_ACCESS_KEY": "a",
+                             "SOME_UNLISTED": "s"})
+    assert not {"GH_TOKEN", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "SOME_UNLISTED"} & set(env)
+    assert {name: env[name] for name in ALLOWED if name != "PATH"} == {
+        name: value for name, value in ALLOWED.items() if name != "PATH"}
 
 
 def leaf_settings(argv):

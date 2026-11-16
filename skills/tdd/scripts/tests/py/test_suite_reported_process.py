@@ -22,7 +22,7 @@ def leaf_stub(tmp_path):
     stubdir.mkdir()
     claude = stubdir / "claude"
     claude.write_text('#!/bin/sh\nprintf \'{"type":"result","subtype":"success","is_error":false,'
-                      '"result":"%s","usage":{"input_tokens":1,"output_tokens":1}}\\n\' "$FAKE_RESULT"\n')
+                      '"result":"%s","usage":{"input_tokens":1,"output_tokens":1}}\\n\' "$VERI_TEST_FAKE_RESULT"\n')
     claude.chmod(0o755)
     return claude
 
@@ -34,7 +34,7 @@ def run_leaf(tmp_path, name, result):
     with open(work / ".tdd" / f"{name}.out", "w") as out:
         ran = subprocess.run([str(SUPERVISE), name, str(RUN_LEAF), "prompt.txt"], cwd=work, stdout=out,
                              stderr=subprocess.DEVNULL, env={**os.environ, "CLAUDE_BIN": str(leaf_stub(tmp_path)),
-                                                            "FAKE_RESULT": result, "VERI_ISSUE": "1"})
+                                                            "VERI_TEST_FAKE_RESULT": result, "VERI_ISSUE": "1"})
     return work, ran.returncode
 
 
