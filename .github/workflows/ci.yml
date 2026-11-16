@@ -37,35 +37,16 @@ jobs:
 
     # A job that declares no timeout-minutes inherits GitHub's default ceiling of 6
     # hours, and while it burns those minutes it looks exactly like a slow run. This
-    # job cannot legitimately be slow: `make test` is plain-shell suites over local
-    # files, with the model stubbed via CLAUDE_BIN and no network call anywhere. So a
-    # gates job still running past this cap is stuck, not slow, and the cap turns a
-    # six-hour silent bill into a red tick that says so.
+    # job cannot legitimately be slow: `make test` is pytest over local files, with the
+    # model stubbed via CLAUDE_BIN and no network call anywhere. So a gates job still
+    # running past this cap is stuck, not slow, and the cap turns a six-hour silent bill
+    # into a red tick that says so.
     #
-    # The number is a measurement, not a guess, and it has moved. The ~40 s this comment
-    # claimed until 2026-09-17 was stale by a factor of four (#273): the last six runs on
-    # `main` took 160, 161, 162, 162, 168 and 175 s, because the suites spend most of
-    # their time asleep — `supervise.sh` polls and measures heartbeats in whole seconds,
-    # and two suites alone were ~87 s of the 155 s the 71
-    # suites take (#282). At 3 minutes `main` had 5 s of headroom and two finished PRs
-    # (#272, #286) were cancelled mid-run rather than failed.
-    #
-    # So this was 5 minutes, deliberately and temporarily, to keep a green branch from
-    # being cancelled while the suites were made fast; it was meant to go back to 3 once
-    # #282 (sub-second clock) and #290 (the per-supervision python3 starts) landed. Both
-    # landed and the suites grew faster than they shrank: on 2026-09-30 `main` itself took
-    # 228-302 s, and three finished PRs (#594, #603, #605) were cancelled at 5:00 with no
-    # suite failed — #603's `make test` printed `all suites green` at 4:52 and the job was
-    # cancelled in its post-steps. So it is now **8 minutes**, again temporarily, until
-    # `make test` on Linux is back well under 3 minutes. It costs nothing on a green run
-    # and raises the ceiling on a STUCK job from 5 to 8 minutes — about 1.8 cents more on
-    # ubuntu-latest at $0.006/min.
-    #
-    # It is now **10 minutes**: the last 12 green runs took 245-381 s from creation to
-    # completion on 2026-11-11, and one took 538 s against the 480 s cap, because the
-    # suites grew to ~6,280 cases. Still temporary, until `make test` on Linux is well
-    # under 3 minutes. It costs nothing on a green run (the repo is public, so runner
-    # minutes are free); the price is that a STUCK job is noticed 2 minutes later.
+    # It is **10 minutes**, a measurement: the last 12 green runs took 245-381 s from
+    # creation to completion on 2026-11-11, and one took 538 s against the cap then in
+    # force. It costs nothing on a green run (the repo is public, so runner minutes are
+    # free); the price is that a STUCK job is noticed later. How the cap got here is
+    # #3653's history, and `git log` holds every earlier value.
     timeout-minutes: 10
 
     env:
@@ -74,16 +55,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Linux only. The scripts under skills/tdd/scripts/ promise to run on
-      # both bash dialects — macOS ships bash 3.2 with BSD sed/grep/stat, Linux bash
-      # 5.x with GNU coreutils — and this runner covers the Linux half. The macOS
-      # half is covered by development happening on a Mac: every `make test` a leaf
-      # runs before a commit runs under bash 3.2 there. A macos-latest runner used to
-      # sit beside this one; it re-checked the environment the code was just tested
-      # on, at ten times the per-minute price of Linux, and was ~94% of the billed
-      # minutes on 2026-09-11. bash is preinstalled, and nothing shells out to jq or
-      # gh — the scripts avoid jq and the test suites stub
-      # the model via CLAUDE_BIN.
+      # Linux only. veri needs bash 5 (the Makefile refuses an older one); this runner
+      # covers Linux, and development on a Mac, under Homebrew's bash 5, covers macOS.
+      # A macos-latest runner used to sit beside this one; it re-checked the environment
+      # the code was just tested on, at ten times the per-minute price of Linux, and was
+      # ~94% of the billed minutes on 2026-09-11. bash is preinstalled, and nothing shells
+      # out to jq or gh — the test suites stub the model via CLAUDE_BIN.
       - uses: actions/setup-python@v5
         id: python
         with:
