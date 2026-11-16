@@ -2432,6 +2432,8 @@ def test_main_a_conductor_session_loads_no_skills_connectors_memory_or_user_clau
         if list(args)[:1] == ["fake-claude"]:
             stream = "".join(json.dumps(r) + "\n" for r in stream_of_what_the_real_claude_loads(list(args), home, cwd))
             os.write(1, stream.encode())
+        if list(args)[:2] == ["gh", "api"] and "/comments?" in str(args[2]):
+            return subprocess.CompletedProcess(list(args), 0, "[]" if kwargs.get("text") else b"[]", "")
         return answer(args, *rest, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", streaming)
@@ -5269,6 +5271,33 @@ def test_cli_a_conductor_exiting_0_with_no_run_end_mark_finds_a_done_comment_pos
 
     posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
     assert (code, [r.get("event") for r in events_named(tmp_path)], posted) == (0, ["done", "resume"], []), stderr + repr(gh_calls)
+
+
+def test_cli_a_conductor_exiting_0_whose_comments_read_gets_no_answer_exits_2_naming_the_issue_with_no_needs_user_bail_or_comment_3983(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done", "resume"],
+                                     result_record("Which option do you want?"))
+    recorded = subprocess.run
+
+    def gh_timing_out_on_the_thread(args, *a, **kwargs):
+        args = list(args)
+        if args[:2] == ["gh", "api"] and "/issues/4242/comments?" in args[2] and len(args) == 3:
+            gh_calls.append(args[1:])
+            said = "gh api %s: no answer after 300s (VERI_GH_TIMEOUT)\n" % args[2]
+            return subprocess.CompletedProcess(args, 124, "" if kwargs.get("text") else b"",
+                                               said if kwargs.get("text") else said.encode())
+        return recorded(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", gh_timing_out_on_the_thread)
+
+    code, _, stderr = run_cli(run_conductor, ["4242"], cwd=tmp_path)
+
+    posted = [call for call in gh_calls if "needs-user" in " ".join(call)]
+    assert (code, [r.get("event") for r in events_named(tmp_path)], posted, "#4242" in stderr) == (
+        2, ["done", "resume"], [], True), stderr + repr(gh_calls)
 
 
 def test_cli_a_resumed_run_stopping_without_a_verdict_still_bails_needs_user_and_comments_when_the_only_done_on_the_thread_predates_its_last_resume_event_2238(
