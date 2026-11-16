@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
+import secrets
 import subprocess
 import sys
 
@@ -168,6 +169,12 @@ def run_state_ignore_row():
         if not ensure_run_state_ignored.has_rule(path) and not writable(path):
             return "run-state ignore", f"chmod u+w {path}"
     return "run-state ignore", None
+
+
+def push_dry_run_row():
+    probe = "HEAD:refs/heads/veri-permission-probe-" + secrets.token_hex(4)
+    pushed = git.git("push", "--dry-run", "origin", probe, capture_output=True, text=True)
+    return "push dry-run", None if pushed.returncode == 0 else "origin refused a dry-run push"
 
 
 def bash_row():

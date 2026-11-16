@@ -2,6 +2,7 @@
 detect-test-command.sh process boundaries are faked."""
 import importlib
 import os
+import re
 
 import pytest
 
@@ -234,3 +235,13 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
         one_command = "\n" not in fix and fix.split(" ")[0] in ("gh", "chmod") and not any(c in fix for c in ";&|")
         settings_key = "\n" not in fix and fix.count("`") == 2
         assert one_command or settings_key, (name, fix)
+
+
+PROBE_PUSH = "git push --dry-run origin HEAD:refs/heads/veri-permission-probe-"
+
+
+def test_issue_4090_the_push_dry_run_row_is_ok_when_a_dry_run_push_to_a_probe_branch_exits_0(ready_check, fake_processes):
+    fake = fake_processes.answers({PROBE_PUSH: (0, "", "To github.com:o/r.git\n * [new branch]      HEAD -> veri-permission-probe-1a2b\n")})
+
+    assert ready_check.push_dry_run_row() == ("push dry-run", None)
+    assert len(fake.argvs) == 1 and re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", fake.argvs[0][-1]), fake.calls
