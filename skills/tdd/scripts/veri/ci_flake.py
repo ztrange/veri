@@ -13,6 +13,8 @@ import tunables
 
 USAGE = "usage: ci-flake.sh <n> <head-sha> <run-id> '<alone-cmd>' <log-file>"
 WHOLE = re.compile(r"[0-9]+")
+# The check's overall bound: at most this many alone runs, each bounded by VERI_TIMEOUT; a log naming more is no answer.
+MAX_TARGETS = 5
 # One line of `gh run view --log-failed`: job, step and timestamp before the runner's own text.
 STAMP = re.compile(r"\t\ufeff?\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z")
 GH_LINE = re.compile(r"^[^\t]*\t[^\t]*" + STAMP.pattern + " ?(.*)$")
@@ -88,6 +90,10 @@ def main(argv):
         targets = rerun_alone.named_targets(runner_text(text))
     except ValueError as unread:
         sys.stderr.write("ci-flake: %s: %s\n" % (log_file, unread))
+        return 2
+    if len(targets) > MAX_TARGETS:
+        sys.stderr.write("ci-flake: the log names %d targets, more than the %d the check runs alone\n"
+                         % (len(targets), MAX_TARGETS))
         return 2
     alone = [passes_alone(alone_cmd, t) for t in targets]
     if False in alone or not targets:
