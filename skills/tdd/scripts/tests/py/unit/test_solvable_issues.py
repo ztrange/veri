@@ -407,6 +407,42 @@ def test_main_exits_3_with_empty_stdout_when_every_otherwise_solvable_issue_is_r
     assert (code, capsys.readouterr().out) == (3, "")
 
 
+def skipped(number, association, label="author-read"):
+    return ("solvable-issues: #%d skipped: its author is %s, not OWNER, MEMBER or COLLABORATOR; label it %s once read\n"
+            % (number, association, label))
+
+
+def test_main_prints_one_stderr_line_per_opted_in_issue_the_author_rule_alone_removes_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
+    # #3 and #5 are removed by the author rule alone; #4 is a stranger's but also blocked, #7 not opted in, #8 taken.
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    unopted = dict(stranger(7), labels=[])
+    (tmp_path / "issues.json").write_text(json.dumps([
+        stranger(3), dict(blocked_by(4, "#6"), author_association="CONTRIBUTOR"), dict(stranger(5), author_association="FIRST_TIMER"),
+        opted_in(6), unopted, stranger(8, "taken:main")]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    code = solvable_issues.main([])
+
+    assert (code, capsys.readouterr()) == (0, ("6\n", skipped(3, "NONE") + skipped(5, "FIRST_TIMER")))
+
+
+@pytest.mark.parametrize("labels, out, err", [((), "", skipped(5, "unknown")), (("author-read",), "5\n", "")])
+def test_main_refuses_a_record_with_no_author_association_as_unknown_unless_it_carries_the_override_label_3977(
+        fake_processes, tmp_path, monkeypatch, capsys, solvable_issues, labels, out, err):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(fake_processes)
+    record = adding(opted_in(5), *labels)
+    del record["author_association"]
+    (tmp_path / "issues.json").write_text(json.dumps([record]))
+    (tmp_path / "prs.json").write_text("[]")
+
+    solvable_issues.main([])
+
+    assert capsys.readouterr() == (out, err)
+
+
 def test_main_refuses_an_empty_veri_author_label_with_2_and_refused_if_empty_s_line_3977(
         fake_processes, tmp_path, monkeypatch, capsys, solvable_issues):
     monkeypatch.setenv("VERI_AUTHOR_LABEL", "")

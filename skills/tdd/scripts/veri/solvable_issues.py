@@ -12,8 +12,8 @@ import blocked_by
 import git
 import stack_branch
 import tunables
-from github import (ISSUE_AUTHOR_ASSOCIATIONS, NoAnswer, closed_issues, gh_json, gh_json_page, joined_issues, pulls_in,
-                    trusted_author)
+from github import (ISSUE_AUTHOR_ASSOCIATIONS, NoAnswer, author_association, closed_issues, gh_json, gh_json_page,
+                    joined_issues, pulls_in, trusted_author)
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]"
@@ -181,10 +181,17 @@ def select(label, priority="priority", repo=None):
         return 2, []
     except NoAnswer:
         return 2, []
-    survivors = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and author_read(issue, author) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
+    otherwise = [issue for issue in issues
+                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blockers[issue["number"]])]
+    survivors = [issue for issue in otherwise if author_read(issue, author)]
+    for issue in otherwise:
+        if not author_read(issue, author):
+            print("solvable-issues: #%d skipped: its author is %s, not %s; label it %s once read"
+                  % (issue["number"], author_association(issue), " or ".join([", ".join(ISSUE_AUTHOR_ASSOCIATIONS[:-1]),
+                                                                              ISSUE_AUTHOR_ASSOCIATIONS[-1]]), author),
+                  file=sys.stderr)
     if not survivors:
         return 3, []
     ordered = sorted(survivors, key=lambda issue: (bands[issue["number"]], issue["number"]))

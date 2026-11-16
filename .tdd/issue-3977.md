@@ -5,8 +5,8 @@
 - [x] `VERI_AUTHOR_LABEL` (default `author-read`) takes a stranger's issue once read; set-but-empty is exit 2 ⟦criterion 2⟧
 - [x] a refused issue labelled `priority` and `bug` is not printed and the rest print in today's order ⟦criterion 3⟧
 - [x] a refused open issue still blocks the issues it names ⟦criterion 4⟧
-- [ ] each opted-in issue the author rule alone removes gets one stderr skip line ⟦criterion 5⟧
-- [ ] a record with no `author_association` is refused as `unknown` unless it carries the override label ⟦criterion 6⟧
+- [x] each opted-in issue the author rule alone removes gets one stderr skip line ⟦criterion 5⟧
+- [x] a record with no `author_association` is refused as `unknown` unless it carries the override label ⟦criterion 6⟧
 - [x] every otherwise-solvable issue refused exits 3 with empty stdout ⟦criterion 7⟧
 - [ ] a ratchet: every module of veri/ listing issues to take decides their author through `github.trusted_author`
 - [ ] the `solvable-issues.sh` entry of SCRIPTS.md states the author rule, `VERI_AUTHOR_LABEL` and the skip line ⟦criterion 9⟧
