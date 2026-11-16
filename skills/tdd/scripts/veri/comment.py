@@ -157,7 +157,9 @@ def post_refactor(issue, note_file=None):
 
 def post_revised(issue, phase):
     reason = read_or_empty(run_dir.run_file(".", f"verify-{phase}.reason"))
-    return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — PASS\n\n{reason}")
+    skipped = read_or_empty(run_dir.run_file(".", f"verdict-{phase}.exit")).strip() == "skipped"
+    verdict = "SKIPPED (switched off)" if skipped else "PASS"
+    return post_and_record(issue, "verify-revised", f"### 🔎 verify-{phase} (revised) — {verdict}\n\n{reason}")
 
 
 def post_verify_skipped(issue):

@@ -1211,6 +1211,22 @@ def test_verify_revised_posts_the_revised_pass_heading_then_the_reason_and_appen
     assert [(e["event"], e["kind"], e["url"]) for e in events] == [("comment", "verify-revised", url)]
 
 
+def test_verify_revised_pin_posts_skipped_switched_off_when_the_pin_verdict_file_reads_skipped_3938(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    posted = []
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_comment",
+                        lambda number, body: posted.append(body) or "https://github.com/o/r/issues/7#issuecomment-99")
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-pin.exit").write_text("skipped\n")
+
+    code, out, err = run_cli(comment, ["7", "verify-revised", "pin"], cwd=tmp_path)
+
+    assert code == 0
+    assert [body.splitlines()[0] for body in posted] == ["### 🔎 verify-pin (revised) — SKIPPED (switched off)"]
+
+
 def test_verify_refactor_skipped_posts_the_skipped_heading_without_reading_the_verdict_or_reason_and_appends_a_comment_event(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
