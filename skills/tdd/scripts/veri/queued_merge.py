@@ -189,8 +189,8 @@ def _tag(worktree, message, pull, pr):
     return name
 
 
-def _step(failed, what, cwd, *args, label=None):
-    run = _git(cwd, *args)
+def _step(failed, what, cwd, *args, label=None, git=_git):
+    run = git(cwd, *args)
     if run.returncode:
         _say("%s failed (exit %d): %s" % (what, run.returncode, run.stderr.strip()))
         failed.append(label or what)
@@ -219,7 +219,7 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if issue:
             event.mark(worktree, {"issue": issue.group(1)}, "merged",
                        ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
-    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch)
+    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch, git=_network_git)
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)
     if _release(pid, scripts, clone):
