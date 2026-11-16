@@ -3075,4 +3075,4 @@ def test_3120_verify_sh_diff_with_supersede_base_tells_the_step_to_split_when_th
         cwd=repo)
 
     assert (code, out.strip(), started.exists()) == (
-        1, "step renamed and changed pytest cases, so the step must be split: tests/test_start.py::test_old_3120 -> test_renamed_3120", False)
+        1, "step renamed and changed test cases, so the step must be split: tests/test_start.py::test_old_3120 -> test_renamed_3120", False)
