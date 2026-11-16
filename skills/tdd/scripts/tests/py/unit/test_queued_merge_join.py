@@ -23,7 +23,7 @@ class World:
 
     def __init__(self, tmp_path, ledger="- [x] a step ⟦criterion 1⟧\n- [ ] the full suite ⟦full-suite⟧ ⟦criterion 2⟧\n",
                  rebase=0, fast=0, owed=0, stack_pushes=(0,), reads=({"merged": True},), lock=0, stopped=True, extra=None,
-                 stack_line="veri: stack branch: stack\n", base="stack", foreign=False):
+                 stack_line="veri: stack branch: stack\n", base="stack", foreign=False, pr_default="trunk", first=None):
         self.wt = str(tmp_path / "wt")
         os.makedirs(self.wt + "/.tdd")
         with open(self.wt + "/CLAUDE.md", "w") as f:
@@ -39,17 +39,21 @@ class World:
         self.extra = extra or {}
         self.base = base
         self.foreign = foreign
+        self.pr_default = pr_default
+        self.first = first
         self.stack_pushes = list(stack_pushes)
         self.reads = list(reads)
         self.pulls = []
 
     def install(self, fake_processes, monkeypatch):
-        first = {"state": "open", "merged": False, "base": {"ref": self.base}, "head": {"sha": "9999999"}}
+        first = {"state": "open", "merged": False, "head": {"sha": "9999999"},
+                 "base": {"ref": self.base, "repo": {"default_branch": self.pr_default}}}
+        first = self.first if self.first is not None else first
 
         def pull(repo, pr):
             self.pulls.append((repo, pr))
             if len(self.pulls) == 1:
-                return first
+                return None if first == "none" else first
             return self.reads.pop(0) if self.reads else None
 
         monkeypatch.setattr(queued_merge, "_pull", pull)
@@ -65,6 +69,8 @@ class World:
                 return answer
         if line == wt + "rev-parse --git-path rebase-merge":
             return 0, self.stopped_dir + "\n", ""
+        if line.endswith("ls-remote --symref origin HEAD"):
+            return 0, "ref: refs/heads/trunk\tHEAD\n", ""
         if line.startswith("merge-lock.sh take"):
             return self.lock, "", ""
         if line.startswith("merge-lock.sh"):
@@ -293,3 +299,12 @@ def test_the_lease_is_pinned_once_to_the_run_branchs_pre_rebase_sha_even_when_th
     leases = [c.split()[4] for c in world.calls if "--force-with-lease" in c]
     assert (code, leases) == (0, ["--force-with-lease=%s:%s" % (BRANCH, ORIGIN_SHA),
                                   "--force-with-lease=%s:%s" % (BRANCH, REBASED)]), err
+
+
+def test_a_stack_that_is_the_pull_requests_default_branch_as_github_reports_it_is_exit_2_before_the_lock_4171(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, pr_default="stack").install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (2, [], []), err

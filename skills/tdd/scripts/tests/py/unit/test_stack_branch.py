@@ -9,13 +9,17 @@ def stack_branch():
     return importlib.import_module("veri.stack_branch")
 
 
-def git_world(fake_processes, default="main", refused=()):
-    """git faked: origin/HEAD names <default>; `check-ref-format --branch` refuses each name in <refused>."""
+def git_world(fake_processes, default="main", refused=(), local=True, remote=True):
+    """git faked: origin/HEAD names <default> (unset when not <local>), and so does origin itself when asked (no answer
+    when not <remote>); `check-ref-format --branch` refuses each name in <refused>."""
     def check(line, **_):
         name = line.rsplit(" ", 1)[-1]
         return (128, "", "fatal: '%s' is not a valid branch name\n" % name) if name in refused else (0, name + "\n", "")
     return fake_processes.answers({
-        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD": (0, "origin/%s\n" % default, ""),
+        "git symbolic-ref --quiet --short refs/remotes/origin/HEAD":
+            (0, "origin/%s\n" % default, "") if local else (1, "", ""),
+        "git ls-remote --symref origin HEAD":
+            (0, "ref: refs/heads/%s\tHEAD\n1111111\tHEAD\n" % default, "") if remote else (128, "", "fatal: unreachable\n"),
         "git check-ref-format --branch": check,
     })
 
@@ -79,3 +83,17 @@ def test_run_base_answers_the_named_stack_the_default_branch_with_none_named_and
 
     assert (stack_branch.run_base(str(stacked)), stack_branch.run_base(str(plain)),
             "veri: stack branch: trunk" in str(refusal.value)) == (("stack", True), ("trunk", False), True)
+
+
+def test_with_no_local_origin_head_the_default_branch_as_origin_states_it_is_refused_4171(
+        tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes, default="main", local=False)
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: main") == (2, "", True)
+
+
+def test_a_default_branch_that_cannot_be_told_locally_or_from_origin_is_exit_2_never_0_4171(
+        tmp_path, run_cli, fake_processes, stack_branch):
+    git_world(fake_processes, local=False, remote=False)
+
+    assert refusal_of(tmp_path, run_cli, stack_branch, "veri: stack branch: stack") == (2, "", True)
