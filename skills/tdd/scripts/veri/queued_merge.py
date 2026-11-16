@@ -247,7 +247,9 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         if issue:
             event.mark(worktree, {"issue": issue.group(1)}, "merged",
                        ["pr=" + pr, "tag=" + name, "message=" + (message if name else "")])
-    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch, runner=_network_git)
+    # Leased to the head this merge pushed: a commit pushed to the branch since is never deleted unseen.
+    _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch,
+          "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")), runner=_network_git)
     run_issue = run_dir.branch_issue(branch)
     if run_issue:
         records = _network_git(worktree, "push", "origin", "--delete", run_records.ref(run_issue))
@@ -590,6 +592,7 @@ def _join_cleanup(worktree, branch, released):
     failed = ["release"] if released else []
     clone = os.path.dirname(_git(worktree, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.strip())
     _step(failed, "branch delete", worktree, "push", "origin", "--delete", branch,
+          "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")),
           runner=lambda cwd, *args: git.network("-C", cwd, *args))
     _step(failed, "worktree remove", worktree, "worktree", "remove", worktree)
     _step(failed, "local branch delete", clone, "branch", "-D", branch)

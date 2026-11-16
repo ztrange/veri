@@ -264,7 +264,7 @@ def test_after_a_joins_exit_0_the_runs_remote_branch_is_deleted_and_its_worktree
     moved = [c for c in world.calls if "pull" in c or "merge --ff-only" in c or "reset" in c or "checkout" in c]
     after_release = world.calls.index(released(world)[0]) < world.calls.index(cleanup[0]) if cleanup else None
     assert (code, cleanup, moved, after_release) == (0, [
-        wt + "push origin --delete " + BRANCH, wt + "worktree remove " + world.wt,
+        wt + "push origin --delete %s --force-with-lease=%s:%s" % (BRANCH, BRANCH, REBASED), wt + "worktree remove " + world.wt,
         "git -C %s branch -D %s" % (CLONE, BRANCH)], [], True), err
 
 
@@ -296,7 +296,7 @@ def test_the_lease_is_pinned_once_to_the_run_branchs_pre_rebase_sha_even_when_th
 
     code, _, err = join(run_cli, world)
 
-    leases = [c.split()[4] for c in world.calls if "--force-with-lease" in c]
+    leases = [c.split()[4] for c in world.calls if "--force-with-lease" in c and "--delete" not in c]
     assert (code, leases) == (0, ["--force-with-lease=%s:%s" % (BRANCH, ORIGIN_SHA),
                                   "--force-with-lease=%s:%s" % (BRANCH, REBASED)]), err
 
@@ -330,3 +330,13 @@ def test_a_pull_request_already_merged_is_exit_3_and_one_closed_unmerged_exit_2_
     code, _, err = join(run_cli, world)
 
     assert (code, [c for c in world.calls if c.startswith("merge-lock.sh")], pushed(world)) == (expected, [], []), err
+
+
+def test_a_run_branch_delete_refused_under_its_lease_is_exit_2_naming_it_the_stack_left_as_pushed(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, extra={"git -C <wt> push origin --delete": (1, "", " ! [rejected] (stale info)\n")}).install(
+        fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, "branch delete" in err, world.stack[0]) == (2, True, REBASED), err
