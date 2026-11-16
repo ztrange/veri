@@ -79,15 +79,17 @@ def modern_python_dir():
 
 
 def grader_conf():
-    """grader.conf's `key=value` lines as {key: value}, comments skipped; ValueError on a repeated key, since which
+    """grader.conf's `key=value` lines as {key: value}, comments skipped, a line with no `=` read as the model (as
+    grader.conf files older than the `key=` form name it); ValueError on a repeated key, since which
     of two values the grader ran at would otherwise be a silent choice."""
     settings = {}
     with open(os.path.join(SCRIPTS, "..", "grader.conf"), encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#"):
-                key, _, value = line.partition("=")
-                key = key.strip()
+                key, equals, value = line.partition("=")
+                key = key.strip() if equals else "model"
+                value = value if equals else line
                 if key in settings:
                     raise ValueError("grader.conf repeats the key %s" % key)
                 settings[key] = value.strip().strip("'\"")
