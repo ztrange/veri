@@ -513,7 +513,10 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         if subprocess.run(["sh", "-c", fast], cwd=worktree).returncode:
             _say("the fast tier (%s) is red on the rebased tip; nothing pushed to %s" % (fast, stack))
             return 1
-        _start("prose-owed.sh", worktree, cwd=worktree)
+        owed = _start("prose-owed.sh", worktree, cwd=worktree).returncode
+        if owed:
+            _say("prose-owed.sh exited %d on the rebased tip; nothing pushed to %s" % (owed, stack))
+            return 1 if owed == 1 else 2
         head = _rev(worktree, "HEAD")
         if not git.network("-C", worktree, "push", "origin", "%s:refs/heads/%s" % (head, stack)).returncode:
             return 0

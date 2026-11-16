@@ -7,7 +7,7 @@
 - [x] a join whose ledger's only unticked line is ⟦full-suite⟧ goes ahead; any other unticked line exits 1 before anything is pushed to the stack ⟦criterion 5⟧
 - [x] a rebase conflict exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [x] a red fast tier exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
-- [ ] a prose-owed.sh exit 1 exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
+- [x] a prose-owed.sh exit 1 exits 1, nothing pushed to the stack, the merge lock released ⟦criterion 6⟧
 - [ ] solvable-issues.sh does not list an open issue a pull request merged into the stack closes ⟦criterion 7⟧
 - [ ] issue-worktree.sh refuses, exit 2, an issue a pull request merged into the stack closes, with no open pull request naming it ⟦criterion 7⟧
 - [ ] after a join's exit 0 the run's remote branch is deleted and its worktree removed, the main clone not moved ⟦criterion 8⟧

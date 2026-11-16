@@ -195,3 +195,12 @@ def test_a_red_fast_tier_on_the_rebased_tip_exits_1_pushing_nothing_to_the_stack
     code, _, err = join(run_cli, world)
 
     assert (code, world.stack_pushed(), world.stack[0], len(released(world))) == (1, [], STACK_SHA, 1), err
+
+
+def test_a_unit_owing_a_grade_on_the_rebased_tip_exits_1_pushing_nothing_to_the_stack_and_releasing_the_lock(
+        tmp_path, fake_processes, monkeypatch, run_cli):
+    world = World(tmp_path, owed=1).install(fake_processes, monkeypatch)
+
+    code, _, err = join(run_cli, world)
+
+    assert (code, world.stack_pushed(), world.stack[0], len(released(world))) == (1, [], STACK_SHA, 1), err
