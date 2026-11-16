@@ -31,7 +31,8 @@ def first_turn_pairs(path):
                 continue
             if not isinstance(record, dict) or record.get("type") != "assistant":
                 continue
-            usage = (record.get("message") or {}).get("usage")
+            message = record.get("message")
+            usage = message.get("usage") if isinstance(message, dict) else None
             if isinstance(usage, dict) and all(key in usage for key in FIRST_TURN_KEYS):
                 return ["first_turn_%s=%s" % (key, usage[key]) for key in FIRST_TURN_KEYS]
     return []
