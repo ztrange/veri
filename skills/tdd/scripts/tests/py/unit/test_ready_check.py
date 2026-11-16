@@ -39,7 +39,7 @@ def holding(**overrides):
         "gh api repos/{owner}/{repo}/labels/": (0, "{}", ""),
         "gh api repos/{owner}/{repo}/actions/runs?per_page=1": (0, "{}", ""),
         "git rev-parse --git-common-dir": (0, ".git\n", ""),
-        "git push --dry-run origin": (0, "", ""),
+        "git push --dry-run --no-verify origin": (0, "", ""),
     }
     table.update(overrides)
     return table
@@ -238,7 +238,7 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
         assert one_command or settings_key, (name, fix)
 
 
-PROBE_PUSH = "git push --dry-run origin HEAD:refs/heads/veri-permission-probe-"
+PROBE_PUSH = "git push --dry-run --no-verify origin HEAD:refs/heads/veri-permission-probe-"
 
 
 def test_issue_4090_the_push_dry_run_row_is_ok_when_a_dry_run_push_to_a_probe_branch_exits_0(ready_check, fake_processes):
@@ -279,6 +279,15 @@ def test_issue_4090_the_push_dry_run_row_starts_only_git_and_every_push_is_a_dry
     assert all(re.fullmatch(r"HEAD:refs/heads/veri-permission-probe-\w+", argv[-1]) for argv in pushes), fake.calls
     assert pushes[0][-1] != pushes[1][-1], fake.calls
     assert len(fake.argvs) == 2, fake.calls
+
+
+def test_issue_4090_every_push_the_push_dry_run_row_makes_carries_dry_run_and_no_verify_so_no_pre_push_hook_runs(ready_check, fake_processes):
+    fake = fake_processes.answers({}, default=(0, "", ""))
+
+    ready_check.push_dry_run_row()
+
+    pushes = [argv for argv in fake.argvs if "push" in argv]
+    assert pushes and all("--dry-run" in argv and "--no-verify" in argv for argv in pushes), fake.calls
 
 
 def test_issue_4090_ready_check_prints_a_failing_push_dry_run_row_and_exits_1_when_origin_refuses_the_dry_run(ready_check, run_cli, fake_processes, tmp_path):
