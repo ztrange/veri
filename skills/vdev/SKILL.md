@@ -40,10 +40,15 @@ Invoked as `/vdev [<lane>] [N] [--resume <file>]`.
 
 **Recovery.** When a state file for this role and lane exists, recover: read it through
 `$S/status.sh --recover dev [--lane <lane>]` and read nothing else before your first slot
-decision. An `N` on the invocation wins over the file's and is written to it (see *Role state*).
+decision but `test -f .tdd/github-outage` (*Local mode*, below). An `N` on the invocation wins over the file's and is written to it (see *Role state*).
 Recovery re-asks each pending decision once, re-sends or checks each pending message, and ends
 with `$S/role-state.sh dev [--lane <lane>] recovered`, before the slot decision. Recovery then
 ends by sending the resetter `ack`. With no state file for this role and lane, start fresh.
+
+**Local mode.** Whether the session starts fresh, recovers or resumes (`--resume`), run
+`test -f .tdd/github-outage` before its first slot decision. On exit 0 a GitHub outage holds
+merges: read `<resolved base dir>/../voutage/SKILL.md` yourself and follow it (it re-arms its
+wait) before that decision. The file is the mode, never a handoff or memory.
 
 **Resetter.** On a `/vdev` turn the human typed (never a recovery turn), start one resetter
 session on Haiku, briefed with the *Resetter* section, and record its id with
@@ -141,7 +146,7 @@ and prints one line per event:
 - `queue-empty`
 
 You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
-`until [ -f … ]`, no `while kill -0 <pid>`.
+`until [ -f … ]`, no `while kill -0 <pid>`. `voutage`'s wait on GitHub's status page is its own.
 
 ## Routing an exit
 
@@ -150,7 +155,9 @@ On each conductor exit, read the facts — the issue's last comment only
 thread), the committed ledger, the PR — never the exit code alone, and route:
 
 - **Last comment ✅ Done.** Review it, and on OK merge it through `vmerge`.
-  A run that ended with an open question for the human is never merged.
+  A run that ended with an open question for the human is never merged. While
+  `.tdd/github-outage` exists, a run whose review is OK is not merged: it is handled as
+  `voutage` says.
 
   **Briefing a review, hand-fix or merge subagent here:** the brief also carries the rules in
   the block under "Running the sibling skills" that opens "Every brief for a review, hand-fix or
@@ -202,6 +209,9 @@ thread), the committed ledger, the PR — never the exit code alone, and route:
   while printing lines); any process line it prints is a foreign process, and the resume is then
   held to the next slot decision. None of the three: route it as
   a bail.
+- **A `merge-failed <pr-url>` line.** When the failed merge's report names red CI, a rebase
+  conflict, a refused push or a billing block, handle it as `vmerge` says. Any other cause:
+  read `<resolved base dir>/../voutage/SKILL.md` yourself, not through a subagent, and follow it.
 
 After routing a `dispatch.sh` line, and launching any held resume the freed slot now takes, start
 `dispatch.sh` again as one background command. Then take the slot decision.
@@ -250,7 +260,8 @@ the job, briefed to return at most 10 lines and to read the skill at
 - A reviewer that pushes any fix does not merge: it reports and stops, and the fix is reviewed
   afresh before the merge.
 
-Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`.
+Load `vhandoff` yourself, by reading `<resolved base dir>/../vhandoff/SKILL.md`, and `voutage`
+likewise, at `<resolved base dir>/../voutage/SKILL.md`: it holds the session's own merge state.
 
 Your own reset is governed by *Resetting*, not by a context threshold you judge yourself.
 

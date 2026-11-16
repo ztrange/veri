@@ -4,4 +4,4 @@
 - [x] every `$S/…sh` path `skills/voutage/SKILL.md` names resolves to an existing script ⟦criterion 3⟧
 - [x] `voutage`'s Obeys line names `operator/PRINCIPLES.md` by a path found in the repo
 - [x] `skills/voutage/SKILL.md` states the outage procedure (VO rows), with `REQUIREMENTS.md` and a signed `GRADED` line, and `prose-owed.sh` exits 0 ⟦criterion 1⟧ ⟦criterion 4⟧ ⟦criterion 5⟧
-- [ ] `skills/vdev/SKILL.md` routes `merge-failed`, holds merges while `.tdd/github-outage` exists and picks the mode up on start, recovery and resume; regraded ⟦criterion 6⟧
+- [x] `skills/vdev/SKILL.md` routes `merge-failed`, holds merges while `.tdd/github-outage` exists and picks the mode up on start, recovery and resume; regraded ⟦criterion 6⟧
