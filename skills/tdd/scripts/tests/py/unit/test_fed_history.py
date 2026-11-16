@@ -82,6 +82,19 @@ def test_fed_history_answers_subject_with_the_revisions_subject_as_git_log_print
     assert [history.subject(rev) for rev in ("HEAD", "HEAD~1", "base")] == ["refactor: more\n", "start\n", "start\n"]
 
 
+def test_fed_history_answers_a_file_named_by_its_absolute_path_under_the_root_as_git_does_by_its_relative_path(
+        tmp_path, fed_history, tests_frozen):
+    fed_history(("base", "start", {SUITE: ONE}), ("red", "red: test_two", {SUITE: ONE + "\n\n" + TWO}), root=tmp_path)
+    history, absolute = tests_frozen.case_history, str(tmp_path / SUITE)
+
+    assert {
+        "text_at": history.text_at("base", absolute),
+        "cases_at": sorted(history.cases_at("HEAD", absolute)),
+        "revisions": history.revisions(absolute, since="base"),
+        "first_revision_with": history.first_revision_with("test_two", absolute),
+    } == {"text_at": ONE, "cases_at": ["test_one", "test_two"], "revisions": ["red"], "first_revision_with": "red"}
+
+
 def test_fed_commits_commits_the_work_tree_as_git_add_and_git_commit_would_and_answers_the_pass_markers_git_calls(
         tmp_path, fed_commits, tests_frozen, monkeypatch):
     monkeypatch.chdir(tmp_path)

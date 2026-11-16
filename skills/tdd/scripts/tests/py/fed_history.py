@@ -7,7 +7,8 @@ drive tests_frozen over a multi-commit history without git (PRD 017.5, R26, R27)
 
 Each revision is `(name, subject, files)`, oldest first, one line of commits; HEAD is the last. `files` maps a path
 (relative to `root`) to its text at that revision, or to None when that revision deletes it; a path it does not
-name keeps its text from the revision before, as a commit does. A revision is named by its name (which is also its
+name keeps its text from the revision before, as a commit does. A query may name a path absolute under `root`, as
+git takes it. A revision is named by its name (which is also its
 sha: `commit_of` answers it), by `HEAD`, or by either followed by `~<n>`; `subject` answers its subject.
 
 The work tree is the real directory `root` (default the case's tmp_path): the case writes the files it holds,
@@ -61,6 +62,10 @@ class FedHistory:
             raise OSError("fed_history: no revision %s" % rev)
         return self.trees[at]
 
+    def path(self, path):
+        """The repository-relative path git reads for `path`: an absolute one under the root is taken relative to it."""
+        return os.path.normpath(os.path.relpath(path, self.root) if os.path.isabs(path) else path)
+
     def touched(self, at, path):
         before = self.trees[at - 1].get(path) if at else None
         return self.trees[at].get(path) != before
@@ -77,19 +82,19 @@ class FedHistory:
 
     def text_at(self, rev, path, quiet=False):
         at = self.index(rev)
-        return "" if at is None else self.trees[at].get(os.path.normpath(path), "")
+        return "" if at is None else self.trees[at].get(self.path(path), "")
 
     def cases_at(self, rev, path):
-        text = self.tree(rev).get(os.path.normpath(path))
+        text = self.tree(rev).get(self.path(path))
         return {} if text is None else dict(cut_cases(text))
 
     def revisions(self, path, since=None):
-        path = os.path.normpath(path)
+        path = self.path(path)
         start = 0 if since is None else self.index(since) + 1
         return [self.names[at] for at in range(len(self.names) - 1, start - 1, -1) if self.touched(at, path)]
 
     def first_revision_with(self, needle, path):
-        path = os.path.normpath(path)
+        path = self.path(path)
         for at, name in enumerate(self.names):
             before = self.trees[at - 1].get(path, "") if at else ""
             if self.trees[at].get(path, "").count(needle) != before.count(needle):
@@ -131,7 +136,7 @@ class FedHistory:
             pytest.fail("fed_history does not answer case_history._out%r" % (argv,))
 
         def items_at(rev, path):
-            text = self.tree(rev).get(os.path.normpath(path))
+            text = self.tree(rev).get(self.path(path))
             if text is None:
                 raise OSError("fed_history: %s absent at %s" % (path, rev))
             return ledger.ledger_items(text)
