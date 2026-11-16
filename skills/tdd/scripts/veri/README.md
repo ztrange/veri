@@ -265,7 +265,7 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `journal_sample`: prints `fixtures/journal/sample.jsonl`, one invented line per event `event_table` declares, every key carried, built through `event.line`.
 - `pinned-scripts.sh`: the directory of a run's pinned scripts.
 - `preflight.sh`: the checks before a run starts.
-- `run_records`: a run's records (its journal lines and skill pin) carried on origin's `refs/veri/runs/<n>`, a commit on no branch.
+- `run_records`: a run's records (its journal lines, skill pin and timeout pin) carried on origin's `refs/veri/runs/<n>`, a commit on no branch.
 - `run_pins`: a run's per-issue pin files (skip-verify list, conductor model, launch environment, baseline full-tier mode) and the `.tdd/.gitignore` seed, written and read in one place.
 - `stop-reason.sh`: why a run stopped.
 - `stop-requested.sh`: whether a stop is requested.
@@ -338,7 +338,7 @@ The pin files a launch records under `.tdd/` as `issue-<n>-<name>`; each pin's w
 - `gitignore_seed()`: the bytes a run's `.tdd/.gitignore` is seeded with, derived from the pin suffixes the module names.
 
 ## run_records
-A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holding `.tdd/events.jsonl` (the issue's lines and those naming no issue) and `.tdd/issue-<n>-skill-commit`, read from the run, else from the main tree it sits under: only what a reader restores travels. git errors raise `git.GitFailed`.
+A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holding `.tdd/events.jsonl` (the issue's lines and those naming no issue), `.tdd/issue-<n>-skill-commit` and `.tdd/issue-<n>-timeout`, each read from the run, else from the main tree it sits under, every string redacted (paths, account name, host forms): only what a reader restores travels. git errors raise `git.GitFailed`.
 - `ref(issue)`: the ref's name, `refs/veri/runs/<issue>`.
 - `delete(issue, cwd)`: deletes the ref on origin, bounded by `VERI_GIT_NETWORK_TIMEOUT`; `None` when deleted, absent or with no origin, else the reason in one line. Never raises.
 - `after_push()`: pushes the records of the issue the current branch `tdd/<n>-<slug>` names, replacing the ref; nothing on another branch; a failure is one stderr line, never raised.

@@ -29,13 +29,15 @@ def test_the_carried_journal_keeps_the_issues_lines_and_those_naming_no_issue_as
     assert [json.loads(line) for line in carried] == lines[:3]
 
 
-def test_the_ref_carries_only_what_a_reader_restores_the_journal_lines_and_the_skill_pin_not_the_timeout_pin(tmp_path, run_records):
+def test_the_ref_carries_what_a_reader_restores_the_journal_lines_the_skill_pin_and_the_timeout_pin(tmp_path, run_records):
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "events.jsonl").write_text('{"issue": "7", "event": "start"}\n')
     (tmp_path / ".tdd" / "issue-7-skill-commit").write_text("abc1234\n")
     (tmp_path / ".tdd" / "issue-7-timeout").write_text("3600\n")
 
-    assert sorted(run_records.records(str(tmp_path), "7")) == ["events.jsonl", "issue-7-skill-commit"]
+    (tmp_path / ".tdd" / "issue-7-preflight").write_text("ok\n")
+
+    assert sorted(run_records.records(str(tmp_path), "7")) == ["events.jsonl", "issue-7-skill-commit", "issue-7-timeout"]
 
 
 def _a_machine(tmp_path, monkeypatch):

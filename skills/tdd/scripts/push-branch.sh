@@ -8,7 +8,7 @@
 #          event write
 #
 # After a push that lands on a tdd/<n>-<slug> branch it also replaces origin's refs/veri/runs/<n> with the run's
-# records (the issue's journal lines and skill pin) and updates the issue's pointer comment
+# records (the issue's journal lines, skill pin and timeout pin, redacted) and updates the issue's pointer comment
 # (pointer-comment.sh); a failure of either is one stderr line and never changes the exit code.
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/push_branch.py" "$@"

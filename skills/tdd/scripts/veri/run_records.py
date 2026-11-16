@@ -1,6 +1,6 @@
 """A run's local records carried on origin's `refs/veri/runs/<n>`: a commit on no branch holding the issue's lines of
-`.tdd/events.jsonl` (and those naming no issue) and its `.tdd/issue-<n>-skill-commit`, so another machine's
-metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
+`.tdd/events.jsonl` (and those naming no issue), its `.tdd/issue-<n>-skill-commit` and its `.tdd/issue-<n>-timeout`,
+so another machine's metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
 import getpass
 import json
 import os
@@ -18,6 +18,7 @@ import run_dir
 IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
             "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
 EVENTS = ".tdd/events.jsonl"
+PINS = ("-skill-commit", "-timeout")  # what run-conductor.sh restores on a first launch
 
 
 def ref(issue):
@@ -141,17 +142,18 @@ def _first_file(roots, issue, suffix):
 
 
 def records(run, issue):
-    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin, read from the
-    run, else from the main tree it sits under; a file the run lacks is left out."""
+    """{name under .tdd/: bytes} for the run at <run>: its journal lines for <issue>, and the skill pin and the
+    timeout pin, each read from the run, else from the main tree it sits under; a file the run lacks is left out."""
     roots = [run] + [m for m in [run_dir.main_of_worktree(os.path.abspath(run))] if m]
     found = {}
     redactions = _redactions(run)
     lines = _issue_lines(os.path.join(run, EVENTS), issue, redactions)
     if lines:
         found["events.jsonl"] = lines
-    pin = _first_file(roots, issue, "-skill-commit")
-    if pin is not None:
-        found["issue-%s-skill-commit" % issue] = _redact_text(os.fsdecode(pin), redactions).encode()
+    for suffix in PINS:
+        pin = _first_file(roots, issue, suffix)
+        if pin is not None:
+            found["issue-%s%s" % (issue, suffix)] = _redact_text(os.fsdecode(pin), redactions).encode()
     return found
 
 

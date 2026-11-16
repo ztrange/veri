@@ -73,7 +73,7 @@ def test_a_push_that_lands_leaves_the_branch_on_the_remote_at_the_commit_head_is
 
 
 @pytest.mark.process("git push of a branch and a side ref to a bare repository")
-def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_holding_the_runs_journal_lines_and_skill_pin_not_its_timeout(
+def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_holding_the_runs_journal_lines_skill_pin_and_timeout_pin(
         tmp_path, run_cli, push_branch):
     remote = bare(tmp_path / "origin.git")
     repo = run_repo(tmp_path / "records", remote)
@@ -93,7 +93,7 @@ def test_a_push_that_lands_also_pushes_refs_veri_runs_n_a_commit_on_no_branch_ho
     assert (code, shown, on_a_branch) == (0, {
         "events.jsonl": lines[0] + "\n" + lines[2] + "\n",
         "issue-191-skill-commit": "abc1234\n",
-        "issue-191-timeout": "",
+        "issue-191-timeout": "3600\n",
     }, "")
 
 
