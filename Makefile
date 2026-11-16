@@ -99,9 +99,10 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 # The bytecode cache the leg is handed as PYTHONPYCACHEPREFIX, and the manifest that vouches for its
 # .pyc files, must be this user's own (#3966): on a shared /tmp another user can create the path
 # first. The leg's interpreter reads the prefix before any veri code runs, so the check is here.
-PYCACHE_GUARD := why=; \
+PYCACHE_GUARD := why=; listing="$$(ls -nd "$$pycache" 2>/dev/null)"; \
 	if [ -L "$$pycache" ]; then why="it is a symlink"; \
-	else case "$$(ls -ld "$$pycache" 2>/dev/null)" in ?????w*) why="it is group-writable" ;; ????????w*) why="it is other-writable" ;; esac; \
+	elif [ "$$(printf '%s\n' "$$listing" | awk '{print $$3}')" != "$$(id -u)" ]; then why="it is owned by another user"; \
+	else case "$$listing" in ?????w*) why="it is group-writable" ;; ????????w*) why="it is other-writable" ;; esac; \
 	fi; \
 	if [ -n "$$why" ]; then \
 	  printf 'veri: refusing the bytecode cache %s: %s; remove it, or set VERI_PYCACHE to a directory of your own\n' "$$pycache" "$$why" >&2; \

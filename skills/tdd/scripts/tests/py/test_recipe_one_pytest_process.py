@@ -398,3 +398,11 @@ def test_3966_a_prefix_that_is_a_symlink_makes_make_unit_and_make_test_exit_2_na
     cache = tmp_path / "cache"
     cache.symlink_to(target)
     assert refusals_of_unit_and_test(tmp_path, cache) == [refusal(cache, "it is a symlink")] * 2
+
+
+@pytest.mark.timeout(120)
+@pytest.mark.process("make unit and make test started for real over a planted tree, VERI_PYCACHE naming /dev, a closed directory root owns")
+def test_3966_a_prefix_owned_by_another_user_makes_make_unit_and_make_test_exit_2_naming_it_and_the_fix_before_any_suite(tmp_path):
+    other = os.lstat("/dev")
+    assert (other.st_uid != os.getuid(), other.st_mode & 0o022) == (True, 0), "the case needs /dev closed and not this user's"
+    assert refusals_of_unit_and_test(tmp_path, "/dev") == [refusal("/dev", "it is owned by another user")] * 2
