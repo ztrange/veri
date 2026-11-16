@@ -246,3 +246,15 @@ def test_wait_with_a_max_seconds_missing_or_not_a_positive_integer_exits_2_with_
     assert (code, out) == (2, "")
     assert "usage: github-status.sh" in err
     assert page.calls == []
+
+
+@pytest.mark.parametrize("argv", [[], ["wait", "600"]], ids=["one-shot", "wait"])
+@pytest.mark.parametrize("value", ["0", "-1", "abc", ""])
+def test_a_poll_that_is_not_a_positive_integer_exits_2_naming_it_before_any_read(page, run_cli, argv, value):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests"))
+
+    code, out, err = run_cli(page.module, argv, env={"VERI_GITHUB_STATUS_POLL": value})
+
+    assert (code, out) == (2, "")
+    assert "VERI_GITHUB_STATUS_POLL" in err
+    assert page.calls == []
