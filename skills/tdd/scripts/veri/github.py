@@ -26,18 +26,74 @@ PARKED_HEADING = "### ⏸ Parked"
 
 
 REDACTED = "[redacted]"
-_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}")
+# Each shape at its minimum length, with the characters it may run on in: gh[pousr]_[A-Za-z0-9]{36,},
+# github_pat_[A-Za-z0-9_]{22,}, sk-ant-[A-Za-z0-9_-]{20,} and AKIA[0-9A-Z]{16}.
+_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22}|sk-ant-[A-Za-z0-9_-]{20}|AKIA[0-9A-Z]{16}")
+_RUN_ON = ((("github_pat_",), re.compile(r"[A-Za-z0-9_]*")), (("gh",), re.compile(r"[A-Za-z0-9]*")),
+           (("sk-ant-",), re.compile(r"[A-Za-z0-9_-]*")), (("AKIA",), re.compile("")))
+# A line break, or its JSON string escape: a token wrapped across one is still a token.
+_BREAK = re.compile(r"\r\n|\r|\n|\\r\\n|\\r|\\n")
+
+
+def _unbroken(text):
+    """<text> with every _BREAK removed, and where each piece of it starts in <text>: [(joined start, text start)]."""
+    pieces, starts, at, joined = [], [], 0, 0
+    for found in _BREAK.finditer(text):
+        if found.start() > at:
+            pieces.append(text[at:found.start()])
+            starts.append((joined, at))
+            joined += found.start() - at
+        at = found.end()
+    pieces.append(text[at:])
+    starts.append((joined, at))
+    return "".join(pieces), starts
+
+
+def _in_text(starts, index):
+    """Where character <index> of the unbroken text sits in the text."""
+    low, high = 0, len(starts) - 1
+    while low < high:
+        middle = (low + high + 1) // 2
+        if starts[middle][0] <= index:
+            low = middle
+        else:
+            high = middle - 1
+    return starts[low][1] + index - starts[low][0]
+
+
+def _secret_spans(text):
+    """The (start, end) spans of <text> holding a token shape or a listed variable's value, a line break inside one
+    included."""
+    joined, starts = _unbroken(text)
+    spans = []
+    for found in _TOKEN_SHAPES.finditer(joined):
+        end = _in_text(starts, found.end() - 1) + 1
+        run_on = next(chars for prefixes, chars in _RUN_ON if found.group().startswith(prefixes))
+        spans.append((_in_text(starts, found.start()), run_on.match(text, end).end()))
+    for name in tunables.get("VERI_REDACT_VARS").split():
+        value = os.environ.get(name, "")
+        if len(value) < 8:
+            continue
+        at = joined.find(value)
+        while at != -1:
+            spans.append((_in_text(starts, at), _in_text(starts, at + len(value) - 1) + 1))
+            at = joined.find(value, at + len(value))
+    return spans
 
 
 def redact(text):
     """<text> with every token-shaped string, and every value (8 characters or more) of a variable VERI_REDACT_VARS
-    names, replaced by [redacted]."""
-    text = _TOKEN_SHAPES.sub(REDACTED, text)
-    for name in tunables.get("VERI_REDACT_VARS").split():
-        value = os.environ.get(name, "")
-        if len(value) >= 8:
-            text = text.replace(value, REDACTED)
-    return text
+    names, replaced by [redacted]; a line break, or its JSON escape, inside one does not hide it."""
+    out, at = [], 0
+    for start, end in sorted(_secret_spans(text)):
+        if end <= at:
+            continue
+        out.append(text[at:max(start, at)])
+        if start >= at:
+            out.append(REDACTED)
+        at = end
+    out.append(text[at:])
+    return "".join(out)
 
 
 class NoAnswer(Exception):

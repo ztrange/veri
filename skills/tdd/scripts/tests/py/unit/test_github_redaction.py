@@ -93,3 +93,15 @@ def test_gh_comment_post_and_gh_comment_edit_hand_gh_the_body_redacted_issue_396
     github.gh_comment_edit("99", "edited %s" % token)
 
     assert [argv[-1] for argv in fake.argvs] == ["body=posted [redacted]", "body=edited [redacted]"]
+
+
+def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_escape_issue_3960(github, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "fake-gh-token-value")
+    token = "ghp_" + FAKE * 3 + "Zz"
+    wrapped = "x %s\n%s rest\nNext line\n" % (token[:20], token[20:])
+    crlf = "%s\r\n%s\r\n" % (token[:10], token[10:])
+    escaped = '{"out": "%s\\n%s\\nok"}' % (token[:30], token[30:])
+    value = "v fake-gh-\ntoken-value w"
+
+    assert [github.redact(text) for text in (wrapped, crlf, escaped, value)] == [
+        "x [redacted] rest\nNext line\n", "[redacted]\r\n", '{"out": "[redacted]\\nok"}', "v [redacted] w"]
