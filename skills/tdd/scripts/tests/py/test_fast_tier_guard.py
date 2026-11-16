@@ -78,6 +78,9 @@ def test_a_planted_test_file_starting_a_process_through_os_system_os_exec_os_spa
         ("from pty import spawn", "spawn(['true'])", "pty.spawn"),
         ("import os", "os.popen('true')", "os.popen"),
         ("import os", "os.posix_spawn('/bin/true', ['true'], {})", "os.posix_spawn"),
+        ("import os", "os.fork()", "os.fork"),
+        ("import os", "os.forkpty()", "os.forkpty"),
+        ("from os import fork", "fork()", "os.fork"),
     ],
 )
 def test_1641_a_planted_process_start_form_is_named_by_file_and_line_and_the_message_names_the_actual_call(tmp_path, import_line, call, named):
