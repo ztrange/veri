@@ -149,7 +149,25 @@ def test_a_verify_leaf_gets_the_tools_value_a_develop_leaf_gets_and_no_disallowe
     assert given(develop) == given(verifier)
 
 
+def test_every_json_object_a_caller_passes_as_settings_is_merged_into_the_one_settings_flag(run_leaf):
+    argv, _ = spec(run_leaf, extra=["--settings", '{"hooks": {"PreToolUse": []}}', "--x",
+                                    "--settings", '{"env": {"A": "1"}}'])
+    [settings] = leaf_settings(argv)
+    assert (settings["hooks"], settings["env"], settings["autoMemoryEnabled"], argv[-1]) == (
+        {"PreToolUse": []}, {"A": "1"}, False, "--x")
+
+
 @pytest.mark.parametrize("value", ["/etc/leaf-settings.json", "[1]", "{not json"])
-def test_a_callers_settings_that_is_not_a_json_object_stays_in_its_arguments_as_given(run_leaf, value):
-    argv, _ = spec(run_leaf, extra=["--settings", value, "--x"])
-    assert argv[-3:] == ["--settings", value, "--x"] and leaf_settings(argv[:-3])[0].get("hooks") is None
+def test_main_refuses_a_callers_settings_that_is_not_a_json_object_with_exit_2_naming_it_and_launches_nothing(
+        run_leaf, value, tmp_path, monkeypatch, run_cli, fake_processes):
+    prompt = tmp_path / "leaf.prompt"
+    prompt.write_text("hello")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    calls = fake_processes()
+
+    code, out, err = run_cli(run_leaf, [str(prompt), "--settings", value])
+
+    assert (code, out, err, calls) == (
+        2, "", "run-leaf.sh: --settings %r is not a JSON object, so it cannot be merged into the leaf's"
+               " one --settings\n" % value, [])
