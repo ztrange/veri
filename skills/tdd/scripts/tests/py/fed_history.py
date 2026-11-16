@@ -148,8 +148,10 @@ class FedHistory:
         return found[0]
 
     def subject(self, rev):
-        """As `git log -1 --format=%s <rev>` prints it: the subject and a newline."""
-        return self.subjects[self.commit_of(rev)] + "\n"
+        """As `git log -1 --format=%s <rev>` prints it: the subject and a newline; "" for a revision it does not hold,
+        as case_history answers when git log fails."""
+        found = self.lookup(rev)
+        return "" if found is None else self.subjects[found[0]] + "\n"
 
     def changed_test_files(self):
         head = self.trees[-1] if self.trees else {}
