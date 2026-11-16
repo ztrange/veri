@@ -181,6 +181,17 @@ def test_4018_counts_only_ci_rerun_events_re_running_with_other_budgets_spent_an
     assert [c for c in fake.calls if c.startswith("gh")] == ["gh run rerun 12345 --failed"]
 
 
+def test_4018_exits_2_running_no_alone_run_when_the_log_names_more_targets_than_its_cap(
+        tmp_path, run_cli, fake_processes, ci_flake):
+    many = "".join(PREFIX % 0 + "FAILED skills/a/test_x.py::test_%d\n" % i for i in range(ci_flake.MAX_TARGETS + 1))
+    fake = answered(fake_processes, {"sh -c": (0, "", ""), "gh": (0, "", "")})
+
+    code, out, err = run_cli(ci_flake, ["4018", HEAD, "12345", ALONE, _log(tmp_path, many)], cwd=tmp_path)
+
+    assert (code, out, len(err.splitlines()), alone_runs(fake)) == (2, "", 1, [])
+    assert ci_flake.MAX_TARGETS == 5
+
+
 @pytest.mark.parametrize("head, status, git_fails", [
     ("f" * 40, "", False),
     (HEAD, " M skills/a/test_x.py\n", False),
