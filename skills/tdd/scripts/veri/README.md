@@ -729,6 +729,7 @@ Graded prose: the Requirements rows of a unit, grading them with a leaf, the pro
 The conductor loop, parallel conductors, lanes and the operator's views (status, metrics, reports). The top of the tree: no group builds on it.
 
 - `comment.sh`: post the run's Done or Bail comment on the issue.
+- `decision-log.sh`: record a judge's decision about no issue in `.tdd/decisions.jsonl` of the main working tree.
 - `dispatch.sh`: the dev session's dispatch target and exits watch.
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
 - `install-links.sh`: link veri's skills into a project.
