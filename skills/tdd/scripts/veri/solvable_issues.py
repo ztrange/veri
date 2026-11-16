@@ -6,6 +6,7 @@ import paths
 import pid_file
 import re
 import run_dir
+import subprocess
 import sys
 
 import blocked_by
@@ -67,6 +68,17 @@ def open_listing(fixture, path, *args):
     if len(items(listing)) >= PAGE_SIZE:
         listing = gh_json(fixture, path + OLDEST_FIRST, *args)
     return listing
+
+
+def github_repository(root):
+    """`owner/name`, lower-cased, of the GitHub repository origin of <root> points at (an https, ssh or scp-style URL,
+    `.git` dropped); None when there is no origin or its URL names no GitHub repository."""
+    got = subprocess.run(["git", "remote", "get-url", "origin"], cwd=root, capture_output=True, text=True)
+    if got.returncode != 0:
+        return None
+    found = re.fullmatch(r"(?:https://|ssh://git@|git@)github\.com[/:]([^/\s]+)/([^/\s]+?)(?:\.git)?/?",
+                         got.stdout.strip())
+    return ("%s/%s" % found.groups()).lower() if found else None
 
 
 def own_run_branch(pr, number):
@@ -139,6 +151,13 @@ def select(label, priority="priority", repo=None):
     main_tree = run_dir.main_tree(missing="")
     try:
         stack = stack_branch.named(main_tree or ".")
+        if stack and repo:
+            local = github_repository(main_tree or ".")
+            if local is None:
+                print("solvable-issues: a stack branch is named, but origin of %s names no GitHub repository to compare"
+                      " with --repo %s" % (main_tree or ".", repo), file=sys.stderr)
+                return 2, []
+            stack = stack if local == repo.lower() else None
         if stack:
             claimed |= joined_issues(stack, repo)
     except stack_branch.Refused as refused:
