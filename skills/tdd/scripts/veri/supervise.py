@@ -350,7 +350,7 @@ def preserve_killed_attempt(name, attempt, env):
 def still_alive_owner(ownerfile):
     try:
         with open(ownerfile) as f:
-            line = f.readline()
+            line, started = f.readline(), f.readline().strip()
     except OSError:
         return None
     fields = line.split(None, 1)
@@ -361,6 +361,8 @@ def still_alive_owner(ownerfile):
     try:
         os.kill(int(owner_pid), 0)
     except OSError:
+        return None
+    if started and (live := ps_field("lstart", owner_pid)) and live != started:
         return None
     return owner_pid, owner_name
 
