@@ -14,6 +14,19 @@ Invoked as `/vinstall [repo-root]`. Run `$S/install-links.sh [repo-root]`, passi
 argument through when the user gave one. Then report each skill the script linked,
 repaired or removed, by name (a removed one prints as `removed <name>`).
 
+## Stacking finished runs
+
+During setup, after reporting the links, run `$S/stack-branch.sh [repo-root]`. When it exits 0,
+report the stack branch it printed and do not ask. When it exits 3, ask the user whether the
+repository stacks finished runs on a standing branch and, if so, under what branch name:
+
+- On a name, write the line `veri: stack branch: <name>` into the repository's `CLAUDE.md`
+  (creating the file when there is none), then run `$S/stack-branch.sh [repo-root]` again. Exit 0
+  is done. Exit 2 means the name cannot be a stack (empty, the default branch, or refused by
+  `git check-ref-format --branch`): report its stderr, take the line out again and ask once more.
+- On a no, write nothing: each run then keeps one pull request against the default branch, a CI
+  wait and a merge call.
+
 ## Checking readiness
 
 Only when the script linked, repaired or removed at least one skill: run the readiness
