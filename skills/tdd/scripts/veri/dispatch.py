@@ -176,15 +176,16 @@ def issue_paths(issue):
 
 
 def run_prs():
-    """(url, number, head sha) of every open run draft PR (head tdd/…), on any machine,
-    listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds."""
+    """(url, number, head sha) of every open run draft PR (head tdd/… in this repository, not a fork's), on any
+    machine, listed at most once per VERI_DISPATCH_OVERLAP_POLL seconds."""
     listed = _reads.get("listed")
     if listed is None or clock() - listed[0] >= int(overlap_poll()):
         prs = []
-        for pr in answered("the open PR list", github.open_pulls, "number,url,isDraft,headRefName,headRefOid,labels", limit=None):
+        for pr in answered("the open PR list", github.open_pulls,
+                           "number,url,isDraft,headRefName,headRefOid,labels,isCrossRepository", limit=None):
             if "parked" in pr.labels:
                 continue
-            if pr.draft is True and pr.head_ref.startswith("tdd/"):
+            if pr.draft is True and pr.head_ref.startswith("tdd/") and not pr.cross_repository:
                 url = pr.url or pr.html_url
                 _reads.setdefault("heads", {})[url] = pr.head_ref
                 prs.append((url, pr.number, pr.head_sha))
