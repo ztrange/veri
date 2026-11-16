@@ -107,8 +107,15 @@ def granted_scopes():
     return []
 
 
+def origin_is_https():
+    return git.git("remote", "get-url", "origin", capture_output=True, text=True).stdout.strip().startswith("https://")
+
+
 def token_scopes_row():
-    return "token scopes", None if "repo" in granted_scopes() else "gh auth refresh -s repo"
+    needed = ["repo", "workflow"] if origin_is_https() else ["repo"]
+    granted = granted_scopes()
+    missing = [scope for scope in needed if scope not in granted]
+    return "token scopes", "gh auth refresh -s " + ",".join(missing) if missing else None
 
 
 def bash_row():
