@@ -153,8 +153,12 @@ def _tag(worktree, message, pull, pr):
         _say("git tag failed; tag %s not published" % name)
         return False
     if _git(worktree, "push", "origin", name).returncode:
-        _git(worktree, "tag", "-d", name)
-        _say("git push failed; tag %s cut, not published, and removed" % name)
+        deleted = _git(worktree, "tag", "-d", name)
+        if deleted.returncode:
+            _say("git push failed; tag %s cut, not published, and git tag -d %s failed (exit %d): %s" % (
+                name, name, deleted.returncode, deleted.stderr.strip()))
+        else:
+            _say("git push failed; tag %s cut, not published, and removed" % name)
         return False
     return name
 

@@ -1428,3 +1428,11 @@ def test_3982_queued_merge_whose_tag_push_fails_deletes_the_local_tag_says_it_wa
     deleted = [c for c in calls if " tag -d " in c]
     assert (code, deleted, "v0.11 cut, not published, and removed" in err, "merged, but cleanup failed: tag" in err) == (
         2, ["git -C /wt tag -d v0.11"], True, True)
+
+
+def test_3982_queued_merge_whose_tag_push_and_tag_delete_both_fail_names_the_failed_delete_and_exits_2_naming_tag(fake_processes, run_cli):
+    scenario(fake_processes, fail=("push origin v0.11", "tag -d v0.11"))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    assert (code, "git tag -d v0.11 failed" in err, "and removed" in err, "merged, but cleanup failed: tag" in err) == (2, True, False, True)
