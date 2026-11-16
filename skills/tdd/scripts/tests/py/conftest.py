@@ -191,6 +191,7 @@ def pytest_configure(config):
 CWD_OUTSIDE_REPOSITORY = {
     "test_affected_suites.py",
     "test_affected_suites_process.py",
+    "test_build_verify_prompt.py",
     "test_event.py",
     "test_invisible_work.py",
     "test_invisible_work_process.py",
@@ -210,6 +211,7 @@ CWD_OUTSIDE_REPOSITORY = {
     "test_transform_touches_tests_process.py",
     "test_verify.py",
     "test_verify_process.py",
+    "test_verify_prompt_retirements.py",
     "test_workqueue.py",
     "test_workqueue_process.py",
 }
