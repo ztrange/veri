@@ -6,6 +6,7 @@ import json
 import os
 import sys
 
+import redaction
 import run_dir
 
 USAGE = "usage: decision-log.sh record <question> <decision> <rule> <by>\n"
@@ -17,7 +18,8 @@ def log_path():
 
 
 def record(question, decision, rule, by):
-    line = {"question": question, "decision": decision, "rule": rule, "by": by,
+    fields = {"question": question, "decision": decision, "rule": rule, "by": by}
+    line = {**{key: redaction.redact(value) for key, value in fields.items()},
             "at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
     path = log_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
