@@ -30,6 +30,15 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
 
+# The job's GITHUB_TOKEN can only read (PRD 022.10). Unstated, its scopes would be whatever the
+# repository's default is, a setting that can change without a change here. actions/checkout needs
+# `contents: read`, and nothing else the job does uses the token: the Actions cache (setup-python's
+# pip cache, the bytecode cache's restore and save) authenticates with the runner's own cache token,
+# not GITHUB_TOKEN's scopes. test_workflow_permissions.py refuses a workflow without this block or
+# with any `write`.
+permissions:
+  contents: read
+
 jobs:
   gates:
     runs-on: ubuntu-latest
