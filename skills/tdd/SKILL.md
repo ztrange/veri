@@ -318,13 +318,11 @@ line names, or as a resume when exit 2 says the branch holds a ledger.
    whichever word it printed — a file git never commits and every worktree of the repo reads.
    That second write is what keeps `.tdd/wt/<n>` out of the **caller's** `git status`: the
    caller's checkout stays on the default branch for the whole run, so it never sees the
-   `.gitignore` commit above, which lives only on the issue branch. Because `info/exclude`
-   needs no branch and no commit, it is in force in the caller's checkout immediately — and
-   preflight step 1, which refuses to start on a dirty caller's checkout, passes for the next
-   `/tdd` without waiting for this one's PR to merge.
+   `.gitignore` commit above, which lives only on the issue branch.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, by running `$S/comment.sh <n> resuming`, and go straight to the cycle loop (step 3), once you `Read` and follow `<base directory>/RESUME.md`.
+   Before its first leaf a resume runs `$S/park-decision.sh <n>`: on exit 0 apply the owner's answers it prints, a decision that changes the plan as a `plan: rewrite #<n>` commit; on exit 3 go on as before; exit 2 is a preflight-class stop.
    A resume skips verify-plan only when the ledger's plan is unchanged since its last verify-plan PASS: when
    `$S/plan-reverify.sh .tdd/issue-<n>.md` exits 0, a `plan:` commit is at or after that PASS, so run step 2c's
    verify-plan before the cycle loop; on exit 3 skip it.
