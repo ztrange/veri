@@ -508,17 +508,27 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
 - `$S/push-branch.sh [--force-with-lease=<branch>:<sha>]` — push the branch. When `.tdd/rebase-lease` exists, the push is `git push --force-with-lease=<branch>:<sha> --set-upstream origin HEAD`, `<sha>` being the file's content and `<branch>` the checked-out branch, replacing the arguments the caller passed. A successful push removes the file; a failed push leaves it, so a later push still carries the lease. With no such file the push is as before.
   After a push that exits 0 on a `tdd/<n>-<slug>` branch it also replaces origin's `refs/veri/runs/<n>`, a commit on no
   branch holding only what a reader restores: the run's `.tdd/events.jsonl` lines for issue `<n>` and those naming no
-  issue, and `.tdd/issue-<n>-skill-commit` (read from the worktree, else from the main tree it sits under); records kept
-  off the branch, since rebase-merge would carry them into `main`'s history. What travels is redacted, the local files
-  left byte-identical: in every string of each carried line (decoded JSON, nested values and keys included) and in the
-  pin, the home directory reads `~`, the worktree and main clone roots `<repo>`, any temp directory (`$TMPDIR`, the
-  system's, `/var/folders/…`, `/private/var/folders/…`, `/tmp`) `<tmp>` and the host name `<host>`; a journal line that
-  is not JSON is not carried. The push ends after `VERI_GIT_NETWORK_TIMEOUT` seconds. `metrics.sh <n>` reads that ref's events when the
+  issue, `.tdd/issue-<n>-skill-commit` and `.tdd/issue-<n>-timeout` (each pin read from the worktree, else from the main
+  tree it sits under); records kept off the branch, since rebase-merge would carry them into `main`'s history. What
+  travels is redacted, the local files left byte-identical, in every string of each carried line (decoded JSON, nested
+  values and keys included) and in each pin, in this order: the worktree and main clone roots read `<repo>`, then the
+  temp directories (`$TMPDIR`, the system's) `<tmp>`, then the home directory `~`, each replaced as a plain substring,
+  the longest first, in every spelling (as given and resolved, with and without `/private` and `/System/Volumes/Data`,
+  with `/` written `\/`, and URL-encoded with and without `/` kept); then any other temp path (`/var/folders/…`,
+  `/private/var/folders/…`, `/tmp`) `<tmp>`; then, as whole words ignoring case, the host's names `<host>`
+  (`socket.gethostname()` and `platform.node()`, their first DNS label when it is not numeric and at least 3 characters,
+  each also with `.local` and with `-` written as a space; an IP-form name is kept whole, never split into labels) and
+  the account's name `<user>` (the home directory's last component and `getpass.getuser()`, when at least 3
+  characters). A journal line that is not JSON is not carried. The records commit is by `veri <veri@localhost>`, its
+  author and committer dates in UTC (`+0000`). The push ends after `VERI_GIT_NETWORK_TIMEOUT` seconds. `metrics.sh <n>` reads that ref's events when the
   local journal has none for the issue, and `run-conductor.sh <n>`, on a first launch with no local
   `.tdd/issue-<n>-skill-commit`, pins the run to the commit the ref records, so a run resumed on another machine
   executes the snapshot it started on, but only when that commit is an ancestor of the skill clone's origin default
   branch as just fetched: `refs/veri/*` lies outside that branch's protection, so any other carried pin is named in one
-  stderr line and ignored, and the launch pins as a fresh one does. Then it updates the issue's pointer comment (`pointer-comment.sh`), stamped with
+  stderr line and ignored, and the launch behaves as a fresh one does, `update-veri.sh` included. The same first launch
+  restores the carried timeout pin into the run's worktree when the run has none, if its value is one the run's own
+  reader accepts (a whole number of seconds >= 1); any other value is named in one stderr line and ignored, and the run
+  settles its timeout as a fresh one does. Then it updates the issue's pointer comment (`pointer-comment.sh`), stamped with
   this push's time; after a failed push it does neither. A failure of either, any exception included, is one stderr
   line and never changes the exit code.
 - `$S/pinned-scripts.sh <n>` — print the directory holding run `<n>`'s pinned scripts, under the run's worktree `.tdd/`. **Exit 0** = the directory, which exists. **Exit 2** = that directory is absent: the diagnostic names the pinned commit read from `.tdd/issue-<n>-skill-commit` and the recovery line `git archive <pin> skills/tdd/scripts`, or says no pin is recorded when there is no such file.
