@@ -128,4 +128,4 @@ through a question tool (`AskUserQuestion`) or a blocking end-of-turn box: eithe
 until the human answers. A decision goes out once, as plain text (P4), and only its own item waits;
 everything else goes on. It is not repeated on routine turns. When the human's next message
 arrives, whatever it is about, the role answers it and then restates every pending decision in
-full, a case P4's restatement rule adds to the two it names.
+full, a third case beyond the two P4 names.
