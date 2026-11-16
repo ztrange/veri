@@ -21,4 +21,19 @@ you were given, not a run of one case alone.
 
 {{INCLUDE:_develop-spec-cut-from.md}}
 
-REPORT-FORMAT exhausted | keys STATEMENT: | suite exempt: the leaf changes nothing and answers in prose
+### Report (last lines of your output)
+
+If the step is more than one behaviour, one to three lines, each a behaviour-level criterion
+small enough to be one red-green cycle of its own, in the order they must be built:
+
+SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
+
+If it needs a decision this run has no authority to make, one line naming that decision:
+
+NEEDS_USER: <the decision, stated so the user can answer it>
+
+If it is neither — this step is one behaviour the attempts simply failed to satisfy — print no
+SPLIT: line and no NEEDS_USER: line; the run then bails. Whichever answer you give, your
+STATEMENT: line comes with it.
+
+REPORT-FORMAT exhausted | keys STATEMENT: SPLIT: NEEDS_USER: | suite exempt: the leaf changes nothing and answers in prose

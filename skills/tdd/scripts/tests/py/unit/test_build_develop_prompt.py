@@ -801,6 +801,8 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
             over_budget, step, b"3.47", b"2.50", b'zorblat("Frob & Nitz/Quux")'),
         "over-budget asks for SPLIT: or NEEDS_USER:": (
             any_line(over_budget, rb"^SPLIT:") and any_line(over_budget, rb"^NEEDS_USER:")),
+        "#3916 exhausted asks for SPLIT: or NEEDS_USER:": (
+            any_line(exhausted, rb"^SPLIT:") and any_line(exhausted, rb"^NEEDS_USER:")),
         "over-budget with fewer than five arguments after the phase refuses": all(
             refused(["over-budget", *args]) for args in ([], [s], [s, step], [s, step, cmd], [s, step, cmd, "3.47"])),
         "over-budget ignores a reason file past <budget>": (
