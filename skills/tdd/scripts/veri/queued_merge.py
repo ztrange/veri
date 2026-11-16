@@ -174,7 +174,11 @@ def _cleanup(pid, pr, pull, worktree, branch, message):
         shutil.copy2(os.path.join(SCRIPTS, name), os.path.join(scripts, name))
     name = ""
     if message != "-":
-        name = _tag(worktree, message, pull, pr)
+        try:
+            name = _tag(worktree, message, pull, pr)
+        except Exception as error:
+            _say("cutting the tag raised %s: %s" % (type(error).__name__, error))
+            name = ""
         if not name:
             failed.append("tag")
     if message == "-" or name:
