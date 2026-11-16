@@ -117,7 +117,7 @@ def now():
     command = tunables.read("VERI_WALL_CLOCK")
     if command:
         return clock_command(command)
-    return captured("date", "+%s").stdout.rstrip("\n")
+    return str(int(time.time()))
 
 
 def mtime_of(path):

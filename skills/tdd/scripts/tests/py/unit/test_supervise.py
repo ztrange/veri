@@ -164,3 +164,16 @@ def test_now_with_veri_wall_clock_set_runs_that_command_split_on_spaces_and_retu
         readings.append(supervise.now())
 
     assert (readings, fake.calls) == (["1000", "2000"], ["clock --at 1000", "plain --at 2000", "sh plain --at 2000"])
+
+
+def test_now_with_veri_wall_clock_unset_or_empty_returns_int_time_time_as_text_4129(monkeypatch, supervise, fake_processes):
+    import time
+    fake_processes.answers({"date": (0, "5\n", "")})
+    monkeypatch.setattr(time, "time", lambda: 1700000000.9)
+
+    monkeypatch.delenv("VERI_WALL_CLOCK", raising=False)
+    unset = supervise.now()
+    monkeypatch.setenv("VERI_WALL_CLOCK", "")
+    empty = supervise.now()
+
+    assert (unset, empty) == ("1700000000", "1700000000")
