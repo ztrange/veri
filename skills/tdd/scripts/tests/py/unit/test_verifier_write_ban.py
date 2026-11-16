@@ -24,7 +24,17 @@ def test_main_lets_any_other_tool_call_through_with_exit_0_and_nothing_printed(t
     assert run_cli(ban, [], stdin=call) == (0, "", "")
 
 
-@pytest.mark.parametrize("stdin", ["", "not json", "[]", '{"tool_input": {}}'])
+@pytest.mark.parametrize("tool", ["write", "EDIT", "multiedit", "notebookEdit"])
+def test_main_blocks_a_file_writing_tool_named_in_any_case(tool, run_cli):
+    ban = importlib.import_module("veri.verifier_write_ban")
+
+    code, _, err = run_cli(ban, [], stdin=json.dumps({"tool_name": tool}))
+
+    assert (code, err) == (2, "verifier-write-ban: the verifier may not modify files (%s)\n" % tool)
+
+
+@pytest.mark.parametrize("stdin", ["", "not json", "[]", '{"tool_input": {}}', '{"tool_name": null}',
+                                   '{"tool_name": ["Write"]}', '{"tool_name": 7}'])
 def test_main_blocks_a_call_it_cannot_read_with_exit_2_so_the_ban_fails_closed(stdin, run_cli):
     ban = importlib.import_module("veri.verifier_write_ban")
 
