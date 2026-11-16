@@ -1952,6 +1952,17 @@ def test_the_report_counts_switched_off_green_skips_as_green_beside_pin_and_refa
     assert "Verifiers switched off: green 2, pin 1, refactor 1\n" in render(metrics, capsys)
 
 
+def test_the_report_counts_switched_off_red_skips_as_red_between_pin_and_refactor_3936(tmp_path, monkeypatch, capsys, metrics):
+    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("red", "1"), skip("pin", "1"),
+                         {"event": "step-done", "step": "1", "ts": 160},
+                         {"event": "step-start", "step": "2", "ts": 200}, skip("red", "2"), skip("refactor", "2"),
+                         {"event": "step-done", "step": "2", "ts": 260}])
+    monkeypatch.chdir(tmp_path)
+
+    assert "Verifiers switched off: pin 1, red 2, refactor 1\n" in render(metrics, capsys)
+
+
 def transcript(path, prompt, turns):
     lines = [{"type": "user", "message": {"role": "user", "content": prompt}}]
     for number, (usage) in enumerate(turns):
