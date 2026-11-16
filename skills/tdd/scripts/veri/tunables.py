@@ -202,6 +202,7 @@ NOT_KNOBS = {
     "VERI_WALL_CLOCK": "test stand-in",
     "VERI_BASH_MAJOR": "test stand-in",
     "VERI_CI_ON_PR": "test stand-in",
+    "VERI_EVENT_STRICT": "test stand-in",
     "VERI_GH_JSON": "test stand-in",
     "VERI_POLL": "test stand-in",
     "VERI_PYTHON_VERSION": "test stand-in",
