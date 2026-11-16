@@ -8,4 +8,4 @@
 - [x] After a stale `run`, a `--record` of new seconds makes the next `baseline-full-tier.sh` print `reuse` with the new seconds ⟦criterion 5⟧
 - [x] Under `reuse`, an unreadable `full-tier-time.json` makes `baseline-full-tier.sh` exit 2 naming the error, and no `full-tier-time.json` prints `run` ⟦criterion 6⟧
 - [x] Under `reuse`, a `VERI_FULL_TIER_MAX_AGE_DAYS` that is not a whole number >= 1 makes `baseline-full-tier.sh` exit 2 naming it and its value; under `run` it changes nothing ⟦criterion 7⟧
-- [ ] `SCRIPTS.md`'s `full-tier-time.sh` and `baseline-full-tier.sh` entries and `PREFLIGHT.md` step 3 state the recorded-at file and the age rule, graded ⟦criterion 8⟧
+- [x] `SCRIPTS.md`'s `full-tier-time.sh` and `baseline-full-tier.sh` entries and `PREFLIGHT.md` step 3 state the recorded-at file and the age rule, graded ⟦criterion 8⟧
