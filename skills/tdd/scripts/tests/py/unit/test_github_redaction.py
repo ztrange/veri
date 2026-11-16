@@ -5,6 +5,7 @@ import ast
 import base64
 import importlib
 import json
+import pathlib
 
 import pytest
 
@@ -132,6 +133,38 @@ def test_gh_issue_edit_hands_gh_a_body_file_whose_contents_are_redacted_the_call
     github.gh_issue_edit("60", str(body_file))
 
     assert (read, body_file.read_text()) == (["## Problem\nleaked [redacted]\n"], "## Problem\nleaked %s\n" % token)
+
+
+FILE_FORMS = {"--input": lambda p: ["api", "x", "--input", p], "--body-file": lambda p: ["issue", "create", "--body-file", p],
+              "-Fbody=@": lambda p: ["api", "x", "-Fbody=@" + p], "--field=body=@": lambda p: ["api", "x", "--field=body=@" + p],
+              "--input=": lambda p: ["api", "x", "--input=" + p], "--body-file=": lambda p: ["pr", "edit", "--body-file=" + p]}
+
+
+@pytest.mark.parametrize("form", sorted(FILE_FORMS))
+def test_a_body_file_handed_gh_in_any_form_reaches_it_as_a_redacted_copy_in_a_private_directory_issue_3960(
+        github, fake_processes, tmp_path, form):
+    token = "ghu_" + FAKE * 3
+    body_file = tmp_path / "body.md"
+    body_file.write_text("out %s\n" % token)
+    seen = []
+
+    def gh(line, **kwargs):
+        copy = handed(fake.argvs[-1][-1])
+        seen.append((copy.read_text(), oct(copy.parent.stat().st_mode & 0o777), copy.parent != tmp_path))
+        return 0, "{}", ""
+    fake = fake_processes.answers({"gh": gh})
+
+    github.run_gh(*FILE_FORMS[form](str(body_file)))
+
+    assert (seen, body_file.read_text(), handed(fake.argvs[-1][-1]).exists()) == (
+        [("out [redacted]\n", "0o700", True)], "out %s\n" % token, False)
+
+
+def handed(arg):
+    """The file a gh argument names: after `=@`, after a long option's `=`, or the argument itself."""
+    if "=@" in arg:
+        return pathlib.Path(arg.split("=@", 1)[1])
+    return pathlib.Path(arg.split("=", 1)[1] if arg.startswith("--") else arg)
 
 
 def test_redact_replaces_a_token_wrapped_across_a_line_break_or_a_json_newline_escape_issue_3960(github, monkeypatch):
