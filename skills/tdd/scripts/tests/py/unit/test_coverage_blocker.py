@@ -619,3 +619,39 @@ def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_an
     code, out, _ = run_cli(coverage_blocker, ["7"])
 
     assert (code, out, calls) == (2, "", ["post", "get", "patch"])
+
+
+def _issue_writes(calls):
+    """The recorded gh calls that create or edit an issue: `gh issue create|edit`, or a `gh api` call carrying a method or a field."""
+    return [call for call in calls if call[1:3] in (["issue", "create"], ["issue", "edit"])
+            or (call[1:2] == ["api"] and any(arg in ("-X", "--method", "-f", "-F", "--field", "--raw-field") for arg in call))]
+
+
+def _run_answering_every_gh_call(fake_processes, coverage_blocker, capsys):
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+        if any(arg.startswith("title=") for arg in args):
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        return subprocess.CompletedProcess(args, 0, "[]", "")
+
+    _install(fake_processes, fake_run)
+    code = coverage_blocker.main(["60"])
+    captured = capsys.readouterr()
+    return code, _issue_writes(calls), captured.out, captured.err
+
+
+def test_main_3943_exits_2_files_and_edits_no_issue_and_names_the_report_on_stderr_when_the_cover_report_is_absent(
+        tmp_path, monkeypatch, capsys, coverage_blocker, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    code, writes, out, err = _run_answering_every_gh_call(fake_processes, coverage_blocker, capsys)
+
+    assert (code, writes, out, ".tdd/develop-cover.out" in err) == (2, [], "", True)
