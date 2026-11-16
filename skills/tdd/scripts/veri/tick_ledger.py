@@ -19,8 +19,11 @@ def complain(message):
     print(f"tick-ledger.sh: {message}", file=sys.stderr)
 
 
-def case_env():
-    return {k: v for k, v in os.environ.items() if k not in ("TESTS", "MAKEFLAGS", "MAKELEVEL")}
+def case_env(make=False):
+    """The case command's environment: make's own variables dropped; under make, `LC_ALL=C` so its messages are
+    untranslated."""
+    env = {k: v for k, v in os.environ.items() if k not in ("TESTS", "MAKEFLAGS", "MAKELEVEL")}
+    return {**env, "LC_ALL": "C"} if make else env
 
 
 LAST_COMMAND = ""
@@ -43,34 +46,26 @@ def how_ended(code):
         return f"killed by signal {-code}"
 
 
-MAKE_ERROR = re.compile(r"^make(?:\[(\d+)\])?: \*\*\* \[.*\] Error (\d+)$", re.M)
+MAKE_ERROR = re.compile(r"make: \*\*\* \[.*\] Error (\d+)")
 # GNU make runs a simple recipe line without a shell and reports a command it could not execute as `Error 1`,
-# after its own `make: <command>: No such file or directory` (or `Permission denied`) line.
-MAKE_EXEC_FAILED = re.compile(r"^make(?:\[(\d+)\])?: (?!\*\*\* ).+: (No such file or directory|Permission denied)$", re.M)
+# right after its own `make: <command>: No such file or directory` (or `Permission denied`) line.
+MAKE_EXEC_FAILED = re.compile(r"make: (?!\*\*\* ).+: (No such file or directory|Permission denied)")
 
 
-def case_code(done, make=False):
-    """The case's exit code. Make exits 2 for any failed recipe, so make's own `make: *** [<target>] Error <k>` lines
-    on stderr (never stdout, where a test's output goes) give `<k>` instead: the last line of the outermost make level,
-    and while that is `Error 2` relaying a sub-make, the last line of the next level down; that level's own line saying a
-    command could not be executed reads as 127 (not found) or 126 (not executable). `make` (the fallback, known to be
-    make): any non-zero exit with no such line answers None, a case never run."""
-    if done.returncode == 2 or (make and done.returncode > 0):
-        found = {}
-        for level, code in MAKE_ERROR.findall(done.stderr or ""):
-            found[int(level or 0)] = int(code)
-        levels = sorted(found)
-        if not levels:
-            return None if make else done.returncode
-        chosen = levels[0]
-        for level in levels[1:]:
-            if found[chosen] != 2:
-                break
-            chosen = level
-        unrunnable = {int(level or 0): 126 if why == "Permission denied" else 127
-                      for level, why in MAKE_EXEC_FAILED.findall(done.stderr or "")}
-        return unrunnable.get(chosen, found[chosen])
-    return done.returncode
+def make_answer(stderr):
+    """A failed make run's answer: 1 (the case ran and fails) only when make's last non-empty stderr line is a
+    top-level `make: *** [<target>] Error 1` (make prints it after the recipe is dead), no other top-level Error line
+    says anything but 1, and the line just before it is not make's own could-not-execute line; 2 (no answer) otherwise.
+    A nested make's failure therefore reads as 2: a repository that needs one declares its one-test-file command."""
+    lines = [line for line in stderr.splitlines() if line.strip()]
+    final = MAKE_ERROR.fullmatch(lines[-1]) if lines else None
+    if not final or final.group(1) != "1":
+        return 2
+    if any(m.group(1) != "1" for m in map(MAKE_ERROR.fullmatch, lines) if m):
+        return 2
+    if len(lines) > 1 and MAKE_EXEC_FAILED.fullmatch(lines[-2]):
+        return 2
+    return 1
 
 
 def run_case(case):
@@ -79,24 +74,23 @@ def run_case(case):
     found = subprocess.run([detect, "--tier", "one test file"], capture_output=True, text=True)
     command = found.stdout.strip()
     path = case.split("::", 1)[0]
+    is_make = not command or os.path.basename((command.split() or [""])[0]) == "make"
     if command:
         LAST_COMMAND = f"{command} {path}"
-        done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env())
+        done = subprocess.run(["sh", "-c", command, "sh", path], capture_output=True, text=True, env=case_env(is_make))
     else:
         LAST_COMMAND = f"make test TESTS={case}"
-        done = subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True, env=case_env())
+        done = subprocess.run(["make", "test", f"TESTS={case}"], capture_output=True, text=True, env=case_env(True))
         if "::" not in case and "/" not in path:
             path = "."
-    LAST_CODE = case_code(done, make=not command)
-    if LAST_CODE is None:
-        LAST_CODE = done.returncode
+    LAST_CODE = done.returncode
+    answer = make_answer(done.stderr or "") if is_make and LAST_CODE > 0 else LAST_CODE
+    if no_answer(answer) or answer == 2:
         return 2
-    if no_answer(LAST_CODE):
+    if answer and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
+                                                         f"{done.stdout}{done.stderr}", re.I)):
         return 2
-    if LAST_CODE and (not os.path.exists(path) or re.search(r"no tests (were )?(collected|ran)|collected 0 items",
-                                                            f"{done.stdout}{done.stderr}", re.I)):
-        return 2
-    return LAST_CODE
+    return answer
 
 
 def changed_index(text, new):
