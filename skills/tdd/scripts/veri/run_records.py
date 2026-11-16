@@ -15,6 +15,7 @@ import unicodedata
 import urllib.parse
 
 import git
+import github
 import run_dir
 
 IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
@@ -166,6 +167,7 @@ def _normalized(text):
 
 def _redact_text(text, redactions):
     steps, leak = redactions
+    text = github.redact(text)
     for pattern, repl in steps:
         text = pattern.sub(repl, text)
     seen = _normalized(text)
