@@ -12,7 +12,8 @@ import blocked_by
 import git
 import stack_branch
 import tunables
-from github import NoAnswer, closed_issues, gh_json, gh_json_page, joined_issues, pulls_in
+from github import (ISSUE_AUTHOR_ASSOCIATIONS, NoAnswer, closed_issues, gh_json, gh_json_page, joined_issues, pulls_in,
+                    trusted_author)
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]"
@@ -166,7 +167,7 @@ def select(label, priority="priority", repo=None):
     except NoAnswer:
         return 2, []
     survivors = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and trusted_author(issue, ISSUE_AUTHOR_ASSOCIATIONS) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blockers[issue["number"]])]
     if not survivors:
