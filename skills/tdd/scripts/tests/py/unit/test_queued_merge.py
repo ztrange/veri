@@ -79,7 +79,7 @@ def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True,
             return 0, (PUSHED_HEAD if state["rebased"] else "0000000") + "\n", ""
         if "--git-common-dir" in line:
             return 0, "/main/.git\n", ""
-        if "rev-parse --verify refs/tags/" in line:
+        if line == "git -C /wt rev-parse --verify refs/tags/v0.11":
             return 0, TAG_OID + "\n", ""
         if "tag --sort=-v:refname" in line:
             return 0, tags, ""
@@ -1611,3 +1611,16 @@ def test_3984_queued_merge_whose_cut_tag_object_cannot_be_read_still_publishes_t
     code, _, _ = run_cli(queued_merge, ARGV)
 
     assert (code, first(calls, "git -C /wt push origin v0.11") is not None) == (0, True)
+
+
+def test_3984_queued_merge_whose_cut_tag_object_cannot_be_read_and_whose_push_fails_leaves_the_tag_named_runs_the_cleanup_and_exits_2_naming_tag(fake_processes, run_cli):
+    calls = scenario(fake_processes, fail=("rev-parse --verify refs/tags/v0.11", "push origin v0.11"))
+
+    code, _, err = run_cli(queued_merge, ARGV)
+
+    deletes = [c for c in calls if "update-ref -d" in c or " tag -d " in c]
+    ran = [first(calls, needle) is not None for needle in (
+        "push origin --delete feature", "worktree remove", "branch -D feature", "merge-lock.sh release", "pull --ff-only")]
+    released = [c for c in calls if c.startswith("merge-lock.sh release")]
+    assert (code, deletes, "tag v0.11 left in the clone: its object could not be read" in err, "merged, but cleanup failed: tag" in err,
+            ran, len(released)) == (2, [], True, True, [True] * 5, 1)
