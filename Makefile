@@ -135,6 +135,10 @@ test unit:
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
+# install-dev installs the lock requirements-dev.txt with --require-hashes (#3967): pip refuses a
+# package the lock does not name or whose file does not match its sha256. Edit requirements-dev.in and
+# regenerate the lock with the command its header names. pip checks hashes only on what it installs:
+# a package already in the venv at the locked version is left as it is.
 .PHONY: install-dev
 install-dev:
 	@venv="$(VENV_DIR)"; \
@@ -144,7 +148,7 @@ install-dev:
 	else \
 	  bash -c '. $(VENV_LIB) && venv_usable "$$1"' _ "$$venv" || exit 2; \
 	fi; \
-	"$$venv/bin/python3" -m pip install -r requirements-dev.txt && \
+	"$$venv/bin/python3" -m pip install --require-hashes -r requirements-dev.txt && \
 	printf '%s: export PATH="%s/bin:$$PATH"\n' "$$(bash -c '. $(VENV_LIB) && venv_path_advice "$$1"' _ "$$venv")" "$$venv"
 
 # `make profile` runs the suites `test` runs, under the same offline environment, through
