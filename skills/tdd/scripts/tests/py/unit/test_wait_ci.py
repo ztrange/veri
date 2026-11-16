@@ -2597,6 +2597,19 @@ def test_main_given_a_head_sha_the_pr_never_reports_writes_a_head_mark_and_exits
     assert (first[0], mark, later[0], FULL_SHA in later[2] and other in later[2]) == (3, "1000\n", 2, True)
 
 
+@pytest.mark.parametrize("value", ["-5", "5x", "soon"])
+def test_main_exits_2_naming_ci_head_wait_before_any_read_when_it_is_not_a_non_negative_whole_number_issue_3978(
+        tmp_path, wait_ci, fake_processes, run_cli, value):
+    work = tmp_path / "work"
+    (work / ".tdd").mkdir(parents=True)
+    calls = head_world(fake_processes, {"now": 1000}, {"sha": "fedcba9876543210fedcba9876543210fedcba98"})
+
+    code, out, err = run_cli(wait_ci, [PR, "0", "120", FULL_SHA],
+                             env={"VERI_POLL": "0", "VERI_CI_HEAD_WAIT": value}, cwd=work)
+
+    assert (code, out, "VERI_CI_HEAD_WAIT" in err, [c for c in calls if c.startswith("gh ")]) == (2, "", True, [])
+
+
 def test_main_fresh_window_removes_one_shas_marks_reads_no_checks_and_exits_0(wait_ci, fake_processes, run_cli, tmp_path):
     other = "f" * 40
     tdd = tmp_path / ".tdd"
