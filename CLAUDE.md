@@ -108,7 +108,7 @@ one `pytest` invocation, and nothing under `tests/` ends in `.test.sh`. pytest's
 trusted: 0 only when every collected test passed, 5 when none were collected. The autouse
 `hermetic_environment` fixture in `tests/py/conftest.py` makes a case hermetic from ambient `VERI_*`.
 It also sets `VERI_EVENT_STRICT=1`, so a case that writes an event `veri/event_table.py` does not allow
-(an undeclared name or key, a missing required key) gets exit 2 from `event.sh`/`event.mark`; a run's conductor never carries it.
+(an undeclared name or key, a missing required key, a value that breaks its key's declared format, or an empty value where none is allowed) gets exit 2 from `event.sh`/`event.mark`; a run's conductor never carries it.
 `make test TESTS="<pytest file or node id> …"` runs only those, in the same one invocation.
 The leg runs the non-`serial` cases, then a second pytest pass over the `serial` ones only when the first collected one; veri's own
 tree holds no `serial` case (`unit/test_no_serial_case.py` names the file and line of any), so `make test` on veri is one pytest session. When both run, its output ends with one
