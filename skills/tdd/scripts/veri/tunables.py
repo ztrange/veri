@@ -145,6 +145,7 @@ TUNABLES = {
     "VERI_TOOL_WAIT": Tunable(text, "3600"),
     "VERI_GH_REFUSAL_SLEEP": Tunable(text, "60"),
     "VERI_GH_DRIVER": Tunable(gh_driver, "rest"),
+    "VERI_GH_TIMEOUT": Tunable(text, "300"),
     "VERI_MERGE_LOCK_POLL": Tunable(text, "30"),
     "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
     "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
