@@ -30,7 +30,7 @@ def test_a_run_whose_skill_md_refactor_mark_is_present_renders_real_refactor_and
     (tmp_path / ".tdd" / "issue-230.md").write_text(f"- [x] {tidied} ⟂ refactor pending\n- [ ] {untidied}\n")
     event = importlib.import_module("veri.event")
     for step in (tidied, untidied):
-        code, out, err = run_cli(event, ["launch", "name=develop-refactor"], cwd=tmp_path, env={
+        code, out, err = run_cli(event, ["launch", "name=develop-refactor", "cmd=claude", "model=sonnet"], cwd=tmp_path, env={
             "VERI_ISSUE": "230", "VERI_ACTOR": "developer", "VERI_STEP": step, "VERI_PHASE": "refactor", "VERI_ATTEMPT": "1"})
         assert code == 0, f"event.sh could not write the fixture's launch line for step: {step}: {err}"
     ran = subprocess.run(["bash", "-c", call], cwd=tmp_path, capture_output=True, text=True)

@@ -1,4 +1,5 @@
 """Process case for stop-reason.sh, the shim over veri/stop_reason.py."""
+import os
 import subprocess
 
 import pytest
@@ -53,8 +54,8 @@ def test_a_bail_marked_through_event_sh_inside_a_worktree_lands_in_its_events_lo
     git("worktree", "add", "-q", "--detach", ".tdd/wt/7")
     worktree = tmp_path / ".tdd" / "wt" / "7"
 
-    marked = subprocess.run([str(SCRIPTS / "event.sh"), "bail", "cause=needs-user", "classification=process",
-                             "phase=green"], capture_output=True, text=True, cwd=str(worktree))
+    marked = subprocess.run([str(SCRIPTS / "event.sh"), "bail", "cause=needs-user", "classification=process"],
+                            capture_output=True, text=True, cwd=str(worktree), env=dict(os.environ, VERI_PHASE="green"))
     assert marked.returncode == 0, marked.stderr
     assert '"event": "bail"' in (worktree / ".tdd" / "events.jsonl").read_text()
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
