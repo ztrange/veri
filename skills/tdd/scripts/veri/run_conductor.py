@@ -114,7 +114,6 @@ def preflight_and_launch(argv):
                 return 2
     carried = None
     if mode == "first" and not os.path.lexists(record):
-        restore_carried_timeout(argv[0])
         carried = carried_pin(argv[0])
     if carried:
         mode, resuming = "resume", True
@@ -154,6 +153,9 @@ def preflight_and_launch(argv):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
     if carried:
         mode = adopt_carried_pin(base, head_rev, carried, record)
+        if mode == "resume":
+            # The timeout travels with the pin it was settled under: a rejected carry is a fresh launch in every respect.
+            restore_carried_timeout(argv[0])
         if mode == "first":
             # A rejected carried pin leaves a fresh launch, which updates veri's clone first; that runs here instead.
             update_veri(here)

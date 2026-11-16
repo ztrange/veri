@@ -942,12 +942,28 @@ def test_main_whose_carried_skill_pin_is_rejected_runs_update_veri_as_a_fresh_la
     assert [call[0].rsplit("/", 1)[-1] for call in calls if str(call[0]).endswith("update-veri.sh")] == ["update-veri.sh"]
 
 
+def test_main_whose_carried_skill_pin_is_rejected_restores_no_carried_timeout_pin_either(tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    head, carried = "1" * 40, "3" * 40
+    fake_pin(monkeypatch, head, {head + "^{commit}", carried + "^{commit}"}, carried=carried, ancestor=False,
+             carried_timeout="3600\n")
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+
+    run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+
+    assert (tmp_path / ".tdd" / "wt" / "4242" / ".tdd" / "issue-4242-timeout").exists() is False
+
+
 def test_main_on_a_first_launch_restores_the_carried_timeout_pin_into_the_runs_worktree(tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     scratch_tmpdir(tmp_path, monkeypatch)
-    head = "1" * 40
-    fake_pin(monkeypatch, head, {head + "^{commit}"}, carried_timeout="3600\n")
+    head, carried = "1" * 40, "2" * 40
+    fake_pin(monkeypatch, head, {head + "^{commit}", carried + "^{commit}"}, carried=carried, carried_timeout="3600\n")
     monkeypatch.chdir(tmp_path)
     run_conductor = importlib.import_module("veri.run_conductor")
 
@@ -964,8 +980,8 @@ def test_main_ignores_a_carried_timeout_pin_that_is_not_a_whole_number_of_second
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     scratch_tmpdir(tmp_path, monkeypatch)
-    head = "1" * 40
-    fake_pin(monkeypatch, head, {head + "^{commit}"}, carried_timeout=carried_timeout)
+    head, carried = "1" * 40, "2" * 40
+    fake_pin(monkeypatch, head, {head + "^{commit}", carried + "^{commit}"}, carried=carried, carried_timeout=carried_timeout)
     monkeypatch.chdir(tmp_path)
     run_conductor = importlib.import_module("veri.run_conductor")
 
