@@ -44,3 +44,15 @@ def test_the_grader_leaf_is_launched_with_effort_level_from_an_effort_line_and_w
         launched.append([word for word in fake.argvs[-1] if word in ("--effort", "low")])
 
     assert launched == [["--effort", "low"], []]
+
+
+def test_an_effort_value_outside_the_five_levels_exits_2_naming_grader_conf_before_any_launch(
+        tmp_path, monkeypatch, run_cli, grade_prose, fake_processes):
+    unit_tree(tmp_path)
+    monkeypatch.setenv("PATH", "")
+    fake = fake_processes.answers({}, default=(2, "", ""))
+    conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\neffort=extreme\n")
+
+    code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
+
+    assert (code, fake.argvs, "grader.conf" in err) == (2, [], True), err
