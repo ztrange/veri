@@ -1335,6 +1335,36 @@ def test_two_grading_calls_for_two_units_in_one_tree_each_leave_their_own_cost_r
     assert (codes, left) == ([0, 0], [0.01, 0.02]), (codes, left)
 
 
+@pytest.mark.parametrize("cost, written", [("0.00001", "0.00001"), ("0.0425", "0.0425"),
+                                           ("0.032333100000000004", "0.032333100000000004")])
+def test_the_grading_event_writes_its_cost_as_a_plain_decimal_with_no_exponent_and_a_typical_cost_as_python_prints_it(
+        tmp_path, monkeypatch, run_cli, grade_prose, cost, written):
+    leaf = importlib.import_module("veri.leaf")
+    (tmp_path / "skills" / "tdd" / "scripts").mkdir(parents=True)
+    (tmp_path / "skills" / "tdd" / "grader.conf").write_text("model=sonnet-4\n")
+    (tmp_path / "one.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## one.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n\n")
+    (tmp_path / ".tdd").mkdir()
+
+    def fake_launch(name, *a, **k):
+        (tmp_path / ".tdd" / f"{name}.log").write_text(
+            '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":%s,"result":'
+            '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n' % cost)
+        return subprocess.CompletedProcess([name], 0)
+
+    monkeypatch.delenv("VERI_EVENT_STRICT")  # the bytes a real run writes, which never runs strict
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
+    monkeypatch.setattr(leaf, "launch", fake_launch)
+
+    code = run_cli(grade_prose, ["REQUIREMENTS.md", "one.md"], cwd=tmp_path)[0]
+
+    gradings = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()
+                if json.loads(line).get("event") == "grading"]
+    assert (code, [g["cost_usd"] for g in gradings]) == (0, [written])
+
+
 def test_a_row_retry_within_one_grading_call_leaves_the_first_attempts_cost_readable_too_2609(
         tmp_path, monkeypatch, run_cli, grade_prose):
     leaf = importlib.import_module("veri.leaf")

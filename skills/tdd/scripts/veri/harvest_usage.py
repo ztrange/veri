@@ -1,6 +1,5 @@
 """harvest-usage.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-import decimal
 import json
 import sys
 
@@ -8,7 +7,7 @@ import entry
 import event
 import tunables
 import leaf_role
-from leaf_log import result_records
+from leaf_log import plain, result_records
 
 
 def closing_result(path):
@@ -37,12 +36,6 @@ def first_turn_pairs(path):
             if isinstance(usage, dict) and all(key in usage for key in FIRST_TURN_KEYS):
                 return ["first_turn_%s=%s" % (key, usage[key]) for key in FIRST_TURN_KEYS]
     return []
-
-
-def plain(number):
-    """The number as Python prints it, unless that is in exponent form (1e-05): then as a plain decimal (0.00001)."""
-    text = str(number)
-    return format(decimal.Decimal(text), "f") if isinstance(number, float) and "e" in text else text
 
 
 def usage_pairs(record):
