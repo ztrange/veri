@@ -1,5 +1,7 @@
 """PUBLISHED.md and JOURNAL.md state the journal path event.py writes to (PRD 030.2, PB7, PB8)."""
 import ast
+import importlib
+import json
 import os
 import re
 
@@ -84,3 +86,44 @@ def test_journal_md_opens_with_the_journal_path_a_link_to_published_md_and_the_r
     assert f"`{path}`" in opening, f"JOURNAL.md's text above its table does not hold the journal path `{path}`"
     assert "](PUBLISHED.md)" in opening, "JOURNAL.md's text above its table does not link PUBLISHED.md"
     assert "`.tdd/events.jsonl`" in opening, "JOURNAL.md's text above its table no longer names the run's own copy"
+
+
+def _owed_example():
+    """The JSON example in PUBLISHED.md's `report-owed.json` section, parsed; None when the section holds none."""
+    text = PUBLISHED.read_text(encoding="utf-8")
+    section = text.split("## `report-owed.json`", 1)[-1].split("\n## ", 1)[0]
+    block = re.search(r"```json\n(.*?)```", section, re.S)
+    return json.loads(block.group(1)) if block else None
+
+
+def _key_paths(value, prefix=""):
+    """Every key of <value>, at every level, as a dotted path from the top."""
+    if not isinstance(value, dict):
+        return set()
+    paths = set()
+    for key, inner in value.items():
+        paths |= {prefix + key} | _key_paths(inner, prefix + key + ".")
+    return paths
+
+
+def test_4021_the_report_owed_example_in_published_md_has_the_keys_of_a_file_store_owed_writes(run_cli, tmp_path):
+    prd_report = importlib.import_module("veri.prd_report")
+    example = _owed_example()
+    assert example is not None, "PUBLISHED.md's report-owed.json section holds no ```json example"
+    (prd,) = example
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    head = {"number": 5, "title": f"PRD {prd}: example", "state": "OPEN", "labels": [], "closedAt": None,
+            "updatedAt": "2026-11-02T10:00:00Z", "body": "", "blockedBy": [], "links": [], "wallSeconds": 0, "lane": None}
+    (tmp_path / ".tdd" / "report-cache.json").write_text(json.dumps(
+        {"cache_format": 2, "fetched_at": "2026-11-07T10:00:00Z", "issues": [head]}))
+    (tmp_path / "answer.json").write_text(json.dumps({"count": 1, "sections": ["Alpha"]}))
+
+    code, _, err = run_cli(prd_report, ["--store-owed", prd, "answer.json"], cwd=tmp_path)
+    written = json.loads((tmp_path / ".tdd" / "report-owed.json").read_text())
+
+    assert code == 0, err
+    lacking = sorted(_key_paths(written) - _key_paths(example))
+    extra = sorted(_key_paths(example) - _key_paths(written))
+    assert lacking == [], f"PUBLISHED.md's report-owed.json example lacks the key(s) {lacking}"
+    assert extra == [], f"PUBLISHED.md's report-owed.json example has the key(s) {extra}, which --store-owed does not write"
