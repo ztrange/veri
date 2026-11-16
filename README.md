@@ -95,6 +95,11 @@ asked about rather than guessed at.
 The `veri: all tests` command must be the project's whole merge gate: a run's full suite is
 never a subset of what the merge checks, or a run can report green and still fail the gate.
 
+A leaf receives only an allow-listed environment plus the names `VERI_LEAF_ENV` adds, so a
+repository whose tests need a toolchain variable (`JAVA_HOME`, `NODE_*`, `GOPATH`,
+`VIRTUAL_ENV`, `PYTHONPATH`, a proxy CA file) names it in `VERI_LEAF_ENV`; a missing one
+shows as a baseline green in the conductor and a suite red in a leaf.
+
 The run does not switch your checkout. The issue branch is checked out in a **linked git
 worktree** at `.tdd/wt/<n>` inside the target repo (created by `issue-worktree.sh`, cut
 from the default branch, sharing the one object store), and everything — spec, ledger, leaf
