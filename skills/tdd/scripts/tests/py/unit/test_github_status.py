@@ -216,3 +216,13 @@ def test_wait_whose_reads_all_get_no_answer_until_max_seconds_pass_exits_2(page,
     assert (code, out) == (2, "")
     assert "status 503" in err
     assert page.read_at == [NOW + datetime.timedelta(seconds=s) for s in (0, 300, 600, 900)]
+
+
+def test_wait_retries_a_read_with_no_answer_at_the_next_poll_and_exits_0_after_a_third_read_finding_none(
+        page, run_cli):
+    page.serve(incident("Incident with Pull Requests", 120, "Pull Requests")).serve(status=502).serve()
+
+    code, out, _ = run_cli(page.module, ["wait", "3600"])
+
+    assert (code, out) == (0, "up\n")
+    assert len(page.calls) == 3
