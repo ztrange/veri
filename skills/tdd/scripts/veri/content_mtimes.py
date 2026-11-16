@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 
-from entry import write
+from entry import no_arguments, write
 
 USAGE = "usage: content_mtimes.py"
 # Every stamp lies between 2001-09-09 and 2010-01-04: in the past, so the leg's record of a .pyc never takes its
@@ -23,6 +23,9 @@ def stamp(data):
 
 
 def main(argv):
+    refused = no_arguments(argv, USAGE)
+    if refused is not None:
+        return refused
     top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
     if top.returncode != 0:
         write(sys.stderr, "content_mtimes: not inside a git working tree; changed no file.")

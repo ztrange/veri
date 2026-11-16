@@ -20,3 +20,11 @@ def test_run_outside_a_git_working_tree_exits_2_with_one_stderr_line_and_changes
     code, out, err = run_cli(content_mtimes, [], cwd=tmp_path)
 
     assert (code, out, len(err.splitlines()), os.stat(kept).st_mtime) == (2, "", 1, 1500000000), err
+
+
+def test_an_argument_is_refused_with_exit_2_naming_it_before_any_git_runs_3922(content_mtimes, run_cli, fake_processes, tmp_path):
+    fake = fake_processes.answers({})
+
+    code, out, err = run_cli(content_mtimes, ["extra"], cwd=tmp_path)
+
+    assert (code, out, "extra" in err, fake.calls) == (2, "", True, []), err
