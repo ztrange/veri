@@ -3,6 +3,7 @@ detect-test-command.sh process boundaries are faked."""
 import importlib
 import os
 import re
+import shlex
 
 import pytest
 
@@ -229,7 +230,7 @@ def test_issue_4089_the_run_state_ignore_row_fails_naming_a_file_that_carries_th
 
     name, fix = ready_check.run_state_ignore_row()
 
-    assert name == "run-state ignore" and fix and str(gitignore) in fix and "in part" in fix, fix
+    assert name == "run-state ignore" and fix and str(gitignore) in fix and "in part" in fix.reason, (fix, fix.reason)
 
 
 def test_issue_4089_ready_check_prints_the_new_rows_and_counts_a_not_verifiable_or_skipped_row_as_no_fail(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
@@ -252,11 +253,13 @@ WRITING_FLAGS = ("-f", "-F", "--field", "--raw-field", "--input")
 
 
 def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git_write_no_file_and_name_one_command_or_settings_key_each(ready_check, fake_processes, tmp_path, monkeypatch):
-    common = tmp_path / "common.git"
+    repo = tmp_path / "my repo"
+    common = repo / ".git"
     (common / "info").mkdir(parents=True)
     (common / "info" / "exclude").write_text("")
-    (tmp_path / ".gitignore").write_text("")
-    unwritable(monkeypatch, {os.path.realpath(tmp_path / ".gitignore"), os.path.realpath(common / "info" / "exclude")})
+    (repo / ".gitignore").write_text("")
+    monkeypatch.chdir(repo)
+    unwritable(monkeypatch, {os.path.realpath(repo / ".gitignore"), os.path.realpath(common / "info" / "exclude")})
     fake = fake_processes.answers({
         "gh api -i user": user_headers("gist"), "git remote get-url --push origin": HTTPS_ORIGIN,
         "gh api repos/{owner}/{repo}/labels/": NOT_FOUND, **WITH_WORKFLOWS,
@@ -274,15 +277,19 @@ def test_issue_4089_the_new_rows_failing_make_only_rest_reads_through_gh_and_git
         assert not any(flag in argv for flag in WRITING_FLAGS), argv
         methods = [argv[i + 1] for i, arg in enumerate(argv[:-1]) if arg in ("-X", "--method")]
         assert set(methods) <= {"GET"}, argv
-    (tmp_path / ".gitignore").write_text(".tdd/issue-*-spec.md\n")
+    (repo / ".gitignore").write_text(".tdd/issue-*-spec.md\n")
     partial = tree_state(tmp_path)
     rows.append(ready_check.run_state_ignore_row())
     assert tree_state(tmp_path) == partial
     assert all(fix for _, fix in rows), rows
     for name, fix in rows:
-        one_command = "\n" not in fix and fix.split(" ")[0] in ("gh", "chmod", "grep") and not any(c in fix for c in ";&|")
+        words = shlex.split(fix) if "`" not in fix else []
+        one_command = ("\n" not in fix and "—" not in fix and words and words[0] in ("gh", "chmod", "grep")
+                       and not any(word in (";", "&&", "||", "|") for word in words))
         settings_key = "\n" not in fix and fix.count("`") == 2
         assert one_command or settings_key, (name, fix)
+        if words and words[0] in ("chmod", "grep"):
+            assert words[-1] == os.path.abspath(".gitignore"), (name, fix)
 
 
 PROBE_PUSH = "git push --dry-run --no-verify origin HEAD:refs/heads/veri-permission-probe-"
