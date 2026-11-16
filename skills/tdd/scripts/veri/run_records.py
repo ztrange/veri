@@ -3,7 +3,10 @@
 metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
 import json
 import os
+import re
+import socket
 import sys
+import tempfile
 
 import git
 import run_dir
@@ -17,7 +20,50 @@ def ref(issue):
     return "refs/veri/runs/%s" % issue
 
 
-def _issue_lines(path, issue):
+TEMP_PATTERNS = (r"(?:/private)?/var/folders/[^/\s\"']+/[^/\s\"']+/[A-Z]", r"(?:/private)?/tmp")
+END = r"(?=$|[/\s\"':;,()\[\]])"
+
+
+def _redactions(run):
+    """(regex, replacement) pairs, the longest literal first: the run's worktree and main clone roots read `<repo>`, any
+    temp directory `<tmp>`, the home directory `~`, the host name `<host>`. Each literal is matched in the spelling
+    given and as its resolved path (macOS spells /var as /private/var)."""
+    def spellings(path):
+        return {path, os.path.realpath(path)} if path else set()
+
+    run = os.path.abspath(run)
+    main = run_dir.main_of_worktree(run)
+    literals = [(spelled, "<repo>") for root in (run, main) for spelled in spellings(root)]
+    literals += [(spelled, "<tmp>") for temp in (tempfile.gettempdir(), os.environ.get("TMPDIR", "").rstrip("/"))
+                 for spelled in spellings(temp)]
+    home = os.path.expanduser("~")
+    literals += [(spelled, "~") for spelled in spellings(home if home != "/" else "")]
+    pairs = [(re.escape(text) + END, repl) for text, repl in sorted(literals, key=lambda item: -len(item[0]))]
+    pairs += [(pattern + END, "<tmp>") for pattern in TEMP_PATTERNS]
+    host = socket.gethostname()
+    pairs += [(r"\b%s\b" % re.escape(name), "<host>") for name in sorted({host, host.split(".")[0]} - {""}, key=len,
+                                                                           reverse=True)]
+    return [(re.compile(pattern), repl) for pattern, repl in pairs]
+
+
+def _redact_text(text, redactions):
+    for pattern, repl in redactions:
+        text = pattern.sub(repl, text)
+    return text
+
+
+def _redact(value, redactions):
+    """<value> (decoded JSON) with every string in it, keys included, redacted; the structure is kept as it is."""
+    if isinstance(value, str):
+        return _redact_text(value, redactions)
+    if isinstance(value, list):
+        return [_redact(item, redactions) for item in value]
+    if isinstance(value, dict):
+        return {_redact(key, redactions): _redact(item, redactions) for key, item in value.items()}
+    return value
+
+
+def _issue_lines(path, issue, redactions):
     try:
         with open(path, "rb") as f:
             raw = f.read().splitlines(keepends=True)
@@ -31,7 +77,7 @@ def _issue_lines(path, issue):
             continue
         # A line naming no issue was written without run context and is this run's own, as metrics counts it.
         if isinstance(record, dict) and str(record.get("issue") or issue) == str(issue):
-            kept.append(line if line.endswith(b"\n") else line + b"\n")
+            kept.append(json.dumps(_redact(record, redactions), ensure_ascii=False).encode() + b"\n")
     return b"".join(kept)
 
 
@@ -50,12 +96,13 @@ def records(run, issue):
     run, else from the main tree it sits under; a file the run lacks is left out."""
     roots = [run] + [m for m in [run_dir.main_of_worktree(os.path.abspath(run))] if m]
     found = {}
-    lines = _issue_lines(os.path.join(run, EVENTS), issue)
+    redactions = _redactions(run)
+    lines = _issue_lines(os.path.join(run, EVENTS), issue, redactions)
     if lines:
         found["events.jsonl"] = lines
     pin = _first_file(roots, issue, "-skill-commit")
     if pin is not None:
-        found["issue-%s-skill-commit" % issue] = pin
+        found["issue-%s-skill-commit" % issue] = _redact_text(os.fsdecode(pin), redactions).encode()
     return found
 
 
