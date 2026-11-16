@@ -1,6 +1,7 @@
 """In-process cases for veri/build_verify_prompt.py, the module build-verify-prompt.sh is a shim over."""
 import importlib
 import importlib.util
+import os
 import re
 import shutil
 
@@ -33,6 +34,19 @@ def rendered(tmp_path, capsysbinary, name, templates, argv):
     out, _ = capsysbinary.readouterr()
     assert code == 0
     return out.decode("utf-8", "surrogateescape")
+
+
+def every_file_tracked(line, cwd=None, **_):
+    """A `git ls-files -z` answer naming every file under the current directory, as if all were tracked."""
+    root = cwd or os.getcwd()
+    names = [os.path.relpath(os.path.join(top, name), root) for top, _, files in os.walk(root) for name in files]
+    return 0, "".join(name + "\0" for name in sorted(names)), ""
+
+
+@pytest.fixture(autouse=True)
+def tracked_tree(fake_processes):
+    """The plan phase lists the test files git tracks (#3919); here git answers that every file is tracked."""
+    return fake_processes.answers({"git ls-files": every_file_tracked})
 
 
 @pytest.fixture
