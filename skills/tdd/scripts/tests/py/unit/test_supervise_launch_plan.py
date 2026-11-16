@@ -258,3 +258,28 @@ def test_gate_16_a_step_reference_of_zero_is_no_ci_repair_step_even_when_the_las
 
     assert shape(supervise.launch_plan(["develop-green", "true"])) == hand_exit(
         "develop-green", "step 0 has no verify-red PASS after its latest red leaf")
+
+
+def snapshot_serving(tmp_path, monkeypatch, work_tree, issue="7"):
+    """A skill snapshot supervise runs from, its digest recorded for run <issue> in the work tree's `.tdd/`."""
+    from veri import pinned_scripts, run_pins
+    snapshot = tmp_path / "veri-snapshot-x"
+    (snapshot / "scripts").mkdir(parents=True)
+    (snapshot / "SKILL.md").write_text("# skill\n")
+    (snapshot / "scripts" / "status.sh").write_text("#!/bin/sh\n")
+    pinned_scripts.write_snapshot_marker(str(snapshot), str(work_tree))
+    (work_tree / ".tdd").mkdir(exist_ok=True)
+    run_pins.write_snapshot_digest(str(work_tree), issue, pinned_scripts.snapshot_digest(str(snapshot)))
+    monkeypatch.setattr(supervise, "HERE", str(snapshot / "scripts"))
+    monkeypatch.setenv("VERI_ISSUE", issue)
+    return snapshot
+
+
+def test_gate_20_a_snapshot_file_edited_since_its_digest_refuses_naming_it_with_exit_and_a_launch_refused_event_3964(
+        tmp_path, work_tree, monkeypatch, fake_processes):
+    snapshot = snapshot_serving(tmp_path, monkeypatch, work_tree)
+    (snapshot / "scripts" / "status.sh").write_text("#!/bin/sh\necho edited\n")
+    fake_processes.answers({HEAD: (0, "abc\n", ""), TOP: (0, f"{work_tree}\n", "")})
+
+    assert shape(supervise.launch_plan(["develop-red", "true"])) == launch_refused(
+        "develop-red", f"the skill snapshot {snapshot / 'scripts' / 'status.sh'} changed since extraction")

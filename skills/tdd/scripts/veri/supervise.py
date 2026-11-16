@@ -18,8 +18,10 @@ import full_run_lock
 import harvest_usage
 import leaf_timeout
 import mutation_record
+import pinned_scripts
 import preserve_attempt
 import run_dir
+import run_pins
 import tunables
 from case_reader import is_test_path
 from extract_result import extract
@@ -513,6 +515,21 @@ def not_a_number(var, value):
     return None if refused is None else refused.perform()
 
 
+def snapshot_change(issue):
+    """Why a leaf of run <issue> may not launch from the skill snapshot supervise runs from, or None: the first
+    file that differs from the digest recorded at extraction, or what could not be read. A skill that is no
+    snapshot, or a run with no recorded digest, is not checked."""
+    snapshot = os.path.dirname(HERE)
+    if not issue or not os.path.lexists(os.path.join(snapshot, pinned_scripts.SNAPSHOT_MARKER)):
+        return None
+    try:
+        recorded = run_pins.snapshot_digest(issue, run_dir.main_tree_from_files())
+        changed = recorded is not None and pinned_scripts.first_change(recorded, snapshot)
+    except OSError as error:
+        return f"the skill snapshot {snapshot} could not be checked: {error}"
+    return changed and f"the skill snapshot {changed} changed since extraction"
+
+
 def launch_plan(argv):
     """May this leaf launch, and with what settings: a `Launch`, or the first gate's `Refusal`.
 
@@ -543,6 +560,8 @@ def launch_plan(argv):
     | 18| verify-red/verify-green, no current check-earlier marker | `… step <s> has no current check-earlier …` | yes   | no      |
     | 19| `.tdd/leaf.owner` names a live other leaf                | `… leaf <o> (pid <p>) is still alive …`   | yes     | no      |
     |   | … names a live leaf of this same name                    | the same                                  | no      | no      |
+    | 20| run from a snapshot whose file differs from the run's    | `… the skill snapshot <file> changed …`   | yes     | yes     |
+    |   | recorded digest, or the check cannot read (`snapshot_change`) | `… the skill snapshot <s> could not …` | yes   | yes     |
 
     Gates 1-9 change nothing on disk; from gate 10 on the working directory is the work tree.
     """
@@ -622,6 +641,9 @@ def launch_plan(argv):
         owner_pid, owner_name = owner
         return Refusal(f"{refusing}leaf {owner_name or '?'} (pid {owner_pid}) is still alive in this worktree",
                        exit_file=exitfile if owner_name != name else None)
+    changed = snapshot_change(issue)
+    if changed:
+        return launch_refused(role, leaf_env, name, changed)
     return Launch(name, argv[1:], role, model, leaf_env, log, rcfile, exitfile, ownerfile, retries,
                   Watch(watched, timeout, heartbeat, poll, kill_poll, tool_idle))
 
