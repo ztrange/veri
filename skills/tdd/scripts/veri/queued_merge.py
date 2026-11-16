@@ -85,6 +85,11 @@ def _git(worktree, *args):
     return subprocess.run(["git", "-C", worktree, *args], capture_output=True, text=True)
 
 
+def _network_git(worktree, *args):
+    """_git for a network call, bounded by VERI_GIT_NETWORK_TIMEOUT: a call killed at the bound answers 2."""
+    return _bounded(["git", "-C", worktree, *args], NETWORK, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
 def _repo(pr):
     return pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
 
@@ -171,13 +176,15 @@ def _tag(worktree, message, pull, pr):
     if _git(worktree, "tag", "-a", name, "-m", message, target).returncode:
         _say("git tag failed; tag %s not published" % name)
         return False
-    if _git(worktree, "push", "origin", name).returncode:
+    pushed = _network_git(worktree, "push", "origin", name)
+    if pushed.returncode:
+        failed = "git push failed (exit %d): %s;" % (pushed.returncode, (pushed.stderr or "").strip())
         deleted = _git(worktree, "tag", "-d", name)
         if deleted.returncode:
-            _say("git push failed; tag %s cut, not published, and git tag -d %s failed (exit %d): %s" % (
-                name, name, deleted.returncode, deleted.stderr.strip()))
+            _say("%s tag %s cut, not published, and git tag -d %s failed (exit %d): %s" % (
+                failed, name, name, deleted.returncode, deleted.stderr.strip()))
         else:
-            _say("git push failed; tag %s cut, not published, and removed" % name)
+            _say("%s tag %s cut, not published, and removed" % (failed, name))
         return False
     return name
 
