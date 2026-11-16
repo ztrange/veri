@@ -2377,3 +2377,24 @@ def test_a_stray_path_present_when_an_author_attempt_would_run_exits_2_naming_it
 
     assert (code, ".tdd/issue-3481-body.md" in err, authors) == (2, True, []), (code, err, len(authors))
     assert {p: p.read_bytes() for p in (unit, listed, graded)} == before
+
+
+def test_the_issue_body_file_given_reported_changed_does_not_stop_the_step_whose_author_attempts_run_as_before_4058(tmp_path, monkeypatch, run_cli):
+    monkeypatch.chdir(tmp_path)
+    import subprocess
+    import types
+    skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    (tmp_path / "unit.md").write_text("The widget is painted a deep blue.\n")
+    (tmp_path / "REQUIREMENTS.md").write_text(
+        "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n")
+    (tmp_path / "issue.md").write_text("## Problem\n\nText.\n")
+    authors = []
+    monkeypatch.setattr(skill_edit_step, "_grade", lambda *a: (1, "A1: FAIL - no\n"))
+    monkeypatch.setattr(skill_edit_step, "_author", lambda *a: authors.append(a) or 0)
+    monkeypatch.setattr(skill_edit_step.skill_edit_guard, "offending", lambda unit, base, pins: ["issue.md"])
+    monkeypatch.setattr(skill_edit_step, "subprocess", types.SimpleNamespace(
+        run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, "abc1234\n", ""), PIPE=subprocess.PIPE))
+
+    code = run_cli(skill_edit_step, ["issue.md", "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})[0]
+
+    assert (code, len(authors)) == (1, 2), (code, len(authors))
